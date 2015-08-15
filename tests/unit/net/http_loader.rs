@@ -100,21 +100,127 @@ impl MockRequest {
     }
 }
 
+fn response_for_request_type(t: RequestType) -> Result<MockResponse, LoadError> {
+    match t {
+        RequestType::Redirect(location) => {
+            Ok(redirect_to(location))
+        },
+        RequestType::Text(b) => {
+            Ok(respond_with(b))
+        }
+    }
+}
+
 impl HttpRequest for MockRequest {
     type R=MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        match self.t {
-            RequestType::Redirect(location) => {
-                Ok(redirect_to(location))
-            },
-            RequestType::Text(b) => {
-                Ok(respond_with(b))
-            }
-        }
+        response_for_request_type(self.t)
     }
+}
+
+struct AssertMustHaveHeadersRequest {
+    expected_headers: Headers,
+    request_headers: Headers,
+    t: RequestType
+}
+
+impl AssertMustHaveHeadersRequest {
+    fn new(t: RequestType, expected_headers: Headers) -> Self {
+        AssertMustHaveHeadersRequest { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
+    }
+}
+
+impl HttpRequest for AssertMustHaveHeadersRequest {
+    type R=MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
+
+    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        for header in self.expected_headers.iter() {
+            assert!(self.request_headers.get_raw(header.name()).is_some());
+            assert_eq!(
+                self.request_headers.get_raw(header.name()).unwrap(),
+                self.expected_headers.get_raw(header.name()).unwrap()
+            )
+        }
+
+        response_for_request_type(self.t)
+    }
+}
+
+struct AssertMustHaveHeadersRequestFactory {
+    expected_headers: Headers,
+    body: Vec<u8>
+}
+
+impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
+    type R=AssertMustHaveHeadersRequest;
+
+    fn create(&self, _: Url, _: Method) -> Result<AssertMustHaveHeadersRequest, LoadError> {
+        Ok(
+            AssertMustHaveHeadersRequest::new(
+                RequestType::Text(self.body.clone()),
+                self.expected_headers.clone()
+            )
+        )
+    }
+}
+
+#[test]
+fn test_load_sets_content_length_to_length_of_request_body() {
+    let content = "This is a request body";
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
+
+    let mut content_len_headers= Headers::new();
+    content_len_headers.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]);
+
+    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
+
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+        expected_headers: content_len_headers,
+        body: <[_]>::to_vec(&*load_data.data.unwrap())
+    });
+}
+
+#[test]
+fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
+    let mut accept_headers = Headers::new();
+    accept_headers.set_raw("Accept".to_owned(), vec![b"text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8".to_vec()]);
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
+
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+        expected_headers: accept_headers,
+        body: <[_]>::to_vec("Yay!".as_bytes())
+    });
+}
+
+#[test]
+fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
+    let mut accept_encoding_headers = Headers::new();
+    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
+
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+        expected_headers: accept_encoding_headers,
+        body: <[_]>::to_vec("Yay!".as_bytes())
+    });
 }
 
 #[test]
