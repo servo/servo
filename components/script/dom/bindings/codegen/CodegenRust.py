@@ -1056,7 +1056,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             defaultStr = "None"
         else:
             tag = defaultValue.type.tag()
-            if tag in numericTags:
+            if type.includesRestrictedFloat():
+                defaultStr = "Finite::wrap(%s)" % defaultValue.value
+            elif tag in numericTags:
                 defaultStr = str(defaultValue.value)
             else:
                 assert(tag == IDLType.Tags.bool)
