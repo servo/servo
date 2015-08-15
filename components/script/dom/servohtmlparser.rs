@@ -268,7 +268,7 @@ impl ServoHTMLParser {
     }
 
     #[inline]
-    pub fn tokenizer<'a>(&'a self) -> &'a DOMRefCell<Tokenizer> {
+    pub fn tokenizer(&self) -> &DOMRefCell<Tokenizer> {
         &self.tokenizer
     }
 }
