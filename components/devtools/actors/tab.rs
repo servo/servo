@@ -63,6 +63,7 @@ pub struct TabActorMsg {
     inspectorActor: String,
     timelineActor: String,
     profilerActor: String,
+    performanceActor: String,
 }
 
 pub struct TabActor {
@@ -73,6 +74,7 @@ pub struct TabActor {
     pub inspector: String,
     pub timeline: String,
     pub profiler: String,
+    pub performance: String,
 }
 
 impl Actor for TabActor {
@@ -150,6 +152,7 @@ impl TabActor {
             inspectorActor: self.inspector.clone(),
             timelineActor: self.timeline.clone(),
             profilerActor: self.profiler.clone(),
+            performanceActor: self.performance.clone(),
         }
     }
 }
