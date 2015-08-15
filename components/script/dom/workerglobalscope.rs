@@ -45,8 +45,8 @@ pub enum WorkerGlobalScopeTypeId {
 pub struct WorkerGlobalScopeInit {
     pub resource_task: ResourceTask,
     pub mem_profiler_chan: mem::ProfilerChan,
-    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    pub devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    pub devtools_server_event_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    pub devtools_client_script_process_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan,
     pub worker_id: WorkerId,
 }
@@ -71,17 +71,17 @@ pub struct WorkerGlobalScope {
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    devtools_server_event_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
     /// to the server from within the worker
-    devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    devtools_client_script_process_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
     #[ignore_heap_size_of = "Defined in std"]
     /// This `Receiver` will be ignored later if the corresponding
     /// `IpcSender` doesn't exist
-    devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+    devtools_client_script_process_receiver: Receiver<DevtoolScriptControlMsg>,
 
     /// A flag to indicate whether the developer tools has requested live updates
     /// from the worker
@@ -96,7 +96,7 @@ impl WorkerGlobalScope {
                          init: WorkerGlobalScopeInit,
                          worker_url: Url,
                          runtime: Rc<Runtime>,
-                         devtools_receiver: Receiver<DevtoolScriptControlMsg>)
+                         devtools_client_script_receiver: Receiver<DevtoolScriptControlMsg>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
@@ -111,9 +111,9 @@ impl WorkerGlobalScope {
             crypto: Default::default(),
             timers: TimerManager::new(),
             mem_profiler_chan: init.mem_profiler_chan,
-            devtools_chan: init.devtools_chan,
-            devtools_sender: init.devtools_sender,
-            devtools_receiver: devtools_receiver,
+            devtools_server_event_sender: init.devtools_server_event_sender,
+            devtools_client_script_process_sender: init.devtools_client_script_process_sender,
+            devtools_client_script_process_receiver: devtools_client_script_receiver,
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
         }
@@ -124,15 +124,15 @@ impl WorkerGlobalScope {
     }
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
-        self.devtools_chan.clone()
+        self.devtools_server_event_sender.clone()
     }
 
-    pub fn devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
-        self.devtools_sender.clone()
+    pub fn devtools_script_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
+        self.devtools_client_script_process_sender.clone()
     }
 
-    pub fn devtools_port(&self) -> &Receiver<DevtoolScriptControlMsg> {
-        &self.devtools_receiver
+    pub fn devtools_script_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
+        &self.devtools_client_script_process_receiver
     }
 
     pub fn constellation_chan(&self) -> ConstellationChan {
