@@ -194,6 +194,13 @@ pub struct Document {
     modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
+    /// DOM-Related Navigation Timing properties:
+    /// http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domLoading
+    dom_loading: Cell<u64>,
+    dom_interactive: Cell<u64>,
+    dom_content_loaded_event_start: Cell<u64>,
+    dom_content_loaded_event_end: Cell<u64>,
+    dom_complete: Cell<u64>,
 }
 
 impl PartialEq for Document {
@@ -507,6 +514,12 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
+        match state {
+            DocumentReadyState::Loading => update_with_current_time(&self.dom_loading),
+            DocumentReadyState::Interactive => update_with_current_time(&self.dom_interactive),
+            DocumentReadyState::Complete => update_with_current_time(&self.dom_complete),
+        };
+
         self.ready_state.set(state);
 
         let event = Event::new(GlobalRef::Window(&self.window),
@@ -1226,6 +1239,9 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
+
+        update_with_current_time(&self.dom_content_loaded_event_start);
+
         let event = Event::new(GlobalRef::Window(self.window()),
                                DOMString("DOMContentLoaded".to_owned()),
                                EventBubbles::DoesNotBubble,
@@ -1233,6 +1249,8 @@ impl Document {
         let doctarget = self.upcast::<EventTarget>();
         let _ = doctarget.DispatchEvent(event.r());
         self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
+
+        update_with_current_time(&self.dom_content_loaded_event_end);
     }
 
     pub fn notify_constellation_load(&self) {
@@ -1257,6 +1275,26 @@ impl Document {
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
             .find(|node| node.subpage_id() == Some(subpage_id))
+    }
+
+    pub fn get_dom_loading(&self) -> u64 {
+        self.dom_loading.get()
+    }
+
+    pub fn get_dom_interactive(&self) -> u64 {
+        self.dom_interactive.get()
+    }
+
+    pub fn get_dom_content_loaded_event_start(&self) -> u64 {
+        self.dom_content_loaded_event_start.get()
+    }
+
+    pub fn get_dom_content_loaded_event_end(&self) -> u64 {
+        self.dom_content_loaded_event_end.get()
+    }
+
+    pub fn get_dom_complete(&self) -> u64 {
+        self.dom_complete.get()
     }
 }
 
@@ -1367,6 +1405,11 @@ impl Document {
             appropriate_template_contents_owner_document: Default::default(),
             modified_elements: DOMRefCell::new(HashMap::new()),
             active_touch_points: DOMRefCell::new(Vec::new()),
+            dom_loading: Cell::new(Default::default()),
+            dom_interactive: Cell::new(Default::default()),
+            dom_content_loaded_event_start: Cell::new(Default::default()),
+            dom_content_loaded_event_end: Cell::new(Default::default()),
+            dom_complete: Cell::new(Default::default()),
         }
     }
 
@@ -2235,6 +2278,13 @@ impl DocumentMethods for Document {
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
     url.host().is_some() && url.port_or_default().is_some()
+}
+
+fn update_with_current_time(marker: &Cell<u64>) {
+    if marker.get() == Default::default() {
+        let current_time_ms = time::get_time().sec * 1000;
+        marker.set(current_time_ms as u64);
+    }
 }
 
 pub struct DocumentProgressHandler {
