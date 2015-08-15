@@ -23,7 +23,7 @@ use hyper::header::StrictTransportSecurity;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::client::{Request, Response};
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, StrictTransportSecurity};
-use hyper::header::{Quality, QualityItem, Headers};
+use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
 use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::http::RawStatus;
@@ -108,6 +108,9 @@ fn load_for_consumer(load_data: LoadData,
         }
         Err(LoadError::MaxRedirects(url)) => {
             send_error(url, "too many redirects".to_string(), start_chan)
+        }
+        Err(LoadError::UnsupportedContentEncodings(url)) => {
+            send_error(url, "no valid content encodings supported".to_string(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
@@ -259,7 +262,8 @@ pub enum LoadError {
     Ssl(Url, String),
     InvalidRedirect(Url, String),
     Decoding(Url, String),
-    MaxRedirects(Url)
+    MaxRedirects(Url),
+    UnsupportedContentEncodings(Url)
 }
 
 #[inline(always)]
@@ -514,21 +518,6 @@ pub fn load<A>(mut load_data: LoadData,
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
 
-        let mut encoding_str: Option<String> = None;
-
-        //TODO: This is now in hyper, just need to implement
-        //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
-        if let Some(encodings) = response.headers().get_raw("content-encoding") {
-            for encoding in encodings.iter() {
-                if let Ok(encodings) = String::from_utf8(encoding.clone()) {
-                    if encodings == "gzip" || encodings == "deflate" {
-                        encoding_str = Some(encodings);
-                        break;
-                    }
-                }
-            }
-        }
-
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
@@ -542,27 +531,41 @@ pub fn load<A>(mut load_data: LoadData,
                                                              net_event_response))).unwrap();
         }
 
-        // --- Stream the results depending on the encoding type.
-        match encoding_str {
-            Some(encoding) => {
-                if encoding == "gzip" {
-                    let result = GzDecoder::new(response);
-                    match result {
-                        Ok(response_decoding) => {
-                            return Ok((Box::new(response_decoding), metadata));
-                        }
-                        Err(err) => {
-                            return Err(LoadError::Decoding(metadata.final_url, err.to_string()));
-                        }
-                    }
-                } else if encoding == "deflate" {
-                    let response_decoding = DeflateDecoder::new(response);
-                    return Ok((Box::new(response_decoding), metadata));
+        let selected_content_encoding = match response.headers().get::<ContentEncoding>() {
+            Some(&ContentEncoding(ref encodings)) => {
+                if encodings.contains(&Encoding::Gzip) {
+                    Some(Encoding::Gzip)
+                } else if encodings.contains(&Encoding::Deflate) {
+                    Some(Encoding::Deflate)
+                } else {
+                    return Err(LoadError::UnsupportedContentEncodings(url.clone()))
                 }
-            },
+            }
+            None => {
+                None
+            }
+        };
+
+        match selected_content_encoding {
+            Some(Encoding::Gzip) => {
+                let result = GzDecoder::new(response);
+                match result {
+                    Ok(response_decoding) => {
+                        return Ok((Box::new(response_decoding), metadata));
+                    }
+                    Err(err) => {
+                        return Err(LoadError::Decoding(metadata.final_url, err.to_string()));
+                    }
+                }
+            }
+            Some(Encoding::Deflate) => {
+                let response_decoding = DeflateDecoder::new(response);
+                return Ok((Box::new(response_decoding), metadata));
+            }
             None => {
                 return Ok((Box::new(response), metadata));
             }
+            _ => return Err(LoadError::UnsupportedContentEncodings(url.clone()))
         }
     }
 }
