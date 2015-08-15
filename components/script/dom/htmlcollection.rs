@@ -27,8 +27,10 @@ pub trait CollectionFilter : JSTraceable {
 pub struct Collection(JS<Node>, Box<CollectionFilter+'static>);
 
 #[dom_struct]
+#[derive(HeapSizeOf)]
 pub struct HTMLCollection {
     reflector_: Reflector,
+    #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
     collection: Collection,
 }
 
@@ -54,7 +56,7 @@ impl HTMLCollection {
 
     fn all_elements(window: &Window, root: &Node,
                     namespace_filter: Option<Namespace>) -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct AllElementFilter {
             namespace_filter: Option<Namespace>
         }
@@ -76,7 +78,7 @@ impl HTMLCollection {
             return HTMLCollection::all_elements(window, root, None);
         }
 
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameFilter {
             tag: Atom,
             ascii_lower_tag: Atom,
@@ -107,7 +109,7 @@ impl HTMLCollection {
         if tag == "*" {
             return HTMLCollection::all_elements(window, root, namespace_filter);
         }
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameNSFilter {
             tag: Atom,
             namespace_filter: Option<Namespace>
@@ -132,7 +134,7 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
                          -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct ClassNameFilter {
             classes: Vec<Atom>
         }
@@ -150,7 +152,7 @@ impl HTMLCollection {
     }
 
     pub fn children(window: &Window, root: &Node) -> Root<HTMLCollection> {
-        #[derive(JSTraceable)]
+        #[derive(JSTraceable, HeapSizeOf)]
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
