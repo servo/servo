@@ -158,7 +158,7 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
 
-    for modification in modifications.iter(){
+    for modification in &modifications {
         match modification.newValue {
             Some(ref string) => {
                 let _ = elem.SetAttribute(modification.attributeName.clone(), string.clone());

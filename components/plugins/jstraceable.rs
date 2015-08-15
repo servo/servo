@@ -80,7 +80,7 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
         _ => cx.span_bug(trait_span, "impossible substructure in `jstraceable`")
     };
 
-    for &FieldInfo { ref self_, span, .. } in fields.iter() {
+    for &FieldInfo { ref self_, span, .. } in fields {
         stmts.push(call_trace(span, self_.clone()));
     }
 

@@ -172,7 +172,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
 
                 // Tell all the worker threads to shut down.
-                for worker_thread in paint_task.worker_threads.iter_mut() {
+                for worker_thread in &mut paint_task.worker_threads {
                     worker_thread.exit()
                 }
             }

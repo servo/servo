@@ -298,7 +298,7 @@ reason: \"certificate verify failed\" }]))";
         }
 
         if let Some(cookies) = response.headers.get_raw("set-cookie") {
-            for cookie in cookies.iter() {
+            for cookie in cookies {
                 if let Ok(cookies) = String::from_utf8(cookie.clone()) {
                     resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(doc_url.clone(),
                                                                         cookies,
@@ -395,7 +395,7 @@ reason: \"certificate verify failed\" }]))";
         let mut encoding_str: Option<String> = None;
         //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
         if let Some(encodings) = response.headers.get_raw("content-encoding") {
-            for encoding in encodings.iter() {
+            for encoding in encodings {
                 if let Ok(encodings) = String::from_utf8(encoding.clone()) {
                     if encodings == "gzip" || encodings == "deflate" {
                         encoding_str = Some(encodings);

@@ -102,7 +102,7 @@ impl fmt::Display for RestyleDamage {
             , (RECONSTRUCT_FLOW, "ReconstructFlow")
             ];
 
-        for &(damage, damage_str) in to_iter.iter() {
+        for &(damage, damage_str) in &to_iter {
             if self.contains(damage) {
                 if !first_elem { try!(write!(f, " | ")); }
                 try!(write!(f, "{}", damage_str));
@@ -248,4 +248,3 @@ impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
         }
     }
 }
-

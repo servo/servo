@@ -386,7 +386,7 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     STACK_ROOTS.with(|ref collection| {
         let RootCollectionPtr(collection) = collection.get().unwrap();
         let collection = &*(*collection).roots.get();
-        for root in collection.iter() {
+        for root in collection {
             trace_reflector(tracer, "reflector", &**root);
         }
     });

@@ -671,7 +671,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(dest.write_str("linear-gradient("));
             try!(self.angle_or_corner.to_css(dest));
-            for stop in self.stops.iter() {
+            for stop in &self.stops {
                 try!(dest.write_str(", "));
                 try!(stop.to_css(dest));
             }
@@ -1160,7 +1160,7 @@ pub mod computed {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(dest.write_str("linear-gradient("));
             try!(self.angle_or_corner.to_css(dest));
-            for stop in self.stops.iter() {
+            for stop in &self.stops {
                 try!(dest.write_str(", "));
                 try!(stop.to_css(dest));
             }
@@ -1172,7 +1172,7 @@ pub mod computed {
     impl fmt::Debug for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let _ = write!(f, "{:?}", self.angle_or_corner);
-            for stop in self.stops.iter() {
+            for stop in &self.stops {
                 let _ = write!(f, ", {:?}", stop);
             }
             Ok(())

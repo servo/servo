@@ -108,7 +108,7 @@ impl<'a> PartialEq for ApplicableDeclarationsCacheQuery<'a> {
         if self.declarations.len() != other.declarations.len() {
             return false
         }
-        for (this, other) in self.declarations.iter().zip(other.declarations.iter()) {
+        for (this, other) in self.declarations.iter().zip(other.declarations) {
             if !arc_ptr_eq(&this.declarations, &other.declarations) {
                 return false
             }
@@ -127,7 +127,7 @@ impl<'a> PartialEq<ApplicableDeclarationsCacheEntry> for ApplicableDeclarationsC
 
 impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for declaration in self.declarations.iter() {
+        for declaration in self.declarations {
             let ptr: usize = unsafe {
                 mem::transmute_copy(declaration)
             };
@@ -173,7 +173,7 @@ pub struct StyleSharingCandidateCache {
 fn create_common_style_affecting_attributes_from_element(element: &LayoutElement)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
-    for attribute_info in common_style_affecting_attributes().iter() {
+    for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                 if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
@@ -295,7 +295,7 @@ impl StyleSharingCandidate {
         // FIXME(pcwalton): It's probably faster to iterate over all the element's attributes and
         // use the {common, rare}-style-affecting-attributes tables as lookup tables.
 
-        for attribute_info in common_style_affecting_attributes().iter() {
+        for attribute_info in &common_style_affecting_attributes() {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
@@ -322,7 +322,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        for attribute_name in rare_style_affecting_attributes().iter() {
+        for attribute_name in &rare_style_affecting_attributes() {
             if element.get_attr(&ns!(""), attribute_name).is_some() {
                 return false
             }
@@ -447,7 +447,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
             if let Some(ref mut style) = *style {
                 let this_opaque = self.opaque();
                 if let Some(ref animations) = layout_context.running_animations.get(&this_opaque) {
-                    for animation in animations.iter() {
+                    for animation in *animations {
                         animation.property_animation.update(&mut *Arc::make_unique(style), 1.0);
                     }
                 }

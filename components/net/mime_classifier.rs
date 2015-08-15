@@ -141,7 +141,7 @@ impl <'a, T: Iterator<Item=&'a u8> + Clone> Matches for T {
     // Side effects
     // moves the iterator when match is found
     fn matches(&mut self, matches: &[u8]) -> bool {
-        for (byte_a, byte_b) in self.clone().take(matches.len()).zip(matches.iter()) {
+        for (byte_a, byte_b) in self.clone().take(matches.len()).zip(matches) {
             if byte_a != byte_b {
                 return false;
             }

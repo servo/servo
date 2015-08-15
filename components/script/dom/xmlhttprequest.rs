@@ -1038,7 +1038,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
-                for &(ref name, ref value) in params.iter() {
+                for &(ref name, ref value) in params {
                     if name == &mime::Attr::Charset {
                         encoding = encoding_from_whatwg_label(&value.to_string()).unwrap_or(encoding);
                     }

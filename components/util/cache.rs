@@ -162,7 +162,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     }
 
     pub fn evict_all(&mut self) {
-        for slot in self.entries.iter_mut() {
+        for slot in &mut self.entries {
             *slot = None
         }
     }

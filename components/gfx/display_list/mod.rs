@@ -153,22 +153,22 @@ impl DisplayList {
     /// inefficient and should only be used for debugging.
     pub fn all_display_items(&self) -> Vec<DisplayItem> {
         let mut result = Vec::new();
-        for display_item in self.background_and_borders.iter() {
+        for display_item in &self.background_and_borders {
             result.push((*display_item).clone())
         }
-        for display_item in self.block_backgrounds_and_borders.iter() {
+        for display_item in &self.block_backgrounds_and_borders {
             result.push((*display_item).clone())
         }
-        for display_item in self.floats.iter() {
+        for display_item in &self.floats {
             result.push((*display_item).clone())
         }
-        for display_item in self.content.iter() {
+        for display_item in &self.content {
             result.push((*display_item).clone())
         }
-        for display_item in self.positioned_content.iter() {
+        for display_item in &self.positioned_content {
             result.push((*display_item).clone())
         }
-        for display_item in self.outlines.iter() {
+        for display_item in &self.outlines {
             result.push((*display_item).clone())
         }
         result
@@ -178,7 +178,7 @@ impl DisplayList {
     pub fn print_items(&self, indentation: String) {
         // Closures are so nice!
         let doit = |items: &Vec<DisplayItem>| {
-            for item in items.iter() {
+            for item in items {
                 match *item {
                     DisplayItem::SolidColorClass(ref solid_color) => {
                         println!("{} SolidColor({},{},{},{}). {:?}",
@@ -217,7 +217,7 @@ impl DisplayList {
             println!("{} Children stacking contexts list length: {}",
                      indentation,
                      self.children.len());
-            for stacking_context in self.children.iter() {
+            for stacking_context in &self.children {
                 stacking_context.print(indentation.clone() +
                                        &indentation[0..MIN_INDENTATION_LENGTH]);
             }
@@ -319,7 +319,7 @@ impl StackingContext {
 
             // Sort positioned children according to z-index.
             let mut positioned_children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-            for kid in display_list.children.iter() {
+            for kid in &display_list.children {
                 if kid.layer.is_none() {
                     positioned_children.push((*kid).clone());
                 }
@@ -335,7 +335,7 @@ impl StackingContext {
             paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
-            for display_item in display_list.background_and_borders.iter() {
+            for display_item in &display_list.background_and_borders {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
@@ -360,24 +360,24 @@ impl StackingContext {
             }
 
             // Step 4: Block backgrounds and borders.
-            for display_item in display_list.block_backgrounds_and_borders.iter() {
+            for display_item in &display_list.block_backgrounds_and_borders {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 5: Floats.
-            for display_item in display_list.floats.iter() {
+            for display_item in &display_list.floats {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
 
             // Step 7: Content.
-            for display_item in display_list.content.iter() {
+            for display_item in &display_list.content {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 8: Positioned descendants with `z-index: auto`.
-            for display_item in display_list.positioned_content.iter() {
+            for display_item in &display_list.positioned_content {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 
@@ -402,7 +402,7 @@ impl StackingContext {
             }
 
             // Step 10: Outlines.
-            for display_item in display_list.outlines.iter() {
+            for display_item in &display_list.outlines {
                 display_item.draw_into_context(&mut paint_subcontext)
             }
 

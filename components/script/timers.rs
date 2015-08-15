@@ -266,4 +266,3 @@ impl TimerManager {
         }
     }
 }
-

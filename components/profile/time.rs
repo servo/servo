@@ -178,7 +178,7 @@ impl Profiler {
                  "_category_", "_incremental?_", "_iframe?_",
                  "            _url_", "    _mean (ms)_", "  _median (ms)_",
                  "     _min (ms)_", "     _max (ms)_", "      _events_");
-        for (&(ref category, ref meta), ref mut data) in self.buckets.iter_mut() {
+        for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
             data.sort_by(|a, b| {
                 if a < b {
                     Ordering::Less

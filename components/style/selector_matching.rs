@@ -60,7 +60,7 @@ impl Stylist {
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
-        for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
+        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
             match read_resource_file(&[filename]) {
                 Ok(res) => {
                     let ua_stylesheet = Stylesheet::from_bytes(
@@ -104,7 +104,7 @@ impl Stylist {
             self.after_map = PerPseudoElementSelectorMap::new();
             self.rules_source_order = 0;
 
-            for stylesheet in self.stylesheets.iter() {
+            for stylesheet in &self.stylesheets {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
                     Origin::UserAgent => (
                         &mut self.element_map.user_agent,
@@ -129,7 +129,7 @@ impl Stylist {
                 macro_rules! append(
                     ($style_rule: ident, $priority: ident) => {
                         if $style_rule.declarations.$priority.len() > 0 {
-                            for selector in $style_rule.selectors.iter() {
+                            for selector in &$style_rule.selectors {
                                 let map = match selector.pseudo_element {
                                     None => &mut element_map,
                                     Some(PseudoElement::Before) => &mut before_map,

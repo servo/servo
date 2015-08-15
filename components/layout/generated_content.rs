@@ -261,12 +261,12 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         }
 
         // Truncate down counters.
-        for (_, counter) in self.traversal.counters.iter_mut() {
+        for (_, counter) in &mut self.traversal.counters {
             counter.truncate_to_level(self.level);
         }
         self.traversal.list_item.truncate_to_level(self.level);
 
-        for &(ref counter_name, value) in fragment.style().get_counters().counter_reset.0.iter() {
+        for &(ref counter_name, value) in &fragment.style().get_counters().counter_reset.0 {
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
                  counter.reset(self.level, value);
                  continue
@@ -386,7 +386,7 @@ impl Counter {
             }
             RenderingMode::All(separator) => {
                 let mut first = true;
-                for value in self.values.iter() {
+                for value in &self.values {
                     if !first {
                         string.push_str(separator)
                     }

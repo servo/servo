@@ -74,7 +74,7 @@ impl LayoutDataWrapper {
             ConstructionResult::ConstructionItem(ref construction_item) => {
                 match construction_item {
                     &ConstructionItem::InlineFragments(ref inline_fragments) => {
-                        for fragment in inline_fragments.fragments.fragments.iter() {
+                        for fragment in &inline_fragments.fragments.fragments {
                             fragment.remove_compositor_layers(constellation_chan.clone());
                         }
                     }

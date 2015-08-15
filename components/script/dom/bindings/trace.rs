@@ -429,7 +429,7 @@ impl RootedTraceableSet {
     }
 
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        for info in self.set.iter() {
+        for info in &self.set {
             (info.trace)(info.ptr, tracer);
         }
     }

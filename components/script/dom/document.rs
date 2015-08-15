@@ -752,7 +752,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
         let mut mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
-        for node_address in mouse_over_addresses.iter() {
+        for node_address in &mouse_over_addresses {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
             mouse_over_targets.push(node.r().inclusive_ancestors()
                                             .find(|node| node.r().is_element())

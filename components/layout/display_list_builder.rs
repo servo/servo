@@ -1771,7 +1771,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         let mut display_list = box DisplayList::new();
         let mut has_stacking_context = false;
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             fragment.build_display_list(&mut *display_list,
                                         layout_context,
                                         &self.base.stacking_relative_position,
@@ -2026,4 +2026,3 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
-

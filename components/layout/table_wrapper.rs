@@ -163,7 +163,7 @@ impl TableWrapperFlow {
         if excess_inline_size > Au(0) && selection ==
                 SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize {
             let mut info = ExcessInlineSizeDistributionInfo::new();
-            for column_intrinsic_inline_size in self.column_intrinsic_inline_sizes.iter() {
+            for column_intrinsic_inline_size in &self.column_intrinsic_inline_sizes {
                 info.update(column_intrinsic_inline_size)
             }
 
@@ -791,4 +791,3 @@ impl ISizeAndMarginsComputer for FloatedTable {
         FloatNonReplaced.solve_inline_size_constraints(block, input)
     }
 }
-

@@ -1148,7 +1148,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let pipeline = self.pipelines.get(&frame.current).unwrap();
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
 
-            for pipeline_id in frame.prev.iter().chain(frame.next.iter()) {
+            for pipeline_id in frame.prev.iter().chain(&frame.next) {
                 let pipeline = self.pipelines.get(pipeline_id).unwrap();
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
             }

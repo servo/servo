@@ -350,7 +350,7 @@ impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
         // TODO: Handle `dirnames` (needs directionality support)
         //       https://html.spec.whatwg.org/multipage/#the-directionality
         let mut ret: Vec<FormDatum> = data_set.collect();
-        for datum in ret.iter_mut() {
+        for datum in &mut ret {
             match &*datum.ty {
                 "file" | "textarea" => (),
                 _ => {

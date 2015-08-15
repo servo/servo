@@ -283,7 +283,7 @@ impl Metadata {
             Some(mime) => {
                 self.content_type = Some(ContentType(mime.clone()));
                 let &Mime(_, _, ref parameters) = mime;
-                for &(ref k, ref v) in parameters.iter() {
+                for &(ref k, ref v) in parameters {
                     if &Attr::Charset == k {
                         self.charset = Some(v.to_string());
                     }
