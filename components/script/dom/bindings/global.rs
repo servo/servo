@@ -15,7 +15,7 @@ use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers, ScriptHelpers};
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
+use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
@@ -168,7 +168,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Process a single event as if it were the next event in the task queue for
     /// this global.
-    pub fn process_event(&self, msg: ScriptMsg) {
+    pub fn process_event(&self, msg: CommonScriptMsg) {
         match *self {
             GlobalRef::Window(_) => ScriptTask::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),

@@ -22,8 +22,7 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
-use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource, ScriptPort};
-use script_task::StackRootTLS;
+use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
 
 use devtools_traits::DevtoolScriptControlMsg;
 use msg::constellation_msg::PipelineId;
@@ -45,17 +44,25 @@ use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
 
+/// Messages used to control the worker event loops
+pub enum WorkerScriptMsg {
+    /// Common variants associated with the script messages
+    Common(CommonScriptMsg),
+    /// Message sent through Worker.postMessage
+    DOMMessage(StructuredCloneData),
+}
+
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
-/// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
-/// will remain alive.
+/// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
+/// Worker object will remain alive.
 #[derive(JSTraceable, Clone)]
 pub struct SendableWorkerScriptChan {
-    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress, CommonScriptMsg)>,
     worker: TrustedWorkerAddress,
 }
 
 impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: ScriptMsg) -> Result<(), ()> {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         return self.sender.send((self.worker.clone(), msg)).map_err(|_| ());
     }
 
@@ -63,6 +70,39 @@ impl ScriptChan for SendableWorkerScriptChan {
         box SendableWorkerScriptChan {
             sender: self.sender.clone(),
             worker: self.worker.clone(),
+        }
+    }
+}
+
+/// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
+/// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
+/// Worker object will remain alive.
+#[derive(JSTraceable, Clone)]
+pub struct WorkerThreadWorkerChan {
+    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    worker: TrustedWorkerAddress,
+}
+
+impl ScriptChan for WorkerThreadWorkerChan {
+    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        return self.sender
+            .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
+            .map_err(|_| ());
+    }
+
+    fn clone(&self) -> Box<ScriptChan + Send> {
+        box WorkerThreadWorkerChan {
+            sender: self.sender.clone(),
+            worker: self.worker.clone(),
+        }
+    }
+}
+
+impl ScriptPort for Receiver<(TrustedWorkerAddress, WorkerScriptMsg)> {
+    fn recv(&self) -> CommonScriptMsg {
+        match self.recv().unwrap().1 {
+            WorkerScriptMsg::Common(script_msg) => script_msg,
+            WorkerScriptMsg::DOMMessage(_) => panic!("unexpected worker event message!"),
         }
     }
 }
@@ -92,7 +132,7 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 }
 
 enum MixedMessage {
-    FromWorker((TrustedWorkerAddress, ScriptMsg)),
+    FromWorker((TrustedWorkerAddress, WorkerScriptMsg)),
     FromDevtools(DevtoolScriptControlMsg),
 }
 
@@ -103,9 +143,9 @@ pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,
     #[ignore_heap_size_of = "Defined in std"]
-    receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>,
+    receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_heap_size_of = "Defined in std"]
-    own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
+    own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
@@ -120,8 +160,8 @@ impl DedicatedWorkerGlobalScope {
                      devtools_port: Receiver<DevtoolScriptControlMsg>,
                      runtime: Rc<Runtime>,
                      parent_sender: Box<ScriptChan+Send>,
-                     own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                     receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+                     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                     receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -141,8 +181,8 @@ impl DedicatedWorkerGlobalScope {
                devtools_port: Receiver<DevtoolScriptControlMsg>,
                runtime: Rc<Runtime>,
                parent_sender: Box<ScriptChan+Send>,
-               own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-               receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>)
+               own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+               receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             init, worker_url, id, devtools_port, runtime.clone(), parent_sender,
@@ -158,8 +198,8 @@ impl DedicatedWorkerGlobalScope {
                             devtools_ipc_port: IpcReceiver<DevtoolScriptControlMsg>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan+Send>,
-                            own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
+                            own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
         let serialized_worker_url = worker_url.serialize();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
@@ -170,7 +210,7 @@ impl DedicatedWorkerGlobalScope {
             let (url, source) = match load_whole_resource(&init.resource_task, worker_url) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
-                    parent_sender.send(ScriptMsg::RunnableMsg(
+                    parent_sender.send(CommonScriptMsg::RunnableMsg(
                         box WorkerEventHandler::new(worker))).unwrap();
                     return;
                 }
@@ -201,7 +241,7 @@ impl DedicatedWorkerGlobalScope {
                 while let Ok(event) = global.receive_event() {
                     global.handle_event(event);
                 }
-            }, reporter_name, parent_sender, ScriptMsg::CollectReports);
+            }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         });
     }
 }
@@ -210,12 +250,12 @@ pub trait DedicatedWorkerGlobalScopeHelpers {
     fn script_chan(self) -> Box<ScriptChan+Send>;
     fn pipeline(self) -> PipelineId;
     fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
-    fn process_event(self, msg: ScriptMsg);
+    fn process_event(self, msg: CommonScriptMsg);
 }
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
     fn script_chan(self) -> Box<ScriptChan+Send> {
-        box SendableWorkerScriptChan {
+        box WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
@@ -234,13 +274,13 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
         (chan, box rx)
     }
 
-    fn process_event(self, msg: ScriptMsg) {
-        self.handle_script_event(msg);
+    fn process_event(self, msg: CommonScriptMsg) {
+        self.handle_script_event(WorkerScriptMsg::Common(msg));
     }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_script_event(self, msg: ScriptMsg);
+    fn handle_script_event(self, msg: WorkerScriptMsg);
     fn dispatch_error_to_worker(self, &ErrorEvent);
     fn receive_event(self) -> Result<MixedMessage, RecvError>;
     fn handle_event(self, event: MixedMessage);
@@ -272,9 +312,9 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
         }
     }
 
-    fn handle_script_event(self, msg: ScriptMsg) {
+    fn handle_script_event(self, msg: WorkerScriptMsg) {
         match msg {
-            ScriptMsg::DOMMessage(data) => {
+            WorkerScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 let target = EventTargetCast::from_ref(self);
                 let _ar = JSAutoRequest::new(scope.get_cx());
@@ -283,24 +323,27 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },
-            ScriptMsg::RunnableMsg(runnable) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) => {
                 runnable.handler()
             },
-            ScriptMsg::RefcountCleanup(addr) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
                 LiveDOMReferences::cleanup(addr);
-            }
-            ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id) => {
+            },
+            WorkerScriptMsg::Common(
+                CommonScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
-            }
-            ScriptMsg::CollectReports(reports_chan) => {
+            },
+            WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = ScriptTask::get_reports(cx, path_seg);
                 reports_chan.send(reports);
-            }
-            _ => panic!("Unexpected message"),
+            },
+            WorkerScriptMsg::Common(CommonScriptMsg::FireTimer(_, _)) => {
+                panic!("obtained a fire timeout from window for the worker!")
+            },
         }
     }
 
@@ -331,7 +374,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
         let line_num = errorevent.Lineno();
         let col_num = errorevent.Colno();
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(
+        self.parent_sender.send(CommonScriptMsg::RunnableMsg(
             box WorkerErrorHandler::new(worker, msg, file_name, line_num, col_num))).unwrap();
  }
 }
@@ -341,7 +384,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
     fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(
+        self.parent_sender.send(CommonScriptMsg::RunnableMsg(
             box WorkerMessageHandler::new(worker, data))).unwrap();
         Ok(())
     }

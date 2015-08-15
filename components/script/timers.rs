@@ -7,10 +7,9 @@ use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
-
 use dom::window::ScriptHelpers;
 
-use script_task::{ScriptChan, ScriptMsg, TimerSource};
+use script_task::{ScriptChan, TimerSource, CommonScriptMsg};
 use horribly_inefficient_timers;
 
 use util::mem::HeapSizeOf;
@@ -149,7 +148,7 @@ impl TimerManager {
         let handle = self.next_timer_handle.get();
         self.next_timer_handle.set(handle + 1);
 
-        // Spawn a new timer task; it will dispatch the `ScriptMsg::FireTimer`
+        // Spawn a new timer task; it will dispatch the `CommonScriptMsg::FireTimer`
         // to the relevant script handler that will deal with it.
         let (control_chan, control_port) = channel();
         let spawn_name = match source {
@@ -177,7 +176,7 @@ impl TimerManager {
 
                 if id == timeout_handle.id() {
                     timeout_port.recv().unwrap();
-                    if script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle))).is_err() {
+                    if script_chan.send(CommonScriptMsg::FireTimer(source, TimerId(handle))).is_err() {
                         break;
                     }
 

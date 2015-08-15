@@ -22,7 +22,7 @@ use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
 use hyper::mime::{Mime, Attr};
 use std::sync::mpsc;
-use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
+use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 use std::cell::{Cell, RefCell};
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
@@ -408,22 +408,22 @@ fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, bl
     let chan = &script_chan;
     // Step 4
     let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
-    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
 
     let task = box FileReaderEvent::ProcessReadData(filereader.clone(),
         gen_id, DOMString::new());
-    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
 
     let bytes = match blob_contents.recv() {
         Ok(bytes) => bytes,
         Err(_) => {
             let task = box FileReaderEvent::ProcessReadError(filereader,
                 gen_id, DOMErrorName::NotFoundError);
-            chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
             return;
         }
     };
 
     let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, bytes);
-    chan.send(ScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
 }

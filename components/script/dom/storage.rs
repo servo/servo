@@ -17,11 +17,10 @@ use ipc_channel::ipc;
 use util::str::DOMString;
 use page::IterablePage;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
+use script_task::{ScriptTask, MainThreadRunnable, MainThreadScriptMsg};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
-
-use script_task::{ScriptTask, ScriptMsg, MainThreadRunnable};
 
 #[dom_struct]
 #[derive(HeapSizeOf)]
@@ -148,12 +147,12 @@ impl<'a> PrivateStorageHelpers for &'a Storage {
                                      new_value: Option<DOMString>){
         let global_root = self.global.root();
         let global_ref = global_root.r();
+        let main_script_chan = global_ref.as_window().main_thread_script_chan();
         let script_chan = global_ref.script_chan();
         let trusted_storage = Trusted::new(global_ref.get_cx(), self,
                                            script_chan.clone());
-        script_chan.send(ScriptMsg::MainThreadRunnableMsg(
-            box StorageEventRunnable::new(trusted_storage, key,
-                                          old_value, new_value))).unwrap();
+        main_script_chan.send(MainThreadScriptMsg::MainThreadRunnableMsg(
+            box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }
 }
 
