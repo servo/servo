@@ -2088,12 +2088,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
-        if let NodeTypeId::CharacterData(..) = self.type_id {
-            let chardata: &CharacterData = CharacterDataCast::to_ref(self).unwrap();
-            Some(chardata.Data())
-        } else {
-            None
-        }
+        CharacterDataCast::to_ref(self).map(|c| c.Data())
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
