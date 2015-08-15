@@ -4694,7 +4694,6 @@ class CGDictionary(CGThing):
                                          descriptorProvider,
                                          isMember="Dictionary",
                                          defaultValue=member.defaultValue,
-                                         failureCode="return Err(());",
                                          exceptionCode="return Err(());"))
             for member in dictionary.members]
 

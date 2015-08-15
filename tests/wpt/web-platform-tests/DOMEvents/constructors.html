@@ -144,4 +144,10 @@ Object.keys(expected).forEach(function(iface) {
     assert_props(iface, event, false);
   }, iface + " constructor (argument with non-default values)");
 });
+
+test(function () {
+  assert_throws(new TypeError(), function() {
+    new UIEvent("x", { view: 7 })
+  });
+}, "UIEvent constructor (view argument with wrong type)")
 </script>
