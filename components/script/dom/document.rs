@@ -96,6 +96,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::FromIterator;
+use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -193,6 +194,14 @@ pub struct Document {
     modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
+    /// DOM-Related Navigation Timing properties:
+    /// https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
+    /// NavigationTiming/Overview.html#dom-performancetiming-domloading
+    dom_loading: Cell<u64>,
+    dom_interactive: Cell<u64>,
+    dom_content_loaded_event_start: Cell<u64>,
+    dom_content_loaded_event_end: Cell<u64>,
+    dom_complete: Cell<u64>,
 }
 
 impl PartialEq for Document {
@@ -504,8 +513,32 @@ impl Document {
         }
     }
 
+}
+
+impl<'a> DocumentHelpers<'a> for &'a Document {
+
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
+        let window = self.window.root();
+
+        match state {
+            DocumentReadyState::Loading => {
+                let dom_loading = *window.Performance().r().Now().deref();
+                println!("domLoading: {:?}", dom_loading as u64);
+                self.dom_loading.set(dom_loading as u64);
+            },
+            DocumentReadyState::Interactive => {
+                let dom_interactive = *window.Performance().r().Now().deref();
+                println!("domInteractive: {:?}", dom_interactive as u64);
+                self.dom_interactive.set(dom_interactive as u64);
+            },
+            DocumentReadyState::Complete => {
+                let dom_complete = *window.Performance().r().Now().deref();
+                println!("domComplete: {:?}", dom_complete as u64);
+                self.dom_complete.set(dom_complete as u64);
+            },
+        };
+
         self.ready_state.set(state);
 
         let event = Event::new(GlobalRef::Window(&self.window),
@@ -1225,6 +1258,12 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
+
+        let dom_content_loaded_event_start = self.window().Performance().r().Now().deref();
+        println!("domContentLoadedEventStart: {:?}", dom_content_loaded_event_start as u64);
+        self.dom_content_loaded_event_start.set(dom_content_loaded_event_start as u64);
+
+
         let event = Event::new(GlobalRef::Window(self.window()),
                                DOMString("DOMContentLoaded".to_owned()),
                                EventBubbles::DoesNotBubble,
@@ -1232,6 +1271,10 @@ impl Document {
         let doctarget = self.upcast::<EventTarget>();
         let _ = doctarget.DispatchEvent(event.r());
         self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
+
+        let dom_content_loaded_event_end = self.window().Performance().r().Now().deref();
+        println!("domContentLoadedEventEnd: {:?}", dom_content_loaded_event_end as u64);
+        self.dom_content_loaded_event_end.set(dom_content_loaded_event_end as u64);
     }
 
     pub fn notify_constellation_load(&self) {
@@ -1256,6 +1299,26 @@ impl Document {
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
             .find(|node| node.subpage_id() == Some(subpage_id))
+    }
+
+    pub fn get_dom_loading(self) -> u64 {
+        self.dom_loading.get()
+    }
+
+    pub fn get_dom_interactive(self) -> u64 {
+        self.dom_interactive.get()
+    }
+
+    pub fn get_dom_content_loaded_event_start(self) -> u64 {
+        self.dom_content_loaded_event_start.get()
+    }
+
+    pub fn get_dom_content_loaded_event_end(self) -> u64 {
+        self.dom_content_loaded_event_end.get()
+    }
+
+    pub fn get_dom_complete(self) -> u64 {
+        self.dom_complete.get()
     }
 }
 
@@ -1366,6 +1429,11 @@ impl Document {
             appropriate_template_contents_owner_document: Default::default(),
             modified_elements: DOMRefCell::new(HashMap::new()),
             active_touch_points: DOMRefCell::new(Vec::new()),
+            dom_loading: Cell::new(0),
+            dom_interactive: Cell::new(0),
+            dom_content_loaded_event_start: Cell::new(0),
+            dom_content_loaded_event_end: Cell::new(0),
+            dom_complete: Cell::new(0),
         }
     }
 
@@ -1396,6 +1464,10 @@ impl Document {
             let node = document.upcast::<Node>();
             node.set_owner_doc(document.r());
         }
+
+        // Save DOM-related performance timing
+        document.r().set_ready_state(document.r().ready_state.get());
+
         document
     }
 
