@@ -502,9 +502,8 @@ pub mod specified {
         }
 
         fn simplify_sum_to_number(node: &CalcSumNode) -> Option<CSSFloat> {
-            let node = node.clone();
             let mut sum = 0.;
-            for product in node.products {
+            for product in &node.products {
                 match Calc::simplify_product_to_number(product) {
                     Some(number) => sum += number,
                     _ => return None
@@ -513,10 +512,10 @@ pub mod specified {
             Some(sum)
         }
 
-        fn simplify_product_to_number(node: CalcProductNode) -> Option<CSSFloat> {
+        fn simplify_product_to_number(node: &CalcProductNode) -> Option<CSSFloat> {
             let mut product = 1.;
-            for value in node.values {
-                match Calc::simplify_value_to_number(&value) {
+            for value in &node.values {
+                match Calc::simplify_value_to_number(value) {
                     Some(number) => product *= number,
                     _ => return None
                 }
@@ -526,8 +525,7 @@ pub mod specified {
 
         fn simplify_products_in_sum(node: &CalcSumNode) -> Result<SimplifiedValueNode, ()> {
             let mut simplified = Vec::new();
-            let node = node.clone();
-            for product in node.products {
+            for product in &node.products {
                 match try!(Calc::simplify_product(product)) {
                     SimplifiedValueNode::Sum(box sum) => simplified.push_all(&sum.values),
                     val => simplified.push(val),
