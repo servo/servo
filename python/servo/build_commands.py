@@ -110,6 +110,14 @@ def notify(title, text):
             print("[Warning] Could not generate notification! %s" % extra, file=sys.stderr)
 
 
+def call(*args, **kwargs):
+    """Wrap `subprocess.call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    subprocess.call(*args, **kwargs)
+
+
 @CommandProvider
 class MachCommands(CommandBase):
     @Command('build',
@@ -187,7 +195,7 @@ class MachCommands(CommandBase):
             # Ensure the APK builder submodule has been built first
             apk_builder_dir = "support/android-rs-glue"
             with cd(path.join(apk_builder_dir, "apk-builder")):
-                subprocess.call(["cargo", "build"], env=self.build_env())
+                call(["cargo", "build"], env=self.build_env(), verbose=verbose)
 
             opts += ["--target", "arm-linux-androideabi"]
 
@@ -212,9 +220,10 @@ class MachCommands(CommandBase):
             if jobs is not None:
                 make_cmd += ["-j" + jobs]
             with cd(self.android_support_dir()):
-                status = subprocess.call(
+                status = call(
                     make_cmd + ["-f", "openssl.makefile"],
-                    env=self.build_env())
+                    env=self.build_env(),
+                    verbose=verbose)
                 if status:
                     return status
             openssl_dir = path.join(self.android_support_dir(), "openssl-1.0.1k")
@@ -222,9 +231,9 @@ class MachCommands(CommandBase):
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 
-        status = subprocess.call(
+        status = call(
             ["cargo", "build"] + opts,
-            env=env, cwd=self.servo_crate())
+            env=env, cwd=self.servo_crate(), verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -259,8 +268,8 @@ class MachCommands(CommandBase):
 
         build_start = time()
         with cd(path.join("ports", "cef")):
-            ret = subprocess.call(["cargo", "build"] + opts,
-                                  env=self.build_env())
+            ret = call(["cargo", "build"] + opts,
+                       env=self.build_env(), verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -298,7 +307,7 @@ class MachCommands(CommandBase):
         env = self.build_env(gonk=True)
         build_start = time()
         with cd(path.join("ports", "gonk")):
-            ret = subprocess.call(["cargo", "build"] + opts, env=env)
+            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -316,16 +325,16 @@ class MachCommands(CommandBase):
                      help='Number of jobs to run in parallel')
     @CommandArgument('--release', default=False, action="store_true",
                      help="Build tests with release mode")
-    def build_tests(self, jobs=None, release=False):
+    def build_tests(self, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
         if is_headless_build():
             args += ["--no-default-features", "--features", "headless"]
         if release:
             args += ["--release"]
-        return subprocess.call(
+        return call(
             args,
-            env=self.build_env(), cwd=self.servo_crate())
+            env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
 
     @Command('clean',
              description='Clean the build directory.',
@@ -347,5 +356,5 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         opts += params
-        return subprocess.call(["cargo", "clean"] + opts,
-                               env=self.build_env(), cwd=self.servo_crate())
+        return call(["cargo", "clean"] + opts,
+                    env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
