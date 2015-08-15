@@ -24,27 +24,25 @@ pub trait CollectionFilter : JSTraceable {
 
 #[derive(JSTraceable)]
 #[must_root]
-pub enum CollectionTypeId {
-    Live(JS<Node>, Box<CollectionFilter+'static>)
-}
+pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
 
 #[dom_struct]
 #[derive(HeapSizeOf)]
 pub struct HTMLCollection {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
-    collection: CollectionTypeId,
+    collection: Collection,
 }
 
 impl HTMLCollection {
-    fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
+    fn new_inherited(collection: Collection) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             collection: collection,
         }
     }
 
-    pub fn new(window: &Window, collection: CollectionTypeId) -> Root<HTMLCollection> {
+    pub fn new(window: &Window, collection: Collection) -> Root<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
     }
@@ -53,7 +51,7 @@ impl HTMLCollection {
 impl HTMLCollection {
     pub fn create(window: &Window, root: &Node,
                   filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
-        HTMLCollection::new(window, CollectionTypeId::Live(JS::from_ref(root), filter))
+        HTMLCollection::new(window, Collection(JS::from_ref(root), filter))
     }
 
     fn all_elements(window: &Window, root: &Node,
@@ -178,31 +176,28 @@ impl HTMLCollection {
 
 impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
+    #[allow(unrooted_must_root)]
     fn Length(self) -> u32 {
-        match self.collection {
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .count() as u32
-            }
-        }
+        let Collection(ref root, ref filter) = self.collection;
+        let root = root.root();
+        HTMLCollection::traverse(root.r())
+            .filter(|element| filter.filter(element.r(), root.r()))
+            .count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    #[allow(unrooted_must_root)]
     fn Item(self, index: u32) -> Option<Root<Element>> {
         let index = index as usize;
-        match self.collection {
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .nth(index)
-            }
-        }
+        let Collection(ref root, ref filter) = self.collection;
+        let root = root.root();
+        HTMLCollection::traverse(root.r())
+            .filter(|element| filter.filter(element.r(), root.r()))
+            .nth(index)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    #[allow(unrooted_must_root)]
     fn NamedItem(self, key: DOMString) -> Option<Root<Element>> {
         // Step 1.
         if key.is_empty() {
@@ -210,16 +205,13 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
 
         // Step 2.
-        match self.collection {
-            CollectionTypeId::Live(ref root, ref filter) => {
-                let root = root.root();
-                HTMLCollection::traverse(root.r())
-                    .filter(|element| filter.filter(element.r(), root.r()))
-                    .find(|elem| {
-                        elem.r().get_string_attribute(&atom!("name")) == key ||
-                        elem.r().get_string_attribute(&atom!("id")) == key })
-            }
-        }
+        let Collection(ref root, ref filter) = self.collection;
+        let root = root.root();
+        HTMLCollection::traverse(root.r())
+            .filter(|element| filter.filter(element.r(), root.r()))
+            .find(|elem| {
+                elem.r().get_string_attribute(&atom!("name")) == key ||
+                elem.r().get_string_attribute(&atom!("id")) == key})
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
