@@ -325,7 +325,7 @@ class MachCommands(CommandBase):
                      help='Number of jobs to run in parallel')
     @CommandArgument('--release', default=False, action="store_true",
                      help="Build tests with release mode")
-    def build_tests(self, jobs=None, release=False):
+    def build_tests(self, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
         if is_headless_build():
