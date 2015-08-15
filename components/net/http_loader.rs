@@ -28,7 +28,7 @@ use hyper::Error as HttpError;
 use hyper::method::Method;
 use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{Fresh, Streaming, HttpsConnector, Openssl, NetworkConnector, NetworkStream};
+use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
@@ -110,9 +110,7 @@ fn load_for_consumer(load_data: LoadData,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
         hsts_list: Arc<Mutex<HSTSList>>) {
 
-    let requester = NetworkHttpRequester::new();
-
-    match load(load_data, resource_mgr_chan, devtools_chan, hsts_list, &requester) {
+    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, hsts_list, &NetworkHttpRequestFactory) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -140,27 +138,6 @@ fn load_for_consumer(load_data: LoadData,
         }
         Ok((mut response_reader, metadata)) => {
             send_data(&mut response_reader, start_chan, metadata, classifier)
-        }
-    }
-}
-
-struct NetworkHttpRequester {
-    connector: HttpsConnector<Openssl>
-}
-
-impl NetworkHttpRequester {
-    fn new() -> NetworkHttpRequester {
-        // TODO: Is this still necessary? The type system is making it really hard to support both
-        // connectors. SSL is working, so it's not clear to me if the original rationale still
-        // stands?
-        // if opts::get().nossl {
-        //     &HttpConnector
-        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-        context.set_verify(SSL_VERIFY_PEER, None);
-        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-
-        NetworkHttpRequester {
-            connector: HttpsConnector::new(Openssl { context: Arc::new(context) })
         }
     }
 }
@@ -196,16 +173,31 @@ impl HttpResponse for WrappedHttpResponse {
     }
 }
 
-impl NetworkHttpRequester {
-    fn start_connection(&self, url: &Url, method: &Method) -> Result<Request<Fresh>, LoadError> {
-        let connection = Request::with_connector(method.clone(), url.clone(), &self.connector);
+pub trait HttpRequestFactory {
+    type R: HttpRequest;
+
+    fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError>;
+}
+
+struct NetworkHttpRequestFactory;
+
+impl HttpRequestFactory for NetworkHttpRequestFactory {
+    type R = WrappedHttpRequest;
+
+    fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+
+        let connector = HttpsConnector::new(Openssl { context: Arc::new(context) });
+        let connection = Request::with_connector(method.clone(), url.clone(), &connector);
 
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
     function: \"SSL3_GET_SERVER_CERTIFICATE\", \
     reason: \"certificate verify failed\" }]))";
 
-        match connection {
-            Ok(req) => Ok(req),
+        let request = match connection {
+            Ok(req) => req,
 
             Err(HttpError::Io(ref io_error)) if (
                 io_error.kind() == io::ErrorKind::Other &&
@@ -223,28 +215,38 @@ impl NetworkHttpRequester {
             Err(e) => {
                  return Err(LoadError::Connection(url.clone(), e.description().to_string()))
             }
-        }
+        };
+
+        Ok(WrappedHttpRequest { request: request })
     }
 }
 
-impl HttpRequester for NetworkHttpRequester {
-    fn send(&self, url: &Url, method: &Method, headers: &Headers, body: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
-        let mut request = try!(self.start_connection(url, method));
+pub trait HttpRequest {
+    type R: HttpResponse + 'static;
 
-        *request.headers_mut() = headers.clone();
+    fn headers_mut(&mut self) -> &mut Headers;
+    fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
+}
 
-        // TODO: fix HEAD method (don't write the body, and force content-length to 0)
-        if let Some(ref data) = *body {
-            request.headers_mut().set(ContentLength(data.len() as u64));
-        }
+struct WrappedHttpRequest {
+    request: Request<Fresh>
+}
 
-        let mut request_writer = match request.start() {
+impl HttpRequest for WrappedHttpRequest {
+    type R = WrappedHttpResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers {
+        self.request.headers_mut()
+    }
+
+    fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
+        let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
             Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
         };
 
         if let Some(ref data) = *body {
-            match request_writer.write_all(&*data) {
+            match request_writer.write_all(&data) {
                 Err(e) => {
                     return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
                 }
@@ -257,13 +259,8 @@ impl HttpRequester for NetworkHttpRequester {
             Err(e) => return Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), e.description().to_string()))
         };
 
-        Ok(Box::new(WrappedHttpResponse { response: response }))
+        Ok(WrappedHttpResponse { response: response })
     }
-
-}
-
-pub trait HttpRequester {
-    fn send(&self, url: &Url, method: &Method, headers: &Headers, body: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError>;
 }
 
 #[derive(Debug)]
@@ -277,12 +274,12 @@ pub enum LoadError {
     MaxRedirects(Url)
 }
 
-pub fn load(mut load_data: LoadData,
+pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
             hsts_list: Arc<Mutex<HSTSList>>,
-            requester: &HttpRequester)
-    -> Result<(Box<Read>, Metadata), LoadError> {
+            request_factory: &HttpRequestFactory<R=A>)
+    -> Result<(Box<Read>, Metadata), LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -374,17 +371,24 @@ pub fn load(mut load_data: LoadData,
             request_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
         }
 
+        // --- Start sending the request
+        // TODO: Avoid automatically sending request body if a redirect has occurred.
+        let mut req = try!(request_factory.create(url.clone(), load_data.method.clone()));
+        *req.headers_mut() = request_headers;
+
         if log_enabled!(log::LogLevel::Info) {
             info!("{}", load_data.method);
-            for header in request_headers.iter() {
+            for header in req.headers_mut().iter() {
                 info!(" - {}", header);
             }
             info!("{:?}", load_data.data);
         }
 
-        // --- Start sending the request
-        // TODO: Avoid automatically sending request body if a redirect has occurred.
-        let response = try!(requester.send(&url, &load_data.method, &request_headers, &load_data.data));
+        if let Some(ref data) = load_data.data {
+            req.headers_mut().set(ContentLength(data.len() as u64));
+        }
+
+        let response = try!(req.send(&load_data.data));
 
         // --- Tell devtools we've made a request
         // Send an HttpRequest message to devtools with a unique request_id
@@ -401,7 +405,7 @@ pub fn load(mut load_data: LoadData,
         }
 
         // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {}, headers:", (*response).status());
+        info!("got HTTP response {}, headers:", response.status());
         if log_enabled!(log::LogLevel::Info) {
             for header in response.headers().iter() {
                 info!(" - {}", header);
