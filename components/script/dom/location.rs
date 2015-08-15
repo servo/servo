@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::LocationBinding;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::str::USVString;
@@ -33,6 +34,18 @@ impl Location {
                            GlobalRef::Window(window),
                            LocationBinding::Wrap)
     }
+
+    fn get_url(&self) -> Url {
+        self.window.root().get_url()
+    }
+
+    fn set_url_component(&self, value: USVString,
+                         setter: fn(&mut Url, USVString)) {
+        let window = self.window.root();
+        let mut url = window.get_url();
+        setter(&mut url, value);
+        window.load_url(url);
+    }
 }
 
 impl LocationMethods for Location {
@@ -52,9 +65,9 @@ impl LocationMethods for Location {
         UrlHelper::Hash(&self.get_url())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-href
-    fn Href(&self) -> USVString {
-        UrlHelper::Href(&self.get_url())
+    // https://url.spec.whatwg.org/#dom-urlutils-hash
+    fn SetHash(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetHash);
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-host
@@ -62,9 +75,33 @@ impl LocationMethods for Location {
         UrlHelper::Host(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-host
+    fn SetHost(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetHost);
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-hostname
     fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-hostname
+    fn SetHostname(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetHostname);
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-href
+    fn Href(&self) -> USVString {
+        UrlHelper::Href(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-href
+    fn SetHref(&self, value: USVString) -> ErrorResult {
+        let window = self.window.root();
+        if let Ok(url) = UrlParser::new().base_url(&window.get_url()).parse(&value.0) {
+            window.load_url(url);
+        };
+        Ok(())
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-password
@@ -72,9 +109,19 @@ impl LocationMethods for Location {
         UrlHelper::Password(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-password
+    fn SetPassword(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetPassword);
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-pathname
     fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-pathname
+    fn SetPathname(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetPathname);
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-port
@@ -82,9 +129,19 @@ impl LocationMethods for Location {
         UrlHelper::Port(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-port
+    fn SetPort(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetPort);
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-protocol
     fn Protocol(&self) -> USVString {
         UrlHelper::Protocol(&self.get_url())
+    }
+
+    // https://url.spec.whatwg.org/#dom-urlutils-protocol
+    fn SetProtocol(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetProtocol);
     }
 
     // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
@@ -97,16 +154,18 @@ impl LocationMethods for Location {
         UrlHelper::Search(&self.get_url())
     }
 
+    // https://url.spec.whatwg.org/#dom-urlutils-search
+    fn SetSearch(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetSearch);
+    }
+
     // https://url.spec.whatwg.org/#dom-urlutils-username
     fn Username(&self) -> USVString {
         UrlHelper::Username(&self.get_url())
     }
-}
 
-
-impl Location {
-    fn get_url(&self) -> Url {
-        let window = self.window.root();
-        window.r().get_url()
+    // https://url.spec.whatwg.org/#dom-urlutils-username
+    fn SetUsername(&self, value: USVString) {
+        self.set_url_component(value, UrlHelper::SetUsername);
     }
 }

@@ -7,27 +7,19 @@
 [NoInterfaceObject]
 interface URLUtils {
   //stringifier attribute USVString href;
-  readonly attribute USVString href;
+           [SetterThrows]
+           attribute USVString href;
   //readonly attribute USVString origin;
-  //         attribute USVString protocol;
-  readonly attribute USVString protocol;
-  //         attribute USVString username;
-  readonly attribute USVString username;
-  //         attribute USVString password;
-  readonly attribute USVString password;
-  //         attribute USVString host;
-  readonly attribute USVString host;
-  //         attribute USVString hostname;
-  readonly attribute USVString hostname;
-  //         attribute USVString port;
-  readonly attribute USVString port;
-  //         attribute USVString pathname;
-  readonly attribute USVString pathname;
-  //         attribute USVString search;
-  readonly attribute USVString search;
+           attribute USVString protocol;
+           attribute USVString username;
+           attribute USVString password;
+           attribute USVString host;
+           attribute USVString hostname;
+           attribute USVString port;
+           attribute USVString pathname;
+           attribute USVString search;
   //         attribute URLSearchParams searchParams;
-  //         attribute USVString hash;
-  readonly attribute USVString hash;
+           attribute USVString hash;
 
   // This is only doing as well as gecko right now, bug 824857 is on file for
   // adding attribute stringifier support.
