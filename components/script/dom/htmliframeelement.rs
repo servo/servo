@@ -459,4 +459,3 @@ impl<'a> VirtualMethods for &'a HTMLIFrameElement {
         }
     }
 }
-
