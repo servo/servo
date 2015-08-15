@@ -2,85 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::http_loader::{load, LoadError, HttpRequester, HttpResponse};
+use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_task::new_resource_task;
 use url::Url;
 use std::sync::{Arc, Mutex};
 use ipc_channel::ipc;
 use net_traits::LoadData;
 use net::hsts::HSTSList;
-use hyper::client::Response;
 use hyper::method::Method;
 use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use hyper::header::{Headers, Location, ContentLength};
 use std::io::{self, Read};
 use std::cmp::{self};
-use std::mem::{self};
 use std::borrow::Cow;
 
-fn redirect_to(host: &str) -> Box<HttpResponse> {
-    let mut headers = Headers::new();
-    headers.set(Location(host.to_string()));
-
-    struct Redirect {
-        h: Headers,
-        sr: RawStatus
-    }
-
-    impl Read for Redirect {
-        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-            Ok(0)
-        }
-    }
-
-    impl HttpResponse for Redirect {
-        fn headers(&self) -> &Headers { &self.h }
-        fn status(&self) -> StatusCode { StatusCode::MovedPermanently }
-        fn status_raw(&self) -> &RawStatus { &self.sr }
-    }
-
-    Box::new(
-        Redirect {
-            h: headers,
-            sr: RawStatus(301, Cow::Borrowed("Moved Permanently"))
-        }
-    )
-}
-
-fn respond_with(body: &str) -> Box<HttpResponse> {
+fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
     headers.set(ContentLength(body.len() as u64));
 
-    struct TextResponse {
-        h: Headers,
-        body: Vec<u8>,
-        sr: RawStatus
-    }
-
-    impl Read for TextResponse {
-        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-            let buf_len = buf.len();
-            for (a, b) in buf.iter_mut().zip(&self.body[0 .. cmp::min(buf_len, self.body.len())]) {
-                *a = *b
-            }
-
-            Ok(cmp::min(buf.len(), self.body.len()))
-        }
-    }
-
-    impl HttpResponse for TextResponse {
-        fn headers(&self) -> &Headers { &self.h }
-        fn status(&self) -> StatusCode { StatusCode::Ok }
-        fn status_raw(&self) -> &RawStatus { &self.sr }
-    }
-
-    Box::new(
-        TextResponse {
-            h: headers,
-            body: <[_]>::to_vec(body.as_bytes()),
-            sr: RawStatus(200, Cow::Borrowed("Ok"))
-        }
+    MockResponse::new(
+        headers,
+        StatusCode::Ok,
+        RawStatus(200, Cow::Borrowed("Ok")),
+        body
     )
 }
 
@@ -96,16 +41,94 @@ fn read_response(reader: &mut Read) -> String {
     }
 }
 
+struct MockResponse {
+    h: Headers,
+    sc: StatusCode,
+    sr: RawStatus,
+    msg: Vec<u8>
+}
+
+impl MockResponse {
+    fn new(h: Headers, sc: StatusCode, sr: RawStatus, msg: Vec<u8>) -> MockResponse {
+        MockResponse { h: h, sc: sc, sr: sr, msg: msg }
+    }
+}
+
+impl Read for MockResponse {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let buf_len = buf.len();
+        for (a, b) in buf.iter_mut().zip(&self.msg[0 .. cmp::min(buf_len, self.msg.len())]) {
+            *a = *b
+        }
+
+        Ok(cmp::min(buf.len(), self.msg.len()))
+    }
+}
+
+impl HttpResponse for MockResponse {
+    fn headers(&self) -> &Headers { &self.h }
+    fn status(&self) -> StatusCode { self.sc }
+    fn status_raw(&self) -> &RawStatus { &self.sr }
+}
+
+fn redirect_to(host: String) -> MockResponse {
+    let mut headers = Headers::new();
+    headers.set(Location(host.to_string()));
+
+    MockResponse::new(
+        headers,
+        StatusCode::MovedPermanently,
+        RawStatus(301, Cow::Borrowed("Moved Permanently")),
+        <[_]>::to_vec("".as_bytes())
+    )
+}
+
+
+enum RequestType {
+    Redirect(String),
+    Text(Vec<u8>)
+}
+
+struct MockRequest {
+    headers: Headers,
+    t: RequestType
+}
+
+impl MockRequest {
+    fn new(t: RequestType) -> MockRequest {
+        MockRequest { headers: Headers::new(), t: t }
+    }
+}
+
+impl HttpRequest for MockRequest {
+    type R=MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
+
+    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        match self.t {
+            RequestType::Redirect(location) => {
+                Ok(redirect_to(location))
+            },
+            RequestType::Text(b) => {
+                Ok(respond_with(b))
+            }
+        }
+    }
+}
+
 #[test]
 fn test_load_errors_when_there_a_redirect_loop() {
-    struct Redirector;
+    struct Factory;
 
-    impl HttpRequester for Redirector {
-        fn send(&self, url: &Url, _: &Method, _: &Headers, _: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(redirect_to("http://mozilla.org"))
+                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
             } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(redirect_to("http://mozilla.com"))
+                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.com".to_string())))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -117,7 +140,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load(load_data, resource_mgr, None, hsts_list, &Redirector) {
+    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
         Err(LoadError::InvalidRedirect(_, msg)) => {
             assert_eq!(msg, "redirect loop");
         },
@@ -127,12 +150,14 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
 #[test]
 fn test_load_errors_when_there_is_too_many_redirects() {
-    struct Redirector;
+    struct Factory;
 
-    impl HttpRequester for Redirector {
-        fn send(&self, url: &Url, _: &Method, _: &Headers, _: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(redirect_to(&*format!("{}/1", url.serialize())))
+                Ok(MockRequest::new(RequestType::Redirect(format!("{}/1", url.serialize()))))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -144,7 +169,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load(load_data, resource_mgr, None, hsts_list, &Redirector) {
+    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
         Err(LoadError::MaxRedirects(url)) => {
             assert_eq!(url.domain().unwrap(), "mozilla.com")
         },
@@ -154,16 +179,24 @@ fn test_load_errors_when_there_is_too_many_redirects() {
 
 #[test]
 fn test_load_follows_a_redirect() {
-    struct Redirector;
+    struct Factory;
 
-    impl HttpRequester for Redirector {
-        fn send(&self, url: &Url, _: &Method, _: &Headers, _: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(redirect_to("http://mozilla.org"))
+                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
             } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(respond_with("Yay!"))
+                Ok(
+                    MockRequest::new(
+                        RequestType::Text(
+                            <[_]>::to_vec("Yay!".as_bytes())
+                        )
+                    )
+                )
             } else {
-                panic!("unexpected host")
+                panic!("unexpected host {:?}", url)
             }
         }
     }
@@ -173,20 +206,22 @@ fn test_load_follows_a_redirect() {
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load(load_data, resource_mgr, None, hsts_list, &Redirector) {
+    match load::<MockRequest>(load_data, resource_mgr, None, hsts_list, &Factory) {
         Err(_) => panic!("expected to follow a redirect"),
-        Ok((mut r, m)) => {
+        Ok((mut r, _)) => {
             let response = read_response(&mut *r);
             assert_eq!(response, "Yay!".to_string());
         }
     }
 }
 
-struct DontConnectHttpRequester;
+struct DontConnectFactory;
 
-impl HttpRequester for DontConnectHttpRequester {
-    fn send(&self, _: &Url, _: &Method, _: &Headers, _: &Option<Vec<u8>>) -> Result<Box<HttpResponse>, LoadError> {
-        Err(LoadError::Connection(Url::parse("http://example.com").unwrap(), "shouldn't connect".to_string()))
+impl HttpRequestFactory for DontConnectFactory {
+    type R=MockRequest;
+
+    fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
+        Err(LoadError::Connection(url, "should not have connected".to_string()))
     }
 }
 
@@ -197,7 +232,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load(load_data, cookies_chan, None, hsts_list, &DontConnectHttpRequester) {
+    match load::<MockRequest>(load_data, cookies_chan, None, hsts_list, &DontConnectFactory) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }
@@ -210,7 +245,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
     let load_data = LoadData::new(url.clone(), None);
     let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
 
-    match load(load_data, cookies_chan, None, hsts_list, &DontConnectHttpRequester) {
+    match load::<MockRequest>(load_data, cookies_chan, None, hsts_list, &DontConnectFactory) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }
