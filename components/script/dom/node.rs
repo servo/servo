@@ -275,7 +275,7 @@ impl LayoutDataRef {
     /// prevent CSS selector matching from mutably accessing nodes it's not supposed to and racing
     /// on it. This has already resulted in one bug!
     #[inline]
-    pub fn borrow_mut(self) -> RefMut<Option<LayoutData>> {
+    pub fn borrow_mut(&self) -> RefMut<Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
@@ -2088,12 +2088,7 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
-        if let NodeTypeId::CharacterData(..) = self.type_id {
-            let chardata: &CharacterData = CharacterDataCast::to_ref(self).unwrap();
-            Some(chardata.Data())
-        } else {
-            None
-        }
+        CharacterDataCast::to_ref(self).map(|c| c.Data())
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue

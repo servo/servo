@@ -104,7 +104,7 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                     node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    if let NodeFilterConstants::FILTER_ACCEPT = try!(self.accept_node(node.r())) {
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
                         self.current_node.set(JS::from_rooted(&node));
                         return Ok(Some(node))
                     }
@@ -192,7 +192,7 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            if let NodeFilterConstants::FILTER_ACCEPT = try!(self.accept_node(node.r())) {
+            if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
                 self.current_node.set(JS::from_rooted(&node));
                 return Ok(Some(node))
             }
@@ -211,7 +211,7 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
         loop {
             // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
             loop {
-                if let NodeFilterConstants::FILTER_REJECT = result {
+                if NodeFilterConstants::FILTER_REJECT == result {
                     break;
                 }
                 match node.r().GetFirstChild() {
@@ -223,7 +223,7 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                         result = try!(self.accept_node(node.r()));
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
-                        if let NodeFilterConstants::FILTER_ACCEPT = result {
+                        if NodeFilterConstants::FILTER_ACCEPT == result {
                             self.current_node.set(JS::from_rooted(&node));
                             return Ok(Some(node))
                         }
@@ -241,7 +241,7 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                     result = try!(self.accept_node(node.r()));
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
-                    if let NodeFilterConstants::FILTER_ACCEPT = result {
+                    if NodeFilterConstants::FILTER_ACCEPT == result {
                         self.current_node.set(JS::from_rooted(&node));
                         return Ok(Some(node))
                     }
@@ -378,7 +378,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 let result = try!(self.accept_node(node.r()));
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
-                if let NodeFilterConstants::FILTER_ACCEPT = result {
+                if NodeFilterConstants::FILTER_ACCEPT == result {
                     self.current_node.set(JS::from_rooted(&node));
                     return Ok(Some(node))
                 }
@@ -403,7 +403,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    if let NodeFilterConstants::FILTER_ACCEPT = try!(self.accept_node(node.r())) {
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
                         return Ok(None)
                     }
                 }
