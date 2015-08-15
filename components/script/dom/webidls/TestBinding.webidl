@@ -8,6 +8,7 @@
 enum TestEnum { "", "foo", "bar" };
 
 dictionary TestDictionary {
+  required boolean requiredValue;
   boolean booleanValue;
   byte byteValue;
   octet octetValue;

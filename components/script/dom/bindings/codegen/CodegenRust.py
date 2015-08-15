@@ -4800,7 +4800,7 @@ class CGDictionary(CGThing):
     def getMemberType(self, memberInfo):
         member, info = memberInfo
         declType = info.declType
-        if not member.defaultValue:
+        if member.optional and not member.defaultValue:
             declType = CGWrapper(info.declType, pre="Option<", post=">")
         return declType.define()
 
@@ -4817,7 +4817,11 @@ class CGDictionary(CGThing):
             conversion = "%s.get()" % conversion
 
         assert (member.defaultValue is None) == (default is None)
-        if not default:
+        if not member.optional:
+            assert default is None
+            default = ("throw_type_error(cx, \"Missing required member \\\"%s\\\".\");\n"
+                       "return Err(());") % member.identifier.name
+        elif not default:
             default = "None"
             conversion = "Some(%s)" % conversion
 
