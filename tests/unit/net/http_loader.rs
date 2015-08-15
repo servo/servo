@@ -4,6 +4,7 @@
 
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_task::new_resource_task;
+use net_traits::{ResourceTask, ControlMsg, CookieSource};
 use url::Url;
 use std::sync::{Arc, Mutex};
 use ipc_channel::ipc;
@@ -21,8 +22,12 @@ fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
     headers.set(ContentLength(body.len() as u64));
 
+    respond_with_headers(body, headers)
+}
+
+fn respond_with_headers(body: Vec<u8>, headers: Headers) -> MockResponse {
     MockResponse::new(
-        headers,
+        headers.clone(),
         StatusCode::Ok,
         RawStatus(200, Cow::Borrowed("Ok")),
         body
@@ -86,7 +91,8 @@ fn redirect_to(host: String) -> MockResponse {
 
 enum RequestType {
     Redirect(String),
-    Text(Vec<u8>)
+    Text(Vec<u8>),
+    WithHeaders(Vec<u8>, Headers)
 }
 
 struct MockRequest {
@@ -107,6 +113,9 @@ fn response_for_request_type(t: RequestType) -> Result<MockResponse, LoadError> 
         },
         RequestType::Text(b) => {
             Ok(respond_with(b))
+        },
+        RequestType::WithHeaders(b, h) => {
+            Ok(respond_with_headers(b, h))
         }
     }
 }
@@ -167,6 +176,67 @@ impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
             )
         )
     }
+}
+
+fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &str) {
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr.send(ControlMsg::GetCookiesForUrl(Url::parse(&*domain).unwrap(),
+                                                   tx,
+                                                   CookieSource::HTTP)).unwrap();
+    if let Some(cookie_list) = rx.recv().unwrap() {
+        assert_eq!(cookie.to_string(), cookie_list);
+    } else {
+        assert_eq!(cookie.len(), 0);
+    }
+}
+
+#[test]
+fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let content = <[_]>::to_vec("Yay!".as_bytes());
+            let mut headers = Headers::new();
+            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest".to_vec()]);
+            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "");
+
+    let load_data = LoadData::new(url.clone(), None);
+    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
+
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, hsts_list, &Factory);
+
+    assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "mozillaIs=theBest");
+}
+
+#[test]
+fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("http://mozilla.com").unwrap(),
+                                                   "mozillaIs=theBest".to_string(),
+                                                   CookieSource::HTTP)).unwrap();
+
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+
+    let mut cookie = Headers::new();
+    cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+    let hsts_list = Arc::new(Mutex::new(HSTSList { entries: Vec::new() }));
+
+    let _ = load::<AssertMustHaveHeadersRequest>(load_data.clone(), resource_mgr, None, hsts_list, &AssertMustHaveHeadersRequestFactory {
+        expected_headers: cookie,
+        body: <[_]>::to_vec(&*load_data.data.unwrap())
+    });
 }
 
 #[test]
