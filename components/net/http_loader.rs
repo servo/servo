@@ -274,6 +274,26 @@ pub enum LoadError {
     MaxRedirects(Url)
 }
 
+#[inline(always)]
+fn set_default_accept_encoding(headers: &mut Headers) {
+    if !headers.has::<AcceptEncoding>() {
+        headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    }
+}
+
+#[inline(always)]
+fn set_default_accept(headers: &mut Headers) {
+    if !headers.has::<Accept>() {
+        let accept = Accept(vec![
+                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                            ]);
+        headers.set(accept);
+    }
+}
+
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -321,9 +341,7 @@ pub fn load<A>(mut load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        // let mut req = try!(requester.build(url.clone(), load_data.method.clone()));
-
-        //Ensure that the host header is set from the original url
+        // Ensure that the host header is set from the original url
         let host = Host {
             hostname: doc_url.serialize_host().unwrap(),
             port: doc_url.port_or_default()
@@ -343,17 +361,8 @@ pub fn load<A>(mut load_data: LoadData,
 
         request_headers.set(host);
 
-
-        // --- Set default accept header
-        if !request_headers.has::<Accept>() {
-            let accept = Accept(vec![
-                qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
-                QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
-                QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
-            ]);
-            request_headers.set(accept);
-        }
+        set_default_accept(&mut request_headers);
+        set_default_accept_encoding(&mut request_headers);
 
         // --- Fetch cookies
         let (tx, rx) = ipc::channel().unwrap();
@@ -366,13 +375,7 @@ pub fn load<A>(mut load_data: LoadData,
             request_headers.set_raw("Cookie".to_owned(), v);
         }
 
-        // --- Set default accept encoding
-        if !request_headers.has::<AcceptEncoding>() {
-            request_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
-        }
-
-        // --- Start sending the request
-        // TODO: Avoid automatically sending request body if a redirect has occurred.
+        // --- Send the request
         let mut req = try!(request_factory.create(url.clone(), load_data.method.clone()));
         *req.headers_mut() = request_headers;
 
@@ -384,6 +387,7 @@ pub fn load<A>(mut load_data: LoadData,
             info!("{:?}", load_data.data);
         }
 
+        // TODO: Avoid automatically sending request body if a redirect has occurred.
         if let Some(ref data) = load_data.data {
             req.headers_mut().set(ContentLength(data.len() as u64));
         }
