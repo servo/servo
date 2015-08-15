@@ -189,6 +189,34 @@ fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &
 }
 
 #[test]
+fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let content = <[_]>::to_vec("Yay!".as_bytes());
+            let mut headers = Headers::new();
+            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+
+    let load_data = LoadData::new(url.clone(), None);
+
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
+
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr.send(ControlMsg::GetHostMustBeSecured("mozilla.com".to_string(), tx)).unwrap();
+
+    assert!(!rx.recv().unwrap());
+}
+
+#[test]
 fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present() {
     struct Factory;
 

@@ -317,6 +317,31 @@ fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>)
     rx.recv().unwrap()
 }
 
+#[inline(always)]
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    if url.scheme == "https" {
+        if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
+            if let Some(host) = url.domain() {
+                info!("adding host {} to the strict transport security list", host);
+                info!("- max-age {}", header.max_age);
+
+                let include_subdomains = if header.include_subdomains {
+                    info!("- includeSubdomains");
+                    IncludeSubdomains::Included
+                } else {
+                    IncludeSubdomains::NotIncluded
+                };
+
+                resource_mgr_chan.send(
+                    ControlMsg::SetHSTSEntryForHost(
+                        host.to_string(), include_subdomains, header.max_age
+                    )
+                ).unwrap();
+            }
+        }
+    }
+}
+
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -420,7 +445,6 @@ pub fn load<A>(mut load_data: LoadData,
                                                              net_event))).unwrap();
         }
 
-        // Dump headers, but only do the iteration if info!() is enabled.
         info!("got HTTP response {}, headers:", response.status());
         if log_enabled!(log::LogLevel::Info) {
             for header in response.headers().iter() {
@@ -429,28 +453,7 @@ pub fn load<A>(mut load_data: LoadData,
         }
 
         set_cookies_from_response(doc_url.clone(), &response, &resource_mgr_chan);
-
-        if url.scheme == "https" {
-            if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
-                if let Some(host) = url.domain() {
-                    info!("adding host {} to the strict transport security list", host);
-                    info!("- max-age {}", header.max_age);
-
-                    let include_subdomains = if header.include_subdomains {
-                        info!("- includeSubdomains");
-                        IncludeSubdomains::Included
-                    } else {
-                        IncludeSubdomains::NotIncluded
-                    };
-
-                    resource_mgr_chan.send(
-                        ControlMsg::SetHSTSEntryForHost(
-                            host.to_string(), include_subdomains, header.max_age
-                        )
-                    ).unwrap();
-                }
-            }
-        }
+        update_sts_list_from_response(&url, &response, &resource_mgr_chan);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
