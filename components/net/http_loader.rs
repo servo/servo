@@ -433,12 +433,22 @@ pub fn load<A>(mut load_data: LoadData,
             info!("{:?}", load_data.data);
         }
 
-        // TODO: Avoid automatically sending request body if a redirect has occurred.
-        if let Some(ref data) = load_data.data {
-            req.headers_mut().set(ContentLength(data.len() as u64));
-        }
-
-        let response = try!(req.send(&load_data.data));
+        // Avoid automatically sending request body if a redirect has occurred.
+        //
+        // TODO - This is the wrong behaviour according to the RFC. However, I'm not
+        // sure how much "correctness" vs. real-world is important in this case.
+        //
+        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+        let is_redirected_request = iters != 1;
+        let response = match load_data.data {
+            Some(ref data) if !is_redirected_request => {
+                req.headers_mut().set(ContentLength(data.len() as u64));
+                try!(req.send(&load_data.data))
+            }
+            _ => {
+                try!(req.send(&None))
+            }
+        };
 
         // --- Tell devtools we've made a request
         // Send an HttpRequest message to devtools with a unique request_id
