@@ -188,6 +188,65 @@ fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &
     }
 }
 
+struct AssertMustHaveBodyRequest {
+    expected_body: Option<Vec<u8>>,
+    headers: Headers,
+    t: RequestType
+}
+
+impl AssertMustHaveBodyRequest {
+    fn new(t: RequestType, expected_body: Option<Vec<u8>>) -> Self {
+        AssertMustHaveBodyRequest { expected_body: expected_body, headers: Headers::new(), t: t }
+    }
+}
+
+impl HttpRequest for AssertMustHaveBodyRequest {
+    type R=MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers}
+
+    fn send(self, body: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        assert_eq!(self.expected_body, *body);
+
+        response_for_request_type(self.t)
+    }
+}
+
+#[test]
+fn test_load_doesnt_send_request_body_on_any_redirect() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=AssertMustHaveBodyRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<AssertMustHaveBodyRequest, LoadError> {
+            if url.domain().unwrap() == "mozilla.com" {
+                Ok(
+                    AssertMustHaveBodyRequest::new(
+                        RequestType::Redirect("http://mozilla.org".to_string()),
+                        Some(<[_]>::to_vec("Body on POST!".as_bytes()))
+                    )
+                )
+            } else {
+                Ok(
+                    AssertMustHaveBodyRequest::new(
+                        RequestType::Text(<[_]>::to_vec("Yay!".as_bytes())),
+                        None
+                    )
+                )
+            }
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
+
+
+    let _ = load::<AssertMustHaveBodyRequest>(load_data, resource_mgr, None, &Factory);
+}
+
 #[test]
 fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
     struct Factory;
