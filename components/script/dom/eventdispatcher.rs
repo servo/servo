@@ -45,9 +45,9 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
         let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target);
-                for listener in &listeners {
+                for listener_type in &listeners {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(*cur_target, event, Report);
+                    listener_type.call_or_handle_event(*cur_target, event, Report);
 
                     if event.stop_immediate() {
                         break;
@@ -71,9 +71,9 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
 
         let opt_listeners = target.get_listeners(&type_);
         for listeners in opt_listeners.iter() {
-            for listener in listeners.iter() {
+            for listener_type in listeners.iter() {
                 // Explicitly drop any exception on the floor.
-                let _ = listener.HandleEvent_(target, event, Report);
+                listener_type.call_or_handle_event(target, event, Report);
 
                 if event.stop_immediate() {
                     break;
@@ -90,9 +90,9 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
             let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target);
-                    for listener in &listeners {
+                    for listener_type in &listeners {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(*cur_target, event, Report);
+                        listener_type.call_or_handle_event(*cur_target, event, Report);
 
                         if event.stop_immediate() {
                             break;
