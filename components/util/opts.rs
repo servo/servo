@@ -59,8 +59,6 @@ pub struct Opts {
 
     pub nonincremental_layout: bool,
 
-    pub nossl: bool,
-
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
@@ -380,7 +378,6 @@ pub fn default_opts() -> Opts {
         enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
-        nossl: false,
         userscripts: None,
         user_stylesheets: Vec::new(),
         output_file: None,
@@ -527,7 +524,6 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     let nonincremental_layout = opt_match.opt_present("i");
-    let nossl = opt_match.opt_present("no-ssl");
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
@@ -584,7 +580,6 @@ pub fn from_cmdline_args(args: &[String]) {
         enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
-        nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets: user_stylesheets,
         output_file: opt_match.opt_str("o"),
