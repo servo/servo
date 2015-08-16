@@ -331,6 +331,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_cha
     }
 }
 
+#[inline(always)]
 fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>) -> bool {
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr_chan.send(
@@ -417,6 +418,37 @@ enum Decoders<R: Read> {
     Plain(R)
 }
 
+#[inline(always)]
+fn send_request_to_devtools(
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
+    url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
+
+    if let Some(ref chan) = devtools_chan {
+        let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
+        chan.send(DevtoolsControlMsg::FromChrome(
+                ChromeToDevtoolsControlMsg::NetworkEvent(
+                    request_id.clone(),
+                    net_event
+                )
+            )
+        ).unwrap();
+    }
+}
+
+#[inline(always)]
+fn send_response_to_devtools(
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
+    headers: Option<Headers>, status: Option<RawStatus>) {
+    if let Some(ref chan) = devtools_chan {
+        let net_event_response =
+            NetworkEvent::HttpResponse(headers.clone(),
+                                       status.clone(),
+                                       None);
+        chan.send(DevtoolsControlMsg::FromChrome(
+                ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
+                                                         net_event_response))).unwrap();
+    }
+}
 pub fn load<A>(load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -488,7 +520,6 @@ pub fn load<A>(load_data: LoadData,
         set_default_accept_encoding(&mut request_headers);
         set_request_cookies(doc_url.clone(), &mut request_headers, &resource_mgr_chan);
 
-        // --- Send the request
         let mut req = try!(request_factory.create(url.clone(), method.clone()));
         *req.headers_mut() = request_headers;
 
@@ -517,19 +548,15 @@ pub fn load<A>(load_data: LoadData,
             }
         };
 
-        // --- Tell devtools we've made a request
-        // Send an HttpRequest message to devtools with a unique request_id
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
         let request_id = uuid::Uuid::new_v4().to_simple_string();
-        if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
-                                                      method.clone(),
-                                                      load_data.headers.clone(),
-                                                      load_data.data.clone());
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id.clone(),
-                                                             net_event))).unwrap();
-        }
+
+        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the
+        // message
+        send_request_to_devtools(
+            devtools_chan.clone(), request_id.clone(), url.clone(),
+            method.clone(), load_data.headers.clone(),
+            if is_redirected_request { None } else { load_data.data.clone() }
+        );
 
         info!("got HTTP response {}, headers:", response.status());
         if log_enabled!(log::LogLevel::Info) {
@@ -608,15 +635,11 @@ pub fn load<A>(load_data: LoadData,
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
-        if let Some(ref chan) = devtools_chan {
-            let net_event_response =
-                NetworkEvent::HttpResponse(metadata.headers.clone(),
-                                           metadata.status.clone(),
-                                           None);
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
-                                                             net_event_response))).unwrap();
-        }
+        // TODO: Send this message even when the load fails?
+        send_response_to_devtools(
+            devtools_chan.clone(), request_id.clone(),
+            metadata.headers.clone(), metadata.status.clone()
+        );
 
         return LoadResponse::from_http_response(response, metadata)
     }
