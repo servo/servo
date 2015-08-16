@@ -34,7 +34,7 @@ impl TaskPool {
         for i in 0..tasks {
             let state = state.clone();
             spawn_named(
-                format!("TaskPoolWorker {}/{}", i+1, tasks),
+                format!("TaskPoolWorker {}/{}", i + 1, tasks),
                 move || worker(&*state));
         }
 

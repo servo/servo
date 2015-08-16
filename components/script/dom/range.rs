@@ -114,7 +114,7 @@ impl Range {
             };
 
         // Step 11.
-        let contained_children : Vec<Root<Node>> =
+        let contained_children: Vec<Root<Node>> =
             common_ancestor.children().filter(|n| Range::contains(self, n)).collect();
 
         // Step 12.

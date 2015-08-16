@@ -51,7 +51,7 @@ fn expand_cased<'cx, T>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree], 
         }
         (_, rest) => {
             if rest > 0 {
-                cx.span_err(sp, &format!("expected 1 argument, found {}", rest+1));
+                cx.span_err(sp, &format!("expected 1 argument, found {}", rest + 1));
             }
             base::DummyResult::expr(sp)
         }

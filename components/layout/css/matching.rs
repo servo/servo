@@ -139,7 +139,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
 pub struct ApplicableDeclarationsCache {
-    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry,Arc<ComputedValues>>,
+    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<ComputedValues>>,
 }
 
 impl ApplicableDeclarationsCache {

@@ -273,7 +273,7 @@ impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for (i, thread) in threads.into_iter().enumerate() {
 
             spawn_named(
-                format!("{} worker {}/{}", task_name, i+1, thread_count),
+                format!("{} worker {}/{}", task_name, i + 1, thread_count),
                 move || {
                     task_state::initialize(state | task_state::IN_WORKER);
                     let mut thread = thread;

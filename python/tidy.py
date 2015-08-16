@@ -165,6 +165,93 @@ def check_toml(file_name, contents):
             yield (idx + 1, "found asterisk instead of minimum version number")
 
 
+def check_rust(file_name, contents):
+    if not file_name.endswith(".rs") or \
+       file_name.endswith("properties.mako.rs") or \
+       file_name.endswith("style/build.rs") or \
+       file_name.endswith("unit/style/stylesheets.rs"):
+        raise StopIteration
+    contents = contents.splitlines(True)
+    comment_depth = 0
+    merged_lines = ''
+    for idx, line in enumerate(contents):
+        # simplify the analysis
+        line = line.strip()
+
+        # Simple heuristic to avoid common case of no comments.
+        if '/' in line:
+            comment_depth += line.count('/*')
+            comment_depth -= line.count('*/')
+
+        if line.endswith('\\'):
+            merged_lines += line[:-1]
+            continue
+        if comment_depth:
+            merged_lines += line
+            continue
+        if merged_lines:
+            line = merged_lines + line
+            merged_lines = ''
+
+        # get rid of strings and chars because cases like regex expression
+        line = re.sub('".*?"|\'.*?\'', '', line)
+
+        # get rid of comments and attributes
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
+
+        match = re.search(r",[A-Za-z0-9]", line)
+        if match:
+            yield (idx + 1, "missing space after ,")
+
+        # Avoid flagging <Item=Foo> constructs
+        def is_associated_type(match, line, index):
+            open_angle = line[0:match.end()].rfind('<')
+            close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
+            is_equals = match.group(0)[index] == '='
+            generic_open = open_angle != -1 and open_angle < match.start()
+            generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
+            return is_equals and generic_open and generic_close
+
+        # - not included because of scientific notation (1e-6)
+        match = re.search(r"[A-Za-z0-9][\+/\*%=]", line)
+        if match and not is_associated_type(match, line, 1):
+            yield (idx + 1, "missing space before %s" % match.group(0)[1])
+
+        # * not included because of dereferencing and casting
+        # - not included because of unary negation
+        match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
+        if match and not is_associated_type(match, line, 0):
+            yield (idx + 1, "missing space after %s" % match.group(0)[0])
+
+        match = re.search(r"\)->", line)
+        if match:
+            yield (idx + 1, "missing space before ->")
+
+        match = re.search(r"->[A-Za-z]", line)
+        if match:
+            yield (idx + 1, "missing space after ->")
+
+        # Avoid flagging ::crate::mod and `trait Foo : Bar`
+        match = line.find(" :")
+        if match != -1:
+            if line[0:match].find('trait ') == -1 and line[match + 2] != ':':
+                yield (idx + 1, "extra space before :")
+
+        # Avoid flagging crate::mod
+        match = re.search(r"[^:]:[A-Za-z]", line)
+        if match:
+            # Avoid flagging macros like $t1:expr
+            if line[0:match.end()].rfind('$') == -1:
+                yield (idx + 1, "missing space after :")
+
+        match = re.search(r"[A-Za-z0-9\)]{", line)
+        if match:
+            yield (idx + 1, "missing space before {")
+
+        if line.startswith("use ") and "{" in line and "}" not in line:
+            yield (idx + 1, "use statement spans multiple lines")
+
+
 def check_webidl_spec(file_name, contents):
     # Sorted by this function (in pseudo-Rust). The idea is to group the same
     # organization together.
@@ -278,7 +365,8 @@ def scan():
     all_files = collect_file_names()
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_by_line, check_flake8, check_toml, check_webidl_spec, check_spec]
+    checking_functions = [check_license, check_by_line, check_flake8, check_toml,
+                          check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)

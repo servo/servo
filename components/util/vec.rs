@@ -10,7 +10,7 @@ use std::ops;
 
 /// FIXME(pcwalton): Workaround for lack of unboxed closures. This is called in
 /// performance-critical code, so a closure is insufficient.
-pub trait Comparator<K,T> {
+pub trait Comparator<K, T> {
     fn compare(&self, key: &K, value: &T) -> Ordering;
 }
 
@@ -20,7 +20,7 @@ pub trait BinarySearchMethods<T: Ord + PartialOrd + PartialEq> {
 }
 
 pub trait FullBinarySearchMethods<T> {
-    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize>;
+    fn binary_search_index_by<K, C: Comparator<K, T>>(&self, key: &K, cmp: C) -> Option<usize>;
 }
 
 impl<T: Ord + PartialOrd + PartialEq> BinarySearchMethods<T> for [T] {
@@ -34,13 +34,13 @@ impl<T: Ord + PartialOrd + PartialEq> BinarySearchMethods<T> for [T] {
 }
 
 impl<T> FullBinarySearchMethods<T> for [T] {
-    fn binary_search_index_by<K,C:Comparator<K,T>>(&self, key: &K, cmp: C) -> Option<usize> {
+    fn binary_search_index_by<K, C: Comparator<K, T>>(&self, key: &K, cmp: C) -> Option<usize> {
         if self.is_empty() {
             return None;
         }
 
-        let mut low : isize = 0;
-        let mut high : isize = (self.len() as isize) - 1;
+        let mut low: isize = 0;
+        let mut high: isize = (self.len() as isize) - 1;
 
         while low <= high {
             // http://googleresearch.blogspot.com/2006/06/extra-extra-read-all-about-it-nearly.html
@@ -59,7 +59,7 @@ impl<T> FullBinarySearchMethods<T> for [T] {
 
 struct DefaultComparator;
 
-impl<T:PartialEq + PartialOrd + Ord> Comparator<T,T> for DefaultComparator {
+impl<T: PartialEq + PartialOrd + Ord> Comparator<T, T> for DefaultComparator {
     fn compare(&self, key: &T, value: &T) -> Ordering {
         (*key).cmp(value)
     }

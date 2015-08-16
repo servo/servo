@@ -456,7 +456,7 @@ impl<T: Copy + Add<T, Output=T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Copy + Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
+impl<T: Copy + Add<T, Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
     type Output = LogicalPoint<T>;
 
     #[inline]
@@ -470,7 +470,7 @@ impl<T: Copy + Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
     }
 }
 
-impl<T: Copy + Sub<T,Output=T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
+impl<T: Copy + Sub<T, Output=T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
     type Output = LogicalPoint<T>;
 
     #[inline]

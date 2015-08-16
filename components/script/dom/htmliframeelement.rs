@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast,
-                                           HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;

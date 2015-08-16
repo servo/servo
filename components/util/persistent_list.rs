@@ -50,7 +50,7 @@ impl<T> PersistentList<T> where T: Send + Sync {
     }
 
     #[inline]
-    pub fn iter<'a>(&'a self) -> PersistentListIterator<'a,T> {
+    pub fn iter<'a>(&'a self) -> PersistentListIterator<'a, T> {
         // This could clone (and would not need the lifetime if it did), but then it would incur
         // atomic operations on every call to `.next()`. Bad.
         PersistentListIterator {
@@ -74,7 +74,7 @@ pub struct PersistentListIterator<'a,T> where T: 'a + Send + Sync {
     entry: Option<&'a PersistentListEntry<T>>,
 }
 
-impl<'a,T> Iterator for PersistentListIterator<'a,T> where T: Send + Sync + 'static {
+impl<'a, T> Iterator for PersistentListIterator<'a, T> where T: Send + Sync + 'static {
     type Item = &'a T;
 
     #[inline]

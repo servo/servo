@@ -32,8 +32,8 @@ use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
 use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
 use dom::bindings::utils::{WRAP_CALLBACKS, DOM_CALLBACKS};
-use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler,
-                    DocumentProgressTask, DocumentSource, MouseEventType};
+use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentProgressHandler};
+use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::htmliframeelement::HTMLIFrameElementHelpers;
@@ -190,7 +190,7 @@ pub enum CommonScriptMsg {
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(Box<Runnable+Send>),
+    RunnableMsg(Box<Runnable + Send>),
 }
 
 /// Messages used to control the script event loop
@@ -203,7 +203,7 @@ pub enum MainThreadScriptMsg {
     /// should be closed (only dispatched to ScriptTask).
     ExitWindow(PipelineId),
     /// Generic message for running tasks in the ScriptTask
-    MainThreadRunnableMsg(Box<MainThreadRunnable+Send>),
+    MainThreadRunnableMsg(Box<MainThreadRunnable + Send>),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
     Navigate(PipelineId, LoadData),
@@ -214,10 +214,10 @@ pub trait ScriptChan {
     /// Send a message to the associated event loop.
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
-    fn clone(&self) -> Box<ScriptChan+Send>;
+    fn clone(&self) -> Box<ScriptChan + Send>;
 }
 
-impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan+Send> {
+impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
     fn send(&self, msg: CommonScriptMsg) {
         ScriptChan::send(&**self, msg).unwrap();
     }
@@ -270,7 +270,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
         return chan.send(msg).map_err(|_| ());
     }
 
-    fn clone(&self) -> Box<ScriptChan+Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         let SendableMainThreadScriptChan(ref chan) = *self;
         box SendableMainThreadScriptChan((*chan).clone())
     }
@@ -294,7 +294,7 @@ impl ScriptChan for MainThreadScriptChan {
         return chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ());
     }
 
-    fn clone(&self) -> Box<ScriptChan+Send> {
+    fn clone(&self) -> Box<ScriptChan + Send> {
         let MainThreadScriptChan(ref chan) = *self;
         box MainThreadScriptChan((*chan).clone())
     }
@@ -436,8 +436,8 @@ impl ScriptTaskFactory for ScriptTask {
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any+Send> {
-        box pair.sender() as Box<Any+Send>
+    fn clone_layout_channel(_phantom: Option<&mut ScriptTask>, pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send> {
+        box pair.sender() as Box<Any + Send>
     }
 
     fn create(_phantom: Option<&mut ScriptTask>,

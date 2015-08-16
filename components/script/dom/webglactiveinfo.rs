@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding;
 use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector,reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 #[dom_struct]

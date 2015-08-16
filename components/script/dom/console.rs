@@ -88,7 +88,7 @@ impl<'a> ConsoleMethods for &'a Console {
 
 fn prepare_message(logLevel: LogLevel, message: String) -> ConsoleMessage {
     //TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
-    ConsoleMessage{
+    ConsoleMessage {
         message: message,
         logLevel: logLevel,
         filename: "test".to_owned(),

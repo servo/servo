@@ -279,7 +279,7 @@ pub fn px_to_pt(px: f64) -> f64 {
 /// Returns true if the rect contains the given point. Points on the top or left sides of the rect
 /// are considered inside the rectangle, while points on the right or bottom sides of the rect are
 /// not considered inside the rectangle.
-pub fn rect_contains_point<T:PartialOrd + Add<T, Output=T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
+pub fn rect_contains_point<T: PartialOrd + Add<T, Output=T>>(rect: Rect<T>, point: Point2D<T>) -> bool {
     point.x >= rect.origin.x && point.x < rect.origin.x + rect.size.width &&
         point.y >= rect.origin.y && point.y < rect.origin.y + rect.size.height
 }

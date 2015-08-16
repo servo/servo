@@ -468,10 +468,10 @@ pub trait MutableFlowUtils {
     // Traversals
 
     /// Traverses the tree in preorder.
-    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &T);
+    fn traverse_preorder<T: PreorderFlowTraversal>(self, traversal: &T);
 
     /// Traverses the tree in postorder.
-    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &T);
+    fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T);
 
     /// Traverse the Absolute flow tree in preorder.
     ///
@@ -1301,7 +1301,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
 
 impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
     /// Traverses the tree in preorder.
-    fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &T) {
+    fn traverse_preorder<T: PreorderFlowTraversal>(self, traversal: &T) {
         if traversal.should_process(self) {
             traversal.process(self);
         }
@@ -1312,7 +1312,7 @@ impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
     }
 
     /// Traverses the tree in postorder.
-    fn traverse_postorder<T:PostorderFlowTraversal>(self, traversal: &T) {
+    fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T) {
         for kid in child_iter(self) {
             kid.traverse_postorder(traversal);
         }
@@ -1446,7 +1446,7 @@ impl OpaqueFlow {
     #[allow(unsafe_code)]
     pub fn from_flow(flow: &Flow) -> OpaqueFlow {
         unsafe {
-            let object = mem::transmute::<&Flow,raw::TraitObject>(flow);
+            let object = mem::transmute::<&Flow, raw::TraitObject>(flow);
             OpaqueFlow(object.data as usize)
         }
     }

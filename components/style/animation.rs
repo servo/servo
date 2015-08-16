@@ -378,7 +378,7 @@ impl Interpolate for Au {
     }
 }
 
-impl <T> Interpolate for Option<T> where T:Interpolate {
+impl <T> Interpolate for Option<T> where T: Interpolate {
     #[inline]
     fn interpolate(&self, other: &Option<T>, time: f64) -> Option<Option<T>> {
         match (self, other) {

@@ -150,7 +150,7 @@ pub struct DedicatedWorkerGlobalScope {
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
-    parent_sender: Box<ScriptChan+Send>,
+    parent_sender: Box<ScriptChan + Send>,
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -159,7 +159,7 @@ impl DedicatedWorkerGlobalScope {
                      id: PipelineId,
                      devtools_port: Receiver<DevtoolScriptControlMsg>,
                      runtime: Rc<Runtime>,
-                     parent_sender: Box<ScriptChan+Send>,
+                     parent_sender: Box<ScriptChan + Send>,
                      own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                      -> DedicatedWorkerGlobalScope {
@@ -180,7 +180,7 @@ impl DedicatedWorkerGlobalScope {
                id: PipelineId,
                devtools_port: Receiver<DevtoolScriptControlMsg>,
                runtime: Rc<Runtime>,
-               parent_sender: Box<ScriptChan+Send>,
+               parent_sender: Box<ScriptChan + Send>,
                own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
@@ -197,7 +197,7 @@ impl DedicatedWorkerGlobalScope {
                             id: PipelineId,
                             devtools_ipc_port: IpcReceiver<DevtoolScriptControlMsg>,
                             worker: TrustedWorkerAddress,
-                            parent_sender: Box<ScriptChan+Send>,
+                            parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
         let serialized_worker_url = worker_url.serialize();
@@ -247,14 +247,14 @@ impl DedicatedWorkerGlobalScope {
 }
 
 pub trait DedicatedWorkerGlobalScopeHelpers {
-    fn script_chan(self) -> Box<ScriptChan+Send>;
+    fn script_chan(self) -> Box<ScriptChan + Send>;
     fn pipeline(self) -> PipelineId;
-    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>);
+    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>);
     fn process_event(self, msg: CommonScriptMsg);
 }
 
 impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
-    fn script_chan(self) -> Box<ScriptChan+Send> {
+    fn script_chan(self) -> Box<ScriptChan + Send> {
         box WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
@@ -265,7 +265,7 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
         self.id
     }
 
-    fn new_script_pair(self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         let chan = box SendableWorkerScriptChan {
             sender: tx,

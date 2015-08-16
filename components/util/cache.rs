@@ -16,11 +16,11 @@ pub struct HashCache<K, V> {
     entries: HashMap<K, V, DefaultState<SipHasher>>,
 }
 
-impl<K, V> HashCache<K,V>
+impl<K, V> HashCache<K, V>
     where K: Clone + PartialEq + Eq + Hash,
           V: Clone,
 {
-    pub fn new() -> HashCache<K,V> {
+    pub fn new() -> HashCache<K, V> {
         HashCache {
           entries: HashMap::with_hash_state(<DefaultState<SipHasher> as Default>::default()),
         }
@@ -58,7 +58,7 @@ pub struct LRUCache<K, V> {
     cache_size: usize,
 }
 
-impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
+impl<K: Clone + PartialEq, V: Clone> LRUCache<K, V> {
     pub fn new(size: usize) -> LRUCache<K, V> {
         LRUCache {
           entries: vec!(),
@@ -76,7 +76,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
         self.entries[last_index].1.clone()
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a,(K,V)> {
+    pub fn iter<'a>(&'a self) -> Iter<'a,(K, V)> {
         self.entries.iter()
     }
 
@@ -110,14 +110,14 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
     }
 }
 
-pub struct SimpleHashCache<K,V> {
-    entries: Vec<Option<(K,V)>>,
+pub struct SimpleHashCache<K, V> {
+    entries: Vec<Option<(K, V)>>,
     k0: u64,
     k1: u64,
 }
 
-impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
-    pub fn new(cache_size: usize) -> SimpleHashCache<K,V> {
+impl<K: Clone + Eq + Hash, V: Clone> SimpleHashCache<K, V> {
+    pub fn new(cache_size: usize) -> SimpleHashCache<K, V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
             entries: vec![None; cache_size],
@@ -132,7 +132,7 @@ impl<K:Clone+Eq+Hash,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> usize {
+    fn bucket_for_key<Q: Hash>(&self, key: &Q) -> usize {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
         self.to_bucket(hasher.finish() as usize)

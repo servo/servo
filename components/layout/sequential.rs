@@ -137,7 +137,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
                 };
 
             // FIXME(#2795): Get the real container size.
-            doit(kid, level+1, iterator, &stacking_context_position);
+            doit(kid, level + 1, iterator, &stacking_context_position);
         }
     }
 
