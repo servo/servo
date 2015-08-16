@@ -42,7 +42,7 @@ use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
-use msg::compositor_msg::ScriptListener;
+use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
@@ -121,7 +121,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: DOMRefCell<ScriptListener>,
+    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
     browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
@@ -273,7 +273,7 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> RefMut<'a, ScriptListener> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, IpcSender<ScriptToCompositorMsg>> {
         self.compositor.borrow_mut()
     }
 
@@ -1073,7 +1073,7 @@ impl Window {
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
                control_chan: Sender<ConstellationControlMsg>,
-               compositor: ScriptListener,
+               compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,

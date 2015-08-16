@@ -69,7 +69,7 @@ use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers, ReflowReason};
 
 use layout_interface::{HitTestResponse, MouseOverResponse};
-use msg::compositor_msg::ScriptListener;
+use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent, SubpageId};
@@ -85,7 +85,7 @@ use layout_interface::{ReflowGoal, ReflowQueryType};
 
 use euclid::point::Point2D;
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
@@ -272,7 +272,7 @@ pub trait DocumentHelpers<'a> {
                           key: Key,
                           state: KeyState,
                           modifiers: KeyModifiers,
-                          compositor: &mut ScriptListener);
+                          compositor: &mut IpcSender<ScriptToCompositorMsg>);
     fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>>;
     fn get_body_attribute(self, local_name: &Atom) -> DOMString;
@@ -637,8 +637,8 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         let window = self.window();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let window = window.r();
-        let mut compositor = window.compositor();
-        compositor.set_title(window.pipeline(), Some(self.Title()));
+        let compositor = window.compositor();
+        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
     }
 
     fn dirty_all_nodes(self) {
@@ -813,7 +813,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                           key: Key,
                           state: KeyState,
                           modifiers: KeyModifiers,
-                          compositor: &mut ScriptListener) {
+                          compositor: &mut IpcSender<ScriptToCompositorMsg>) {
         let window = self.window.root();
         let focused = self.get_focused_element();
         let body = self.GetBody();
@@ -864,7 +864,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
 
         if !prevented {
-            compositor.send_key_event(key, state, modifiers);
+            compositor.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced
