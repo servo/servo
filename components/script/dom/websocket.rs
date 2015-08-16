@@ -4,7 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
-use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
+use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::EventCast;
@@ -29,8 +29,10 @@ use util::str::DOMString;
 use util::task::spawn_named;
 
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
 use js::jsval::UndefinedValue;
 use hyper::header::Host;
+use libc::{uint8_t, uint32_t};
 use websocket::Message;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::client::sender::Sender;
@@ -45,6 +47,7 @@ use websocket::ws::util::url::parse_url;
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
+use std::ptr;
 use std::sync::{Arc, Mutex};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
@@ -78,6 +81,7 @@ pub struct WebSocket {
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
     data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
+    binary_type: Cell<BinaryType>,
 }
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
@@ -117,6 +121,7 @@ impl WebSocket {
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
             data: DOMRefCell::new("".to_owned()),
+            binary_type: Cell::new(BinaryType::Blob),
         }
 
     }
@@ -236,6 +241,16 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
+    fn BinaryType(self) -> BinaryType {
+        self.binary_type.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
+    fn SetBinaryType(self, btype: BinaryType) {
+        self.binary_type.set(btype)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
@@ -396,6 +411,7 @@ struct MessageReceivedTask {
 }
 
 impl Runnable for MessageReceivedTask {
+    #[allow(unsafe_code)]
     fn handler(self: Box<Self>) {
         let ws = self.address.root();
         debug!("MessageReceivedTask::handler({:p}): readyState={:?}", &*ws,
@@ -415,8 +431,22 @@ impl Runnable for MessageReceivedTask {
         match self.message {
             MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
             MessageData::Binary(data) => {
-                let blob = Blob::new(global.r(), Some(data), "");
-                blob.to_jsval(cx, message.handle_mut());
+                match ws.binary_type.get() {
+                    BinaryType::Blob => {
+                        let blob = Blob::new(global.r(), Some(data), "");
+                        blob.to_jsval(cx, message.handle_mut());
+                    }
+                    BinaryType::Arraybuffer => {
+                        unsafe {
+                            let len = data.len() as uint32_t;
+                            let buf = JS_NewArrayBuffer(cx, len);
+                            let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, ptr::null());
+                            ptr::copy_nonoverlapping(data.as_ptr(), buf_data, len as usize);
+                            buf.to_jsval(cx, message.handle_mut());
+                        }
+                    }
+
+                }
             },
         }
 
