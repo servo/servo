@@ -12,18 +12,19 @@ use hyper::method::Method;
 use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use hyper::header::{Headers, Location, ContentLength};
-use std::io::{self, Read};
-use std::cmp::{self};
+use std::io::{self, Write, Read, Cursor};
+use flate2::write::{GzEncoder, DeflateEncoder};
+use flate2::Compression;
 use std::borrow::Cow;
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
-    headers.set(ContentLength(body.len() as u64));
-
-    respond_with_headers(body, headers)
+    respond_with_headers(body, &mut headers)
 }
 
-fn respond_with_headers(body: Vec<u8>, headers: Headers) -> MockResponse {
+fn respond_with_headers(body: Vec<u8>, headers: &mut Headers) -> MockResponse {
+    headers.set(ContentLength(body.len() as u64));
+
     MockResponse::new(
         headers.clone(),
         StatusCode::Ok,
@@ -40,7 +41,7 @@ fn read_response(reader: &mut Read) -> String {
             String::from_utf8(buf).unwrap()
         },
         Ok(_) => "".to_string(),
-        _ => panic!("problem reading response")
+        Err(e) => panic!("problem reading response {}", e)
     }
 }
 
@@ -48,23 +49,18 @@ struct MockResponse {
     h: Headers,
     sc: StatusCode,
     sr: RawStatus,
-    msg: Vec<u8>
+    msg: Cursor<Vec<u8>>
 }
 
 impl MockResponse {
     fn new(h: Headers, sc: StatusCode, sr: RawStatus, msg: Vec<u8>) -> MockResponse {
-        MockResponse { h: h, sc: sc, sr: sr, msg: msg }
+        MockResponse { h: h, sc: sc, sr: sr, msg: Cursor::new(msg) }
     }
 }
 
 impl Read for MockResponse {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let buf_len = buf.len();
-        for (a, b) in buf.iter_mut().zip(&self.msg[0 .. cmp::min(buf_len, self.msg.len())]) {
-            *a = *b
-        }
-
-        Ok(cmp::min(buf.len(), self.msg.len()))
+        self.msg.read(buf)
     }
 }
 
@@ -112,8 +108,8 @@ fn response_for_request_type(t: RequestType) -> Result<MockResponse, LoadError> 
         RequestType::Text(b) => {
             Ok(respond_with(b))
         },
-        RequestType::WithHeaders(b, h) => {
-            Ok(respond_with_headers(b, h))
+        RequestType::WithHeaders(b, mut h) => {
+            Ok(respond_with_headers(b, &mut h))
         }
     }
 }
@@ -210,6 +206,58 @@ impl HttpRequest for AssertMustHaveBodyRequest {
 
         response_for_request_type(self.t)
     }
+}
+
+#[test]
+fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut e = DeflateEncoder::new(Vec::new(), Compression::Default);
+            e.write(b"Yay!").unwrap();
+            let encoded_content = e.finish().unwrap();
+
+            let mut headers = Headers::new();
+            headers.set_raw("Content-Encoding", vec![b"deflate".to_vec()]);
+            Ok(MockRequest::new(RequestType::WithHeaders(encoded_content, headers)))
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let load_data = LoadData::new(url.clone(), None);
+    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
+
+    assert_eq!(read_response(&mut response), "Yay!");
+}
+
+#[test]
+fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_content_encoding_gzip() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut e = GzEncoder::new(Vec::new(), Compression::Default);
+            e.write(b"Yay!").unwrap();
+            let encoded_content = e.finish().unwrap();
+
+            let mut headers = Headers::new();
+            headers.set_raw("Content-Encoding", vec![b"gzip".to_vec()]);
+            Ok(MockRequest::new(RequestType::WithHeaders(encoded_content, headers)))
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let load_data = LoadData::new(url.clone(), None);
+    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
+
+    assert_eq!(read_response(&mut response), "Yay!");
 }
 
 #[test]
@@ -494,7 +542,7 @@ fn test_load_follows_a_redirect() {
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
-        Err(_) => panic!("expected to follow a redirect"),
+        Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
             assert_eq!(response, "Yay!".to_string());
