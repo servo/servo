@@ -623,7 +623,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
-    fn PageXOffset(self) -> i32{
+    fn PageXOffset(self) -> i32 {
         self.ScrollX()
     }
 
@@ -700,7 +700,7 @@ impl<'a> WindowMethods for &'a Window {
     fn MoveTo(self, x: i32, y: i32) {
         // Step 1
         //TODO determine if this operation is allowed
-        let point = Point2D::new(x,y);
+        let point = Point2D::new(x, y);
         self.compositor.borrow_mut().send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
     }
 
@@ -1041,7 +1041,7 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     fn client_window(self) -> (Size2D<u32>, Point2D<i32>) {
-        let (send,recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
+        let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
         self.compositor.borrow_mut().send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
