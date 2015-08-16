@@ -128,8 +128,8 @@ fn load_for_consumer(load_data: LoadData,
             file_loader::factory(load_data, start_chan, classifier)
 
         }
-        Ok((mut response_reader, metadata)) => {
-            send_data(&mut response_reader, start_chan, metadata, classifier)
+        Ok(mut load_response) => {
+            send_data(&mut load_response.reader, start_chan, load_response.metadata, classifier)
         }
     }
 }
@@ -351,11 +351,22 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mg
     }
 }
 
+pub struct LoadResponse {
+    pub reader: Box<Read>,
+    pub metadata: Metadata
+}
+
+impl LoadResponse {
+    fn new(r: Box<Read>, m: Metadata) -> LoadResponse {
+        LoadResponse { reader: r, metadata: m }
+    }
+}
+
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
             request_factory: &HttpRequestFactory<R=A>)
-    -> Result<(Box<Read>, Metadata), LoadError> where A: HttpRequest + 'static {
+    -> Result<LoadResponse, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -569,7 +580,7 @@ pub fn load<A>(mut load_data: LoadData,
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok((Box::new(response_decoding), metadata));
+                        return Ok(LoadResponse::new(Box::new(response_decoding), metadata));
                     }
                     Err(err) => {
                         return Err(LoadError::Decoding(metadata.final_url, err.to_string()));
@@ -578,10 +589,10 @@ pub fn load<A>(mut load_data: LoadData,
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok((Box::new(response_decoding), metadata));
+                return Ok(LoadResponse::new(Box::new(response_decoding), metadata));
             }
             None => {
-                return Ok((Box::new(response), metadata));
+                return Ok(LoadResponse::new(Box::new(response), metadata));
             }
             _ => return Err(LoadError::UnsupportedContentEncodings(url.clone()))
         }
