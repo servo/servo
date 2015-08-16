@@ -11,6 +11,7 @@ extern crate url;
 extern crate util;
 extern crate time;
 extern crate hyper;
+extern crate flate2;
 
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;
