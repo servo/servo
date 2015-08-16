@@ -209,6 +209,32 @@ impl HttpRequest for AssertMustHaveBodyRequest {
 }
 
 #[test]
+fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R=MockRequest;
+
+        fn create(&self, url: Url, method: Method) -> Result<MockRequest, LoadError> {
+            if url.domain().unwrap() == "mozilla.com" {
+                assert_eq!(Method::Post, method);
+                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
+            } else {
+                assert_eq!(Method::Get, method);
+                Ok(MockRequest::new(RequestType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
+            }
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(None, None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.method = Method::Post;
+
+    let _ = load::<MockRequest>(load_data, resource_mgr, None, &Factory);
+}
+
+#[test]
 fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate() {
     struct Factory;
 

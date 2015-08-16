@@ -417,7 +417,7 @@ enum Decoders<R: Read> {
     Plain(R)
 }
 
-pub fn load<A>(mut load_data: LoadData,
+pub fn load<A>(load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
             request_factory: &HttpRequestFactory<R=A>)
@@ -433,6 +433,7 @@ pub fn load<A>(mut load_data: LoadData,
     // specified in the hosts file.
     let mut url = replace_hosts(&load_data.url);
     let mut redirected_to = HashSet::new();
+    let mut method = load_data.method.clone();
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
@@ -488,11 +489,11 @@ pub fn load<A>(mut load_data: LoadData,
         set_request_cookies(doc_url.clone(), &mut request_headers, &resource_mgr_chan);
 
         // --- Send the request
-        let mut req = try!(request_factory.create(url.clone(), load_data.method.clone()));
+        let mut req = try!(request_factory.create(url.clone(), method.clone()));
         *req.headers_mut() = request_headers;
 
         if log_enabled!(log::LogLevel::Info) {
-            info!("{}", load_data.method);
+            info!("{}", method);
             for header in req.headers_mut().iter() {
                 info!(" - {}", header);
             }
@@ -522,7 +523,7 @@ pub fn load<A>(mut load_data: LoadData,
         let request_id = uuid::Uuid::new_v4().to_simple_string();
         if let Some(ref chan) = devtools_chan {
             let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
-                                                      load_data.method.clone(),
+                                                      method.clone(),
                                                       load_data.headers.clone(),
                                                       load_data.data.clone());
             chan.send(DevtoolsControlMsg::FromChrome(
@@ -559,22 +560,24 @@ pub fn load<A>(mut load_data: LoadData,
                         }
                         _ => {}
                     }
+
                     let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
                             return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
                         }
                     };
+
                     info!("redirecting to {}", new_doc_url);
                     url = replace_hosts(&new_doc_url);
                     doc_url = new_doc_url;
 
                     // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
                     // historically UAs have rewritten POST->GET on 301 and 302 responses.
-                    if load_data.method == Method::Post &&
+                    if method == Method::Post &&
                         (response.status() == StatusCode::MovedPermanently ||
                          response.status() == StatusCode::Found) {
-                        load_data.method = Method::Get;
+                        method = Method::Get;
                     }
 
                     if redirected_to.contains(&url) {
@@ -593,8 +596,8 @@ pub fn load<A>(mut load_data: LoadData,
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
-        let mut metadata: Metadata = Metadata::default(doc_url.clone());
 
+        let mut metadata: Metadata = Metadata::default(doc_url.clone());
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
