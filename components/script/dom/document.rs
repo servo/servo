@@ -510,17 +510,14 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         match state {
             DocumentReadyState::Loading => {
                 let dom_loading = *window.Performance().r().Now().deref();
-                println!("domLoading: {:?}", dom_loading as u64);
                 self.dom_loading.set(dom_loading as u64);
             },
             DocumentReadyState::Interactive => {
                 let dom_interactive = *window.Performance().r().Now().deref();
-                println!("domInteractive: {:?}", dom_interactive as u64);
                 self.dom_interactive.set(dom_interactive as u64);
             },
             DocumentReadyState::Complete => {
                 let dom_complete = *window.Performance().r().Now().deref();
-                println!("domComplete: {:?}", dom_complete as u64);
                 self.dom_complete.set(dom_complete as u64);
             },
         };
