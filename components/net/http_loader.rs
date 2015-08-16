@@ -129,7 +129,8 @@ fn load_for_consumer(load_data: LoadData,
 
         }
         Ok(mut load_response) => {
-            send_data(&mut load_response.reader, start_chan, load_response.metadata, classifier)
+            let metadata = load_response.metadata.clone();
+            send_data(&mut load_response, start_chan, metadata, classifier)
         }
     }
 }
@@ -351,22 +352,39 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mg
     }
 }
 
-pub struct LoadResponse {
-    pub reader: Box<Read>,
+pub struct LoadResponse<R: HttpResponse> {
+    decoder: Decoders<R>,
     pub metadata: Metadata
 }
 
-impl LoadResponse {
-    fn new(r: Box<Read>, m: Metadata) -> LoadResponse {
-        LoadResponse { reader: r, metadata: m }
+impl<R: HttpResponse> Read for LoadResponse<R> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.decoder {
+            Decoders::Gzip(ref mut d) => d.read(buf),
+            Decoders::Deflate(ref mut d) => d.read(buf),
+            Decoders::Plain(ref mut d) => d.read(buf)
+        }
     }
+}
+
+impl<R: HttpResponse> LoadResponse<R> {
+    fn new(m: Metadata, d: Decoders<R>) -> LoadResponse<R> {
+        LoadResponse { metadata: m, decoder: d }
+    }
+}
+
+enum Decoders<R: Read> {
+    Gzip(GzDecoder<R>),
+    Deflate(DeflateDecoder<R>),
+    Plain(R)
 }
 
 pub fn load<A>(mut load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
             request_factory: &HttpRequestFactory<R=A>)
-    -> Result<LoadResponse, LoadError> where A: HttpRequest + 'static {
+    -> Result<LoadResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -580,7 +598,7 @@ pub fn load<A>(mut load_data: LoadData,
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok(LoadResponse::new(Box::new(response_decoding), metadata));
+                        return Ok(LoadResponse::new(metadata, Decoders::Gzip(response_decoding)));
                     }
                     Err(err) => {
                         return Err(LoadError::Decoding(metadata.final_url, err.to_string()));
@@ -589,10 +607,10 @@ pub fn load<A>(mut load_data: LoadData,
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok(LoadResponse::new(Box::new(response_decoding), metadata));
+                return Ok(LoadResponse::new(metadata, Decoders::Deflate(response_decoding)));
             }
             None => {
-                return Ok(LoadResponse::new(Box::new(response), metadata));
+                return Ok(LoadResponse::new(metadata, Decoders::Plain(response)));
             }
             _ => return Err(LoadError::UnsupportedContentEncodings(url.clone()))
         }

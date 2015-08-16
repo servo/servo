@@ -496,7 +496,7 @@ fn test_load_follows_a_redirect() {
     match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
         Err(_) => panic!("expected to follow a redirect"),
         Ok(mut lr) => {
-            let response = read_response(&mut *lr.reader);
+            let response = read_response(&mut lr);
             assert_eq!(response, "Yay!".to_string());
         }
     }
