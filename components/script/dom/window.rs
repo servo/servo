@@ -68,7 +68,7 @@ use libc;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
@@ -121,7 +121,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
+    compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
@@ -273,8 +273,8 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> RefMut<'a, IpcSender<ScriptToCompositorMsg>> {
-        self.compositor.borrow_mut()
+    pub fn compositor<'a>(&'a self) -> &'a IpcSender<ScriptToCompositorMsg> {
+        &self.compositor
     }
 
     pub fn browsing_context<'a>(&'a self) -> Ref<'a, Option<BrowsingContext>> {
@@ -1099,7 +1099,7 @@ impl Window {
             control_chan: control_chan,
             console: Default::default(),
             crypto: Default::default(),
-            compositor: DOMRefCell::new(compositor),
+            compositor: compositor,
             page: page,
             navigator: Default::default(),
             image_cache_task: image_cache_task,
