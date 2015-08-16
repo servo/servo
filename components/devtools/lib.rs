@@ -41,6 +41,7 @@ use actors::console::ConsoleActor;
 use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
+use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
@@ -74,6 +75,7 @@ mod actors {
     pub mod memory;
     pub mod network_event;
     pub mod object;
+    pub mod performance;
     pub mod profiler;
     pub mod root;
     pub mod tab;
@@ -204,7 +206,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector, timeline, profiler) = {
+        let (tab, console, inspector, timeline, profiler, performance) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -225,6 +227,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                                               script_sender);
 
             let profiler = ProfilerActor::new(actors.new_name("profiler"));
+            let performance = PerformanceActor::new(actors.new_name("performance"));
 
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
@@ -235,12 +238,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 inspector: inspector.name(),
                 timeline: timeline.name(),
                 profiler: profiler.name(),
+                performance: performance.name(),
             };
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
 
-            (tab, console, inspector, timeline, profiler)
+            (tab, console, inspector, timeline, profiler, performance)
         };
 
         if let Some(id) = worker_id {
@@ -259,6 +263,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box inspector);
         actors.register(box timeline);
         actors.register(box profiler);
+        actors.register(box performance);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
@@ -347,7 +352,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     __type__: "networkEvent".to_string(),
                     eventActor: actor.event_actor(),
                 };
-                for stream in connections.iter_mut() {
+                for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
             }
@@ -363,7 +368,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     response: actor.response_start()
                 };
 
-                for stream in connections.iter_mut() {
+                for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
             }
@@ -429,7 +434,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                         request_id, network_event))) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
-                for stream in accepted_connections.iter() {
+                for stream in &accepted_connections {
                     connections.push(stream.try_clone().unwrap());
                 }
                 //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
@@ -441,7 +446,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             Err(RecvError) => break
         }
     }
-    for connection in accepted_connections.iter_mut() {
+    for connection in &mut accepted_connections {
         let _ = connection.shutdown(Shutdown::Both);
     }
 }

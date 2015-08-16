@@ -25,7 +25,7 @@
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::bindings::trace::trace_reflector;
-use script_task::{ScriptMsg, ScriptChan};
+use script_task::{ScriptChan, CommonScriptMsg};
 
 use js::jsapi::{JSContext, JSTracer};
 
@@ -130,7 +130,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
             // It's possible this send will fail if the script task
             // has already exited. There's not much we can do at this
             // point though.
-            let msg = ScriptMsg::RefcountCleanup(TrustedReference(self.ptr));
+            let msg = CommonScriptMsg::RefcountCleanup(TrustedReference(self.ptr));
             let _ = self.script_chan.send(msg);
         }
     }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use script_task::{ScriptChan, ScriptMsg, Runnable};
+use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 use net_traits::{AsyncResponseListener, ResponseAction};
 use std::sync::{Arc, Mutex};
 
@@ -10,12 +10,12 @@ use std::sync::{Arc, Mutex};
 /// a target thread, where they are invoked on the provided context object.
 pub struct NetworkListener<T: AsyncResponseListener + PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<T>>,
-    pub script_chan: Box<ScriptChan+Send>,
+    pub script_chan: Box<ScriptChan + Send>,
 }
 
 impl<T: AsyncResponseListener + PreInvoke + Send + 'static> NetworkListener<T> {
     pub fn notify(&self, action: ResponseAction) {
-        if let Err(err) = self.script_chan.send(ScriptMsg::RunnableMsg(box ListenerRunnable {
+        if let Err(err) = self.script_chan.send(CommonScriptMsg::RunnableMsg(box ListenerRunnable {
             context: self.context.clone(),
             action: action,
         })) {

@@ -7,7 +7,6 @@
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(hasher_write)]
 #![feature(plugin)]
 #![feature(vec_push_all)]
 

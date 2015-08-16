@@ -23,7 +23,7 @@ pub fn create_filters(draw_target: &DrawTarget,
     let mut opacity = 1.0;
     let mut filter = draw_target.create_filter(FilterType::Composite);
     filter.set_input(CompositeInput, &temporary_draw_target.snapshot());
-    for style_filter in style_filters.filters.iter() {
+    for style_filter in &style_filters.filters {
         match *style_filter {
             filter::Filter::HueRotate(angle) => {
                 let hue_rotate = draw_target.create_filter(FilterType::ColorMatrix);
@@ -108,7 +108,7 @@ pub fn create_filters(draw_target: &DrawTarget,
 
 /// Determines if we need a temporary draw target for the given set of filters.
 pub fn temporary_draw_target_needed_for_style_filters(filters: &filter::T) -> bool {
-    for filter in filters.filters.iter() {
+    for filter in &filters.filters {
         match *filter {
             filter::Filter::Opacity(value) if value == 1.0 => continue,
             _ => return true,
@@ -121,7 +121,7 @@ pub fn temporary_draw_target_needed_for_style_filters(filters: &filter::T) -> bo
 // to expand the draw target size.
 pub fn calculate_accumulated_blur(style_filters: &filter::T) -> Au {
     let mut accum_blur = Au::new(0);
-    for style_filter in style_filters.filters.iter() {
+    for style_filter in &style_filters.filters {
         match *style_filter {
             filter::Filter::Blur(amount) => {
                 accum_blur = accum_blur.clone() + amount;
@@ -222,4 +222,3 @@ fn sepia(amount: AzFloat) -> Matrix5x4 {
         m14: 0.0, m24: 0.0, m34: 0.0, m44: 1.0, m54: 0.0,
     }
 }
-

@@ -89,7 +89,7 @@ impl Deserialize for CachedCTFont {
             type Value = CachedCTFont;
 
             #[inline]
-            fn visit_none<E>(&mut self) -> Result<CachedCTFont,E> where E: Error {
+            fn visit_none<E>(&mut self) -> Result<CachedCTFont, E> where E: Error {
                 Ok(CachedCTFont(Mutex::new(None)))
             }
         }

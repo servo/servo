@@ -144,7 +144,7 @@ impl Profiler {
             reporter.collect_reports(ReportsChan(chan));
             if let Ok(mut reports) = port.recv() {
 
-                for report in reports.iter_mut() {
+                for report in &mut reports {
 
                     // Add "explicit" to the start of the path, when appropriate.
                     match report.kind {
@@ -242,7 +242,7 @@ impl ReportsTree {
     // Insert the path and size into the tree, adding any nodes as necessary.
     fn insert(&mut self, path: &[String], size: usize) {
         let mut t: &mut ReportsTree = self;
-        for path_seg in path.iter() {
+        for path_seg in path {
             let i = match t.find_child(&path_seg) {
                 Some(i) => i,
                 None => {
@@ -268,7 +268,7 @@ impl ReportsTree {
                 // This will occur if e.g. we have paths ["a", "b"] and ["a", "b", "c"].
                 panic!("one report's path is a sub-path of another report's path");
             }
-            for child in self.children.iter_mut() {
+            for child in &mut self.children {
                 self.size += child.compute_interior_node_sizes_and_sort();
             }
             // Now that child sizes have been computed, we can sort the children.
@@ -292,7 +292,7 @@ impl ReportsTree {
         println!("|{}{:8.2} MiB -- {}{}",
                  indent_str, (self.size as f64) / mebi, self.path_seg, count_str);
 
-        for child in self.children.iter() {
+        for child in &self.children {
             child.print(depth + 1);
         }
     }
@@ -326,7 +326,7 @@ impl ReportsForest {
 
     fn print(&mut self) {
         // Fill in sizes of interior nodes, and recursively sort the sub-trees.
-        for (_, tree) in self.trees.iter_mut() {
+        for (_, tree) in &mut self.trees {
             tree.compute_interior_node_sizes_and_sort();
         }
 
@@ -334,7 +334,7 @@ impl ReportsForest {
         // single node) come after non-degenerate trees. Secondary sort: alphabetical order of the
         // root node's path_seg.
         let mut v = vec![];
-        for (_, tree) in self.trees.iter() {
+        for (_, tree) in &self.trees {
             v.push(tree);
         }
         v.sort_by(|a, b| {
@@ -348,7 +348,7 @@ impl ReportsForest {
         });
 
         // Print the forest.
-        for tree in v.iter() {
+        for tree in &v {
             tree.print(0);
             // Print a blank line after non-degenerate trees.
             if !tree.children.is_empty() {
@@ -390,7 +390,7 @@ mod system_reporter {
             report(path!["resident"], get_resident());
 
             // Memory segments, as reported by the OS.
-            for seg in get_resident_segments().iter() {
+            for seg in get_resident_segments() {
                 report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
             }
 

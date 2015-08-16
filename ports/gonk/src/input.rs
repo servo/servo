@@ -202,9 +202,10 @@ fn read_input_device(device_path: &Path,
                             let cur_dist = dist(slotA.x, slotB.x, slotA.y, slotB.y);
                             println!("Zooming {} {} {} {}",
                                      cur_dist, last_dist, screen_dist,
-                                     ((screen_dist + (cur_dist - last_dist))/screen_dist));
+                                     ((screen_dist + (cur_dist - last_dist)) / screen_dist));
                             sender.send(
-                                WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist)).ok().unwrap();
+                                WindowEvent::Zoom((screen_dist + (cur_dist - last_dist)) /
+                                                  screen_dist)).ok().unwrap();
                             last_dist = cur_dist;
                         }
                     }

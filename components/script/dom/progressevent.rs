@@ -69,7 +69,7 @@ impl<'a> ProgressEventMethods for &'a ProgressEvent {
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
-    fn Loaded(self) -> u64{
+    fn Loaded(self) -> u64 {
         self.loaded
     }
 

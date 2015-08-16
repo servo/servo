@@ -438,7 +438,7 @@ impl<'a> FlowConstructor<'a> {
 
         // Build a list of all the inline-block fragments before fragments is moved.
         let mut inline_block_flows = vec!();
-        for fragment in fragments.fragments.iter() {
+        for fragment in &fragments.fragments {
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref info) => {
                     inline_block_flows.push(info.flow_ref.clone())
@@ -464,7 +464,7 @@ impl<'a> FlowConstructor<'a> {
                                                         node.style().writing_mode));
 
         // Add all the inline-block fragments as children of the inline flow.
-        for inline_block_flow in inline_block_flows.iter() {
+        for inline_block_flow in &inline_block_flows {
             inline_flow_ref.add_new_child(inline_block_flow.clone());
         }
 

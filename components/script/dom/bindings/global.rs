@@ -15,7 +15,7 @@ use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers, ScriptHelpers};
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use script_task::{ScriptChan, ScriptPort, ScriptMsg, ScriptTask};
+use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
@@ -149,7 +149,7 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.script_chan(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
@@ -159,7 +159,7 @@ impl<'a> GlobalRef<'a> {
     /// Create a new sender/receiver pair that can be used to implement an on-demand
     /// event loop. Used for implementing web APIs that require blocking semantics
     /// without resorting to nested event loops.
-    pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         match *self {
             GlobalRef::Window(ref window) => window.new_script_pair(),
             GlobalRef::Worker(ref worker) => worker.new_script_pair(),
@@ -168,7 +168,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Process a single event as if it were the next event in the task queue for
     /// this global.
-    pub fn process_event(&self, msg: ScriptMsg) {
+    pub fn process_event(&self, msg: CommonScriptMsg) {
         match *self {
             GlobalRef::Window(_) => ScriptTask::process_event(msg),
             GlobalRef::Worker(ref worker) => worker.process_event(msg),

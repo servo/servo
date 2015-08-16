@@ -87,7 +87,7 @@ impl TableFlow {
             -> IntrinsicISizes {
         let mut total_inline_sizes = IntrinsicISizes::new();
         let mut column_index = 0;
-        for child_cell_inline_size in child_cell_inline_sizes.iter() {
+        for child_cell_inline_size in child_cell_inline_sizes {
             for _ in 0..child_cell_inline_size.column_span {
                 if column_index < parent_inline_sizes.len() {
                     // We already have some intrinsic size information for this column. Merge it in
@@ -150,7 +150,7 @@ impl TableFlow {
                 //
                 // FIXME(pcwalton): This is really inefficient. We should stop after the first row!
                 if first_row {
-                    for cell_inline_size in row.cell_intrinsic_inline_sizes.iter() {
+                    for cell_inline_size in &row.cell_intrinsic_inline_sizes {
                         column_inline_sizes.push(cell_inline_size.column_size);
                     }
                 }
@@ -289,7 +289,7 @@ impl Flow for TableFlow {
                 };
 
                 if kid.is_table_colgroup() {
-                    for specified_inline_size in kid.as_table_colgroup().inline_sizes.iter() {
+                    for specified_inline_size in &kid.as_table_colgroup().inline_sizes {
                         self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
                             minimum_length: match *specified_inline_size {
                                 LengthOrPercentageOrAuto::Auto |
@@ -400,7 +400,7 @@ impl Flow for TableFlow {
 
         let mut num_unspecified_inline_sizes = 0;
         let mut total_column_inline_size = Au(0);
-        for column_inline_size in self.column_intrinsic_inline_sizes.iter() {
+        for column_inline_size in &self.column_intrinsic_inline_sizes {
             if column_inline_size.constrained {
                 total_column_inline_size = total_column_inline_size +
                     column_inline_size.minimum_length
@@ -432,14 +432,14 @@ impl Flow for TableFlow {
                 if num_unspecified_inline_sizes == 0 {
                     let ratio = content_inline_size.to_f32_px() /
                         total_column_inline_size.to_f32_px();
-                    for column_inline_size in self.column_intrinsic_inline_sizes.iter() {
+                    for column_inline_size in &self.column_intrinsic_inline_sizes {
                         self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
                             size: column_inline_size.minimum_length.scale_by(ratio),
                         });
                     }
                 } else if num_unspecified_inline_sizes != 0 {
                     let extra_column_inline_size = content_inline_size - total_column_inline_size;
-                    for column_inline_size in self.column_intrinsic_inline_sizes.iter() {
+                    for column_inline_size in &self.column_intrinsic_inline_sizes {
                         if !column_inline_size.constrained &&
                                 column_inline_size.percentage == 0.0 {
                             self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
@@ -861,4 +861,3 @@ enum NextBlockCollapsedBorders<'a> {
     FromTable(CollapsedBorder),
     NotCollapsingBorders,
 }
-

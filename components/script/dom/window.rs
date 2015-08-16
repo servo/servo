@@ -35,14 +35,14 @@ use dom::storage::Storage;
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use page::Page;
-use script_task::{TimerSource, ScriptChan, ScriptPort, NonWorkerScriptChan};
-use script_task::ScriptMsg;
+use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
 use script_traits::ConstellationControlMsg;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
-use msg::compositor_msg::{ScriptListener, LayerId};
+use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
@@ -53,7 +53,7 @@ use profile_traits::mem;
 use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
 use util::{breakpoint, opts};
-use util::str::{DOMString,HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use euclid::{Point2D, Rect, Size2D};
 use euclid::scale_factor::ScaleFactor;
@@ -114,7 +114,7 @@ pub type ScrollPoint = Point2D<Au>;
 pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
-    script_chan: Box<ScriptChan+Send>,
+    script_chan: MainThreadScriptChan,
     #[ignore_heap_size_of = "channels are hard"]
     control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
@@ -125,7 +125,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: DOMRefCell<ScriptListener>,
+    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
     browsing_context: DOMRefCell<Option<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
@@ -183,7 +183,7 @@ pub struct Window {
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
-    layout_rpc: Box<LayoutRPC+'static>,
+    layout_rpc: Box<LayoutRPC + 'static>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
     #[ignore_heap_size_of = "channels are hard"]
@@ -238,8 +238,13 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         self.script_chan.clone()
+    }
+
+    pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
+        let MainThreadScriptChan(ref sender) = self.script_chan;
+        sender
     }
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
@@ -265,16 +270,16 @@ impl Window {
         self.parent_info
     }
 
-    pub fn new_script_pair(&self) -> (Box<ScriptChan+Send>, Box<ScriptPort+Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
-        (box NonWorkerScriptChan(tx), box rx)
+        (box SendableMainThreadScriptChan(tx), box rx)
     }
 
     pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> RefMut<'a, ScriptListener> {
+    pub fn compositor<'a>(&'a self) -> RefMut<'a, IpcSender<ScriptToCompositorMsg>> {
         self.compositor.borrow_mut()
     }
 
@@ -376,7 +381,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(self) {
-        self.script_chan.send(ScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
@@ -681,7 +686,7 @@ impl<'a> WindowMethods for &'a Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.compositor.borrow_mut().resize_window(size)
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -696,7 +701,7 @@ impl<'a> WindowMethods for &'a Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x,y);
-        self.compositor.borrow_mut().move_window(point)
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -897,15 +902,25 @@ impl<'a> WindowHelpers for &'a Window {
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior, _element: Option<&Element>) {
+    fn perform_a_scroll(self, x: f32, y: f32, behavior: ScrollBehavior, element: Option<&Element>) {
         //TODO Step 1
         let point = Point2D::new(x, y);
         let smooth = match behavior {
-            ScrollBehavior::Auto => false, //TODO check css scroll behavior
+            ScrollBehavior::Auto => {
+                element.map(|_element| {
+                    // TODO check computed scroll-behaviour CSS property
+                    true
+                }).unwrap_or(false)
+            }
             ScrollBehavior::Instant => false,
             ScrollBehavior::Smooth => true
         };
-        self.compositor.borrow_mut().scroll_fragment_point(self.pipeline(), LayerId::null(), point, smooth)
+
+        let size = self.current_viewport.get().size;
+        self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
+
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
+                                                         self.pipeline(), LayerId::null(), point, smooth)).unwrap()
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -1027,7 +1042,7 @@ impl<'a> WindowHelpers for &'a Window {
 
     fn client_window(self) -> (Size2D<u32>, Point2D<i32>) {
         let (send,recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.compositor.borrow_mut().client_window(send);
+        self.compositor.borrow_mut().send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1107,7 +1122,8 @@ impl<'a> WindowHelpers for &'a Window {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     fn load_url(self, url: Url) {
-        self.script_chan.send(ScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
+        self.main_thread_script_chan().send(
+            MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
@@ -1286,10 +1302,10 @@ impl<'a> WindowHelpers for &'a Window {
 impl Window {
     pub fn new(runtime: Rc<Runtime>,
                page: Rc<Page>,
-               script_chan: Box<ScriptChan+Send>,
+               script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
                control_chan: Sender<ConstellationControlMsg>,
-               compositor: ScriptListener,
+               compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
@@ -1360,7 +1376,7 @@ impl Window {
     }
 }
 
-fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
+fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool {
     let clip_rect = Rect::new(Point2D::new(clip_rect.origin.x.to_f32_px(),
                                            clip_rect.origin.y.to_f32_px()),
                               Size2D::new(clip_rect.size.width.to_f32_px(),

@@ -45,10 +45,10 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::f32;
 use style::computed_values::filter::Filter;
-use style::computed_values::{background_attachment, background_clip, background_origin,
-                             background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position,
-                             visibility, transform, transform_style};
+use style::computed_values::{background_attachment, background_clip, background_origin};
+use style::computed_values::{background_repeat, background_size};
+use style::computed_values::{border_style, image_rendering, overflow_x, position};
+use style::computed_values::{visibility, transform, transform_style};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Border;
 use style::values::RGBA;
@@ -1108,7 +1108,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     },
                     None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
                 };
-                display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem{
+                display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
                     base: BaseDisplayItem::new(stacking_relative_content_box,
                                                DisplayItemMetadata::new(self.node,
                                                                         &*self.style,
@@ -1771,7 +1771,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         let mut display_list = box DisplayList::new();
         let mut has_stacking_context = false;
-        for fragment in self.fragments.fragments.iter_mut() {
+        for fragment in &mut self.fragments.fragments {
             fragment.build_display_list(&mut *display_list,
                                         layout_context,
                                         &self.base.stacking_relative_position,
@@ -2026,4 +2026,3 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
-

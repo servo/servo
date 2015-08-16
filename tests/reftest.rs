@@ -11,7 +11,6 @@
 #![feature(exit_status)]
 #![feature(fs_walk)]
 #![feature(path_ext)]
-#![feature(slice_extras)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
@@ -44,7 +43,7 @@ bitflags!(
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut parts = args.tail().split(|e| &**e == "--");
+    let mut parts = args[1..].split(|e| &**e == "--");
 
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);

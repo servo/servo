@@ -95,8 +95,8 @@ pub struct Font {
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
     pub shaper: Option<Shaper>,
-    pub shape_cache: HashCache<ShapeCacheEntry,Arc<GlyphStore>>,
-    pub glyph_advance_cache: HashCache<u32,FractionalPixel>,
+    pub shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
+    pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
 }
 
 bitflags! {

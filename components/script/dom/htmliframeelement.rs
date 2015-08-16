@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast,
-                                           HTMLIFrameElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::NotSupported;
@@ -380,7 +380,7 @@ impl<'a> VirtualMethods for &'a HTMLIFrameElement {
             &atom!("sandbox") => {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
                 if let Some(ref tokens) = attr.value().tokens() {
-                    for token in tokens.iter() {
+                    for token in *tokens {
                         modes |= match &*token.to_ascii_lowercase() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,
@@ -459,4 +459,3 @@ impl<'a> VirtualMethods for &'a HTMLIFrameElement {
         }
     }
 }
-

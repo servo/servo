@@ -119,60 +119,11 @@ pub trait PaintListener {
 
 #[derive(Deserialize, Serialize)]
 pub enum ScriptToCompositorMsg {
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
     GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
     MoveTo(Point2D<i32>),
     ResizeTo(Size2D<u32>),
     Exit,
-}
-
-/// The interface used by the script task to tell the compositor to update its ready state,
-/// which is used in displaying the appropriate message in the window's title.
-#[derive(Clone)]
-pub struct ScriptListener(IpcSender<ScriptToCompositorMsg>);
-
-impl ScriptListener {
-    pub fn new(sender: IpcSender<ScriptToCompositorMsg>) -> ScriptListener {
-        ScriptListener(sender)
-    }
-
-    pub fn scroll_fragment_point(&mut self,
-                                 pipeline_id: PipelineId,
-                                 layer_id: LayerId,
-                                 point: Point2D<f32>,
-                                 _smooth: bool) {
-        self.0
-            .send(ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point))
-            .unwrap()
-    }
-
-    pub fn client_window(&mut self, send: IpcSender<(Size2D<u32>, Point2D<i32>)>) {
-        self.0.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap()
-    }
-
-    pub fn move_window(&mut self, point: Point2D<i32>) {
-        self.0.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
-    }
-
-    pub fn resize_window(&mut self, size: Size2D<u32>) {
-        self.0.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
-    }
-
-    pub fn close(&mut self) {
-        self.0.send(ScriptToCompositorMsg::Exit).unwrap()
-    }
-
-    pub fn dup(&mut self) -> ScriptListener {
-        self.clone()
-    }
-
-    pub fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        self.0.send(ScriptToCompositorMsg::SetTitle(pipeline_id, title)).unwrap()
-    }
-
-    pub fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        self.0.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap()
-    }
 }

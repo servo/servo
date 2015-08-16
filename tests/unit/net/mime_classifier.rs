@@ -28,18 +28,18 @@ fn test_sniff_mp4_matcher() {
 
     match read_result {
         Ok(data) => {
-            println!("Data Length {:?}",data.len());
+            println!("Data Length {:?}", data.len());
             if !matcher.matches(&data) {
                 panic!("Didn't read mime type")
             }
         },
-        Err(e) => panic!("Couldn't read from file with error {}",e)
+        Err(e) => panic!("Couldn't read from file with error {}", e)
     }
 }
 
 #[cfg(test)]
-fn test_sniff_full(filename_orig: &path::Path,type_string: &str,subtype_string: &str,
-                   supplied_type: Option<(&'static str,&'static str)>){
+fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string: &str,
+                   supplied_type: Option<(&'static str, &'static str)>) {
     let current_working_directory = env::current_dir().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
@@ -71,19 +71,19 @@ fn test_sniff_full(filename_orig: &path::Path,type_string: &str,subtype_string: 
 }
 
 #[cfg(test)]
-fn test_sniff_classification(file: &str,type_string: &str,subtype_string: &str,
-                             supplied_type: Option<(&'static str,&'static str)>){
+fn test_sniff_classification(file: &str, type_string: &str, subtype_string: &str,
+                             supplied_type: Option<(&'static str, &'static str)>) {
     let mut x = PathBuf::from("./");
     x.push(type_string);
     x.push(subtype_string);
     x.push(file);
-    test_sniff_full(&x,type_string,subtype_string,supplied_type);
+    test_sniff_full(&x, type_string, subtype_string, supplied_type);
 }
 #[cfg(test)]
-fn test_sniff_classification_sup(file: &str,type_string: &'static str,subtype_string: &str) {
-    test_sniff_classification(file,type_string,subtype_string, None);
+fn test_sniff_classification_sup(file: &str, type_string: &'static str, subtype_string: &str) {
+    test_sniff_classification(file, type_string, subtype_string, None);
     let class_type = Some((type_string, ""));
-    test_sniff_classification(file,type_string,subtype_string,class_type);
+    test_sniff_classification(file, type_string, subtype_string, class_type);
 }
 
 #[test]

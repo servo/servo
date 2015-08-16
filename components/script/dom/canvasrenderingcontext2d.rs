@@ -173,7 +173,7 @@ impl CanvasRenderingContext2D {
 
         // The source rectangle is the rectangle whose corners are the four points (sx, sy),
         // (sx+sw, sy), (sx+sw, sy+sh), (sx, sy+sh).
-        let source_rect = Rect::new(Point2D::new(sx.min(sx+sw), sy.min(sy+sh)),
+        let source_rect = Rect::new(Point2D::new(sx.min(sx + sw), sy.min(sy + sh)),
                                     Size2D::new(sw.abs(), sh.abs()));
 
         // When the source rectangle is outside the source image,
@@ -191,8 +191,10 @@ impl CanvasRenderingContext2D {
 
         // The destination rectangle is the rectangle whose corners are the four points (dx, dy),
         // (dx+dw, dy), (dx+dw, dy+dh), (dx, dy+dh).
-        let dest_rect = Rect::new(Point2D::new(dx.min(dx+dest_rect_width_scaled), dy.min(dy+dest_rect_height_scaled)),
-                                  Size2D::new(dest_rect_width_scaled.abs(), dest_rect_height_scaled.abs()));
+        let dest_rect = Rect::new(Point2D::new(dx.min(dx + dest_rect_width_scaled),
+                                               dy.min(dy + dest_rect_height_scaled)),
+                                  Size2D::new(dest_rect_width_scaled.abs(),
+                                              dest_rect_height_scaled.abs()));
 
         let source_rect = Rect::new(Point2D::new(source_rect_clipped.origin.x,
                                                  source_rect_clipped.origin.y),

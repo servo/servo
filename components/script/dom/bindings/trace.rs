@@ -58,7 +58,6 @@ use net_traits::storage_task::StorageType;
 use script_traits::UntrustedNodeAddress;
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
-use msg::compositor_msg::ScriptListener;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use profile_traits::mem::ProfilerChan;
@@ -179,7 +178,7 @@ impl<T: JSTraceable> JSTraceable for *mut T {
     }
 }
 
-impl<T: JSTraceable+Copy> JSTraceable for Cell<T> {
+impl<T: JSTraceable + Copy> JSTraceable for Cell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         self.get().trace(trc)
     }
@@ -247,7 +246,7 @@ impl<T: JSTraceable, U: JSTraceable> JSTraceable for Result<T, U> {
     }
 }
 
-impl<K,V,S> JSTraceable for HashMap<K, V, S>
+impl<K, V, S> JSTraceable for HashMap<K, V, S>
     where K: Hash + Eq + JSTraceable,
           V: JSTraceable,
           S: HashState,
@@ -307,7 +306,7 @@ no_jsmanaged_fields!(WebGLError);
 no_jsmanaged_fields!(ProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 
-impl JSTraceable for Box<ScriptChan+Send> {
+impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
@@ -328,7 +327,7 @@ impl<'a> JSTraceable for &'a str {
     }
 }
 
-impl<A,B> JSTraceable for fn(A) -> B {
+impl<A, B> JSTraceable for fn(A) -> B {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -342,14 +341,7 @@ impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     }
 }
 
-impl JSTraceable for ScriptListener {
-    #[inline]
-    fn trace(&self, _: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for Box<LayoutRPC+'static> {
+impl JSTraceable for Box<LayoutRPC + 'static> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -429,7 +421,7 @@ impl RootedTraceableSet {
     }
 
     unsafe fn trace(&self, tracer: *mut JSTracer) {
-        for info in self.set.iter() {
+        for info in &self.set {
             (info.trace)(info.ptr, tracer);
         }
     }

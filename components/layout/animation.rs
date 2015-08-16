@@ -60,7 +60,7 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
 
         // Expire old running animations.
         let now = clock_ticks::precise_time_s();
-        for (_, running_animations) in running_animations.iter_mut() {
+        for (_, running_animations) in &mut running_animations {
             running_animations.retain(|running_animation| now < running_animation.end_time);
         }
 
@@ -93,11 +93,11 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
 pub fn recalc_style_for_animations(flow: &mut Flow,
-                                   animations: &HashMap<OpaqueNode,Vec<Animation>>) {
+                                   animations: &HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&OpaqueNode(fragment.node.id())) {
-            for animation in animations.iter() {
+            for animation in *animations {
                 let now = clock_ticks::precise_time_s();
                 let mut progress = (now - animation.start_time) / animation.duration();
                 if progress > 1.0 {
@@ -130,4 +130,3 @@ pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskDat
 
     layout_task.script_chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
 }
-

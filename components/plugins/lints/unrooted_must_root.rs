@@ -49,13 +49,13 @@ fn is_unrooted_ty(cx: &Context, ty: &ty::TyS, in_new_function: bool) -> bool {
         match t.sty {
             ty::TyStruct(did, _) |
             ty::TyEnum(did, _) => {
-                if cx.tcx.has_attr(did, "must_root") {
+                if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false
-                } else if cx.tcx.has_attr(did, "allow_unrooted_interior") {
+                } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
-                } else if match_def_path(cx, did, &["core", "cell", "Ref"])
-                        || match_def_path(cx, did, &["core", "cell", "RefMut"]) {
+                } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
+                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"]) {
                         // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
                         // since it will be rooted elsewhere
                     false
@@ -88,7 +88,7 @@ impl LintPass for UnrootedPass {
             _ => cx.tcx.map.expect_item(cx.tcx.map.get_parent(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
-            for ref field in def.fields.iter() {
+            for ref field in &def.fields {
                 if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.node.id), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, field.span,
                                  "Type must be rooted, use #[must_root] on the struct definition to propagate")
@@ -102,7 +102,7 @@ impl LintPass for UnrootedPass {
         if map.expect_item(map.get_parent(var.node.id)).attrs.iter().all(|a| !a.check_name("must_root")) {
             match var.node.kind {
                 ast::TupleVariantKind(ref vec) => {
-                    for ty in vec.iter() {
+                    for ty in vec {
                         ast_ty_to_prim_ty(cx.tcx, &*ty.ty).map(|t| {
                             if is_unrooted_ty(cx, t, false) {
                                 cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
@@ -141,7 +141,7 @@ impl LintPass for UnrootedPass {
 
         match block.rules {
             ast::DefaultBlock => {
-                for arg in decl.inputs.iter() {
+                for arg in &decl.inputs {
                     ast_ty_to_prim_ty(cx.tcx, &*arg.ty).map(|t| {
                         if is_unrooted_ty(cx, t, false) {
                             cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")

@@ -57,7 +57,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "aster"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1073,7 +1073,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.6 (git+https://github.com/servo/rust-tenacious)",
+ "tenacious 0.0.9 (git+https://github.com/servo/rust-tenacious)",
 ]
 
 [[package]]
@@ -1136,7 +1136,7 @@ name = "quasi_codegen"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1286,7 +1286,7 @@ name = "serde_codegen"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi_macros 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1455,8 +1455,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.6"
-source = "git+https://github.com/servo/rust-tenacious#8f878d812a95dc44dab9c03096fcf8a52687868a"
+version = "0.0.9"
+source = "git+https://github.com/servo/rust-tenacious#a04fe4a6e6c332f94b491b9369b8e50e94b3c37d"
 
 [[package]]
 name = "tendril"

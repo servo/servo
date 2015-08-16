@@ -24,11 +24,10 @@ extern crate url;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::compositor_msg::{Epoch, LayerId};
+use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
-use msg::compositor_msg::ScriptListener;
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -136,7 +135,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder+Send>),
+    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
     GetCurrentState(Sender<ScriptState>, PipelineId),
 }
@@ -170,7 +169,7 @@ pub enum CompositorEvent {
 
 /// An opaque wrapper around script<->layout channels to avoid leaking message types into
 /// crates that don't need to know about them.
-pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
+pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
@@ -179,7 +178,7 @@ pub trait ScriptTaskFactory {
     fn create(_phantom: Option<&mut Self>,
               id: PipelineId,
               parent_info: Option<(PipelineId, SubpageId)>,
-              compositor: ScriptListener,
+              compositor: IpcSender<ScriptToCompositorMsg>,
               layout_chan: &OpaqueScriptLayoutChannel,
               control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
@@ -196,5 +195,5 @@ pub trait ScriptTaskFactory {
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
     /// Clone the `Sender` in `pair`.
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any+Send>;
+                            -> Box<Any + Send>;
 }

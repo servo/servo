@@ -713,7 +713,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
             let (from, to) = if style_priority == StylePriority::Important {
                 (&mut declarations.normal, &mut declarations.important)
             } else {
-                (&mut declarations.normal, &mut declarations.important)
+                (&mut declarations.important, &mut declarations.normal)
             };
 
             // Usually, the reference counts of `from` and `to` will be 1 here. But transitions

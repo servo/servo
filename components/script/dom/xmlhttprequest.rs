@@ -28,7 +28,7 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use network_listener::{NetworkListener, PreInvoke};
-use script_task::{ScriptChan, ScriptMsg, Runnable, ScriptPort};
+use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -148,7 +148,7 @@ pub struct XMLHttpRequest {
     timeout_cancel: DOMRefCell<Option<Sender<()>>>,
     fetch_time: Cell<i64>,
     #[ignore_heap_size_of = "Cannot calculate Heap size"]
-    timeout_target: DOMRefCell<Option<Box<ScriptChan+Send>>>,
+    timeout_target: DOMRefCell<Option<Box<ScriptChan + Send>>>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
 }
@@ -201,13 +201,13 @@ impl XMLHttpRequest {
     fn check_cors(context: Arc<Mutex<XHRContext>>,
                   load_data: LoadData,
                   req: CORSRequest,
-                  script_chan: Box<ScriptChan+Send>,
+                  script_chan: Box<ScriptChan + Send>,
                   resource_task: ResourceTask) {
         struct CORSContext {
             xhr: Arc<Mutex<XHRContext>>,
             load_data: RefCell<Option<LoadData>>,
             req: CORSRequest,
-            script_chan: Box<ScriptChan+Send>,
+            script_chan: Box<ScriptChan + Send>,
             resource_task: ResourceTask,
         }
 
@@ -244,7 +244,7 @@ impl XMLHttpRequest {
     }
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
-                          script_chan: Box<ScriptChan+Send>,
+                          script_chan: Box<ScriptChan + Send>,
                           resource_task: ResourceTask,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
@@ -761,7 +761,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>);
     fn dispatch_response_progress_event(self, type_: DOMString);
     fn text_response(self) -> DOMString;
-    fn set_timeout(self, timeout:u32);
+    fn set_timeout(self, timeout: u32);
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
     fn discard_subsequent_responses(self);
@@ -1013,7 +1013,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
             sleep_ms(duration_ms);
             match cancel_rx.try_recv() {
                 Err(TryRecvError::Empty) => {
-                    timeout_target.send(ScriptMsg::RunnableMsg(box XHRTimeout {
+                    timeout_target.send(CommonScriptMsg::RunnableMsg(box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();
@@ -1038,7 +1038,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
-                for &(ref name, ref value) in params.iter() {
+                for &(ref name, ref value) in params {
                     if name == &mime::Attr::Charset {
                         encoding = encoding_from_whatwg_label(&value.to_string()).unwrap_or(encoding);
                     }

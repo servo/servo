@@ -63,13 +63,13 @@ pub struct ParserContext {
     /// The subpage associated with this document.
     subpage: Option<SubpageId>,
     /// The target event loop for the response notifications.
-    script_chan: Box<ScriptChan+Send>,
+    script_chan: Box<ScriptChan + Send>,
     /// The URL for this document.
     url: Url,
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, subpage: Option<SubpageId>, script_chan: Box<ScriptChan+Send>,
+    pub fn new(id: PipelineId, subpage: Option<SubpageId>, script_chan: Box<ScriptChan + Send>,
                url: Url) -> ParserContext {
         ParserContext {
             parser: RefCell::new(None),

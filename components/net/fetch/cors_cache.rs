@@ -53,7 +53,7 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new(origin:Url, url: Url, max_age: u32, credentials: bool,
+    fn new(origin: Url, url: Url, max_age: u32, credentials: bool,
             header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,

@@ -36,7 +36,7 @@ pub trait CompositorProxy : 'static + Send {
     /// Sends a message to the compositor.
     fn send(&self, msg: Msg);
     /// Clones the compositor proxy.
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+'static+Send>;
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy + 'static + Send>;
 }
 
 /// The port that the compositor receives messages on. As above, this is a trait supplied by the
@@ -65,7 +65,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point) => {
+            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
                 compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
             }
 
@@ -99,7 +99,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
 }
 
 /// Implementation of the abstract `PaintListener` interface.
-impl PaintListener for Box<CompositorProxy+'static+Send> {
+impl PaintListener for Box<CompositorProxy + 'static + Send> {
     fn native_display(&mut self) -> Option<NativeDisplay> {
         let (chan, port) = channel();
         self.send(Msg::GetNativeDisplay(chan));
@@ -221,7 +221,7 @@ pub enum Msg {
 }
 
 impl Debug for Msg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(),Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Msg::Exit(..) => write!(f, "Exit"),
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
@@ -260,7 +260,7 @@ pub struct CompositorTask;
 
 impl CompositorTask {
     pub fn create<Window>(window: Option<Rc<Window>>,
-                          sender: Box<CompositorProxy+Send>,
+                          sender: Box<CompositorProxy + Send>,
                           receiver: Box<CompositorReceiver>,
                           constellation_chan: ConstellationChan,
                           time_profiler_chan: time::ProfilerChan,

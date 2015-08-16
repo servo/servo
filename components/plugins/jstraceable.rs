@@ -8,8 +8,8 @@ use syntax::ptr::P;
 use syntax::ast::{MetaItem, Expr};
 use syntax::ast;
 use syntax::ext::build::AstBuilder;
-use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef, Struct,
-                                     Substructure, TraitDef, ty};
+use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef};
+use syntax::ext::deriving::generic::{Struct, Substructure, TraitDef, ty};
 
 pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotatable) -> Annotatable {
     if let Annotatable::Item(item) = anno {
@@ -80,7 +80,7 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
         _ => cx.span_bug(trait_span, "impossible substructure in `jstraceable`")
     };
 
-    for &FieldInfo { ref self_, span, .. } in fields.iter() {
+    for &FieldInfo { ref self_, span, .. } in fields {
         stmts.push(call_trace(span, self_.clone()));
     }
 

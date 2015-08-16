@@ -57,19 +57,19 @@ bitflags! {
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(all(feature = "window", target_os="macos"))]
-const CMD_OR_CONTROL : constellation_msg::KeyModifiers = SUPER;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = SUPER;
 #[cfg(all(feature = "window", not(target_os="macos")))]
-const CMD_OR_CONTROL : constellation_msg::KeyModifiers = CONTROL;
+const CMD_OR_CONTROL: constellation_msg::KeyModifiers = CONTROL;
 
 // Some shortcuts use Cmd on Mac and Alt on other systems.
 #[cfg(all(feature = "window", target_os="macos"))]
-const CMD_OR_ALT : constellation_msg::KeyModifiers = SUPER;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = SUPER;
 #[cfg(all(feature = "window", not(target_os="macos")))]
-const CMD_OR_ALT : constellation_msg::KeyModifiers = ALT;
+const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 #[cfg(feature = "window")]
-const LINE_HEIGHT : f32 = 38.0;
+const LINE_HEIGHT: f32 = 38.0;
 
 /// The type of a window.
 #[cfg(feature = "window")]
@@ -211,7 +211,7 @@ impl Window {
                         MouseScrollDelta::PixelDelta(_, dy) => dy
                     };
                     if dy < 0.0 {
-                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
+                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
                     } else if dy > 0.0 {
                         self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
@@ -538,7 +538,7 @@ impl WindowMethods for Window {
     }
 
     fn create_compositor_channel(window: &Option<Rc<Window>>)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
+                                 -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
 
         let window_proxy = match window {
@@ -549,7 +549,7 @@ impl WindowMethods for Window {
         (box GlutinCompositorProxy {
              sender: sender,
              window_proxy: window_proxy,
-         } as Box<CompositorProxy+Send>,
+         } as Box<CompositorProxy + Send>,
          box receiver as Box<CompositorReceiver>)
     }
 
@@ -656,7 +656,7 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
             (CMD_OR_CONTROL, Key::Minus) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Key::Num0) |
             (CMD_OR_CONTROL, Key::Kp0) => {
@@ -761,13 +761,13 @@ impl WindowMethods for Window {
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
+                                 -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
 
         (box GlutinCompositorProxy {
              sender: sender,
              window_proxy: None,
-         } as Box<CompositorProxy+Send>,
+         } as Box<CompositorProxy + Send>,
          box receiver as Box<CompositorReceiver>)
     }
 
@@ -833,11 +833,11 @@ impl CompositorProxy for GlutinCompositorProxy {
             window_proxy.wakeup_event_loop()
         }
     }
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy + Send> {
         box GlutinCompositorProxy {
             sender: self.sender.clone(),
             window_proxy: self.window_proxy.clone(),
-        } as Box<CompositorProxy+Send>
+        } as Box<CompositorProxy + Send>
     }
 }
 

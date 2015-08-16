@@ -1,0 +1,4 @@
+#!/bin/sh
+EXTRA_ARGS=""
+which ld.gold > /dev/null 2>&1 && EXTRA_ARGS="-C link-args=-fuse-ld=gold"
+rustc $EXTRA_ARGS "$@"

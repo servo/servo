@@ -106,10 +106,10 @@ impl CORSRequest {
     }
 
     pub fn http_fetch_async(&self,
-                            listener: Box<AsyncCORSResponseListener+Send>,
-                            script_chan: Box<ScriptChan+Send>) {
+                            listener: Box<AsyncCORSResponseListener + Send>,
+                            script_chan: Box<ScriptChan + Send>) {
         struct CORSContext {
-            listener: Box<AsyncCORSResponseListener+Send>,
+            listener: Box<AsyncCORSResponseListener + Send>,
             response: RefCell<Option<CORSResponse>>,
         }
 
@@ -259,7 +259,7 @@ impl CORSRequest {
         // This cache should come from the user agent, creating a new one here to check
         // for compile time errors
         let cache = &mut CORSCache(vec!());
-        for m in methods.iter() {
+        for m in methods {
             let cache_match = cache.match_method_and_update(self, m, max_age);
             if !cache_match {
                 cache.insert(CORSCacheEntry::new(self.origin.clone(), self.destination.clone(),
@@ -341,7 +341,7 @@ pub struct CORSCacheEntry {
 }
 
 impl CORSCacheEntry {
-    fn new(origin:Url,
+    fn new(origin: Url,
            url: Url,
            max_age: u32,
            credentials: bool,
