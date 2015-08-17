@@ -105,5 +105,9 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         *found = item.is_some();
         item
     }
-}
 
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented
+        vec![]
+    }
+}

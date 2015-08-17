@@ -2472,7 +2472,7 @@ let traps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
     defineProperty: Some(%s),
-    ownPropertyKeys: Some(proxyhandler::own_property_keys),
+    ownPropertyKeys: Some(ownPropertyKeys),
     delete_: Some(%s),
     enumerate: None,
     preventExtensions: Some(proxyhandler::prevent_extensions),
@@ -4177,6 +4177,53 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         return CGGeneric(self.getBody())
 
 
+class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'proxy'),
+                Argument('*mut AutoIdVector', 'props')]
+        CGAbstractExternMethod.__init__(self, descriptor, "ownPropertyKeys", "u8", args)
+        self.descriptor = descriptor
+
+    def getBody(self):
+        body = dedent(
+            """
+            let proxy = UnwrapProxy(proxy);
+            """)
+
+        if self.descriptor.operations['IndexedGetter']:
+            body += dedent(
+                r"""
+                for i in 0..(*proxy).Length() {
+                    let mut jsid = js::jsapi::RootedId::new(cx, jsid {asBits: i});
+                    js::glue::AppendToAutoIdVector(props, jsid.handle().get());
+                }
+                """)
+
+        if self.descriptor.operations['NamedGetter']:
+            body += dedent(
+                r"""
+                for name in (*proxy).SupportedPropertyNames() {
+                    let cstring = CString::new(name).unwrap();
+                    let jsstring = js::jsapi::JS_InternString(cx, cstring.into_ptr());
+                    let mut rooted = js::jsapi::RootedString::new(cx, jsstring);
+                    let jsid = js::jsapi::INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
+                    let rooted_jsid = js::jsapi::RootedId::new(cx, jsid);
+                    js::glue::AppendToAutoIdVector(props, rooted_jsid.handle().get());
+                }
+                """)
+
+        body += dedent(
+            """
+            return JSTrue;
+            """)
+
+        return body
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
@@ -4495,6 +4542,14 @@ class CGInterfaceTrait(CGThing):
                     infallible = 'infallible' in descriptor.getExtendedAttributes(operation)
                     if operation.isGetter():
                         arguments = method_arguments(descriptor, rettype, arguments, trailing=("found", "&mut bool"))
+
+                        # If this interface 'supports named properties', then we
+                        # should be able to access 'supported property names'
+                        #
+                        # WebIDL, Second Draft, section 3.2.4.5
+                        # https://heycam.github.io/webidl/#idl-named-properties
+                        if operation.isNamed():
+                            yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments)
                     rettype = return_type(descriptor, rettype, infallible)
@@ -4599,6 +4654,7 @@ class CGDescriptor(CGThing):
                 # cgThings.append(CGProxyIsProxy(descriptor))
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_className(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
@@ -4968,7 +5024,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{SymbolCode, ObjectOpResult, HandleValueArray}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitSetterCallArgs, JSJitMethodCallArgs, CallArgs}',
             'js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_ComputeThis}',
-            'js::jsapi::GetGlobalForObjectCrossCompartment',
+            'js::jsapi::{GetGlobalForObjectCrossCompartment, AutoIdVector}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',

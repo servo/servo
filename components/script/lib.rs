@@ -13,6 +13,7 @@
 #![feature(cell_extras)]
 #![feature(core)]
 #![feature(core_intrinsics)]
+#![feature(cstr_memory)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(drain)]

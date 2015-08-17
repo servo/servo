@@ -1912,6 +1912,11 @@ impl<'a> DocumentMethods for &'a Document {
         collection.r().reflector().get_jsobject().get()
     }
 
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented
+        vec![]
+    }
+
     global_event_handlers!();
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 }

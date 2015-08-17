@@ -13072,6 +13072,10 @@
         "url": "/dom/collections/HTMLCollection-empty-name.html"
       },
       {
+        "path": "dom/collections/HTMLCollection-supported-property-names.html",
+        "url": "/dom/collections/HTMLCollection-supported-property-names.html"
+      },
+      {
         "path": "dom/events/Event-constants.html",
         "url": "/dom/events/Event-constants.html"
       },
@@ -18070,6 +18074,10 @@
       {
         "path": "js/builtins/Object.prototype.freeze.html",
         "url": "/js/builtins/Object.prototype.freeze.html"
+      },
+      {
+        "path": "js/builtins/Object.prototype.getOwnPropertyNames.html",
+        "url": "/js/builtins/Object.prototype.getOwnPropertyNames.html"
       },
       {
         "path": "js/builtins/Object.prototype.hasOwnProperty-order.html",
