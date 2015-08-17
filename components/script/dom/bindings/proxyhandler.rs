@@ -11,7 +11,6 @@ use dom::bindings::utils::delete_property_by_id;
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{SetProxyExtra, GetProxyHandler};
-use js::jsapi::AutoIdVector;
 use js::jsapi::GetObjectProto;
 use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
 use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
@@ -81,15 +80,6 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleI
     }
 
     delete_property_by_id(cx, expando.handle(), id, bp)
-}
-
-/// Stub for ownPropertyKeys
-pub unsafe extern fn own_property_keys(_cx: *mut JSContext,
-                                       _proxy: HandleObject,
-                                       _props: *mut AutoIdVector) -> u8 {
-    // FIXME: implement this
-    // https://github.com/servo/servo/issues/6390
-    JSTrue
 }
 
 /// Controls whether the Extensible bit can be changed
