@@ -213,7 +213,7 @@ impl DisplayList {
         };
 
         doit(&(self.all_display_items()));
-        if self.children.len() != 0 {
+        if !self.children.is_empty() {
             println!("{} Children stacking contexts list length: {}",
                      indentation,
                      self.children.len());

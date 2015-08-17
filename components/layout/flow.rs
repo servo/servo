@@ -244,7 +244,7 @@ pub trait Flow: fmt::Debug + Sync {
         match self.class() {
             FlowClass::Block |
             FlowClass::TableCaption |
-            FlowClass::TableCell if base(self).children.len() != 0 => {
+            FlowClass::TableCell if !base(self).children.is_empty() => {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
