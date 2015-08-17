@@ -303,7 +303,9 @@ class CommandBase(object):
             env['HOST_FILE'] = hosts_file_path
 
         env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
-        env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
+
+        if sys.platform != "darwin":
+          env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
 
         return env
 
