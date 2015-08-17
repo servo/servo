@@ -2234,6 +2234,22 @@ impl Fragment {
     pub fn margin_box_inline_size(&self) -> Au {
         self.border_box.size.inline + self.margin.inline_start_end()
     }
+
+    /// Returns true if this node *or any of the nodes within its inline fragment context* have
+    /// non-`static` `position`.
+    pub fn is_positioned(&self) -> bool {
+        if self.style.get_box().position != position::T::static_ {
+            return true
+        }
+        if let Some(ref inline_context) = self.inline_context {
+            for node in inline_context.nodes.iter() {
+                if node.style.get_box().position != position::T::static_ {
+                    return true
+                }
+            }
+        }
+        false
+    }
 }
 
 impl fmt::Debug for Fragment {

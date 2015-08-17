@@ -17,10 +17,8 @@ use block::BlockFlow;
 use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
-use flow::{Descendants, AbsDescendants};
-use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use flow::{IS_ABSOLUTELY_POSITIONED};
-use flow;
+use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
+use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
@@ -72,7 +70,7 @@ pub enum ConstructionResult {
     /// This node contributed a flow at the proper position in the tree.
     /// Nothing more needs to be done for this node. It has bubbled up fixed
     /// and absolute descendant flows that have a containing block above it.
-    Flow(FlowRef, AbsDescendants),
+    Flow(FlowRef, AbsoluteDescendants),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
@@ -120,9 +118,6 @@ pub struct InlineFragmentsConstructionResult {
 
     /// Any fragments that succeed the {ib} splits.
     pub fragments: IntermediateInlineFragments,
-
-    /// Any absolute descendants that we're bubbling up.
-    pub abs_descendants: AbsDescendants,
 }
 
 /// Represents an {ib} split that has not yet found the containing block that it belongs to. This
@@ -167,14 +162,14 @@ pub struct IntermediateInlineFragments {
     pub fragments: LinkedList<Fragment>,
 
     /// The list of absolute descendants of those inline fragments.
-    pub absolute_descendants: AbsDescendants,
+    pub absolute_descendants: AbsoluteDescendants,
 }
 
 impl IntermediateInlineFragments {
     fn new() -> IntermediateInlineFragments {
         IntermediateInlineFragments {
             fragments: LinkedList::new(),
-            absolute_descendants: Descendants::new(),
+            absolute_descendants: AbsoluteDescendants::new(),
         }
     }
 
@@ -424,6 +419,7 @@ impl<'a> FlowConstructor<'a> {
                                               fragment_accumulator: InlineFragmentsAccumulator,
                                               flow: &mut FlowRef,
                                               flow_list: &mut Vec<FlowRef>,
+                                              absolute_descendants: &mut AbsoluteDescendants,
                                               node: &ThreadSafeLayoutNode) {
         let mut fragments = fragment_accumulator.to_intermediate_inline_fragments();
         if fragments.is_empty() {
@@ -432,7 +428,8 @@ impl<'a> FlowConstructor<'a> {
 
         strip_ignorable_whitespace_from_start(&mut fragments.fragments);
         strip_ignorable_whitespace_from_end(&mut fragments.fragments);
-        if fragments.is_empty() {
+        if fragments.fragments.is_empty() {
+            absolute_descendants.push_descendants(fragments.absolute_descendants);
             return
         }
 
@@ -469,11 +466,18 @@ impl<'a> FlowConstructor<'a> {
         }
 
         // Set up absolute descendants as necessary.
-        let contains_positioned_fragments = inline_flow_ref.contains_positioned_fragments();
-        if contains_positioned_fragments {
-            // This is the containing block for all the absolute descendants.
-            inline_flow_ref.set_absolute_descendants(fragments.absolute_descendants);
-        }
+        //
+        // TODO(pcwalton): The inline flow itself may need to become the containing block for
+        // absolute descendants in order to handle cases like:
+        //
+        //      <div>
+        //          <span style="position: relative">
+        //              <span style="position: absolute; ..."></span>
+        //          </span>
+        //      </div>
+        //
+        // See the comment above `flow::AbsoluteDescendantInfo` for more information.
+        absolute_descendants.push_descendants(fragments.absolute_descendants);
 
         {
             let inline_flow = inline_flow_ref.as_inline();
@@ -503,7 +507,7 @@ impl<'a> FlowConstructor<'a> {
             node: &ThreadSafeLayoutNode,
             kid: ThreadSafeLayoutNode,
             inline_fragment_accumulator: &mut InlineFragmentsAccumulator,
-            abs_descendants: &mut Descendants) {
+            abs_descendants: &mut AbsoluteDescendants) {
         match kid.swap_out_construction_result() {
             ConstructionResult::None => {}
             ConstructionResult::Flow(mut kid_flow, kid_abs_descendants) => {
@@ -512,7 +516,7 @@ impl<'a> FlowConstructor<'a> {
                 if flow.is_table() && kid_flow.is_table_caption() {
                     self.set_flow_construction_result(&kid,
                                                       ConstructionResult::Flow(kid_flow,
-                                                                               Descendants::new()))
+                                                                               AbsoluteDescendants::new()))
                 } else if flow.need_anonymous_flow(&*kid_flow) {
                     consecutive_siblings.push(kid_flow)
                 } else {
@@ -520,11 +524,14 @@ impl<'a> FlowConstructor<'a> {
                     // handle {ib} splits.
                     debug!("flushing {} inline box(es) to flow A",
                            inline_fragment_accumulator.fragments.fragments.len());
-                    self.flush_inline_fragments_to_flow_or_list(
+                    let old_inline_fragment_accumulator =
                         mem::replace(inline_fragment_accumulator,
-                                     InlineFragmentsAccumulator::new()),
+                                     InlineFragmentsAccumulator::new());
+                    self.flush_inline_fragments_to_flow_or_list(
+                        old_inline_fragment_accumulator,
                         flow,
                         consecutive_siblings,
+                        abs_descendants,
                         node);
                     if !consecutive_siblings.is_empty() {
                         let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
@@ -539,7 +546,6 @@ impl<'a> FlowConstructor<'a> {
                     InlineFragmentsConstructionResult {
                         splits,
                         fragments: successor_fragments,
-                        abs_descendants: kid_abs_descendants,
                     })) => {
                 // Add any {ib} splits.
                 for split in splits.into_iter() {
@@ -554,11 +560,14 @@ impl<'a> FlowConstructor<'a> {
                     // Flush any inline fragments that we were gathering up.
                     debug!("flushing {} inline box(es) to flow A",
                            inline_fragment_accumulator.fragments.fragments.len());
+                    let old_inline_fragment_accumulator =
+                        mem::replace(inline_fragment_accumulator,
+                                     InlineFragmentsAccumulator::new());
                     self.flush_inline_fragments_to_flow_or_list(
-                            mem::replace(inline_fragment_accumulator,
-                                         InlineFragmentsAccumulator::new()),
+                            old_inline_fragment_accumulator,
                             flow,
                             consecutive_siblings,
+                            &mut inline_fragment_accumulator.fragments.absolute_descendants,
                             node);
 
                     // Push the flow generated by the {ib} split onto our list of
@@ -572,7 +581,6 @@ impl<'a> FlowConstructor<'a> {
 
                 // Add the fragments to the list we're maintaining.
                 inline_fragment_accumulator.push_all(successor_fragments);
-                abs_descendants.push_descendants(kid_abs_descendants);
             }
             ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                     whitespace_node,
@@ -614,7 +622,7 @@ impl<'a> FlowConstructor<'a> {
         inline_fragment_accumulator.fragments.push_all(initial_fragments);
 
         // List of absolute descendants, in tree order.
-        let mut abs_descendants = Descendants::new();
+        let mut abs_descendants = AbsoluteDescendants::new();
         for kid in node.children() {
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
@@ -634,6 +642,7 @@ impl<'a> FlowConstructor<'a> {
         self.flush_inline_fragments_to_flow_or_list(inline_fragment_accumulator,
                                                     &mut flow,
                                                     &mut consecutive_siblings,
+                                                    &mut abs_descendants,
                                                     node);
         if !consecutive_siblings.is_empty() {
             self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
@@ -649,7 +658,7 @@ impl<'a> FlowConstructor<'a> {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
 
-            abs_descendants = Descendants::new();
+            abs_descendants = AbsoluteDescendants::new();
             if is_absolutely_positioned {
                 // This is now the only absolute flow in the subtree which hasn't yet
                 // reached its CB.
@@ -784,7 +793,7 @@ impl<'a> FlowConstructor<'a> {
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.bidi_control_chars = bidi_control_chars(&*node.style());
 
-        let mut abs_descendants = Descendants::new();
+        let mut abs_descendants = AbsoluteDescendants::new();
 
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
@@ -830,7 +839,6 @@ impl<'a> FlowConstructor<'a> {
                         InlineFragmentsConstructionResult {
                             splits,
                             fragments: successors,
-                            abs_descendants: kid_abs_descendants,
                         })) => {
 
                     // Bubble up {ib} splits.
@@ -841,7 +849,6 @@ impl<'a> FlowConstructor<'a> {
 
                     // Push residual fragments.
                     fragment_accumulator.push_all(successors);
-                    abs_descendants.push_descendants(kid_abs_descendants);
                 }
                 ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
@@ -869,11 +876,11 @@ impl<'a> FlowConstructor<'a> {
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || !fragment_accumulator.fragments.is_empty()
                 || abs_descendants.len() > 0 {
+            fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
             let construction_item = ConstructionItem::InlineFragments(
                     InlineFragmentsConstructionResult {
                 splits: opt_inline_block_splits,
                 fragments: fragment_accumulator.to_intermediate_inline_fragments(),
-                abs_descendants: abs_descendants,
             });
             ConstructionResult::ConstructionItem(construction_item)
         } else {
@@ -924,7 +931,6 @@ impl<'a> FlowConstructor<'a> {
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
                 fragments: fragments,
-                abs_descendants: Descendants::new(),
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -950,12 +956,12 @@ impl<'a> FlowConstructor<'a> {
         let mut fragment_accumulator =
             InlineFragmentsAccumulator::from_inline_node_and_style(node, modified_style);
         fragment_accumulator.fragments.fragments.push_back(fragment);
+        fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
                 fragments: fragment_accumulator.to_intermediate_inline_fragments(),
-                abs_descendants: abs_descendants,
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -976,12 +982,12 @@ impl<'a> FlowConstructor<'a> {
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.fragments.push_back(fragment);
+        fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
 
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
                 fragments: fragment_accumulator.to_intermediate_inline_fragments(),
-                abs_descendants: abs_descendants,
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -1069,8 +1075,8 @@ impl<'a> FlowConstructor<'a> {
         // First populate the table flow with its children.
         let construction_result = self.build_flow_for_block_like(table_flow, node);
 
-        let mut abs_descendants = Descendants::new();
-        let mut fixed_descendants = Descendants::new();
+        let mut abs_descendants = AbsoluteDescendants::new();
+        let mut fixed_descendants = AbsoluteDescendants::new();
 
         // The order of the caption and the table are not necessarily the same order as in the DOM
         // tree. All caption blocks are placed before or after the table flow, depending on the
@@ -1102,7 +1108,7 @@ impl<'a> FlowConstructor<'a> {
             // This is the containing block for all the absolute descendants.
             wrapper_flow.set_absolute_descendants(abs_descendants);
 
-            abs_descendants = Descendants::new();
+            abs_descendants = AbsoluteDescendants::new();
 
             if is_fixed_positioned {
                 // Send itself along with the other fixed descendants.
@@ -1267,7 +1273,7 @@ impl<'a> FlowConstructor<'a> {
         let mut flow = FlowRef::new(flow as Box<Flow>);
         flow.finish();
 
-        ConstructionResult::Flow(flow, Descendants::new())
+        ConstructionResult::Flow(flow, AbsoluteDescendants::new())
     }
 
     /// Attempts to perform incremental repair to account for recent changes to this node. This
