@@ -251,15 +251,15 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
         let direction = if adjust >= 0 { Direction::Forward } else { Direction::Backward };
-        self.adjust_horizontal_deal_with_selection(direction, select);
-        self.adjust_horizontal_inner(adjust, select);
+        self.adjust_selection_for_horizontal_change(direction, select);
+        self.perform_horizontal_adjustment(adjust, select);
     }
 
     pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
-        self.adjust_horizontal_deal_with_selection(direction, select);
+        self.adjust_selection_for_horizontal_change(direction, select);
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
-            // FIXME: We adjusting by one code point, but it proably should be one grapheme cluster
+            // FIXME: We adjust by one code point, but it proably should be one grapheme cluster
             // https://github.com/unicode-rs/unicode-segmentation
             match direction {
                 Direction::Forward => {
@@ -276,10 +276,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
             }
         };
-        self.adjust_horizontal_inner(adjust, select);
+        self.perform_horizontal_adjustment(adjust, select);
     }
 
-    fn adjust_horizontal_deal_with_selection(&mut self, adjust: Direction, select: Selection) {
+    fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection) {
         if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
@@ -296,7 +296,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    fn adjust_horizontal_inner(&mut self, adjust: isize, select: Selection) {
+    fn perform_horizontal_adjustment(&mut self, adjust: isize, select: Selection) {
         if adjust < 0 {
             let remaining = self.edit_point.index;
             if adjust.abs() as usize > remaining && self.edit_point.line > 0 {

@@ -31,6 +31,13 @@ fn test_textinput_delete_char() {
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠b".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.delete_char(Direction::Forward);
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "ab");
 }
 
 #[test]
@@ -43,6 +50,14 @@ fn test_textinput_insert_char() {
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.insert_char('b');
     assert_eq!(textinput.get_content(), "ababefg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠c".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.insert_char('b');
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "a🌠bc");
 }
 
 #[test]
