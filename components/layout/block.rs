@@ -1639,10 +1639,16 @@ impl Flow for BlockFlow {
                 // We can't actually compute the inline-size of this block now, because floats
                 // might affect it. Speculate that its inline-size is equal to the inline-size
                 // computed above minus the inline-size of the previous left and/or right floats.
-                self.fragment.border_box.size.inline =
-                    self.fragment.border_box.size.inline -
-                    self.inline_size_of_preceding_left_floats -
-                    self.inline_size_of_preceding_right_floats;
+                //
+                // (If `max-width` is set, then don't perform this speculation. We guess that the
+                // page set `max-width` in order to avoid hitting floats. The search box on Google
+                // SERPs falls into this category.)
+                if self.fragment.style.max_inline_size() == LengthOrPercentageOrNone::None {
+                    self.fragment.border_box.size.inline =
+                        self.fragment.border_box.size.inline -
+                        self.inline_size_of_preceding_left_floats -
+                        self.inline_size_of_preceding_right_floats;
+                }
             }
             FormattingContextType::Other => {
                 self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
