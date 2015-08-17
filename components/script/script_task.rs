@@ -1188,23 +1188,26 @@ impl ScriptTask {
         let mut urls = vec![];
         let mut dom_tree_size = 0;
         let mut reports = vec![];
-        for it_page in self.root_page().iter() {
-            let current_url = it_page.document().url().serialize();
-            urls.push(current_url.clone());
 
-            for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
-                let target = EventTargetCast::from_ref(&*child);
+        if let Some(root_page) = self.page.borrow().as_ref() {
+            for it_page in root_page.iter() {
+                let current_url = it_page.document().url().serialize();
+                urls.push(current_url.clone());
+
+                for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
+                    let target = EventTargetCast::from_ref(&*child);
+                    dom_tree_size += heap_size_of_eventtarget(target);
+                }
+                let window = it_page.window();
+                let target = EventTargetCast::from_ref(&*window);
                 dom_tree_size += heap_size_of_eventtarget(target);
-            }
-            let window = it_page.window();
-            let target = EventTargetCast::from_ref(&*window);
-            dom_tree_size += heap_size_of_eventtarget(target);
 
-            reports.push(Report {
-                path: path![format!("url({})", current_url), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            })
+                reports.push(Report {
+                    path: path![format!("url({})", current_url), "dom-tree"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: dom_tree_size,
+                })
+            }
         }
         let path_seg = format!("url({})", urls.join(", "));
         reports.extend(ScriptTask::get_reports(self.get_cx(), path_seg));
