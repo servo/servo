@@ -19,7 +19,7 @@ fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
     };
 
     let (tx, _) = ipc::channel().unwrap();
-    let mut manager = ResourceManager::new(None, tx, list, None);
+    let mut manager = ResourceManager::new("".to_owned(), tx, list, None);
 
     let entry = HSTSEntry::new(
         "mozilla.org".to_string(), IncludeSubdomains::NotIncluded, None

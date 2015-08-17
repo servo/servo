@@ -28,10 +28,7 @@ pub fn Platform() -> DOMString {
 }
 
 pub fn UserAgent() -> DOMString {
-    match opts::get().user_agent {
-        Some(ref user_agent) => user_agent.clone(),
-        None => "".to_owned(),
-    }
+    opts::get().user_agent.clone()
 }
 
 pub fn AppVersion() -> DOMString {
