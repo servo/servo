@@ -67,5 +67,10 @@ impl<'a> DOMStringMapMethods for &'a DOMStringMap {
             }
         }
     }
-}
 
+    // https://html.spec.whatwg.org/multipage/#domstringmap
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented
+        vec![]
+    }
+}
