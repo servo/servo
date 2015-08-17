@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::CallbackContainer;
+use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -36,6 +36,8 @@ use std::rc::Rc;
 use url::Url;
 
 use std::collections::HashMap;
+
+pub type EventHandler = EventHandlerNonNull;
 
 #[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ListenerPhase {
@@ -94,7 +96,7 @@ impl EventTargetTypeId {
 #[derive(JSTraceable, Clone, PartialEq)]
 pub enum EventListenerType {
     Additive(Rc<EventListener>),
-    Inline(Rc<EventListener>),
+    Inline(Rc<EventHandler>),
 }
 
 impl HeapSizeOf for EventListenerType {
@@ -105,10 +107,17 @@ impl HeapSizeOf for EventListenerType {
 }
 
 impl EventListenerType {
-    fn get_listener(&self) -> Rc<EventListener> {
+    pub fn call_or_handle_event<T: Reflectable>(&self,
+                                                object: &T,
+                                                event: &Event,
+                                                exception_handle: ExceptionHandling) {
         match *self {
-            EventListenerType::Additive(ref listener) |
-            EventListenerType::Inline(ref listener) => listener.clone(),
+            EventListenerType::Additive(ref listener) => {
+                let _ = listener.HandleEvent_(object, event, exception_handle);
+            },
+            EventListenerType::Inline(ref handler) => {
+                let _ = handler.Call_(object, event, exception_handle);
+            },
         }
     }
 }
@@ -137,17 +146,17 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &str) -> Option<Vec<Rc<EventListener>>> {
+    pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListenerType>> {
         self.handlers.borrow().get(type_).map(|listeners| {
-            listeners.iter().map(|entry| entry.listener.get_listener()).collect()
+            listeners.iter().map(|entry| entry.listener.clone()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
-        -> Option<Vec<Rc<EventListener>>> {
+        -> Option<Vec<EventListenerType>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
-            filtered.map(|entry| entry.listener.get_listener()).collect()
+            filtered.map(|entry| entry.listener.clone()).collect()
         })
     }
 
@@ -164,8 +173,8 @@ pub trait EventTargetHelpers {
     fn dispatch_event(self, event: &Event) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<Rc<EventListener>>);
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>>;
+                                 listener: Option<Rc<EventHandler>>);
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventHandler>>;
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
@@ -192,7 +201,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
 
     fn set_inline_event_listener(self,
                                  ty: DOMString,
-                                 listener: Option<Rc<EventListener>>) {
+                                 listener: Option<Rc<EventHandler>>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
@@ -226,15 +235,15 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         }
     }
 
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventListener>> {
+    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventHandler>> {
         let handlers = self.handlers.borrow();
         let entries = handlers.get(&ty);
-        entries.and_then(|entries| entries.iter().find(|entry| {
+        entries.and_then(|entries| entries.iter().filter_map(|entry| {
             match entry.listener {
-                EventListenerType::Inline(_) => true,
-                _ => false,
+                EventListenerType::Inline(ref handler) => Some(handler.clone()),
+                _ => None,
             }
-        }).map(|entry| entry.listener.get_listener()))
+        }).next())
     }
 
     #[allow(unsafe_code)]
@@ -283,7 +292,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
-                                          EventListener::new(listener.callback()));
+                                          EventHandlerNonNull::new(listener.callback()));
         self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
