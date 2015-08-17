@@ -134,6 +134,11 @@ impl<'a> StorageMethods for &'a Storage {
     fn NamedDeleter(self, name: DOMString) {
         self.RemoveItem(name);
     }
+
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented
+        vec![]
+    }
 }
 
 trait PrivateStorageHelpers {

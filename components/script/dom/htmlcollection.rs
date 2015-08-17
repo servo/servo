@@ -227,5 +227,24 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         *found = maybe_elem.is_some();
         maybe_elem
     }
-}
 
+    // https://dom.spec.whatwg.org/#interface-htmlcollection
+    #[allow(unrooted_must_root)]
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        let Collection(ref root, ref filter) = self.collection;
+        let root = root.root();
+        HTMLCollection::traverse(root.r())
+            .filter(|element| filter.filter(element.r(), root.r()))
+            .fold(vec![], |mut names, elem| {
+                let name_attr = elem.get_string_attribute(&atom!("name"));
+                if !name_attr.is_empty() && !names.contains(&name_attr) {
+                    names.push(name_attr)
+                }
+                let id_attr = elem.get_string_attribute(&atom!("id"));
+                if !id_attr.is_empty() && !names.contains(&id_attr) {
+                    names.push(id_attr)
+                }
+                names
+            })
+    }
+}
