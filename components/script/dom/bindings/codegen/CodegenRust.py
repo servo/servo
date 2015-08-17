@@ -2473,7 +2473,7 @@ let traps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
     defineProperty: Some(%s),
-    ownPropertyKeys: Some(proxyhandler::own_property_keys),
+    ownPropertyKeys: Some(own_property_keys),
     delete_: Some(%s),
     enumerate: None,
     preventExtensions: Some(proxyhandler::prevent_extensions),
@@ -4178,6 +4178,59 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         return CGGeneric(self.getBody())
 
 
+class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('HandleObject', 'proxy'),
+                Argument('*mut AutoIdVector', 'props')]
+        CGAbstractExternMethod.__init__(self, descriptor, "own_property_keys", "u8", args)
+        self.descriptor = descriptor
+
+    def getBody(self):
+        body = dedent(
+            """
+            let unwrapped_proxy = UnwrapProxy(proxy);
+            """)
+
+        if self.descriptor.operations['IndexedGetter']:
+            body += dedent(
+                """
+                for i in 0..(*unwrapped_proxy).Length() {
+                    let rooted_jsid = RootedId::new(cx, int_to_jsid(i as i32));
+                    AppendToAutoIdVector(props, rooted_jsid.handle().get());
+                }
+                """)
+
+        if self.descriptor.operations['NamedGetter']:
+            body += dedent(
+                """
+                for name in (*unwrapped_proxy).SupportedPropertyNames() {
+                    let cstring = CString::new(name).unwrap();
+                    let jsstring = JS_InternString(cx, cstring.as_ptr());
+                    let mut rooted = RootedString::new(cx, jsstring);
+                    let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
+                    let rooted_jsid = RootedId::new(cx, jsid);
+                    AppendToAutoIdVector(props, rooted_jsid.handle().get());
+                }
+                """)
+
+        body += dedent(
+            """
+            let expando = get_expando_object(proxy);
+            if !expando.is_null() {
+                let rooted_expando = RootedObject::new(cx, expando);
+                GetPropertyKeys(cx, rooted_expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+            }
+
+            return JSTrue;
+            """)
+
+        return body
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
@@ -4496,6 +4549,14 @@ class CGInterfaceTrait(CGThing):
                     infallible = 'infallible' in descriptor.getExtendedAttributes(operation)
                     if operation.isGetter():
                         arguments = method_arguments(descriptor, rettype, arguments, trailing=("found", "&mut bool"))
+
+                        # If this interface 'supports named properties', then we
+                        # should be able to access 'supported property names'
+                        #
+                        # WebIDL, Second Draft, section 3.2.4.5
+                        # https://heycam.github.io/webidl/#idl-named-properties
+                        if operation.isNamed():
+                            yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments)
                     rettype = return_type(descriptor, rettype, infallible)
@@ -4600,6 +4661,7 @@ class CGDescriptor(CGThing):
                 # cgThings.append(CGProxyIsProxy(descriptor))
                 cgThings.append(CGProxyUnwrap(descriptor))
                 cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
+                cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_className(descriptor))
                 cgThings.append(CGDOMJSProxyHandler_get(descriptor))
@@ -4958,6 +5020,7 @@ class CGBindingRoot(CGThing):
             'js::{JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_SHIFT}',
             'js::{JSCLASS_RESERVED_SLOTS_MASK}',
             'js::{JSPROP_ENUMERATE, JSPROP_SHARED}',
+            'js::{JSITER_OWNONLY, JSITER_HIDDEN, JSITER_SYMBOLS}',
             'js::jsapi::{JS_CallFunctionValue, JS_GetClass, JS_GetGlobalForObject}',
             'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
             'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
@@ -4967,20 +5030,22 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JSClass, FreeOp, JSFreeOp, JSFunctionSpec, jsid}',
             'js::jsapi::{MutableHandleValue, MutableHandleObject, HandleObject, HandleValue, RootedObject}',
             'js::jsapi::{RootedValue, JSNativeWrapper, JSNative, JSObject, JSPropertyDescriptor}',
+            'js::jsapi::{RootedId, JS_InternString, RootedString, INTERNED_STRING_TO_JSID}',
             'js::jsapi::{JSPropertySpec}',
             'js::jsapi::{JSString, JSTracer, JSJitInfo, JSJitInfo_OpType, JSJitInfo_AliasSet}',
             'js::jsapi::{MutableHandle, Handle, HandleId, JSType, JSValueType}',
             'js::jsapi::{SymbolCode, ObjectOpResult, HandleValueArray}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitSetterCallArgs, JSJitMethodCallArgs, CallArgs}',
             'js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_ComputeThis}',
-            'js::jsapi::GetGlobalForObjectCrossCompartment',
+            'js::jsapi::{GetGlobalForObjectCrossCompartment, AutoIdVector, GetPropertyKeys}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
             'js::glue::{CallJitMethodOp, CallJitGetterOp, CallJitSetterOp, CreateProxyHandler}',
             'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
-            'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
+            'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING, int_to_jsid}',
+            'js::glue::AppendToAutoIdVector',
             'js::rust::GCMethods',
             'js::{JSTrue, JSFalse}',
             'dom::bindings',

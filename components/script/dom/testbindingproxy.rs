@@ -16,7 +16,8 @@ pub struct TestBindingProxy {
 }
 
 impl<'a> TestBindingProxyMethods for &'a TestBindingProxy {
-
+    fn Length(self) -> u32 {0}
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {vec![]}
     fn GetNamedItem(self, _: DOMString) -> DOMString {"".to_owned()}
     fn SetNamedItem(self, _: DOMString, _: DOMString) -> () {}
     fn GetItem(self, _: u32) -> DOMString {"".to_owned()}

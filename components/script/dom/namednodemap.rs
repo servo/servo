@@ -105,5 +105,9 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
         *found = item.is_some();
         item
     }
-}
 
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
+        vec![]
+    }
+}
