@@ -60,6 +60,7 @@ use style::properties::ComputedValues;
 
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use core::nonzero::NonZero;
+use core::ops::Deref;
 use libc;
 use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
@@ -265,7 +266,7 @@ impl LayoutDataRef {
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
     pub fn borrow(&self) -> Ref<Option<LayoutData>> {
-        debug_assert!(task_state::get().is_layout());
+        debug_assert!(task_state::get().is_layout() || task_state::get().is_script());
         self.data_cell.borrow()
     }
 
@@ -526,6 +527,8 @@ pub trait NodeHelpers {
 
     fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>>;
 
+    fn query_style<F, R>(self, query: F) -> R
+        where F : Fn(&ComputedValues) -> R;
 }
 
 impl<'a> NodeHelpers for &'a Node {
@@ -1054,6 +1057,20 @@ impl<'a> NodeHelpers for &'a Node {
             unimplemented!();
         }
         Ok(fragment)
+    }
+
+    #[allow(unsafe_code)]
+    fn query_style<F, R>(self, query: F) -> R
+        where F: Fn(&ComputedValues) -> R {
+
+        let layout_data = self.layout_data.borrow();
+        let layout_data = layout_data.as_ref()
+            .expect("Layout data not yet computed.");
+
+        let style = layout_data._shared_data.style.as_ref().unwrap();
+        let style = style.deref();
+
+        query(style)
     }
 }
 

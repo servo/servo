@@ -4,14 +4,16 @@
 
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg, ComputedNodeLayout};
+use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg, ComputedNodeLayout, AutoMargins};
 use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::Root;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast};
+use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::global::GlobalRef;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{WindowHelpers, ScriptHelpers};
@@ -20,6 +22,7 @@ use page::{IterablePage, Page};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_task::{get_page, ScriptTask};
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
 use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use std::ffi::CStr;
@@ -102,11 +105,50 @@ pub fn handle_get_layout(page: &Rc<Page>,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
+
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = *rect.r().Width();
     let height = *rect.r().Height();
-    reply.send(ComputedNodeLayout { width: width, height: height }).unwrap();
+
+    let window = page.window();
+    let html_elem = HTMLElementCast::to_ref(node.r()).expect("should be getting layout of element");
+    let computed_style = window.r().GetComputedStyle(html_elem, None);
+
+    reply.send(ComputedNodeLayout {
+        display: computed_style.Display(),
+        position: computed_style.Position(),
+        zIndex: computed_style.ZIndex(),
+        boxSizing: computed_style.BoxSizing(),
+        autoMargins: determine_auto_margins(&node),
+        marginTop: computed_style.MarginTop(),
+        marginRight: computed_style.MarginRight(),
+        marginBottom: computed_style.MarginBottom(),
+        marginLeft: computed_style.MarginLeft(),
+        borderTopWidth: computed_style.BorderTopWidth(),
+        borderRightWidth: computed_style.BorderRightWidth(),
+        borderBottomWidth: computed_style.BorderBottomWidth(),
+        borderLeftWidth: computed_style.BorderLeftWidth(),
+        paddingTop: computed_style.PaddingTop(),
+        paddingRight: computed_style.PaddingRight(),
+        paddingBottom: computed_style.PaddingBottom(),
+        paddingLeft: computed_style.PaddingLeft(),
+        width: width,
+        height: height,
+    }).unwrap();
+}
+
+fn determine_auto_margins(node: &Root<Node>) -> AutoMargins {
+    node.r().query_style(|style| {
+        let margin = style.get_margin();
+
+        AutoMargins {
+            top: margin.margin_top == margin_top::computed_value::T::Auto,
+            right: margin.margin_right== margin_right::computed_value::T::Auto,
+            bottom: margin.margin_bottom == margin_bottom::computed_value::T::Auto,
+            left: margin.margin_left == margin_left::computed_value::T::Auto,
+        }
+    })
 }
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,

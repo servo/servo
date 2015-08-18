@@ -12,6 +12,7 @@
 
 #![feature(box_syntax)]
 #![feature(core)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(get_type_id)]
 #![feature(plugin)]
@@ -30,6 +31,7 @@ extern crate devtools_traits;
 extern crate rustc_serialize;
 extern crate ipc_channel;
 extern crate serde;
+extern crate serde_json;
 extern crate msg;
 extern crate time;
 extern crate util;
