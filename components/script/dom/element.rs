@@ -1754,6 +1754,10 @@ impl<'a> ::selectors::Element for Root<Element> {
         let node = NodeCast::from_ref(&**self);
         node.get_hover_state()
     }
+    fn get_active_state(&self) -> bool {
+        let node = NodeCast::from_ref(&**self);
+        node.get_active_state()
+    }
     fn get_focus_state(&self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.

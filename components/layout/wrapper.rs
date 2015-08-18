@@ -479,6 +479,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     }
 
     #[inline]
+    fn get_active_state(&self) -> bool {
+        let node = NodeCast::from_layout_js(&self.element);
+        node.get_active_state_for_layout()
+    }
+
+    #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_atom_for_layout(&ns!(""), &atom!("id"))
