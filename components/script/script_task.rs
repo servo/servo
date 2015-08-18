@@ -1737,7 +1737,7 @@ impl ScriptTask {
                 let url = document.url();
                 if url.scheme == nurl.scheme && url.scheme_data == nurl.scheme_data &&
                     url.query == nurl.query && load_data.method == Method::Get {
-                    match document.find_fragment_node(fragment) {
+                    match document.find_fragment_node(&*fragment) {
                         Some(ref node) => {
                             self.scroll_fragment_point(pipeline_id, node.r());
                         }
@@ -1776,7 +1776,7 @@ impl ScriptTask {
 
         let document = page.document();
         let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(&name));
+                                      .and_then(|name| document.r().find_fragment_node(&*name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
