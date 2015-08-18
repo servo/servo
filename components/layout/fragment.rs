@@ -2025,13 +2025,15 @@ impl Fragment {
             (position::T::fixed,
              z_index::T::Auto,
              overflow_x::T::visible,
+             overflow_x::T::visible) |
+            (position::T::relative,
+             z_index::T::Auto,
+             overflow_x::T::visible,
              overflow_x::T::visible) => false,
             (position::T::absolute, _, _, _) |
-            (position::T::fixed, _, _, _) => true,
-            (position::T::relative, _, _, _) |
+            (position::T::fixed, _, _, _) |
+            (position::T::relative, _, _, _) => true,
             (position::T::static_, _, _, _) => {
-                // FIXME(pcwalton): `position: relative` establishes a new stacking context if
-                // `z-index` is not `auto`. But this matches what we did before.
                 false
             }
         }
