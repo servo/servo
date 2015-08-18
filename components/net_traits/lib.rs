@@ -31,6 +31,7 @@ use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
+use hyper::status::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
@@ -39,6 +40,7 @@ use url::Url;
 use util::mem::HeapSizeOf;
 
 use std::thread;
+use std::sync::mpsc::Receiver;
 
 pub mod hosts;
 pub mod image_cache_task;
@@ -48,6 +50,80 @@ pub mod storage_task;
 pub static IPV4_REGEX: Regex = regex!(
     r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
+
+/// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
+#[derive(Clone, PartialEq, Copy)]
+pub enum ResponseType {
+    Basic,
+    CORS,
+    Default,
+    Error,
+    Opaque
+}
+
+/// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
+#[derive(Clone, Copy)]
+pub enum TerminationReason {
+    EndUserAbort,
+    Fatal,
+    Timeout
+}
+
+/// The response body can still be pushed to after fetch
+/// This provides a way to store unfinished response bodies
+#[derive(Clone)]
+pub enum ResponseBody {
+    Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
+    Receiving(Vec<u8>),
+    Done(Vec<u8>),
+}
+
+pub enum ResponseMsg {
+    Chunk(Vec<u8>),
+    Finished,
+    Errored
+}
+
+pub struct ResponseLoader {
+    response: Response,
+    chan: Receiver<ResponseMsg>
+}
+
+/// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
+#[derive(Clone)]
+pub struct Response {
+    pub response_type: ResponseType,
+    pub termination_reason: Option<TerminationReason>,
+    pub url: Option<Url>,
+    /// `None` can be considered a StatusCode of `0`.
+    pub status: Option<StatusCode>,
+    pub headers: Headers,
+    pub body: ResponseBody,
+    /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
+    /// is a filtered response
+    pub internal_response: Option<Box<Response>>,
+}
+
+impl Response {
+    pub fn network_error() -> Response {
+        Response {
+            response_type: ResponseType::Error,
+            termination_reason: None,
+            url: None,
+            status: None,
+            headers: Headers::new(),
+            body: ResponseBody::Empty,
+            internal_response: None
+        }
+    }
+
+    pub fn is_network_error(&self) -> bool {
+        match self.response_type {
+            ResponseType::Error => true,
+            _ => false
+        }
+    }
+}
 
 /// Image handling.
 ///
@@ -85,6 +161,12 @@ impl LoadData {
             pipeline_id: id,
         }
     }
+}
+
+/// Interface for network listeners performing all flavours of fetches. Proper network requests
+/// should be initiated from this method, based on the response provided.
+pub trait AsyncFetchListener {
+    fn response_available(&self, response: Response);
 }
 
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
@@ -358,3 +440,4 @@ impl Iterator for ProgressMsgPortIterator {
         }
     }
 }
+
