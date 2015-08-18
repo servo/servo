@@ -174,6 +174,10 @@ def check_rust(file_name, contents):
     contents = contents.splitlines(True)
     comment_depth = 0
     merged_lines = ''
+
+    imports = []
+    sorted = []
+
     for idx, line in enumerate(contents):
         # simplify the analysis
         line = line.strip()
@@ -248,8 +252,22 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space before {")
 
-        if line.startswith("use ") and "{" in line and "}" not in line:
-            yield (idx + 1, "use statement spans multiple lines")
+        # imports must be in the same line and alphabetically sorted
+        if line.startswith("use "):
+            match = line[4:].find('{')
+            if match == -1:
+                imports.append(line[4:])
+            else:
+                if "}" not in line[4 + match:]:
+                    yield (idx + 1, "use statement spans multiple lines")
+                imports.append(line[4:4 + match])
+        elif len(imports) > 0:
+            sorted = imports[:]
+            sorted.sort()
+            for i in range(len(imports)):
+                if sorted[i] != imports[i]:
+                    yield (idx + 1 - len(imports) + i, "use statement is not in alphabetical order")
+            imports = []
 
 
 def check_webidl_spec(file_name, contents):
