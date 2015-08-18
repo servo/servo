@@ -264,7 +264,7 @@ impl LayoutDataRef {
 
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
-    pub fn borrow<'a>(&'a self) -> Ref<'a, Option<LayoutData>> {
+    pub fn borrow(&self) -> Ref<Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow()
     }
@@ -275,7 +275,7 @@ impl LayoutDataRef {
     /// prevent CSS selector matching from mutably accessing nodes it's not supposed to and racing
     /// on it. This has already resulted in one bug!
     #[inline]
-    pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, Option<LayoutData>> {
+    pub fn borrow_mut(&self) -> RefMut<Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
     }
@@ -908,7 +908,7 @@ impl<'a> NodeHelpers for &'a Node {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
-            Err(()) => return Err(Syntax),
+            Err(()) => Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
                 let root = self.ancestors().last();
@@ -1326,7 +1326,7 @@ impl Iterator for FollowingNodeIterator {
             }
         }
         self.current = None;
-        return None
+        None
     }
 }
 
@@ -1372,7 +1372,7 @@ impl Iterator for PrecedingNodeIterator {
         }
 
         self.current = None;
-        return None
+        None
     }
 }
 
@@ -1663,7 +1663,7 @@ impl Node {
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
         // Step 6.
-        return Ok(Root::from_ref(node))
+        Ok(Root::from_ref(node))
     }
 
     // https://dom.spec.whatwg.org/#concept-node-insert
@@ -2088,24 +2088,13 @@ impl<'a> NodeMethods for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
-        match self.type_id {
-            NodeTypeId::CharacterData(..) => {
-                let chardata: &CharacterData = CharacterDataCast::to_ref(self).unwrap();
-                Some(chardata.Data())
-            }
-            _ => {
-                None
-            }
-        }
+        CharacterDataCast::to_ref(self).map(|c| c.Data())
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
-        match self.type_id {
-            NodeTypeId::CharacterData(..) => {
-                self.SetTextContent(val)
-            }
-            _ => {}
+        if let NodeTypeId::CharacterData(..) = self.type_id {
+            self.SetTextContent(val)
         }
     }
 
@@ -2565,7 +2554,7 @@ pub fn window_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Window> 
 }
 
 impl<'a> VirtualMethods for &'a Node {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let eventtarget: &&EventTarget = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
     }

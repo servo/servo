@@ -84,7 +84,7 @@ impl UrlHelper {
         if urlA.port() != urlB.port() {
             return false
         }
-        return true
+        true
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-search

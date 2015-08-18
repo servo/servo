@@ -142,7 +142,7 @@ impl<'a> URLMethods for &'a URL {
     }
 }
 
-fn parser_with_base<'a>(base: Option<&'a Url>) -> UrlParser<'a> {
+fn parser_with_base(base: Option<&Url>) -> UrlParser {
     let mut parser = UrlParser::new();
     if let Some(base) = base {
         parser.base_url(base);

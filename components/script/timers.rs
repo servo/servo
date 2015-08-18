@@ -222,8 +222,8 @@ impl TimerManager {
         for _ in 0..arguments.len() {
             timer.data.args.push(Heap::default());
         }
-        for i in 0..arguments.len() {
-            timer.data.args.get_mut(i).unwrap().set(arguments[i].get());
+        for (i, item) in arguments.iter().enumerate() {
+            timer.data.args.get_mut(i).unwrap().set(item.get());
         }
         handle
     }

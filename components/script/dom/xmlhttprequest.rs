@@ -784,19 +784,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
 
     fn process_headers_available(self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
-        match cors_request {
-            Some(ref req) => {
-                match metadata.headers {
-                    Some(ref h) if allow_cross_origin_request(req, h) => {},
-                    _ => {
-                        self.process_partial_response(XHRProgress::Errored(gen_id, Network));
-                        return Err(Network);
-                    }
-                }
-            },
 
-            _ => {}
-        };
+        if let Some(ref req) = cors_request {
+            match metadata.headers {
+                Some(ref h) if allow_cross_origin_request(req, h) => {},
+                _ => {
+                    self.process_partial_response(XHRProgress::Errored(gen_id, Network));
+                    return Err(Network);
+                }
+            }
+        }
+
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(gen_id,
                                                                    metadata.headers,

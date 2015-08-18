@@ -104,12 +104,9 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                     node = n;
                     // "2. If node is not null and filtering node returns FILTER_ACCEPT,
                     //     then set the currentNode attribute to node, return node."
-                    match try!(self.accept_node(node.r())) {
-                        NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(&node));
-                            return Ok(Some(node))
-                        },
-                        _ => {}
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+                        self.current_node.set(JS::from_rooted(&node));
+                        return Ok(Some(node))
                     }
                 },
                 None => break,
@@ -195,12 +192,9 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
             }
             // "5. Filter node and if the return value is FILTER_ACCEPT, then
             //     set the currentNode attribute to node and return node."
-            match try!(self.accept_node(node.r())) {
-                NodeFilterConstants::FILTER_ACCEPT => {
-                    self.current_node.set(JS::from_rooted(&node));
-                    return Ok(Some(node))
-                },
-                _ => {}
+            if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+                self.current_node.set(JS::from_rooted(&node));
+                return Ok(Some(node))
             }
         }
         // "6. Return null."
@@ -217,9 +211,8 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
         loop {
             // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
             loop {
-                match result {
-                    NodeFilterConstants::FILTER_REJECT => break,
-                    _ => {}
+                if NodeFilterConstants::FILTER_REJECT == result {
+                    break;
                 }
                 match node.r().GetFirstChild() {
                     None => break,
@@ -230,12 +223,9 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                         result = try!(self.accept_node(node.r()));
                         // "3. If result is FILTER_ACCEPT, then
                         //     set the currentNode attribute to node and return node."
-                        match result {
-                            NodeFilterConstants::FILTER_ACCEPT => {
-                                self.current_node.set(JS::from_rooted(&node));
-                                return Ok(Some(node))
-                            },
-                            _ => {}
+                        if NodeFilterConstants::FILTER_ACCEPT == result {
+                            self.current_node.set(JS::from_rooted(&node));
+                            return Ok(Some(node))
                         }
                     }
                 }
@@ -251,12 +241,9 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
                     result = try!(self.accept_node(node.r()));
                     // "4. If result is FILTER_ACCEPT, then
                     //     set the currentNode attribute to node and return node."
-                    match result {
-                        NodeFilterConstants::FILTER_ACCEPT => {
-                            self.current_node.set(JS::from_rooted(&node));
-                            return Ok(Some(node))
-                        },
-                        _ => {}
+                    if NodeFilterConstants::FILTER_ACCEPT == result {
+                        self.current_node.set(JS::from_rooted(&node));
+                        return Ok(Some(node))
                     }
                 }
             }
@@ -391,13 +378,11 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 let result = try!(self.accept_node(node.r()));
                 // "3. If result is FILTER_ACCEPT, then set the currentNode
                 //     attribute to node and return node."
-                match result {
-                    NodeFilterConstants::FILTER_ACCEPT => {
-                        self.current_node.set(JS::from_rooted(&node));
-                        return Ok(Some(node))
-                    },
-                    _ => {}
+                if NodeFilterConstants::FILTER_ACCEPT == result {
+                    self.current_node.set(JS::from_rooted(&node));
+                    return Ok(Some(node))
                 }
+
                 // "4. Set sibling to node's first child if type is next,
                 //     and node's last child if type is previous."
                 sibling_op = next_child(node.r());
@@ -418,9 +403,8 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
                 // "5. Filter node and if the return value is FILTER_ACCEPT, then return null."
                 Some(n) => {
                     node = n;
-                    match try!(self.accept_node(node.r())) {
-                        NodeFilterConstants::FILTER_ACCEPT => return Ok(None),
-                        _ => {}
+                    if NodeFilterConstants::FILTER_ACCEPT == try!(self.accept_node(node.r())) {
+                        return Ok(None)
                     }
                 }
             }
