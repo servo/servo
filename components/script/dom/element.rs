@@ -685,7 +685,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
             // Usually, the reference count will be 1 here. But transitions could make it greater
             // than that.
             let existing_declarations = Arc::make_unique(existing_declarations);
-            for declaration in existing_declarations.iter_mut() {
+            for declaration in &mut *existing_declarations {
                 if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
                     return;

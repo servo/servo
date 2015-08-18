@@ -1121,7 +1121,7 @@ impl InlineFlow {
             let run = Arc::make_unique(&mut scanned_text_fragment_info.run);
             {
                 let glyph_runs = Arc::make_unique(&mut run.glyphs);
-                for mut glyph_run in glyph_runs.iter_mut() {
+                for mut glyph_run in &mut *glyph_runs {
                     let mut range = glyph_run.range.intersect(&fragment_range);
                     if range.is_empty() {
                         continue
@@ -1226,7 +1226,7 @@ impl InlineFlow {
         for frag in &self.fragments.fragments {
             match frag.inline_context {
                 Some(ref inline_context) => {
-                    for node in inline_context.nodes.iter() {
+                    for node in &inline_context.nodes {
                         let font_style = node.style.get_font_arc();
                         let font_metrics = text::font_metrics_for_style(font_context, font_style);
                         let line_height = text::line_height_from_style(&*node.style, &font_metrics);

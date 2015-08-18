@@ -179,7 +179,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
-        for url in url_strings.into_iter() {
+        for url in url_strings {
             let url = UrlParser::new().base_url(&self.worker_url)
                                       .parse(&url);
             match url {
@@ -188,7 +188,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
             };
         }
 
-        for url in urls.into_iter() {
+        for url in urls {
             let (url, source) = match load_whole_resource(&self.resource_task, url) {
                 Err(_) => return Err(Network),
                 Ok((metadata, bytes)) => {

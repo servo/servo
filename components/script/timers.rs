@@ -83,7 +83,7 @@ pub struct TimerManager {
 
 impl Drop for TimerManager {
     fn drop(&mut self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
             timer_handle.cancel();
         }
     }
@@ -125,12 +125,12 @@ impl TimerManager {
     }
 
     pub fn suspend(&self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
             timer_handle.suspend();
         }
     }
     pub fn resume(&self) {
-        for (_, timer_handle) in self.active_timers.borrow_mut().iter_mut() {
+        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
             timer_handle.resume();
         }
     }

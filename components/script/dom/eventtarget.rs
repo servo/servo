@@ -332,8 +332,8 @@ impl<'a> EventTargetMethods for &'a EventTarget {
         match listener {
             Some(ref listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let mut entry = handlers.get_mut(&ty);
-                for entry in entry.iter_mut() {
+                let entry = handlers.get_mut(&ty);
+                for entry in entry {
                     let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,

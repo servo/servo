@@ -277,11 +277,10 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
             self.traversal.counters.insert((*counter_name).clone(), counter);
         }
 
-        for &(ref counter_name, value) in fragment.style()
+        for &(ref counter_name, value) in &fragment.style()
                                                   .get_counters()
                                                   .counter_increment
-                                                  .0
-                                                  .iter() {
+                                                  .0 {
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
                 counter.increment(self.level, value);
                 continue

@@ -340,7 +340,7 @@ impl StackingContext {
             }
 
             // Step 3: Positioned descendants with negative z-indices.
-            for positioned_kid in positioned_children.iter() {
+            for positioned_kid in &*positioned_children {
                 if positioned_kid.z_index >= 0 {
                     break
                 }
@@ -382,7 +382,7 @@ impl StackingContext {
             }
 
             // Step 9: Positioned descendants with nonnegative, numeric z-indices.
-            for positioned_kid in positioned_children.iter() {
+            for positioned_kid in &*positioned_children {
                 if positioned_kid.z_index < 0 {
                     continue
                 }
@@ -554,12 +554,12 @@ impl StackingContext {
         // borders.
         //
         // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-        for display_list in [
+        for display_list in &[
             &self.display_list.positioned_content,
             &self.display_list.content,
             &self.display_list.floats,
             &self.display_list.block_backgrounds_and_borders,
-        ].iter() {
+        ] {
             hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
             if topmost_only && !result.is_empty() {
                 return
@@ -614,7 +614,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
         Some(_) | None => {}
     }
 
-    for kid in this.display_list.children.iter() {
+    for kid in &this.display_list.children {
         match find_stacking_context_with_layer_id(kid, layer_id) {
             Some(stacking_context) => return Some(stacking_context),
             None => {}
@@ -755,7 +755,7 @@ impl ClippingRegion {
     #[inline]
     pub fn bounding_rect(&self) -> Rect<Au> {
         let mut rect = self.main;
-        for complex in self.complex.iter() {
+        for complex in &*self.complex {
             rect = rect.union(&complex.rect)
         }
         rect

@@ -401,7 +401,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
              ShutdownState::NotShuttingDown) => {
-                for (layer_id, new_layer_buffer_set) in replies.into_iter() {
+                for (layer_id, new_layer_buffer_set) in replies {
                     self.assign_painted_buffers(pipeline_id,
                                                 layer_id,
                                                 new_layer_buffer_set,
@@ -1033,7 +1033,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn process_pending_scroll_events(&mut self) {
         let had_scroll_events = self.pending_scroll_events.len() > 0;
         for scroll_event in std_mem::replace(&mut self.pending_scroll_events,
-                                             Vec::new()).into_iter() {
+                                             Vec::new()) {
             let delta = scroll_event.delta / self.scene.scale;
             let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
 
@@ -1073,7 +1073,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                              .unwrap()
                              .push((extra_layer_data.id, visible_rect));
 
-            for kid in layer.children.borrow().iter() {
+            for kid in &*layer.children.borrow() {
                 process_layer(&*kid, window_size, new_display_ports)
             }
         }
@@ -1246,7 +1246,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let scale = self.device_pixels_per_page_px();
         let mut results: HashMap<PipelineId, Vec<PaintRequest>> = HashMap::new();
 
-        for (layer, mut layer_requests) in requests.into_iter() {
+        for (layer, mut layer_requests) in requests {
             let pipeline_id = layer.pipeline_id();
             let current_epoch = self.pipeline_details.get(&pipeline_id).unwrap().current_epoch;
             layer.extra_data.borrow_mut().requested_epoch = current_epoch;
@@ -1293,7 +1293,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             pipeline.script_chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
         }
 
-        for kid in layer.children().iter() {
+        for kid in &*layer.children() {
             self.send_viewport_rect_for_layer(kid.clone());
         }
     }
@@ -1329,7 +1329,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let pipeline_requests =
             self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
 
-        for (pipeline_id, requests) in pipeline_requests.into_iter() {
+        for (pipeline_id, requests) in pipeline_requests {
             let msg = ChromeToPaintMsg::Paint(requests, self.frame_tree_id);
             let _ = self.get_pipeline(pipeline_id).chrome_to_paint_chan.send(msg);
         }
@@ -1357,7 +1357,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return true;
         }
 
-        for child in layer.children().iter() {
+        for child in &*layer.children() {
             if self.does_layer_have_outstanding_paint_messages(child) {
                 return true;
             }
@@ -1659,7 +1659,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                  *layer.bounds.borrow(),
                  *layer.masks_to_bounds.borrow(),
                  layer.establishes_3d_context);
-        for kid in layer.children().iter() {
+        for kid in &*layer.children() {
             self.dump_layer_tree_with_indent(&**kid, level + 1)
         }
     }
@@ -1674,7 +1674,7 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
         return Some(layer);
     }
 
-    for kid in layer.children().iter() {
+    for kid in &*layer.children() {
         let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
                                                                      pipeline_id,
                                                                      layer_id);
@@ -1708,7 +1708,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         // Handle any messages coming from the windowing system.
-        for message in messages.into_iter() {
+        for message in messages {
             self.handle_window_message(message);
         }
 

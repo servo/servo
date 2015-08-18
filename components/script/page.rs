@@ -46,7 +46,7 @@ impl IterablePage for Rc<Page> {
     }
     fn find(&self, id: PipelineId) -> Option<Rc<Page>> {
         if self.id == id { return Some(self.clone()); }
-        for page in self.children.borrow().iter() {
+        for page in &*self.children.borrow() {
             let found = page.find(id);
             if found.is_some() { return found; }
         }
@@ -104,7 +104,7 @@ impl Iterator for PageIterator {
     fn next(&mut self) -> Option<Rc<Page>> {
         match self.stack.pop() {
             Some(next) => {
-                for child in next.children.borrow().iter() {
+                for child in &*next.children.borrow() {
                     self.stack.push(child.clone());
                 }
                 Some(next)

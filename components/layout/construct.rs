@@ -548,7 +548,7 @@ impl<'a> FlowConstructor<'a> {
                         fragments: successor_fragments,
                     })) => {
                 // Add any {ib} splits.
-                for split in splits.into_iter() {
+                for split in splits {
                     // Pull apart the {ib} split object and push its predecessor fragments
                     // onto the list.
                     let InlineBlockSplit {
@@ -722,7 +722,7 @@ impl<'a> FlowConstructor<'a> {
 
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
-        for content_item in text_content.into_iter() {
+        for content_item in text_content {
             let specific = match content_item {
                 ContentItem::String(string) => {
                     let info = UnscannedTextFragmentInfo::from_text(string);
@@ -765,7 +765,7 @@ impl<'a> FlowConstructor<'a> {
                                       node: &ThreadSafeLayoutNode,
                                       fragment_accumulator: &mut InlineFragmentsAccumulator,
                                       opt_inline_block_splits: &mut LinkedList<InlineBlockSplit>) {
-        for split in splits.into_iter() {
+        for split in splits {
             let InlineBlockSplit {
                 predecessors,
                 flow: kid_flow
@@ -1038,7 +1038,7 @@ impl<'a> FlowConstructor<'a> {
                                         node: &ThreadSafeLayoutNode) {
         let mut anonymous_flow = flow.generate_missing_child_flow(node);
         let mut consecutive_siblings = vec!();
-        for kid_flow in child_flows.into_iter() {
+        for kid_flow in child_flows {
             if anonymous_flow.need_anonymous_flow(&*kid_flow) {
                 consecutive_siblings.push(kid_flow);
                 continue;

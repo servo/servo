@@ -1867,7 +1867,7 @@ impl Node {
                 let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
                 let window = document.r().window();
-                for ref attr in node_elem.attrs().iter() {
+                for ref attr in &*node_elem.attrs() {
                     let attr = attr.root();
                     let newattr =
                         Attr::new(window.r(),
