@@ -33,7 +33,7 @@ impl FlowList {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.front_mut().map(|head| flow_ref::deref_mut(head))
+        self.flows.front_mut().map(flow_ref::deref_mut)
     }
 
     /// Provide a reference to the back element, or None if the list is empty
@@ -46,7 +46,7 @@ impl FlowList {
     #[inline]
     #[allow(unsafe_code)]
     pub unsafe fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.back_mut().map(|tail| flow_ref::deref_mut(tail))
+        self.flows.back_mut().map(flow_ref::deref_mut)
     }
 
     /// Add an element first in the list
@@ -123,9 +123,8 @@ impl<'a> Iterator for FlowListIterator<'a> {
 impl<'a> Iterator for MutFlowListIterator<'a> {
     type Item = &'a mut Flow;
     #[inline]
-    #[allow(unsafe_code)]
     fn next(&mut self) -> Option<&'a mut Flow> {
-        self.it.next().map(|x| unsafe { flow_ref::deref_mut(x) })
+        self.it.next().map(flow_ref::deref_mut)
     }
 
     #[inline]

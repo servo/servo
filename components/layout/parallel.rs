@@ -470,7 +470,7 @@ pub fn traverse_flow_tree_preorder(
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
-        unsafe { flow_ref::deref_mut(root) }.traverse_postorder(&bubble_inline_sizes);
+        flow_ref::deref_mut(root).traverse_postorder(&bubble_inline_sizes);
     }
 
     run_queue_with_custom_work_data_type(queue, |queue| {

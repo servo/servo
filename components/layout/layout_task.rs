@@ -781,7 +781,7 @@ impl LayoutTask {
             _ => return None,
         };
 
-        unsafe { flow_ref::deref_mut(&mut flow) }.mark_as_root();
+        flow_ref::deref_mut(&mut flow).mark_as_root();
 
         Some(flow)
     }
@@ -999,11 +999,11 @@ impl LayoutTask {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-            flow::mut_base(unsafe { flow_ref::deref_mut(layout_root) }).stacking_relative_position =
+            flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
 
-            flow::mut_base(unsafe { flow_ref::deref_mut(layout_root) }).clip =
+            flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
             match (&mut rw_data.parallel_traversal, opts::get().parallel_display_list_building) {
@@ -1024,13 +1024,13 @@ impl LayoutTask {
                 debug!("Done building display list.");
 
                 let root_background_color = get_root_flow_background_color(
-                    unsafe { flow_ref::deref_mut(layout_root) });
+                    flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
                     root_flow.position.size.to_physical(root_flow.writing_mode)
                 };
                 let mut display_list = box DisplayList::new();
-                flow::mut_base(unsafe { flow_ref::deref_mut(layout_root) })
+                flow::mut_base(flow_ref::deref_mut(layout_root))
                     .display_list_building_result
                     .add_to(&mut *display_list);
                 let paint_layer = PaintLayer::new(layout_root.layer_id(0),
@@ -1130,7 +1130,7 @@ impl LayoutTask {
         }
         if needs_reflow {
             if let Some(mut flow) = self.try_get_layout_root(*node) {
-                LayoutTask::reflow_all_nodes(unsafe { flow_ref::deref_mut(&mut flow) });
+                LayoutTask::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
             }
         }
 
@@ -1291,7 +1291,7 @@ impl LayoutTask {
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
                         || {
-                            animation::recalc_style_for_animations(unsafe { flow_ref::deref_mut(&mut root_flow) },
+                            animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
                                                                    animations)
                         });
             }
@@ -1311,10 +1311,10 @@ impl LayoutTask {
                 self.profiler_metadata(),
                 self.time_profiler_chan.clone(),
                 || {
-            if opts::get().nonincremental_layout || unsafe { flow_ref::deref_mut(&mut root_flow) }
+            if opts::get().nonincremental_layout || flow_ref::deref_mut(&mut root_flow)
                                                              .compute_layout_damage()
                                                              .contains(REFLOW_ENTIRE_DOCUMENT) {
-                unsafe { flow_ref::deref_mut(&mut root_flow) }.reflow_entire_document()
+                flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
             }
         });
 

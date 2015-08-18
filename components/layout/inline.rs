@@ -1597,7 +1597,6 @@ impl Flow for InlineFlow {
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
-    #[allow(unsafe_code)]
     fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         //
@@ -1658,7 +1657,7 @@ impl Flow for InlineFlow {
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let flow = unsafe { flow_ref::deref_mut(&mut info.flow_ref) };
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
                     flow::mut_base(flow).clip = clip;
 
                     let block_flow = flow.as_mut_block();
@@ -1679,7 +1678,7 @@ impl Flow for InlineFlow {
                         self.base.stacking_relative_position_of_display_port;
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    let flow = unsafe { flow_ref::deref_mut(&mut info.flow_ref) };
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
                     flow::mut_base(flow).clip = clip;
                     let block_flow = flow.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
@@ -1690,7 +1689,7 @@ impl Flow for InlineFlow {
                         self.base.stacking_relative_position_of_display_port;
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    let flow = unsafe { flow_ref::deref_mut(&mut info.flow_ref) };
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
                     flow::mut_base(flow).clip = clip;
 
                     let block_flow = flow.as_mut_block();
