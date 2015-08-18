@@ -128,7 +128,7 @@ pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result
 }
 
 /// Create a ResourceTask
-pub fn new_resource_task(user_agent: Option<String>,
+pub fn new_resource_task(user_agent: String,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceTask {
     let hsts_preload = match preload_hsts_domains() {
         Some(list) => list,
@@ -184,7 +184,7 @@ impl ResourceChannelManager {
 }
 
 pub struct ResourceManager {
-    user_agent: Option<String>,
+    user_agent: String,
     cookie_storage: CookieStorage,
     resource_task: IpcSender<ControlMsg>,
     mime_classifier: Arc<MIMEClassifier>,
@@ -193,7 +193,7 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
-    pub fn new(user_agent: Option<String>,
+    pub fn new(user_agent: String,
                resource_task: IpcSender<ControlMsg>,
                hsts_list: HSTSList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
@@ -229,9 +229,7 @@ impl ResourceManager {
     }
 
     fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
-        self.user_agent.as_ref().map(|ua| {
-            load_data.preserved_headers.set(UserAgent(ua.clone()));
-        });
+        load_data.preserved_headers.set(UserAgent(self.user_agent.clone()));
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
                         -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
