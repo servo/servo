@@ -256,7 +256,7 @@ def check_rust(file_name, contents):
             use = line[4:]
             match = use.find('{')
             if match < 0:
-                uses.append(use[:len(uses) - 1])
+                uses.append(use[:len(use) - 1])
             else:
                 if "}" not in use[match:]:
                     yield (idx + 1, "use statement spans multiple lines")
