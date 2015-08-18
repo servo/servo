@@ -47,7 +47,7 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
                 event.set_current_target(cur_target);
                 for listener in &listeners {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(*cur_target, event, Report);
+                    listener.call_or_handle_event(*cur_target, event, Report);
 
                     if event.stop_immediate() {
                         break;
@@ -73,7 +73,7 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
         for listeners in opt_listeners {
             for listener in listeners {
                 // Explicitly drop any exception on the floor.
-                let _ = listener.HandleEvent_(target, event, Report);
+                listener.call_or_handle_event(target, event, Report);
 
                 if event.stop_immediate() {
                     break;
@@ -92,7 +92,7 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
                     event.set_current_target(cur_target);
                     for listener in &listeners {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(*cur_target, event, Report);
+                        listener.call_or_handle_event(*cur_target, event, Report);
 
                         if event.stop_immediate() {
                             break;
