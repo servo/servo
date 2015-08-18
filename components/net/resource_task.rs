@@ -212,7 +212,7 @@ impl ResourceManager {
     fn set_cookies_for_url(&mut self, request: Url, cookie_list: String, source: CookieSource) {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
-            for bare_cookie in cookies.into_iter() {
+            for bare_cookie in cookies {
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
                     self.cookie_storage.push(cookie, source);
                 }

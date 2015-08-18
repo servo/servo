@@ -899,7 +899,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
             }
         } else {
             let fragment = NodeCast::from_root(self.CreateDocumentFragment());
-            for node in nodes.into_iter() {
+            for node in nodes {
                 match node {
                     NodeOrString::eNode(node) => {
                         try!(fragment.r().AppendChild(node.r()));

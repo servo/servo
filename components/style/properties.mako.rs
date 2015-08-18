@@ -5429,7 +5429,7 @@ pub mod shorthands {
         let results = try!(input.parse_comma_separated(parse_one_transition));
         let (mut properties, mut durations) = (Vec::new(), Vec::new());
         let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
-        for result in results.into_iter() {
+        for result in results {
             properties.push(result.transition_property);
             durations.push(result.transition_duration);
             timing_functions.push(result.transition_timing_function);

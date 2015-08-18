@@ -70,8 +70,8 @@ pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
         event.set_current_target(target.clone());
 
         let opt_listeners = target.get_listeners(&type_);
-        for listeners in opt_listeners.iter() {
-            for listener in listeners.iter() {
+        for listeners in opt_listeners {
+            for listener in listeners {
                 // Explicitly drop any exception on the floor.
                 let _ = listener.HandleEvent_(target, event, Report);
 

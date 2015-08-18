@@ -709,7 +709,7 @@ impl ScriptTask {
             }
         }
 
-        for (id, size) in resizes.into_iter() {
+        for (id, size) in resizes {
             self.handle_event(id, ResizeEvent(size));
         }
 
@@ -814,7 +814,7 @@ impl ScriptTask {
         }
 
         // Process the gathered events.
-        for msg in sequential.into_iter() {
+        for msg in sequential {
             match msg {
                 MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
@@ -1652,7 +1652,7 @@ impl ScriptTask {
                 let document = page.document();
 
                 let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
-                for target in self.mouse_over_targets.borrow_mut().iter() {
+                for target in &*self.mouse_over_targets.borrow_mut() {
                     prev_mouse_over_targets.push(target.clone());
                 }
 
@@ -1663,7 +1663,7 @@ impl ScriptTask {
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
 
                 // Notify Constellation about anchors that are no longer mouse over targets.
-                for target in prev_mouse_over_targets.iter() {
+                for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
                         if target.root().r().is_anchor_element() {
                             let event = ConstellationMsg::NodeStatus(None);
@@ -1675,7 +1675,7 @@ impl ScriptTask {
                 }
 
                 // Notify Constellation about the topmost anchor mouse over target.
-                for target in mouse_over_targets.iter() {
+                for target in &*mouse_over_targets {
                     let target = target.root();
                     if target.r().is_anchor_element() {
                         let element = ElementCast::to_ref(target.r()).unwrap();
@@ -1936,7 +1936,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     }
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
-    for chan in channels.into_iter() {
+    for chan in channels {
         chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
     }
 }

@@ -59,7 +59,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
         let slice = slice::from_raw_parts(buf, (*cs).length as usize);
         let opt = String::from_utf16(slice).unwrap();
             //debug!("opt: {}", opt);
-        for s in (*cl).argv.iter() {
+        for s in &(*cl).argv {
             let o = s.trim_left_matches('-');
             //debug!("arg: {}", o);
             if o.starts_with(&opt) {
@@ -104,4 +104,3 @@ cef_stub_static_method_impls! {
     fn cef_command_line_create_command_line() -> *mut cef_command_line_t
     fn cef_command_line_get_global_command_line() -> *mut cef_command_line_t
 }
-

@@ -233,7 +233,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
                     let mut replies = Vec::new();
                     for PaintRequest { buffer_requests, scale, layer_id, epoch, layer_kind }
-                          in requests.into_iter() {
+                          in requests {
                         if self.current_epoch == Some(epoch) {
                             self.paint(&mut replies, buffer_requests, scale, layer_id, layer_kind);
                         } else {
@@ -393,7 +393,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 }
             };
 
-            for kid in stacking_context.display_list.children.iter() {
+            for kid in &stacking_context.display_list.children {
                 build(properties, &**kid, &page_position, &transform, &perspective, next_parent_id)
             }
         }

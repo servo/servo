@@ -150,7 +150,7 @@ impl ActorRegistry {
     }
 
     pub fn actor_to_script(&self, actor: String) -> String {
-        for (key, value) in self.script_actors.borrow().iter() {
+        for (key, value) in &*self.script_actors.borrow() {
             println!("checking {}", value);
             if *value == actor {
                 return key.to_string();
@@ -213,7 +213,7 @@ impl ActorRegistry {
         }
 
         let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec!());
-        for name in old_actors.into_iter() {
+        for name in old_actors {
             self.drop_actor(name);
         }
         Ok(())

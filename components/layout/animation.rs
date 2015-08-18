@@ -29,7 +29,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
     for i in 0..new_style.get_animation().transition_property.0.len() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style, new_style);
-        for property_animation in property_animations.into_iter() {
+        for property_animation in property_animations {
             // Set the property to the initial value.
             property_animation.update(new_style, 0.0);
 
@@ -65,7 +65,7 @@ pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
         }
 
         // Add new running animations.
-        for new_running_animation in new_running_animations.into_iter() {
+        for new_running_animation in new_running_animations {
             match running_animations.entry(OpaqueNode(new_running_animation.node)) {
                 Entry::Vacant(entry) => {
                     entry.insert(vec![new_running_animation]);
