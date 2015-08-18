@@ -99,7 +99,7 @@ impl TableWrapperFlow {
                 continue
             }
 
-            let kid_table = kid.as_table();
+            let kid_table = kid.as_mut_table();
             let kid_block_flow = &mut kid_table.block_flow;
             kid_block_flow.fragment
                           .compute_border_and_padding(available_inline_size,
@@ -265,19 +265,19 @@ impl Flow for TableWrapperFlow {
         FlowClass::TableWrapper
     }
 
-    fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+    fn as_mut_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
         self
     }
 
-    fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
+    fn as_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         &self.block_flow
     }
 

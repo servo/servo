@@ -36,15 +36,15 @@ impl Flow for TableCaptionFlow {
         FlowClass::TableCaption
     }
 
-    fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+    fn as_mut_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 
@@ -108,4 +108,3 @@ impl fmt::Debug for TableCaptionFlow {
         write!(f, "TableCaptionFlow: {:?}", self.block_flow)
     }
 }
-

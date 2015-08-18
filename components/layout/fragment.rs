@@ -1637,7 +1637,7 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 block_flow.base.position.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
@@ -1645,7 +1645,7 @@ impl Fragment {
                 self.border_box.size.inline = Au(0);
             }
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1653,7 +1653,7 @@ impl Fragment {
                 block_flow.base.block_container_writing_mode = self.style.writing_mode;
             }
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1810,7 +1810,7 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.as_immutable_block();
+                let block_flow = info.flow_ref.as_block();
                 let font_style = self.style.get_font_arc();
                 let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
                                                                 font_style);

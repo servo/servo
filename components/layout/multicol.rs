@@ -36,15 +36,15 @@ impl Flow for MulticolFlow {
         FlowClass::Multicol
     }
 
-    fn as_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
+    fn as_mut_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         &self.block_flow
     }
 
