@@ -7,10 +7,10 @@ use font::SpecifiedFontStyle;
 use platform::font_context::FontContextHandle;
 use style::computed_values::{font_style, font_variant};
 
+use fnv::FnvHasher;
 use font::FontHandleMethods;
 use font_cache_task::FontCacheTask;
 use font_template::FontTemplateDescriptor;
-use fnv::FnvHasher;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;

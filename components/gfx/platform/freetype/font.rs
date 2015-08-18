@@ -6,13 +6,13 @@ extern crate freetype;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
-use util::geometry::Au;
-use util::str::c_str_to_string;
 use platform::font_context::FontContextHandle;
+use platform::font_template::FontTemplateData;
+use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
-use style::computed_values::{font_stretch, font_weight};
-use platform::font_template::FontTemplateData;
+use util::geometry::Au;
+use util::str::c_str_to_string;
 
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};

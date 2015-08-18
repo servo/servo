@@ -44,10 +44,10 @@ extern crate env_logger;
 #[link(name = "stlport")]
 extern {}
 
-use util::opts;
+use compositing::windowing::WindowEvent;
 use net_traits::hosts;
 use servo::Browser;
-use compositing::windowing::WindowEvent;
+use util::opts;
 
 use std::env;
 

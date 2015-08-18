@@ -4,25 +4,20 @@
 
 use script_traits::MouseButton;
 
-use std::path::Path;
-use std::mem::size_of;
-use std::mem::transmute;
-use std::mem::zeroed;
-use std::os::unix::io::AsRawFd;
 use std::fs::File;
-use std::thread;
-use std::sync::mpsc::Sender;
 use std::io::Read;
+use std::mem::{size_of, transmute, zeroed};
+use std::os::unix::io::AsRawFd;
+use std::path::Path;
+use std::sync::mpsc::Sender;
+use std::thread;
 
 use euclid::point::Point2D;
 
 use errno::errno;
-use libc::c_int;
-use libc::c_long;
-use libc::time_t;
+use libc::{c_int, c_long, time_t};
 
-use compositing::windowing::WindowEvent;
-use compositing::windowing::MouseWindowEvent;
+use compositing::windowing::{WindowEvent, MouseWindowEvent};
 
 
 extern {

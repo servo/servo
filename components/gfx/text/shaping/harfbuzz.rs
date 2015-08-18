@@ -39,12 +39,12 @@ use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use harfbuzz::{RUST_hb_shape, RUST_hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
+use std::char;
+use std::cmp;
+use std::mem;
+use std::ptr;
 use util::geometry::Au;
 use util::range::Range;
-use std::char;
-use std::mem;
-use std::cmp;
-use std::ptr;
 
 macro_rules! hb_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (

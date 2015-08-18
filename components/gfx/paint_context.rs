@@ -4,15 +4,17 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
-use gfx_traits::color;
-use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use display_list::{TextDisplayItem};
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use filters;
 use font_context::FontContext;
+use gfx_traits::color;
 use text::TextRun;
 use text::glyph::CharIndex;
 
+use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
+use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
 use azure::azure::AzIntSize;
 use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, FilterType};
@@ -21,8 +23,6 @@ use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, FilterNode, Linea
 use azure::azure_hl::{JoinStyle, CapStyle};
 use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, SurfacePattern};
 use azure::scaled_font::ScaledFont;
-use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
-use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;

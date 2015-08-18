@@ -7,8 +7,8 @@ use windowing::WindowEvent;
 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
-use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
+use msg::constellation_msg::Msg as ConstellationMsg;
 use profile_traits::mem;
 use profile_traits::time;
 

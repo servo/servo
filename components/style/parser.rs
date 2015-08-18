@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use selectors::parser::ParserContext as SelectorParserContext;
 use cssparser::{Parser, SourcePosition};
-use url::{Url, UrlParser};
 use log;
+use selectors::parser::ParserContext as SelectorParserContext;
+use url::{Url, UrlParser};
 
 use stylesheets::Origin;
 

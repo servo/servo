@@ -74,18 +74,18 @@ pub type CSSFloat = f32;
 
 
 pub mod specified {
+    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
+    use euclid::size::Size2D;
+    use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
     use std::fmt;
     use std::fmt::Write;
     use std::ops::Mul;
-    use url::Url;
-    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
-    use euclid::size::Size2D;
-    use parser::ParserContext;
-    use util::geometry::Au;
     use super::CSSFloat;
+    use url::Url;
+    use util::geometry::Au;
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub enum AllowedNumericType {
@@ -859,8 +859,8 @@ pub mod specified {
 
 pub mod computed {
     pub use super::specified::{Angle, BorderStyle, Time};
-    use super::specified::{AngleOrCorner};
     use super::{specified, CSSFloat};
+    use super::specified::AngleOrCorner;
     pub use cssparser::Color as CSSColor;
     use euclid::size::Size2D;
     use properties::longhands;

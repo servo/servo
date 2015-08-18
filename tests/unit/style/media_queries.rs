@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::size::Size2D;
-use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
-use style::stylesheets::Origin;
-use style::media_queries::*;
-use style::values::specified;
 use std::borrow::ToOwned;
+use style::media_queries::*;
+use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
+use style::values::specified;
 use url::Url;
 use util::geometry::Au;
 

@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::hsts::HSTSList;
-use net::hsts::HSTSEntry;
-use net_traits::IncludeSubdomains;
+use ipc_channel::ipc;
+use net::hsts::{HSTSList, HSTSEntry};
 use net::hsts::{secure_url, preload_hsts_domains};
 use net::resource_task::ResourceManager;
-use ipc_channel::ipc;
+use net_traits::IncludeSubdomains;
 use std::sync::mpsc::channel;
-use url::Url;
 use time;
+use url::Url;
 
 #[test]
 fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {

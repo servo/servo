@@ -12,13 +12,13 @@ use encoding::EncodingRef;
 
 use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRuleParser};
 use cssparser::{RuleListParser, AtRuleType};
-use string_cache::{Atom, Namespace};
-use selectors::parser::{Selector, parse_selector_list};
+use font_face::{FontFaceRule, parse_font_face_block};
+use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
-use media_queries::{Device, MediaQueryList, parse_media_query_list};
-use font_face::{FontFaceRule, parse_font_face_block};
+use selectors::parser::{Selector, parse_selector_list};
 use smallvec::SmallVec;
+use string_cache::{Atom, Namespace};
 use viewport::ViewportRule;
 
 

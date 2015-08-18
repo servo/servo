@@ -4,11 +4,11 @@
 
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
-use core_text::font::CTFont;
 use core_text;
+use core_text::font::CTFont;
 
-use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{Error, Visitor};
 use std::borrow::ToOwned;
 use std::ops::Deref;
 use std::sync::Mutex;

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, DeclarationListParser, AtRuleParser, DeclarationParser, ToCss, parse_important};
-use euclid::size::{Size2D, TypedSize2D};
 use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
 use properties::longhands;
 use stylesheets::Origin;
@@ -342,8 +342,8 @@ impl ViewportConstraints {
                      rule: &ViewportRule)
                      -> Option<ViewportConstraints>
     {
-        use std::cmp;
         use num::{Float, ToPrimitive};
+        use std::cmp;
 
         if rule.declarations.is_empty() {
             return None
