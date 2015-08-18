@@ -256,7 +256,7 @@ pub trait DocumentHelpers<'a> {
     fn disarm_reflow_timeout(self);
     fn unregister_named_element(self, to_unregister: &Element, id: Atom);
     fn register_named_element(self, element: &Element, id: Atom);
-    fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>>;
+    fn find_fragment_node(self, fragid: &str) -> Option<Root<Element>>;
     fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
     fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
     fn set_ready_state(self, state: DocumentReadyState);
@@ -513,12 +513,12 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
-    fn find_fragment_node(self, fragid: DOMString) -> Option<Root<Element>> {
-        self.GetElementById(fragid.clone()).or_else(|| {
+    fn find_fragment_node(self, fragid: &str) -> Option<Root<Element>> {
+        self.GetElementById(fragid.to_owned()).or_else(|| {
             let check_anchor = |&node: &&HTMLAnchorElement| {
                 let elem = ElementCast::from_ref(node);
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                    &**attr.r().value() == &*fragid
+                    &**attr.r().value() == fragid
                 })
             };
             let doc_node = NodeCast::from_ref(self);
