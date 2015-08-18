@@ -959,7 +959,6 @@ impl Node {
         Ok(fragment)
     }
 
-    #[allow(unsafe_code)]
     pub fn query_style<F, R>(&self, query: F) -> R
         where F: Fn(&ComputedValues) -> R {
 
