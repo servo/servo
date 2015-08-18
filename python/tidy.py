@@ -176,7 +176,6 @@ def check_rust(file_name, contents):
     merged_lines = ''
 
     imports = []
-    sorted = []
 
     for idx, line in enumerate(contents):
         # simplify the analysis
@@ -254,18 +253,18 @@ def check_rust(file_name, contents):
 
         # imports must be in the same line and alphabetically sorted
         if line.startswith("use "):
-            match = line[4:].find('{')
-            if match == -1:
-                imports.append(line[4:])
+            use = line[4:]
+            match = use.find('{')
+            if match < 0:
+                imports.append(use)
             else:
-                if "}" not in line[4 + match:]:
+                if "}" not in use[match:]:
                     yield (idx + 1, "use statement spans multiple lines")
-                imports.append(line[4:4 + match])
+                imports.append(use[:match])
         elif len(imports) > 0:
-            sorted = imports[:]
-            sorted.sort()
+            sorted_use = sorted(imports)
             for i in range(len(imports)):
-                if sorted[i] != imports[i]:
+                if sorted_use[i] != imports[i]:
                     yield (idx + 1 - len(imports) + i, "use statement is not in alphabetical order")
             imports = []
 
