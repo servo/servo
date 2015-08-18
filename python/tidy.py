@@ -175,7 +175,7 @@ def check_rust(file_name, contents):
     comment_depth = 0
     merged_lines = ''
 
-    imports = []
+    uses = []
 
     for idx, line in enumerate(contents):
         # simplify the analysis
@@ -256,17 +256,17 @@ def check_rust(file_name, contents):
             use = line[4:]
             match = use.find('{')
             if match < 0:
-                imports.append(use)
+                uses.append(use)
             else:
                 if "}" not in use[match:]:
                     yield (idx + 1, "use statement spans multiple lines")
-                imports.append(use[:match])
+                uses.append(use[:match])
         elif len(imports) > 0:
-            sorted_use = sorted(imports)
-            for i in range(len(imports)):
-                if sorted_use[i] != imports[i]:
-                    yield (idx + 1 - len(imports) + i, "use statement is not in alphabetical order")
-            imports = []
+            sorted_uses = sorted(uses)
+            for i in range(len(uses)):
+                if sorted_uses[i] != uses[i]:
+                    yield (idx + 1 - len(uses) + i, "use statement is not in alphabetical order")
+            uses = []
 
 
 def check_webidl_spec(file_name, contents):
