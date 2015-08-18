@@ -261,7 +261,7 @@ def check_rust(file_name, contents):
                 if "}" not in use[match:]:
                     yield (idx + 1, "use statement spans multiple lines")
                 uses.append(use[:match])
-        elif len(imports) > 0:
+        elif len(uses) > 0:
             sorted_uses = sorted(uses)
             for i in range(len(uses)):
                 if sorted_uses[i] != uses[i]:
