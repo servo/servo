@@ -2,18 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{CONSOLE_API, CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR};
+use devtools_traits::TimelineMarkerType;
+use devtools_traits::{AutoMargins, CONSOLE_API, CachedConsoleMessage, CachedConsoleMessageTypes};
 use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError, ScriptToDevtoolsControlMsg};
-use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, PAGE_ERROR, TimelineMarker};
+use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::element::Element;
 use dom::node::Node;
+use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
@@ -23,6 +27,7 @@ use script_thread::get_page;
 use std::ffi::CStr;
 use std::rc::Rc;
 use std::str;
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
 use util::str::DOMString;
 use uuid::Uuid;
 
@@ -110,15 +115,47 @@ pub fn handle_get_layout(page: &Rc<Page>,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
+
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
+
+    let window = page.window();
+    let elem = node.downcast::<Element>().expect("should be getting layout of element");
+    let computed_style = window.r().GetComputedStyle(elem, None);
+
     reply.send(ComputedNodeLayout {
-             width: width,
-             height: height,
-         })
-         .unwrap();
+        display: String::from(computed_style.Display()),
+        position: String::from(computed_style.Position()),
+        zIndex: String::from(computed_style.ZIndex()),
+        boxSizing: String::from(computed_style.BoxSizing()),
+        autoMargins: determine_auto_margins(&window, &*node),
+        marginTop: String::from(computed_style.MarginTop()),
+        marginRight: String::from(computed_style.MarginRight()),
+        marginBottom: String::from(computed_style.MarginBottom()),
+        marginLeft: String::from(computed_style.MarginLeft()),
+        borderTopWidth: String::from(computed_style.BorderTopWidth()),
+        borderRightWidth: String::from(computed_style.BorderRightWidth()),
+        borderBottomWidth: String::from(computed_style.BorderBottomWidth()),
+        borderLeftWidth: String::from(computed_style.BorderLeftWidth()),
+        paddingTop: String::from(computed_style.PaddingTop()),
+        paddingRight: String::from(computed_style.PaddingRight()),
+        paddingBottom: String::from(computed_style.PaddingBottom()),
+        paddingLeft: String::from(computed_style.PaddingLeft()),
+        width: width,
+        height: height,
+    }).unwrap();
+}
+
+fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
+    let margin = window.margin_style_query(node.to_trusted_node_address());
+    AutoMargins {
+        top: margin.top == margin_top::computed_value::T::Auto,
+        right: margin.right == margin_right::computed_value::T::Auto,
+        bottom: margin.bottom == margin_bottom::computed_value::T::Auto,
+        left: margin.left == margin_left::computed_value::T::Auto,
+    }
 }
 
 pub fn handle_get_cached_messages(_pipeline_id: PipelineId,

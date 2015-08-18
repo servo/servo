@@ -12,7 +12,8 @@ use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::json::{self, Json, ToJson};
+use rustc_serialize::json::{self, Json};
+use serde_json;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
@@ -397,21 +398,49 @@ struct AppliedSheet {
     ruleCount: usize,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetLayoutReply {
-    width: i32,
-    height: i32,
-    autoMargins: Json,
     from: String,
-}
 
-#[derive(RustcEncodable)]
-#[allow(dead_code)]
-struct AutoMargins {
-    top: String,
-    bottom: String,
-    left: String,
-    right: String,
+    display: String,
+    position: String,
+    #[serde(rename = "z-index")]
+    zIndex: String,
+    #[serde(rename = "box-sizing")]
+    boxSizing: String,
+
+    // Would be nice to use a proper struct, blocked by
+    // https://github.com/serde-rs/serde/issues/43
+    autoMargins: serde_json::value::Value,
+    #[serde(rename = "margin-top")]
+    marginTop: String,
+    #[serde(rename = "margin-right")]
+    marginRight: String,
+    #[serde(rename = "margin-bottom")]
+    marginBottom: String,
+    #[serde(rename = "margin-left")]
+    marginLeft: String,
+
+    #[serde(rename = "border-top-width")]
+    borderTopWidth: String,
+    #[serde(rename = "border-right-width")]
+    borderRightWidth: String,
+    #[serde(rename = "border-bottom-width")]
+    borderBottomWidth: String,
+    #[serde(rename = "border-left-width")]
+    borderLeftWidth: String,
+
+    #[serde(rename = "padding-top")]
+    paddingTop: String,
+    #[serde(rename = "padding-right")]
+    paddingRight: String,
+    #[serde(rename = "padding-bottom")]
+    paddingBottom: String,
+    #[serde(rename = "padding-left")]
+    paddingLeft: String,
+
+    width: f32,
+    height: f32,
 }
 
 impl Actor for PageStyleActor {
@@ -455,31 +484,52 @@ impl Actor for PageStyleActor {
                                       registry.actor_to_script(target.to_owned()),
                                       tx))
                                 .unwrap();
-                let ComputedNodeLayout { width, height } = rx.recv().unwrap();
+                let ComputedNodeLayout {
+                    display, position, zIndex, boxSizing,
+                    autoMargins, marginTop, marginRight, marginBottom, marginLeft,
+                    borderTopWidth, borderRightWidth, borderBottomWidth, borderLeftWidth,
+                    paddingTop, paddingRight, paddingBottom, paddingLeft,
+                    width, height,
+                } = rx.recv().unwrap();
 
                 let auto_margins = msg.get("autoMargins")
                     .and_then(&Json::as_boolean).unwrap_or(false);
 
-                //TODO: the remaining layout properties (margin, border, padding, position)
-                //      as specified in getLayout in
-                //      http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
-                    width: width.round() as i32,
-                    height: height.round() as i32,
-                    autoMargins: if auto_margins {
-                        //TODO: real values like processMargins in
-                        //  http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
-                        let mut m = BTreeMap::new();
-                        m.insert("top".to_owned(), "auto".to_owned().to_json());
-                        m.insert("bottom".to_owned(), "auto".to_owned().to_json());
-                        m.insert("left".to_owned(), "auto".to_owned().to_json());
-                        m.insert("right".to_owned(), "auto".to_owned().to_json());
-                        Json::Object(m)
-                    } else {
-                        Json::Null
-                    },
                     from: self.name(),
+                    display: display,
+                    position: position,
+                    zIndex: zIndex,
+                    boxSizing: boxSizing,
+                    autoMargins: if auto_margins {
+                        let mut m = BTreeMap::new();
+                        let auto = serde_json::value::Value::String("auto".to_owned());
+                        if autoMargins.top { m.insert("top".to_owned(), auto.clone()); }
+                        if autoMargins.right { m.insert("right".to_owned(), auto.clone()); }
+                        if autoMargins.bottom { m.insert("bottom".to_owned(), auto.clone()); }
+                        if autoMargins.left { m.insert("left".to_owned(), auto.clone()); }
+                        serde_json::value::Value::Object(m)
+                    } else {
+                        serde_json::value::Value::Null
+                    },
+                    marginTop: marginTop,
+                    marginRight: marginRight,
+                    marginBottom: marginBottom,
+                    marginLeft: marginLeft,
+                    borderTopWidth: borderTopWidth,
+                    borderRightWidth: borderRightWidth,
+                    borderBottomWidth: borderBottomWidth,
+                    borderLeftWidth: borderLeftWidth,
+                    paddingTop: paddingTop,
+                    paddingRight: paddingRight,
+                    paddingBottom: paddingBottom,
+                    paddingLeft: paddingLeft,
+                    width: width,
+                    height: height,
                 };
+                let msg = &serde_json::to_string(&msg).unwrap();
+                let msg = Json::from_str(msg).unwrap();
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             }

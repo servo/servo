@@ -27,5 +27,6 @@ hyper = { version = "0.7", features = [ "serde-serialization" ] }
 log = "0.3"
 rustc-serialize = "0.3"
 serde = "0.6"
+serde_json = "0.6"
 serde_macros = "0.6"
 time = "0.1"

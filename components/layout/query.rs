@@ -17,7 +17,7 @@ use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
-use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan};
+use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
 use std::ops::Deref;
@@ -130,6 +130,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
+    }
+
+    fn margin_style(&self) -> MarginStyleResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.margin_style_response.clone()
     }
 }
 
@@ -573,5 +579,19 @@ pub fn process_offset_parent_query<'ln, N: LayoutNode<'ln>>(requested_node: N, l
         None => {
             OffsetParentResponse::empty()
         }
+    }
+}
+
+pub fn process_margin_style_query<'ln, N: LayoutNode<'ln>>(requested_node: N)
+        -> MarginStyleResponse {
+    let layout_node = requested_node.to_threadsafe();
+    let style = &*layout_node.style();
+    let margin = style.get_margin();
+
+    MarginStyleResponse {
+        top: margin.margin_top,
+        right: margin.margin_right,
+        bottom: margin.margin_bottom,
+        left: margin.margin_left,
     }
 }

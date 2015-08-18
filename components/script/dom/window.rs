@@ -41,7 +41,7 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GC, JS_GetRuntime};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType};
+use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
@@ -1099,6 +1099,13 @@ impl Window {
         (element, response.rect)
     }
 
+    pub fn margin_style_query(&self, node: TrustedNodeAddress) -> MarginStyleResponse {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::MarginStyleQuery(node),
+                    ReflowReason::Query);
+        self.layout_rpc.margin_style()
+    }
+
     pub fn init_browsing_context(&self, browsing_context: &BrowsingContext) {
         assert!(self.browsing_context.get().is_none());
         self.browsing_context.set(Some(&browsing_context));
@@ -1420,6 +1427,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+        ReflowQueryType::MarginStyleQuery(_n) => "\tMarginStyleQuery",
     });
 
     debug_msg.push_str(match *reason {
