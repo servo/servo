@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
-use fetch::response::{Response, ResponseType};
+use fetch::response::{Response, ResponseMethods, ResponseType};
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLanguage, HeaderView};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
@@ -11,6 +11,7 @@ use hyper::header::{QualityItem, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
+use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use url::Url;
@@ -143,6 +144,32 @@ impl Request {
             response_tainting: ResponseTainting::Basic,
             cache: None
         }
+    }
+
+    pub fn fetch_async(&self,
+                       listener: Box<AsyncFetchListener + Send>) {
+        struct FetchContext {
+            listener: Box<AsyncFetchListener + Send>,
+            response: RefCell<Option<Response>>,
+        }
+
+        impl AsyncFetchListener for FetchContext {
+            fn headers_available(&self, _metadata: Metadata) {}
+
+            fn data_available(&self, _payload: Vec<u8>) {}
+
+            fn response_complete(&self, _status: Result<(), String>) {
+                let response = self.response.borrow_mut().take().unwrap();
+                self.listener.response_available(response);
+            }
+        }
+
+        let context = FetchContext {
+            listener: listener,
+            response: RefCell::new(None),
+        };
+
+        // FIXME: Not entirely sure what to do here...
     }
 
     /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
