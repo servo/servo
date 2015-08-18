@@ -142,7 +142,7 @@ fn determine_auto_margins(node: &Root<Node>) -> AutoMargins {
 
         AutoMargins {
             top: margin.margin_top == margin_top::computed_value::T::Auto,
-            right: margin.margin_right== margin_right::computed_value::T::Auto,
+            right: margin.margin_right == margin_right::computed_value::T::Auto,
             bottom: margin.margin_bottom == margin_bottom::computed_value::T::Auto,
             left: margin.margin_left == margin_left::computed_value::T::Auto,
         }
