@@ -1494,41 +1494,14 @@ impl BlockFlow {
                                     surrounding_inline_size,
         }
     }
-}
 
-impl Flow for BlockFlow {
-    fn class(&self) -> FlowClass {
-        FlowClass::Block
-    }
-
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
-        self
-    }
-
-    fn as_block<'a>(&'a self) -> &'a BlockFlow {
-        self
-    }
-
-    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
-    ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
-    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
-    /// This function must decide minimum/preferred inline-sizes based on its children's
-    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
-    fn bubble_inline_sizes(&mut self) {
+    /// Computes intrinsic widths for a block.
+    pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
         flags.remove(HAS_LEFT_FLOATED_DESCENDANTS);
         flags.remove(HAS_RIGHT_FLOATED_DESCENDANTS);
-
-        // If this block has a fixed width, just use that for the minimum
-        // and preferred width, rather than bubbling up children inline
-        // width.
-        let fixed_width = match self.fragment.style().get_box().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
 
         // Find the maximum inline-size from children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
@@ -1539,7 +1512,7 @@ impl Flow for BlockFlow {
                 flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
             let float_kind = child_base.flags.float_kind();
-            if !is_absolutely_positioned && !fixed_width {
+            if !is_absolutely_positioned && consult_children {
                 computation.content_intrinsic_sizes.minimum_inline_size =
                     max(computation.content_intrinsic_sizes.minimum_inline_size,
                         child_base.intrinsic_inline_sizes.minimum_inline_size);
@@ -1590,6 +1563,36 @@ impl Flow for BlockFlow {
             float::T::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
         }
         self.base.flags = flags
+    }
+}
+
+impl Flow for BlockFlow {
+    fn class(&self) -> FlowClass {
+        FlowClass::Block
+    }
+
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        self
+    }
+
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+        self
+    }
+
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
+    ///
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
+    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
+    /// This function must decide minimum/preferred inline-sizes based on its children's
+    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
+    fn bubble_inline_sizes(&mut self) {
+        // If this block has a fixed width, just use that for the minimum and preferred width,
+        // rather than bubbling up children inline width.
+        let consult_children = match self.fragment.style().get_box().width {
+            LengthOrPercentageOrAuto::Length(_) => false,
+            _ => true,
+        };
+        self.bubble_inline_sizes_for_block(consult_children)
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.

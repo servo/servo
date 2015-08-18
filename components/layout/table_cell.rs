@@ -106,7 +106,7 @@ impl Flow for TableCellFlow {
         let _scope = layout_debug_scope!("table_cell::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
 
-        self.block_flow.bubble_inline_sizes();
+        self.block_flow.bubble_inline_sizes_for_block(true);
         let specified_inline_size = MaybeAuto::from_style(self.block_flow
                                                               .fragment
                                                               .style()

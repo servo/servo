@@ -576,11 +576,17 @@ impl ISizeAndMarginsComputer for InternalTable {
                                 block: &mut BlockFlow,
                                 layout_context: &LayoutContext,
                                 parent_flow_inline_size: Au) {
-        let input = self.compute_inline_size_constraint_inputs(block,
-                                                               parent_flow_inline_size,
-                                                               layout_context);
-        let solution = self.solve_inline_size_constraints(block, &input);
+        let mut input = self.compute_inline_size_constraint_inputs(block,
+                                                                   parent_flow_inline_size,
+                                                                   layout_context);
 
+        // Tables are always at least as wide as their minimum inline size.
+        let minimum_inline_size =
+            block.base.intrinsic_inline_sizes.minimum_inline_size -
+            block.fragment.border_padding.inline_start_end();
+        input.available_inline_size = cmp::max(input.available_inline_size, minimum_inline_size);
+
+        let solution = self.solve_inline_size_constraints(block, &input);
         self.set_inline_size_constraint_solutions(block, solution);
     }
 
