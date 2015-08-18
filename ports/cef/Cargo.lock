@@ -623,6 +623,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "heapsize"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "hpack"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -712,8 +720,9 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#e1a8c46045c698ed7c02c381334b9305a7088bbd"
+source = "git+https://github.com/servo/rust-mozjs#85e4eff9936889436b24ceefd689d4467db302a9"
 dependencies = [
+ "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",

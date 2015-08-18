@@ -78,7 +78,7 @@ impl BrowsingContext {
         let _ar = JSAutoRequest::new(cx);
         let parent = win.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, parent.get());
-        let wrapper = unsafe { WrapperNew(cx, parent, handler) };
+        let wrapper = unsafe { WrapperNew(cx, parent, handler, ptr::null(), false) };
         assert!(!wrapper.is_null());
         self.window_proxy.set(wrapper);
     }
