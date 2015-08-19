@@ -212,7 +212,7 @@ impl JSTraceable for Heap<JSVal> {
 impl<T: JSTraceable> JSTraceable for Vec<T> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
-        for e in self.iter() {
+        for e in &*self {
             e.trace(trc);
         }
     }
@@ -254,7 +254,7 @@ impl<K, V, S> JSTraceable for HashMap<K, V, S>
 {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
-        for (k, v) in self.iter() {
+        for (k, v) in &*self {
             k.trace(trc);
             v.trace(trc);
         }

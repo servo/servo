@@ -19,7 +19,7 @@ fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
     };
 
     let (tx, _) = ipc::channel().unwrap();
-    let mut manager = ResourceManager::new(None, tx, list, None);
+    let mut manager = ResourceManager::new("".to_owned(), tx, list, None);
 
     let entry = HSTSEntry::new(
         "mozilla.org".to_string(), IncludeSubdomains::NotIncluded, None
@@ -275,7 +275,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 #[test]
 fn test_preload_hsts_domains_well_formed() {
     let hsts_list = preload_hsts_domains().unwrap();
-    assert!(hsts_list.entries.len() != 0);
+    assert!(!hsts_list.entries.is_empty());
 }
 
 #[test]
@@ -301,4 +301,3 @@ fn test_secure_url_forces_an_http_host_in_list_to_https() {
 
     assert_eq!(&secure.scheme, "https");
 }
-

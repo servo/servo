@@ -5429,7 +5429,7 @@ pub mod shorthands {
         let results = try!(input.parse_comma_separated(parse_one_transition));
         let (mut properties, mut durations) = (Vec::new(), Vec::new());
         let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
-        for result in results.into_iter() {
+        for result in results {
             properties.push(result.transition_property);
             durations.push(result.transition_duration);
             timing_functions.push(result.transition_timing_function);
@@ -6531,6 +6531,16 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
     margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
+}
+
+/// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
+/// children.
+pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
+    if style.get_effects().clip.0.is_some() {
+        let mut style = Arc::make_unique(style);
+        let effects_style = Arc::make_unique(&mut style.effects);
+        effects_style.clip.0 = None
+    }
 }
 
 pub fn is_supported_property(property: &str) -> bool {

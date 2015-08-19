@@ -28,7 +28,7 @@ impl XMLHttpRequestEventTarget {
     }
 
     #[inline]
-    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
+    pub fn eventtarget(&self) -> &EventTarget {
         &self.eventtarget
     }
 }

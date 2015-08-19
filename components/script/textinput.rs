@@ -292,10 +292,11 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Deal with a newline input.
     pub fn handle_return(&mut self) -> KeyReaction {
         if !self.multiline {
-            return KeyReaction::TriggerDefaultAction;
+            KeyReaction::TriggerDefaultAction
+        } else {
+            self.insert_char('\n');
+            KeyReaction::DispatchInput
         }
-        self.insert_char('\n');
-        return KeyReaction::DispatchInput;
     }
 
     /// Select all text in the input control.

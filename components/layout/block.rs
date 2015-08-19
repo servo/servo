@@ -451,7 +451,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             }
         }
 
-        let block = flow.as_block();
+        let block = flow.as_mut_block();
         debug_assert!(block.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
         if !block.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
@@ -708,9 +708,9 @@ impl BlockFlow {
 
     /// Return true if this has a replaced fragment.
     ///
-    /// Text, Images, Inline Block and
-    //  Canvas (https://html.spec.whatwg.org/multipage/#replaced-elements)
-    //  fragments are considered as replaced fragments
+    /// Text, Images, Inline Block and Canvas
+    /// (https://html.spec.whatwg.org/multipage/#replaced-elements) fragments are considered as
+    /// replaced fragments.
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
             SpecificFragmentInfo::ScannedText(_) |
@@ -845,7 +845,7 @@ impl BlockFlow {
                 if flow::base(kid).flags.is_float() {
                     flow::mut_base(kid).position.start.b = cur_b;
                     {
-                        let kid_block = kid.as_block();
+                        let kid_block = kid.as_mut_block();
                         kid_block.float.as_mut().unwrap().float_ceiling =
                             margin_collapse_info.current_float_ceiling();
                     }
@@ -1384,7 +1384,7 @@ impl BlockFlow {
             }
 
             if kid.is_block_flow() {
-                let kid_block = kid.as_block();
+                let kid_block = kid.as_mut_block();
                 kid_block.inline_size_of_preceding_left_floats =
                     inline_size_of_preceding_left_floats;
                 kid_block.inline_size_of_preceding_right_floats =
@@ -1409,7 +1409,7 @@ impl BlockFlow {
             // necessary because any percentages are relative to the containing block, which only
             // we know.
             if kid.is_inline_flow() {
-                kid.as_inline().first_line_indentation =
+                kid.as_mut_inline().first_line_indentation =
                     specified(self.fragment.style().get_inheritedtext().text_indent,
                               containing_block_size);
             }
@@ -1494,41 +1494,14 @@ impl BlockFlow {
                                     surrounding_inline_size,
         }
     }
-}
 
-impl Flow for BlockFlow {
-    fn class(&self) -> FlowClass {
-        FlowClass::Block
-    }
-
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
-        self
-    }
-
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        self
-    }
-
-    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
-    ///
-    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
-    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
-    /// This function must decide minimum/preferred inline-sizes based on its children's
-    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
-    fn bubble_inline_sizes(&mut self) {
+    /// Computes intrinsic widths for a block.
+    pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
         flags.remove(HAS_LEFT_FLOATED_DESCENDANTS);
         flags.remove(HAS_RIGHT_FLOATED_DESCENDANTS);
-
-        // If this block has a fixed width, just use that for the minimum
-        // and preferred width, rather than bubbling up children inline
-        // width.
-        let fixed_width = match self.fragment.style().get_box().width {
-            LengthOrPercentageOrAuto::Length(_) => true,
-            _ => false,
-        };
 
         // Find the maximum inline-size from children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
@@ -1539,7 +1512,7 @@ impl Flow for BlockFlow {
                 flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
             let float_kind = child_base.flags.float_kind();
-            if !is_absolutely_positioned && !fixed_width {
+            if !is_absolutely_positioned && consult_children {
                 computation.content_intrinsic_sizes.minimum_inline_size =
                     max(computation.content_intrinsic_sizes.minimum_inline_size,
                         child_base.intrinsic_inline_sizes.minimum_inline_size);
@@ -1591,6 +1564,36 @@ impl Flow for BlockFlow {
         }
         self.base.flags = flags
     }
+}
+
+impl Flow for BlockFlow {
+    fn class(&self) -> FlowClass {
+        FlowClass::Block
+    }
+
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        self
+    }
+
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+        self
+    }
+
+    /// Pass 1 of reflow: computes minimum and preferred inline-sizes.
+    ///
+    /// Recursively (bottom-up) determine the flow's minimum and preferred inline-sizes. When
+    /// called on this flow, all child flows have had their minimum and preferred inline-sizes set.
+    /// This function must decide minimum/preferred inline-sizes based on its children's
+    /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
+    fn bubble_inline_sizes(&mut self) {
+        // If this block has a fixed width, just use that for the minimum and preferred width,
+        // rather than bubbling up children inline width.
+        let consult_children = match self.fragment.style().get_box().width {
+            LengthOrPercentageOrAuto::Length(_) => false,
+            _ => true,
+        };
+        self.bubble_inline_sizes_for_block(consult_children)
+    }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
@@ -1639,10 +1642,16 @@ impl Flow for BlockFlow {
                 // We can't actually compute the inline-size of this block now, because floats
                 // might affect it. Speculate that its inline-size is equal to the inline-size
                 // computed above minus the inline-size of the previous left and/or right floats.
-                self.fragment.border_box.size.inline =
-                    self.fragment.border_box.size.inline -
-                    self.inline_size_of_preceding_left_floats -
-                    self.inline_size_of_preceding_right_floats;
+                //
+                // (If `max-width` is set, then don't perform this speculation. We guess that the
+                // page set `max-width` in order to avoid hitting floats. The search box on Google
+                // SERPs falls into this category.)
+                if self.fragment.style.max_inline_size() == LengthOrPercentageOrNone::None {
+                    self.fragment.border_box.size.inline =
+                        self.fragment.border_box.size.inline -
+                        self.inline_size_of_preceding_left_floats -
+                        self.inline_size_of_preceding_right_floats;
+                }
             }
             FormattingContextType::Other => {
                 self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
@@ -2839,4 +2848,3 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
-

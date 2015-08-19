@@ -10,6 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::uievent::{UIEventTypeId};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -32,12 +33,10 @@ pub enum EventPhase {
 pub enum EventTypeId {
     CustomEvent,
     HTMLEvent,
-    KeyboardEvent,
     MessageEvent,
-    MouseEvent,
     ProgressEvent,
     StorageEvent,
-    UIEvent,
+    UIEvent(UIEventTypeId),
     ErrorEvent,
     CloseEvent
 }

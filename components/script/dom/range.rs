@@ -122,7 +122,7 @@ impl Range {
             return Err(HierarchyRequest);
         }
 
-        return Ok((first_contained_child, last_contained_child, contained_children));
+        Ok((first_contained_child, last_contained_child, contained_children))
     }
 }
 
@@ -338,17 +338,11 @@ impl<'a> RangeMethods for &'a Range {
         let end = &inner.end;
         let end_node = end.node();
         let end_offset = end.offset;
-        match (bp_position(parent.r(), offset + 1, start_node.r(), start_offset).unwrap(),
-               bp_position(parent.r(), offset, end_node.r(), end_offset).unwrap()) {
-            (Ordering::Greater, Ordering::Less) => {
-                // Step 5.
-                true
-            },
-            _ => {
-                // Step 6.
-                false
-            }
-        }
+        // Step 5.
+        Ordering::Greater == bp_position(parent.r(), offset + 1,
+                                         start_node.r(), start_offset).unwrap() &&
+        Ordering::Less == bp_position(parent.r(), offset,
+                                      end_node.r(), end_offset).unwrap()
     }
 
     // https://dom.spec.whatwg.org/#dom-range-clonecontents

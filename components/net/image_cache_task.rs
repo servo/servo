@@ -282,7 +282,7 @@ impl ImageCache {
         let completed_load = CompletedLoad::new(image_response.clone());
         self.completed_loads.insert(url, completed_load);
 
-        for listener in pending_load.listeners.into_iter() {
+        for listener in pending_load.listeners {
             listener.notify(image_response.clone());
         }
     }

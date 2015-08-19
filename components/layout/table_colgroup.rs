@@ -56,7 +56,7 @@ impl Flow for TableColGroupFlow {
         FlowClass::TableColGroup
     }
 
-    fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
+    fn as_mut_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
         self
     }
 

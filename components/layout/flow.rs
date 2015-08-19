@@ -76,95 +76,97 @@ pub trait Flow: fmt::Debug + Sync {
     /// Returns the class of flow that this is.
     fn class(&self) -> FlowClass;
 
-    /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        panic!("called as_immutable_block() on a non-block flow")
-    }
-
     /// If this is a block flow, returns the underlying object. Fails otherwise.
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
-        debug!("called as_block() on a flow of type {:?}", self.class());
+    fn as_block<'a>(&'a self) -> &'a BlockFlow {
         panic!("called as_block() on a non-block flow")
     }
 
-    /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
-        panic!("called as_immutable_inline() on a non-inline flow")
+    /// If this is a block flow, returns the underlying object, borrowed mutably. Fails otherwise.
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+        debug!("called as_mut_block() on a flow of type {:?}", self.class());
+        panic!("called as_mut_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
-    fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+    fn as_inline<'a>(&'a self) -> &'a InlineFlow {
         panic!("called as_inline() on a non-inline flow")
     }
 
+    /// If this is an inline flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+        panic!("called as_mut_inline() on a non-inline flow")
+    }
+
+    /// If this is a table wrapper flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+        panic!("called as_mut_table_wrapper() on a non-tablewrapper flow")
+    }
+
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
-    fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+    fn as_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
         panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
-    /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
-        panic!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+    /// If this is a table flow, returns the underlying object, borrowed mutably. Fails otherwise.
+    fn as_mut_table<'a>(&'a mut self) -> &'a mut TableFlow {
+        panic!("called as_mut_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
-    fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
+    fn as_table<'a>(&'a self) -> &'a TableFlow {
         panic!("called as_table() on a non-table flow")
     }
 
-    /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
-    fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
-        panic!("called as_table() on a non-table flow")
+    /// If this is a table colgroup flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
+        panic!("called as_mut_table_colgroup() on a non-tablecolgroup flow")
     }
 
-    /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
-        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
+    /// If this is a table rowgroup flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+        panic!("called as_mut_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+    fn as_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
         panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
-    /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
+    /// If this is a table row flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
-        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
+    fn as_mut_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+        panic!("called as_mut_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
-    fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+    fn as_table_row<'a>(&'a self) -> &'a TableRowFlow {
         panic!("called as_table_row() on a non-tablerow flow")
     }
 
-    /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
+    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
-        panic!("called as_table_row() on a non-tablerow flow")
+    fn as_mut_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+        panic!("called as_mut_table_caption() on a non-tablecaption flow")
+    }
+
+    /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+        panic!("called as_mut_table_cell() on a non-tablecell flow")
+    }
+
+    /// If this is a multicol flow, returns the underlying object, borrowed mutably. Fails
+    /// otherwise.
+    fn as_mut_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
+        panic!("called as_mut_multicol() on a non-multicol flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
-        panic!("called as_table_caption() on a non-tablecaption flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
-        panic!("called as_table_cell() on a non-tablecell flow")
-    }
-
-    /// If this is a multicol flow, returns the underlying object. Fails otherwise.
-    fn as_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
-        panic!("called as_multicol() on a non-multicol flow")
-    }
-
-    /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
-    /// otherwise.
-    fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
+    fn as_table_cell<'a>(&'a self) -> &'a TableCellFlow {
         panic!("called as_table_cell() on a non-tablecell flow")
     }
 
@@ -244,7 +246,7 @@ pub trait Flow: fmt::Debug + Sync {
         match self.class() {
             FlowClass::Block |
             FlowClass::TableCaption |
-            FlowClass::TableCell if base(self).children.len() != 0 => {
+            FlowClass::TableCell if !base(self).children.is_empty() => {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
@@ -499,7 +501,7 @@ pub trait MutableOwnedFlowUtils {
     /// Set absolute descendants for this flow.
     ///
     /// Set this flow as the Containing Block for all the absolute descendants.
-    fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants);
+    fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants);
 }
 
 #[derive(RustcEncodable, PartialEq, Debug)]
@@ -694,19 +696,17 @@ impl FlowFlags {
     }
 }
 
-/// The Descendants of a flow.
-///
-/// Also, details about their position wrt this flow.
+/// Absolutely-positioned descendants of this flow.
 #[derive(Clone)]
-pub struct Descendants {
+pub struct AbsoluteDescendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
-    descendant_links: Vec<FlowRef>,
+    descendant_links: Vec<AbsoluteDescendantInfo>,
 }
 
-impl Descendants {
-    pub fn new() -> Descendants {
-        Descendants {
+impl AbsoluteDescendants {
+    pub fn new() -> AbsoluteDescendants {
+        AbsoluteDescendants {
             descendant_links: Vec::new(),
         }
     }
@@ -720,40 +720,63 @@ impl Descendants {
     }
 
     pub fn push(&mut self, given_descendant: FlowRef) {
-        self.descendant_links.push(given_descendant);
+        self.descendant_links.push(AbsoluteDescendantInfo {
+            flow: given_descendant,
+        });
     }
 
     /// Push the given descendants on to the existing descendants.
     ///
     /// Ignore any static y offsets, because they are None before layout.
-    pub fn push_descendants(&mut self, given_descendants: Descendants) {
-        for elem in given_descendants.descendant_links.into_iter() {
+    pub fn push_descendants(&mut self, given_descendants: AbsoluteDescendants) {
+        for elem in given_descendants.descendant_links {
             self.descendant_links.push(elem);
         }
     }
 
     /// Return an iterator over the descendant flows.
-    pub fn iter<'a>(&'a mut self) -> DescendantIter<'a> {
-        DescendantIter {
+    pub fn iter<'a>(&'a mut self) -> AbsoluteDescendantIter<'a> {
+        AbsoluteDescendantIter {
             iter: self.descendant_links.iter_mut(),
         }
     }
 }
 
-pub type AbsDescendants = Descendants;
-
-pub struct DescendantIter<'a> {
-    iter: IterMut<'a, FlowRef>,
+/// TODO(pcwalton): This structure is going to need a flag to record whether the absolute
+/// descendants have reached their containing block yet. The reason is so that we can handle cases
+/// like the following:
+///
+///     <div>
+///         <span id=a style="position: absolute; ...">foo</span>
+///         <span style="position: relative">
+///             <span id=b style="position: absolute; ...">bar</span>
+///         </span>
+///     </div>
+///
+/// When we go to create the `InlineFlow` for the outer `div`, our absolute descendants will
+/// be `a` and `b`. At this point, we need a way to distinguish between the two, because the
+/// containing block for `a` will be different from the containing block for `b`. Specifically,
+/// the latter's containing block is the inline flow itself, while the former's containing
+/// block is going to be some parent of the outer `div`. Hence we need this flag as a way to
+/// distinguish the two; it will be false for `a` and true for `b`.
+#[derive(Clone)]
+pub struct AbsoluteDescendantInfo {
+    /// The absolute descendant flow in question.
+    flow: FlowRef,
 }
 
-impl<'a> Iterator for DescendantIter<'a> {
+pub struct AbsoluteDescendantIter<'a> {
+    iter: IterMut<'a, AbsoluteDescendantInfo>,
+}
+
+impl<'a> Iterator for AbsoluteDescendantIter<'a> {
     type Item = &'a mut (Flow + 'a);
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
-        self.iter.next().map(|flow| &mut **flow)
+        self.iter.next().map(|info| &mut *info.flow)
     }
 }
 
-pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, IterMut<'a, Au>>;
+pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
@@ -837,7 +860,7 @@ pub struct BaseFlow {
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
-    pub abs_descendants: AbsDescendants,
+    pub abs_descendants: AbsoluteDescendants,
 
     /// The inline-size of the block container of this flow. Used for computing percentage and
     /// automatic values for `width`.
@@ -917,21 +940,13 @@ impl Encodable for BaseFlow {
                                 try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)));
                                 e.emit_struct_field("data", 1, |e| {
                                     match c.class() {
-                                        FlowClass::Block => c.as_immutable_block().encode(e),
-                                        FlowClass::Inline => c.as_immutable_inline().encode(e),
-                                        FlowClass::Table => c.as_immutable_table().encode(e),
-                                        FlowClass::TableWrapper => {
-                                            c.as_immutable_table_wrapper().encode(e)
-                                        }
-                                        FlowClass::TableRowGroup => {
-                                            c.as_immutable_table_rowgroup().encode(e)
-                                        }
-                                        FlowClass::TableRow => {
-                                            c.as_immutable_table_row().encode(e)
-                                        }
-                                        FlowClass::TableCell => {
-                                            c.as_immutable_table_cell().encode(e)
-                                        }
+                                        FlowClass::Block => c.as_block().encode(e),
+                                        FlowClass::Inline => c.as_inline().encode(e),
+                                        FlowClass::Table => c.as_table().encode(e),
+                                        FlowClass::TableWrapper => c.as_table_wrapper().encode(e),
+                                        FlowClass::TableRowGroup => c.as_table_rowgroup().encode(e),
+                                        FlowClass::TableRow => c.as_table_row().encode(e),
+                                        FlowClass::TableCell => c.as_table_cell().encode(e),
                                         _ => { Ok(()) }     // TODO: Support captions
                                     }
                                 })
@@ -1034,7 +1049,7 @@ impl BaseFlow {
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
             stacking_relative_position: Point2D::zero(),
-            abs_descendants: Descendants::new(),
+            abs_descendants: AbsoluteDescendants::new(),
             block_container_inline_size: Au(0),
             block_container_writing_mode: writing_mode,
             block_container_explicit_block_size: None,
@@ -1367,7 +1382,7 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// This is called during flow construction, so nothing else can be accessing the descendant
     /// flows. This is enforced by the fact that we have a mutable `FlowRef`, which only flow
     /// construction is allowed to possess.
-    fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants) {
+    fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants) {
         let this = self.clone();
         let base = mut_base(&mut **self);
         base.abs_descendants = abs_descendants;
@@ -1414,7 +1429,10 @@ impl ContainingBlockLink {
                 panic!("Link to containing block not established; perhaps you forgot to call \
                         `set_absolute_descendants`?")
             }
-            Some(ref link) => link.upgrade().unwrap().generated_containing_block_size(for_flow),
+            Some(ref link) => {
+                let flow = link.upgrade().unwrap();
+                flow.generated_containing_block_size(for_flow)
+            }
         }
     }
 
@@ -1428,7 +1446,9 @@ impl ContainingBlockLink {
             Some(ref link) => {
                 let flow = link.upgrade().unwrap();
                 if flow.is_block_like() {
-                    flow.as_immutable_block().explicit_block_containing_size(layout_context)
+                    flow.as_block().explicit_block_containing_size(layout_context)
+                } else if flow.is_inline_flow() {
+                    Some(flow.as_inline().minimum_block_size_above_baseline)
                 } else {
                     None
                 }

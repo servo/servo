@@ -90,7 +90,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         let elem = Element::create(name, None, doc.r(),
                                    ElementCreator::ParserCreated);
 
-        for attr in attrs.into_iter() {
+        for attr in attrs {
             elem.r().set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
 
@@ -152,7 +152,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         let node: Root<Node> = target.root();
         let elem = ElementCast::to_ref(node.r())
             .expect("tried to set attrs on non-Element in HTML parsing");
-        for attr in attrs.into_iter() {
+        for attr in attrs {
             elem.set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
     }

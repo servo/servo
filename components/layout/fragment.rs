@@ -390,9 +390,13 @@ impl ImageFragmentInfo {
     }
 
     /// Tile an image
-    pub fn tile_image(position: &mut Au, size: &mut Au,
-                        virtual_position: Au, image_size: u32) {
+    pub fn tile_image(position: &mut Au, size: &mut Au, virtual_position: Au, image_size: u32) {
+        // Avoid division by zero below!
         let image_size = image_size as i32;
+        if image_size == 0 {
+            return
+        }
+
         let delta_pixels = (virtual_position - *position).to_px();
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);
@@ -1265,10 +1269,16 @@ impl Fragment {
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                let image_inline_size = match image_fragment_info.replaced_image_fragment_info
-                                                                 .dom_inline_size {
-                    None => image_fragment_info.image_inline_size(),
-                    Some(dom_inline_size) => dom_inline_size,
+                // FIXME(pcwalton): Shouldn't `width` and `height` be preshints?
+                let image_inline_size = match (image_fragment_info.replaced_image_fragment_info
+                                                                  .dom_inline_size,
+                                               self.style.content_inline_size()) {
+                    (None, LengthOrPercentageOrAuto::Auto) |
+                    (None, LengthOrPercentageOrAuto::Percentage(_)) => {
+                        image_fragment_info.image_inline_size()
+                    }
+                    (Some(dom_inline_size), _) => dom_inline_size,
+                    (None, LengthOrPercentageOrAuto::Length(length)) => length,
                 };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
@@ -1637,7 +1647,7 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 block_flow.base.position.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
@@ -1645,7 +1655,7 @@ impl Fragment {
                 self.border_box.size.inline = Au(0);
             }
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1653,7 +1663,7 @@ impl Fragment {
                 block_flow.base.block_container_writing_mode = self.style.writing_mode;
             }
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = info.flow_ref.as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1810,7 +1820,7 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.as_immutable_block();
+                let block_flow = info.flow_ref.as_block();
                 let font_style = self.style.get_font_arc();
                 let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
                                                                 font_style);
@@ -2233,6 +2243,22 @@ impl Fragment {
     /// Returns the inline-size of this fragment's margin box.
     pub fn margin_box_inline_size(&self) -> Au {
         self.border_box.size.inline + self.margin.inline_start_end()
+    }
+
+    /// Returns true if this node *or any of the nodes within its inline fragment context* have
+    /// non-`static` `position`.
+    pub fn is_positioned(&self) -> bool {
+        if self.style.get_box().position != position::T::static_ {
+            return true
+        }
+        if let Some(ref inline_context) = self.inline_context {
+            for node in inline_context.nodes.iter() {
+                if node.style.get_box().position != position::T::static_ {
+                    return true
+                }
+            }
+        }
+        false
     }
 }
 

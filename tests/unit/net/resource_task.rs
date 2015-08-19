@@ -14,13 +14,13 @@ use url::Url;
 
 #[test]
 fn test_exit() {
-    let resource_task = new_resource_task(None, None);
+    let resource_task = new_resource_task("".to_owned(), None);
     resource_task.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_task = new_resource_task(None, None);
+    let resource_task = new_resource_task("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();

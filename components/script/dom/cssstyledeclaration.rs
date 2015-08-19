@@ -162,7 +162,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             let mut list = vec!();
 
             // Step 2.2
-            for longhand in longhand_properties.iter() {
+            for longhand in &*longhand_properties {
                 // Step 2.2.1
                 let declaration = owner.get_declaration(&Atom::from_slice(&longhand));
 
@@ -327,7 +327,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         match longhands_from_shorthand(&property) {
             // Step 4
             Some(longhands) => {
-                for longhand in longhands.iter() {
+                for longhand in &*longhands {
                     elem.remove_inline_style_property(longhand)
                 }
             }

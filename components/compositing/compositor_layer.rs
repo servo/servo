@@ -250,7 +250,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                compositor: &mut IOCompositor<Window>)
                                where Window: WindowMethods {
         self.clear(compositor);
-        for kid in self.children().iter() {
+        for kid in &*self.children() {
             kid.clear_all_tiles(compositor);
         }
     }
@@ -273,7 +273,7 @@ impl CompositorLayer for Layer<CompositorData> {
             }
             None => {
                 // Wasn't found, recurse into child layers
-                for kid in self.children().iter() {
+                for kid in &*self.children() {
                     kid.remove_root_layer_with_pipeline_id(compositor, pipeline_id);
                 }
             }
@@ -288,7 +288,7 @@ impl CompositorLayer for Layer<CompositorData> {
         // Traverse children first so that layers are removed
         // bottom up - allowing each layer being removed to properly
         // clean up any tiles it owns.
-        for kid in self.children().iter() {
+        for kid in &*self.children() {
             kid.collect_old_layers(compositor, pipeline_id, new_layers);
         }
 
@@ -324,12 +324,12 @@ impl CompositorLayer for Layer<CompositorData> {
     /// This is used during shutdown, when we know the paint task is going away.
     fn forget_all_tiles(&self) {
         let tiles = self.collect_buffers();
-        for tile in tiles.into_iter() {
+        for tile in tiles {
             let mut tile = tile;
             tile.mark_wont_leak()
         }
 
-        for kid in self.children().iter() {
+        for kid in &*self.children() {
             kid.forget_all_tiles();
         }
     }
@@ -341,7 +341,7 @@ impl CompositorLayer for Layer<CompositorData> {
         // Allow children to scroll.
         let scroll_offset = self.extra_data.borrow().scroll_offset;
         let new_cursor = cursor - scroll_offset;
-        for child in self.children().iter() {
+        for child in &*self.children() {
             let child_bounds = child.bounds.borrow();
             if child_bounds.contains(&new_cursor) {
                 let result = child.handle_scroll_event(delta, new_cursor - child_bounds.origin);
@@ -378,7 +378,7 @@ impl CompositorLayer for Layer<CompositorData> {
         self.extra_data.borrow_mut().scroll_offset = new_offset;
 
         let mut result = false;
-        for child in self.children().iter() {
+        for child in &*self.children() {
             result |= child.scroll_layer_and_all_child_layers(new_offset);
         }
 
@@ -429,7 +429,7 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         let offset_for_children = new_offset + self.extra_data.borrow().scroll_offset;
-        for child in self.children().iter() {
+        for child in &*self.children() {
             result |= child.scroll_layer_and_all_child_layers(offset_for_children);
         }
 

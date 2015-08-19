@@ -82,7 +82,7 @@ pub extern "C" fn cef_string_multimap_key(smm: *mut cef_string_multimap_t, index
         if index < 0 || smm.is_null() { return 0; }
         let mut rem = index as usize;
 
-        for (key, val) in (*smm).iter() {
+        for (key, val) in &(*smm) {
             if rem < (*val).len() {
                 return cef_string_utf16_set((*key).as_bytes().as_ptr() as *const u16,
                                             (*key).len() as u64,

@@ -65,7 +65,7 @@ impl TextEncoder {
             }
             _ => {
                 debug!("Encoding Not UTF");
-                return Err(Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
+                Err(Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
             }
         }
     }
@@ -87,7 +87,7 @@ impl<'a> TextEncoderMethods for &'a TextEncoder {
 
             let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, ptr::null());
             ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
-            return js_object;
+            js_object
         }
     }
 }

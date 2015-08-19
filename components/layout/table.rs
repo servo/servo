@@ -191,19 +191,19 @@ impl Flow for TableFlow {
         FlowClass::Table
     }
 
-    fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
+    fn as_mut_table<'a>(&'a mut self) -> &'a mut TableFlow {
         self
     }
 
-    fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
+    fn as_table<'a>(&'a self) -> &'a TableFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 
@@ -262,34 +262,8 @@ impl Flow for TableFlow {
         {
             let mut iterator = self.block_flow.base.child_iter().peekable();
             while let Some(kid) = iterator.next() {
-                let next_index_and_sibling = iterator.peek();
-                let next_collapsed_borders_in_block_direction = if collapsing_borders {
-                    match next_index_and_sibling {
-                        Some(next_sibling) => {
-                            if next_sibling.is_table_rowgroup() {
-                                NextBlockCollapsedBorders::FromNextRow(
-                                    &next_sibling.as_immutable_table_rowgroup()
-                                                 .preliminary_collapsed_borders
-                                                 .block_start)
-                            } else {
-                                NextBlockCollapsedBorders::FromNextRow(
-                                    &next_sibling.as_immutable_table_row()
-                                                 .preliminary_collapsed_borders
-                                                 .block_start)
-                            }
-                        }
-                        None => {
-                            NextBlockCollapsedBorders::FromTable(
-                                CollapsedBorder::block_end(&*self.block_flow.fragment.style,
-                                                           CollapsedBorderProvenance::FromTable))
-                        }
-                    }
-                } else {
-                    NextBlockCollapsedBorders::NotCollapsingBorders
-                };
-
                 if kid.is_table_colgroup() {
-                    for specified_inline_size in &kid.as_table_colgroup().inline_sizes {
+                    for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
                         self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
                             minimum_length: match *specified_inline_size {
                                 LengthOrPercentageOrAuto::Auto |
@@ -313,8 +287,30 @@ impl Flow for TableFlow {
                             first_row,
                             self.table_layout);
                     if collapsing_borders {
+                        let next_index_and_sibling = iterator.peek();
+                        let next_collapsed_borders_in_block_direction =
+                            match next_index_and_sibling {
+                                Some(next_sibling) => {
+                                    if next_sibling.is_table_rowgroup() {
+                                        NextBlockCollapsedBorders::FromNextRow(
+                                            &next_sibling.as_table_rowgroup()
+                                                         .preliminary_collapsed_borders
+                                                         .block_start)
+                                    } else {
+                                        NextBlockCollapsedBorders::FromNextRow(
+                                            &next_sibling.as_table_row()
+                                                         .preliminary_collapsed_borders
+                                                         .block_start)
+                                    }
+                                }
+                                None => {
+                                    NextBlockCollapsedBorders::FromTable(
+                                        CollapsedBorder::block_end(&*self.block_flow.fragment.style,
+                                                                   CollapsedBorderProvenance::FromTable))
+                                }
+                            };
                         perform_border_collapse_for_row(
-                            kid.as_table_row(),
+                            kid.as_mut_table_row(),
                             table_inline_collapsed_borders.as_ref().unwrap(),
                             previous_collapsed_block_end_borders,
                             next_collapsed_borders_in_block_direction,
@@ -334,12 +330,12 @@ impl Flow for TableFlow {
                                 Some(grandkid_next_sibling) => {
                                     if grandkid_next_sibling.is_table_rowgroup() {
                                         NextBlockCollapsedBorders::FromNextRow(
-                                            &grandkid_next_sibling.as_immutable_table_rowgroup()
+                                            &grandkid_next_sibling.as_table_rowgroup()
                                                                   .preliminary_collapsed_borders
                                                                   .block_start)
                                     } else {
                                         NextBlockCollapsedBorders::FromNextRow(
-                                            &grandkid_next_sibling.as_immutable_table_row()
+                                            &grandkid_next_sibling.as_table_row()
                                                                   .preliminary_collapsed_borders
                                                                   .block_start)
                                     }
@@ -363,7 +359,7 @@ impl Flow for TableFlow {
                             self.table_layout);
                         if collapsing_borders {
                             perform_border_collapse_for_row(
-                                grandkid.as_table_row(),
+                                grandkid.as_mut_table_row(),
                                 table_inline_collapsed_borders.as_ref().unwrap(),
                                 previous_collapsed_block_end_borders,
                                 next_collapsed_borders_in_block_direction,
@@ -484,12 +480,12 @@ impl Flow for TableFlow {
                 column_computed_inline_sizes,
                 &spacing_per_cell);
             if child_flow.is_table_row() {
-                let child_table_row = child_flow.as_table_row();
+                let child_table_row = child_flow.as_mut_table_row();
                 child_table_row.populate_collapsed_border_spacing(
                     collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
             } else if child_flow.is_table_rowgroup() {
-                let child_table_rowgroup = child_flow.as_table_rowgroup();
+                let child_table_rowgroup = child_flow.as_mut_table_rowgroup();
                 child_table_rowgroup.populate_collapsed_border_spacing(
                     collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
@@ -580,11 +576,17 @@ impl ISizeAndMarginsComputer for InternalTable {
                                 block: &mut BlockFlow,
                                 layout_context: &LayoutContext,
                                 parent_flow_inline_size: Au) {
-        let input = self.compute_inline_size_constraint_inputs(block,
-                                                               parent_flow_inline_size,
-                                                               layout_context);
-        let solution = self.solve_inline_size_constraints(block, &input);
+        let mut input = self.compute_inline_size_constraint_inputs(block,
+                                                                   parent_flow_inline_size,
+                                                                   layout_context);
 
+        // Tables are always at least as wide as their minimum inline size.
+        let minimum_inline_size =
+            block.base.intrinsic_inline_sizes.minimum_inline_size -
+            block.fragment.border_padding.inline_start_end();
+        input.available_inline_size = cmp::max(input.available_inline_size, minimum_inline_size);
+
+        let solution = self.solve_inline_size_constraints(block, &input);
         self.set_inline_size_constraint_solutions(block, solution);
     }
 

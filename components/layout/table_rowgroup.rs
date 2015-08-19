@@ -112,19 +112,19 @@ impl Flow for TableRowGroupFlow {
         FlowClass::TableRowGroup
     }
 
-    fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+    fn as_mut_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
         self
     }
 
-    fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
+    fn as_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 
@@ -187,7 +187,7 @@ impl Flow for TableRowGroupFlow {
                 &border_spacing);
 
             if border_collapse == border_collapse::T::collapse {
-                let child_table_row = child_flow.as_table_row();
+                let child_table_row = child_flow.as_mut_table_row();
                 child_table_row.populate_collapsed_border_spacing(
                     collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);

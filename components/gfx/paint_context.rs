@@ -244,6 +244,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
                                                 border,
+                                                radius,
                                                 color_select,
                                                 DashSize::DottedBorder);
             }
@@ -251,6 +252,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
                                                 border,
+                                                radius,
                                                 color_select,
                                                 DashSize::DashedBorder);
             }
@@ -291,6 +293,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
+                                                radius,
                                                 color,
                                                 DashSize::DottedBorder);
             }
@@ -298,6 +301,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
+                                                radius,
                                                 color,
                                                 DashSize::DashedBorder);
             }
@@ -333,7 +337,12 @@ impl<'a> PaintContext<'a> {
                         radii: &BorderRadii<AzFloat>,
                         color: Color) {
         let mut path_builder = self.draw_target.create_path_builder();
-        self.create_border_path_segment(&mut path_builder, bounds, direction, border, radii);
+        self.create_border_path_segment(&mut path_builder,
+                                        bounds,
+                                        direction,
+                                        border,
+                                        radii,
+                                        BorderPathDrawingMode::EntireBorder);
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         self.draw_target.fill(&path_builder.finish(),
                               Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
@@ -432,7 +441,8 @@ impl<'a> PaintContext<'a> {
                                   bounds: &Rect<f32>,
                                   direction: Direction,
                                   border: &SideOffsets2D<f32>,
-                                  radius: &BorderRadii<AzFloat>) {
+                                  radius: &BorderRadii<AzFloat>,
+                                  mode: BorderPathDrawingMode) {
         // T = top, B = bottom, L = left, R = right
 
         let box_TL = bounds.origin;
@@ -475,8 +485,13 @@ impl<'a> PaintContext<'a> {
                 let corner_TL = edge_TL + dx_if(radius.top_left == 0., -border.left);
                 let corner_TR = edge_TR + dx_if(radius.top_right == 0., border.right);
 
-                path_builder.move_to(corner_TL);
-                path_builder.line_to(corner_TR);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.move_to(corner_TL);
+                        path_builder.line_to(corner_TR);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TR),
+                }
 
                 if radius.top_right != 0. {
                     // the origin is the center of the arcs we're about to draw.
@@ -489,8 +504,13 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, distance_to_elbow, rad_TR, rad_T, true);
                 }
 
-                path_builder.line_to(edge_BR);
-                path_builder.line_to(edge_BL);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.line_to(edge_BR);
+                        path_builder.line_to(edge_BL);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BL),
+                }
 
                 if radius.top_left != 0. {
                     let origin = edge_TL + Point2D::new(-(border.left - radius.top_left).max(0.),
@@ -510,8 +530,13 @@ impl<'a> PaintContext<'a> {
                 let corner_TL = edge_TL + dy_if(radius.top_left == 0., -border.top);
                 let corner_BL = edge_BL + dy_if(radius.bottom_left == 0., border.bottom);
 
-                path_builder.move_to(corner_BL);
-                path_builder.line_to(corner_TL);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.move_to(corner_BL);
+                        path_builder.line_to(corner_TL);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TL),
+                }
 
                 if radius.top_left != 0. {
                     let origin = edge_TL + Point2D::new(radius.top_left,
@@ -522,8 +547,13 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, distance_to_elbow, rad_TL, rad_L, true);
                 }
 
-                path_builder.line_to(edge_TR);
-                path_builder.line_to(edge_BR);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.line_to(edge_TR);
+                        path_builder.line_to(edge_BR);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BR),
+                }
 
                 if radius.bottom_left != 0. {
                     let origin = edge_BL +
@@ -544,8 +574,13 @@ impl<'a> PaintContext<'a> {
                 let corner_TR = edge_TR + dy_if(radius.top_right == 0., -border.top);
                 let corner_BR = edge_BR + dy_if(radius.bottom_right == 0., border.bottom);
 
-                path_builder.move_to(edge_BL);
-                path_builder.line_to(edge_TL);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.move_to(edge_BL);
+                        path_builder.line_to(edge_TL);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TL),
+                }
 
                 if radius.top_right != 0. {
                     let origin = edge_TR + Point2D::new(-radius.top_right,
@@ -556,8 +591,13 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, radius.top_right,  rad_TR, rad_R, false);
                 }
 
-                path_builder.line_to(corner_TR);
-                path_builder.line_to(corner_BR);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.line_to(corner_TR);
+                        path_builder.line_to(corner_BR);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BR),
+                }
 
                 if radius.bottom_right != 0. {
                     let origin = edge_BR +
@@ -578,8 +618,13 @@ impl<'a> PaintContext<'a> {
                 let corner_BR = edge_BR + dx_if(radius.bottom_right == 0., border.right);
                 let corner_BL = edge_BL + dx_if(radius.bottom_left == 0., -border.left);
 
-                path_builder.move_to(edge_TL);
-                path_builder.line_to(edge_TR);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.move_to(edge_TL);
+                        path_builder.line_to(edge_TR);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TR),
+                }
 
                 if radius.bottom_right != 0. {
                     let origin = edge_BR + Point2D::new((border.right - radius.bottom_right).max(0.),
@@ -590,8 +635,13 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, radius.bottom_right, rad_BR, rad_B, false);
                 }
 
-                path_builder.line_to(corner_BR);
-                path_builder.line_to(corner_BL);
+                match mode {
+                    BorderPathDrawingMode::EntireBorder => {
+                        path_builder.line_to(corner_BR);
+                        path_builder.line_to(corner_BL);
+                    }
+                    BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BL),
+                }
 
                 if radius.bottom_left != 0. {
                     let origin = edge_BL - Point2D::new((border.left - radius.bottom_left).max(0.),
@@ -660,6 +710,7 @@ impl<'a> PaintContext<'a> {
                                   direction: Direction,
                                   bounds: &Rect<Au>,
                                   border: &SideOffsets2D<f32>,
+                                  radius: &BorderRadii<AzFloat>,
                                   color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_nearest_azure_rect();
@@ -680,26 +731,26 @@ impl<'a> PaintContext<'a> {
         let (start, end)  = match direction {
             Direction::Top => {
                 let y = rect.origin.y + border.top * 0.5;
-                let start = Point2D::new(rect.origin.x, y);
-                let end = Point2D::new(rect.origin.x + rect.size.width, y);
+                let start = Point2D::new(rect.origin.x + radius.top_left, y);
+                let end = Point2D::new(rect.origin.x + rect.size.width - radius.top_right, y);
                 (start, end)
             }
             Direction::Left => {
                 let x = rect.origin.x + border.left * 0.5;
-                let start = Point2D::new(x, rect.origin.y + rect.size.height);
-                let end = Point2D::new(x, rect.origin.y + border.top);
+                let start = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_left);
+                let end = Point2D::new(x, rect.origin.y + border.top.max(radius.top_left));
                 (start, end)
             }
             Direction::Right => {
                 let x = rect.origin.x + rect.size.width - border.right * 0.5;
-                let start = Point2D::new(x, rect.origin.y);
-                let end = Point2D::new(x, rect.origin.y + rect.size.height);
+                let start = Point2D::new(x, rect.origin.y + radius.top_right);
+                let end = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_right);
                 (start, end)
             }
             Direction::Bottom => {
                 let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
-                let start = Point2D::new(rect.origin.x + rect.size.width, y);
-                let end = Point2D::new(rect.origin.x + border.left, y);
+                let start = Point2D::new(rect.origin.x + rect.size.width - radius.bottom_right, y);
+                let end = Point2D::new(rect.origin.x + border.left.max(radius.bottom_left), y);
                 (start, end)
             }
         };
@@ -709,6 +760,19 @@ impl<'a> PaintContext<'a> {
                                      PatternRef::Color(&ColorPattern::new(color)),
                                      &stroke_opts,
                                      &draw_opts);
+
+        if radii_apply_to_border_direction(direction, radius) {
+            let mut path_builder = self.draw_target.create_path_builder();
+            self.create_border_path_segment(&mut path_builder,
+                                            &rect,
+                                            direction,
+                                            border,
+                                            radius,
+                                            BorderPathDrawingMode::CornersOnly);
+            self.draw_target.fill(&path_builder.finish(),
+                                  Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
+                                  &draw_opts);
+        }
     }
 
     fn draw_solid_border_segment(&self,
@@ -1476,3 +1540,19 @@ impl TemporaryDrawTarget {
 
     }
 }
+
+#[derive(Copy, Clone, PartialEq)]
+enum BorderPathDrawingMode {
+    EntireBorder,
+    CornersOnly,
+}
+
+fn radii_apply_to_border_direction(direction: Direction, radius: &BorderRadii<AzFloat>) -> bool {
+    match (direction, radius.top_left, radius.top_right, radius.bottom_left, radius.bottom_right) {
+        (Direction::Top, a, b, _, _) |
+        (Direction::Right, _, a, _, b) |
+        (Direction::Bottom, _, _, a, b) |
+        (Direction::Left, a, _, b, _) => a != 0.0 || b != 0.0,
+    }
+}
+

@@ -10,6 +10,7 @@
 fragment=top != ../html/acid2.html acid2_ref.html
 
 == abs_rel_explicit_height.html abs_rel_explicit_height_ref.html
+== absolute_hypothetical_with_intervening_inline_block_a.html absolute_hypothetical_with_intervening_inline_block_ref.html
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
 == absolute_z_index_auto_paint_order_a.html absolute_z_index_auto_paint_order_ref.html
 == acid1_a.html acid1_b.html
@@ -23,6 +24,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == attr_selector_case_sensitivity.html attr_selector_case_sensitivity_ref.html
 == background_clip_a.html background_clip_ref.html
 == background_external_stylesheet.html background_ref.html
+== background_image_a.html background_image_ref.html
 == background_image_position_a.html background_image_position_ref.html
 == background_none_a.html background_none_b.html
 == background_origin_a.html background_origin_ref.html
@@ -36,6 +38,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == background_repeat_y_a.html background_repeat_y_b.html
 == background_size_a.html background_size_ref.html
 == background_size_shorthand_a.html background_size_shorthand_ref.html
+== background_size_zero_a.html background_size_zero_ref.html
 == background_style_attr.html background_ref.html
 == basic_width_px.html basic_width_em.html
 == block_formatting_context_a.html block_formatting_context_ref.html
@@ -43,6 +46,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
 == block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
 == block_formatting_context_float_placement_a.html block_formatting_context_float_placement_ref.html
+== block_formatting_context_max_width_a.html block_formatting_context_max_width_ref.html
 == block_formatting_context_relative_a.html block_formatting_context_ref.html
 == block_formatting_context_translation_a.html block_formatting_context_translation_ref.html
 == block_formatting_context_with_margin_a.html block_formatting_context_with_margin_ref.html
@@ -58,6 +62,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_collapse_missing_cell_a.html border_collapse_missing_cell_ref.html
 == border_collapse_simple_a.html border_collapse_simple_ref.html
 == border_radius_clip_a.html border_radius_clip_ref.html
+!= border_radius_dashed_a.html border_radius_dashed_ref.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
 == border_spacing_a.html border_spacing_ref.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
@@ -76,6 +81,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == br.html br-ref.html
 == canvas_as_block_element_a.html canvas_as_block_element_ref.html
+== canvas_linear_gradient_a.html canvas_linear_gradient_ref.html
+== canvas_radial_gradient_a.html canvas_radial_gradient_ref.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
 == clip_a.html clip_ref.html
@@ -141,8 +148,10 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 != img_simple.html img_simple_ref.html
 == img_size_a.html img_size_b.html
 == img_width_attribute_intrinsic_width_a.html img_width_attribute_intrinsic_width_ref.html
+== img_width_style_intrinsic_width_a.html img_width_style_intrinsic_width_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == incremental_inline_layout_a.html incremental_inline_layout_ref.html
+== inline_absolute_hypothetical_clip_a.html inline_absolute_hypothetical_clip_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_block_direction_margins_a.html inline_block_block_direction_margins_ref.html
@@ -244,6 +253,9 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html
 == overflow_auto.html overflow_simple_b.html
+# Should be ==?
+!= overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
+== overflow_position_abs_simple_a.html overflow_position_abs_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
 == overflow_wrap_a.html overflow_wrap_ref.html
@@ -293,6 +305,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
+== style_is_in_doc.html style_is_in_doc_ref.html
 == table_auto_width.html table_auto_width_ref.html
 == table_caption_bottom_a.html table_caption_bottom_ref.html
 == table_caption_top_a.html table_caption_top_ref.html
@@ -310,6 +323,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == table_percentage_width_a.html table_percentage_width_ref.html
 == table_preferred_width_a.html table_preferred_width_ref.html
 == table_row_direction_a.html table_row_direction_ref.html
+== table_specified_width_a.html table_specified_width_ref.html
 == table_width_attribute_a.html table_width_attribute_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == text_align_justify_a.html text_align_justify_ref.html
@@ -325,6 +339,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == text_overflow_basic_a.html text_overflow_basic_ref.html
 == text_shadow_blur_a.html text_shadow_blur_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
+== text_shadow_multiple_shadows_a.html text_shadow_multiple_shadows_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
 == text_transform_capitalize_a.html text_transform_capitalize_ref.html
 == text_transform_lowercase_a.html text_transform_lowercase_ref.html
@@ -357,6 +372,7 @@ experimental == viewport_rule.html viewport_rule_ref.html
 == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
 == webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
 
+flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
 == whitespace_nowrap_line_breaking_a.html whitespace_nowrap_line_breaking_ref.html
 == whitespace_pre.html whitespace_pre_ref.html

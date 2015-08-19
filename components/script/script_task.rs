@@ -82,6 +82,7 @@ use util::opts;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use hyper::method::Method;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
@@ -267,7 +268,7 @@ pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
 impl ScriptChan for SendableMainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         let SendableMainThreadScriptChan(ref chan) = *self;
-        return chan.send(msg).map_err(|_| ());
+        chan.send(msg).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -550,7 +551,7 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
 unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
     _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
     // XXX implement me
-    return DOMProxyShadowsResult::ShadowCheckFailed;
+    DOMProxyShadowsResult::ShadowCheckFailed
 }
 
 impl ScriptTask {
@@ -709,7 +710,7 @@ impl ScriptTask {
             }
         }
 
-        for (id, size) in resizes.into_iter() {
+        for (id, size) in resizes {
             self.handle_event(id, ResizeEvent(size));
         }
 
@@ -814,7 +815,7 @@ impl ScriptTask {
         }
 
         // Process the gathered events.
-        for msg in sequential.into_iter() {
+        for msg in sequential {
             match msg {
                 MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
@@ -1062,7 +1063,7 @@ impl ScriptTask {
             return ScriptState::DocumentLoading;
         }
 
-        return ScriptState::DocumentLoaded;
+        ScriptState::DocumentLoaded
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1188,23 +1189,26 @@ impl ScriptTask {
         let mut urls = vec![];
         let mut dom_tree_size = 0;
         let mut reports = vec![];
-        for it_page in self.root_page().iter() {
-            let current_url = it_page.document().url().serialize();
-            urls.push(current_url.clone());
 
-            for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
-                let target = EventTargetCast::from_ref(&*child);
+        if let Some(root_page) = self.page.borrow().as_ref() {
+            for it_page in root_page.iter() {
+                let current_url = it_page.document().url().serialize();
+                urls.push(current_url.clone());
+
+                for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
+                    let target = EventTargetCast::from_ref(&*child);
+                    dom_tree_size += heap_size_of_eventtarget(target);
+                }
+                let window = it_page.window();
+                let target = EventTargetCast::from_ref(&*window);
                 dom_tree_size += heap_size_of_eventtarget(target);
-            }
-            let window = it_page.window();
-            let target = EventTargetCast::from_ref(&*window);
-            dom_tree_size += heap_size_of_eventtarget(target);
 
-            reports.push(Report {
-                path: path![format!("url({})", current_url), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            })
+                reports.push(Report {
+                    path: path![format!("url({})", current_url), "dom-tree"],
+                    kind: ReportKind::ExplicitJemallocHeapSize,
+                    size: dom_tree_size,
+                })
+            }
         }
         let path_seg = format!("url({})", urls.join(", "));
         reports.extend(ScriptTask::get_reports(self.get_cx(), path_seg));
@@ -1403,7 +1407,7 @@ impl ScriptTask {
         if let Some(ref mut child_page) = page.remove(id) {
             shut_down_layout(&*child_page, exit_type);
         }
-        return false;
+        false
     }
 
     /// Handles when layout task finishes all animation in one tick
@@ -1547,7 +1551,7 @@ impl ScriptTask {
                                      DocumentSource::FromParser,
                                      loader);
 
-        let frame_element = frame_element.r().map(|elem| ElementCast::from_ref(elem));
+        let frame_element = frame_element.r().map(ElementCast::from_ref);
         window.r().init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
@@ -1649,7 +1653,7 @@ impl ScriptTask {
                 let document = page.document();
 
                 let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
-                for target in self.mouse_over_targets.borrow_mut().iter() {
+                for target in &*self.mouse_over_targets.borrow_mut() {
                     prev_mouse_over_targets.push(target.clone());
                 }
 
@@ -1660,7 +1664,7 @@ impl ScriptTask {
                 document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
 
                 // Notify Constellation about anchors that are no longer mouse over targets.
-                for target in prev_mouse_over_targets.iter() {
+                for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
                         if target.root().r().is_anchor_element() {
                             let event = ConstellationMsg::NodeStatus(None);
@@ -1672,7 +1676,7 @@ impl ScriptTask {
                 }
 
                 // Notify Constellation about the topmost anchor mouse over target.
-                for target in mouse_over_targets.iter() {
+                for target in &*mouse_over_targets {
                     let target = target.root();
                     if target.r().is_anchor_element() {
                         let element = ElementCast::to_ref(target.r()).unwrap();
@@ -1724,16 +1728,24 @@ impl ScriptTask {
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
         // Step 8.
-        if let Some(fragment) = load_data.url.fragment {
-            let page = get_page(&self.root_page(), pipeline_id);
-            let document = page.document();
-            match document.r().find_fragment_node(fragment) {
-                Some(ref node) => {
-                    self.scroll_fragment_point(pipeline_id, node.r());
+        {
+            let nurl = &load_data.url;
+            if let Some(ref fragment) = nurl.fragment {
+                let page = get_page(&self.root_page(), pipeline_id);
+                let document = page.document();
+                let document = document.r();
+                let url = document.url();
+                if url.scheme == nurl.scheme && url.scheme_data == nurl.scheme_data &&
+                    url.query == nurl.query && load_data.method == Method::Get {
+                    match document.find_fragment_node(&*fragment) {
+                        Some(ref node) => {
+                            self.scroll_fragment_point(pipeline_id, node.r());
+                        }
+                        None => {}
+                    }
+                    return;
                 }
-                None => {}
             }
-            return;
         }
 
         match subpage_id {
@@ -1764,7 +1776,7 @@ impl ScriptTask {
 
         let document = page.document();
         let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(name));
+                                      .and_then(|name| document.r().find_fragment_node(&*name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
@@ -1933,7 +1945,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     }
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
-    for chan in channels.into_iter() {
+    for chan in channels {
         chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
     }
 }

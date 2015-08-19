@@ -114,7 +114,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
             top_down_func: ChunkedDomTraversalFunction,
             bottom_up_func: DomTraversalFunction) {
         let mut discovered_child_nodes = Vec::new();
-        for unsafe_node in unsafe_nodes.0.into_iter() {
+        for unsafe_node in *unsafe_nodes.0 {
             // Get a real layout node.
             let node: LayoutNode = unsafe {
                 layout_node_from_unsafe_layout_node(&unsafe_node)
@@ -295,7 +295,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                            top_down_func: ChunkedFlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut discovered_child_flows = Vec::new();
-        for mut unsafe_flow in unsafe_flows.0.into_iter() {
+        for mut unsafe_flow in *unsafe_flows.0 {
             let mut had_children = false;
             unsafe {
                 // Get a real flow.

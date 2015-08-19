@@ -119,7 +119,7 @@ impl TableRowFlow {
             }
 
             {
-                let child_fragment = kid.as_table_cell().fragment();
+                let child_fragment = kid.as_mut_table_cell().fragment();
                 // TODO: Percentage block-size
                 let child_specified_block_size =
                     MaybeAuto::from_style(child_fragment.style().content_block_size(),
@@ -153,7 +153,7 @@ impl TableRowFlow {
 
         // Assign the block-size of kid fragments, which is the same value as own block-size.
         for kid in self.block_flow.base.child_iter() {
-            let child_table_cell = kid.as_table_cell();
+            let child_table_cell = kid.as_mut_table_cell();
             {
                 let kid_fragment = child_table_cell.mut_fragment();
                 let mut position = kid_fragment.border_box;
@@ -194,19 +194,19 @@ impl Flow for TableRowFlow {
         FlowClass::TableRow
     }
 
-    fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+    fn as_mut_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
         self
     }
 
-    fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
+    fn as_table_row<'a>(&'a self) -> &'a TableRowFlow {
         self
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_immutable_block(&self) -> &BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 
@@ -249,7 +249,7 @@ impl Flow for TableRowFlow {
                 let child_specified_inline_size;
                 let child_column_span;
                 {
-                    let child_table_cell = kid.as_table_cell();
+                    let child_table_cell = kid.as_mut_table_cell();
                     child_specified_inline_size = child_table_cell.block_flow
                                                                   .fragment
                                                                   .style
@@ -685,18 +685,18 @@ pub fn propagate_column_inline_sizes_to_child(
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
     match child_flow.class() {
         FlowClass::Table => {
-            let child_table_flow = child_flow.as_table();
+            let child_table_flow = child_flow.as_mut_table();
             child_table_flow.column_computed_inline_sizes = column_computed_inline_sizes.to_vec();
         }
         FlowClass::TableRowGroup => {
-            let child_table_rowgroup_flow = child_flow.as_table_rowgroup();
+            let child_table_rowgroup_flow = child_flow.as_mut_table_rowgroup();
             child_table_rowgroup_flow.column_computed_inline_sizes =
                 column_computed_inline_sizes.to_vec();
             child_table_rowgroup_flow.spacing = *border_spacing;
             child_table_rowgroup_flow.table_writing_mode = table_writing_mode;
         }
         FlowClass::TableRow => {
-            let child_table_row_flow = child_flow.as_table_row();
+            let child_table_row_flow = child_flow.as_mut_table_row();
             child_table_row_flow.column_computed_inline_sizes =
                 column_computed_inline_sizes.to_vec();
             child_table_row_flow.spacing = *border_spacing;
@@ -725,7 +725,7 @@ fn set_inline_position_of_child_flow(
     let reverse_column_order = table_writing_mode.is_bidi_ltr() != row_writing_mode.is_bidi_ltr();
 
     // Handle border collapsing, if necessary.
-    let child_table_cell = child_flow.as_table_cell();
+    let child_table_cell = child_flow.as_mut_table_cell();
     match *border_collapse_info {
         Some(ref border_collapse_info) => {
             // Write in the child's border collapse state.
@@ -821,7 +821,7 @@ fn perform_inline_direction_border_collapse_for_row(
                                     CollapsedBorderProvenance::FromPreviousTableCell));
 
     if let Some(&(_, ref next_child_flow)) = iterator.peek() {
-        let next_child_flow = next_child_flow.as_immutable_block();
+        let next_child_flow = next_child_flow.as_block();
         inline_collapsed_border.combine(
             &CollapsedBorder::inline_start(&*next_child_flow.fragment.style,
                                            CollapsedBorderProvenance::FromNextTableCell))

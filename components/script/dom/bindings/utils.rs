@@ -677,7 +677,7 @@ pub unsafe fn finalize_global(obj: *mut JSObject) {
 /// Trace the resources held by reserved slots of a global object
 pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
-    for proto in (&*array).iter() {
+    for proto in (*array).iter() {
         if !proto.is_null() {
             trace_object(tracer, "prototype", &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>));
         }
@@ -690,7 +690,7 @@ unsafe extern fn wrap(cx: *mut JSContext,
                       -> *mut JSObject {
     // FIXME terrible idea. need security wrappers
     // https://github.com/servo/servo/issues/2382
-    WrapperNew(cx, obj, GetCrossCompartmentWrapper())
+    WrapperNew(cx, obj, GetCrossCompartmentWrapper(), ptr::null(), false)
 }
 
 unsafe extern fn pre_wrap(cx: *mut JSContext, _existing: HandleObject,

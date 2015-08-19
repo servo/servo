@@ -110,16 +110,18 @@ impl ActorRegistry {
     }
 
     /// Creating shareable registry
-    pub fn create_shareable(self) -> Arc<Mutex<ActorRegistry>>{
-        if self.shareable.is_some() {
-            return self.shareable.unwrap();
+    pub fn create_shareable(self) -> Arc<Mutex<ActorRegistry>> {
+        if let Some(shareable) = self.shareable {
+            return shareable;
         }
 
         let shareable = Arc::new(Mutex::new(self));
-        let mut lock = shareable.lock();
-        let registry = lock.as_mut().unwrap();
-        registry.shareable = Some(shareable.clone());
-        shareable.clone()
+        {
+            let mut lock = shareable.lock();
+            let registry = lock.as_mut().unwrap();
+            registry.shareable = Some(shareable.clone());
+        }
+        shareable
     }
 
     /// Get shareable registry through threads
@@ -150,7 +152,7 @@ impl ActorRegistry {
     }
 
     pub fn actor_to_script(&self, actor: String) -> String {
-        for (key, value) in self.script_actors.borrow().iter() {
+        for (key, value) in &*self.script_actors.borrow() {
             println!("checking {}", value);
             if *value == actor {
                 return key.to_string();
@@ -213,7 +215,7 @@ impl ActorRegistry {
         }
 
         let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec!());
-        for name in old_actors.into_iter() {
+        for name in old_actors {
             self.drop_actor(name);
         }
         Ok(())

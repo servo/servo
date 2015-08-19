@@ -69,7 +69,7 @@ impl SurfaceMap {
     }
 
     pub fn insert_surfaces(&mut self, display: &NativeDisplay, surfaces: Vec<NativeSurface>) {
-        for surface in surfaces.into_iter() {
+        for surface in surfaces {
             self.insert(display, surface);
         }
     }
