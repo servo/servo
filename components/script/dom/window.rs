@@ -24,7 +24,6 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untrusted_node_address};
@@ -576,7 +575,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     fn GetComputedStyle(self,
-                        element: &HTMLElement,
+                        element: &Element,
                         pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
         // Steps 1-4.
         let pseudo = match pseudo.map(|s| s.to_ascii_lowercase()) {

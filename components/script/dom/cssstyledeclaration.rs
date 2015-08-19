@@ -10,7 +10,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
 use dom::element::{ElementHelpers, StylePriority};
-use dom::htmlelement::HTMLElement;
+use dom::element::Element;
 use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use util::str::DOMString;
@@ -28,7 +28,7 @@ use std::cell::Ref;
 #[derive(HeapSizeOf)]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
-    owner: JS<HTMLElement>,
+    owner: JS<Element>,
     readonly: bool,
     pseudo: Option<PseudoElement>,
 }
@@ -59,7 +59,7 @@ fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
 }
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: &HTMLElement,
+    pub fn new_inherited(owner: &Element,
                          pseudo: Option<PseudoElement>,
                          modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
@@ -70,7 +70,7 @@ impl CSSStyleDeclaration {
         }
     }
 
-    pub fn new(global: &Window, owner: &HTMLElement,
+    pub fn new(global: &Window, owner: &Element,
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess) -> Root<CSSStyleDeclaration> {
         reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access),
@@ -84,7 +84,7 @@ trait PrivateCSSStyleDeclarationHelpers {
     fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
 }
 
-impl PrivateCSSStyleDeclarationHelpers for HTMLElement {
+impl PrivateCSSStyleDeclarationHelpers for Element {
     fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
         let element = ElementCast::from_ref(self);
         element.get_inline_style_declaration(property)

@@ -1,0 +1,17 @@
+<html>
+<head>
+  <link rel=match href=computedstyle_on_element-ref.html>
+</head>
+<body>
+
+<script>
+  // Issue #7268 - getComputedStyle should work on non-HTML elements, too
+  var el = document.createElement("a");
+  el.innerHTML = "hoy";
+  document.body.appendChild(el);
+  var style = window.getComputedStyle(el);
+
+  document.body.innerHTML = style.opacity;
+</script>
+</body>
+</html>

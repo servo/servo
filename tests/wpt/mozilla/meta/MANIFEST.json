@@ -87,6 +87,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/computedstyle_on_element.html": [
+          {
+            "path": "css/computedstyle_on_element.html",
+            "references": [
+              [
+                "/_mozilla/css/computedstyle_on_element-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/computedstyle_on_element.html"
+          }
+        ],
         "css/setpropertypriority.html": [
           {
             "path": "css/setpropertypriority.html",
@@ -852,6 +864,30 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/computedstyle_on_element-ref.html": [
+        {
+          "path": "css/computedstyle_on_element-ref.html",
+          "references": [
+            [
+              "/_mozilla/css/computedStyle_on_Element-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/computedstyle_on_element-ref.html"
+        }
+      ],
+      "css/computedstyle_on_element.html": [
+        {
+          "path": "css/computedstyle_on_element.html",
+          "references": [
+            [
+              "/_mozilla/css/computedstyle_on_element-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/computedstyle_on_element.html"
         }
       ],
       "css/setpropertypriority.html": [
