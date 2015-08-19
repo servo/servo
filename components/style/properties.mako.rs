@@ -6533,6 +6533,16 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
     margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
 }
 
+/// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
+/// children.
+pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
+    if style.get_effects().clip.0.is_some() {
+        let mut style = Arc::make_unique(style);
+        let effects_style = Arc::make_unique(&mut style.effects);
+        effects_style.clip.0 = None
+    }
+}
+
 pub fn is_supported_property(property: &str) -> bool {
     match_ignore_ascii_case! { property,
         % for property in SHORTHANDS + LONGHANDS[:-1]:

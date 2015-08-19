@@ -978,7 +978,13 @@ impl<'a> FlowConstructor<'a> {
 
         let fragment_info = SpecificFragmentInfo::InlineAbsoluteHypothetical(
             InlineAbsoluteHypotheticalFragmentInfo::new(block_flow));
-        let fragment = Fragment::new(node, fragment_info);
+        let mut style = node.style().clone();
+        properties::modify_style_for_inline_absolute_hypothetical_fragment(&mut style);
+        let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
+                                                            PseudoElementType::Normal,
+                                                            style,
+                                                            node.restyle_damage(),
+                                                            fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.fragments.push_back(fragment);
