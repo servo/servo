@@ -9,13 +9,13 @@
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 
 use canvas_traits::CanvasMsg;
-use msg::compositor_msg::LayerId;
-use fnv::FnvHasher;
 use euclid::{Rect, Size2D};
+use fnv::FnvHasher;
 use gfx::display_list::OpaqueNode;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
+use msg::compositor_msg::LayerId;
 use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};

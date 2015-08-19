@@ -11,10 +11,10 @@ use flow_ref::FlowRef;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use traversal::{PreorderDomTraversal, PostorderDomTraversal};
-use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
+use traversal::PostorderNodeMutTraversal;
 use wrapper::LayoutNode;
 
 use euclid::point::Point2D;

@@ -20,12 +20,12 @@ use text;
 
 use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
+use std::sync::Arc;
+use style::computed_values::{list_style_type, position};
+use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
-use style::properties::ComputedValues;
-use style::computed_values::{list_style_type, position};
-use std::sync::Arc;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]

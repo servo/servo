@@ -13,8 +13,8 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
+use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
 use util::logical_geometry::LogicalMargin;
 

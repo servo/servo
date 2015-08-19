@@ -20,8 +20,8 @@ use wrapper::PseudoElementType;
 use gfx::display_list::OpaqueNode;
 use std::collections::{LinkedList, HashMap};
 use std::sync::Arc;
-use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
+use style::computed_values::content::ContentItem;
 use style::properties::ComputedValues;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:

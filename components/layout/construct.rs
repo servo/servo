@@ -52,9 +52,9 @@ use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
+use style::computed_values::content::ContentItem;
 use style::properties::{self, ComputedValues};
 use url::Url;
 use util::linked_list;
@@ -1729,8 +1729,8 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
 /// to inject before and after the text content of the element.
 fn bidi_control_chars(style: &Arc<ComputedValues>) -> Option<(&'static str, &'static str)> {
-    use style::computed_values::unicode_bidi::T::*;
     use style::computed_values::direction::T::*;
+    use style::computed_values::unicode_bidi::T::*;
 
     let unicode_bidi = style.get_text().unicode_bidi;
     let direction = style.get_inheritedbox().direction;
