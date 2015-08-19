@@ -686,7 +686,7 @@ impl<'a> WindowMethods for &'a Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
+        self.compositor.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -701,7 +701,7 @@ impl<'a> WindowMethods for &'a Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
+        self.compositor.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -919,8 +919,14 @@ impl<'a> WindowHelpers for &'a Window {
         let size = self.current_viewport.get().size;
         self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
 
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
+        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
                                                          self.pipeline(), LayerId::null(), point, smooth)).unwrap()
+    }
+
+    fn client_window(self) -> (Size2D<u32>, Point2D<i32>) {
+        let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
+        self.compositor.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
+        recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
     /// Reflows the page unconditionally. This method will wait for the layout thread to complete
@@ -1038,12 +1044,6 @@ impl<'a> WindowHelpers for &'a Window {
 
             debug!("script: layout joined")
         }
-    }
-
-    fn client_window(self) -> (Size2D<u32>, Point2D<i32>) {
-        let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
-        recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
     fn layout(&self) -> &LayoutRPC {
