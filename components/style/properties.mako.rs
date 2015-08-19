@@ -100,6 +100,9 @@ def switch_to_style_struct(name):
 %>
 
 pub mod longhands {
+    use cssparser::Parser;
+    use parser::ParserContext;
+    use values::specified;
 
     <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
     <%
@@ -3919,6 +3922,88 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    pub struct OriginParseResult {
+        horizontal: Option<specified::LengthOrPercentage>,
+        vertical: Option<specified::LengthOrPercentage>,
+        depth: Option<specified::Length>
+    }
+
+    pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
+        let (mut horizontal, mut vertical, mut depth) = (None, None, None);
+        loop {
+            if let Err(_) = input.try(|input| {
+                let token = try!(input.expect_ident());
+                match_ignore_ascii_case! {
+                    token,
+                    "left" => {
+                        if horizontal.is_none() {
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.0))
+                        } else {
+                            return Err(())
+                        }
+                    },
+                    "center" => {
+                        if horizontal.is_none() {
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.5))
+                        } else if vertical.is_none() {
+                            vertical = Some(specified::LengthOrPercentage::Percentage(0.5))
+                        } else {
+                            return Err(())
+                        }
+                    },
+                    "right" => {
+                        if horizontal.is_none() {
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(1.0))
+                        } else {
+                            return Err(())
+                        }
+                    },
+                    "top" => {
+                        if vertical.is_none() {
+                            vertical = Some(specified::LengthOrPercentage::Percentage(0.0))
+                        } else {
+                            return Err(())
+                        }
+                    },
+                    "bottom" => {
+                        if vertical.is_none() {
+                            vertical = Some(specified::LengthOrPercentage::Percentage(1.0))
+                        } else {
+                            return Err(())
+                        }
+                    }
+                    _ => return Err(())
+                }
+                Ok(())
+            }) {
+                match specified::LengthOrPercentage::parse(input) {
+                    Ok(value) => {
+                        if horizontal.is_none() {
+                            horizontal = Some(value);
+                        } else if vertical.is_none() {
+                            vertical = Some(value);
+                        } else if let specified::LengthOrPercentage::Length(length) = value {
+                            depth = Some(length);
+                        } else {
+                            break;
+                        }
+                    }
+                    _ => break,
+                }
+            }
+        }
+
+        if horizontal.is_some() || vertical.is_some() {
+            Ok(OriginParseResult {
+                horizontal: horizontal,
+                vertical: vertical,
+                depth: depth,
+            })
+        } else {
+            Err(())
+        }
+    }
+
     ${single_keyword("backface-visibility", "visible hidden")}
 
     ${single_keyword("transform-style", "auto flat preserve-3d")}
@@ -3978,80 +4063,13 @@ pub mod longhands {
             }
         }
 
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-            let (mut horizontal, mut vertical, mut depth) = (None, None, None);
-            loop {
-                if let Err(_) = input.try(|input| {
-                    let token = try!(input.expect_ident());
-                    match_ignore_ascii_case! {
-                        token,
-                        "left" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(0.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "center" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(0.5))
-                            } else if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(0.5))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "right" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(1.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "top" => {
-                            if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(0.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "bottom" => {
-                            if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(1.0))
-                            } else {
-                                return Err(())
-                            }
-                        }
-                        _ => return Err(())
-                    }
-                    Ok(())
-                }) {
-                    match LengthOrPercentage::parse(input) {
-                        Ok(value) => {
-                            if horizontal.is_none() {
-                                horizontal = Some(value);
-                            } else if vertical.is_none() {
-                                vertical = Some(value);
-                            } else if let LengthOrPercentage::Length(length) = value {
-                                depth = Some(length);
-                            } else {
-                                return Err(());
-                            }
-                        }
-                        _ => break,
-                    }
-                }
-            }
-
-            if horizontal.is_some() || vertical.is_some() {
-                Ok(SpecifiedValue {
-                    horizontal: horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                    vertical: vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                    depth: depth.unwrap_or(Length::Absolute(Au(0))),
-                })
-            } else {
-                Err(())
-            }
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let result = try!(super::parse_origin(context, input));
+            Ok(SpecifiedValue {
+                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
+            })
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -4119,69 +4137,14 @@ pub mod longhands {
             }
         }
 
-        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-            let (mut horizontal, mut vertical) = (None, None);
-            loop {
-                if let Err(_) = input.try(|input| {
-                    let token = try!(input.expect_ident());
-                    match_ignore_ascii_case! {
-                        token,
-                        "left" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(0.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "center" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(0.5))
-                            } else if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(0.5))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "right" => {
-                            if horizontal.is_none() {
-                                horizontal = Some(LengthOrPercentage::Percentage(1.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "top" => {
-                            if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(0.0))
-                            } else {
-                                return Err(())
-                            }
-                        },
-                        "bottom" => {
-                            if vertical.is_none() {
-                                vertical = Some(LengthOrPercentage::Percentage(1.0))
-                            } else {
-                                return Err(())
-                            }
-                        }
-                        _ => return Err(())
-                    }
-                    Ok(())
-                }) {
-                    match LengthOrPercentage::parse(input) {
-                        Ok(value) if horizontal.is_none() => horizontal = Some(value),
-                        Ok(value) if vertical.is_none() => vertical = Some(value),
-                        _ => break,
-                    }
-                }
-            }
-
-            if horizontal.is_some() || vertical.is_some() {
-                Ok(SpecifiedValue {
-                    horizontal: horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                    vertical: vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            let result = try!(super::parse_origin(context, input));
+            match result.depth {
+                Some(_) => Err(()),
+                None => Ok(SpecifiedValue {
+                    horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                    vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
                 })
-            } else {
-                Err(())
             }
         }
 
