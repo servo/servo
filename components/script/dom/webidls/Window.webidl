@@ -95,9 +95,8 @@ partial interface Window {
 
 // https://drafts.csswg.org/cssom/#extensions-to-the-window-interface
 partial interface Window {
-   //CSSStyleDeclaration getComputedStyle(Element elt, optional DOMString? pseudoElt);
    [NewObject]
-   CSSStyleDeclaration getComputedStyle(HTMLElement elt, optional DOMString pseudoElt);
+   CSSStyleDeclaration getComputedStyle(Element elt, optional DOMString pseudoElt);
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
