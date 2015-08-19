@@ -1269,10 +1269,16 @@ impl Fragment {
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                let image_inline_size = match image_fragment_info.replaced_image_fragment_info
-                                                                 .dom_inline_size {
-                    None => image_fragment_info.image_inline_size(),
-                    Some(dom_inline_size) => dom_inline_size,
+                // FIXME(pcwalton): Shouldn't `width` and `height` be preshints?
+                let image_inline_size = match (image_fragment_info.replaced_image_fragment_info
+                                                                  .dom_inline_size,
+                                               self.style.content_inline_size()) {
+                    (None, LengthOrPercentageOrAuto::Auto) |
+                    (None, LengthOrPercentageOrAuto::Percentage(_)) => {
+                        image_fragment_info.image_inline_size()
+                    }
+                    (Some(dom_inline_size), _) => dom_inline_size,
+                    (None, LengthOrPercentageOrAuto::Length(length)) => length,
                 };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
