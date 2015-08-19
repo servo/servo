@@ -19,6 +19,13 @@ use util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
 
+#[derive(JSTraceable, PartialEq, HeapSizeOf)]
+pub enum UIEventTypeId {
+    MouseEvent,
+    KeyboardEvent,
+    UIEvent,
+}
+
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
 #[dom_struct]
 #[derive(HeapSizeOf)]
@@ -30,21 +37,24 @@ pub struct UIEvent {
 
 impl UIEventDerived for Event {
     fn is_uievent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent
+        match *self.type_id() {
+            EventTypeId::UIEvent(_) => true,
+            _ => false
+        }
     }
 }
 
 impl UIEvent {
-    pub fn new_inherited(type_id: EventTypeId) -> UIEvent {
+    pub fn new_inherited(type_id: UIEventTypeId) -> UIEvent {
         UIEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(EventTypeId::UIEvent(type_id)),
             view: Default::default(),
             detail: Cell::new(0),
         }
     }
 
     pub fn new_uninitialized(window: &Window) -> Root<UIEvent> {
-        reflect_dom_object(box UIEvent::new_inherited(EventTypeId::UIEvent),
+        reflect_dom_object(box UIEvent::new_inherited(UIEventTypeId::UIEvent),
                            GlobalRef::Window(window),
                            UIEventBinding::Wrap)
     }
