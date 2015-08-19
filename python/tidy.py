@@ -255,12 +255,9 @@ def check_rust(file_name, contents):
         if line.startswith("use "):
             use = line[4:]
             match = use.find('{')
-            if match < 0:
-                uses.append(use[:len(use) - 1])
-            else:
-                if "}" not in use[match:]:
-                    yield (idx + 1, "use statement spans multiple lines")
-                uses.append(use[:match])
+            if match >= 0 and "}" not in use[match:]:
+                yield (idx + 1, "use statement spans multiple lines")
+            uses.append(use[:len(use) - 1])
         elif len(uses) > 0:
             sorted_uses = sorted(uses)
             for i in range(len(uses)):
