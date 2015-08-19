@@ -14,11 +14,11 @@ use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
-use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser;
+use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
+                DeclarationListParser, parse_important, ToCss};
 use url::Url;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
-                DeclarationListParser, parse_important, ToCss};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
@@ -5145,7 +5145,7 @@ pub mod shorthands {
 
     <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
                                                  font-size line-height font-family">
-        use properties::longhands::{font_style, font_variant, font_weight, font_size;
+        use properties::longhands::{font_style, font_variant, font_weight, font_size,
                                     line_height, font_family};
         let mut nb_normals = 0;
         let mut style = None;
