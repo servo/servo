@@ -14,9 +14,9 @@ use azure::azure_hl::Color;
 use block::BlockFlow;
 use context::LayoutContext;
 use flex::FlexFlow;
-use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, HAS_LAYER, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
 use list_item::ListItemFlow;
@@ -1513,7 +1513,6 @@ pub trait BlockFlowDisplayListBuilding {
                                     display_list: Box<DisplayList>,
                                     layout_context: &LayoutContext,
                                     border_painting_mode: BorderPaintingMode);
-    fn will_get_layer(&self) -> bool;
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -1557,35 +1556,32 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                border_painting_mode,
                                                background_border_level);
 
-        self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            if self.will_get_layer() {
-                // If we got here, then we need a new layer.
-                let scroll_policy = if self.is_fixed() {
-                    ScrollPolicy::FixedPosition
-                } else {
-                    ScrollPolicy::Scrollable
-                };
+        self.base.display_list_building_result = if self.fragment.flags.contains(HAS_LAYER) {
+            let scroll_policy = if self.is_fixed() {
+                ScrollPolicy::FixedPosition
+            } else {
+                ScrollPolicy::Scrollable
+            };
 
-                let paint_layer = PaintLayer::new(self.layer_id(0),
-                                                  color::transparent(),
-                                                  scroll_policy);
-                let layer = StackingContextLayer::Existing(paint_layer);
-                let stacking_context = self.fragment.create_stacking_context(
+            let paint_layer = PaintLayer::new(self.layer_id(0),
+                                              color::transparent(),
+                                              scroll_policy);
+            let layer = StackingContextLayer::Existing(paint_layer);
+            let stacking_context = self.fragment.create_stacking_context(
+                &self.base,
+                display_list,
+                layout_context,
+                layer,
+                StackingContextCreationMode::Normal);
+            DisplayListBuildingResult::StackingContext(stacking_context)
+        } else if self.fragment.establishes_stacking_context() {
+            DisplayListBuildingResult::StackingContext(
+                self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
                     layout_context,
-                    layer,
-                    StackingContextCreationMode::Normal);
-                DisplayListBuildingResult::StackingContext(stacking_context)
-            } else {
-                DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(
-                        &self.base,
-                        display_list,
-                        layout_context,
-                        StackingContextLayer::IfCanvas(self.layer_id(0)),
-                        StackingContextCreationMode::Normal))
-            }
+                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
                 position::T::static_ => {}
@@ -1595,11 +1591,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             }
             DisplayListBuildingResult::Normal(display_list)
         }
-    }
-
-    fn will_get_layer(&self) -> bool {
-        self.base.absolute_position_info.layers_needed_for_positioned_flows ||
-            self.base.flags.contains(NEEDS_LAYER)
     }
 
     fn build_display_list_for_absolutely_positioned_block(
@@ -1654,23 +1645,21 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             }
         };
 
-        if !self.fragment.establishes_stacking_context() {
-            display_list.form_pseudo_stacking_context_for_positioned_content();
-            self.base.display_list_building_result =
-                DisplayListBuildingResult::Normal(display_list);
-            return
-        }
-
-        if !self.will_get_layer() {
-            // We didn't need a layer.
-            self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(
-                    self.fragment.create_stacking_context(
-                        &self.base,
-                        display_list,
-                        layout_context,
-                        StackingContextLayer::IfCanvas(self.layer_id(0)),
-                        StackingContextCreationMode::Normal));
+        if !self.fragment.flags.contains(HAS_LAYER) {
+            if !self.fragment.establishes_stacking_context() {
+                display_list.form_pseudo_stacking_context_for_positioned_content();
+                self.base.display_list_building_result =
+                    DisplayListBuildingResult::Normal(display_list);
+            } else {
+                self.base.display_list_building_result =
+                    DisplayListBuildingResult::StackingContext(
+                        self.fragment.create_stacking_context(
+                            &self.base,
+                            display_list,
+                            layout_context,
+                            StackingContextLayer::IfCanvas(self.layer_id(0)),
+                            StackingContextCreationMode::Normal));
+            }
             return
         }
 
