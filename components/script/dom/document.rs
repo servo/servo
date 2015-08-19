@@ -1461,10 +1461,6 @@ impl Document {
             let node = document.upcast::<Node>();
             node.set_owner_doc(document.r());
         }
-
-        // Save DOM-related performance timing
-        document.r().set_ready_state(document.r().ready_state.get());
-
         document
     }
 
