@@ -82,6 +82,7 @@ use util::opts;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{LastModified, Headers};
+use hyper::method::Method;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
@@ -1727,16 +1728,24 @@ impl ScriptTask {
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
         // Step 8.
-        if let Some(fragment) = load_data.url.fragment {
-            let page = get_page(&self.root_page(), pipeline_id);
-            let document = page.document();
-            match document.r().find_fragment_node(fragment) {
-                Some(ref node) => {
-                    self.scroll_fragment_point(pipeline_id, node.r());
+        {
+            let nurl = &load_data.url;
+            if let Some(ref fragment) = nurl.fragment {
+                let page = get_page(&self.root_page(), pipeline_id);
+                let document = page.document();
+                let document = document.r();
+                let url = document.url();
+                if url.scheme == nurl.scheme && url.scheme_data == nurl.scheme_data &&
+                    url.query == nurl.query && load_data.method == Method::Get {
+                    match document.find_fragment_node(&*fragment) {
+                        Some(ref node) => {
+                            self.scroll_fragment_point(pipeline_id, node.r());
+                        }
+                        None => {}
+                    }
+                    return;
                 }
-                None => {}
             }
-            return;
         }
 
         match subpage_id {
@@ -1767,7 +1776,7 @@ impl ScriptTask {
 
         let document = page.document();
         let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(name));
+                                      .and_then(|name| document.r().find_fragment_node(&*name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
