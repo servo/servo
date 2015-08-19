@@ -390,9 +390,13 @@ impl ImageFragmentInfo {
     }
 
     /// Tile an image
-    pub fn tile_image(position: &mut Au, size: &mut Au,
-                        virtual_position: Au, image_size: u32) {
+    pub fn tile_image(position: &mut Au, size: &mut Au, virtual_position: Au, image_size: u32) {
+        // Avoid division by zero below!
         let image_size = image_size as i32;
+        if image_size == 0 {
+            return
+        }
+
         let delta_pixels = (virtual_position - *position).to_px();
         let tile_count = (delta_pixels + image_size - 1) / image_size;
         let offset = Au::from_px(image_size * tile_count);
