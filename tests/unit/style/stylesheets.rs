@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
-use std::sync::Arc;
 use cssparser;
 use selectors::parser::*;
+use std::borrow::ToOwned;
+use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};

@@ -5,17 +5,17 @@
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use hsts::{HSTSList, secure_url};
 use mime_classifier::MIMEClassifier;
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hyper::Error as HttpError;
 use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::header::StrictTransportSecurity;
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::{HttpConnector, HttpsConnector, Openssl};

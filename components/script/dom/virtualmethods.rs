@@ -5,8 +5,8 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
@@ -26,8 +26,8 @@ use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLTableElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
@@ -36,8 +36,8 @@ use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeHelpers};
 use dom::node::NodeTypeId;
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeHelpers};
 
 use util::str::DOMString;
 

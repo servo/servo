@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLDialogElementDerived;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;

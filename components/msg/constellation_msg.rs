@@ -9,21 +9,21 @@ use compositor_msg::Epoch;
 
 use canvas_traits::CanvasMsg;
 use euclid::rect::Rect;
-use euclid::size::{Size2D, TypedSize2D};
 use euclid::scale_factor::ScaleFactor;
+use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
-use util::cursor::Cursor;
-use util::geometry::{PagePx, ViewportPx};
-use util::mem::HeapSizeOf;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
+use util::cursor::Cursor;
+use util::geometry::{PagePx, ViewportPx};
+use util::mem::HeapSizeOf;
 use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
 
 #[derive(Clone)]

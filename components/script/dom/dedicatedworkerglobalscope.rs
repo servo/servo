@@ -33,8 +33,8 @@ use util::task_state::{SCRIPT, IN_WORKER};
 
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::Url;

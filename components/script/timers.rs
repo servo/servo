@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::callback::ExceptionHandling::Report;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
 
-use script_task::{ScriptChan, TimerSource, CommonScriptMsg};
 use horribly_inefficient_timers;
+use script_task::{ScriptChan, TimerSource, CommonScriptMsg};
 
 use util::mem::HeapSizeOf;
-use util::task::spawn_named;
 use util::str::DOMString;
+use util::task::spawn_named;
 
 use js::jsapi::{RootedValue, HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
@@ -23,11 +23,11 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp;
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Sender};
-use std::sync::mpsc::Select;
+use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
-use std::default::Default;
+use std::sync::mpsc::Select;
+use std::sync::mpsc::{channel, Sender};
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf)]
 pub struct TimerId(i32);

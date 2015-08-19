@@ -49,15 +49,15 @@
 
 pub use self::Stolen::{Empty, Abort, Data};
 
-use std::sync::Arc;
-use std::rt::heap::{allocate, deallocate};
 use std::marker;
 use std::mem::{forget, align_of, size_of, transmute};
 use std::ptr;
+use std::rt::heap::{allocate, deallocate};
+use std::sync::Arc;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicIsize, AtomicPtr};
 use std::sync::atomic::Ordering::{Relaxed, SeqCst};
+use std::sync::atomic::{AtomicIsize, AtomicPtr};
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
 // the deque requires that this number be less than 2.

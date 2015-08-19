@@ -4,8 +4,8 @@
 
 use file_loader;
 use mime_classifier::MIMEClassifier;
-use net_traits::{LoadData, Metadata, LoadConsumer};
 use net_traits::ProgressMsg::Done;
+use net_traits::{LoadData, Metadata, LoadConsumer};
 use resource_task::start_sending;
 
 use hyper::header::ContentType;

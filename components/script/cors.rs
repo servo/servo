@@ -9,9 +9,9 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
+use net_traits::{AsyncResponseListener, ResponseAction, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
-use net_traits::{AsyncResponseListener, ResponseAction, Metadata};
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -20,14 +20,14 @@ use std::sync::{Arc, Mutex};
 use time;
 use time::{now, Timespec};
 
-use hyper::header::{AccessControlRequestMethod, AccessControlAllowMethods};
+use hyper::client::Request;
 use hyper::header::{AccessControlMaxAge, AccessControlAllowOrigin};
 use hyper::header::{AccessControlRequestHeaders, AccessControlAllowHeaders};
-use hyper::header::{Headers, HeaderView};
-use hyper::client::Request;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::header::{AccessControlRequestMethod, AccessControlAllowMethods};
 use hyper::header::{ContentType, Host};
+use hyper::header::{Headers, HeaderView};
 use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::status::StatusClass::Success;
 
 use unicase::UniCase;

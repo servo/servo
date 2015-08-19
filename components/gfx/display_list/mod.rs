@@ -25,9 +25,9 @@ use text::glyph::CharIndex;
 
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind};
 use net_traits::image::base::Image;

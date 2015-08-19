@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMet
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;

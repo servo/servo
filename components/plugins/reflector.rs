@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ext::base::{Annotatable, ExtCtxt};
-use syntax::codemap::Span;
-use syntax::ast::MetaItem;
 use syntax::ast;
+use syntax::ast::MetaItem;
+use syntax::codemap::Span;
+use syntax::ext::base::{Annotatable, ExtCtxt};
 use utils::match_ty_unwrap;
 
 

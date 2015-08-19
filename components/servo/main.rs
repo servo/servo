@@ -35,11 +35,11 @@ extern crate env_logger;
 #[macro_use]
 extern crate android_glue;
 
-use std::rc::Rc;
-use util::opts;
+use compositing::windowing::WindowEvent;
 use net_traits::hosts;
 use servo::Browser;
-use compositing::windowing::WindowEvent;
+use std::rc::Rc;
+use util::opts;
 
 #[cfg(target_os="android")]
 use std::borrow::ToOwned;
@@ -186,13 +186,13 @@ mod android {
     unsafe impl Send for FilePtr {}
 
     fn redirect_output(file_no: c_int) {
-        use self::libc::funcs::posix88::unistd::{pipe, dup2};
-        use self::libc::funcs::posix88::stdio::fdopen;
         use self::libc::funcs::c95::stdio::fgets;
-        use util::task::spawn_named;
+        use self::libc::funcs::posix88::stdio::fdopen;
+        use self::libc::funcs::posix88::unistd::{pipe, dup2};
+        use std::ffi::CStr;
         use std::ffi::CString;
         use std::str::from_utf8;
-        use std::ffi::CStr;
+        use util::task::spawn_named;
 
         unsafe {
             let mut pipes: [c_int; 2] = [ 0, 0 ];

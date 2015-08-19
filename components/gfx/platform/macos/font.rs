@@ -8,9 +8,9 @@ extern crate core_foundation;
 extern crate core_graphics;
 extern crate core_text;
 
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::FontTableTag;
 use font::FractionalPixel;
+use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use platform::font_template::FontTemplateData;
 use platform::macos::font_context::FontContextHandle;
 use style::computed_values::{font_stretch, font_weight};

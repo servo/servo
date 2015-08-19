@@ -3,31 +3,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::InvalidState;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::event::{EventHelpers, EventCancelable, EventBubbles};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::blob::{Blob, BlobHelpers};
 use dom::domexception::{DOMException, DOMErrorName};
+use dom::event::{EventHelpers, EventCancelable, EventBubbles};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
-use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
+use encoding::types::{EncodingRef, DecoderTrap};
 use hyper::mime::{Mime, Attr};
-use std::sync::mpsc;
+use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 use std::cell::{Cell, RefCell};
+use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
 use util::task::spawn_named;
-use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
 pub enum FileReaderFunction {

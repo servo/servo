@@ -12,9 +12,9 @@ use file_loader;
 use http_loader;
 use mime_classifier::MIMEClassifier;
 
+use net_traits::ProgressMsg::Done;
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
-use net_traits::ProgressMsg::Done;
 use url::Url;
 use util::opts;
 use util::task::spawn_named;

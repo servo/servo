@@ -10,12 +10,12 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
-use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
@@ -37,18 +37,18 @@ use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 use hyper::header::Headers;
 use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
-use hyper::mime::{self, Mime};
 use hyper::method::Method;
+use hyper::mime::{self, Mime};
 
-use js::jsapi::{JS_ParseJSON, JSContext, RootedValue};
 use js::jsapi::JS_ClearPendingException;
+use js::jsapi::{JS_ParseJSON, JSContext, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net_traits::ControlMsg::Load;
-use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
-use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
 use cors::CORSResponse;
+use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
+use net_traits::ControlMsg::Load;
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 use util::task::spawn_named;
@@ -59,8 +59,8 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 use std::default::Default;
-use std::sync::{Mutex, Arc};
 use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::sync::{Mutex, Arc};
 use std::thread::sleep_ms;
 use time;
 use url::{Url, UrlParser};
@@ -1052,10 +1052,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
     }
     fn filter_response_headers(self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
-        use std::fmt;
-        use hyper::header::{Header, HeaderFormat};
-        use hyper::header::SetCookie;
         use hyper::error::Result;
+        use hyper::header::SetCookie;
+        use hyper::header::{Header, HeaderFormat};
+        use std::fmt;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
         #[derive(Clone, Debug, HeapSizeOf)]

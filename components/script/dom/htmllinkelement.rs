@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::Parser as CssParser;
 use document_loader::LoadType;
-use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLLinkElementDerived};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLLinkElementDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
+use dom::element::ElementTypeId;
 use dom::element::{AttributeHandlers, Element};
 use dom::event::{EventBubbles, EventCancelable, Event, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -28,15 +29,14 @@ use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use script_traits::StylesheetLoadResponder;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use style::media_queries::parse_media_query_list;
-use cssparser::Parser as CssParser;
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
-use url::UrlParser;
 use string_cache::Atom;
+use url::UrlParser;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

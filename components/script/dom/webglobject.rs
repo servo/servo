@@ -5,8 +5,8 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::codegen::Bindings::WebGLObjectBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::js::Root;
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

@@ -6,8 +6,8 @@ use url::Url;
 
 use selectors::Element;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{SelectorMap, Rule};
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
+use selectors::matching::{SelectorMap, Rule};
 use selectors::parser::PseudoElement;
 use smallvec::VecLike;
 use std::process;

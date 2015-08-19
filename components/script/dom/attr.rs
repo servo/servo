@@ -10,8 +10,8 @@ use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference, LayoutJS};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
-use dom::window::Window;
 use dom::virtualmethods::vtable_for;
+use dom::window::Window;
 
 use devtools_traits::AttrInfo;
 use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};

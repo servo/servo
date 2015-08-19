@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
-use dom::bindings::error::{ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::error::Error::{Syntax, Network, JSFailed};
+use dom::bindings::error::{ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
@@ -14,17 +14,17 @@ use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScopeHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
-use dom::window::{base64_atob, base64_btoa};
 use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use profile_traits::mem;
 use net_traits::{load_whole_resource, ResourceTask};
+use profile_traits::mem;
 use util::str::DOMString;
 
 use ipc_channel::ipc::IpcSender;
@@ -32,8 +32,8 @@ use js::jsapi::{JSContext, HandleValue, JSAutoRequest};
 use js::rust::Runtime;
 use url::{Url, UrlParser};
 
-use std::default::Default;
 use std::cell::Cell;
+use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 

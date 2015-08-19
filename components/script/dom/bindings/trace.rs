@@ -34,9 +34,9 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
 
+use canvas_traits::WebGLError;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
-use canvas_traits::WebGLError;
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
 use euclid::matrix2d::Matrix2D;
@@ -46,27 +46,26 @@ use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
+use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
+use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
+use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
+use profile_traits::mem::ProfilerChan;
 use script_traits::UntrustedNodeAddress;
+use selectors::parser::PseudoElement;
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
-use msg::constellation_msg::ConstellationChan;
-use net_traits::image::base::Image;
-use profile_traits::mem::ProfilerChan;
-use util::str::{LengthOrPercentageOrAuto};
-use selectors::parser::PseudoElement;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell, RefCell};
-use std::collections::{HashMap, HashSet};
 use std::collections::hash_state::HashState;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
@@ -78,6 +77,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
 use url::Url;
+use util::str::{LengthOrPercentageOrAuto};
 
 
 /// A trait to allow tracing (only) DOM objects.
@@ -375,8 +375,8 @@ pub struct RootedTraceableSet {
 
 #[allow(missing_docs)]  // FIXME
 mod dummy {  // Attributes don’t apply through the macro.
-    use std::rc::Rc;
     use std::cell::RefCell;
+    use std::rc::Rc;
     use super::RootedTraceableSet;
     /// TLV Holds a set of JSTraceables that need to be rooted
     thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =

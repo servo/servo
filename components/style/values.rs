@@ -859,8 +859,8 @@ pub mod specified {
 
 pub mod computed {
     pub use super::specified::{Angle, BorderStyle, Time};
-    use super::{specified, CSSFloat};
     use super::specified::AngleOrCorner;
+    use super::{specified, CSSFloat};
     pub use cssparser::Color as CSSColor;
     use euclid::size::Size2D;
     use properties::longhands;

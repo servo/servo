@@ -62,8 +62,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
 use std::net::{TcpListener, TcpStream, Shutdown};
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
+use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 
 mod actor;

@@ -11,8 +11,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLBut
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::ActivationElementHelpers;
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -24,8 +24,8 @@ use dom::virtualmethods::VirtualMethods;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use util::str::DOMString;
 use std::cell::Cell;
+use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]

@@ -9,8 +9,8 @@
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 
-use std::sync::mpsc::Sender;
 use std::marker::Send;
+use std::sync::mpsc::Sender;
 
 /// A trait to abstract away the various kinds of message senders we use.
 pub trait OpaqueSender<T> {

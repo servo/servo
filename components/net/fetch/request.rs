@@ -4,8 +4,8 @@
 
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use fetch::response::{Response, ResponseType};
-use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
 use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
+use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
 use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
 use hyper::header::{QualityItem, qitem, q};
 use hyper::method::Method;

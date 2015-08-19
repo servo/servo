@@ -13,13 +13,13 @@
 //! be ignored in this calculation. Providing a reason is compulsory.
 
 
-use syntax::ext::base::{Annotatable, ExtCtxt};
-use syntax::codemap::Span;
-use syntax::ptr::P;
 use syntax::ast::*;
 use syntax::attr::AttrMetaMethods;
+use syntax::codemap::Span;
+use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::ext::build::AstBuilder;
 use syntax::ext::deriving::generic::*;
+use syntax::ptr::P;
 
 pub fn expand_heap_size(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
                         item: &Annotatable, push: &mut FnMut(Annotatable)) {

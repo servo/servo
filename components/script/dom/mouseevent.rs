@@ -14,10 +14,10 @@ use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEvent, UIEventTypeId};
 use dom::window::Window;
-use util::opts;
-use util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
+use util::opts;
+use util::str::DOMString;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

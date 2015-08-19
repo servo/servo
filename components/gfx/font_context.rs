@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{Font, FontGroup};
 use font::SpecifiedFontStyle;
+use font::{Font, FontGroup};
 use platform::font_context::FontContextHandle;
 use style::computed_values::{font_style, font_variant};
 
