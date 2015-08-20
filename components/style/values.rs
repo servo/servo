@@ -370,6 +370,31 @@ pub mod specified {
         }
     }
 
+    pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
+        match try!(input.next()) {
+            Token::Number(ref value) => Ok(value.value),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let ast = try!(input.parse_nested_block(Calc::parse_sum));
+
+                let mut result = None;
+
+                for ref node in ast.products {
+                    match try!(Calc::simplify_product(node)) {
+                        SimplifiedValueNode::Number(val) =>
+                            result = Some(result.unwrap_or(0.) + val),
+                        _ => return Err(()),
+                    }
+                }
+
+                match result {
+                    Some(result) => Ok(result),
+                    _ => Err(())
+                }
+            }
+            _ => Err(())
+        }
+    }
+
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct Calc {
         pub absolute: Option<Au>,
@@ -437,13 +462,13 @@ pub mod specified {
         }
 
         fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
-            match input.next() {
-                Ok(Token::Number(ref value)) => Ok(CalcValueNode::Number(value.value)),
-                Ok(Token::Dimension(ref value, ref unit)) =>
+            match try!(input.next()) {
+                Token::Number(ref value) => Ok(CalcValueNode::Number(value.value)),
+                Token::Dimension(ref value, ref unit) =>
                     Length::parse_dimension(value.value, unit).map(CalcValueNode::Length),
-                Ok(Token::Percentage(ref value)) =>
+                Token::Percentage(ref value) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
-                Ok(Token::ParenthesisBlock) => {
+                Token::ParenthesisBlock => {
                     let result = try!(input.parse_nested_block(Calc::parse_sum));
                     Ok(CalcValueNode::Sum(box result))
                 },
