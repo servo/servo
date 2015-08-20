@@ -176,28 +176,25 @@ impl HTMLCollection {
 
 impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
-    #[allow(unrooted_must_root)]
     fn Length(self) -> u32 {
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    #[allow(unrooted_must_root)]
     fn Item(self, index: u32) -> Option<Root<Element>> {
         let index = index as usize;
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .nth(index)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    #[allow(unrooted_must_root)]
     fn NamedItem(self, key: DOMString) -> Option<Root<Element>> {
         // Step 1.
         if key.is_empty() {
@@ -205,8 +202,8 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
 
         // Step 2.
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .find(|elem| {
@@ -234,8 +231,8 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         let mut result = vec![];
 
         // Step 2
-        let ref filter = self.collection.1;
         let root = self.collection.0.root();
+        let ref filter = self.collection.1;
         let elems = HTMLCollection::traverse(root.r()).filter(|element| filter.filter(element.r(), root.r()));
         for elem in elems {
             // Step 2.1
