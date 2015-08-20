@@ -223,7 +223,7 @@ pub struct SharedLayoutData {
 #[allow(raw_pointer_derive)]
 #[derive(HeapSizeOf)]
 pub struct LayoutData {
-    _shared_data: SharedLayoutData,
+    shared_data: SharedLayoutData,
     #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but the type lives in layout"]
     _data: NonZero<*const ()>,
 }
@@ -966,7 +966,7 @@ impl Node {
         let layout_data = layout_data.as_ref()
             .expect("Layout data not yet computed.");
 
-        let style = layout_data._shared_data.style.as_ref().unwrap();
+        let style = layout_data.shared_data.style.as_ref().unwrap();
         let style = style.deref();
 
         query(style)
