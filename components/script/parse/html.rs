@@ -8,10 +8,10 @@ use document_loader::DocumentLoader;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
 use dom::characterdata::{CharacterDataHelpers, CharacterDataTypeId};
@@ -32,18 +32,18 @@ use parse::Parser;
 
 use encoding::types::Encoding;
 
-use msg::constellation_msg::PipelineId;
-use util::str::DOMString;
-use std::borrow::Cow;
-use std::io::{self, Write};
-use url::Url;
 use html5ever::Attribute;
-use html5ever::serialize::{Serializable, Serializer, AttrRef};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
+use html5ever::serialize::{Serializable, Serializer, AttrRef};
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
+use msg::constellation_msg::PipelineId;
+use std::borrow::Cow;
+use std::io::{self, Write};
 use string_cache::QualName;
 use tendril::StrTendril;
+use url::Url;
+use util::str::DOMString;
 
 trait SinkHelpers {
     fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node>;

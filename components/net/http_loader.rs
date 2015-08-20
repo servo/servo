@@ -2,41 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
+use hsts::{HSTSList, secure_url};
+use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
-use mime_classifier::MIMEClassifier;
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
-use hsts::{HSTSList, secure_url};
 
-use ipc_channel::ipc::{self, IpcSender};
-use log;
-use std::collections::HashSet;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::client::Request;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::header::StrictTransportSecurity;
 use hyper::Error as HttpError;
+use hyper::client::Request;
+use hyper::header::StrictTransportSecurity;
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::{HttpConnector, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
-use std::error::Error;
+use ipc_channel::ipc::{self, IpcSender};
+use log;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
+use std::collections::HashSet;
+use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
-use util::task::spawn_named;
-use util::resource_files::resources_dir_path;
-use util::opts;
 use url::{Url, UrlParser};
+use util::opts;
+use util::resource_files::resources_dir_path;
+use util::task::spawn_named;
 
-use uuid;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
+use uuid;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,

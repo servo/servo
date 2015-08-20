@@ -27,10 +27,10 @@ extern crate hyper;
 extern crate util;
 extern crate time;
 
-use rustc_serialize::{Decodable, Decoder};
 use msg::constellation_msg::{PipelineId, WorkerId};
-use util::str::DOMString;
+use rustc_serialize::{Decodable, Decoder};
 use url::Url;
+use util::str::DOMString;
 
 use hyper::header::Headers;
 use hyper::http::RawStatus;

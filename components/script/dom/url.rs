@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 
 use url::{Host, Url, UrlParser};

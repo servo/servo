@@ -8,8 +8,8 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::node::window_from_node;
 use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
+use dom::node::window_from_node;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -67,5 +67,10 @@ impl<'a> DOMStringMapMethods for &'a DOMStringMap {
             }
         }
     }
-}
 
+    // https://html.spec.whatwg.org/multipage/#domstringmap
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
+        vec![]
+    }
+}

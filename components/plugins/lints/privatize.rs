@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, ast_util};
+use rustc::lint::{Context, LintPass, LintArray};
 use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
-use rustc::lint::{Context, LintPass, LintArray};
+use syntax::{ast, ast_util};
 
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions");

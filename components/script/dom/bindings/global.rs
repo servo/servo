@@ -7,14 +7,14 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::DocumentHelpers;
-use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window::{self, WindowHelpers, ScriptHelpers};
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
@@ -22,9 +22,9 @@ use net_traits::ResourceTask;
 use profile_traits::mem;
 
 use ipc_channel::ipc::IpcSender;
-use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
+use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use url::Url;
 
 use util::mem::HeapSizeOf;

@@ -10,8 +10,8 @@
 
 #![allow(unsafe_code)]
 
-use flow::{Flow, BaseFlow};
 use flow;
+use flow::{Flow, BaseFlow};
 
 use std::mem;
 use std::ops::{Deref, DerefMut};

@@ -176,28 +176,25 @@ impl HTMLCollection {
 
 impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
-    #[allow(unrooted_must_root)]
     fn Length(self) -> u32 {
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    #[allow(unrooted_must_root)]
     fn Item(self, index: u32) -> Option<Root<Element>> {
         let index = index as usize;
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .nth(index)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    #[allow(unrooted_must_root)]
     fn NamedItem(self, key: DOMString) -> Option<Root<Element>> {
         // Step 1.
         if key.is_empty() {
@@ -205,8 +202,8 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
 
         // Step 2.
-        let Collection(ref root, ref filter) = self.collection;
-        let root = root.root();
+        let ref root = self.collection.0.root();
+        let ref filter = self.collection.1;
         HTMLCollection::traverse(root.r())
             .filter(|element| filter.filter(element.r(), root.r()))
             .find(|elem| {
@@ -227,5 +224,30 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         *found = maybe_elem.is_some();
         maybe_elem
     }
-}
 
+    // https://dom.spec.whatwg.org/#interface-htmlcollection
+    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+        // Step 1
+        let mut result = vec![];
+
+        // Step 2
+        let root = self.collection.0.root();
+        let ref filter = self.collection.1;
+        let elems = HTMLCollection::traverse(root.r()).filter(|element| filter.filter(element.r(), root.r()));
+        for elem in elems {
+            // Step 2.1
+            let id_attr = elem.get_string_attribute(&atom!("id"));
+            if !id_attr.is_empty() && !result.contains(&id_attr) {
+                result.push(id_attr)
+            }
+            // Step 2.2
+            let name_attr = elem.get_string_attribute(&atom!("name"));
+            if !name_attr.is_empty() && !result.contains(&name_attr) && *elem.namespace() == ns!(HTML) {
+                result.push(name_attr)
+            }
+        }
+
+        // Step 3
+        result
+    }
+}

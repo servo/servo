@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use euclid::size::Size2D;
 use layers::platform::surface::{NativeDisplay, NativeSurface};
+use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::hash::{Hash, Hasher};
 
 /// This is a struct used to store surfaces when they are not in use.

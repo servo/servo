@@ -20,10 +20,10 @@ use text;
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use euclid::{Point2D, Rect, Size2D};
+use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
@@ -44,11 +44,11 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text::TextRunScanner;
 use url::Url;
+use util;
 use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
 use util::range::*;
 use util::str::{is_whitespace, slice_chars};
-use util;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the

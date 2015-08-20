@@ -2,28 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::{RGBA, Color};
 use properties::ComputedValues;
-use properties::longhands::transition_property::computed_value::TransitionProperty;
-use properties::longhands::transition_timing_function::computed_value::{StartEnd};
-use properties::longhands::transition_timing_function::computed_value::{TransitionTimingFunction};
-use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::longhands::visibility::computed_value::T as Visibility;
-use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
-use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
-use properties::longhands::line_height::computed_value::T as LineHeight;
-use properties::longhands::font_weight::computed_value::T as FontWeight;
-use properties::longhands::clip::computed_value::ClipRect;
-use properties::longhands::text_shadow::computed_value::TextShadow;
-use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
-use properties::longhands::transition_property;
+use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
+use properties::longhands::clip::computed_value::ClipRect;
+use properties::longhands::font_weight::computed_value::T as FontWeight;
+use properties::longhands::line_height::computed_value::T as LineHeight;
+use properties::longhands::text_shadow::computed_value::T as TextShadowList;
+use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
+use properties::longhands::transition_property;
+use properties::longhands::transition_property::computed_value::TransitionProperty;
+use properties::longhands::transition_timing_function::computed_value::{StartEnd};
+use properties::longhands::transition_timing_function::computed_value::{TransitionTimingFunction};
+use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
+use properties::longhands::visibility::computed_value::T as Visibility;
+use properties::longhands::z_index::computed_value::T as ZIndex;
+use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{LengthOrPercentage, Length, Time};
-use values::CSSFloat;
-use cssparser::{RGBA, Color};
 
 use euclid::point::Point2D;
 use std::cmp::Ordering;

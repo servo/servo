@@ -26,12 +26,8 @@ impl XMLHttpRequestEventTarget {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::XMLHttpRequestEventTarget(type_id))
         }
     }
-
-    #[inline]
-    pub fn eventtarget(&self) -> &EventTarget {
-        &self.eventtarget
-    }
 }
+
 impl XMLHttpRequestEventTargetDerived for EventTarget {
     fn is_xmlhttprequesteventtarget(&self) -> bool {
         match *self.type_id() {

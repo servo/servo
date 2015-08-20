@@ -11,8 +11,8 @@ use euclid::rect::Rect;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
-use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
@@ -20,8 +20,8 @@ use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, TrustedN
 use sequential;
 
 use std::sync::{Arc, Mutex};
-use util::geometry::Au;
 use util::cursor::Cursor;
+use util::geometry::Au;
 use util::logical_geometry::WritingMode;
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);

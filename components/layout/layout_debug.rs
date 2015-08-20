@@ -7,14 +7,14 @@
 
 #![macro_use]
 
-use flow_ref::FlowRef;
 use flow;
+use flow_ref::FlowRef;
 use rustc_serialize::json;
 
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::io::Write;
 use std::fs::File;
+use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));

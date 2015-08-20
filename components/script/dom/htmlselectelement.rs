@@ -12,15 +12,15 @@ use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use util::str::DOMString;
 use string_cache::Atom;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 

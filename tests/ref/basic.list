@@ -137,6 +137,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
 == iframe/size_attributes.html iframe/size_attributes_ref.html
 experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_ref.html
+== iframe/stacking_context.html iframe/stacking_context_ref.html
 
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
 == image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
@@ -190,6 +191,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == jumpiness_a.html jumpiness_ref.html
 == last_child_pseudo_a.html last_child_pseudo_b.html
 == last_of_type_pseudo_a.html last_of_type_pseudo_b.html
+== layerization_z_order_a.html layerization_z_order_ref.html
 == legacy_cellspacing_attribute_a.html border_spacing_ref.html
 == legacy_input_size_attribute_override_a.html legacy_input_size_attribute_override_ref.html
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html

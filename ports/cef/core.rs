@@ -7,11 +7,11 @@ use interfaces::cef_app_t;
 use types::{cef_main_args_t, cef_settings_t};
 use window::init_window;
 
+use browser;
 use libc::{c_char, c_int, c_void};
-use util::opts;
 use std::ffi;
 use std::str;
-use browser;
+use util::opts;
 
 const MAX_RENDERING_THREADS: usize = 128;
 

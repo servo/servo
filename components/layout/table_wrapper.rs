@@ -25,8 +25,6 @@ use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
 
 use euclid::{Point2D, Rect};
-use util::geometry::Au;
-use util::logical_geometry::LogicalSize;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -35,6 +33,8 @@ use style::computed_values::{border_collapse, table_layout};
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use util::geometry::Au;
+use util::logical_geometry::LogicalSize;
 
 #[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum TableLayout {

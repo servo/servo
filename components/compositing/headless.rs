@@ -5,8 +5,8 @@
 use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
-use euclid::{Size2D, Point2D};
 use euclid::scale_factor::ScaleFactor;
+use euclid::{Size2D, Point2D};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;

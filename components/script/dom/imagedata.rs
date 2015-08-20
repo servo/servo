@@ -11,10 +11,10 @@ use euclid::size::Size2D;
 use js::jsapi::{JSContext, JSObject, Heap};
 use js::jsapi::{JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData};
 use libc::uint8_t;
-use std::vec::Vec;
-use std::slice;
-use std::ptr;
 use std::default::Default;
+use std::ptr;
+use std::slice;
+use std::vec::Vec;
 
 #[dom_struct]
 #[allow(raw_pointer_derive)]

@@ -7,15 +7,15 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use util::str::{self, DOMString};
 use std::cell::Cell;
+use util::str::{self, DOMString};
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

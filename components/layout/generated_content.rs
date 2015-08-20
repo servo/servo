@@ -9,8 +9,8 @@
 //! as possible.
 
 use context::LayoutContext;
-use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use flow::{InorderFlowTraversal};
+use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;

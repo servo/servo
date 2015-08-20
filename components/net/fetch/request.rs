@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use url::Url;
-use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
-use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
-use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
-use hyper::header::{QualityItem, qitem, q};
-use hyper::status::StatusCode;
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use fetch::response::{Response, ResponseType};
+use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
+use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
+use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
+use hyper::header::{QualityItem, qitem, q};
+use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
+use url::Url;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]

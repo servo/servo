@@ -8,15 +8,15 @@ use windowing::{MouseWindowEvent, WindowMethods};
 use azure::azure_hl;
 use euclid::length::Length;
 use euclid::point::{Point2D, TypedPoint2D};
-use euclid::size::TypedSize2D;
 use euclid::rect::Rect;
+use euclid::size::TypedSize2D;
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
-use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
-use script_traits::ConstellationControlMsg;
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use msg::constellation_msg::PipelineId;
+use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
 
 #[derive(Debug)]

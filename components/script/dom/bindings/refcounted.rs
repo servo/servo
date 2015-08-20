@@ -23,25 +23,25 @@
 //! is removed.
 
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, Reflectable};
 use dom::bindings::trace::trace_reflector;
+use dom::bindings::utils::{Reflector, Reflectable};
 use script_task::{ScriptChan, CommonScriptMsg};
 
 use js::jsapi::{JSContext, JSTracer};
 
+use core::nonzero::NonZero;
 use libc;
 use std::cell::RefCell;
-use std::collections::hash_map::HashMap;
 use std::collections::hash_map::Entry::{Vacant, Occupied};
+use std::collections::hash_map::HashMap;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use core::nonzero::NonZero;
 
 
 #[allow(missing_docs)]  // FIXME
 mod dummy {  // Attributes don’t apply through the macro.
-    use std::rc::Rc;
     use std::cell::RefCell;
+    use std::rc::Rc;
     use super::LiveDOMReferences;
     thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> =
             Rc::new(RefCell::new(None)));

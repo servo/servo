@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font::FontHandleMethods;
-use platform::font_context::FontContextHandle;
 use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use string_cache::Atom;
 

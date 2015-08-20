@@ -14,10 +14,10 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 use encoding::Encoding;
-use encoding::types::{EncodingRef, DecoderTrap};
 use encoding::label::encoding_from_whatwg_label;
-use js::jsapi::{JSContext, JSObject};
+use encoding::types::{EncodingRef, DecoderTrap};
 use js::jsapi::JS_GetObjectAsArrayBufferView;
+use js::jsapi::{JSContext, JSObject};
 
 use std::borrow::ToOwned;
 use std::ptr;

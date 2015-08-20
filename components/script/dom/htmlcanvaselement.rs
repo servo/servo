@@ -6,28 +6,28 @@ use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, HeapGCValue, Root};
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
 
-use util::str::{DOMString, parse_unsigned_integer};
-use js::jsapi::{JSContext, HandleValue};
-use offscreen_gl_context::GLContextAttributes;
 use canvas_traits::CanvasMsg;
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::{JSContext, HandleValue};
+use offscreen_gl_context::GLContextAttributes;
+use util::str::{DOMString, parse_unsigned_integer};
 
 use euclid::size::Size2D;
 

@@ -4,12 +4,12 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
-use gfx_traits::color;
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use display_list::{TextDisplayItem};
 use filters;
 use font_context::FontContext;
+use gfx_traits::color;
 use text::TextRun;
 use text::glyph::CharIndex;
 

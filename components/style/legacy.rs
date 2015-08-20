@@ -7,11 +7,11 @@
 
 use std::sync::Arc;
 
-use selectors::Element;
-use selectors::matching::DeclarationBlock;
 use node::TElementAttributes;
 use properties::PropertyDeclaration;
 use selector_matching::Stylist;
+use selectors::Element;
+use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
 
 

@@ -6,13 +6,13 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
+use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextCast};
-use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::HierarchyRequest;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use rand;
+use rand::Rng;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
-use rand::Rng;
-use std::hash::{Hash, Hasher, SipHasher};
-use rand;
-use std::slice::Iter;
 use std::default::Default;
+use std::hash::{Hash, Hasher, SipHasher};
+use std::slice::Iter;
 
 
 pub struct HashCache<K, V> {

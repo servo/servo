@@ -6,15 +6,14 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::{Size2D, Point2D};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use msg::constellation_msg;
-use msg::constellation_msg::Key;
+use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};

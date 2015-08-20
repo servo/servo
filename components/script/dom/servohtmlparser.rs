@@ -9,9 +9,9 @@ use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::trace::JSTraceable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{window_from_node, Node};
@@ -25,15 +25,15 @@ use net_traits::{Metadata, AsyncResponseListener};
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
-use std::cell::{Cell, RefCell};
-use std::default::Default;
-use url::Url;
-use js::jsapi::JSTracer;
 use html5ever::tokenizer;
 use html5ever::tree_builder;
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
+use js::jsapi::JSTracer;
+use std::cell::{Cell, RefCell};
+use std::default::Default;
+use url::Url;
 
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]

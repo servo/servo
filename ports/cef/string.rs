@@ -4,16 +4,16 @@
 
 
 use eutil::slice_to_str;
-use libc::{self, size_t, c_int, c_ushort, c_void};
 use libc::types::os::arch::c95::wchar_t;
+use libc::{self, size_t, c_int, c_ushort, c_void};
 use std::char;
 use std::cmp::Ordering;
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::string;
-use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 use types::{cef_string_userfree_utf16_t, cef_string_userfree_utf8_t, cef_string_userfree_wide_t};
+use types::{cef_string_utf16_t, cef_string_utf8_t, cef_string_wide_t};
 
 //cef_string
 

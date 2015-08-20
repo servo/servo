@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, Fallible};
 use dom::bindings::error::Error::{InvalidAccess, Syntax};
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -28,21 +28,21 @@ use net_traits::hosts::replace_hosts;
 use util::str::DOMString;
 use util::task::spawn_named;
 
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
-use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
-use js::jsval::UndefinedValue;
 use hyper::header::Host;
+use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
+use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsval::UndefinedValue;
 use libc::{uint8_t, uint32_t};
-use websocket::Message;
-use websocket::ws::sender::Sender as Sender_Object;
-use websocket::client::sender::Sender;
-use websocket::client::receiver::Receiver;
-use websocket::stream::WebSocketStream;
-use websocket::client::request::Url;
 use websocket::Client;
+use websocket::Message;
+use websocket::client::receiver::Receiver;
+use websocket::client::request::Url;
+use websocket::client::sender::Sender;
 use websocket::header::Origin;
 use websocket::result::WebSocketResult;
+use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
+use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
 
 use std::borrow::ToOwned;

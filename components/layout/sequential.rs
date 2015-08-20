@@ -5,16 +5,16 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
+use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow_ref::FlowRef;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use traversal::{PreorderDomTraversal, PostorderDomTraversal};
 use traversal::PostorderNodeMutTraversal;
-use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
+use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
+use traversal::{PreorderDomTraversal, PostorderDomTraversal};
 use wrapper::LayoutNode;
 
 use euclid::point::Point2D;

@@ -6,11 +6,11 @@
 
 use display_list::{DisplayItem, DisplayList, StackingContext};
 
-use std::collections::linked_list::LinkedList;
 use euclid::rect::Rect;
 use euclid::{Matrix2D, Matrix4};
-use util::geometry::{self, Au};
+use std::collections::linked_list::LinkedList;
 use std::sync::Arc;
+use util::geometry::{self, Au};
 
 /// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {

@@ -17,11 +17,11 @@ use block::BlockFlow;
 use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use floats::FloatKind;
-use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
+use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
-use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
+use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::{WhitespaceStrippingResult};
@@ -1729,8 +1729,8 @@ pub fn strip_ignorable_whitespace_from_end(this: &mut LinkedList<Fragment>) {
 /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
 /// to inject before and after the text content of the element.
 fn bidi_control_chars(style: &Arc<ComputedValues>) -> Option<(&'static str, &'static str)> {
-    use style::computed_values::unicode_bidi::T::*;
     use style::computed_values::direction::T::*;
+    use style::computed_values::unicode_bidi::T::*;
 
     let unicode_bidi = style.get_text().unicode_bidi;
     let direction = style.get_inheritedbox().direction;

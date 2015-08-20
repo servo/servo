@@ -2,24 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::Parser as CssParser;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::{ElementTypeId, AttributeHandlers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
 use dom::node::window_from_node;
+use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
-use util::str::DOMString;
-use style::stylesheets::{Origin, Stylesheet};
 use style::media_queries::parse_media_query_list;
-use cssparser::Parser as CssParser;
+use style::stylesheets::{Origin, Stylesheet};
+use util::str::DOMString;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

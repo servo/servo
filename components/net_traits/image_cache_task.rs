@@ -4,8 +4,8 @@
 
 use image::base::Image;
 use ipc_channel::ipc::{self, IpcSender};
-use url::Url;
 use std::sync::Arc;
+use url::Url;
 use util::mem::HeapSizeOf;
 
 /// This is optionally passed to the image cache when requesting

@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure::{AzFloat, AzColor};
-use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
+use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
 use canvas_traits::*;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use gfx_traits::color;
+use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
-use gfx_traits::color;
-use ipc_channel::ipc::IpcSharedMemory;
 use num::ToPrimitive;
 use util::opts;
 use util::task::spawn_named;

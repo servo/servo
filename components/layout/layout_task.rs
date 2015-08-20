@@ -29,17 +29,17 @@ use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
-use fnv::FnvHasher;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
-use gfx_traits::color;
-use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
+use fnv::FnvHasher;
 use gfx::display_list::StackingContext;
+use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
+use gfx_traits::color;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutTaskFactory;
@@ -47,19 +47,19 @@ use log;
 use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
-use profile_traits::time::{self, ProfilerMetadata, profile};
-use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
+use net_traits::{load_bytes_iter, PendingAsyncLoad};
+use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
+use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use profile_traits::time::{self, ProfilerMetadata, profile};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use script_traits::StylesheetLoadResponder;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
 use serde_json;
 use std::borrow::ToOwned;
@@ -73,8 +73,8 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
 use style::media_queries::{MediaType, MediaQueryList, Device};
-use style::properties::style_structs;
 use style::properties::longhands::{display, position};
+use style::properties::style_structs;
 use style::selector_matching::Stylist;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use url::Url;
@@ -1276,14 +1276,23 @@ impl LayoutTask {
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        {
-            // Perform an abbreviated style recalc that operates without access to the DOM.
-            let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-            let animations = &*rw_data.running_animations;
-            profile(time::ProfilerCategory::LayoutStyleRecalc,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || animation::recalc_style_for_animations(root_flow.deref_mut(), animations));
+        match rw_data.root_flow.as_ref() {
+            None => {
+                // We haven't performed a single layout yet! Do nothing.
+                return
+            }
+            Some(ref root_flow) => {
+                // Perform an abbreviated style recalc that operates without access to the DOM.
+                let mut root_flow = (*root_flow).clone();
+                let animations = &*rw_data.running_animations;
+                profile(time::ProfilerCategory::LayoutStyleRecalc,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                            animation::recalc_style_for_animations(root_flow.deref_mut(),
+                                                                   animations)
+                        });
+            }
         }
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,

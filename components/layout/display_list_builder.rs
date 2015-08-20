@@ -22,9 +22,8 @@ use model::{self, MaybeAuto, ToGfxMatrix};
 use table_cell::CollapsedBordersForCell;
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
-use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use euclid::Matrix4;
-use gfx_traits::color;
+use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
@@ -33,17 +32,18 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
+use gfx_traits::color;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::compositor_msg::{ScrollPolicy, LayerId};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image_cache_task::UsePlaceholder;
 use net_traits::image::base::{Image, PixelFormat};
+use net_traits::image_cache_task::UsePlaceholder;
 use std::cmp;
 use std::default::Default;
+use std::f32;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
-use std::f32;
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size};
@@ -1011,9 +1011,15 @@ impl FragmentDisplayListBuilding for Fragment {
         // because layout for the iframe only needs to know size, and origin is only relevant if
         // the iframe is actually going to be displayed.
         if let SpecificFragmentInfo::Iframe(ref iframe_fragment) = self.specific {
-            self.finalize_position_and_size_of_iframe(&**iframe_fragment,
-                                                      stacking_relative_border_box.origin,
-                                                      layout_context)
+            let stacking_relative_border_box_in_parent_coordinate_system =
+                self.stacking_relative_border_box(stacking_relative_flow_origin,
+                                                  relative_containing_block_size,
+                                                  relative_containing_block_mode,
+                                                  CoordinateSystem::Parent);
+            self.finalize_position_and_size_of_iframe(
+                &**iframe_fragment,
+                stacking_relative_border_box_in_parent_coordinate_system.origin,
+                layout_context)
         }
     }
 

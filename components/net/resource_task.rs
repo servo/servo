@@ -5,19 +5,19 @@
 //! A task that takes a URL and streams back the binary data.
 
 use about_loader;
+use cookie;
+use cookie_storage::CookieStorage;
 use data_loader;
 use file_loader;
 use http_loader;
-use cookie_storage::CookieStorage;
-use cookie;
 use mime_classifier::MIMEClassifier;
 
+use net_traits::ProgressMsg::Done;
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
-use net_traits::ProgressMsg::Done;
+use url::Url;
 use util::opts;
 use util::task::spawn_named;
-use url::Url;
 
 use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 

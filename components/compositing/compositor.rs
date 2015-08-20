@@ -2,31 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use surface_map::SurfaceMap;
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver, Msg};
 use constellation::SendableFrameTree;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
+use surface_map::SurfaceMap;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-use euclid::{Size2D, Point2D, Rect, Matrix4};
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::color;
+use euclid::{Size2D, Point2D, Rect, Matrix4};
 use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
-use gleam::gl::types::{GLint, GLsizei};
+use gfx_traits::color;
 use gleam::gl;
+use gleam::gl::types::{GLint, GLsizei};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
-use layers::rendergl::RenderContext;
 use layers::rendergl;
+use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
