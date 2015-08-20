@@ -28,7 +28,7 @@ use std::iter::repeat;
 use util::bezier::Bezier;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{Calc, Length, LengthOrPercentage, Time};
+use values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage, Time};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
@@ -461,10 +461,10 @@ impl Interpolate for VerticalAlign {
     fn interpolate(&self, other: &VerticalAlign, time: f64)
                    -> Option<VerticalAlign> {
         match (*self, *other) {
-            (VerticalAlign::Length(ref this),
-             VerticalAlign::Length(ref other)) => {
+            (VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref this)),
+             VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref other))) => {
                 this.interpolate(other, time).and_then(|value| {
-                    Some(VerticalAlign::Length(value))
+                    Some(VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(value)))
                 })
             }
             (_, _) => None,
@@ -513,11 +513,11 @@ impl Interpolate for Color {
     }
 }
 
-impl Interpolate for Calc {
+impl Interpolate for CalcLengthOrPercentage {
     #[inline]
-    fn interpolate(&self, other: &Calc, time: f64)
-                   -> Option<Calc> {
-        Some(Calc {
+    fn interpolate(&self, other: &CalcLengthOrPercentage, time: f64)
+                   -> Option<CalcLengthOrPercentage> {
+        Some(CalcLengthOrPercentage {
             length: self.length().interpolate(&other.length(), time),
             percentage: self.percentage().interpolate(&other.percentage(), time),
         })
@@ -542,8 +542,8 @@ impl Interpolate for LengthOrPercentage {
                 })
             }
             (this, other) => {
-                let this: Calc = From::from(this);
-                let other: Calc = From::from(other);
+                let this: CalcLengthOrPercentage = From::from(this);
+                let other: CalcLengthOrPercentage = From::from(other);
                 this.interpolate(&other, time).and_then(|value| {
                     Some(LengthOrPercentage::Calc(value))
                 })
@@ -573,8 +573,8 @@ impl Interpolate for LengthOrPercentageOrAuto {
                 Some(LengthOrPercentageOrAuto::Auto)
             }
             (this, other) => {
-                let this: Option<Calc> = From::from(this);
-                let other: Option<Calc> = From::from(other);
+                let this: Option<CalcLengthOrPercentage> = From::from(this);
+                let other: Option<CalcLengthOrPercentage> = From::from(other);
                 this.interpolate(&other, time).unwrap_or(None).and_then(|value| {
                     Some(LengthOrPercentageOrAuto::Calc(value))
                 })

@@ -80,7 +80,7 @@ use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
+use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
 use url::UrlParser;
 use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -347,7 +347,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             hints.push(from_declaration(
                 PropertyDeclaration::FontSize(
                     DeclaredValue::Value(
-                        font_size::SpecifiedValue(font_size)))))
+                        font_size::SpecifiedValue(
+                            LengthOrPercentage::Length(font_size))))))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
