@@ -11,8 +11,8 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptio
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;

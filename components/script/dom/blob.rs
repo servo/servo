@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::BlobBinding;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::InheritTypes::FileDerived;
+use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::error::Fallible;
-use dom::bindings::codegen::Bindings::BlobBinding;
-use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use std::sync::mpsc::Sender;
-use util::str::DOMString;
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cmp::{min, max};
 use std::cell::{Cell};
+use std::cmp::{min, max};
+use std::sync::mpsc::Sender;
+use util::str::DOMString;
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum BlobTypeId {

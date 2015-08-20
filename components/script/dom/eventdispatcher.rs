@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
 use dom::bindings::js::JS;
 use dom::bindings::trace::RootedVec;
-use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::event::{Event, EventPhase};
+use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 

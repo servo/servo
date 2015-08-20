@@ -2,37 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
+use dom::element::ElementTypeId;
 use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
-use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, DisabledStateHelpers, Node, NodeDamage};
 use dom::node::{NodeHelpers, NodeTypeId, document_from_node, window_from_node};
-use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
-use script_task::{Runnable, CommonScriptMsg};
 use msg::constellation_msg::ConstellationChan;
+use script_task::{Runnable, CommonScriptMsg};
+use textinput::{TextInput, Lines, KeyReaction};
 
-use util::str::DOMString;
 use string_cache::Atom;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Cell;

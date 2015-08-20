@@ -8,10 +8,10 @@ use std::mem;
 use std::net::TcpStream;
 use time::precise_time_ns;
 
-use msg::constellation_msg::PipelineId;
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::timeline::HighResolutionStamp;
 use devtools_traits::DevtoolScriptControlMsg;
+use msg::constellation_msg::PipelineId;
 
 pub struct FramerateActor {
     name: String,

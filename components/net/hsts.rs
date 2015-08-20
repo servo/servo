@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use net_traits::{IncludeSubdomains, IPV4_REGEX, IPV6_REGEX};
 use rustc_serialize::json::{decode};
 use time;
 use url::Url;
-use net_traits::{IncludeSubdomains, IPV4_REGEX, IPV6_REGEX};
 
 use std::str::{from_utf8};
 

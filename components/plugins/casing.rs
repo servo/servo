@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use syntax::ast;
+use syntax::codemap::Span;
+use syntax::ext::base;
 use syntax::ext::base::ExtCtxt;
 use syntax::ext::build::AstBuilder;
-use syntax::codemap::Span;
-use syntax::ast;
-use syntax::ext::base;
 use syntax::parse::token;
 
 pub fn expand_lower<'cx>(cx: &'cx mut ExtCtxt, sp: Span, tts: &[ast::TokenTree])

@@ -14,21 +14,21 @@ use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
-use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
-use util::geometry::Au;
-use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss};
-use fnv::FnvHasher;
+use url::Url;
+use util::geometry::Au;
+use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
+use fnv::FnvHasher;
 
-use values::specified::{Length, BorderStyle};
-use values::computed::{self, ToComputedValue};
-use selectors::matching::DeclarationBlock;
-use parser::{ParserContext, log_css_error};
-use stylesheets::Origin;
 use computed_values;
+use parser::{ParserContext, log_css_error};
+use selectors::matching::DeclarationBlock;
+use stylesheets::Origin;
+use values::computed::{self, ToComputedValue};
+use values::specified::{Length, BorderStyle};
 
 use self::property_bit_field::PropertyBitField;
 
@@ -131,9 +131,9 @@ pub mod longhands {
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, PropertyDeclaration};
+            use std::sync::Arc;
             use values::computed::ToComputedValue;
             use values::{computed, specified};
-            use std::sync::Arc;
             ${caller.body()}
             #[allow(unused_variables)]
             pub fn cascade_property(declaration: &PropertyDeclaration,
@@ -290,10 +290,10 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
-            use values::computed::Context;
-            use util::geometry::Au;
             use cssparser::ToCss;
             use std::fmt;
+            use util::geometry::Au;
+            use values::computed::Context;
 
             impl ToCss for SpecifiedValue {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -358,10 +358,10 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="outline-width">
-        use values::computed::Context;
-        use util::geometry::Au;
         use cssparser::ToCss;
         use std::fmt;
+        use util::geometry::Au;
+        use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -559,10 +559,10 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     <%self:longhand name="line-height">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
         use values::CSSFloat;
+        use values::computed::Context;
 
         #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
@@ -584,8 +584,8 @@ pub mod longhands {
         }
         /// normal | <number> | <length> | <percentage>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            use std::ascii::AsciiExt;
             use cssparser::Token;
+            use std::ascii::AsciiExt;
             match try!(input.next()) {
                 Token::Number(ref value) if value.value >= 0. => {
                     Ok(SpecifiedValue::Number(value.value))
@@ -604,9 +604,9 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
-            use values::CSSFloat;
-            use util::geometry::Au;
             use std::fmt;
+            use util::geometry::Au;
+            use values::CSSFloat;
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
                 Normal,
@@ -658,9 +658,9 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="vertical-align">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
@@ -703,9 +703,9 @@ pub mod longhands {
             })
         }
         pub mod computed_value {
-            use values::CSSFloat;
-            use util::geometry::Au;
             use std::fmt;
+            use util::geometry::Au;
+            use values::CSSFloat;
             #[allow(non_camel_case_types)]
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
@@ -1031,9 +1031,9 @@ pub mod longhands {
     """)}
 
     <%self:longhand name="list-style-image">
-        use url::Url;
         use cssparser::{ToCss, Token};
         use std::fmt;
+        use url::Url;
         use values::computed::Context;
 
         #[derive(Clone, PartialEq, Eq)]
@@ -1054,9 +1054,9 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use url::Url;
             use cssparser::{ToCss, Token};
             use std::fmt;
+            use url::Url;
 
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Url>);
@@ -1097,9 +1097,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="quotes">
+        use std::borrow::Cow;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
-        use std::borrow::Cow;
 
         use cssparser::{ToCss, Token};
 
@@ -1165,8 +1165,8 @@ pub mod longhands {
     ${new_style_struct("Counters", is_inherited=False)}
 
     <%self:longhand name="counter-increment">
-        use super::content;
         use std::fmt;
+        use super::content;
         use values::computed::ComputedValueAsSpecified;
 
         use cssparser::{ToCss, Token};
@@ -1243,10 +1243,10 @@ pub mod longhands {
         "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:longhand name="background-image">
-        use values::specified::Image;
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
+        use values::specified::Image;
 
         pub mod computed_value {
             use values::computed;
@@ -1566,8 +1566,8 @@ pub mod longhands {
 
     <%self:raw_longhand name="color">
         use cssparser::{Color, RGBA};
-        use values::specified::{CSSColor, CSSRGBA};
         use values::computed::Context;
+        use values::specified::{CSSColor, CSSRGBA};
 
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
@@ -1613,8 +1613,8 @@ pub mod longhands {
         impl ComputedValueAsSpecified for SpecifiedValue {}
         pub mod computed_value {
             use cssparser::ToCss;
-            use string_cache::Atom;
             use std::fmt;
+            use string_cache::Atom;
 
             #[derive(PartialEq, Eq, Clone, Hash, HeapSizeOf)]
             pub enum FontFamily {
@@ -1821,10 +1821,10 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="font-size">
-        use util::geometry::Au;
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use util::geometry::Au;
+        use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1940,9 +1940,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="letter-spacing">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
@@ -2002,9 +2002,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="word-spacing">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
@@ -2442,9 +2442,9 @@ pub mod longhands {
     ${new_style_struct("Column", is_inherited=False)}
 
     <%self:longhand name="column-width" experimental="True">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
@@ -2504,9 +2504,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="column-count" experimental="True">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
@@ -2570,9 +2570,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="column-gap" experimental="True">
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
@@ -2635,10 +2635,10 @@ pub mod longhands {
     ${new_style_struct("Effects", is_inherited=False)}
 
     <%self:longhand name="opacity">
-        use values::CSSFloat;
-        use values::computed::Context;
         use cssparser::ToCss;
         use std::fmt;
+        use values::CSSFloat;
+        use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -2733,9 +2733,9 @@ pub mod longhands {
         }
 
         pub mod computed_value {
+            use std::fmt;
             use util::geometry::Au;
             use values::computed;
-            use std::fmt;
 
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Vec<BoxShadow>);
@@ -3246,10 +3246,10 @@ pub mod longhands {
 
     <%self:longhand name="filter">
         //pub use self::computed_value::T as SpecifiedValue;
-        use values::specified::{Angle, Length};
-        use values::CSSFloat;
         use cssparser::ToCss;
         use std::fmt;
+        use values::CSSFloat;
+        use values::specified::{Angle, Length};
 
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(Vec<SpecifiedFilter>);
@@ -4825,8 +4825,8 @@ pub mod shorthands {
         <%self:shorthand name="${name}" sub_properties="${
                 ' '.join(sub_property_pattern % side
                          for side in ['top', 'right', 'bottom', 'left'])}">
-            use values::specified;
             use super::parse_four_sides;
+            use values::specified;
             let _unused = context;
             let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
             Ok(Longhands {
@@ -4939,8 +4939,8 @@ pub mod shorthands {
     <%self:shorthand name="border-width" sub_properties="${
             ' '.join('border-%s-width' % side
                      for side in ['top', 'right', 'bottom', 'left'])}">
-        use values::specified;
         use super::parse_four_sides;
+        use values::specified;
         let _unused = context;
         let (top, right, bottom, left) = try!(parse_four_sides(input, specified::parse_border_width));
         Ok(Longhands {
@@ -5063,8 +5063,8 @@ pub mod shorthands {
     </%self:shorthand>
 
     <%self:shorthand name="outline" sub_properties="outline-color outline-style outline-width">
-        use values::specified;
         use properties::longhands::outline_width;
+        use values::specified;
 
         let _unused = context;
         let mut color = None;

@@ -12,17 +12,17 @@ use dom::domexception::{DOMException, DOMErrorName};
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
+use js::jsapi::JSAutoCompartment;
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
 use js::jsapi::{JS_ReportErrorNumber1, JSErrorFormatString, JSExnType};
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
-use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 
 use libc;
 use std::ffi::CString;
-use std::ptr;
 use std::mem;
+use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Debug, Clone, HeapSizeOf)]

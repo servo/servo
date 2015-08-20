@@ -5,10 +5,10 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
-use script_task::MainThreadScriptMsg;
 use msg::constellation_msg::{PipelineId};
-use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
 use net_traits::AsyncResponseTarget;
+use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
+use script_task::MainThreadScriptMsg;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use url::Url;

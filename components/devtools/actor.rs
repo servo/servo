@@ -7,8 +7,8 @@
 use devtools_traits::PreciseTime;
 use rustc_serialize::json;
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::marker::Reflect;
 use std::mem::{replace, transmute};
 use std::net::TcpStream;

@@ -38,9 +38,9 @@ extern crate url;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
-use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
+use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
@@ -61,8 +61,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
-use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::net::{TcpListener, TcpStream, Shutdown};
+use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 

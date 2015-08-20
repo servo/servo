@@ -6,10 +6,10 @@ use rustc::ast_map;
 use rustc::lint::Context;
 use rustc::middle::def;
 
-use syntax::ptr::P;
 use syntax::ast;
 use syntax::ast::{TyPath, Path, AngleBracketedParameters, PathSegment, Ty};
 use syntax::attr::mark_used;
+use syntax::ptr::P;
 
 
 /// Matches a type with a provided string, and returns its type parameters if successful

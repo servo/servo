@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::cell::DOMRefCell;
@@ -22,12 +23,12 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase,
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
-use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
@@ -36,8 +37,8 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::element::ElementHelpers;
+use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
 use dom::nodelist::{NodeList, NodeListHelpers};
@@ -47,19 +48,18 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::{Window, WindowHelpers};
 use euclid::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
-use devtools_traits::NodeInfo;
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
+use selectors::matching::matches;
+use selectors::parser::Selector;
+use selectors::parser::parse_author_origin_selector_list_from_str;
+use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::str::DOMString;
 use util::task_state;
-use selectors::parser::Selector;
-use selectors::parser::parse_author_origin_selector_list_from_str;
-use selectors::matching::matches;
-use style::properties::ComputedValues;
 
-use js::jsapi::{JSContext, JSObject, JSRuntime};
 use core::nonzero::NonZero;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc;
 use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
@@ -69,8 +69,8 @@ use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::slice::ref_slice;
 use std::sync::Arc;
-use uuid;
 use string_cache::{Atom, Namespace, QualName};
+use uuid;
 
 //
 // The basic Node structure

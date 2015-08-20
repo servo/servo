@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
+use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
+use dom::document::DocumentHelpers;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{ScriptHelpers, WindowHelpers};
-use dom::document::DocumentHelpers;
 use js::jsapi::JSContext;
-use page::Page;
-use msg::constellation_msg::{PipelineId, SubpageId};
-use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
-use script_task::get_page;
 use js::jsapi::{RootedValue, HandleValue};
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
+use page::Page;
+use script_task::get_page;
 
 use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;

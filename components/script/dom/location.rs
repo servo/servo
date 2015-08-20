@@ -12,8 +12,8 @@ use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use dom::window::WindowHelpers;
 
-use util::str::DOMString;
 use url::{Url, UrlParser};
+use util::str::DOMString;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

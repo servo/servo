@@ -12,11 +12,11 @@ use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 
 use euclid::{Point2D, Rect};
+use std::fmt;
+use std::sync::Arc;
+use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
-use std::fmt;
-use style::properties::ComputedValues;
-use std::sync::Arc;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {

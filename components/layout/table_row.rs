@@ -13,9 +13,9 @@ use flow::{self, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
+use model::MaybeAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
-use model::MaybeAuto;
 
 use cssparser::{Color, RGBA};
 use euclid::{Point2D, Rect};

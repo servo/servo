@@ -22,8 +22,8 @@ use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 
 use cssparser::RGBA;
-use util::str::{self, DOMString};
 use url::{Url, UrlParser};
+use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;

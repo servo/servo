@@ -4,15 +4,15 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{self, Flow};
+use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
+use flow::{self, Flow};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
-use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
+use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 
 use selectors::bloom::BloomFilter;
 use util::opts;

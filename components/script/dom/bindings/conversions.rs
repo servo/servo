@@ -43,26 +43,26 @@ use util::str::DOMString;
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::rust::{ToUint64, ToInt64};
-use js::rust::{ToUint32, ToInt32};
-use js::rust::{ToUint16, ToNumber, ToBoolean, ToString};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
+use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN};
 use js::jsapi::{JS_NewUCStringCopyN, JS_StringHasLatin1Chars, JS_WrapValue};
-use js::jsapi::{JSClass, JSContext, JSObject, JSString, MutableHandleValue};
 use js::jsval::JSVal;
-use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
+use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
+use js::rust::{ToUint16, ToNumber, ToBoolean, ToString};
+use js::rust::{ToUint32, ToInt32};
+use js::rust::{ToUint64, ToInt64};
 
+use core::nonzero::NonZero;
 use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
 use std::borrow::ToOwned;
-use std::slice;
 use std::ptr;
 use std::rc::Rc;
-use core::nonzero::NonZero;
+use std::slice;
 
 trait As<O>: Copy {
     fn cast(self) -> O;

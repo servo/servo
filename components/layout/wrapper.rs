@@ -32,12 +32,13 @@
 
 use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
-use incremental::RestyleDamage;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
+use incremental::RestyleDamage;
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{PipelineId, SubpageId};
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
@@ -47,18 +48,18 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers};
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
+use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
-use script::dom::node::{Node, NodeTypeId};
-use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
+use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
+use script::dom::node::{Node, NodeTypeId};
 use script::dom::text::Text;
+use selectors::matching::DeclarationBlock;
+use selectors::parser::{NamespaceConstraint, AttrSelector};
 use smallvec::VecLike;
-use msg::constellation_msg::{PipelineId, SubpageId};
-use util::str::is_whitespace;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::marker::PhantomData;
@@ -67,13 +68,12 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display, white_space};
-use selectors::matching::DeclarationBlock;
-use selectors::parser::{NamespaceConstraint, AttrSelector};
 use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::ComputedValues;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
+use util::str::is_whitespace;
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.

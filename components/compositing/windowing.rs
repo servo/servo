@@ -14,11 +14,11 @@ use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use script_traits::MouseButton;
+use std::fmt::{Error, Formatter, Debug};
+use std::rc::Rc;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
-use std::fmt::{Error, Formatter, Debug};
-use std::rc::Rc;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {

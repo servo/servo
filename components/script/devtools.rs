@@ -3,25 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{CachedConsoleMessage, CachedConsoleMessageTypes, PAGE_ERROR, CONSOLE_API};
-use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{ConsoleAPI, PageError, ScriptToDevtoolsControlMsg, ComputedNodeLayout};
-use dom::bindings::conversions::jsstring_to_str;
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::js::Root;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use devtools_traits::{EvaluateJSReply, NodeInfo, Modification, TimelineMarker, TimelineMarkerType};
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Root;
+use dom::document::DocumentHelpers;
 use dom::node::{Node, NodeHelpers};
 use dom::window::{WindowHelpers, ScriptHelpers};
-use dom::document::DocumentHelpers;
-use page::{IterablePage, Page};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
-use script_task::{get_page, ScriptTask};
 use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
+use msg::constellation_msg::PipelineId;
+use page::{IterablePage, Page};
+use script_task::{get_page, ScriptTask};
 use std::ffi::CStr;
 use std::rc::Rc;
 use std::str;

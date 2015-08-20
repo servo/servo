@@ -26,8 +26,8 @@ extern crate url;
 use compositing::windowing::WindowEvent;
 use euclid::scale_factor::ScaleFactor;
 use std::rc::Rc;
-use window::Window;
 use util::opts;
+use window::Window;
 
 pub mod window;
 

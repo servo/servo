@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use rustc::lint::{Context, LintPass, LintArray};
 use syntax::ast;
 use syntax::attr::AttrMetaMethods;
-use rustc::lint::{Context, LintPass, LintArray};
 
 declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
               "Warn and report types being transmuted");

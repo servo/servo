@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use url::Url;
-use hyper::status::StatusCode;
 use hyper::header::Headers;
+use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::sync::mpsc::Receiver;
+use url::Url;
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]

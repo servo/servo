@@ -9,35 +9,35 @@ use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
 use std::hash::Hash;
 use std::mem::{size_of, transmute};
-use std::sync::Arc;
 use std::rc::Rc;
 use std::result::Result;
+use std::sync::Arc;
 
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
 use cssparser::RGBA;
 use cursor::Cursor;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use euclid::length::Length;
 use euclid::scale_factor::ScaleFactor;
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
 use geometry::{PagePx, ViewportPx, Au};
 use html5ever::tree_builder::QuirksMode;
-use layers::geometry::DevicePixel;
+use hyper::header::ContentType;
+use hyper::http::RawStatus;
+use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use js::jsapi::Heap;
-use js::rust::GCMethods;
 use js::jsval::JSVal;
+use js::rust::GCMethods;
+use layers::geometry::DevicePixel;
 use logical_geometry::WritingMode;
+use rand::OsRng;
 use range::Range;
+use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
 use str::LengthOrPercentageOrAuto;
 use string_cache::atom::Atom;
 use string_cache::namespace::Namespace;
 use url;
-use hyper::method::Method;
-use hyper::http::RawStatus;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
-use rand::OsRng;
 
 extern {
     // Get the size of a heap block.

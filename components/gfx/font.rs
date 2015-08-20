@@ -5,23 +5,23 @@
 use euclid::{Point2D, Rect, Size2D};
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
-use std::mem;
-use std::slice;
-use std::rc::Rc;
 use std::cell::RefCell;
-use util::cache::HashCache;
+use std::mem;
+use std::rc::Rc;
+use std::slice;
+use std::sync::Arc;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
-use std::sync::Arc;
+use util::cache::HashCache;
 
-use platform::font_context::FontContextHandle;
+use font_template::FontTemplateDescriptor;
 use platform::font::{FontHandle, FontTable};
-use util::geometry::Au;
+use platform::font_context::FontContextHandle;
+use platform::font_template::FontTemplateData;
+use text::Shaper;
 use text::glyph::{GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
-use text::Shaper;
-use font_template::FontTemplateDescriptor;
-use platform::font_template::FontTemplateData;
+use util::geometry::Au;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables

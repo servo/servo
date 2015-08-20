@@ -15,10 +15,10 @@
 // The only difference is that a normal channel is used instead of a sync_channel.
 //
 
-use task::spawn_named;
 use std::boxed::FnBox;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::{Arc, Mutex};
+use task::spawn_named;
 
 pub struct TaskPool {
     tx: Sender<Box<FnBox() + Send + 'static>>,

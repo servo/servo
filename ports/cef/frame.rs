@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use browser::ServoCefBrowserExtensions;
 use eutil::Downcast;
 use interfaces::{CefBrowser, CefFrame, CefStringVisitor, cef_frame_t, cef_string_visitor_t};
 use types::{cef_string_t, cef_string_userfree_t};
-use browser::ServoCefBrowserExtensions;
 
 use compositing::windowing::WindowEvent;
 use std::cell::RefCell;

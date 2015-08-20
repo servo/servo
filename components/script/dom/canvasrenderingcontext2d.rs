@@ -29,25 +29,25 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 
+use canvas::canvas_paint_task::RectToi32;
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
-use canvas::canvas_paint_task::RectToi32;
 
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 
 use ipc_channel::ipc::{self, IpcSender};
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::fmt;
 use std::cmp;
+use std::fmt;
 use std::sync::mpsc::channel;
 
-use util::str::DOMString;
 use url::Url;
+use util::str::DOMString;
 use util::vec::byte_swap;
 
 #[must_root]

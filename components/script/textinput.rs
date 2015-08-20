@@ -6,8 +6,8 @@
 
 use clipboard_provider::ClipboardProvider;
 use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
-use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
+use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use util::mem::HeapSizeOf;
 use util::str::{DOMString, slice_chars};
 

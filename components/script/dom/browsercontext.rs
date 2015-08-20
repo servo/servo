@@ -6,26 +6,26 @@ use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
-use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::bindings::utils::get_array_index_from_id;
+use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::window::Window;
 use dom::window::WindowHelpers;
 
-use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor, JSErrNum};
-use js::jsapi::{HandleObject, HandleId, MutableHandle, MutableHandleValue};
-use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
-use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
-use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue, Heap};
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsval::{ObjectValue, UndefinedValue};
 use js::glue::{GetProxyPrivate};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
+use js::jsapi::{HandleObject, HandleId, MutableHandle, MutableHandleValue};
+use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor, JSErrNum};
+use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
+use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue, Handle, HandleValue, Heap};
+use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::{JSTrue, JSFalse};
 
-use std::ptr;
 use std::default::Default;
+use std::ptr;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]

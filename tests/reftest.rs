@@ -26,8 +26,8 @@ use std::fs::{PathExt, File, walk_dir};
 use std::io::{self, Read, Result};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use test::run_tests_console;
+use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use url::Url;
 
 bitflags!(

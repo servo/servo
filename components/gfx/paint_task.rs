@@ -9,37 +9,37 @@ use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use paint_context::PaintContext;
 
-use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use azure::AzFloat;
+use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use canvas_traits::CanvasMsg;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
-use layers::platform::surface::{NativeDisplay, NativeSurface};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
+use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::PipelineExitType;
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
-use smallvec::SmallVec;
 use skia::gl_context::GLContext;
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
+use std::collections::HashMap;
 use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
-use std::collections::HashMap;
 use url::Url;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
+use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
-use util::task::spawn_named;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
 #[derive(Clone, Deserialize, Serialize)]
