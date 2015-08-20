@@ -104,8 +104,8 @@ impl Worker {
         let init = WorkerGlobalScopeInit {
             resource_task: resource_task,
             mem_profiler_chan: global.mem_profiler_chan(),
-            devtools_chan: global.devtools_chan(),
-            devtools_sender: optional_sender,
+            to_devtools_sender: global.devtools_chan(),
+            from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
             worker_id: worker_id,
         };
