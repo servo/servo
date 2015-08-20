@@ -503,8 +503,9 @@ impl RunMapping {
 
 /// Accounts for `text-transform`.
 ///
-/// FIXME(#4311, pcwalton): Case mapping can change length of the string; case mapping should
-/// be language-specific; `full-width`; use graphemes instead of characters.
+/// FIXME(#4311, pcwalton): Title-case mapping can change length of the string;
+/// case mapping should be language-specific; `full-width`;
+/// use graphemes instead of characters.
 fn apply_style_transform_if_necessary(string: &mut String,
                                       first_character_position: usize,
                                       text_transform: text_transform::T)
@@ -515,8 +516,8 @@ fn apply_style_transform_if_necessary(string: &mut String,
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             let mut count = 0;
-            for character in original.chars() {
-                string.push(character.to_uppercase().next().unwrap());
+            for ch in original.chars().flat_map(|ch| ch.to_uppercase()) {
+                string.push(ch);
                 count += 1;
             }
             count
@@ -525,8 +526,8 @@ fn apply_style_transform_if_necessary(string: &mut String,
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
             let mut count = 0;
-            for character in original.chars() {
-                string.push(character.to_lowercase().next().unwrap());
+            for ch in original.chars().flat_map(|ch| ch.to_lowercase()) {
+                string.push(ch);
                 count += 1;
             }
             count
