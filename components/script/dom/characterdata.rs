@@ -111,8 +111,46 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
         let mut data = slice_chars(&*self.data.borrow(), 0, offset as usize).to_owned();
         data.push_str(&arg);
         data.push_str(slice_chars(&*self.data.borrow(), (offset + count) as usize, length as usize));
+        let data_len = data.len() as i32;
         *self.data.borrow_mut() = data;
-        // FIXME: Once we have `Range`, we should implement step7 to step11
+
+        let node = NodeCast::from_ref(self);
+        for range in node.owner_doc().ranges() {
+            match range.upgrade() {
+                Some(range) => {
+                    let (start_node, start_offset, end_node, end_offset) = {
+                        let range = range.borrow();
+                        let start = &range.start();
+                        let end = &range.end();
+                        (start.node(), start.offset(), end.node(), end.offset())
+                    };
+
+                    // Step 8.
+                    if start_node.r() == node && start_offset > offset && start_offset <= offset + count {
+                        range.borrow_mut().set_start(start_node.r(), offset);
+                    }
+
+                    // Step 9.
+                    if end_node.r() == node && end_offset > offset && end_offset <= offset + count {
+                        range.borrow_mut().set_end(end_node.r(), offset);
+                    }
+
+                    // Step 10.
+                    if start_node.r() == node && start_offset > offset + count {
+                        range.borrow_mut().set_start(start_node.r(),
+                            (start_offset as i32 + data_len - count as i32) as u32);
+                    }
+
+                    // Step 11.
+                    if end_node.r() == node && end_offset > offset + count {
+                        range.borrow_mut().set_end(end_node.r(),
+                            (end_offset as i32 + data_len - count as i32) as u32);
+                    }
+                },
+                _ => ()
+            }
+        }
+
         Ok(())
     }
 

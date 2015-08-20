@@ -23,6 +23,8 @@
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(rc_unique)]
+#![feature(rc_weak)]
+#![feature(slice_chars)]
 #![feature(slice_patterns)]
 #![feature(str_utf16)]
 #![feature(unicode)]
