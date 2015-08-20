@@ -157,7 +157,7 @@ impl DedicatedWorkerGlobalScope {
     fn new_inherited(init: WorkerGlobalScopeInit,
                      worker_url: Url,
                      id: PipelineId,
-                     devtools_port: Receiver<DevtoolScriptControlMsg>,
+                     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                      runtime: Rc<Runtime>,
                      parent_sender: Box<ScriptChan + Send>,
                      own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -166,7 +166,7 @@ impl DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 WorkerGlobalScopeTypeId::DedicatedGlobalScope, init, worker_url,
-                runtime, devtools_port),
+                runtime, from_devtools_receiver),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -178,14 +178,14 @@ impl DedicatedWorkerGlobalScope {
     pub fn new(init: WorkerGlobalScopeInit,
                worker_url: Url,
                id: PipelineId,
-               devtools_port: Receiver<DevtoolScriptControlMsg>,
+               from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Rc<Runtime>,
                parent_sender: Box<ScriptChan + Send>,
                own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
-            init, worker_url, id, devtools_port, runtime.clone(), parent_sender,
+            init, worker_url, id, from_devtools_receiver, runtime.clone(), parent_sender,
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
@@ -195,7 +195,7 @@ impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
-                            devtools_ipc_port: IpcReceiver<DevtoolScriptControlMsg>,
+                            from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -222,7 +222,7 @@ impl DedicatedWorkerGlobalScope {
             let runtime = Rc::new(ScriptTask::new_rt_and_cx());
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
-            ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_ipc_port, devtools_mpsc_chan);
+            ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
 
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime.clone(),
@@ -291,14 +291,14 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
     fn receive_event(self) -> Result<MixedMessage, RecvError> {
         let scope = WorkerGlobalScopeCast::from_ref(self);
         let worker_port = &self.receiver;
-        let devtools_port = scope.devtools_port();
+        let devtools_port = scope.from_devtools_receiver();
 
         let sel = Select::new();
         let mut worker_handle = sel.handle(worker_port);
         let mut devtools_handle = sel.handle(devtools_port);
         unsafe {
             worker_handle.add();
-            if scope.devtools_sender().is_some() {
+            if scope.from_devtools_sender().is_some() {
                 devtools_handle.add();
             }
         }
