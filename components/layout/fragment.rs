@@ -1289,6 +1289,7 @@ impl Fragment {
                     }
                     (Some(dom_inline_size), _) => dom_inline_size,
                     (None, LengthOrPercentageOrAuto::Length(length)) => length,
+                    (None, LengthOrPercentageOrAuto::Calc(calc)) => calc.length(),
                 };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,

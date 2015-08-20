@@ -2678,7 +2678,7 @@ pub mod longhands {
             }
         }
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.expect_number().map(SpecifiedValue)
+            specified::parse_number(input).map(SpecifiedValue)
         }
     </%self:longhand>
 
@@ -3542,10 +3542,10 @@ pub mod longhands {
         }
 
         fn parse_two_floats(input: &mut Parser) -> Result<(CSSFloat,CSSFloat),()> {
-            let first = try!(input.expect_number());
+            let first = try!(specified::parse_number(input));
             let second = input.try(|input| {
                 try!(input.expect_comma());
-                input.expect_number()
+                specified::parse_number(input)
             }).unwrap_or(first);
             Ok((first, second))
         }
@@ -3676,7 +3676,7 @@ pub mod longhands {
                     "matrix" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 6 {
                                 return Err(())
@@ -3694,7 +3694,7 @@ pub mod longhands {
                     "matrix3d" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 16 {
                                 return Err(())
@@ -3777,32 +3777,32 @@ pub mod longhands {
                     },
                     "scalex" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
                             Ok(())
                         }))
                     },
                     "scaley" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
                             Ok(())
                         }))
                     },
                     "scalez" => {
                         try!(input.parse_nested_block(|input| {
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
                             Ok(())
                         }))
                     },
                     "scale3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, sy, sz));
                             Ok(())
                         }))
@@ -3837,11 +3837,11 @@ pub mod longhands {
                     },
                     "rotate3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let ax = try!(input.expect_number());
+                            let ax = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let ay = try!(input.expect_number());
+                            let ay = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let az = try!(input.expect_number());
+                            let az = try!(specified::parse_number(input));
                             try!(input.expect_comma());
                             let theta = try!(specified::Angle::parse(input));
                             // TODO(gw): Check the axis can be normalized!!
@@ -3858,14 +3858,14 @@ pub mod longhands {
                     },
                     "skewx" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Skew(sx, 1.0));
                             Ok(())
                         }))
                     },
                     "skewy" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Skew(1.0, sy));
                             Ok(())
                         }))
@@ -3943,37 +3943,37 @@ pub mod longhands {
                     token,
                     "left" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(0.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "center" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(0.5)))
                         } else if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            vertical = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(0.5)))
                         } else {
                             return Err(())
                         }
                     },
                     "right" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            horizontal = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(1.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "top" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            vertical = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(0.0)))
                         } else {
                             return Err(())
                         }
                     },
                     "bottom" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            vertical = Some(specified::LengthOrPercentage::Percentage(specified::Percentage(1.0)))
                         } else {
                             return Err(())
                         }
@@ -4072,8 +4072,8 @@ pub mod longhands {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             let result = try!(super::parse_origin(context, input));
             Ok(SpecifiedValue {
-                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(specified::Percentage(0.5))),
+                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(specified::Percentage(0.5))),
                 depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
             })
        }
@@ -4148,8 +4148,8 @@ pub mod longhands {
             match result.depth {
                 Some(_) => Err(()),
                 None => Ok(SpecifiedValue {
-                    horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(0.5)),
-                    vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(0.5)),
+                    horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(specified::Percentage(0.5))),
+                    vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(specified::Percentage(0.5))),
                 })
             }
         }
@@ -4442,13 +4442,13 @@ pub mod longhands {
                     "cubic-bezier" => {
                         let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                         try!(input.parse_nested_block(|input| {
-                            p1x = try!(input.expect_number());
+                            p1x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p1y = try!(input.expect_number());
+                            p1y = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2x = try!(input.expect_number());
+                            p2x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2y = try!(input.expect_number());
+                            p2y = try!(specified::parse_number(input));
                             Ok(())
                         }));
                         let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
