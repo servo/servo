@@ -1,0 +1,10 @@
+<script>
+  // Issue #7268 - getComputedStyle should work on non-HTML elements, too
+  test(function() {
+    var el = document.createElementNS("http://example.com", "a");
+    document.body.appendChild(el);
+    var style = window.getComputedStyle(el);
+
+    assert_equals(style.opacity, "1");
+  });
+</script>
