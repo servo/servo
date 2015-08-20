@@ -5,16 +5,16 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 use string_cache::Atom;
+use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 
 use std::borrow::ToOwned;
 

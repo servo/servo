@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use interfaces::{cef_app_t, CefApp, cef_drag_data_t, cef_post_data_element_t, cef_v8value_t, CefPostDataElement};
 use interfaces::{CefV8Value};
-use interfaces::{cef_download_handler_t, cef_drag_handler_t, cef_context_menu_handler_t};
+use interfaces::{cef_app_t, CefApp, cef_drag_data_t, cef_post_data_element_t, cef_v8value_t, CefPostDataElement};
 use interfaces::{cef_dialog_handler_t, cef_focus_handler_t};
-use interfaces::{cef_load_handler_t, cef_request_handler_t};
+use interfaces::{cef_download_handler_t, cef_drag_handler_t, cef_context_menu_handler_t};
 use interfaces::{cef_geolocation_handler_t, cef_jsdialog_handler_t, cef_keyboard_handler_t};
+use interfaces::{cef_load_handler_t, cef_request_handler_t};
 use rustc_unicode::str::Utf16Encoder;
 use types::{cef_base_t, cef_browser_settings_t, CefBrowserSettings, cef_color_model_t};
 use types::{cef_context_menu_edit_state_flags_t};

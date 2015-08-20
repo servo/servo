@@ -16,9 +16,9 @@ fn assert_parse(url:          &'static str,
                 content_type: Option<ContentType>,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
+    use net::data_loader::load;
     use std::sync::mpsc::channel;
     use url::Url;
-    use net::data_loader::load;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
     load(LoadData::new(Url::parse(url).unwrap(), None), Channel(start_chan));

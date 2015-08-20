@@ -8,8 +8,8 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
 use dom::bindings::js::Root;
+use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
 
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};

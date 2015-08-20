@@ -39,14 +39,14 @@ use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 
-use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
+use msg::constellation_msg::Msg as ConstellationMsg;
 
 use script::dom::bindings::codegen::RegisterBindings;
 
 use net::image_cache_task::new_image_cache_task;
-use net::storage_task::StorageTaskFactory;
 use net::resource_task::new_resource_task;
+use net::storage_task::StorageTaskFactory;
 use net_traits::storage_task::StorageTask;
 
 use gfx::font_cache_task::FontCacheTask;

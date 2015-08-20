@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use util::str::DOMString;

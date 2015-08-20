@@ -4,8 +4,8 @@
 
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
-use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 use core_text;
+use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 
 use std::borrow::ToOwned;
 use std::mem;

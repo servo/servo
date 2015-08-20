@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, WindowDerived};
-use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::error::Error::InvalidCharacter;
+use dom::bindings::error::{report_pending_exception, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root, MutNullableHeap};
+use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::RootedReference;
+use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowsingContext;
@@ -31,11 +31,11 @@ use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untruste
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
-use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
+use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use page::Page;
-use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_traits::ConstellationControlMsg;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
@@ -51,16 +51,16 @@ use net_traits::storage_task::{StorageTask, StorageType};
 use profile_traits::mem;
 use string_cache::Atom;
 use util::geometry::{self, Au, MAX_RECT};
-use util::{breakpoint, opts};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::{breakpoint, opts};
 
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
-use js::rust::Runtime;
 use js::rust::CompileOptionsWrapper;
+use js::rust::Runtime;
 use selectors::parser::PseudoElement;
 use url::Url;
 

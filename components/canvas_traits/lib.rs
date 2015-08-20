@@ -26,6 +26,7 @@ use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
 use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
 use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
 use azure::azure_hl::{SurfacePattern, SurfaceFormat};
+use core::nonzero::NonZero;
 use cssparser::RGBA;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -33,11 +34,10 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use gfx_traits::color;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use std::sync::mpsc::Sender;
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use core::nonzero::NonZero;
+use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
 
 #[derive(Clone, Deserialize, Serialize)]

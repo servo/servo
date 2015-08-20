@@ -19,26 +19,26 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate ipc_channel;
 
+use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
 use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
-use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
 
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use url::Url;
-use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
-use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters};
-use webdriver::common::{LocatorStrategy, WebElement};
-use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
-use webdriver::server::{self, WebDriverHandler, Session};
-use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
 use util::task::spawn_named;
 use uuid::Uuid;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{WebDriverMessage, WebDriverCommand};
+use webdriver::common::{LocatorStrategy, WebElement};
+use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
+use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
+use webdriver::server::{self, WebDriverHandler, Session};
 
-use std::borrow::ToOwned;
-use rustc_serialize::json::{Json, ToJson};
 use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+use rustc_serialize::json::{Json, ToJson};
+use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 

@@ -10,9 +10,9 @@ extern crate fontconfig;
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
 use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
-use fontconfig::fontconfig::{FcPatternDestroy, FcFontSetDestroy, FcMatchPattern, FcPatternCreate};
-use fontconfig::fontconfig::{FcPatternAddString, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy};
 use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
+use fontconfig::fontconfig::{FcPatternAddString, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy};
+use fontconfig::fontconfig::{FcPatternDestroy, FcFontSetDestroy, FcMatchPattern, FcPatternCreate};
 
 use util::str::c_str_to_string;
 

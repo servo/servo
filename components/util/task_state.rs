@@ -49,8 +49,8 @@ task_types! {
 
 #[cfg(debug_assertions)]
 mod imp {
-    use super::{TaskState, TYPES};
     use std::cell::RefCell;
+    use super::{TaskState, TYPES};
 
     thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None));
 

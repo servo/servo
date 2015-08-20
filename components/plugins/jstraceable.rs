@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ext::base::{Annotatable, ExtCtxt};
-use syntax::codemap::Span;
-use syntax::ptr::P;
-use syntax::ast::{MetaItem, Expr};
 use syntax::ast;
+use syntax::ast::{MetaItem, Expr};
+use syntax::codemap::Span;
+use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::ext::build::AstBuilder;
-use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef};
 use syntax::ext::deriving::generic::{Struct, Substructure, TraitDef, ty};
+use syntax::ext::deriving::generic::{combine_substructure, EnumMatching, FieldInfo, MethodDef};
+use syntax::ptr::P;
 
 pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotatable) -> Annotatable {
     if let Annotatable::Item(item) = anno {

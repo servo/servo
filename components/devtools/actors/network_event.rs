@@ -9,13 +9,13 @@
 extern crate hyper;
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use hyper::header::Headers;
+use hyper::http::RawStatus;
+use hyper::method::Method;
 use protocol::JsonPacketStream;
 use rustc_serialize::json;
 use std::net::TcpStream;
 use url::Url;
-use hyper::header::Headers;
-use hyper::http::RawStatus;
-use hyper::method::Method;
 
 struct HttpRequest {
     url: String,

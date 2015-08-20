@@ -13,11 +13,11 @@ use dom::element::{ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
 use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
-use util::str::DOMString;
 use selectors::parser::PseudoElement;
 use string_cache::Atom;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
 use style::properties::PropertyDeclaration;
+use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
+use util::str::DOMString;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;

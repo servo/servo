@@ -3,17 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::DocumentLoader;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::window::{Window, WindowHelpers};
 use parse::html::{ParseContext, parse_html};
 use util::str::DOMString;

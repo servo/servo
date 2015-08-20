@@ -4,23 +4,23 @@
 
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::event::{EventHelpers, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use dom::window::WindowHelpers;
 use ipc_channel::ipc;
-use util::str::DOMString;
-use page::IterablePage;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
+use page::IterablePage;
 use script_task::{ScriptTask, MainThreadRunnable, MainThreadScriptMsg};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
+use util::str::DOMString;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]

@@ -9,16 +9,16 @@
 #![allow(unsafe_code)]
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
+use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow_ref::FlowRef;
-use traversal::{PreorderDomTraversal, PostorderDomTraversal};
 use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
+use traversal::{PreorderDomTraversal, PostorderDomTraversal};
 use traversal::{RecalcStyleForNode, ConstructFlows};
-use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 use wrapper::UnsafeLayoutNode;
+use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;

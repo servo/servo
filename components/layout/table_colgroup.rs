@@ -12,12 +12,12 @@ use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 
 use euclid::{Point2D, Rect};
-use util::geometry::{Au, ZERO_RECT};
 use std::cmp::max;
 use std::fmt;
-use style::values::computed::LengthOrPercentageOrAuto;
-use style::properties::ComputedValues;
 use std::sync::Arc;
+use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentageOrAuto;
+use util::geometry::{Au, ZERO_RECT};
 use util::logical_geometry::LogicalSize;
 
 /// A table formatting context.

@@ -6,11 +6,11 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
+use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;

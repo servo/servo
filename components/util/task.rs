@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use task_state;
-use std::thread;
 use std::sync::mpsc::Sender;
+use std::thread;
 use std::thread::Builder;
+use task_state;
 
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static

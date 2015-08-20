@@ -20,8 +20,8 @@ use display_list::optimizer::DisplayListOptimizer;
 use paint_context::PaintContext;
 use self::DisplayItem::*;
 use self::DisplayItemIterator::*;
-use text::glyph::CharIndex;
 use text::TextRun;
+use text::glyph::CharIndex;
 
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;

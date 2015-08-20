@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, ast_util};
 use rustc::lint::{Context, LintPass, LintArray, Level};
 use rustc::middle::def;
+use syntax::{ast, ast_util};
 
 use utils::match_lang_ty;
 

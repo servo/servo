@@ -14,8 +14,8 @@ use msg::constellation_msg::SUPER;
 #[cfg(not(target_os="macos"))]
 use msg::constellation_msg::CONTROL;
 
-use script::textinput::{TextInput, Selection, Lines, DeleteDir};
 use script::clipboard_provider::DummyClipboardContext;
+use script::textinput::{TextInput, Selection, Lines, DeleteDir};
 use std::borrow::ToOwned;
 
 #[test]

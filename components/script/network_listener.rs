@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 use net_traits::{AsyncResponseListener, ResponseAction};
+use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to

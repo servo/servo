@@ -9,13 +9,13 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::net::TcpStream;
-use std::thread::sleep_ms;
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use std::thread::sleep_ms;
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
-use actors::memory::{MemoryActor, TimelineMemoryReply};
 use actors::framerate::FramerateActor;
+use actors::memory::{MemoryActor, TimelineMemoryReply};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
 use devtools_traits::{PreciseTime, TimelineMarker, TracingMetadata, TimelineMarkerType};

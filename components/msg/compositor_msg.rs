@@ -4,13 +4,13 @@
 
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyState, KeyModifiers};
+use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use euclid::Matrix4;
-use layers::platform::surface::NativeDisplay;
 use layers::layers::{BufferRequest, LayerBufferSet};
-use std::fmt::{Formatter, Debug};
+use layers::platform::surface::NativeDisplay;
 use std::fmt;
+use std::fmt::{Formatter, Debug};
 
 use constellation_msg::PipelineId;
 

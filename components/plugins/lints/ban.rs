@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::ast;
 use rustc::lint::{Context, LintPass, LintArray};
+use syntax::ast;
 use utils::match_ty_unwrap;
 
 declare_lint!(BANNED_TYPE, Deny,

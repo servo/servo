@@ -4,9 +4,8 @@
 
 use ipc_channel::ipc;
 use net::resource_task::new_resource_task;
-use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::hosts::{parse_hostsfile, host_replacement};
-use net_traits::ProgressMsg;
+use net_traits::{ControlMsg, LoadData, LoadConsumer, ProgressMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;

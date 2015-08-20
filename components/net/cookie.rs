@@ -9,10 +9,10 @@ use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
 
 use cookie_rs;
-use time::{Tm, now, at, Duration};
-use url::Url;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use time::{Tm, now, at, Duration};
+use url::Url;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,

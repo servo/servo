@@ -28,14 +28,14 @@ use layers::platform::surface::NativeDisplay;
 use libc::{c_char, c_void};
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
+use std::cell::RefCell;
+use std::ffi::CString;
 use std::ptr;
+use std::rc::Rc;
+use std::sync::mpsc::{Sender, channel};
 use std_url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
-use std::cell::RefCell;
-use std::ffi::CString;
-use std::rc::Rc;
-use std::sync::mpsc::{Sender, channel};
 #[cfg(target_os="linux")]
 extern crate x11;
 #[cfg(target_os="linux")]

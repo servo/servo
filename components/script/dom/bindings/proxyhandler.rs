@@ -8,17 +8,17 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
-use js::jsapi::{JS_GetPropertyDescriptorById};
-use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
-use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
-use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
+use js::glue::GetProxyExtra;
+use js::glue::InvokeGetOwnPropertyDescriptor;
+use js::glue::{SetProxyExtra, GetProxyHandler};
 use js::jsapi::AutoIdVector;
 use js::jsapi::GetObjectProto;
+use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
+use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
+use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
+use js::jsapi::{JS_GetPropertyDescriptorById};
+use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsval::ObjectValue;
-use js::glue::GetProxyExtra;
-use js::glue::{SetProxyExtra, GetProxyHandler};
-use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY};
 use js::{JSTrue, JSFalse};
 

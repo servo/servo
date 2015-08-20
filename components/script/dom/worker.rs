@@ -2,32 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::Syntax;
+use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::bindings::js::Root;
-use dom::window::WindowHelpers;
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
+use dom::window::WindowHelpers;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use script_task::{ScriptChan, Runnable};
 
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use url::UrlParser;
 use util::str::DOMString;

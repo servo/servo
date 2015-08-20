@@ -9,17 +9,17 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::
             {self, WebGLContextAttributes, WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::bindings::conversions::ToJSValConvertible;
 use dom::htmlcanvaselement::{HTMLCanvasElement};
 use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
-use dom::webglrenderbuffer::{WebGLRenderbuffer, WebGLRenderbufferHelpers};
-use dom::webgltexture::{WebGLTexture, WebGLTextureHelpers};
-use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
 use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
+use dom::webglrenderbuffer::{WebGLRenderbuffer, WebGLRenderbufferHelpers};
+use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
+use dom::webgltexture::{WebGLTexture, WebGLTextureHelpers};
 use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
@@ -27,13 +27,13 @@ use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 use msg::constellation_msg::Msg as ConstellationMsg;
+use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::sync::mpsc::channel;
 use util::str::DOMString;
-use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 

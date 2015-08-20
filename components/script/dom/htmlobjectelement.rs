@@ -13,16 +13,16 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use net_traits::image::base::Image;
-use util::str::DOMString;
 use std::sync::Arc;
+use util::str::DOMString;
 
 #[dom_struct]
 #[derive(HeapSizeOf)]
