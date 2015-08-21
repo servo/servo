@@ -11,12 +11,12 @@ use context::LayoutContext;
 use display_list_builder::FlexFlowDisplayListBuilding;
 use floats::FloatKind;
 use flow;
-use flow::{Flow, FlowClass, OpaqueFlow};
-use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
-use flow::ImmutableFlowUtils;
 use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
+use flow::ImmutableFlowUtils;
 use flow::mut_base;
+use flow::{Flow, FlowClass, OpaqueFlow};
+use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -27,13 +27,13 @@ use style::values::computed::LengthOrPercentageOrAuto;
 
 use euclid::{Point2D, Rect};
 use gfx::display_list::DisplayList;
+use model::MaybeAuto;
 use std::cmp::max;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
-use model::MaybeAuto;
 
 // A mode describes which logical axis a flex axis is parallel with.
 // The logical axises are inline and block, the flex axises are main and cross.
