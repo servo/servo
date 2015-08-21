@@ -15,7 +15,6 @@ use dom::window::Window;
 use util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
-use std::iter::{FilterMap, Skip};
 use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
@@ -162,36 +161,47 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    fn traverse(root: &Node)
-                -> FilterMap<Skip<TreeIterator>,
-                             fn(Root<Node>) -> Option<Root<Element>>> {
-        fn to_temporary(node: Root<Node>) -> Option<Root<Element>> {
-            ElementCast::to_root(node)
+    fn elements_iter(&self) -> HTMLCollectionElementsIter {
+        let ref filter = self.collection.1;
+        let root = self.collection.0.root();
+        let mut node_iter = root.traverse_preorder();
+        let _ = node_iter.next();  // skip the root node
+        HTMLCollectionElementsIter {
+            node_iter: node_iter,
+            root: root,
+            filter: filter,
         }
-        root.traverse_preorder()
-            .skip(1)
-            .filter_map(to_temporary)
+    }
+}
+
+struct HTMLCollectionElementsIter<'a> {
+    node_iter: TreeIterator,
+    root: Root<Node>,
+    filter: &'a Box<CollectionFilter>,
+}
+
+impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
+    type Item = Root<Element>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let filter = self.filter;
+        let root = self.root.r();
+        self.node_iter.by_ref()
+                      .filter_map(ElementCast::to_root)
+                      .filter(|element| filter.filter(element.r(), root))
+                      .next()
     }
 }
 
 impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(self) -> u32 {
-        let ref root = self.collection.0.root();
-        let ref filter = self.collection.1;
-        HTMLCollection::traverse(root.r())
-            .filter(|element| filter.filter(element.r(), root.r()))
-            .count() as u32
+        self.elements_iter().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(self, index: u32) -> Option<Root<Element>> {
-        let index = index as usize;
-        let ref root = self.collection.0.root();
-        let ref filter = self.collection.1;
-        HTMLCollection::traverse(root.r())
-            .filter(|element| filter.filter(element.r(), root.r()))
-            .nth(index)
+        self.elements_iter().nth(index as usize)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
@@ -202,13 +212,10 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         }
 
         // Step 2.
-        let ref root = self.collection.0.root();
-        let ref filter = self.collection.1;
-        HTMLCollection::traverse(root.r())
-            .filter(|element| filter.filter(element.r(), root.r()))
-            .find(|elem| {
-                elem.r().get_string_attribute(&atom!("name")) == key ||
-                elem.r().get_string_attribute(&atom!("id")) == key})
+        self.elements_iter().find(|elem| {
+            elem.r().get_string_attribute(&atom!("name")) == key ||
+            elem.r().get_string_attribute(&atom!("id")) == key
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
@@ -231,10 +238,7 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
         let mut result = vec![];
 
         // Step 2
-        let root = self.collection.0.root();
-        let ref filter = self.collection.1;
-        let elems = HTMLCollection::traverse(root.r()).filter(|element| filter.filter(element.r(), root.r()));
-        for elem in elems {
+        for elem in self.elements_iter() {
             // Step 2.1
             let id_attr = elem.get_string_attribute(&atom!("id"));
             if !id_attr.is_empty() && !result.contains(&id_attr) {
