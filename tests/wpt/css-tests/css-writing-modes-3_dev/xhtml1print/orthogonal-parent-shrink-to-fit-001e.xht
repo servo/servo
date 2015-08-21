@@ -64,7 +64,7 @@ if (window.location.search == "?wait") {
 
 function run() {
     Array.prototype.forEach.call(document.querySelectorAll(".test"), function (node) {
-        var title = node.previousElementSibling.innerText;
+        var title = node.previousElementSibling.textContent;
         test(function () {
             try {
                 var targetNode = node.querySelector(".target");

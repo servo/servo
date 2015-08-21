@@ -30,6 +30,8 @@ css3-transform-rotateY.xht == reference/css3-transform-rotateY-ref.xht
 css3-transform-scale.xht == reference/css3-transform-scale-ref.xht
 css3-transform-scale-002.xht == reference/css3-transform-scale-ref-002.xht
 iframe-001.xht == reference/iframe-001-ref.xht
+perspective-containing-block-dynamic-1a.xht == reference/containing-block-dynamic-1-ref.xht
+perspective-containing-block-dynamic-1b.xht == reference/containing-block-dynamic-1-ref.xht
 perspective-origin-001.xht == reference/ref-filled-green-100px-square.xht
 perspective-origin-002.xht == reference/ref-filled-green-100px-square.xht
 perspective-origin-003.xht == reference/ref-filled-green-100px-square.xht
@@ -814,6 +816,8 @@ transform-background-006.xht == reference/transform-background-ref-2.xht != refe
 transform-background-007.xht == reference/transform-background-ref-2.xht
 transform-background-008.xht == reference/transform-background-ref-2.xht
 transform-compound-001.xht == reference/transform-compound-ref.xht != reference/transform-compound-notref-1.xht != reference/transform-compound-notref-2.xht
+transform-containing-block-dynamic-1a.xht == reference/containing-block-dynamic-1-ref.xht
+transform-containing-block-dynamic-1b.xht == reference/containing-block-dynamic-1-ref.xht
 transform-descendant-001.xht == reference/transform-descendant-ref.xht
 transform-display-001.xht == reference/transform-display-ref.xht != reference/transform-display-notref.xht
 transform-display-002.xht == reference/transform-display-ref.xht != reference/transform-display-notref.xht
