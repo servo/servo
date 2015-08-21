@@ -90,8 +90,9 @@ def check_license(file_name, contents):
 
 
 def check_length(idx, line):
-    if len(line) >= 120:
-        yield (idx + 1, "(much) overlong line")
+    max_length = 120
+    if len(line) >= max_length:
+        yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
 def check_whatwg_url(idx, line):
