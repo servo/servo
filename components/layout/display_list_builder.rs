@@ -1819,15 +1819,10 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                                              self.fragments.fragments[0].node);
         }
 
-        // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
-        // and remove the check for filter presence. Further details on #5812.
-        has_stacking_context = has_stacking_context && {
-            if let SpecificFragmentInfo::Canvas(_) = self.fragments.fragments[0].specific {
-                true
-            } else {
-                !self.fragments.fragments[0].style().get_effects().filter.is_empty()
-            }
-        };
+        match self.fragments.fragments[0].specific {
+            SpecificFragmentInfo::Canvas(_) => has_stacking_context = has_stacking_context && true,
+            _ => debug!("InlineFlow::build_display_list: has stacking context {}", has_stacking_context),
+        }
 
         self.base.display_list_building_result = if has_stacking_context {
             DisplayListBuildingResult::StackingContext(
