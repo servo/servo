@@ -9,7 +9,7 @@
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use flow::{self, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
+use flow::{self, EarlyAbsolutePositionInfo, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
@@ -162,7 +162,15 @@ impl TableRowFlow {
             }
 
             // Assign the child's block size.
-            child_table_cell.block_flow.base.position.size.block = block_size
+            child_table_cell.block_flow.base.position.size.block = block_size;
+
+            // Write in the size of the relative containing block for children. (This information
+            // is also needed to handle RTL.)
+            child_table_cell.block_flow.base.early_absolute_position_info =
+                EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: self.block_flow.fragment.content_box().size,
+                    relative_containing_block_mode: self.block_flow.fragment.style().writing_mode,
+                };
         }
     }
 
