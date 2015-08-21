@@ -16,6 +16,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
+use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
@@ -1277,6 +1278,14 @@ impl<'a> FlowConstructor<'a> {
         ConstructionResult::Flow(flow, AbsoluteDescendants::new())
     }
 
+    /// Builds a flow for a node with 'display: flex'.
+    fn build_flow_for_flex(&mut self, node: &ThreadSafeLayoutNode, float_kind: Option<FloatKind>)
+                           -> ConstructionResult {
+        let fragment = self.build_fragment_for_block(node);
+        let flow = Arc::new(FlexFlow::from_fragment(fragment, float_kind));
+        self.build_flow_for_block_like(flow, node)
+    }
+
     /// Attempts to perform incremental repair to account for recent changes to this node. This
     /// can fail and return false, indicating that flows will need to be reconstructed.
     ///
@@ -1515,6 +1524,13 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // Table items contribute table flow construction results.
             (display::T::table_cell, _, _) => {
                 let construction_result = self.build_flow_for_table_cell(node);
+                self.set_flow_construction_result(node, construction_result)
+            }
+
+            // Flex items contribute flex flow construction results.
+            (display::T::flex, float_value, _) => {
+                let float_kind = FloatKind::from_property(float_value);
+                let construction_result = self.build_flow_for_flex(node, float_kind);
                 self.set_flow_construction_result(node, construction_result)
             }
 

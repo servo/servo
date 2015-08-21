@@ -13,6 +13,7 @@
 use azure::azure_hl::Color;
 use block::BlockFlow;
 use context::LayoutContext;
+use flex::FlexFlow;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
@@ -1883,6 +1884,23 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
         self.block_flow.build_display_list_for_block(display_list,
                                                      layout_context,
                                                      BorderPaintingMode::Separate)
+    }
+}
+
+pub trait FlexFlowDisplayListBuilding {
+    fn build_display_list_for_flex(&mut self,
+                                   display_list: Box<DisplayList>,
+                                   layout_context: &LayoutContext);
+}
+
+impl FlexFlowDisplayListBuilding for FlexFlow {
+    fn build_display_list_for_flex(&mut self,
+                                   display_list: Box<DisplayList>,
+                                   layout_context: &LayoutContext) {
+        // Draw the rest of the block.
+        self.as_mut_block().build_display_list_for_block(display_list,
+                                                         layout_context,
+                                                         BorderPaintingMode::Separate)
     }
 }
 
