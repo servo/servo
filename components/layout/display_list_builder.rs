@@ -1898,9 +1898,9 @@ impl FlexFlowDisplayListBuilding for FlexFlow {
                                    display_list: Box<DisplayList>,
                                    layout_context: &LayoutContext) {
         // Draw the rest of the block.
-        self.as_block().build_display_list_for_block(display_list,
-                                                     layout_context,
-                                                     BorderPaintingMode::Separate)
+        self.as_mut_block().build_display_list_for_block(display_list,
+                                                         layout_context,
+                                                         BorderPaintingMode::Separate)
     }
 }
 

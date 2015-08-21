@@ -249,7 +249,7 @@ impl FlexFlow {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
 
             {
-                let child_fragment = &mut kid.as_block().fragment;
+                let child_fragment = &mut kid.as_mut_block().fragment;
                 // TODO: Percentage block-size
                 let child_specified_block_size =
                     MaybeAuto::from_style(child_fragment.style().content_block_size(),
@@ -285,7 +285,7 @@ impl FlexFlow {
         // Assign the block-size of kid fragments, which is the same value as own block-size.
         for kid in self.block_flow.base.child_iter() {
             {
-                let kid_fragment = &mut kid.as_block().fragment;
+                let kid_fragment = &mut kid.as_mut_block().fragment;
                 let mut position = kid_fragment.border_box;
                 position.size.block = block_size;
                 kid_fragment.border_box = position;
@@ -302,12 +302,13 @@ impl Flow for FlexFlow {
         FlowClass::Flex
     }
 
-    fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
     }
 
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("flex::bubble_inline_sizes {:x}", self.block_flow.base.debug_id());
+        let _scope = layout_debug_scope!("flex::bubble_inline_sizes {:x}",
+                                         self.block_flow.base.debug_id());
 
         // Flexbox Section 9.0: Generate anonymous flex items:
         // This part was handled in the flow constructor.

@@ -1282,8 +1282,8 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_flex(&mut self, node: &ThreadSafeLayoutNode, float_kind: Option<FloatKind>)
                            -> ConstructionResult {
         let fragment = self.build_fragment_for_block(node);
-        let flow = Box::new(FlexFlow::from_fragment(fragment, float_kind));
-        self.build_flow_for_block_like(FlowRef::new(flow), node)
+        let flow = Arc::new(FlexFlow::from_fragment(fragment, float_kind));
+        self.build_flow_for_block_like(flow, node)
     }
 
     /// Attempts to perform incremental repair to account for recent changes to this node. This

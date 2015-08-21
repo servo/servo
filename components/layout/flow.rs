@@ -1215,9 +1215,12 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
             },
             FlowClass::Flex => {
                 let fragment =
-                    Fragment::new_anonymous_from_specific_info(node,
-                                                               SpecificFragmentInfo::Generic);
-                box BlockFlow::from_fragment(fragment, None) as Box<Flow>
+                    Fragment::from_opaque_node_and_style(node.opaque(),
+                                                         PseudoElementType::Normal,
+                                                         style,
+                                                         node.restyle_damage(),
+                                                         SpecificFragmentInfo::Generic);
+                Arc::new(BlockFlow::from_fragment(fragment, None))
             },
             _ => {
                 panic!("no need to generate a missing child")
