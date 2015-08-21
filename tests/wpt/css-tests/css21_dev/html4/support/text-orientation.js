@@ -1,4 +1,6 @@
 (function () {
+    var log = function () {};
+
     function OrientationTester(container, orientation) {
         this.container = container;
         this.setOrientation(orientation);
@@ -211,9 +213,5 @@
     function extend(target, dict) {
         for (var key in dict)
             target[key] = dict[key];
-    }
-
-    function log(text) {
-        console.log(text);
     }
 })();

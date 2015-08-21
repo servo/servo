@@ -13,7 +13,7 @@
     div#lr-mixed
     {
       color: orange;
-      font: 3.75em/1 Ahem; /* computes to 60px */
+      font: 3.75em/1 Ahem; /* computes to 60px/60px */
       height: 4em;
       writing-mode: vertical-lr;
       text-orientation: mixed;
@@ -63,8 +63,8 @@
   <p>Test passes if 2 orange squares are centered with respect to a blue square.</p>
 
   <div id="lr-mixed">A<div id="inline-block">
-    <span class="block-descendant" id="first-line-box">I</span>
-    <span class="block-descendant" id="last-line-box">B</span>
+    <span class="block-descendant" id="first-line-box">F</span>
+    <span class="block-descendant" id="last-line-box">L</span>
   </div><span id="orange30">O</span></div>
 
   </body>

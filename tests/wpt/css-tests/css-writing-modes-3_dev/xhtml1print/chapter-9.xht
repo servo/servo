@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Glyph Composition (25 tests)</h2>
+  <h2>Glyph Composition (27 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -40,7 +40,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">9.1 Horizontal-in-Vertical Composition: the text-combine-upright property</a></th></tr>
-      <!-- 21 tests -->
+      <!-- 22 tests -->
+      <tr id="text-combine-upright-inherit-all-001-9.1" class="primary">
+        <td><strong>
+            <a href="text-combine-upright-inherit-all-001.xht">text-combine-upright-inherit-all-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-inherit-all-001.xht">=</a> </td>
+        <td></td>
+        <td>text-combine-upright:all inherits
+          <ul class="assert">
+            <li>This test checks text-combine-upright:all inherits</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-combine-upright-inherit-all-002-9.1" class="primary">
         <td><strong>
             <a href="text-combine-upright-inherit-all-002.xht">text-combine-upright-inherit-all-002</a></strong></td>
@@ -295,7 +306,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.1.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-layout">9.1.2 Layout Rules</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 2 tests -->
+      <tr id="text-combine-upright-decorations-001-9.1.2" class="primary ahem">
+        <td><strong>
+            <a href="text-combine-upright-decorations-001.xht">text-combine-upright-decorations-001</a></strong></td>
+        <td><a href="reference/text-combine-upright-decorations-001.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>The resulting composition is treated as a signel glyph for decorations
+          <ul class="assert">
+            <li>The resulting composition is treated as a signel glyph for decorations</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-combine-upright-layout-rules-001-9.1.2" class="primary ahem">
         <td><strong>
             <a href="text-combine-upright-layout-rules-001.xht">text-combine-upright-layout-rules-001</a></strong></td>

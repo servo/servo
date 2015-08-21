@@ -15,10 +15,14 @@ html/cssom-csstext-serialize.htm	3e14e2c10025c3e4e66daa88ea819dc46bd8b529	?
 xhtml1/cssom-csstext-serialize.xht	3e14e2c10025c3e4e66daa88ea819dc46bd8b529	?
 html/cssom-setproperty-shorthand.htm	7630d8007322fed0af2c7d8e6f94585f3ae3703d	?
 xhtml1/cssom-setproperty-shorthand.xht	7630d8007322fed0af2c7d8e6f94585f3ae3703d	?
+html/cssstyledeclaration-csstext.htm	2cc8a22845a56b1cdc11d73b6af616fdc41c9695	?
+xhtml1/cssstyledeclaration-csstext.xht	2cc8a22845a56b1cdc11d73b6af616fdc41c9695	?
 html/cssstyledeclaration-mutability.htm	38cd7a355a26875bad54365ed7326a5dc51801de	?
 xhtml1/cssstyledeclaration-mutability.xht	38cd7a355a26875bad54365ed7326a5dc51801de	?
 html/cssstylerule.htm	f7142a2fa889f3fb2c5eac54bce43844fc6acd99	?
 xhtml1/cssstylerule.xht	f7142a2fa889f3fb2c5eac54bce43844fc6acd99	?
+html/escape.htm	7aea68a9623bb9dff127afbd42801555f82c01cc	?
+xhtml1/escape.xht	7aea68a9623bb9dff127afbd42801555f82c01cc	?
 html/index-001.htm	690f3025eb8ad461891d7cd861467a6dfd15c3c6	?
 xhtml1/index-001.xht	690f3025eb8ad461891d7cd861467a6dfd15c3c6	?
 html/index-002.htm	0bc1c948a918adda327afe34f4a31d3aafec67e3	?
@@ -37,6 +41,8 @@ html/medialist-interfaces-004.htm	5e031a138cf16515b8b2ad1d31bf27780d5c6f64	?
 xhtml1/medialist-interfaces-004.xht	5e031a138cf16515b8b2ad1d31bf27780d5c6f64	?
 html/medialist.htm	950f388af24cce357db899c6fdd58f0a785aa5e3	?
 xhtml1/medialist.xht	950f388af24cce357db899c6fdd58f0a785aa5e3	?
+html/selectorserialize.htm	cb441f03c4ab09e33cce9c5c96a60afc7a7b463d	?
+xhtml1/selectorserialize.xht	cb441f03c4ab09e33cce9c5c96a60afc7a7b463d	?
 html/shape-outside-shape-arguments-000.htm	8e30b0aa976388a251ee8392188230ae8d983576	?
 xhtml1/shape-outside-shape-arguments-000.xht	8e30b0aa976388a251ee8392188230ae8d983576	?
 html/shape-outside-shape-arguments-001.htm	9dd0113414a623dabe94f0e29eb616393dc49315	?

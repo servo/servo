@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Animations Module Level 1 CR Test Suite</h1>
-  <h2>Animations (15 tests)</h2>
+  <h2>Animations (16 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -31,7 +31,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3">+</a>
         <a href="http://www.w3.org/TR/css3-animations/#animations">3 Animations</a></th></tr>
-      <!-- 15 tests -->
+      <!-- 16 tests -->
+      <tr id="animation-display-3" class="animated">
+        <td>
+            <a href="animation-display.xht">animation-display</a></td>
+        <td></td>
+        <td><abbr class="animated" title="Animated test">Animated</abbr></td>
+        <td>animation - display
+          <ul class="assert">
+            <li>Check that setting 'display' property to 'none' terminates running animation applied to the element, and updating 'display' property to a value other than 'none' will start the animation.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="animations-001-3" class="ahem animated">
         <td>
             <a href="animations-001.xht">animations-001</a></td>

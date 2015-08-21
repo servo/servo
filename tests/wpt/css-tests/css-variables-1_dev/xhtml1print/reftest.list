@@ -61,7 +61,7 @@ variable-declaration-58.xht == support/color-green-ref.xht
 variable-declaration-59.xht == support/color-green-ref.xht
 variable-declaration-60.xht == support/color-green-ref.xht
 variable-external-declaration-01.xht == support/color-green-ref.xht
-variable-external-font-face-01.xht == reference/variable-font-face-01-ref.xht
+variable-external-font-face-01.xht == reference/variable-external-font-face-01-ref.xht
 variable-external-reference-01.xht == support/color-green-ref.xht
 variable-external-supports-01.xht == support/color-green-ref.xht
 variable-font-face-01.xht == reference/variable-font-face-01-ref.xht
@@ -103,7 +103,7 @@ variable-reference-34.xht == support/color-green-ref.xht
 variable-reference-35.xht == support/color-green-ref.xht
 variable-reference-36.xht == reference/variable-reference-36-ref.xht
 variable-reference-37.xht == reference/variable-reference-37-ref.xht
-variable-reference-38.xht == reference/variable-declaration-59-ref.xht
+variable-reference-38.xht == reference/variable-reference-38-ref.xht
 variable-reference-39.xht == support/color-green-ref.xht
 variable-reference-40.xht == reference/variable-reference-40-ref.xht
 variable-supports-01.xht == support/color-green-ref.xht

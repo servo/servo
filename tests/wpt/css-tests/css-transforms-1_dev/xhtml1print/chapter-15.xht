@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Transforms Module Level 1 CR Test Suite</h1>
-  <h2>The Transform Functions (689 tests)</h2>
+  <h2>The Transform Functions (691 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -31,7 +31,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s15">+</a>
         <a href="http://www.w3.org/TR/css-transforms-1/#transform-functions">15 The Transform Functions</a></th></tr>
-      <!-- 5 tests -->
+      <!-- 7 tests -->
       <tr id="animations-001-15" class="ahem animated">
         <td>
             <a href="animations-001.xht">animations-001</a></td>
@@ -62,6 +62,28 @@
         <td>CSS Regions: rendering text flowed in a region on top of 3D content
           <ul class="assert">
             <li>Test checks that text flowed in a region renders without artifacts when the region overlaps a 3D (webGL) canvas element. This can be problematic in browsers that don't handle layers and/or 3D acceleration correctly.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-transform-scale-001-15" class="">
+        <td>
+            <a href="css-transform-scale-001.xht">css-transform-scale-001</a></td>
+        <td><a href="reference/css-transform-scale-ref-001.xht">=</a> </td>
+        <td></td>
+        <td>transform property with scale function on hover state
+          <ul class="assert">
+            <li>When the element is hovered over, the transform scales the element to twice its size in both the X and Y directions and moves its origin to the top left corner.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="css-transform-scale-002-15" class="">
+        <td>
+            <a href="css-transform-scale-002.xht">css-transform-scale-002</a></td>
+        <td><a href="reference/css-transform-scale-ref-002.xht">=</a> </td>
+        <td></td>
+        <td>transform property with scale function and move its origin
+          <ul class="assert">
+            <li>The transform scales the element to twice its size in both the X and Y directions and moves its origin to the top left corner.</li>
           </ul>
         </td>
       </tr>
@@ -6945,53 +6967,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="transform_translate_invalid_prefixed-15.1" class="dom script">
+      <tr id="transform_translate-15.1" class="dom script">
         <td>
-            <a href="transform_translate_invalid_prefixed.xht">transform_translate_invalid_prefixed</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>transform translate with invalid translation value
-          <ul class="assert">
-            <li>Check if transform sets translate(null, null) that an expection is to be thrown</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="transform_translate_max_prefixed-15.1" class="dom script">
-        <td>
-            <a href="transform_translate_max_prefixed.xht">transform_translate_max_prefixed</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>transform translate with maximum translation value
-          <ul class="assert">
-            <li>Check if transform sets translate(INFINITE, INFINITE) that an expection is to be thrown</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="transform_translate_min_prefixed-15.1" class="dom script">
-        <td>
-            <a href="transform_translate_min_prefixed.xht">transform_translate_min_prefixed</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>transform translate with minimum translation value
-          <ul class="assert">
-            <li>Check if transform sets translate(-INFINITE, -INFINITE) that an expection is to be thrown</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="transform_translate_neg_prefixed-15.1" class="dom script">
-        <td>
-            <a href="transform_translate_neg_prefixed.xht">transform_translate_neg_prefixed</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>transform translate with negative translation value
-          <ul class="assert">
-            <li>Check if transform supports translate(-1px, -1px)</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="transform_translate_prefixed-15.1" class="dom script">
-        <td>
-            <a href="transform_translate_prefixed.xht">transform_translate_prefixed</a></td>
+            <a href="transform_translate.xht">transform_translate</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>transform translate
@@ -7000,9 +6978,53 @@
           </ul>
         </td>
       </tr>
-      <tr id="transform_translate_second_omited_prefixed-15.1" class="dom script">
+      <tr id="transform_translate_invalid-15.1" class="dom script">
         <td>
-            <a href="transform_translate_second_omited_prefixed.xht">transform_translate_second_omited_prefixed</a></td>
+            <a href="transform_translate_invalid.xht">transform_translate_invalid</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>transform translate with invalid translation value
+          <ul class="assert">
+            <li>Check if transform sets translate(null, null) that an expection is to be thrown</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform_translate_max-15.1" class="dom script">
+        <td>
+            <a href="transform_translate_max.xht">transform_translate_max</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>transform translate with maximum translation value
+          <ul class="assert">
+            <li>Check if transform sets translate(INFINITE, INFINITE) that an expection is to be thrown</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform_translate_min-15.1" class="dom script">
+        <td>
+            <a href="transform_translate_min.xht">transform_translate_min</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>transform translate with minimum translation value
+          <ul class="assert">
+            <li>Check if transform sets translate(-INFINITE, -INFINITE) that an expection is to be thrown</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform_translate_neg-15.1" class="dom script">
+        <td>
+            <a href="transform_translate_neg.xht">transform_translate_neg</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>transform translate with negative translation value
+          <ul class="assert">
+            <li>Check if transform supports translate(-1px, -1px)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform_translate_second_omited-15.1" class="dom script">
+        <td>
+            <a href="transform_translate_second_omited.xht">transform_translate_second_omited</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>transform translate with second translation value omited
@@ -7011,9 +7033,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="transform_translate_zero_prefixed-15.1" class="dom script">
+      <tr id="transform_translate_zero-15.1" class="dom script">
         <td>
-            <a href="transform_translate_zero_prefixed.xht">transform_translate_zero_prefixed</a></td>
+            <a href="transform_translate_zero.xht">transform_translate_zero</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
         <td>transform translate

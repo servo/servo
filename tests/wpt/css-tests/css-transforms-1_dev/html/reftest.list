@@ -30,6 +30,8 @@ css3-transform-rotateY.htm == reference/css3-transform-rotateY-ref.htm
 css3-transform-scale.htm == reference/css3-transform-scale-ref.htm
 css3-transform-scale-002.htm == reference/css3-transform-scale-ref-002.htm
 iframe-001.htm == reference/iframe-001-ref.htm
+perspective-containing-block-dynamic-1a.htm == reference/containing-block-dynamic-1-ref.htm
+perspective-containing-block-dynamic-1b.htm == reference/containing-block-dynamic-1-ref.htm
 perspective-origin-001.htm == reference/ref-filled-green-100px-square.htm
 perspective-origin-002.htm == reference/ref-filled-green-100px-square.htm
 perspective-origin-003.htm == reference/ref-filled-green-100px-square.htm
@@ -814,6 +816,8 @@ transform-background-006.htm == reference/transform-background-ref-2.htm != refe
 transform-background-007.htm == reference/transform-background-ref-2.htm
 transform-background-008.htm == reference/transform-background-ref-2.htm
 transform-compound-001.htm == reference/transform-compound-ref.htm != reference/transform-compound-notref-1.htm != reference/transform-compound-notref-2.htm
+transform-containing-block-dynamic-1a.htm == reference/containing-block-dynamic-1-ref.htm
+transform-containing-block-dynamic-1b.htm == reference/containing-block-dynamic-1-ref.htm
 transform-descendant-001.htm == reference/transform-descendant-ref.htm
 transform-display-001.htm == reference/transform-display-ref.htm != reference/transform-display-notref.htm
 transform-display-002.htm == reference/transform-display-ref.htm != reference/transform-display-notref.htm

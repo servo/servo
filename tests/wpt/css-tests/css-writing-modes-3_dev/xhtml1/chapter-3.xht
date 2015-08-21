@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text (80 tests)</h2>
+  <h2>Introduction to Vertical Text (82 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">3.1 Block Flow Direction: the writing-mode property</a></th></tr>
-      <!-- 66 tests -->
+      <!-- 68 tests -->
       <tr id="block-flow-direction-001-3.1" class="primary ahem">
         <td><strong>
             <a href="block-flow-direction-001.xht">block-flow-direction-001</a></strong></td>
@@ -335,6 +335,28 @@
         <td>descendant inline with a different 'writing-mode' value
           <ul class="assert">
             <li>This test checks that if an inline box has a different block flow direction than its containing block then its display computes to 'inline-block' in which case its specified width and specified height are not ignored and have to be rendered.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="first-page-vlr-003-3.1" class="primary paged">
+        <td><strong>
+            <a href="first-page-vlr-003.xht">first-page-vlr-003</a></strong></td>
+        <td></td>
+        <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>first page of a document with vertical-lr writing-mode
+          <ul class="assert">
+            <li>When 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is left-to-right. This test checks that the first page of a document whose document root has 'writing-mode' set to 'vertical-lr' is the :right page.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="first-page-vrl-002-3.1" class="primary image paged">
+        <td><strong>
+            <a href="first-page-vrl-002.xht">first-page-vrl-002</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>first page of a document with vertical-rl writing-mode
+          <ul class="assert">
+            <li>When 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is right-to-left. This test checks that the first page of a document whose document root has 'writing-mode' set to 'vertical-rl' is the :left page.</li>
           </ul>
         </td>
       </tr>

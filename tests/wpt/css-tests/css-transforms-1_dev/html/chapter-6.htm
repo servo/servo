@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Transforms Module Level 1 CR Test Suite</h1>
-  <h2>The Transform Rendering Model (48 tests)</h2>
+  <h2>The Transform Rendering Model (50 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -31,7 +31,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6">+</a>
         <a href="http://www.w3.org/TR/css-transforms-1/#transform-rendering">6 The Transform Rendering Model</a></th></tr>
-      <!-- 32 tests -->
+      <!-- 34 tests -->
       <tr id="css-transforms-3d-on-anonymous-block-001-6" class="primary">
         <td><strong>
             <a href="css-transforms-3d-on-anonymous-block-001.htm">css-transforms-3d-on-anonymous-block-001</a></strong></td>
@@ -150,6 +150,30 @@
         <td>Compound Transforms
           <ul class="assert">
             <li>Tests that applying multiple transforms to an element is the same as applying the transforms in the same order to nested elements.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform-containing-block-dynamic-1a-6" class="primary">
+        <td><strong>
+            <a href="transform-containing-block-dynamic-1a.htm">transform-containing-block-dynamic-1a</a></strong></td>
+        <td><a href="reference/containing-block-dynamic-1-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS transforms: Creating containing block for fixed positioned elements
+          <ul class="assert">
+            <li>For elements whose layout is governed by the CSS box model, any value other than none for the transform results in the creation of both a stacking context and a containing block. The object acts as a containing block for fixed positioned descendants.</li>
+            <li>The object acts as a containing block for fixed positioned descendants.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="transform-containing-block-dynamic-1b-6" class="primary">
+        <td><strong>
+            <a href="transform-containing-block-dynamic-1b.htm">transform-containing-block-dynamic-1b</a></strong></td>
+        <td><a href="reference/containing-block-dynamic-1-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS transforms: Creating containing block for fixed positioned elements
+          <ul class="assert">
+            <li>For elements whose layout is governed by the CSS box model, any value other than none for the transform results in the creation of both a stacking context and a containing block. The object acts as a containing block for fixed positioned descendants.</li>
+            <li>The object acts as a containing block for fixed positioned descendants.</li>
           </ul>
         </td>
       </tr>
