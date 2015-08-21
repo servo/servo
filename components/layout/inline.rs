@@ -1644,10 +1644,10 @@ impl Flow for InlineFlow {
             let stacking_relative_border_box =
                 fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
                                                       &self.base
-                                                           .absolute_position_info
+                                                           .early_absolute_position_info
                                                            .relative_containing_block_size,
                                                       self.base
-                                                          .absolute_position_info
+                                                          .early_absolute_position_info
                                                           .relative_containing_block_mode,
                                                       CoordinateSystem::Parent);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
@@ -1659,13 +1659,14 @@ impl Flow for InlineFlow {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
                     let block_flow = info.flow_ref.as_mut_block();
-                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+                    block_flow.base.late_absolute_position_info =
+                        self.base.late_absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;
                     if is_positioned {
                         let padding_box_origin = containing_block_positions.next().unwrap();
                         block_flow.base
-                                  .absolute_position_info
+                                  .late_absolute_position_info
                                   .stacking_relative_position_of_absolute_containing_block =
                             stacking_relative_position + *padding_box_origin;
                     }
@@ -1679,7 +1680,8 @@ impl Flow for InlineFlow {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
                     let block_flow = info.flow_ref.as_mut_block();
-                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+                    block_flow.base.late_absolute_position_info =
+                        self.base.late_absolute_position_info;
 
                     block_flow.base.stacking_relative_position =
                         stacking_relative_border_box.origin;
@@ -1690,12 +1692,13 @@ impl Flow for InlineFlow {
                     flow::mut_base(&mut *info.flow_ref).clip = clip;
 
                     let block_flow = info.flow_ref.as_mut_block();
-                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+                    block_flow.base.late_absolute_position_info =
+                        self.base.late_absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;
                     let padding_box_origin = containing_block_positions.next().unwrap();
                     block_flow.base
-                              .absolute_position_info
+                              .late_absolute_position_info
                               .stacking_relative_position_of_absolute_containing_block =
                         stacking_relative_position + *padding_box_origin;
 
@@ -1722,7 +1725,8 @@ impl Flow for InlineFlow {
     fn compute_overflow(&self) -> Rect<Au> {
         let mut overflow = ZERO_RECT;
         for fragment in &self.fragments.fragments {
-            overflow = overflow.union(&fragment.compute_overflow())
+            overflow = overflow.union(&fragment.compute_overflow(
+                    &self.base.early_absolute_position_info.relative_containing_block_size))
         }
         overflow
     }
@@ -1739,9 +1743,9 @@ impl Flow for InlineFlow {
 
             let stacking_relative_position = &self.base.stacking_relative_position;
             let relative_containing_block_size =
-                &self.base.absolute_position_info.relative_containing_block_size;
+                &self.base.early_absolute_position_info.relative_containing_block_size;
             let relative_containing_block_mode =
-                self.base.absolute_position_info.relative_containing_block_mode;
+                self.base.early_absolute_position_info.relative_containing_block_mode;
             iterator.process(fragment,
                              level,
                              &fragment.stacking_relative_border_box(stacking_relative_position,

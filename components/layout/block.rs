@@ -31,15 +31,17 @@ use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{BLOCK_POSITION_IS_STATIC, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
-use flow::{CLEARS_LEFT, CLEARS_RIGHT};
+use flow::{BLOCK_POSITION_IS_STATIC};
+use flow::{BaseFlow};
+use flow::{CLEARS_LEFT, CLEARS_RIGHT, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::{EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
-use flow::{ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow, PreorderFlowTraversal};
+use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
-use flow::{PostorderFlowTraversal, mut_base};
-use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base, self};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator};
+use fragment::{SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
@@ -483,7 +485,7 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
             }
         }
 
-        flow.store_overflow(self.layout_context);
+        flow.early_store_overflow(self.layout_context);
     }
 }
 
@@ -960,6 +962,19 @@ impl BlockFlow {
                 //
                 // FIXME(pcwalton): This looks not idempotent. Is it?
                 self.fragment.border_box.size.block = block_size;
+            }
+
+            // Write in the size of the relative containing block for children. (This information
+            // is also needed to handle RTL.)
+            for kid in self.base.child_iter() {
+                flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: self.fragment.content_box().size,
+                    relative_containing_block_mode: self.fragment.style().writing_mode,
+                };
+                kid.late_store_overflow(layout_context)
+            }
+
+            if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 return
             }
 
@@ -1701,7 +1716,7 @@ impl Flow for BlockFlow {
             self.base.thread_id = parent_thread_id;
             if self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
                 self.assign_block_size(layout_context);
-                self.store_overflow(layout_context);
+                (self as &mut Flow).early_store_overflow(layout_context);
                 // Don't remove the restyle damage; `assign_block_size` decides whether that is
                 // appropriate (which in the case of e.g. absolutely-positioned flows, it is not).
             }
@@ -1790,7 +1805,7 @@ impl Flow for BlockFlow {
                 // Absolute position of the containing block + position of absolute
                 // flow w.r.t. the containing block.
                 self.base
-                    .absolute_position_info
+                    .late_absolute_position_info
                     .stacking_relative_position_of_absolute_containing_block + position_start
             };
 
@@ -1816,13 +1831,13 @@ impl Flow for BlockFlow {
         // other hand, is only established if we are positioned.
         let relative_offset =
             self.fragment.relative_position(&self.base
-                                                 .absolute_position_info
+                                                 .early_absolute_position_info
                                                  .relative_containing_block_size);
         if self.contains_positioned_fragments() {
             let border_box_origin = (self.fragment.border_box -
                 self.fragment.style.logical_border_width()).start;
             self.base
-                .absolute_position_info
+                .late_absolute_position_info
                 .stacking_relative_position_of_absolute_containing_block =
                     self.base.stacking_relative_position +
                      (border_box_origin + relative_offset).to_physical(self.base.writing_mode,
@@ -1849,14 +1864,12 @@ impl Flow for BlockFlow {
                 }
             } else {
                 self.base
-                    .absolute_position_info
+                    .late_absolute_position_info
                     .stacking_relative_position_of_absolute_containing_block
             };
-        let absolute_position_info_for_children = AbsolutePositionInfo {
+        let late_absolute_position_info_for_children = LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block:
                 stacking_relative_position_of_absolute_containing_block_for_children,
-            relative_containing_block_size: self.fragment.content_box().size,
-            relative_containing_block_mode: self.base.writing_mode,
             layers_needed_for_positioned_flows: self.base
                                                     .flags
                                                     .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
@@ -1908,10 +1921,10 @@ impl Flow for BlockFlow {
             self.fragment
                 .stacking_relative_border_box(&self.base.stacking_relative_position,
                                               &self.base
-                                                   .absolute_position_info
+                                                   .early_absolute_position_info
                                                    .relative_containing_block_size,
                                               self.base
-                                                  .absolute_position_info
+                                                  .early_absolute_position_info
                                                   .relative_containing_block_mode,
                                               CoordinateSystem::Own);
         let clip = self.fragment.clipping_region_for_children(
@@ -1959,7 +1972,8 @@ impl Flow for BlockFlow {
                 }
             }
 
-            flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
+            flow::mut_base(kid).late_absolute_position_info =
+                late_absolute_position_info_for_children;
             flow::mut_base(kid).clip = clip.clone();
             flow::mut_base(kid).stacking_relative_position_of_display_port =
                 stacking_relative_position_of_display_port_for_children;
@@ -2030,7 +2044,9 @@ impl Flow for BlockFlow {
     }
 
     fn compute_overflow(&self) -> Rect<Au> {
-        self.fragment.compute_overflow()
+        self.fragment.compute_overflow(&self.base
+                                            .early_absolute_position_info
+                                            .relative_containing_block_size)
     }
 
     fn iterate_through_fragment_border_boxes(&self,
@@ -2046,10 +2062,10 @@ impl Flow for BlockFlow {
                          &self.fragment
                               .stacking_relative_border_box(&self.base.stacking_relative_position,
                                                             &self.base
-                                                                 .absolute_position_info
+                                                                 .early_absolute_position_info
                                                                  .relative_containing_block_size,
                                                             self.base
-                                                                .absolute_position_info
+                                                                .early_absolute_position_info
                                                                 .relative_containing_block_mode,
                                                             CoordinateSystem::Own)
                               .translate(stacking_context_position));
