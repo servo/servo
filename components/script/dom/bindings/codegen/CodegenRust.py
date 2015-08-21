@@ -41,18 +41,16 @@ def replaceFileIfChanged(filename, newContents):
 
     # oldFileContents = ""
     # try:
-    #     oldFile = open(filename, 'rb')
-    #     oldFileContents = ''.join(oldFile.readlines())
-    #     oldFile.close()
+    #     with open(filename, 'rb') as oldFile:
+    #         oldFileContents = ''.join(oldFile.readlines())
     # except:
     #     pass
 
     # if newContents == oldFileContents:
     #     return False
 
-    f = open(filename, 'wb')
-    f.write(newContents)
-    f.close()
+    with open(filename, 'wb') as f:
+        f.write(newContents)
 
     return True
 
