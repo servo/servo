@@ -14,6 +14,7 @@ use azure::azure_hl::Color;
 use block::BlockFlow;
 use context::LayoutContext;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow_ref;
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
@@ -1796,17 +1797,17 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
-                    let block_flow = &mut *block_flow.flow_ref;
+                    let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }

@@ -11,7 +11,7 @@ use context::LayoutContext;
 use floats::ClearType;
 use flow;
 use flow::Flow;
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 use incremental::{self, RestyleDamage};
 use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
 use layout_debug;
@@ -1260,11 +1260,11 @@ impl Fragment {
             SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
-            SpecificFragmentInfo::InlineBlock(ref mut info) => {
+            SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
-            SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+            SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
@@ -1647,7 +1647,7 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                let block_flow = info.flow_ref.as_mut_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_mut_block();
                 block_flow.base.position.size.inline =
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
 
@@ -1655,7 +1655,7 @@ impl Fragment {
                 self.border_box.size.inline = Au(0);
             }
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                let block_flow = info.flow_ref.as_mut_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1663,7 +1663,7 @@ impl Fragment {
                 block_flow.base.block_container_writing_mode = self.style.writing_mode;
             }
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                let block_flow = info.flow_ref.as_mut_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_mut_block();
                 self.border_box.size.inline =
                     max(block_flow.base.intrinsic_inline_sizes.minimum_inline_size,
                         block_flow.base.intrinsic_inline_sizes.preferred_inline_size);
@@ -1767,18 +1767,18 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_block();
                 self.border_box.size.block = block_flow.base.position.size.block +
                     block_flow.fragment.margin.block_start_end()
             }
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
             SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
-                let block_flow = info.flow_ref.as_block();
+                let block_flow = flow_ref::deref_mut(&mut info.flow_ref).as_block();
                 self.border_box.size.block = block_flow.base.position.size.block +
                     block_flow.fragment.margin.block_start_end()
             }
@@ -1906,7 +1906,7 @@ impl Fragment {
     /// block size assignment.
     pub fn update_late_computed_replaced_inline_size_if_necessary(&mut self) {
         if let SpecificFragmentInfo::InlineBlock(ref mut inline_block_info) = self.specific {
-            let block_flow = inline_block_info.flow_ref.as_block();
+            let block_flow = flow_ref::deref_mut(&mut inline_block_info.flow_ref).as_block();
             let margin = block_flow.fragment.style.logical_margin();
             self.border_box.size.inline = block_flow.fragment.border_box.size.inline +
                 MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
@@ -1918,7 +1918,8 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                 let position = self.border_box.start.i;
-                info.flow_ref.update_late_computed_inline_position_if_necessary(position)
+                flow_ref::deref_mut(&mut info.flow_ref)
+                    .update_late_computed_inline_position_if_necessary(position)
             }
             _ => {}
         }
@@ -1928,7 +1929,8 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                 let position = self.border_box.start.b;
-                info.flow_ref.update_late_computed_block_position_if_necessary(position)
+                flow_ref::deref_mut(&mut info.flow_ref)
+                    .update_late_computed_block_position_if_necessary(position)
             }
             _ => {}
         }

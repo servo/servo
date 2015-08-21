@@ -30,7 +30,7 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
-use flow_ref::{FlowRef, WeakFlowRef};
+use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
@@ -57,7 +57,7 @@ use std::mem;
 use std::raw;
 use std::slice::IterMut;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::Ordering;
 use style::computed_values::{clear, display, empty_cells, float, position, text_align};
 use style::properties::{self, ComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -68,7 +68,7 @@ use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Debug + Sync {
+pub trait Flow: fmt::Debug + Sync + Send + 'static {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -770,9 +770,9 @@ pub struct AbsoluteDescendantIter<'a> {
 }
 
 impl<'a> Iterator for AbsoluteDescendantIter<'a> {
-    type Item = &'a mut (Flow + 'a);
-    fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
-        self.iter.next().map(|info| &mut *info.flow)
+    type Item = &'a mut Flow;
+    fn next(&mut self) -> Option<&'a mut Flow> {
+        self.iter.next().map(|info| flow_ref::deref_mut(&mut info.flow))
     }
 }
 
@@ -814,13 +814,6 @@ impl AbsolutePositionInfo {
 
 /// Data common to all flows.
 pub struct BaseFlow {
-    /// NB: Must be the first element.
-    ///
-    /// The necessity of this will disappear once we have dynamically-sized types.
-    strong_ref_count: AtomicUsize,
-
-    weak_ref_count: AtomicUsize,
-
     pub restyle_damage: RestyleDamage,
 
     /// The children of this flow.
@@ -962,15 +955,6 @@ impl Encodable for BaseFlow {
     }
 }
 
-impl Drop for BaseFlow {
-    fn drop(&mut self) {
-        if self.strong_ref_count.load(Ordering::SeqCst) != 0 &&
-           self.weak_ref_count.load(Ordering::SeqCst) != 0 {
-            panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
-        }
-    }
-}
-
 /// Whether a base flow should be forced to be nonfloated. This can affect e.g. `TableFlow`, which
 /// is never floated because the table wrapper flow is the floated one.
 #[derive(Clone, PartialEq)]
@@ -1038,8 +1022,6 @@ impl BaseFlow {
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
-            strong_ref_count: AtomicUsize::new(1),
-            weak_ref_count: AtomicUsize::new(1),
             restyle_damage: damage,
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
@@ -1066,16 +1048,6 @@ impl BaseFlow {
 
     pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
         self.children.iter_mut()
-    }
-
-    #[allow(unsafe_code)]
-    pub unsafe fn strong_ref_count<'a>(&'a self) -> &'a AtomicUsize {
-        &self.strong_ref_count
-    }
-
-    #[allow(unsafe_code)]
-    pub unsafe fn weak_ref_count<'a>(&'a self) -> &'a AtomicUsize {
-        &self.weak_ref_count
     }
 
     pub fn debug_id(&self) -> usize {
@@ -1114,7 +1086,7 @@ impl BaseFlow {
     }
 }
 
-impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
+impl<'a> ImmutableFlowUtils for &'a Flow {
     /// Returns true if this flow is a block flow or subclass thereof.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -1212,7 +1184,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     /// as it's harder to understand.
     fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef {
         let mut style = node.style().clone();
-        let flow = match self.class() {
+        match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 properties::modify_style_for_anonymous_table_object(
                     &mut style,
@@ -1223,7 +1195,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
                     style,
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableRow);
-                box TableRowFlow::from_fragment(fragment) as Box<Flow>
+                Arc::new(TableRowFlow::from_fragment(fragment))
             },
             FlowClass::TableRow => {
                 properties::modify_style_for_anonymous_table_object(
@@ -1236,14 +1208,12 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableCell);
                 let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
-                box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
-                    Box<Flow>
+                Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             _ => {
                 panic!("no need to generate a missing child")
             }
-        };
-        FlowRef::new(flow)
+        }
     }
 
     /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
@@ -1314,7 +1284,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
+impl<'a> MutableFlowUtils for &'a mut Flow {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T: PreorderFlowTraversal>(self, traversal: &T) {
         if traversal.should_process(self) {
@@ -1384,7 +1354,7 @@ impl MutableOwnedFlowUtils for FlowRef {
     /// construction is allowed to possess.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants) {
         let this = self.clone();
-        let base = mut_base(&mut **self);
+        let base = mut_base(flow_ref::deref_mut(self));
         base.abs_descendants = abs_descendants;
         for descendant_link in base.abs_descendants.iter() {
             let descendant_base = mut_base(descendant_link);

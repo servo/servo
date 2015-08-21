@@ -11,7 +11,7 @@
 use context::{LayoutContext, SharedLayoutContext};
 use flow;
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
@@ -47,25 +47,25 @@ fn null_unsafe_flow() -> UnsafeFlow {
 
 pub fn owned_flow_to_unsafe_flow(flow: *const FlowRef) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&*flow)
+        mem::transmute::<&Flow, UnsafeFlow>(&**flow)
     }
 }
 
 pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&*flow)
+        mem::transmute::<&Flow, UnsafeFlow>(&**flow)
     }
 }
 
 pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&flow)
+        mem::transmute::<&Flow, UnsafeFlow>(flow)
     }
 }
 
 pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
     unsafe {
-        mem::transmute_copy(&flow)
+        mem::transmute::<&Flow, UnsafeFlow>(flow)
     }
 }
 
@@ -239,24 +239,24 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
     fn run_parallel(&self, mut unsafe_flow: UnsafeFlow) {
         loop {
             // Get a real flow.
-            let flow: &mut FlowRef = unsafe {
-                mem::transmute(&mut unsafe_flow)
+            let flow: &mut Flow = unsafe {
+                mem::transmute(unsafe_flow)
             };
 
             // Perform the appropriate traversal.
-            if self.should_process(&mut **flow) {
-                self.process(&mut **flow);
+            if self.should_process(flow) {
+                self.process(flow);
             }
 
 
-            let base = flow::mut_base(&mut **flow);
+            let base = flow::mut_base(flow);
 
             // Reset the count of children for the next layout traversal.
             base.parallel.children_count.store(base.children.len() as isize,
                                                Ordering::Relaxed);
 
             // Possibly enqueue the parent.
-            let mut unsafe_parent = base.parallel.parent;
+            let unsafe_parent = base.parallel.parent;
             if unsafe_parent == null_unsafe_flow() {
                 // We're done!
                 break
@@ -265,10 +265,10 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
             // No, we're not at the root yet. Then are we the last child
             // of our parent to finish processing? If so, we can continue
             // on with our parent; otherwise, we've gotta wait.
-            let parent: &mut FlowRef = unsafe {
-                mem::transmute(&mut unsafe_parent)
+            let parent: &mut Flow = unsafe {
+                mem::transmute(unsafe_parent)
             };
-            let parent_base = flow::mut_base(&mut **parent);
+            let parent_base = flow::mut_base(parent);
             if parent_base.parallel.children_count.fetch_sub(1, Ordering::Relaxed) == 1 {
                 // We were the last child of our parent. Reflow our parent.
                 unsafe_flow = unsafe_parent
@@ -295,23 +295,23 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                            top_down_func: ChunkedFlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut discovered_child_flows = Vec::new();
-        for mut unsafe_flow in *unsafe_flows.0 {
+        for unsafe_flow in *unsafe_flows.0 {
             let mut had_children = false;
             unsafe {
                 // Get a real flow.
-                let flow: &mut FlowRef = mem::transmute(&mut unsafe_flow);
+                let flow: &mut Flow = mem::transmute(unsafe_flow);
 
                 if self.should_record_thread_ids() {
-                    flow::mut_base(&mut **flow).thread_id = proxy.worker_index();
+                    flow::mut_base(flow).thread_id = proxy.worker_index();
                 }
 
-                if self.should_process(&mut **flow) {
+                if self.should_process(flow) {
                     // Perform the appropriate traversal.
-                    self.process(&mut **flow);
+                    self.process(flow);
                 }
 
                 // Possibly enqueue the children.
-                for kid in flow::child_iter(&mut **flow) {
+                for kid in flow::child_iter(flow) {
                     had_children = true;
                     discovered_child_flows.push(borrowed_flow_to_unsafe_flow(kid));
                 }
@@ -470,7 +470,7 @@ pub fn traverse_flow_tree_preorder(
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
-        root.traverse_postorder(&bubble_inline_sizes);
+        flow_ref::deref_mut(root).traverse_postorder(&bubble_inline_sizes);
     }
 
     run_queue_with_custom_work_data_type(queue, |queue| {
