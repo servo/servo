@@ -4,6 +4,7 @@
 
 //! Timing functions.
 
+use heartbeats;
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use std::borrow::ToOwned;
@@ -124,6 +125,7 @@ impl Profiler {
                 });
             }
         }
+        heartbeats::init();
 
         ProfilerChan(chan)
     }
@@ -161,13 +163,20 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg.clone() {
-            ProfilerMsg::Time(k, t) => self.find_or_insert(k, t),
+            ProfilerMsg::Time(k, t) => {
+                heartbeats::maybe_heartbeat(&k.0, t.0, t.1, 0, 0);
+                let ms = (t.1 - t.0) as f64 / 1000000f64;
+                self.find_or_insert(k, ms);
+            },
             ProfilerMsg::Print => match self.last_msg {
                 // only print if more data has arrived since the last printout
                 Some(ProfilerMsg::Time(..)) => self.print_buckets(),
                 _ => ()
             },
-            ProfilerMsg::Exit => return false,
+            ProfilerMsg::Exit => {
+                heartbeats::cleanup();
+                return false;
+            },
         };
         self.last_msg = Some(msg);
         true
