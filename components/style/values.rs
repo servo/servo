@@ -369,6 +369,7 @@ pub mod specified {
     #[derive(Clone, Debug)]
     enum CalcValueNode {
         Length(Length),
+        Angle(Angle),
         Percentage(CSSFloat),
         Number(CSSFloat),
         Sum(Box<CalcSumNode>),
@@ -392,6 +393,7 @@ pub mod specified {
     #[derive(Clone, Debug)]
     enum SimplifiedValueNode {
         Length(Length),
+        Angle(Angle),
         Percentage(CSSFloat),
         Number(CSSFloat),
         Sum(Box<SimplifiedSumNode>),
@@ -404,6 +406,7 @@ pub mod specified {
             match *self {
                 SimplifiedValueNode::Length(l) => SimplifiedValueNode::Length(l * scalar),
                 SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
+                SimplifiedValueNode::Angle(Angle(a)) => SimplifiedValueNode::Angle(Angle(a * scalar)),
                 SimplifiedValueNode::Number(n) => SimplifiedValueNode::Number(n * scalar),
                 SimplifiedValueNode::Sum(box ref s) => {
                     let sum = s * scalar;
@@ -417,7 +420,7 @@ pub mod specified {
         match try!(input.next()) {
             Token::Number(ref value) => Ok(value.value),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let ast = try!(input.parse_nested_block(Calc::parse_sum));
+                let ast = try!(input.parse_nested_block(|i| Calc::parse_sum(i, CalcUnit::Number)));
 
                 let mut result = None;
 
@@ -425,7 +428,7 @@ pub mod specified {
                     match try!(Calc::simplify_product(node)) {
                         SimplifiedValueNode::Number(val) =>
                             result = Some(result.unwrap_or(0.) + val),
-                        _ => return Err(()),
+                        _ => unreachable!()
                     }
                 }
 
@@ -436,6 +439,13 @@ pub mod specified {
             }
             _ => Err(())
         }
+    }
+
+    #[derive(Clone, Copy)]
+    enum CalcUnit {
+        Number,
+        Length,
+        Angle,
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
@@ -452,17 +462,17 @@ pub mod specified {
         pub percentage: Option<Percentage>,
     }
     impl Calc {
-        fn parse_sum(input: &mut Parser) -> Result<CalcSumNode, ()> {
+        fn parse_sum(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
             let mut products = Vec::new();
-            products.push(try!(Calc::parse_product(input)));
+            products.push(try!(Calc::parse_product(input, expected_unit)));
 
             loop {
                 match input.next() {
                     Ok(Token::Delim('+')) => {
-                        products.push(try!(Calc::parse_product(input)));
+                        products.push(try!(Calc::parse_product(input, expected_unit)));
                     }
                     Ok(Token::Delim('-')) => {
-                        let mut right = try!(Calc::parse_product(input));
+                        let mut right = try!(Calc::parse_product(input, expected_unit));
                         right.values.push(CalcValueNode::Number(-1.));
                         products.push(right);
                     }
@@ -474,15 +484,15 @@ pub mod specified {
             Ok(CalcSumNode { products: products })
         }
 
-        fn parse_product(input: &mut Parser) -> Result<CalcProductNode, ()> {
+        fn parse_product(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcProductNode, ()> {
             let mut values = Vec::new();
-            values.push(try!(Calc::parse_value(input)));
+            values.push(try!(Calc::parse_value(input, expected_unit)));
 
             loop {
                 let position = input.position();
                 match input.next() {
                     Ok(Token::Delim('*')) => {
-                        values.push(try!(Calc::parse_value(input)));
+                        values.push(try!(Calc::parse_value(input, expected_unit)));
                     }
                     Ok(Token::Delim('/')) => {
                         if let Ok(Token::Number(ref value)) = input.next() {
@@ -504,15 +514,19 @@ pub mod specified {
             Ok(CalcProductNode { values: values })
         }
 
-        fn parse_value(input: &mut Parser) -> Result<CalcValueNode, ()> {
-            match try!(input.next()) {
-                Token::Number(ref value) => Ok(CalcValueNode::Number(value.value)),
-                Token::Dimension(ref value, ref unit) =>
-                    Length::parse_dimension(value.value, unit).map(CalcValueNode::Length),
-                Token::Percentage(ref value) =>
+        fn parse_value(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcValueNode, ()> {
+            match (try!(input.next()), expected_unit) {
+                (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
+                (Token::Dimension(ref value, ref unit), CalcUnit::Length) => {
+                    Length::parse_dimension(value.value, unit).map(CalcValueNode::Length)
+                }
+                (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
+                    Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
+                }
+                (Token::Percentage(ref value), CalcUnit::Length) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
-                Token::ParenthesisBlock => {
-                    let result = try!(input.parse_nested_block(Calc::parse_sum));
+                (Token::ParenthesisBlock, _) => {
+                    let result = try!(input.parse_nested_block(|i| Calc::parse_sum(i, expected_unit)));
                     Ok(CalcValueNode::Sum(box result))
                 },
                 _ => Err(())
@@ -576,6 +590,7 @@ pub mod specified {
                             CalcValueNode::Sum(box ref sum) =>
                                 try!(Calc::simplify_products_in_sum(sum)),
                             CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
+                            CalcValueNode::Angle(a) => SimplifiedValueNode::Angle(a),
                             CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
                             _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
                         })
@@ -590,8 +605,8 @@ pub mod specified {
             }
         }
 
-        pub fn parse(input: &mut Parser) -> Result<Calc, ()> {
-            let ast = try!(Calc::parse_sum(input));
+        pub fn parse_length(input: &mut Parser) -> Result<Calc, ()> {
+            let ast = try!(Calc::parse_sum(input, CalcUnit::Length));
 
             let mut simplified = Vec::new();
             for ref node in ast.products {
@@ -642,7 +657,7 @@ pub mod specified {
                                 rem = Some(rem.unwrap_or(0.) + val),
                         },
                     SimplifiedValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
-                    _ => unreachable!()
+                    _ => return Err(()),
                 }
             }
 
@@ -658,6 +673,36 @@ pub mod specified {
                 rem: rem.map(FontRelativeLength::Rem),
                 percentage: percentage.map(Percentage),
             })
+        }
+
+        pub fn parse_angle(input: &mut Parser) -> Result<Angle, ()> {
+            let ast = try!(Calc::parse_sum(input, CalcUnit::Angle));
+
+            let mut simplified = Vec::new();
+            for ref node in ast.products {
+                match try!(Calc::simplify_product(node)) {
+                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    value => simplified.push(value),
+                }
+            }
+
+            let mut angle = None;
+            let mut number = None;
+
+            for value in simplified {
+                match value {
+                    SimplifiedValueNode::Angle(Angle(val)) =>
+                        angle = Some(angle.unwrap_or(0.) + val),
+                    SimplifiedValueNode::Number(val) => number = Some(number.unwrap_or(0.) + val),
+                    _ => unreachable!()
+                }
+            }
+
+            match (angle, number) {
+                (Some(angle), None) => Ok(Angle(angle)),
+                (None, Some(value)) if value == 0. => Ok(Angle(0.)),
+                _ => Err(())
+            }
         }
     }
 
@@ -754,7 +799,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse));
+                    let calc = try!(input.parse_nested_block(Calc::parse_length));
                     Ok(LengthOrPercentage::Calc(calc))
                 },
                 _ => Err(())
@@ -803,7 +848,7 @@ pub mod specified {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse));
+                    let calc = try!(input.parse_nested_block(Calc::parse_length));
                     Ok(LengthOrPercentageOrAuto::Calc(calc))
                 },
                 _ => Err(())
@@ -1009,17 +1054,22 @@ pub mod specified {
         /// Parses an angle according to CSS-VALUES § 6.1.
         pub fn parse(input: &mut Parser) -> Result<Angle, ()> {
             match try!(input.next()) {
-                Token::Dimension(value, unit) => {
-                    match_ignore_ascii_case! { unit,
-                        "deg" => Ok(Angle(value.value * RAD_PER_DEG)),
-                        "grad" => Ok(Angle(value.value * RAD_PER_GRAD)),
-                        "turn" => Ok(Angle(value.value * RAD_PER_TURN)),
-                        "rad" => Ok(Angle(value.value))
-                        _ => Err(())
-                    }
-                }
+                Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
                 Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    input.parse_nested_block(Calc::parse_angle)
+                },
                 _ => Err(())
+            }
+        }
+
+        pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
+            match_ignore_ascii_case! { unit,
+                "deg" => Ok(Angle(value * RAD_PER_DEG)),
+                "grad" => Ok(Angle(value * RAD_PER_GRAD)),
+                "turn" => Ok(Angle(value * RAD_PER_TURN)),
+                "rad" => Ok(Angle(value))
+                 _ => Err(())
             }
         }
     }
