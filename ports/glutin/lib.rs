@@ -4,7 +4,7 @@
 
 //! A simple application that uses glutin to open a window for Servo to display in.
 
-#![feature(box_syntax)]
+#![feature(box_syntax, result_expect)]
 
 #[macro_use] extern crate bitflags;
 #[cfg(target_os="macos")] extern crate cgl;

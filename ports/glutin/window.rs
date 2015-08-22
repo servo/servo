@@ -97,7 +97,8 @@ impl Window {
                             .with_parent(parent)
                             .build()
                             .unwrap();
-        unsafe { glutin_window.make_current() };
+
+        unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 
         glutin_window.set_window_resize_callback(Some(Window::nested_window_resize as fn(u32, u32)));
 
@@ -352,7 +353,7 @@ impl Window {
             close_event = self.handle_next_event();
         }
 
-        if close_event || self.window.is_closed() {
+        if close_event {
             events.push(WindowEvent::Quit)
         }
 
@@ -518,7 +519,7 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
-        self.window.swap_buffers()
+        self.window.swap_buffers().unwrap();
     }
 
     fn create_compositor_channel(window: &Option<Rc<Window>>)
