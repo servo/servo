@@ -2,30 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
-use hsts::secure_url;
-use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::hosts::replace_hosts;
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use file_loader;
-use std::collections::HashSet;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
+use hsts::secure_url;
+use hyper::Error as HttpError;
 use hyper::client::{Request, Response};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
 use hyper::header::{Location, qitem, StrictTransportSecurity};
 use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
-use hyper::Error as HttpError;
-use hyper::method::Method;
 use hyper::http::RawStatus;
+use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
+use mime_classifier::MIMEClassifier;
+use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::hosts::replace_hosts;
+use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
+use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use std::borrow::ToOwned;
+use std::boxed::FnBox;
+use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::Arc;
@@ -33,9 +35,6 @@ use std::sync::mpsc::{Sender, channel};
 use url::{Url, UrlParser};
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
-
-use std::borrow::ToOwned;
-use std::boxed::FnBox;
 use uuid;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,

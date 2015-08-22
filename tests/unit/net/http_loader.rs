@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use flate2::Compression;
+use flate2::write::{GzEncoder, DeflateEncoder};
+use hyper::header::{Headers, Location, ContentLength};
+use hyper::http::RawStatus;
+use hyper::method::Method;
+use hyper::status::StatusCode;
+use ipc_channel::ipc;
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_task::new_resource_task;
-use net_traits::{ResourceTask, ControlMsg, CookieSource};
-use url::Url;
-use ipc_channel::ipc;
 use net_traits::LoadData;
-use hyper::method::Method;
-use hyper::http::RawStatus;
-use hyper::status::StatusCode;
-use hyper::header::{Headers, Location, ContentLength};
-use std::io::{self, Write, Read, Cursor};
-use flate2::write::{GzEncoder, DeflateEncoder};
-use flate2::Compression;
+use net_traits::{ResourceTask, ControlMsg, CookieSource};
 use std::borrow::Cow;
+use std::io::{self, Write, Read, Cursor};
+use url::Url;
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
@@ -115,7 +115,7 @@ fn response_for_request_type(t: RequestType) -> Result<MockResponse, LoadError> 
 }
 
 impl HttpRequest for MockRequest {
-    type R=MockResponse;
+    type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
 
@@ -137,7 +137,7 @@ impl AssertMustHaveHeadersRequest {
 }
 
 impl HttpRequest for AssertMustHaveHeadersRequest {
-    type R=MockResponse;
+    type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
 
@@ -160,7 +160,7 @@ struct AssertMustHaveHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
-    type R=AssertMustHaveHeadersRequest;
+    type R = AssertMustHaveHeadersRequest;
 
     fn create(&self, _: Url, _: Method) -> Result<AssertMustHaveHeadersRequest, LoadError> {
         Ok(
@@ -197,7 +197,7 @@ impl AssertMustHaveBodyRequest {
 }
 
 impl HttpRequest for AssertMustHaveBodyRequest {
-    type R=MockResponse;
+    type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.headers}
 
@@ -213,7 +213,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, url: Url, method: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
@@ -239,7 +239,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let mut e = DeflateEncoder::new(Vec::new(), Compression::Default);
@@ -265,7 +265,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let mut e = GzEncoder::new(Vec::new(), Compression::Default);
@@ -291,7 +291,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=AssertMustHaveBodyRequest;
+        type R = AssertMustHaveBodyRequest;
 
         fn create(&self, url: Url, _: Method) -> Result<AssertMustHaveBodyRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
@@ -326,7 +326,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
@@ -354,7 +354,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
@@ -382,7 +382,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
@@ -434,7 +434,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
-    let mut content_len_headers= Headers::new();
+    let mut content_len_headers = Headers::new();
     content_len_headers.set_raw(
         "Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]
     );
@@ -486,7 +486,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
@@ -516,7 +516,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
@@ -544,7 +544,7 @@ fn test_load_follows_a_redirect() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R=MockRequest;
+        type R = MockRequest;
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
@@ -579,7 +579,7 @@ fn test_load_follows_a_redirect() {
 struct DontConnectFactory;
 
 impl HttpRequestFactory for DontConnectFactory {
-    type R=MockRequest;
+    type R = MockRequest;
 
     fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
         Err(LoadError::Connection(url, "should not have connected".to_string()))
