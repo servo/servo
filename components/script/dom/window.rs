@@ -25,6 +25,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
+use dom::history::History;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{window_from_node, TrustedNodeAddress, NodeHelpers, from_untrusted_node_address};
@@ -116,6 +117,7 @@ pub struct Window {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
+    history: MutNullableHeap<JS<History>>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_task: ImageCacheTask,
     #[ignore_heap_size_of = "channels are hard"]
@@ -381,6 +383,11 @@ impl<'a> WindowMethods for &'a Window {
     // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(self) -> Root<Document> {
         self.browsing_context().as_ref().unwrap().active_document()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-history
+    fn History(self) -> Root<History> {
+        self.history.or_init(|| History::new(&self))
     }
 
     // https://html.spec.whatwg.org/#dom-location
@@ -1102,6 +1109,7 @@ impl Window {
             compositor: compositor,
             page: page,
             navigator: Default::default(),
+            history: Default::default(),
             image_cache_task: image_cache_task,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
