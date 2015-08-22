@@ -292,6 +292,7 @@ pub mod specified {
     const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
     const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
     const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
+    const AU_PER_Q: CSSFloat = AU_PER_MM / 4.;
     const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
     const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
@@ -335,6 +336,7 @@ pub mod specified {
                 "in" => Ok(Length::Absolute(Au((value * AU_PER_IN) as i32))),
                 "cm" => Ok(Length::Absolute(Au((value * AU_PER_CM) as i32))),
                 "mm" => Ok(Length::Absolute(Au((value * AU_PER_MM) as i32))),
+                "q" => Ok(Length::Absolute(Au((value * AU_PER_Q) as i32))),
                 "pt" => Ok(Length::Absolute(Au((value * AU_PER_PT) as i32))),
                 "pc" => Ok(Length::Absolute(Au((value * AU_PER_PC) as i32))),
                 // font-relative
