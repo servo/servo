@@ -111,6 +111,9 @@ pub struct Fragment {
     /// The pseudo-element that this fragment represents.
     pub pseudo: PseudoElementType<()>,
 
+    /// Various flags for this fragment.
+    pub flags: FragmentFlags,
+
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
     pub debug_id: u16,
 }
@@ -761,6 +764,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
+            flags: FragmentFlags::empty(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -783,6 +787,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
+            flags: FragmentFlags::empty(),
             debug_id: layout_debug::generate_unique_debug_id(),
         }
     }
@@ -816,6 +821,7 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
+            flags: FragmentFlags::empty(),
             debug_id: self.debug_id,
         }
     }
@@ -1987,6 +1993,9 @@ impl Fragment {
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
+        if self.flags.contains(HAS_LAYER) {
+            return true
+        }
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
@@ -2375,3 +2384,11 @@ impl WhitespaceStrippingResult {
         }
     }
 }
+
+bitflags! {
+    flags FragmentFlags: u8 {
+        /// Whether this fragment has a layer.
+        const HAS_LAYER = 0x01,
+    }
+}
+
