@@ -1583,7 +1583,7 @@ class CGIndenter(CGThing):
 
     def define(self):
         defn = self.child.define()
-        if defn is not "":
+        if defn != "":
             return re.sub(lineStartDetector, self.indent, defn)
         else:
             return defn
@@ -3641,7 +3641,7 @@ class ClassMethod(ClassItem):
             'override': ' MOZ_OVERRIDE' if self.override else '',
             'args': args,
             'body': body,
-            'visibility': self.visibility + ' ' if self.visibility is not 'priv' else ''
+            'visibility': self.visibility + ' ' if self.visibility != 'priv' else ''
         })
 
     def define(self, cgClass):

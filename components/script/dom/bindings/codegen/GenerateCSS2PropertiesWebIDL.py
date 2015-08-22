@@ -9,7 +9,7 @@ propList = eval(sys.stdin.read())
 props = ""
 for [prop, pref] in propList:
     extendedAttrs = ["Throws", "TreatNullAs=EmptyString"]
-    if pref is not "":
+    if pref != "":
         extendedAttrs.append("Pref=%s" % pref)
     if not prop.startswith("Moz"):
         prop = prop[0].lower() + prop[1:]
