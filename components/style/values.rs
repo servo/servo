@@ -402,6 +402,7 @@ pub mod specified {
     enum CalcUnit {
         Number,
         Length,
+        LengthOrPercentage,
         Angle,
     }
 
@@ -474,13 +475,14 @@ pub mod specified {
         fn parse_value(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcValueNode, ()> {
             match (try!(input.next()), expected_unit) {
                 (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
-                (Token::Dimension(ref value, ref unit), CalcUnit::Length) => {
+                (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
+                (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
                     Length::parse_dimension(value.value, unit).map(CalcValueNode::Length)
                 }
                 (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
                     Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
                 }
-                (Token::Percentage(ref value), CalcUnit::Length) =>
+                (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
                 (Token::ParenthesisBlock, _) => {
                     let result = try!(input.parse_nested_block(|i| Calc::parse_sum(i, expected_unit)));
@@ -562,8 +564,16 @@ pub mod specified {
             }
         }
 
-        pub fn parse_length(input: &mut Parser) -> Result<Calc, ()> {
-            let ast = try!(Calc::parse_sum(input, CalcUnit::Length));
+        fn parse_length(input: &mut Parser) -> Result<Calc, ()> {
+            Calc::parse(input, CalcUnit::Length)
+        }
+
+        fn parse_length_or_percentage(input: &mut Parser) -> Result<Calc, ()> {
+            Calc::parse(input, CalcUnit::LengthOrPercentage)
+        }
+
+        fn parse(input: &mut Parser, expected_unit: CalcUnit) -> Result<Calc, ()> {
+            let ast = try!(Calc::parse_sum(input, expected_unit));
 
             let mut simplified = Vec::new();
             for ref node in ast.products {
@@ -756,7 +766,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse_length));
+                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
                     Ok(LengthOrPercentage::Calc(calc))
                 },
                 _ => Err(())
@@ -806,7 +816,7 @@ pub mod specified {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse_length));
+                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
                     Ok(LengthOrPercentageOrAuto::Calc(calc))
                 },
                 _ => Err(())
@@ -868,6 +878,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub enum LengthOrNone {
         Length(Length),
+        Calc(Calc),
         None,
     }
 
@@ -875,6 +886,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 LengthOrNone::Length(length) => length.to_css(dest),
+                LengthOrNone::Calc(calc) => calc.to_css(dest),
                 LengthOrNone::None => dest.write_str("none"),
             }
         }
@@ -888,7 +900,11 @@ pub mod specified {
                     Length::parse_dimension(value.value, unit).map(LengthOrNone::Length),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrNone::Length(Length::Absolute(Au(0)))),
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    let calc = try!(input.parse_nested_block(Calc::parse_length));
+                    Ok(LengthOrNone::Calc(calc))
+                },
+                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                     Ok(LengthOrNone::None),
                 _ => Err(())
             }
@@ -1635,6 +1651,9 @@ pub mod computed {
             match *self {
                 specified::LengthOrNone::Length(value) => {
                     LengthOrNone::Length(value.to_computed_value(context))
+                }
+                specified::LengthOrNone::Calc(calc) => {
+                    LengthOrNone::Length(calc.to_computed_value(context).length())
                 }
                 specified::LengthOrNone::None => {
                     LengthOrNone::None
