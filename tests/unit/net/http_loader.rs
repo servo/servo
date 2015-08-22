@@ -227,7 +227,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.method = Method::Post;
 
@@ -253,7 +253,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
     let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
 
@@ -279,7 +279,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
     let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
 
@@ -313,7 +313,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
@@ -337,7 +337,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
 
     let load_data = LoadData::new(url.clone(), None);
 
@@ -365,7 +365,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     }
 
     let url = Url::parse("https://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
 
     let load_data = LoadData::new(url.clone(), None);
 
@@ -393,7 +393,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "");
 
     let load_data = LoadData::new(url.clone(), None);
@@ -406,7 +406,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("http://mozilla.com").unwrap(),
                                                    "mozillaIs=theBest".to_string(),
                                                    CookieSource::HTTP)).unwrap();
@@ -430,7 +430,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
@@ -455,7 +455,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     );
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -471,7 +471,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -500,7 +500,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
@@ -528,7 +528,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
@@ -564,7 +564,7 @@ fn test_load_follows_a_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
@@ -589,7 +589,7 @@ impl HttpRequestFactory for DontConnectFactory {
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
     let url = Url::parse("ftp://not-supported").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {
@@ -601,7 +601,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
     let url = Url::parse("view-source:ftp://not-supported").unwrap();
-    let resource_mgr = new_resource_task(None, None);
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
     match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {

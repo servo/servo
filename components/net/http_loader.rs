@@ -3,26 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
-use hsts::{HSTSList, secure_url};
+use hsts::secure_url;
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
-use hsts::secure_url;
-use file_loader;
 
 use file_loader;
-use ipc_channel::ipc::{self, IpcSender};
-use log;
 use std::collections::HashSet;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::Error as HttpError;
-use hyper::client::Request;
-use hyper::header::StrictTransportSecurity;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::client::{Request, Response};
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
+use hyper::client::{Request, Response};
 use hyper::header::{Location, qitem, StrictTransportSecurity};
 use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
 use hyper::Error as HttpError;
@@ -34,22 +26,17 @@ use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
-use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
-use util::task::spawn_named;
-use util::resource_files::resources_dir_path;
 use url::{Url, UrlParser};
-use util::opts;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use uuid;
-use std::fs::File;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>)
