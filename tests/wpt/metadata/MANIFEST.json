@@ -29097,7 +29097,14 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
+      "2dcontext/transformations/canvas_transformations_reset_001.htm",
+      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
+    ],
     "items": {},
     "reftest_nodes": {}
   },

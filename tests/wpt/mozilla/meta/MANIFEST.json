@@ -485,6 +485,12 @@
             "url": "/_mozilla/mozilla/element_className.html"
           }
         ],
+        "mozilla/element_getcomputedstyle.html": [
+          {
+            "path": "mozilla/element_getcomputedstyle.html",
+            "url": "/_mozilla/mozilla/element_getcomputedstyle.html"
+          }
+        ],
         "mozilla/element_matches.html": [
           {
             "path": "mozilla/element_matches.html",

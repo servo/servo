@@ -136,7 +136,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     fn Style(self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
-            CSSStyleDeclaration::new(global.r(), self, None, CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(global.r(), ElementCast::from_ref(self), None, CSSModificationAccess::ReadWrite)
         })
     }
 
@@ -458,4 +458,3 @@ impl PartialEq for HTMLElementTypeId {
         }
     }
 }
-
