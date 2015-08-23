@@ -27,6 +27,7 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::XhrEvent;
 use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 
 use encoding::all::UTF_8;
@@ -989,7 +990,7 @@ impl XMLHttpRequest {
             sleep_ms(duration_ms);
             match cancel_rx.try_recv() {
                 Err(TryRecvError::Empty) => {
-                    timeout_target.send(CommonScriptMsg::RunnableMsg(box XHRTimeout {
+                    timeout_target.send(CommonScriptMsg::RunnableMsg(XhrEvent, box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();

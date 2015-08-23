@@ -21,6 +21,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
 use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use string_cache::Atom;
 use util::str::DOMString;
@@ -131,7 +132,7 @@ impl HTMLImageElement {
                     // Return the image via a message to the script task, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    script_chan.send(CommonScriptMsg::RunnableMsg(
+                    script_chan.send(CommonScriptMsg::RunnableMsg(UpdateReplacedElement,
                         box ImageResponseHandlerRunnable::new(
                             trusted_node.clone(), image_response))).unwrap();
                 });

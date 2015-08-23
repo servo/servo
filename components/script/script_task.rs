@@ -94,11 +94,12 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::{Url, UrlParser};
 
+use core::ops::Deref;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::{stdout, Write};
 use std::mem as std_mem;
 use std::option::Option;
@@ -178,6 +179,13 @@ pub trait MainThreadRunnable {
     fn handler(self: Box<Self>, script_task: &ScriptTask);
 }
 
+enum MixedMessage {
+    FromConstellation(ConstellationControlMsg),
+    FromScript(MainThreadScriptMsg),
+    FromDevtools(DevtoolScriptControlMsg),
+    FromImageCache(ImageCacheResult),
+}
+
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
     /// Requests that the script task measure its memory usage. The results are sent back via the
@@ -190,7 +198,27 @@ pub enum CommonScriptMsg {
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
-    RunnableMsg(Box<Runnable + Send>),
+    RunnableMsg(ScriptTaskEventCategory, Box<Runnable + Send>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
+pub enum ScriptTaskEventCategory {
+    AttachLayout,
+    ConstellationMsg,
+    DevtoolsMsg,
+    DocumentEvent,
+    DomEvent,
+    FileRead,
+    ImageCacheMsg,
+    InputEvent,
+    NetworkEvent,
+    Resize,
+    ScriptEvent,
+    UpdateReplacedElement,
+    SetViewport,
+    WebSocketEvent,
+    WorkerEvent,
+    XhrEvent,
 }
 
 /// Messages used to control the script event loop
@@ -390,6 +418,11 @@ pub struct ScriptTask {
 
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: RefCell<HashSet<PipelineId>>,
+
+    /// When profiling data should be written out to stdout.
+    perf_profiler_next_report: Cell<Option<u64>>,
+    /// How much time was spent on what since the last report.
+    perf_profiler_times: RefCell<HashMap<ScriptTaskEventCategory, u64>>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -635,6 +668,9 @@ impl ScriptTask {
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
             closed_pipelines: RefCell::new(HashSet::new()),
+
+            perf_profiler_next_report: Cell::new(None),
+            perf_profiler_times: RefCell::new(HashMap::new()),
         }
     }
 
@@ -713,13 +749,6 @@ impl ScriptTask {
             self.handle_event(id, ResizeEvent(size));
         }
 
-        enum MixedMessage {
-            FromConstellation(ConstellationControlMsg),
-            FromScript(MainThreadScriptMsg),
-            FromDevtools(DevtoolScriptControlMsg),
-            FromImageCache(ImageCacheResult),
-        }
-
         // Store new resizes, and gather all other events.
         let mut sequential = vec!();
 
@@ -762,13 +791,19 @@ impl ScriptTask {
                 // child list yet, causing the find() to fail.
                 MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
-                    self.handle_new_layout(new_layout_info);
+                    self.profile_event(ScriptTaskEventCategory::AttachLayout, || {
+                        self.handle_new_layout(new_layout_info);
+                    })
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
-                    self.handle_resize(id, size);
+                    self.profile_event(ScriptTaskEventCategory::Resize, || {
+                        self.handle_resize(id, size);
+                    })
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
-                    self.handle_viewport(id, rect);
+                    self.profile_event(ScriptTaskEventCategory::SetViewport, || {
+                        self.handle_viewport(id, rect);
+                    })
                 }
                 MixedMessage::FromConstellation(ConstellationControlMsg::TickAllAnimations(
                         pipeline_id)) => {
@@ -815,16 +850,26 @@ impl ScriptTask {
 
         // Process the gathered events.
         for msg in sequential {
-            match msg {
-                MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
-                    if self.handle_exit_pipeline_msg(id, exit_type) {
-                        return false
-                    }
-                },
-                MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
-                MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
-                MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+            let category = self.categorize_msg(&msg);
+
+            let result = self.profile_event(category, move || {
+                match msg {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
+                        if self.handle_exit_pipeline_msg(id, exit_type) {
+                            return Some(false)
+                        }
+                    },
+                    MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
+                    MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                    MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+                }
+
+                None
+            });
+
+            if let Some(retval) = result {
+                return retval
             }
         }
 
@@ -845,6 +890,76 @@ impl ScriptTask {
         }
 
         true
+    }
+
+    fn categorize_msg(&self, msg: &MixedMessage) -> ScriptTaskEventCategory {
+        match *msg {
+            MixedMessage::FromConstellation(ref inner_msg) => {
+                match *inner_msg {
+                    ConstellationControlMsg::SendEvent(_, _) =>
+                        ScriptTaskEventCategory::DomEvent,
+                    _ => ScriptTaskEventCategory::ConstellationMsg
+                }
+            },
+            MixedMessage::FromDevtools(_) => ScriptTaskEventCategory::DevtoolsMsg,
+            MixedMessage::FromImageCache(_) => ScriptTaskEventCategory::ImageCacheMsg,
+            MixedMessage::FromScript(ref inner_msg) => {
+                match *inner_msg {
+                    MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(ref category, _)) =>
+                        *category,
+                    _ => ScriptTaskEventCategory::ScriptEvent
+                }
+            }
+        }
+    }
+
+    fn profile_event<F, R>(&self, category: ScriptTaskEventCategory, f: F) -> R
+        where F: FnOnce() -> R {
+
+        if opts::get().profile_script_events {
+            let start = time::precise_time_ns();
+            let result = f();
+            let end = time::precise_time_ns();
+
+            let duration = end - start;
+
+            let aggregate = {
+                let zero = 0;
+                let perf_profiler_times = self.perf_profiler_times.borrow();
+                let so_far = perf_profiler_times.get(&category).unwrap_or(&zero);
+
+                so_far + duration
+            };
+
+            self.perf_profiler_times.borrow_mut().insert(category, aggregate);
+
+            const NANO: u64 = 1000 * 1000 * 1000;
+            const REPORT_INTERVAL: u64 = 10 * NANO;
+
+            match self.perf_profiler_next_report.get() {
+                None => self.perf_profiler_next_report.set(Some(start + REPORT_INTERVAL)),
+                Some(time) if time <= end => {
+                    self.perf_profiler_next_report.set(Some(end + REPORT_INTERVAL));
+
+                    let stdout = stdout();
+                    let mut stdout = stdout.lock();
+                    writeln!(&mut stdout, "Script task time distribution:").unwrap();
+                    for (c, t) in self.perf_profiler_times.borrow().deref() {
+                        let secs = t / NANO;
+                        let nanos = t % NANO;
+                        writeln!(&mut stdout, "  {:?}: {}.{}s", c, secs, nanos).unwrap();
+                    }
+                    stdout.flush().unwrap();
+
+                    self.perf_profiler_times.borrow_mut().clear();
+                },
+                Some(_) => {}
+            }
+
+            result
+        } else {
+            f()
+        }
     }
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
@@ -914,7 +1029,9 @@ impl ScriptTask {
             MainThreadScriptMsg::Common(
                 CommonScriptMsg::FireTimer(TimerSource::FromWorker, _)) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) =>
+            MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) =>
+                // The category of the runnable is ignored by the pattern, however
+                // it is still respected by profiling (see categorize_msg).
                 runnable.handler(),
             MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
                 LiveDOMReferences::cleanup(addr),
@@ -1128,7 +1245,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), doc, self.chan.clone());
         let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::Load);
-        self.chan.send(CommonScriptMsg::RunnableMsg(handler)).unwrap();
+        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
@@ -1881,7 +1998,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
         let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(CommonScriptMsg::RunnableMsg(handler)).unwrap();
+        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 

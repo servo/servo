@@ -123,6 +123,9 @@ pub struct Opts {
     /// profile viewer.
     pub profile_tasks: bool,
 
+    /// Periodically print out on which events script tasks spend their processing time.
+    pub profile_script_events: bool,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -213,6 +216,9 @@ pub struct DebugOptions {
     /// Instrument each task, writing the output to a file.
     pub profile_tasks: bool,
 
+    /// Profile which events script tasks spend their time on.
+    pub profile_script_events: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -265,6 +271,7 @@ impl DebugOptions {
                 "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
+                "profile-script-events" => debug_options.profile_script_events = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -409,6 +416,7 @@ pub fn default_opts() -> Opts {
         relayout_event: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
+        profile_script_events: false,
         resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
@@ -594,6 +602,7 @@ pub fn from_cmdline_args(args: &[String]) {
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
+        profile_script_events: debug_options.profile_script_events,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
