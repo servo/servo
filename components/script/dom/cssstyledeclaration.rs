@@ -78,23 +78,6 @@ impl CSSStyleDeclaration {
     }
 }
 
-trait PrivateCSSStyleDeclarationHelpers {
-    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
-    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
-}
-
-impl PrivateCSSStyleDeclarationHelpers for Element {
-    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
-        let element = ElementCast::from_ref(self);
-        element.get_inline_style_declaration(property)
-    }
-
-    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
-        let element = ElementCast::from_ref(self);
-        element.get_important_inline_style_declaration(property)
-    }
-}
-
 impl CSSStyleDeclaration {
     fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
@@ -163,7 +146,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             // Step 2.2
             for longhand in &*longhand_properties {
                 // Step 2.2.1
-                let declaration = owner.get_declaration(&Atom::from_slice(&longhand));
+                let declaration = owner.get_inline_style_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -178,7 +161,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
 
         // Step 3 & 4
         // FIXME: redundant let binding https://github.com/rust-lang/rust/issues/22252
-        let result = match owner.get_declaration(&property) {
+        let result = match owner.get_inline_style_declaration(&property) {
             Some(declaration) => declaration.value(),
             None => "".to_owned(),
         };
@@ -204,7 +187,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         } else {
             // FIXME: extra let binding https://github.com/rust-lang/rust/issues/22323
             let owner = self.owner.root();
-            if owner.get_important_declaration(&property).is_some() {
+            if owner.get_important_inline_style_declaration(&property).is_some() {
                 return "important".to_owned();
             }
         }
