@@ -14,7 +14,7 @@ use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 
 use devtools_traits::AttrInfo;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
+use util::str::{DOMString, parse_unsigned_integer, parse_integer, split_html_space_chars, str_join};
 
 use string_cache::{Atom, Namespace};
 
@@ -34,6 +34,7 @@ pub enum AttrValue {
     String(DOMString),
     TokenList(DOMString, Vec<Atom>),
     UInt(DOMString, u32),
+    Int(DOMString, i32),
     Atom(Atom),
 }
 
@@ -52,6 +53,11 @@ impl AttrValue {
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         let tokens = str_join(&atoms, "\x20");
         AttrValue::TokenList(tokens, atoms)
+    }
+
+    pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
+        let result = parse_integer(string.chars()).unwrap_or(default);
+        AttrValue::Int(string, result)
     }
 
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
@@ -103,7 +109,8 @@ impl Deref for AttrValue {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
-                AttrValue::UInt(ref value, _) => &value,
+                AttrValue::UInt(ref value, _) |
+                AttrValue::Int(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
     }
