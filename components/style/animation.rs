@@ -455,10 +455,10 @@ impl Interpolate for VerticalAlign {
     fn interpolate(&self, other: &VerticalAlign, time: f64)
                    -> Option<VerticalAlign> {
         match (*self, *other) {
-            (VerticalAlign::Length(ref this),
-             VerticalAlign::Length(ref other)) => {
+            (VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref this)),
+             VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref other))) => {
                 this.interpolate(other, time).and_then(|value| {
-                    Some(VerticalAlign::Length(value))
+                    Some(VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(value)))
                 })
             }
             (_, _) => None,
