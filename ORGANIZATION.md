@@ -26,7 +26,6 @@ special integration:
 * [`support/android`][support/android]: Android-specific infrastructure.
 * [`support/android-rs-glue`][support/android-rs-glue]: Android apk builder.
 * [`support/rust-task_info`][support/rust-task_info]: A binding to the task_info library on OS X.
-* `support/time`: A temporary fork of libtime required for Android.
 
 ## Tests
 
