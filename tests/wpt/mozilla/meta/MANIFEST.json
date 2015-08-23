@@ -299,6 +299,12 @@
             "url": "/_mozilla/mozilla/body_listener.html"
           }
         ],
+        "mozilla/calc.html": [
+          {
+            "path": "mozilla/calc.html",
+            "url": "/_mozilla/mozilla/calc.html"
+          }
+        ],
         "mozilla/caption.html": [
           {
             "path": "mozilla/caption.html",
