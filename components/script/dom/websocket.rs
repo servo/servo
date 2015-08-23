@@ -22,6 +22,7 @@ use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
+use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{Runnable, CommonScriptMsg};
 
 use net_traits::hosts::replace_hosts;
@@ -183,7 +184,7 @@ impl WebSocket {
                     let task = box CloseTask {
                         addr: address,
                     };
-                    sender.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
                     return;
                 }
             };
@@ -193,7 +194,7 @@ impl WebSocket {
                 addr: address.clone(),
                 sender: ws_sender.clone(),
             };
-            sender.send(CommonScriptMsg::RunnableMsg(open_task)).unwrap();
+            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
 
             for message in receiver.incoming_messages() {
                 let message = match message {
@@ -209,7 +210,7 @@ impl WebSocket {
                         let task = box CloseTask {
                             addr: address,
                         };
-                        sender.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
                         break;
                     },
                     Err(_) => break,
@@ -218,7 +219,7 @@ impl WebSocket {
                     address: address.clone(),
                     message: message,
                 };
-                sender.send(CommonScriptMsg::RunnableMsg(message_task)).unwrap();
+                sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_task)).unwrap();
             }
         });
 

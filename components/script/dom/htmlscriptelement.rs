@@ -35,6 +35,7 @@ use dom::window::{WindowHelpers, ScriptHelpers};
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 
 use encoding::all::UTF_8;
@@ -459,7 +460,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                 element: handler,
                 is_error: false,
             };
-            chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
         }
     }
 
@@ -472,7 +473,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
             element: handler,
             is_error: true,
         };
-        chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+        chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
     }
 
     fn dispatch_before_script_execute_event(self) -> bool {

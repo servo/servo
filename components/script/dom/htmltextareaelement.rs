@@ -28,6 +28,7 @@ use dom::node::{NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
+use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{Runnable, CommonScriptMsg};
 use textinput::{TextInput, Lines, KeyReaction};
 
@@ -368,7 +369,7 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,
                             };
-                            let _ = chan.send(CommonScriptMsg::RunnableMsg(box dispatcher));
+                            let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
                         }
 
                         self.force_relayout();
