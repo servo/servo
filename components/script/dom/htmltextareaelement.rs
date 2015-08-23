@@ -34,6 +34,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::i32;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -90,6 +91,7 @@ impl<'a> RawLayoutHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
 
 static DEFAULT_COLS: u32 = 20;
 static DEFAULT_ROWS: u32 = 2;
+static DEFAULT_MAX_LENGTH: i32 = i32::MAX;
 
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString,
@@ -99,7 +101,7 @@ impl HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan, None)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),

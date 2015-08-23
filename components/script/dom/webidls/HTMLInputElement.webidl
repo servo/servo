@@ -25,7 +25,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString inputMode;
   //readonly attribute HTMLElement? list;
   //         attribute DOMString max;
-  //         attribute long maxLength;
+          attribute long maxLength;
   //         attribute DOMString min;
   //         attribute long minLength;
   //         attribute boolean multiple;
