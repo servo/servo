@@ -804,9 +804,7 @@ pub mod longhands {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
                 % endfor
-                Length(Au),
-                Percentage(CSSFloat),
-                Calc(computed::Calc),
+                LengthOrPercentage(computed::LengthOrPercentage),
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -814,9 +812,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                         % endfor
-                        T::Length(length) => write!(f, "{:?}", length),
-                        T::Percentage(number) => write!(f, "{}%", number),
-                        T::Calc(calc) => write!(f, "{:?}", calc)
+                        T::LengthOrPercentage(value) => write!(f, "{:?}", value),
                     }
                 }
             }
@@ -826,9 +822,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                         % endfor
-                        T::Length(value) => value.to_css(dest),
-                        T::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-                        T::Calc(calc) => calc.to_css(dest),
+                        T::LengthOrPercentage(value) => value.to_css(dest),
                     }
                 }
             }
@@ -847,16 +841,8 @@ pub mod longhands {
                             computed_value::T::${to_rust_ident(keyword)}
                         }
                     % endfor
-                    SpecifiedValue::LengthOrPercentage(value) => {
-                        match value.to_computed_value(context) {
-                            computed::LengthOrPercentage::Length(value) =>
-                                computed_value::T::Length(value),
-                            computed::LengthOrPercentage::Percentage(value) =>
-                                computed_value::T::Percentage(value),
-                            computed::LengthOrPercentage::Calc(value) =>
-                                computed_value::T::Calc(value),
-                        }
-                    }
+                    SpecifiedValue::LengthOrPercentage(value) =>
+                        computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
                 }
             }
         }
