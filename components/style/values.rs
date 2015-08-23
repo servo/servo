@@ -375,6 +375,7 @@ pub mod specified {
     enum CalcValueNode {
         Length(Length),
         Angle(Angle),
+        Time(Time),
         Percentage(CSSFloat),
         Number(CSSFloat),
         Sum(Box<CalcSumNode>),
@@ -399,6 +400,7 @@ pub mod specified {
     enum SimplifiedValueNode {
         Length(Length),
         Angle(Angle),
+        Time(Time),
         Percentage(CSSFloat),
         Number(CSSFloat),
         Sum(Box<SimplifiedSumNode>),
@@ -411,6 +413,7 @@ pub mod specified {
             match self {
                 &SimplifiedValueNode::Length(l) => SimplifiedValueNode::Length(l * scalar),
                 &SimplifiedValueNode::Angle(Angle(a)) => SimplifiedValueNode::Angle(Angle(a * scalar)),
+                &SimplifiedValueNode::Time(Time(t)) => SimplifiedValueNode::Time(Time(t * scalar)),
                 &SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
                 &SimplifiedValueNode::Number(n) => SimplifiedValueNode::Number(n * scalar),
                 &SimplifiedValueNode::Sum(box ref s) => {
@@ -452,6 +455,7 @@ pub mod specified {
         Length,
         LengthOrPercentage,
         Angle,
+        Time,
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
@@ -529,6 +533,9 @@ pub mod specified {
                 (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
                     Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
                 }
+                (Token::Dimension(ref value, ref unit), CalcUnit::Time) => {
+                    Time::parse_dimension(value.value, unit).map(CalcValueNode::Time)
+                }
                 (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
                 (Token::ParenthesisBlock, _) => {
@@ -597,6 +604,7 @@ pub mod specified {
                                 try!(Calc::simplify_products_in_sum(sum)),
                             &CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
                             &CalcValueNode::Angle(a) => SimplifiedValueNode::Angle(a),
+                            &CalcValueNode::Time(t) => SimplifiedValueNode::Time(t),
                             &CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
                             _ => unreachable!("Numbers should have been handled by simplify_value_to_nubmer")
                         })
@@ -683,6 +691,33 @@ pub mod specified {
                 rem: rem.map(FontRelativeLength::Rem),
                 percentage: percentage.map(Percentage),
             })
+        }
+
+        pub fn parse_time(input: &mut Parser) -> Result<Time, ()> {
+            let ast = try!(Calc::parse_sum(input, CalcUnit::Time));
+
+            let mut simplified = Vec::new();
+            for ref node in ast.products {
+                match try!(Calc::simplify_product(node)) {
+                    SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
+                    value => simplified.push(value),
+                }
+            }
+
+            let mut time = None;
+
+            for value in simplified {
+                match value {
+                    SimplifiedValueNode::Time(Time(val)) =>
+                        time = Some(time.unwrap_or(0.) + val),
+                    _ => return Err(()),
+                }
+            }
+
+            match time {
+                Some(time) => Ok(Time(time)),
+                _ => Err(())
+            }
         }
 
         pub fn parse_angle(input: &mut Parser) -> Result<Angle, ()> {
@@ -1270,11 +1305,14 @@ pub mod specified {
         }
 
         pub fn parse(input: &mut Parser) -> Result<Time,()> {
-            match input.next() {
-                Ok(Token::Dimension(ref value, ref unit)) => {
+            match try!(input.next()) {
+                Token::Dimension(ref value, ref unit) => {
                     Time::parse_dimension(value.value, &unit)
                 }
-                _ => Err(()),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    input.parse_nested_block(Calc::parse_time)
+                }
+                _ => Err(())
             }
         }
     }
@@ -1290,7 +1328,7 @@ pub mod specified {
 
     impl ToCss for Time {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            write!(dest, "{}ms", self.0)
+            write!(dest, "{}s", self.0)
         }
     }
 }
