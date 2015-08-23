@@ -115,7 +115,7 @@ dependencies = [
  "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -146,7 +146,7 @@ name = "cgl"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -204,7 +204,7 @@ dependencies = [
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
@@ -597,11 +597,11 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -646,7 +646,7 @@ dependencies = [
  "compositing 0.0.1",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin 0.3.5 (git+https://github.com/servo/glutin?branch=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -782,7 +782,7 @@ dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -841,7 +841,7 @@ dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1106,7 +1106,7 @@ dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1460,7 +1460,7 @@ dependencies = [
  "euclid 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
- "gleam 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io-surface 0.1.0 (git+https://github.com/servo/io-surface-rs)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
