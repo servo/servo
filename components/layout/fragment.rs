@@ -466,9 +466,7 @@ impl ReplacedImageFragmentInfo {
             (LengthOrPercentageOrAuto::Calc(calc), _, Some(container_size)) => {
                 MaybeAuto::Specified(calc.length() + container_size.scale_by(calc.percentage()))
             }
-            (LengthOrPercentageOrAuto::Calc(calc), _, None) => {
-                MaybeAuto::Specified(calc.length())
-            }
+            (LengthOrPercentageOrAuto::Calc(_), _, None) => MaybeAuto::Auto,
             (LengthOrPercentageOrAuto::Auto, Some(dom_length), _) => MaybeAuto::Specified(dom_length),
             (LengthOrPercentageOrAuto::Auto, None, _) => MaybeAuto::Auto,
         }

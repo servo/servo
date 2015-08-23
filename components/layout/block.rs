@@ -330,13 +330,15 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrAuto::Calc(calc), Some(block_container_block_size)) => {
                 MaybeAuto::Specified(calc.length() + block_container_block_size.scale_by(calc.percentage()))
             }
-            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Percentage(_), None) |
+            (LengthOrPercentageOrAuto::Auto, _) |
+            (LengthOrPercentageOrAuto::Calc(_), _) => MaybeAuto::Auto,
             (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
-            (LengthOrPercentageOrAuto::Calc(calc), _) => MaybeAuto::Specified(calc.length()),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
-            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) =>
-                Some(block_container_block_size.scale_by(percent)),
+            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
+                Some(block_container_block_size.scale_by(percent))
+            }
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
@@ -1138,16 +1140,12 @@ impl BlockFlow {
             (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
                 Some(container_size.scale_by(calc.percentage()) + calc.length())
             }
-            (LengthOrPercentageOrAuto::Calc(calc), _) => {
-                Some(calc.length())
-            },
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
             (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
-            (LengthOrPercentageOrAuto::Percentage(_), None) => {
-                None
-            }
+            (LengthOrPercentageOrAuto::Percentage(_), None) |
+            (LengthOrPercentageOrAuto::Calc(_), None) |
             (LengthOrPercentageOrAuto::Auto, None) => {
                 None
             }

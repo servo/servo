@@ -1305,7 +1305,7 @@ pub mod computed {
     impl ::cssparser::ToCss for Calc {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match (self.length, self.percentage) {
-                (None, Some(p)) => write!(dest, "{}%", p),
+                (None, Some(p)) => write!(dest, "{}%", p * 100.),
                 (Some(l), None) => write!(dest, "{}px", Au::to_px(l)),
                 (Some(l), Some(p)) => write!(dest, "calc({}px + {}%)", Au::to_px(l), p * 100.),
                 _ => unreachable!()
@@ -1323,14 +1323,14 @@ pub mod computed {
                 length = Some(length.unwrap_or(Au(0)) + absolute);
             }
 
-            for val in vec!(self.vw, self.vh, self.vmin, self.vmax) {
-                if let Some(val) = val {
+            for val in &[self.vw, self.vh, self.vmin, self.vmax] {
+                if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) +
                         val.to_computed_value(context.viewport_size));
                 }
             }
-            for val in vec!(self.em, self.ex, self.rem) {
-                if let Some(val) = val {
+            for val in &[self.em, self.ex, self.rem] {
+                if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) +
                         val.to_computed_value(context.font_size, context.root_font_size));
                 }
