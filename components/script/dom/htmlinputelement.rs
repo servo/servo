@@ -40,6 +40,7 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::i32;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -130,7 +131,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan, None)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
@@ -320,6 +321,21 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
+    fn MaxLength(self) -> i32 {
+        match self.textinput.borrow().max_length {
+            Some(max_length) => max_length as i32,
+            None => i32::MAX
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
+    fn SetMaxLength(self, max_length: i32) {
+        if max_length > 0 {
+            self.textinput.borrow_mut().max_length = Some(max_length as usize)
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(self) -> bool {
@@ -514,6 +530,18 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
                     self.radio_group_updated(Some(&value));
                 }
             }
+            &atom!("maxlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        if value < 0 {
+                            self.textinput.borrow_mut().max_length = None
+                        } else {
+                            self.textinput.borrow_mut().max_length = Some(value as usize)
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::UInt"),
+                }
+            }
             _ if attr.local_name() == &Atom::from_slice("placeholder") => {
                 let value = attr.value();
                 let stripped = value.chars()
@@ -575,6 +603,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!("maxlength") => AttrValue::from_i32(value, i32::MAX),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
