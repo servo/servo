@@ -11,6 +11,7 @@ use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
+use std::usize;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
@@ -41,6 +42,7 @@ pub struct TextInput<T: ClipboardProvider> {
     multiline: bool,
     #[ignore_heap_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
+    pub max_length: Option<usize>
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -107,13 +109,14 @@ fn is_printable_key(key: Key) -> bool {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T) -> TextInput<T> {
+    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T, max_length: Option<usize>) -> TextInput<T> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
-            clipboard_provider: clipboard_provider
+            clipboard_provider: clipboard_provider,
+            max_length: max_length
         };
         i.set_content(initial);
         i
@@ -133,7 +136,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// Insert a string at the current editing point
-    fn insert_string<S: Into<String>>(&mut self, s: S) {
+    pub fn insert_string<S: Into<String>>(&mut self, s: S) {
         if self.selection_begin.is_none() {
             self.selection_begin = Some(self.edit_point);
         }
@@ -170,8 +173,40 @@ impl<T: ClipboardProvider> TextInput<T> {
         })
     }
 
+    fn selection_len(&self) -> usize {
+        if let Some((begin, end)) = self.get_sorted_selection() {
+            let prefix = &self.lines[begin.line][0..begin.index];
+            let suffix = &self.lines[end.line][end.index..];
+            let lines_prefix = &self.lines[..begin.line];
+            let lines_suffix = &self.lines[end.line + 1..];
+
+            self.len() - (prefix.chars().count() +
+                          suffix.chars().count() +
+                          lines_prefix.iter().fold(0, |m, i| m + i.chars().count() + 1) +
+                          lines_suffix.iter().fold(0, |m, i| m + i.chars().count() + 1))
+        } else {
+            0
+        }
+    }
+
     pub fn replace_selection(&mut self, insert: String) {
         if let Some((begin, end)) = self.get_sorted_selection() {
+            let allowed_to_insert_count = if let Some(max_length) = self.max_length {
+                let len_after_selection_replaced = self.len() - self.selection_len();
+                if len_after_selection_replaced > max_length {
+                    // If, after deleting the selection, the len is still greater than the max
+                    // length, then don't delete/insert anything
+                    return
+                }
+
+                max_length - len_after_selection_replaced
+            } else {
+                usize::MAX
+            };
+
+            let last_char_to_insert = min(allowed_to_insert_count, insert.chars().count());
+            let chars_to_insert = (&insert[0 .. last_char_to_insert]).to_owned();
+
             self.clear_selection();
 
             let new_lines = {
@@ -181,12 +216,13 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let lines_suffix = &self.lines[end.line + 1..];
 
                 let mut insert_lines = if self.multiline {
-                    insert.split('\n').map(|s| s.to_owned()).collect()
+                    chars_to_insert.split('\n').map(|s| s.to_owned()).collect()
                 } else {
-                    vec!(insert)
+                    vec!(chars_to_insert)
                 };
 
                 let mut new_line = prefix.to_owned();
+
                 new_line.push_str(&insert_lines[0]);
                 insert_lines[0] = new_line;
 
@@ -430,6 +466,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             Key::Tab => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.lines.iter().fold(0, |m, l| {
+            m + l.len() + 1
+        }) - 1
     }
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
