@@ -99,9 +99,12 @@ impl FontContext {
     }
 
     /// Create a font for use in layout calculations.
-    fn create_layout_font(&self, template: Arc<FontTemplateData>,
-                            descriptor: FontTemplateDescriptor, pt_size: Au,
-                            variant: font_variant::T) -> Result<Font, ()> {
+    fn create_layout_font(&self,
+                          template: Arc<FontTemplateData>,
+                          descriptor: FontTemplateDescriptor,
+                          pt_size: Au,
+                          variant: font_variant::T)
+                          -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.

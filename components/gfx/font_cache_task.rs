@@ -137,7 +137,8 @@ impl FontCache {
                     match src {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
-                            let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
+                            let maybe_resource = load_whole_resource(&self.resource_task,
+                                                                     url.clone());
                             match maybe_resource {
                                 Ok((_, bytes)) => {
                                     let family = &mut self.web_families
@@ -149,7 +150,8 @@ impl FontCache {
                                                                 &self.font_classifier)));
                                 },
                                 Err(_) => {
-                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
+                                    debug!("Failed to load web font: family={:?} url={}",
+                                           family_name, url);
                                 }
                             }
                         }
