@@ -194,7 +194,7 @@ def check_rust(file_name, contents):
         # get rid of comments and attributes
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
 
-        match = re.search(r",[A-Za-z0-9]", line)
+        match = re.search(r",[^\s]", line)
         if match:
             yield (idx + 1, "missing space after ,")
 
