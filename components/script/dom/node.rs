@@ -170,7 +170,9 @@ bitflags! {
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 0x400,
-        #[doc = "Specifies whether this node is active."]
+        #[doc = "Specifies whether this node is [being activated]\
+                 (https://html.spec.whatwg.org/multipage/#selector-active). \
+                 FIXME(#7333): set/unset this when appropriate"]
         const IN_ACTIVE_STATE = 0x800,
     }
 }
