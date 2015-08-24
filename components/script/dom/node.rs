@@ -170,6 +170,10 @@ bitflags! {
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 0x400,
+        #[doc = "Specifies whether this node is [being activated]\
+                 (https://html.spec.whatwg.org/multipage/#selector-active). \
+                 FIXME(#7333): set/unset this when appropriate"]
+        const IN_ACTIVE_STATE = 0x800,
     }
 }
 
@@ -458,6 +462,9 @@ pub trait NodeHelpers {
     fn get_focus_state(self) -> bool;
     fn set_focus_state(self, state: bool);
 
+    fn get_active_state(self) -> bool;
+    fn set_active_state(self, state: bool);
+
     fn get_disabled_state(self) -> bool;
     fn set_disabled_state(self, state: bool);
 
@@ -632,6 +639,15 @@ impl<'a> NodeHelpers for &'a Node {
 
     fn set_focus_state(self, state: bool) {
         self.set_flag(IN_FOCUS_STATE, state);
+        self.dirty(NodeDamage::NodeStyleDamaged);
+    }
+
+    fn get_active_state(self) -> bool {
+        self.get_flag(IN_ACTIVE_STATE)
+    }
+
+    fn set_active_state(self, state: bool) {
+        self.set_flag(IN_ACTIVE_STATE, state);
         self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
@@ -1115,6 +1131,7 @@ pub trait LayoutNodeHelpers {
 
     fn get_hover_state_for_layout(&self) -> bool;
     fn get_focus_state_for_layout(&self) -> bool;
+    fn get_active_state_for_layout(&self) -> bool;
     fn get_disabled_state_for_layout(&self) -> bool;
     fn get_enabled_state_for_layout(&self) -> bool;
 }
@@ -1225,6 +1242,13 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     fn get_focus_state_for_layout(&self) -> bool {
         unsafe {
             self.get_flag(IN_FOCUS_STATE)
+        }
+    }
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_active_state_for_layout(&self) -> bool {
+        unsafe {
+            self.get_flag(IN_ACTIVE_STATE)
         }
     }
     #[inline]
