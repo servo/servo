@@ -367,11 +367,27 @@ def check_reftest_order(files_to_check):
 
 def get_reftest_names(line):
     tokens = line.split()
-    if (len(tokens) == 3):
+    if len(tokens) == 3:
         return tokens[1] + tokens[2]
-    if (len(tokens) == 4):
+    if len(tokens) == 4:
         return tokens[2] + tokens[3]
     return None
+
+
+def get_html_file_names_from_reftest_list(reftest_dir, file_name):
+    for line in open(os.path.join(reftest_dir, file_name), "r"):
+        for token in line.split():
+            if fnmatch.fnmatch(token, '*.html'):
+                yield os.path.join(reftest_dir, token)
+
+
+def check_reftest_html_files_in_basic_list(reftest_dir):
+    basic_list_files = set(get_html_file_names_from_reftest_list(reftest_dir, "basic" + reftest_filetype))
+
+    for file_name in os.listdir(reftest_dir):
+        file_path = os.path.join(reftest_dir, file_name)
+        if fnmatch.fnmatch(file_path, '*.html') and file_path not in basic_list_files:
+            yield (file_path, "", "not found in basic.list")
 
 
 def scan():
@@ -385,10 +401,12 @@ def scan():
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
     reftest_files = collect_file_names(reftest_directories)
+
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_directories[0])
 
-    errors = list(itertools.chain(errors, r_errors))
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
     if errors:
         for error in errors:
