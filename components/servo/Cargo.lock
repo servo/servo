@@ -681,7 +681,7 @@ dependencies = [
 [[package]]
 name = "hbs-common-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#4476aa6ad4e2dfded87251d6069d9e747a54d9d8"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#2b415b92cd955e63c4b939b91a3e7dbf5902c8af"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -698,7 +698,7 @@ dependencies = [
 [[package]]
 name = "hbs-pow-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#4476aa6ad4e2dfded87251d6069d9e747a54d9d8"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#2b415b92cd955e63c4b939b91a3e7dbf5902c8af"
 dependencies = [
  "hbs-common-sys 0.1.0 (git+https://github.com/libheartbeats/heartbeats-simple-sys.git)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
