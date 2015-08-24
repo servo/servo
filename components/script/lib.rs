@@ -98,6 +98,8 @@ mod devtools;
 mod horribly_inefficient_timers;
 mod webdriver_handlers;
 
+use dom::bindings::codegen::RegisterBindings;
+
 #[cfg(target_os="linux")]
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
@@ -122,6 +124,10 @@ pub fn init() {
     unsafe {
         assert_eq!(js::jsapi::JS_Init(), 1);
     }
+
+    // Create the global vtables used by the (generated) DOM
+    // bindings to implement JS proxies.
+    RegisterBindings::RegisterProxyHandlers();
 
     perform_platform_specific_initialization();
 }
