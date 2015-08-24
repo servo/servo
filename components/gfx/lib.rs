@@ -30,6 +30,7 @@ extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate fnv;
 extern crate euclid;
+extern crate hyper;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
@@ -54,6 +55,7 @@ extern crate style;
 extern crate skia;
 extern crate time;
 extern crate url;
+extern crate woff;
 
 extern crate gfx_traits;
 extern crate canvas_traits;

@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use font_cache_task::DownloadedWebFont;
+
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text;
 use core_text::font::CTFont;
-
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::ToOwned;
@@ -30,14 +31,14 @@ pub struct FontTemplateData {
     ctfont: CachedCTFont,
 
     pub identifier: Atom,
-    pub font_data: Option<Vec<u8>>
+    pub font_data: Option<DownloadedWebFont>,
 }
 
 unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<DownloadedWebFont>) -> FontTemplateData {
         FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(None)),
             identifier: identifier.to_owned(),
@@ -50,8 +51,16 @@ impl FontTemplateData {
         let mut ctfont = self.ctfont.lock().unwrap();
         if ctfont.is_none() {
             *ctfont = match self.font_data {
-                Some(ref bytes) => {
-                    let fontprov = CGDataProvider::from_buffer(bytes);
+                Some(ref font_data) => {
+                    let bytes = if font_data.is_woff() {
+                        match font_data.convert_woff_to_otf() {
+                            Ok(bytes) => bytes,
+                            Err(_) => return None,
+                        }
+                    } else {
+                        font_data.data.clone()
+                    };
+                    let fontprov = CGDataProvider::from_buffer(&bytes[..]);
                     let cgfont_result = CGFont::from_data_provider(fontprov);
                     match cgfont_result {
                         Ok(cgfont) => Some(core_text::font::new_from_CGFont(&cgfont, 0.0)),

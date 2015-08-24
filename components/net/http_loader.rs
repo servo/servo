@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
@@ -19,9 +18,9 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
-use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
+use net_traits::mime_classifier::MIMEClassifier;
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};

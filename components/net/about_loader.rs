@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use file_loader;
-use mime_classifier::MIMEClassifier;
+use net_traits::mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadData, Metadata, LoadConsumer};
 use resource_task::start_sending;
