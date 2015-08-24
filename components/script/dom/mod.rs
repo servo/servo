@@ -54,6 +54,22 @@
 //! This invariant is enforced by the lint in
 //! `plugins::lints::inheritance_integrity`.
 //!
+//! The same principle apply to typeids the derived type enum should 
+//! use one adititional type (the parent class) because sometimes the parent  
+//! can be the most-derived class of an object.
+//! ```ignore
+//! pub enum EventTypeId {
+//!     UIEvent(UIEventTypeId),
+//!     //others events
+//! }
+//!
+//! pub enum UIEventTypeId {
+//!    MouseEvent,
+//!    KeyboardEvent,
+//!    UIEvent, //<- parent of MouseEvent and KeyboardEvent
+//! }
+//! ```
+//!
 //! Construction
 //! ============
 //!
