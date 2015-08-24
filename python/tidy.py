@@ -17,7 +17,7 @@ import sys
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
-reftest_directories = ["tests/ref"]
+reftest_dir = "./tests/ref"
 reftest_filetype = ".list"
 python_dependencies = [
     "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
@@ -48,15 +48,6 @@ ignored_files = [
     # Hidden files/directories
     ".*",
 ]
-
-
-def collect_file_names(top_directories=None):
-    if top_directories is None:
-        top_directories = os.listdir(".")
-    for top_directory in top_directories:
-        for dirname, dirs, files in os.walk(top_directory):
-            for basename in files:
-                yield os.path.join(dirname, basename)
 
 
 def should_check(file_name):
@@ -393,18 +384,17 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
 def scan():
     sys.path += python_dependencies
 
-    all_files = collect_file_names()
+    all_files = os.listdir(".")
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_by_line, check_flake8, check_toml,
                           check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
-    reftest_files = collect_file_names(reftest_directories)
-
+    reftest_files = [os.path.join(reftest_dir, file) for file in os.listdir(reftest_dir)]
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
-    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_directories[0])
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
 
     errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
