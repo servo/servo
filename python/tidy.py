@@ -17,7 +17,7 @@ import sys
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
-reftest_directories = ["tests/ref"]
+reftest_directory = "tests/ref"
 reftest_filetype = ".list"
 python_dependencies = [
     "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
@@ -400,11 +400,11 @@ def scan():
                           check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
-    reftest_files = collect_file_names(reftest_directories)
+    reftest_files = collect_file_names([reftest_directory])
 
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
-    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_directories[0])
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_directory)
 
     errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
