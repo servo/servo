@@ -212,8 +212,14 @@ impl FlexFlow {
         debug!("inline_mode_assign_inline_sizes");
 
         debug!("content_inline_size = {:?}", content_inline_size);
-        debug!("child_count = {:?}", ImmutableFlowUtils::child_count(self as &Flow) as i32);
-        let even_content_inline_size = content_inline_size / ImmutableFlowUtils::child_count(self as &Flow) as i32;
+
+        let child_count = ImmutableFlowUtils::child_count(self as &Flow) as i32;
+        debug!("child_count = {:?}", child_count);
+        if child_count == 0 {
+            return;
+        }
+
+        let even_content_inline_size = content_inline_size / child_count;
 
         let inline_size = self.block_flow.base.block_container_inline_size;
         let container_mode = self.block_flow.base.block_container_writing_mode;
