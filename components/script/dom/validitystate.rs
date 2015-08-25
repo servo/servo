@@ -10,7 +10,6 @@ use dom::window::Window;
 
 // https://html.spec.whatwg.org/#validitystate
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ValidityState {
     reflector_: Reflector,
     state: u8,
@@ -30,4 +29,3 @@ impl ValidityState {
                            ValidityStateBinding::Wrap)
     }
 }
-

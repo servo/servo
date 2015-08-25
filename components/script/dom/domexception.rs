@@ -41,7 +41,6 @@ pub enum DOMErrorName {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMException {
     reflector_: Reflector,
     code: DOMErrorName,

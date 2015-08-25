@@ -19,7 +19,6 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,

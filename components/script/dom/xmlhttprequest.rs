@@ -116,7 +116,6 @@ impl XHRProgress {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,

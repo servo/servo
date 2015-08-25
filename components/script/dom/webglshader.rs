@@ -17,7 +17,6 @@ use std::cell::Cell;
 use std::cell::RefCell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
@@ -125,4 +124,3 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(self.id, source))).unwrap()
     }
 }
-

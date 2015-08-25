@@ -92,7 +92,6 @@ use std::mem;
 use std::sync::Arc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Element {
     node: Node,
     local_name: Atom,

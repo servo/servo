@@ -157,7 +157,6 @@ impl PreInvoke for ParserContext {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in html5ever"]

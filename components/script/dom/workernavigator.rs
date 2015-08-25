@@ -13,7 +13,6 @@ use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WorkerNavigator {
     reflector_: Reflector,
 }
@@ -68,4 +67,3 @@ impl<'a> WorkerNavigatorMethods for &'a WorkerNavigator {
         navigatorinfo::AppVersion()
     }
 }
-

@@ -14,7 +14,6 @@ use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ProgressEvent {
     event: Event,
     length_computable: bool,
@@ -78,4 +77,3 @@ impl<'a> ProgressEventMethods for &'a ProgressEvent {
         self.total
     }
 }
-

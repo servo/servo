@@ -14,7 +14,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     id: u32,

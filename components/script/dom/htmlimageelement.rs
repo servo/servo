@@ -37,7 +37,6 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,

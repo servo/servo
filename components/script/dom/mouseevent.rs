@@ -20,7 +20,6 @@ use util::opts;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct MouseEvent {
     uievent: UIEvent,
     screen_x: Cell<i32>,

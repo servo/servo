@@ -19,7 +19,6 @@ use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
 }

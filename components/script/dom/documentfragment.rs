@@ -21,7 +21,6 @@ use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DocumentFragment {
     node: Node,
 }
@@ -96,4 +95,3 @@ impl<'a> DocumentFragmentMethods for &'a DocumentFragment {
         root.query_selector_all(selectors)
     }
 }
-

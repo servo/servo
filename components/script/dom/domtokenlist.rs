@@ -19,7 +19,6 @@ use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 use std::borrow::ToOwned;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,

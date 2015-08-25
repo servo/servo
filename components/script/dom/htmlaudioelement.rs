@@ -14,7 +14,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLAudioElement {
     htmlmediaelement: HTMLMediaElement
 }
@@ -46,4 +45,3 @@ impl HTMLAudioElement {
         Node::reflect_node(box element, document, HTMLAudioElementBinding::Wrap)
     }
 }
-
