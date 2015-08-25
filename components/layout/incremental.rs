@@ -123,7 +123,7 @@ impl fmt::Display for RestyleDamage {
 // breakage on modifications.
 macro_rules! add_if_not_equal(
     ($old:ident, $new:ident, $damage:ident,
-     [ $($effect:ident),* ], [ $($style_struct_getter:ident.$name:ident),* ]) => ({
+     [ $($effect:ident), * ], [ $($style_struct_getter:ident.$name:ident), * ]) => ({
         if $( ($old.$style_struct_getter().$name != $new.$style_struct_getter().$name) )||* {
             $damage.insert($($effect)|*);
         }

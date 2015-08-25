@@ -765,7 +765,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn cancel_timeout(self);
     fn filter_response_headers(self) -> Headers;
     fn discard_subsequent_responses(self);
-    fn fetch(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
+    fn fetch(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>, ()>,
              global: GlobalRef) -> ErrorResult;
 }
 
@@ -1088,7 +1088,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
 
     fn fetch(self,
               load_data: LoadData,
-              cors_request: Result<Option<CORSRequest>,()>,
+              cors_request: Result<Option<CORSRequest>, ()>,
               global: GlobalRef) -> ErrorResult {
         let cors_request = match cors_request {
             Err(_) => {

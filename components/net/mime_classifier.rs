@@ -102,7 +102,7 @@ impl MIMEClassifier {
     fn is_xml(tp: &str, sub_tp: &str) -> bool {
         let suffix = &sub_tp[(max(sub_tp.len() as isize - "+xml".len() as isize, 0) as usize)..];
         match (tp, sub_tp, suffix) {
-            (_, _, "+xml") | ("application", "xml",_) | ("text", "xml",_) => {true}
+            (_, _, "+xml") | ("application", "xml", _) | ("text", "xml", _) => {true}
             _ => {false}
       }
     }

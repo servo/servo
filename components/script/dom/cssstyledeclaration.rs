@@ -39,7 +39,7 @@ pub enum CSSModificationAccess {
 }
 
 macro_rules! css_properties(
-    ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
+    ( $([$getter:ident, $setter:ident, $cssprop:expr]), * ) => (
         $(
             fn $getter(self) -> DOMString {
                 self.GetPropertyValue($cssprop.to_owned())

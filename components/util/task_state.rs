@@ -38,7 +38,7 @@ macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
 
     #[cfg(debug_assertions)]
     static TYPES: &'static [TaskState]
-        = &[ $( $flag ),* ];
+        = &[ $( $flag ), * ];
 ));
 
 task_types! {

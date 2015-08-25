@@ -162,7 +162,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             if begin.line != end.line {
                 let mut s = String::new();
                 s.push_str(slice_chars(&self.lines[begin.line], begin.index, self.lines[begin.line].len()));
-                for (_, line) in self.lines.iter().enumerate().filter(|&(i,_)| begin.line < i && i < end.line) {
+                for (_, line) in self.lines.iter().enumerate().filter(|&(i, _)| begin.line < i && i < end.line) {
                     s.push_str("\n");
                     s.push_str(line);
                 }
