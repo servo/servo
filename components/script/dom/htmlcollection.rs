@@ -26,7 +26,6 @@ pub trait CollectionFilter : JSTraceable {
 pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLCollection {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]

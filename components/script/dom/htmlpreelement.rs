@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLPreElement {
     htmlelement: HTMLElement,
 }
@@ -44,4 +43,3 @@ impl HTMLPreElement {
         Node::reflect_node(box element, document, HTMLPreElementBinding::Wrap)
     }
 }
-

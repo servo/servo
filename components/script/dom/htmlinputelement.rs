@@ -60,7 +60,6 @@ enum InputType {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,

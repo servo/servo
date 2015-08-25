@@ -24,7 +24,6 @@ use std::cell::{RefCell, Cell};
 no_jsmanaged_fields!(Key);
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,

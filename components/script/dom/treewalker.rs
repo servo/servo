@@ -22,8 +22,10 @@ use std::rc::Rc;
 pub struct TreeWalker {
     reflector_: Reflector,
     root_node: JS<Node>,
+    #[ignore_heap_size_of = "Defined in std"]
     current_node: MutHeap<JS<Node>>,
     what_to_show: u32,
+    #[ignore_heap_size_of = "Defined in std"]
     filter: Filter
 }
 

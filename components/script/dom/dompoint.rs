@@ -12,7 +12,6 @@ use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMPoint {
     point: DOMPointReadOnly
 }
@@ -75,4 +74,3 @@ impl<'a> DOMPointMethods for &'a DOMPoint {
         self.point.SetW(value);
     }
 }
-

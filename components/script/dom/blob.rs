@@ -25,7 +25,6 @@ pub enum BlobTypeId {
 
 // http://dev.w3.org/2006/webapi/FileAPI/#blob
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Blob {
     reflector_: Reflector,
     type_: BlobTypeId,

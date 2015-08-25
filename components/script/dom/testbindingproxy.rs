@@ -10,7 +10,6 @@ use util::str::DOMString;
 
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct TestBindingProxy {
     reflector_: Reflector
 }

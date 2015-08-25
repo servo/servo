@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFrameSetElement {
     htmlelement: HTMLElement
 }
@@ -44,4 +43,3 @@ impl HTMLFrameSetElement {
         Node::reflect_node(box element, document, HTMLFrameSetElementBinding::Wrap)
     }
 }
-

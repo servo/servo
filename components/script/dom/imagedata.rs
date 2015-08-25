@@ -18,7 +18,6 @@ use std::vec::Vec;
 
 #[dom_struct]
 #[allow(raw_pointer_derive)]
-#[derive(HeapSizeOf)]
 pub struct ImageData {
     reflector_: Reflector,
     width: u32,

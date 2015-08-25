@@ -18,7 +18,6 @@ use std::cell::Cell;
 use util::str::{self, DOMString};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,

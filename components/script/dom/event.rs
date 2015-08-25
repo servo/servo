@@ -54,7 +54,6 @@ pub enum EventCancelable {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Event {
     reflector_: Reflector,
     type_id: EventTypeId,

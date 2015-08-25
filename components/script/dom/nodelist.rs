@@ -22,7 +22,6 @@ pub enum NodeListType {
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NodeList {
     reflector_: Reflector,
     list_type: NodeListType,

@@ -16,7 +16,6 @@ use script_task::ScriptChan;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CloseEvent {
     event: Event,
     wasClean: bool,

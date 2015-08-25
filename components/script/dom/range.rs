@@ -26,7 +26,6 @@ use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Range {
     reflector_: Reflector,
     inner: Rc<RefCell<RangeInner>>,

@@ -17,6 +17,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
         item2.attrs.push(quote_attr!(cx, #[must_root]));
         item2.attrs.push(quote_attr!(cx, #[privatize]));
         item2.attrs.push(quote_attr!(cx, #[derive(JSTraceable)]));
+        item2.attrs.push(quote_attr!(cx, #[derive(HeapSizeOf)]));
 
         // The following attributes are only for internal usage
         item2.attrs.push(quote_attr!(cx, #[_generate_reflector]));

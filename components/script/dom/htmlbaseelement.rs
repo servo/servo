@@ -19,7 +19,6 @@ use util::str::DOMString;
 use url::{Url, UrlParser};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLBaseElement {
     htmlelement: HTMLElement
 }

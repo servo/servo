@@ -20,7 +20,6 @@ pub enum TexParameterValue {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
     id: u32,

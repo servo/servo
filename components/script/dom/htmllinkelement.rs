@@ -39,7 +39,6 @@ use string_cache::Atom;
 use url::UrlParser;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,

@@ -138,7 +138,6 @@ enum MixedMessage {
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,

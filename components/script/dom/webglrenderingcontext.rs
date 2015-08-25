@@ -72,7 +72,6 @@ bitflags! {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
     global: GlobalField,

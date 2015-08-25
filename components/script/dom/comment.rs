@@ -16,7 +16,6 @@ use util::str::DOMString;
 
 /// An HTML comment.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Comment {
     characterdata: CharacterData,
 }
@@ -44,4 +43,3 @@ impl Comment {
         Ok(Comment::new(data, document.r()))
     }
 }
-
