@@ -298,7 +298,7 @@ impl BinaryOrPlaintextClassifier {
 }
 impl MIMEChecker for BinaryOrPlaintextClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
-        return as_string_option(self.classify_impl(data));
+        return as_string_option(Some(self.classify_impl(data)));
     }
 }
 struct GroupedClassifier {
