@@ -27,26 +27,26 @@ python_dependencies = [
 
 ignored_files = [
     # Upstream
-    "support/*",
-    "tests/wpt/*",
-    "python/mach/*",
-    "python/mozdebug/*",
-    "python/mozinfo/*",
-    "python/mozlog/*",
-    "python/toml/*",
-    "components/script/dom/bindings/codegen/parser/*",
-    "components/script/dom/bindings/codegen/ply/*",
+    "./support/*",
+    "./tests/wpt/*",
+    "./python/mach/*",
+    "./python/mozdebug/*",
+    "./python/mozinfo/*",
+    "./python/mozlog/*",
+    "./python/toml/*",
+    "./components/script/dom/bindings/codegen/parser/*",
+    "./components/script/dom/bindings/codegen/ply/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "target/*",
-    "ports/gonk/src/native_window_glue.cpp",
-    "ports/cef/*",
+    "./target/*",
+    "./ports/gonk/src/native_window_glue.cpp",
+    "./ports/cef/*",
 
     # MIT license
-    "components/util/deque/mod.rs",
+    "./components/util/deque/mod.rs",
 
     # Hidden files/directories
-    ".*",
+    "./.*",
 ]
 
 
@@ -384,14 +384,14 @@ def check_reftest_html_files_in_basic_list(reftest_dir):
 def scan():
     sys.path += python_dependencies
 
-    all_files = os.listdir(".")
+    all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_by_line, check_flake8, check_toml,
                           check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
-    reftest_files = [os.path.join(reftest_dir, file) for file in os.listdir(reftest_dir)]
+    reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir) for f in files)
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
     not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
