@@ -12,13 +12,13 @@ macro_rules! define_cursor {
         #[derive(Clone, Copy, PartialEq, Eq, Debug, Deserialize, Serialize)]
         #[repr(u8)]
         pub enum Cursor {
-            $( $variant = $value ),+
+            $( $variant = $value ), +
         }
 
         impl Cursor {
             pub fn from_css_keyword(keyword: &str) -> Result<Cursor, ()> {
                 match_ignore_ascii_case! { keyword,
-                    $( concat!($css) => Ok(Cursor::$variant) ),+
+                    $( concat!($css) => Ok(Cursor::$variant) ), +
                     _ => Err(())
                 }
             }
@@ -27,7 +27,7 @@ macro_rules! define_cursor {
         impl ToCss for Cursor {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
                 match self {
-                    $( &Cursor::$variant => dest.write_str($css) ),+
+                    $( &Cursor::$variant => dest.write_str($css) ), +
                 }
             }
         }

@@ -7,21 +7,21 @@
 pub use cssparser::RGBA;
 
 macro_rules! define_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+);
+    ($name: ident: $( $css: expr => $variant: ident ), +, ) => {
+        define_css_keyword_enum!($name: $( $css => $variant ), +);
     };
-    ($name: ident: $( $css: expr => $variant: ident ),+) => {
+    ($name: ident: $( $css: expr => $variant: ident ), +) => {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
         #[derive(Deserialize, Serialize)]
         pub enum $name {
-            $( $variant ),+
+            $( $variant ), +
         }
 
         impl $name {
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    $( $css => Ok($name::$variant) ),+
+                    $( $css => Ok($name::$variant) ), +
                     _ => Err(())
                 }
             }
@@ -31,7 +31,7 @@ macro_rules! define_css_keyword_enum {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where W: ::std::fmt::Write {
                 match self {
-                    $( &$name::$variant => dest.write_str($css) ),+
+                    $( &$name::$variant => dest.write_str($css) ), +
                 }
             }
         }
@@ -39,21 +39,21 @@ macro_rules! define_css_keyword_enum {
 }
 
 macro_rules! define_numbered_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
-        define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
+    ($name: ident: $( $css: expr => $variant: ident = $value: expr ), +, ) => {
+        define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ), +);
     };
-    ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
+    ($name: ident: $( $css: expr => $variant: ident = $value: expr ), +) => {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug, HeapSizeOf)]
         #[derive(Deserialize, Serialize)]
         pub enum $name {
-            $( $variant = $value ),+
+            $( $variant = $value ), +
         }
 
         impl $name {
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    $( $css => Ok($name::$variant) ),+
+                    $( $css => Ok($name::$variant) ), +
                     _ => Err(())
                 }
             }
@@ -63,7 +63,7 @@ macro_rules! define_numbered_css_keyword_enum {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
             where W: ::std::fmt::Write {
                 match self {
-                    $( &$name::$variant => dest.write_str($css) ),+
+                    $( &$name::$variant => dest.write_str($css) ), +
                 }
             }
         }
@@ -821,7 +821,7 @@ pub mod specified {
         }
 
         /// Parses a time according to CSS-VALUES § 6.2.
-        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time,()> {
+        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time, ()> {
             if unit.eq_ignore_ascii_case("s") {
                 Ok(Time(value))
             } else if unit.eq_ignore_ascii_case("ms") {
@@ -831,7 +831,7 @@ pub mod specified {
             }
         }
 
-        pub fn parse(input: &mut Parser) -> Result<Time,()> {
+        pub fn parse(input: &mut Parser) -> Result<Time, ()> {
             match input.next() {
                 Ok(Token::Dimension(ref value, ref unit)) => {
                     Time::parse_dimension(value.value, &unit)

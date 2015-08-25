@@ -94,8 +94,8 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
             let obj = $ctor::new((*name.local).to_owned(), prefix, document);
             ElementCast::from_root(obj)
         });
-        ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
+        ($ctor:ident, $($arg:expr), +) => ({
+            let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg), +);
             ElementCast::from_root(obj)
         })
     );

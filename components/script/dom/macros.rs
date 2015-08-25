@@ -217,7 +217,7 @@ macro_rules! make_atomic_setter(
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
 macro_rules! no_jsmanaged_fields(
-    ($($ty:ident),+) => (
+    ($($ty:ident), +) => (
         $(
             impl $crate::dom::bindings::trace::JSTraceable for $ty {
                 #[inline]
@@ -227,8 +227,8 @@ macro_rules! no_jsmanaged_fields(
             }
         )+
     );
-    ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+    ($ty:ident<$($gen:ident), +>) => (
+        impl<$($gen), +> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen), +> {
             #[inline]
             fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                 // Do nothing

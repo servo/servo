@@ -271,7 +271,7 @@ impl<T> Drop for LinkedList2<T> {
 /// with known heap sizes.
 #[macro_export]
 macro_rules! known_heap_size(
-    ($size:expr, $($ty:ident),+) => (
+    ($size:expr, $($ty:ident), +) => (
         $(
             impl $crate::mem::HeapSizeOf for $ty {
                 #[inline(always)]
@@ -281,9 +281,9 @@ macro_rules! known_heap_size(
             }
         )+
     );
-    ($size: expr, $($ty:ident<$($gen:ident),+>),+) => (
+    ($size: expr, $($ty:ident<$($gen:ident), +>), +) => (
         $(
-        impl<$($gen: $crate::mem::HeapSizeOf),+> $crate::mem::HeapSizeOf for $ty<$($gen),+> {
+        impl<$($gen: $crate::mem::HeapSizeOf), +> $crate::mem::HeapSizeOf for $ty<$($gen), +> {
             #[inline(always)]
             fn heap_size_of_children(&self) -> usize {
                 $size

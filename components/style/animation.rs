@@ -81,7 +81,7 @@ impl PropertyAnimation {
                                 -> Option<PropertyAnimation> {
         let animation_style = new_style.get_animation();
         macro_rules! match_transition {
-                ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
+                ( $( [$name:ident; $structname:ident; $field:ident] ), * ) => {
                     match transition_property {
                         TransitionProperty::All => {
                             panic!("Don't use `TransitionProperty::All` with \
@@ -188,7 +188,7 @@ impl PropertyAnimation {
         };
 
         macro_rules! match_property(
-            ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
+            ( $( [$name:ident; $structname:ident; $field:ident] ), * ) => {
                 match self.property {
                     $(
                         AnimatedProperty::$name(ref start, ref end) => {

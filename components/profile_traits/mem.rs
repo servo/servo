@@ -153,9 +153,9 @@ impl Reporter {
 /// An easy way to build a path for a report.
 #[macro_export]
 macro_rules! path {
-    ($($x:expr),*) => {{
+    ($($x:expr), *) => {{
         use std::borrow::ToOwned;
-        vec![$( $x.to_owned() ),*]
+        vec![$( $x.to_owned() ), *]
     }}
 }
 
