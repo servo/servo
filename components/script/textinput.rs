@@ -251,12 +251,16 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
         let direction = if adjust >= 0 { Direction::Forward } else { Direction::Backward };
-        self.adjust_selection_for_horizontal_change(direction, select);
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
         self.perform_horizontal_adjustment(adjust, select);
     }
 
     pub fn adjust_horizontal_by_one(&mut self, direction: Direction, select: Selection) {
-        self.adjust_selection_for_horizontal_change(direction, select);
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
             // FIXME: We adjust by one code point, but it proably should be one grapheme cluster
@@ -279,7 +283,9 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(adjust, select);
     }
 
-    fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection) {
+    // Return whether to cancel the carret move
+    fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
+                                              -> bool {
         if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
@@ -291,9 +297,10 @@ impl<T: ClipboardProvider> TextInput<T> {
                     Direction::Forward => end,
                 };
                 self.clear_selection();
-                return
+                return true
             }
         }
+        false
     }
 
     fn perform_horizontal_adjustment(&mut self, adjust: isize, select: Selection) {
