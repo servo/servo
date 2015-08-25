@@ -382,7 +382,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // When there is a new layer, the transforms and origin
                     // are handled by the compositor.
                     (Some(paint_layer.id),
-                     Point2D::zero(),
+                     -stacking_context.overflow.origin,
                      Matrix4::identity(),
                      Matrix4::identity())
                 }
