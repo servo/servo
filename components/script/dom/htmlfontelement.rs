@@ -19,7 +19,6 @@ use cssparser::RGBA;
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
     color: Cell<Option<RGBA>>,
@@ -95,4 +94,3 @@ impl HTMLFontElementHelpers for HTMLFontElement {
         self.color.get()
     }
 }
-

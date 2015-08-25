@@ -16,7 +16,6 @@ use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WorkerLocation {
     reflector_: Reflector,
     url: Url,
@@ -83,4 +82,3 @@ impl<'a> WorkerLocationMethods for &'a WorkerLocation {
         self.Href().0
     }
 }
-

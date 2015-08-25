@@ -67,7 +67,6 @@ pub enum FileReaderReadyState {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct FileReader {
     eventtarget: EventTarget,
     global: GlobalField,

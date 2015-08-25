@@ -47,7 +47,6 @@ pub enum CanvasContext {
 impl HeapGCValue for CanvasContext {}
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: MutNullableHeap<CanvasContext>,
@@ -340,4 +339,3 @@ pub mod utils {
         result.image_response
     }
 }
-

@@ -24,6 +24,7 @@ pub struct TreeWalker {
     root_node: JS<Node>,
     current_node: MutHeap<JS<Node>>,
     what_to_show: u32,
+    #[ignore_heap_size_of = "function pointers and Rc<T> are hard"]
     filter: Filter
 }
 

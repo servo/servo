@@ -13,7 +13,6 @@ use dom::node::window_from_node;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMStringMap {
     reflector_: Reflector,
     element: JS<HTMLElement>,

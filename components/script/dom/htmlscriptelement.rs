@@ -52,7 +52,6 @@ use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 

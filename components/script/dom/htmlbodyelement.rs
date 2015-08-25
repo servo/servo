@@ -35,7 +35,6 @@ use time;
 const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
@@ -183,4 +182,3 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 }
-

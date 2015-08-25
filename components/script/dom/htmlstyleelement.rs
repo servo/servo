@@ -22,7 +22,6 @@ use style::stylesheets::{Origin, Stylesheet};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
 }
@@ -108,4 +107,3 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 }
-

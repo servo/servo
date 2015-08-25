@@ -17,7 +17,6 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
 }
@@ -65,4 +64,3 @@ impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
         HTMLCollection::create(window.r(), node, filter)
     }
 }
-

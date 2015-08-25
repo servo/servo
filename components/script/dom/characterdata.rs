@@ -24,7 +24,6 @@ use std::cell::Ref;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CharacterData {
     node: Node,
     data: DOMRefCell<DOMString>,

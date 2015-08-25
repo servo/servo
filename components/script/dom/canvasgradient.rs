@@ -16,7 +16,6 @@ use dom::canvasrenderingcontext2d::parse_color;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,

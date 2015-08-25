@@ -18,7 +18,6 @@ use std::borrow::ToOwned;
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DocumentType {
     node: Node,
     name: DOMString,
@@ -111,4 +110,3 @@ impl<'a> DocumentTypeMethods for &'a DocumentType {
         node.remove_self();
     }
 }
-

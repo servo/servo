@@ -22,7 +22,6 @@ use std::borrow::ToOwned;
 use std::default::Default;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct MessageEvent {
     event: Event,
     data: Heap<JSVal>,
@@ -106,4 +105,3 @@ impl<'a> MessageEventMethods for &'a MessageEvent {
         self.lastEventId.clone()
     }
 }
-

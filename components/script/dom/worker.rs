@@ -39,7 +39,6 @@ pub type TrustedWorkerAddress = Trusted<Worker>;
 
 // https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Worker {
     eventtarget: EventTarget,
     global: GlobalField,

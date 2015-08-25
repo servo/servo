@@ -10,7 +10,6 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct PerformanceTiming {
     reflector_: Reflector,
     navigationStart: u64,
@@ -56,4 +55,3 @@ impl<'a> PerformanceTimingHelpers for &'a PerformanceTiming {
         self.navigationStartPrecise
     }
 }
-

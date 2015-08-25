@@ -38,7 +38,6 @@ enum ButtonType {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>
@@ -253,4 +252,3 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         }
     }
 }
-

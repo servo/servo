@@ -25,7 +25,6 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
@@ -171,4 +170,3 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 }
-
