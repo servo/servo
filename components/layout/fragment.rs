@@ -2060,8 +2060,8 @@ impl Fragment {
         // the time. Can't we handle relative positioning by just adjusting `border_box`?
         let relative_position =
             self.relative_position(&LogicalSize::zero(self.style.writing_mode));
-        border_box =
-            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
+        border_box = border_box.translate_by_size(&relative_position.to_physical(
+                self.style.writing_mode));
         let mut overflow = border_box;
 
         // Box shadows cause us to draw outside our border box.

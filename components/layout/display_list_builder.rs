@@ -1148,9 +1148,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                layer: StackingContextLayer,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
-        // FIXME(pcwalton): Is this vertical-writing-direction-safe?
-        let margin = self.margin.to_physical(base_flow.writing_mode);
-
         let border_box = match mode {
             StackingContextCreationMode::Normal |
             StackingContextCreationMode::OuterScrollWrapper => {
@@ -1167,7 +1164,12 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         let overflow = match mode {
             StackingContextCreationMode::Normal => {
-                base_flow.overflow.translate(&-Point2D::new(margin.left, Au(0)))
+                // First, compute the offset of our border box (including relative positioning)
+                // from our flow origin, since that is what `BaseFlow::overflow` is relative to.
+                let border_box_offset =
+                    border_box.translate(&-base_flow.stacking_relative_position).origin;
+                // Then, using that, compute our overflow region relative to our border box.
+                base_flow.overflow.translate(&-border_box_offset)
             }
             StackingContextCreationMode::InnerScrollWrapper |
             StackingContextCreationMode::OuterScrollWrapper => {
