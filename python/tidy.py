@@ -246,8 +246,7 @@ def check_rust(file_name, contents):
         # imports must be in the same line and alphabetically sorted
         if line.startswith("use "):
             use = line[4:]
-            match = use.find('{')
-            if match >= 0 and "}" not in use[match:]:
+            if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
             uses.append(use[:len(use) - 1])
         elif len(uses) > 0:
