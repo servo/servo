@@ -213,11 +213,11 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                                               RenderingMode::All(&separator));
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
-                    new_info = Some(render_text(self.traversal.layout_context,
-                                                fragment.node,
-                                                fragment.pseudo,
-                                                fragment.style.clone(),
-                                                self.quote(&*fragment.style, false)));
+                    new_info = render_text(self.traversal.layout_context,
+                                           fragment.node,
+                                           fragment.pseudo,
+                                           fragment.style.clone(),
+                                           self.quote(&*fragment.style, false));
                     self.traversal.quote += 1
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::CloseQuote) => {
@@ -225,11 +225,11 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                         self.traversal.quote -= 1
                     }
 
-                    new_info = Some(render_text(self.traversal.layout_context,
-                                                fragment.node,
-                                                fragment.pseudo,
-                                                fragment.style.clone(),
-                                                self.quote(&*fragment.style, true)));
+                    new_info = render_text(self.traversal.layout_context,
+                                           fragment.node,
+                                           fragment.pseudo,
+                                           fragment.style.clone(),
+                                           self.quote(&*fragment.style, true));
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::NoOpenQuote) => {
                     self.traversal.quote += 1
@@ -277,10 +277,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
             self.traversal.counters.insert((*counter_name).clone(), counter);
         }
 
-        for &(ref counter_name, value) in &fragment.style()
-                                                  .get_counters()
-                                                  .counter_increment
-                                                  .0 {
+        for &(ref counter_name, value) in &fragment.style().get_counters().counter_increment.0 {
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
                 counter.increment(self.level, value);
                 continue
@@ -296,7 +293,9 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
 
     fn quote(&self, style: &ComputedValues, close: bool) -> String {
         let quotes = &style.get_list().quotes;
-        debug_assert!(!quotes.0.is_empty());
+        if quotes.0.is_empty() {
+            return String::new()
+        }
         let &(ref open_quote, ref close_quote) =
             if self.traversal.quote as usize >= quotes.0.len() {
                 quotes.0.last().unwrap()
@@ -398,7 +397,7 @@ impl Counter {
         if string.is_empty() {
             None
         } else {
-            Some(render_text(layout_context, node, pseudo, style, string))
+            render_text(layout_context, node, pseudo, style, string)
         }
     }
 }
@@ -427,7 +426,7 @@ fn render_text(layout_context: &LayoutContext,
                pseudo: PseudoElementType<()>,
                style: Arc<ComputedValues>,
                string: String)
-               -> SpecificFragmentInfo {
+               -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(string));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
@@ -437,9 +436,13 @@ fn render_text(layout_context: &LayoutContext,
                                                              info));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.
-    let fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(), fragments);
-    debug_assert!(fragments.len() >= 1);
-    fragments.fragments.into_iter().next().unwrap().specific
+    let fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
+                                                        fragments);
+    if fragments.is_empty() {
+        None
+    } else {
+        Some(fragments.fragments.into_iter().next().unwrap().specific)
+    }
 }
 
 /// Appends string that represents the value rendered using the system appropriate for the given
