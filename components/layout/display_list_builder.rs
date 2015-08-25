@@ -1820,11 +1820,12 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         }
 
 
+        // FIXME(Savago): a SC (Stacking Context) within another SC may not be displayed.
+        // It is a bit unclear if the issue is at the Paint step or after optimizing the Display list.
+        // In such cases, we have to set has_stacking_context to false to correctly draw
+        // (but not for filtered elements).
         if self.fragments.fragments.len() > 0 {
-            match self.fragments.fragments[0].specific {
-                SpecificFragmentInfo::Canvas(_) => has_stacking_context = true,
-                _ => debug!("InlineFlow::build_display_list: has stacking context {}", has_stacking_context),
-            }
+            has_stacking_context = !self.fragments.fragments[0].style().get_effects().filter.is_empty();
         }
 
         self.base.display_list_building_result = if has_stacking_context {
