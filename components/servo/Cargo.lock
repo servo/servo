@@ -102,6 +102,14 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "block"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "byteorder"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -152,18 +160,21 @@ dependencies = [
 
 [[package]]
 name = "clipboard"
-version = "0.0.2"
-source = "git+https://github.com/aweinstock314/rust-clipboard#701fa10b8938da7734556dd85d6eb46f0ff0cede"
+version = "0.0.3"
+source = "git+https://github.com/aweinstock314/rust-clipboard#b0092c8630d4362e4618533822bea90a034b0792"
 dependencies = [
- "clipboard-win 1.4.0 (git+https://github.com/DoumanAsh/clipboard-win)",
+ "clipboard-win 1.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc-foundation 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc_id 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "clipboard-win"
-version = "1.4.0"
-source = "git+https://github.com/DoumanAsh/clipboard-win#e9f01b5b11a830e9062fc8467cb72d0c49702ce9"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -197,7 +208,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "clipboard 0.0.2 (git+https://github.com/aweinstock314/rust-clipboard)",
+ "clipboard 0.0.3 (git+https://github.com/aweinstock314/rust-clipboard)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "devtools_traits 0.0.1",
@@ -1095,6 +1106,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_buf 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "objc-foundation"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "block 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "objc_id 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "objc_id"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "objc 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
