@@ -652,9 +652,9 @@ impl<'a> FormControl<'a> for &'a HTMLInputElement {
     }
 }
 
-impl<'a> Activatable for &'a HTMLInputElement {
+impl Activatable for HTMLInputElement {
     fn as_element<'b>(&'b self) -> &'b Element {
-        ElementCast::from_ref(*self)
+        ElementCast::from_ref(self)
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -698,7 +698,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
                 InputType::InputRadio => {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner();
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     let doc_node = NodeCast::from_ref(doc.r());
                     let group = self.get_radio_group_name();;
 
@@ -803,19 +803,19 @@ impl<'a> Activatable for &'a HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
-                    let win = window_from_node(*self);
+                    let win = window_from_node(self);
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "input".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(self);
                     event.r().fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(self);
                     event.r().fire(target);
                 }
             },
@@ -826,7 +826,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
-        let doc = document_from_node(*self);
+        let doc = document_from_node(self);
         let node = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
         let form = match owner {
@@ -834,7 +834,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
             Some(ref f) => f
         };
 
-        let elem = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(self);
         if elem.click_in_progress() {
             return;
         }

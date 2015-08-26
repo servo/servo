@@ -1854,7 +1854,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 }
 
 pub trait ActivationElementHelpers<'a> {
-    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)>;
+    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)>;
     fn click_in_progress(self) -> bool;
     fn set_click_in_progress(self, click: bool);
     fn nearest_activable_element(self) -> Option<Root<Element>>;
@@ -1862,15 +1862,15 @@ pub trait ActivationElementHelpers<'a> {
 }
 
 impl<'a> ActivationElementHelpers<'a> for &'a Element {
-    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
-        let node = NodeCast::from_ref(*self);
+    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)> {
+        let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                let element = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLInputElementCast::to_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                let element = HTMLAnchorElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLAnchorElementCast::to_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             _ => {
