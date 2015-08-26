@@ -530,7 +530,8 @@ impl<'a> WindowMethods for &'a Window {
 
         let callback  = move |now: f64| {
             // TODO: @jdm The spec says that any exceptions should be suppressed;
-            callback.Call__(Finite::wrap(now), ExceptionHandling::Report).unwrap();
+            // https://github.com/servo/servo/issues/6928
+            let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
         };
 
         doc.r().request_animation_frame(Box::new(callback))
