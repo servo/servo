@@ -5840,11 +5840,6 @@ impl ${name}Cast {
     }
 
     #[inline]
-    pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a &'b T) -> &'a &'b ${name} {
-        unsafe { mem::transmute(derived) }
-    }
-
-    #[inline]
     #[allow(unrooted_must_root)]
     pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
         unsafe { mem::transmute_copy(derived) }
