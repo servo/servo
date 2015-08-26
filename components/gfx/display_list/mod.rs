@@ -98,6 +98,8 @@ pub struct DisplayList {
     pub outlines: LinkedList<DisplayItem>,
     /// Child stacking contexts.
     pub children: LinkedList<Arc<StackingContext>>,
+    /// Child stacking contexts with their own layers.
+    pub layered_children: LinkedList<Arc<StackingContext>>,
 }
 
 impl DisplayList {
@@ -112,6 +114,28 @@ impl DisplayList {
             positioned_content: LinkedList::new(),
             outlines: LinkedList::new(),
             children: LinkedList::new(),
+            layered_children: LinkedList::new(),
+        }
+    }
+
+    /// Sort all children by their z-index and split layered children into their own
+    /// section of the display list.
+    /// TODO(mrobinson): This should properly handle unlayered children that are on
+    /// top of layered children.
+    #[inline]
+    pub fn sort_and_layerize_children(&mut self) {
+        let mut children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
+        while let Some(stacking_context) = self.children.pop_front() {
+            children.push(stacking_context);
+        }
+        children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
+
+        for stacking_context in children.into_iter() {
+            if stacking_context.layer.is_some() {
+                self.layered_children.push_back(stacking_context);
+            } else {
+                self.children.push_back(stacking_context);
+            }
         }
     }
 
@@ -126,6 +150,7 @@ impl DisplayList {
         self.positioned_content.append(&mut other.positioned_content);
         self.outlines.append(&mut other.outlines);
         self.children.append(&mut other.children);
+        self.layered_children.append(&mut other.children);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
@@ -222,6 +247,15 @@ impl DisplayList {
                                        &indentation[0..MIN_INDENTATION_LENGTH]);
             }
         }
+        if !self.layered_children.is_empty() {
+            println!("{} Layered children stacking contexts list length: {}",
+                     indentation,
+                     self.layered_children.len());
+            for stacking_context in &self.layered_children {
+                stacking_context.print(indentation.clone() +
+                                       &indentation[0..MIN_INDENTATION_LENGTH]);
+            }
+        }
     }
 }
 
@@ -266,7 +300,7 @@ pub struct StackingContext {
 impl StackingContext {
     /// Creates a new stacking context.
     #[inline]
-    pub fn new(display_list: Box<DisplayList>,
+    pub fn new(mut display_list: Box<DisplayList>,
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
@@ -278,6 +312,7 @@ impl StackingContext {
                establishes_3d_context: bool,
                scrolls_overflow_area: bool)
                -> StackingContext {
+        display_list.sort_and_layerize_children();
         StackingContext {
             display_list: display_list,
             bounds: *bounds,
@@ -317,15 +352,6 @@ impl StackingContext {
                 display_list.print_items("####".to_owned());
             }
 
-            // Sort positioned children according to z-index.
-            let mut positioned_children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-            for kid in &display_list.children {
-                if kid.layer.is_none() {
-                    positioned_children.push((*kid).clone());
-                }
-            }
-            positioned_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
-
             // Set up our clip rect and transform.
             let old_transform = paint_subcontext.draw_target.get_transform();
             let xform_2d = Matrix2D::new(transform.m11, transform.m12,
@@ -340,7 +366,7 @@ impl StackingContext {
             }
 
             // Step 3: Positioned descendants with negative z-indices.
-            for positioned_kid in &*positioned_children {
+            for positioned_kid in &display_list.children {
                 if positioned_kid.z_index >= 0 {
                     break
                 }
@@ -382,7 +408,7 @@ impl StackingContext {
             }
 
             // Step 9: Positioned descendants with nonnegative, numeric z-indices.
-            for positioned_kid in &*positioned_children {
+            for positioned_kid in &self.display_list.children {
                 if positioned_kid.z_index < 0 {
                     continue
                 }
@@ -614,7 +640,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
         Some(_) | None => {}
     }
 
-    for kid in &this.display_list.children {
+    for kid in &this.display_list.layered_children {
         match find_stacking_context_with_layer_id(kid, layer_id) {
             Some(stacking_context) => return Some(stacking_context),
             None => {}
