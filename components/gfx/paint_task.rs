@@ -28,7 +28,6 @@ use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::gl_context::GLContext;
-use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem as std_mem;
@@ -394,14 +393,11 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 }
             };
 
-            // Sort positioned children according to z-index.
-            let mut positioned_children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-            for kid in &stacking_context.display_list.children {
-                positioned_children.push((*kid).clone());
+            for kid in stacking_context.display_list.children.iter() {
+                build(properties, &**kid, &page_position, &transform, &perspective, next_parent_id)
             }
-            positioned_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
-            for kid in positioned_children.iter() {
+            for kid in stacking_context.display_list.layered_children.iter() {
                 build(properties, &**kid, &page_position, &transform, &perspective, next_parent_id)
             }
         }
