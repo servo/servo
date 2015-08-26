@@ -12,9 +12,8 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::DocumentHelpers;
-use dom::window::{self, WindowHelpers, ScriptHelpers};
-use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
+use dom::window::{self, ScriptHelpers};
+use dom::workerglobalscope::WorkerGlobalScope;
 use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};

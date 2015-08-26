@@ -47,22 +47,17 @@ impl WebGLRenderbuffer {
     }
 }
 
-pub trait WebGLRenderbufferHelpers {
-    fn id(self) -> u32;
-    fn bind(self, target: u32);
-    fn delete(self);
-}
 
-impl<'a> WebGLRenderbufferHelpers for &'a WebGLRenderbuffer {
-    fn id(self) -> u32 {
+impl WebGLRenderbuffer {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
-    fn bind(self, target: u32) {
+    pub fn bind(&self, target: u32) {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindRenderbuffer(target, self.id))).unwrap();
     }
 
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteRenderbuffer(self.id))).unwrap();

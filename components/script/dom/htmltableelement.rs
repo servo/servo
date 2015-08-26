@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -11,12 +11,12 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTab
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{ElementHelpers, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
@@ -132,27 +132,21 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 }
 
-pub trait HTMLTableElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_border(self) -> Option<u32>;
-    fn get_cellspacing(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-}
 
-impl<'a> HTMLTableElementHelpers for &'a HTMLTableElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLTableElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 
-    fn get_border(self) -> Option<u32> {
+    pub fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
 
-    fn get_cellspacing(self) -> Option<u32> {
+    pub fn get_cellspacing(&self) -> Option<u32> {
         self.cellspacing.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
 }

@@ -27,12 +27,9 @@ impl WebGLUniformLocation {
     }
 }
 
-pub trait WebGLUniformLocationHelpers {
-    fn id(self) -> i32;
-}
 
-impl<'a> WebGLUniformLocationHelpers for &'a WebGLUniformLocation {
-    fn id(self) -> i32 {
+impl WebGLUniformLocation {
+    pub fn id(&self) -> i32 {
         self.id
     }
 }

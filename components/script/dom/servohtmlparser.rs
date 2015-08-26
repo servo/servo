@@ -13,7 +13,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::node::{window_from_node, Node};
 use dom::window::Window;
 use network_listener::PreInvoke;
@@ -272,16 +272,9 @@ impl ServoHTMLParser {
     }
 }
 
-trait PrivateServoHTMLParserHelpers {
-    /// Synchronously run the tokenizer parse loop until explicitly suspended or
-    /// the tokenizer runs out of input.
-    fn parse_sync(self);
-    /// Retrieve the window object associated with this parser.
-    fn window(self) -> Root<Window>;
-}
 
-impl<'a> PrivateServoHTMLParserHelpers for &'a ServoHTMLParser {
-    fn parse_sync(self) {
+impl ServoHTMLParser {
+    fn parse_sync(&self) {
         let mut first = true;
 
         // This parser will continue to parse while there is either pending input or
@@ -314,28 +307,20 @@ impl<'a> PrivateServoHTMLParserHelpers for &'a ServoHTMLParser {
         }
     }
 
-    fn window(self) -> Root<Window> {
+    fn window(&self) -> Root<Window> {
         let doc = self.document.root();
         window_from_node(doc.r())
     }
 }
 
-pub trait ServoHTMLParserHelpers {
-    /// Cause the parser to interrupt next time the tokenizer reaches a quiescent state.
-    /// No further parsing will occur after that point until the `resume` method is called.
-    /// Panics if the parser is already suspended.
-    fn suspend(self);
-    /// Immediately resume a suspended parser. Panics if the parser is not suspended.
-    fn resume(self);
-}
 
-impl<'a> ServoHTMLParserHelpers for &'a ServoHTMLParser {
-    fn suspend(self) {
+impl ServoHTMLParser {
+    pub fn suspend(&self) {
         assert!(!self.suspended.get());
         self.suspended.set(true);
     }
 
-    fn resume(self) {
+    pub fn resume(&self) {
         assert!(self.suspended.get());
         self.suspended.set(false);
         self.parse_sync();

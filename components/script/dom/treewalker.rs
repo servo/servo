@@ -13,7 +13,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutHeap};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::node::Node;
 use std::rc::Rc;
 
@@ -255,29 +255,10 @@ impl<'a> TreeWalkerMethods for &'a TreeWalker {
 
 type NodeAdvancer<'a> = Fn(&Node) -> Option<Root<Node>> + 'a;
 
-trait PrivateTreeWalkerHelpers {
-    fn traverse_children<F, G>(self,
-                               next_child: F,
-                               next_sibling: G)
-                               -> Fallible<Option<Root<Node>>>
-        where F: Fn(&Node) -> Option<Root<Node>>,
-              G: Fn(&Node) -> Option<Root<Node>>;
-    fn traverse_siblings<F, G>(self,
-                               next_child: F,
-                               next_sibling: G)
-                               -> Fallible<Option<Root<Node>>>
-        where F: Fn(&Node) -> Option<Root<Node>>,
-              G: Fn(&Node) -> Option<Root<Node>>;
-    fn is_root_node(self, node: &Node) -> bool;
-    fn is_current_node(self, node: &Node) -> bool;
-    fn first_following_node_not_following_root(self, node: &Node)
-                                               -> Option<Root<Node>>;
-    fn accept_node(self, node: &Node) -> Fallible<u16>;
-}
 
-impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
+impl TreeWalker {
     // https://dom.spec.whatwg.org/#concept-traverse-children
-    fn traverse_children<F, G>(self,
+    fn traverse_children<F, G>(&self,
                                next_child: F,
                                next_sibling: G)
                                -> Fallible<Option<Root<Node>>>
@@ -352,7 +333,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#concept-traverse-siblings
-    fn traverse_siblings<F, G>(self,
+    fn traverse_siblings<F, G>(&self,
                                next_child: F,
                                next_sibling: G)
                                -> Fallible<Option<Root<Node>>>
@@ -414,7 +395,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-following
-    fn first_following_node_not_following_root(self, node: &Node)
+    fn first_following_node_not_following_root(&self, node: &Node)
                                                -> Option<Root<Node>> {
         // "An object A is following an object B if A and B are in the same tree
         //  and A comes after B in tree order."
@@ -441,7 +422,7 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node) -> Fallible<u16> {
         // "To filter node run these steps:"
         // "1. Let n be node's nodeType attribute value minus 1."
         let n = node.NodeType() - 1;
@@ -461,11 +442,11 @@ impl<'a> PrivateTreeWalkerHelpers for &'a TreeWalker {
         }
     }
 
-    fn is_root_node(self, node: &Node) -> bool {
+    fn is_root_node(&self, node: &Node) -> bool {
         JS::from_ref(node) == self.root_node
     }
 
-    fn is_current_node(self, node: &Node) -> bool {
+    fn is_current_node(&self, node: &Node) -> bool {
         JS::from_ref(node) == self.current_node.get()
     }
 }

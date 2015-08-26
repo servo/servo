@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::document::Document;
@@ -80,22 +80,17 @@ impl<'a> HTMLTableCellElementMethods for &'a HTMLTableCellElement {
     make_uint_setter!(SetColSpan, "colspan");
 }
 
-pub trait HTMLTableCellElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_colspan(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-}
 
-impl<'a> HTMLTableCellElementHelpers for &'a HTMLTableCellElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLTableCellElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 
-    fn get_colspan(self) -> Option<u32> {
+    pub fn get_colspan(&self) -> Option<u32> {
         self.colspan.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
 }

@@ -46,12 +46,9 @@ impl<'a> PerformanceTimingMethods for &'a PerformanceTiming {
     }
 }
 
-pub trait PerformanceTimingHelpers {
-    fn NavigationStartPrecise(self) -> f64;
-}
 
-impl<'a> PerformanceTimingHelpers for &'a PerformanceTiming {
-    fn NavigationStartPrecise(self) -> f64 {
+impl PerformanceTiming {
+    pub fn NavigationStartPrecise(&self) -> f64 {
         self.navigationStartPrecise
     }
 }

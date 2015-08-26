@@ -55,23 +55,14 @@ impl WebGLTexture {
     }
 }
 
-pub trait WebGLTextureHelpers {
-    fn id(self) -> u32;
-    fn bind(self, target: u32) -> WebGLResult<()>;
-    fn delete(self);
-    fn tex_parameter(self,
-                     target: u32,
-                     name: u32,
-                     value: TexParameterValue) -> WebGLResult<()>;
-}
 
-impl<'a> WebGLTextureHelpers for &'a WebGLTexture {
-    fn id(self) -> u32 {
+impl WebGLTexture {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
     // NB: Only valid texture targets come here
-    fn bind(self, target: u32) -> WebGLResult<()> {
+    pub fn bind(&self, target: u32) -> WebGLResult<()> {
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
@@ -85,7 +76,7 @@ impl<'a> WebGLTextureHelpers for &'a WebGLTexture {
         Ok(())
     }
 
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(self.id))).unwrap();
@@ -95,7 +86,7 @@ impl<'a> WebGLTextureHelpers for &'a WebGLTexture {
     /// We have to follow the conversion rules for GLES 2.0. See:
     ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
     ///
-    fn tex_parameter(self,
+    pub fn tex_parameter(&self,
                      target: u32,
                      name: u32,
                      value: TexParameterValue) -> WebGLResult<()> {

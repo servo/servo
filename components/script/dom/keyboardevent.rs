@@ -135,17 +135,13 @@ impl KeyboardEvent {
     }
 }
 
-pub trait KeyboardEventHelpers {
-    fn get_key(self) -> Option<Key>;
-    fn get_key_modifiers(self) -> KeyModifiers;
-}
 
-impl<'a> KeyboardEventHelpers for &'a KeyboardEvent {
-    fn get_key(self) -> Option<Key> {
+impl KeyboardEvent {
+    pub fn get_key(&self) -> Option<Key> {
         self.key.get().clone()
     }
 
-    fn get_key_modifiers(self) -> KeyModifiers {
+    pub fn get_key_modifiers(&self) -> KeyModifiers {
         let mut result = KeyModifiers::empty();
         if self.shift.get() {
             result = result | constellation_msg::SHIFT;

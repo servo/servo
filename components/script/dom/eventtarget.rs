@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::error::Error::InvalidState;
 use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::event::{Event, EventHelpers};
+use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
@@ -165,40 +165,19 @@ impl EventTarget {
     }
 }
 
-pub trait EventTargetHelpers {
-    fn dispatch_event_with_target(self,
-                                  target: &EventTarget,
-                                  event: &Event) -> bool;
-    fn dispatch_event(self, event: &Event) -> bool;
-    fn set_inline_event_listener(self,
-                                 ty: DOMString,
-                                 listener: Option<Rc<EventHandler>>);
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventHandler>>;
-    fn set_event_handler_uncompiled(self,
-                                    cx: *mut JSContext,
-                                    url: Url,
-                                    scope: HandleObject,
-                                    ty: &str,
-                                    source: DOMString);
-    fn set_event_handler_common<T: CallbackContainer>(self, ty: &str,
-                                                      listener: Option<Rc<T>>);
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>>;
 
-    fn has_handlers(self) -> bool;
-}
-
-impl<'a> EventTargetHelpers for &'a EventTarget {
-    fn dispatch_event_with_target(self,
+impl EventTarget {
+    pub fn dispatch_event_with_target(&self,
                                   target: &EventTarget,
                                   event: &Event) -> bool {
         dispatch_event(self, Some(target), event)
     }
 
-    fn dispatch_event(self, event: &Event) -> bool {
+    pub fn dispatch_event(&self, event: &Event) -> bool {
         dispatch_event(self, None, event)
     }
 
-    fn set_inline_event_listener(self,
+    pub fn set_inline_event_listener(&self,
                                  ty: DOMString,
                                  listener: Option<Rc<EventHandler>>) {
         let mut handlers = self.handlers.borrow_mut();
@@ -234,7 +213,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         }
     }
 
-    fn get_inline_event_listener(self, ty: DOMString) -> Option<Rc<EventHandler>> {
+    pub fn get_inline_event_listener(&self, ty: DOMString) -> Option<Rc<EventHandler>> {
         let handlers = self.handlers.borrow();
         let entries = handlers.get(&ty);
         entries.and_then(|entries| entries.iter().filter_map(|entry| {
@@ -246,7 +225,7 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
     }
 
     #[allow(unsafe_code)]
-    fn set_event_handler_uncompiled(self,
+    pub fn set_event_handler_uncompiled(&self,
                                     cx: *mut JSContext,
                                     url: Url,
                                     scope: HandleObject,
@@ -287,20 +266,20 @@ impl<'a> EventTargetHelpers for &'a EventTarget {
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 
-    fn set_event_handler_common<T: CallbackContainer>(
-        self, ty: &str, listener: Option<Rc<T>>)
+    pub fn set_event_handler_common<T: CallbackContainer>(
+        &self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
                                           EventHandlerNonNull::new(listener.callback()));
         self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
-    fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<Rc<T>> {
+    pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(ty.to_owned());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 
-    fn has_handlers(self) -> bool {
+    pub fn has_handlers(&self) -> bool {
         !self.handlers.borrow().is_empty()
     }
 }

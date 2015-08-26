@@ -123,25 +123,19 @@ impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     }
 }
 
-pub trait URLSearchParamsHelpers {
-    fn serialize(self, encoding: Option<EncodingRef>) -> DOMString;
-}
 
-impl<'a> URLSearchParamsHelpers for &'a URLSearchParams {
+impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
-    fn serialize(self, encoding: Option<EncodingRef>) -> DOMString {
+    pub fn serialize(&self, encoding: Option<EncodingRef>) -> DOMString {
         let list = self.list.borrow();
         serialize_with_encoding(list.iter(), encoding)
     }
 }
 
-trait PrivateURLSearchParamsHelpers {
-    fn update_steps(self);
-}
 
-impl<'a> PrivateURLSearchParamsHelpers for &'a URLSearchParams {
+impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-uq-update
-    fn update_steps(self) {
+    fn update_steps(&self) {
         // XXXManishearth Implement this when the URL interface is implemented
     }
 }

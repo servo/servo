@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -153,17 +152,9 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     }
 }
 
-pub trait HTMLCanvasElementHelpers {
-    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>>;
-    fn get_or_init_webgl_context(self,
-                                 cx: *mut JSContext,
-                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>>;
 
-    fn is_valid(self) -> bool;
-}
-
-impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
-    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>> {
+impl HTMLCanvasElement {
+    pub fn get_or_init_2d_context(&self) -> Option<Root<CanvasRenderingContext2D>> {
         if self.context.get().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
@@ -177,7 +168,7 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
         }
     }
 
-    fn get_or_init_webgl_context(self,
+    pub fn get_or_init_webgl_context(&self,
                                  cx: *mut JSContext,
                                  attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
         if self.context.get().is_none() {
@@ -210,7 +201,7 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
         }
     }
 
-    fn is_valid(self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.height.get() != 0 && self.width.get() != 0
     }
 }

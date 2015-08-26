@@ -12,10 +12,10 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::blob::{Blob, BlobHelpers};
+use dom::blob::Blob;
 use dom::domexception::{DOMException, DOMErrorName};
-use dom::event::{EventHelpers, EventCancelable, EventBubbles};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::event::{EventCancelable, EventBubbles};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -305,15 +305,9 @@ impl<'a> FileReaderMethods for &'a FileReader {
     }
 }
 
-trait PrivateFileReaderHelpers {
-    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>);
-    fn terminate_ongoing_reading(self);
-    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult;
-    fn change_ready_state(self, state: FileReaderReadyState);
-}
 
-impl<'a> PrivateFileReaderHelpers for &'a FileReader {
-    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>) {
+impl FileReader {
+    fn dispatch_progress_event(&self, type_: DOMString, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
@@ -325,12 +319,12 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         event.fire(target);
     }
 
-    fn terminate_ongoing_reading(self) {
+    fn terminate_ongoing_reading(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
     }
 
-    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn read(&self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
         let root = self.global.root();
         let global = root.r();
         // Step 1
@@ -368,7 +362,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         Ok(())
     }
 
-    fn change_ready_state(self, state: FileReaderReadyState) {
+    fn change_ready_state(&self, state: FileReaderReadyState) {
         self.ready_state.set(state);
     }
 }

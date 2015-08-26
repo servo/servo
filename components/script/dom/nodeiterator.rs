@@ -12,8 +12,8 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers};
-use dom::node::{Node, NodeHelpers};
+use dom::document::Document;
+use dom::node::Node;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -191,14 +191,10 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 }
 
-trait PrivateNodeIteratorHelpers {
-    fn accept_node(self, node: &Node) -> Fallible<u16>;
-    fn is_root_node(self, node: &Node) -> bool;
-}
 
-impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
+impl NodeIterator {
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node) -> Fallible<u16> {
         // Step 1.
         let n = node.NodeType() - 1;
         // Step 2.
@@ -213,7 +209,7 @@ impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
         }
     }
 
-    fn is_root_node(self, node: &Node) -> bool {
+    fn is_root_node(&self, node: &Node) -> bool {
         JS::from_ref(node) == self.root_node
     }
 }

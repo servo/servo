@@ -10,7 +10,6 @@ use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
-use dom::window::WindowHelpers;
 
 use url::{Url, UrlParser};
 use util::str::DOMString;
@@ -104,12 +103,9 @@ impl<'a> LocationMethods for &'a Location {
     }
 }
 
-trait PrivateLocationHelpers {
-    fn get_url(self) -> Url;
-}
 
-impl<'a> PrivateLocationHelpers for &'a Location {
-    fn get_url(self) -> Url {
+impl Location {
+    fn get_url(&self) -> Url {
         let window = self.window.root();
         window.r().get_url()
     }

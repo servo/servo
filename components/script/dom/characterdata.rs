@@ -15,7 +15,7 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 
 use util::str::{DOMString, slice_chars};
 
@@ -157,18 +157,14 @@ pub enum CharacterDataTypeId {
     ProcessingInstruction,
 }
 
-pub trait CharacterDataHelpers<'a> {
-    fn data(self) -> Ref<'a, DOMString>;
-    fn append_data(self, data: &str);
-}
 
-impl<'a> CharacterDataHelpers<'a> for &'a CharacterData {
+impl CharacterData {
     #[inline]
-    fn data(self) -> Ref<'a, DOMString> {
+    pub fn data(&self) -> Ref<DOMString> {
         self.data.borrow()
     }
     #[inline]
-    fn append_data(self, data: &str) {
+    pub fn append_data(&self, data: &str) {
         self.data.borrow_mut().push_str(data)
     }
 }
