@@ -209,10 +209,6 @@ impl NodeIterator {
             Filter::Callback(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
-
-    fn is_root_node(&self, node: &Node) -> bool {
-        JS::from_ref(node) == self.root_node
-    }
 }
 
 
