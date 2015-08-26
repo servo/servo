@@ -271,14 +271,12 @@ pub enum LoadError {
     MaxRedirects(Url)
 }
 
-#[inline(always)]
 fn set_default_accept_encoding(headers: &mut Headers) {
     if !headers.has::<AcceptEncoding>() {
         headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
     }
 }
 
-#[inline(always)]
 fn set_default_accept(headers: &mut Headers) {
     if !headers.has::<Accept>() {
         let accept = Accept(vec![
@@ -291,7 +289,6 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-#[inline(always)]
 fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcSender<ControlMsg>) {
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
@@ -304,7 +301,6 @@ fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcS
     }
 }
 
-#[inline(always)]
 fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
     if let Some(cookies) = response.headers().get_raw("set-cookie") {
         for cookie in cookies.iter() {
@@ -317,7 +313,6 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_cha
     }
 }
 
-#[inline(always)]
 fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>) -> bool {
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr_chan.send(
@@ -327,7 +322,6 @@ fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>)
     rx.recv().unwrap()
 }
 
-#[inline(always)]
 fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
     if url.scheme == "https" {
         if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
@@ -404,7 +398,6 @@ enum Decoders<R: Read> {
     Plain(R)
 }
 
-#[inline(always)]
 fn send_request_to_devtools(
     devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
     url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
@@ -421,7 +414,6 @@ fn send_request_to_devtools(
     }
 }
 
-#[inline(always)]
 fn send_response_to_devtools(
     devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
     headers: Option<Headers>, status: Option<RawStatus>) {
