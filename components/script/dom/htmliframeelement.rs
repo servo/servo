@@ -365,9 +365,9 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     make_setter!(SetHeight, "height");
 }
 
-impl<'a> VirtualMethods for &'a HTMLIFrameElement {
+impl VirtualMethods for HTMLIFrameElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -395,7 +395,7 @@ impl<'a> VirtualMethods for &'a HTMLIFrameElement {
                 self.sandbox.set(Some(modes));
             }
             &atom!("src") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 if node.is_in_doc() {
                     self.process_the_iframe_attributes()
                 }
@@ -440,7 +440,7 @@ impl<'a> VirtualMethods for &'a HTMLIFrameElement {
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         match (self.containing_page_pipeline_id(), self.subpage_id()) {
             (Some(containing_pipeline_id), Some(subpage_id)) => {
-                let window = window_from_node(*self);
+                let window = window_from_node(self);
                 let window = window.r();
 
                 let ConstellationChan(ref chan) = window.constellation_chan();

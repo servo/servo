@@ -82,9 +82,9 @@ impl<'a> StyleElementHelpers for &'a HTMLStyleElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLStyleElement {
+impl VirtualMethods for HTMLStyleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -92,7 +92,7 @@ impl<'a> VirtualMethods for &'a HTMLStyleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.is_in_doc() {
             self.parse_own_css();
         }

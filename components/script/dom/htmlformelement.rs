@@ -571,9 +571,9 @@ pub trait FormControl<'a> : Copy + Sized {
     fn to_element(self) -> &'a Element;
 }
 
-impl<'a> VirtualMethods for &'a HTMLFormElement {
+impl VirtualMethods for HTMLFormElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

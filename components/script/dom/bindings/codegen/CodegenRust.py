@@ -5808,14 +5808,6 @@ impl ${name}Cast {
     }
 
     #[inline]
-    pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a &'b T) -> Option<&'a &'b ${name}> {
-        match base.${checkFn}() {
-            true => Some(unsafe { mem::transmute(base) }),
-            false => None
-        }
-    }
-
-    #[inline]
     #[allow(unrooted_must_root)]
     pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
         unsafe {
@@ -5836,11 +5828,6 @@ impl ${name}Cast {
 
     #[inline]
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
-        unsafe { mem::transmute(derived) }
-    }
-
-    #[inline]
-    pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a &'b T) -> &'a &'b ${name} {
         unsafe { mem::transmute(derived) }
     }
 

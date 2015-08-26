@@ -70,9 +70,9 @@ impl<'a> HTMLTitleElementMethods for &'a HTMLTitleElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTitleElement {
+impl VirtualMethods for HTMLTitleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -80,14 +80,14 @@ impl<'a> VirtualMethods for &'a HTMLTitleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
     }
 
     fn bind_to_tree(&self, is_in_doc: bool) {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if is_in_doc {
             let document = node.owner_doc();
             document.r().title_changed();

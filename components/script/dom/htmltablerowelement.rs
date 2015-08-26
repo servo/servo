@@ -64,9 +64,9 @@ impl<'a> HTMLTableRowElementHelpers for &'a HTMLTableRowElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTableRowElement {
+impl VirtualMethods for HTMLTableRowElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

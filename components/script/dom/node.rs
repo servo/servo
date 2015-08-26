@@ -2577,9 +2577,9 @@ pub fn window_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Window> 
     document.r().window()
 }
 
-impl<'a> VirtualMethods for &'a Node {
+impl VirtualMethods for Node {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let eventtarget: &&EventTarget = EventTargetCast::from_borrowed_ref(self);
+        let eventtarget: &EventTarget = EventTargetCast::from_ref(self);
         Some(eventtarget as &VirtualMethods)
     }
 

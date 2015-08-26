@@ -1543,9 +1543,9 @@ impl<'a> ElementMethods for &'a Element {
     }
 }
 
-impl<'a> VirtualMethods for &'a Element {
+impl VirtualMethods for Element {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let node: &&Node = NodeCast::from_borrowed_ref(self);
+        let node: &Node = NodeCast::from_ref(self);
         Some(node as &VirtualMethods)
     }
 
@@ -1554,11 +1554,11 @@ impl<'a> VirtualMethods for &'a Element {
             s.after_set_attr(attr);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
-                let doc = document_from_node(*self);
+                let doc = document_from_node(self);
                 let base_url = doc.r().base_url();
                 let value = attr.value();
                 let style = Some(parse_style_attribute(&value, &base_url));
@@ -1571,7 +1571,7 @@ impl<'a> VirtualMethods for &'a Element {
             &atom!("class") => {
                 // Modifying a class can change style.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self);
+                    let document = document_from_node(self);
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
@@ -1579,10 +1579,10 @@ impl<'a> VirtualMethods for &'a Element {
                 // Modifying an ID might change style.
                 let value = attr.value();
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     if !value.is_empty() {
                         let value = value.atom().unwrap().clone();
-                        doc.r().register_named_element(*self, value);
+                        doc.r().register_named_element(self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
@@ -1590,7 +1590,7 @@ impl<'a> VirtualMethods for &'a Element {
             _ => {
                 // Modifying any other attribute might change arbitrary things.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self);
+                    let document = document_from_node(self);
                     document.r().content_changed(node, NodeDamage::OtherNodeDamage);
                 }
             }
@@ -1602,14 +1602,14 @@ impl<'a> VirtualMethods for &'a Element {
             s.before_remove_attr(attr);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         match attr.local_name() {
             &atom!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = None;
 
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
@@ -1617,10 +1617,10 @@ impl<'a> VirtualMethods for &'a Element {
                 // Modifying an ID can change style.
                 let value = attr.value();
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     if !value.is_empty() {
                         let value = value.atom().unwrap().clone();
-                        doc.r().unregister_named_element(*self, value);
+                        doc.r().unregister_named_element(self, value);
                     }
                     doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
@@ -1628,14 +1628,14 @@ impl<'a> VirtualMethods for &'a Element {
             &atom!("class") => {
                 // Modifying a class can change style.
                 if node.is_in_doc() {
-                    let document = document_from_node(*self);
+                    let document = document_from_node(self);
                     document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
             }
             _ => {
                 // Modifying any other attribute might change arbitrary things.
                 if node.is_in_doc() {
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     doc.r().content_changed(node, NodeDamage::OtherNodeDamage);
                 }
             }
@@ -1658,11 +1658,11 @@ impl<'a> VirtualMethods for &'a Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(*self);
+            let doc = document_from_node(self);
             let value = attr.r().Value();
             if !value.is_empty() {
                 let value = Atom::from_slice(&value);
-                doc.r().register_named_element(*self, value);
+                doc.r().register_named_element(self, value);
             }
         }
     }
@@ -1675,11 +1675,11 @@ impl<'a> VirtualMethods for &'a Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(*self);
+            let doc = document_from_node(self);
             let value = attr.r().Value();
             if !value.is_empty() {
                 let value = Atom::from_slice(&value);
-                doc.r().unregister_named_element(*self, value);
+                doc.r().unregister_named_element(self, value);
             }
         }
     }
@@ -1858,7 +1858,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 }
 
 pub trait ActivationElementHelpers<'a> {
-    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)>;
+    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)>;
     fn click_in_progress(self) -> bool;
     fn set_click_in_progress(self, click: bool);
     fn nearest_activable_element(self) -> Option<Root<Element>>;
@@ -1866,15 +1866,15 @@ pub trait ActivationElementHelpers<'a> {
 }
 
 impl<'a> ActivationElementHelpers<'a> for &'a Element {
-    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
-        let node = NodeCast::from_ref(*self);
+    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)> {
+        let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                let element = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLInputElementCast::to_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                let element = HTMLAnchorElementCast::to_borrowed_ref(self).unwrap();
+                let element = HTMLAnchorElementCast::to_ref(self).unwrap();
                 Some(element as &'a (Activatable + 'a))
             },
             _ => {

@@ -304,9 +304,9 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
     make_setter!(SetBorder, "border");
 }
 
-impl<'a> VirtualMethods for &'a HTMLImageElement {
+impl VirtualMethods for HTMLImageElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -317,7 +317,7 @@ impl<'a> VirtualMethods for &'a HTMLImageElement {
 
         match attr.local_name() {
             &atom!("src") => {
-                let window = window_from_node(*self);
+                let window = window_from_node(self);
                 let url = window.r().get_url();
                 self.update_image(Some(((**attr.value()).to_owned(), &url)));
             },

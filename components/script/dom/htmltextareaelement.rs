@@ -247,9 +247,9 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
+impl VirtualMethods for HTMLTextAreaElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -260,7 +260,7 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -287,7 +287,7 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -307,7 +307,7 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -324,7 +324,7 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -350,8 +350,8 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
         if &*event.Type() == "click" && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(*self);
-            doc.r().request_focus(ElementCast::from_ref(*self));
+            let doc = document_from_node(self);
+            doc.r().request_focus(ElementCast::from_ref(self));
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
             let keyevent: Option<&KeyboardEvent> = KeyboardEventCast::to_ref(event);
             keyevent.map(|kevent| {
@@ -361,10 +361,10 @@ impl<'a> VirtualMethods for &'a HTMLTextAreaElement {
                         self.value_changed.set(true);
 
                         if event.IsTrusted() {
-                            let window = window_from_node(*self);
+                            let window = window_from_node(self);
                             let window = window.r();
                             let chan = window.script_chan();
-                            let handler = Trusted::new(window.get_cx(), *self, chan.clone());
+                            let handler = Trusted::new(window.get_cx(), self, chan.clone());
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,
                             };

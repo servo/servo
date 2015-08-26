@@ -322,9 +322,9 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLElement {
+impl VirtualMethods for HTMLElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&Element = ElementCast::from_borrowed_ref(self);
+        let element: &Element = ElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 
@@ -348,11 +348,11 @@ impl<'a> VirtualMethods for &'a HTMLElement {
 
         let name = attr.local_name();
         if name.starts_with("on") {
-            let window = window_from_node(*self);
+            let window = window_from_node(self);
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget = EventTargetCast::from_ref(*self);
+            let evtarget = EventTargetCast::from_ref(self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
                                                   (**attr.value()).to_owned());

@@ -367,7 +367,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
     }
 }
 
-impl<'a> VirtualMethods for &'a EventTarget {
+impl VirtualMethods for EventTarget {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         None
     }

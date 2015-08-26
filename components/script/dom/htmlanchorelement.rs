@@ -67,9 +67,9 @@ impl HTMLAnchorElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLAnchorElement {
+impl VirtualMethods for HTMLAnchorElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -102,9 +102,9 @@ impl<'a> HTMLAnchorElementMethods for &'a HTMLAnchorElement {
     }
 }
 
-impl<'a> Activatable for &'a HTMLAnchorElement {
+impl Activatable for HTMLAnchorElement {
     fn as_element<'b>(&'b self) -> &'b Element {
-        ElementCast::from_ref(*self)
+        ElementCast::from_ref(self)
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -113,7 +113,7 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
         // hyperlink"
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
-        ElementCast::from_ref(*self).has_attribute(&atom!("href"))
+        ElementCast::from_ref(self).has_attribute(&atom!("href"))
     }
 
 
@@ -129,13 +129,13 @@ impl<'a> Activatable for &'a HTMLAnchorElement {
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
     fn activation_behavior(&self, event: &Event, target: &EventTarget) {
         //Step 1. If the node document is not fully active, abort.
-        let doc = document_from_node(*self);
+        let doc = document_from_node(self);
         if !doc.r().is_fully_active() {
             return;
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //Step 3. Handle <img ismap/>.
-        let element = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(self);
         let mouse_event = MouseEventCast::to_ref(event).unwrap();
         let mut ismap_suffix = None;
         if let Some(element) = ElementCast::to_ref(target) {

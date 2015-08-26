@@ -105,9 +105,9 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLSelectElement {
+impl VirtualMethods for HTMLSelectElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -118,7 +118,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -133,7 +133,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -147,7 +147,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -156,7 +156,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {

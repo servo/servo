@@ -101,9 +101,9 @@ fn is_favicon(value: &Option<String>) -> bool {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLLinkElement {
+impl VirtualMethods for HTMLLinkElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -112,12 +112,12 @@ impl<'a> VirtualMethods for &'a HTMLLinkElement {
             s.after_set_attr(attr);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if !node.is_in_doc() {
             return;
         }
 
-        let element = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(self);
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
@@ -150,7 +150,7 @@ impl<'a> VirtualMethods for &'a HTMLLinkElement {
         }
 
         if tree_in_doc {
-            let element = ElementCast::from_ref(*self);
+            let element = ElementCast::from_ref(self);
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));

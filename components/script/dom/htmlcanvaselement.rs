@@ -261,9 +261,9 @@ impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLCanvasElement {
+impl VirtualMethods for HTMLCanvasElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let element: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 
