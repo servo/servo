@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLTableSectionElement#rows</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<table>
+  <tbody id="testBody">
+  <tr><td>First</td></tr>
+  <div><tr><td>Second</td></tr></div>
+  <tr>
+    <td>First</td>
+    <td>Second
+      <table>
+        <tr><td>Nested first</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<script>
+
+var tbody = document.getElementById("testBody");
+
+test(function () {
+  tbody.insertBefore(document.createElementNS("foo", "tr"), tbody.children[1]);
+  assert_array_equals(tbody.rows, [tbody.children[0], tbody.children[2], tbody.children[3]]);
+}, "HTMLTableSectionElement rows ignores nested tables and non-HTML elements");
+
+</script>

@@ -6,9 +6,12 @@ use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableCaptionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTableCaptionElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{ElementHelpers, ElementTypeId};
@@ -72,9 +75,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
         let node = NodeCast::from_ref(self);
         node.children()
-            .filter_map(|c| {
-                HTMLTableCaptionElementCast::to_ref(c.r()).map(Root::from_ref)
-            })
+            .filter_map(HTMLTableCaptionElementCast::to_root)
             .next()
     }
 
@@ -93,8 +94,8 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
-    fn CreateCaption(self) -> Root<HTMLElement> {
-        let caption = match self.GetCaption() {
+    fn CreateCaption(self) -> Root<HTMLTableCaptionElement> {
+        match self.GetCaption() {
             Some(caption) => caption,
             None => {
                 let caption = HTMLTableCaptionElement::new("caption".to_owned(),
@@ -103,8 +104,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
                 self.SetCaption(Some(caption.r()));
                 caption
             }
-        };
-        HTMLElementCast::from_root(caption)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
