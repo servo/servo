@@ -367,7 +367,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
 
 impl<'a> VirtualMethods for &'a HTMLIFrameElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

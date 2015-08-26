@@ -62,7 +62,7 @@ impl<'a> HTMLOptGroupElementMethods for &'a HTMLOptGroupElement {
 
 impl<'a> VirtualMethods for &'a HTMLOptGroupElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

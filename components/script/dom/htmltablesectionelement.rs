@@ -64,7 +64,7 @@ impl<'a> HTMLTableSectionElementHelpers for &'a HTMLTableSectionElement {
 
 impl<'a> VirtualMethods for &'a HTMLTableSectionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

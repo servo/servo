@@ -324,7 +324,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
 
 impl<'a> VirtualMethods for &'a HTMLElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&Element = ElementCast::from_borrowed_ref(self);
+        let element: &Element = ElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 

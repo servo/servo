@@ -1545,7 +1545,7 @@ impl<'a> ElementMethods for &'a Element {
 
 impl<'a> VirtualMethods for &'a Element {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let node: &&Node = NodeCast::from_borrowed_ref(self);
+        let node: &Node = NodeCast::from_ref(self);
         Some(node as &VirtualMethods)
     }
 
