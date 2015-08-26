@@ -722,7 +722,8 @@ impl Element {
         })
     }
 
-    pub fn get_important_inline_style_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
+    pub fn get_important_inline_style_declaration(&self, property: &Atom)
+                                                  -> Option<Ref<PropertyDeclaration>> {
         Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.important
@@ -1717,7 +1718,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        ElementHelpers::local_name(&**self)
+        self.local_name()
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
@@ -1831,7 +1832,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
 
 impl Element {
-    pub fn as_maybe_activatable(&self) -> Option<&(Activatable + 'a)> {
+    pub fn as_maybe_activatable<'a>(&'a self) -> Option<&'a (Activatable + 'a)> {
         let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {

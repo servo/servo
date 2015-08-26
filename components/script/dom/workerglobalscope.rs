@@ -340,10 +340,6 @@ impl WorkerGlobalScope {
         self.timers.fire_timer(timer_id, self);
     }
 
-    pub fn get_cx(&self) -> *mut JSContext {
-        self.runtime.cx()
-    }
-
     pub fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }

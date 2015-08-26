@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::window;
+use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 

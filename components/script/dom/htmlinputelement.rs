@@ -16,9 +16,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSet
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
-use dom::element::RawLayoutElementHelpers;
+use dom::element::{AttributeHandlers, Element, ElementTypeId, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
