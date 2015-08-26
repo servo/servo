@@ -85,9 +85,9 @@ impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
+impl VirtualMethods for HTMLFieldSetElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -98,7 +98,7 @@ impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 let maybe_legend = node.children()
@@ -138,7 +138,7 @@ impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 let maybe_legend = node.children()

@@ -60,9 +60,9 @@ impl<'a> HTMLOptGroupElementMethods for &'a HTMLOptGroupElement {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl<'a> VirtualMethods for &'a HTMLOptGroupElement {
+impl VirtualMethods for HTMLOptGroupElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -73,7 +73,7 @@ impl<'a> VirtualMethods for &'a HTMLOptGroupElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 for child in node.children() {
@@ -94,7 +94,7 @@ impl<'a> VirtualMethods for &'a HTMLOptGroupElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 for child in node.children() {

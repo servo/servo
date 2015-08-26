@@ -561,9 +561,9 @@ impl<'a> PrivateHTMLScriptElementHelpers for &'a HTMLScriptElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLScriptElement {
+impl VirtualMethods for HTMLScriptElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -571,7 +571,7 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -581,7 +581,7 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }

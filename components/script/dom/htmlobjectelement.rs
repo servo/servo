@@ -99,9 +99,9 @@ impl<'a> HTMLObjectElementMethods for &'a HTMLObjectElement {
     make_setter!(SetType, "type");
 }
 
-impl<'a> VirtualMethods for &'a HTMLObjectElement {
+impl VirtualMethods for HTMLObjectElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
