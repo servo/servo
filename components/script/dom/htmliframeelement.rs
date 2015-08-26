@@ -32,7 +32,7 @@ use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandbo
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
 use string_cache::Atom;
-use util::opts;
+use util::prefs;
 use util::str::DOMString;
 
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
@@ -42,6 +42,10 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
+
+pub fn mozbrowser_enabled() -> bool {
+    prefs::get_pref("dom.mozbrowser.enabled", false)
+}
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -134,7 +138,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
                                                             old_subpage_id,
                                                             sandboxed)).unwrap();
 
-        if opts::experimental_enabled() {
+        if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
             self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
@@ -153,7 +157,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
-        assert!(opts::experimental_enabled());
+        assert!(mozbrowser_enabled());
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
@@ -319,7 +323,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(self) -> bool {
-        if opts::experimental_enabled() {
+        if mozbrowser_enabled() {
             let element = ElementCast::from_ref(self);
             element.has_attribute(&Atom::from_slice("mozbrowser"))
         } else {
@@ -329,7 +333,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn SetMozbrowser(self, value: bool) -> ErrorResult {
-        if opts::experimental_enabled() {
+        if mozbrowser_enabled() {
             let element = ElementCast::from_ref(self);
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
         }

@@ -46,7 +46,7 @@ def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
 class Longhand(object):
-    def __init__(self, name, derived_from=None, custom_cascade=False, experimental=False):
+    def __init__(self, name, derived_from=None, custom_cascade=False, experimental=None):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
@@ -59,7 +59,7 @@ class Longhand(object):
             self.derived_from = [ to_rust_ident(name) for name in derived_from ]
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, experimental=False):
+    def __init__(self, name, sub_properties, experimental=None):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
@@ -104,7 +104,7 @@ pub mod longhands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
+    <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=None)">
     <%
         if derived_from is not None:
             derived_from = derived_from.split()
@@ -200,7 +200,7 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
+    <%def name="longhand(name, derived_from=None, custom_cascade=False, experimental=None)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}"
                 custom_cascade="${custom_cascade}" experimental="${experimental}">
             ${caller.body()}
@@ -213,7 +213,7 @@ pub mod longhands {
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, custom_cascade=False, experimental=False)">
+    <%def name="single_keyword_computed(name, values, custom_cascade=False, experimental=None)">
         <%self:longhand name="${name}" custom_cascade="${custom_cascade}"
             experimental="${experimental}">
             pub use self::computed_value::T as SpecifiedValue;
@@ -235,7 +235,7 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, experimental=False)">
+    <%def name="single_keyword(name, values, experimental=None)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        experimental="${experimental}">
@@ -450,7 +450,9 @@ pub mod longhands {
                 % for value in values[:-1]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::opts::experimental_enabled() { return Err(()) }
+                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                                return Err(())
+                            }
                         % endif
                         Ok(computed_value::T::${to_rust_ident(value)})
                     },
@@ -458,7 +460,9 @@ pub mod longhands {
                 % for value in values[-1:]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::opts::experimental_enabled() { return Err(()) }
+                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                                return Err(())
+                            }
                         % endif
                         Ok(computed_value::T::${to_rust_ident(value)})
                     }
@@ -2426,11 +2430,13 @@ pub mod longhands {
     // http://dev.w3.org/csswg/css-writing-modes/
     ${switch_to_style_struct("InheritedBox")}
 
-    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
+    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr",
+                     experimental="layout.writing-mode.enabled")}
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
+    ${single_keyword("text-orientation", "sideways sideways-left sideways-right",
+                     experimental="layout.text-orientation.enabled")}
 
     // CSS Basic User Interface Module Level 3
     // http://dev.w3.org/csswg/css-ui/
@@ -2492,7 +2498,7 @@ pub mod longhands {
 
     ${new_style_struct("Column", is_inherited=False)}
 
-    <%self:longhand name="column-width" experimental="True">
+    <%self:longhand name="column-width" experimental="layout.column-width.enabled">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
@@ -2554,7 +2560,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    <%self:longhand name="column-count" experimental="True">
+    <%self:longhand name="column-count" experimental="layout.column-count.enabled">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
@@ -2620,7 +2626,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    <%self:longhand name="column-gap" experimental="True">
+    <%self:longhand name="column-gap" experimental="layout.column-gap.enabled">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
@@ -4804,7 +4810,8 @@ pub mod longhands {
     ${new_style_struct("Flex", is_inherited=False)}
 
     // Flex container properties
-    ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+    ${single_keyword("flex-direction", "row row-reverse column column-reverse",
+                     experimental="layout.flex-direction.enabled")}
 }
 
 
@@ -4813,7 +4820,7 @@ pub mod shorthands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="shorthand(name, sub_properties, experimental=False)">
+    <%def name="shorthand(name, sub_properties, experimental=None)">
     <%
         shorthand = Shorthand(name, sub_properties.split(), experimental=experimental)
         SHORTHANDS.append(shorthand)
@@ -5322,7 +5329,7 @@ pub mod shorthands {
         }
     </%self:shorthand>
 
-    <%self:shorthand name="columns" sub_properties="column-count column-width" experimental="True">
+    <%self:shorthand name="columns" sub_properties="column-count column-width" experimental="layout.columns.enabled">
         use properties::longhands::{column_count, column_width};
         let mut column_count = None;
         let mut column_width = None;
@@ -5720,7 +5727,7 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     "${property.name}" => {
                         % if property.experimental:
-                            if !::util::opts::experimental_enabled() {
+                            if !::util::prefs::get_pref("${property.experimental}", false) {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
@@ -5739,7 +5746,7 @@ impl PropertyDeclaration {
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
                     % if shorthand.experimental:
-                        if !::util::opts::experimental_enabled() {
+                        if !::util::prefs::get_pref("${shorthand.experimental}", false) {
                             return PropertyDeclarationParseResult::ExperimentalProperty
                         }
                     % endif
