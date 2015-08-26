@@ -228,6 +228,9 @@ impl Window {
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }
+            Event::Closed => {
+                return true
+            }
             _ => {}
         }
 
