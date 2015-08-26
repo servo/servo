@@ -30,8 +30,8 @@ cache_test(function(cache) {
           return self.caches.match(transaction.request);
         })
       .then(function(response) {
-          assert_object_equals(response, transaction.response,
-                               'The response should not have changed.');
+          assert_response_equals(response, transaction.response,
+                                 'The response should not have changed.');
         });
 }, 'CacheStorageMatch with no cache name provided');
 
@@ -49,8 +49,8 @@ cache_test(function(cache) {
           return self.caches.match(transaction.request);
         })
       .then(function(response) {
-          assert_object_equals(response, transaction.response,
-                               'The response should not have changed.');
+          assert_response_equals(response, transaction.response,
+                                 'The response should not have changed.');
         });
 }, 'CacheStorageMatch from one of many caches');
 
@@ -70,8 +70,8 @@ promise_test(function(test) {
           return self.caches.match(transaction.request, {cacheName: 'x'});
         })
       .then(function(response) {
-          assert_object_equals(response, transaction.response,
-                               'The response should not have changed.');
+          assert_response_equals(response, transaction.response,
+                                 'The response should not have changed.');
         })
       .then(function() {
           return self.caches.match(transaction.request, {cacheName: 'y'});
@@ -89,8 +89,8 @@ cache_test(function(cache) {
           return self.caches.match(transaction.request);
         })
       .then(function(response) {
-          assert_object_equals(response, transaction.response,
-                               'The response should not have changed.');
+          assert_response_equals(response, transaction.response,
+                                 'The response should not have changed.');
         });
 }, 'CacheStorageMatch a string request');
 
