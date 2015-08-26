@@ -6,7 +6,6 @@ use devtools;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
-use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
@@ -16,10 +15,9 @@ use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
-use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
 use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
@@ -354,16 +352,6 @@ impl DedicatedWorkerGlobalScope {
             },
         }
     }
-
-    fn dispatch_error_to_worker(&self, errorevent: &ErrorEvent) {
-        let msg = errorevent.Message();
-        let file_name = errorevent.Filename();
-        let line_num = errorevent.Lineno();
-        let col_num = errorevent.Colno();
-        let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(CommonScriptMsg::RunnableMsg(
-            box WorkerErrorHandler::new(worker, msg, file_name, line_num, col_num))).unwrap();
- }
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
