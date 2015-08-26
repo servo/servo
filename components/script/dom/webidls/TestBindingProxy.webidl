@@ -15,9 +15,9 @@
 interface TestBindingProxy : TestBinding {
   readonly attribute unsigned long length;
 
-  getter DOMString getNamedItem(DOMString name);
+  getter DOMString getNamedItem(DOMString item_name);
 
-  setter creator void setNamedItem(DOMString name, DOMString value);
+  setter creator void setNamedItem(DOMString item_name, DOMString value);
 
   getter DOMString getItem(unsigned long index);
 
