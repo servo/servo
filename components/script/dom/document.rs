@@ -50,7 +50,7 @@ use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmliframeelement::{self, HTMLIFrameElement};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
@@ -79,7 +79,6 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
-use util::opts;
 use util::str::{DOMString, split_html_space_chars};
 
 use euclid::point::Point2D;
@@ -856,7 +855,7 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if opts::experimental_enabled() {
+        if htmliframeelement::mozbrowser_enabled() {
             let window = self.window.root();
 
             if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {

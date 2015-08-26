@@ -31,7 +31,7 @@ use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
-use util::opts;
+use util::prefs;
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
@@ -269,7 +269,7 @@ impl Pipeline {
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
-        assert!(opts::experimental_enabled());
+        assert!(prefs::get_pref("dom.mozbrowser.enabled", false));
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,
