@@ -41,12 +41,9 @@ impl ProcessingInstruction {
     }
 }
 
-pub trait ProcessingInstructionHelpers<'a> {
-    fn target(self) -> &'a DOMString;
-}
 
-impl<'a> ProcessingInstructionHelpers<'a> for &'a ProcessingInstruction {
-    fn target(self) -> &'a DOMString {
+impl ProcessingInstruction {
+    pub fn target<'a>(&'a self) -> &'a DOMString {
         &self.target
     }
 }

@@ -9,7 +9,7 @@ use dom::bindings::js::JS;
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
 use dom::eventtarget::{EventTarget, ListenerPhase};
-use dom::node::{Node, NodeHelpers};
+use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 
 // See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm

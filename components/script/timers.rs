@@ -7,7 +7,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
-use dom::window::ScriptHelpers;
 
 use horribly_inefficient_timers;
 use script_task::{ScriptChan, TimerSource, CommonScriptMsg};

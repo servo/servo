@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::element::{Element, ActivationElementHelpers};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::element::Element;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;

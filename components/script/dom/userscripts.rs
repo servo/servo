@@ -8,7 +8,6 @@ use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{RootedReference};
 use dom::element::AttributeHandlers;
 use dom::htmlheadelement::HTMLHeadElement;
-use dom::node::NodeHelpers;
 use std::borrow::ToOwned;
 use std::fs::read_dir;
 use std::path::PathBuf;

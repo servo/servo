@@ -8,7 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
+use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
 use time;
 

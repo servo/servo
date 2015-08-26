@@ -10,7 +10,7 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;

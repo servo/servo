@@ -19,8 +19,8 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{Runnable, CommonScriptMsg};
 

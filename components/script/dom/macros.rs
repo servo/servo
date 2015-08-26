@@ -79,7 +79,6 @@ macro_rules! make_url_or_base_getter(
         fn $attr(self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use dom::element::AttributeHandlers;
-            use dom::window::WindowHelpers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));

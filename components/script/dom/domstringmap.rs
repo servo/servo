@@ -8,7 +8,7 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
+use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
 use util::str::DOMString;
 

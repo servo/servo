@@ -5,7 +5,6 @@
 #![allow(unsafe_code, unrooted_must_root)]
 
 use document_loader::DocumentLoader;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
@@ -14,17 +13,15 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
-use dom::characterdata::{CharacterDataHelpers, CharacterDataTypeId};
+use dom::characterdata::CharacterDataTypeId;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
+use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlscriptelement::HTMLScriptElementHelpers;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
-use dom::processinginstruction::ProcessingInstructionHelpers;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
 use dom::text::Text;

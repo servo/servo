@@ -13,10 +13,10 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{RootedReference};
-use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
+use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 /// An HTML text node.
