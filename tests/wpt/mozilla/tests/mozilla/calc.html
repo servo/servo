@@ -57,6 +57,97 @@ widthTests.forEach(function(item) {
         assert_equals(window.getComputedStyle(div).getPropertyValue('width'), item[2]);
     }, item[0]);
 });
+
+var lengthProperties = [
+  'border-width',
+  'border-top-width',
+  'border-left-width',
+  'border-right-width',
+  'border-bottom-width',
+  'outline-width',
+  'outline-offset',
+  'letter-spacing',
+  'word-spacing',
+  'border-spacing',
+  'column-width',
+  'column-gap',
+  'perspective',
+];
+
+lengthProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px)');
+        assert_equals(div.style.getPropertyValue(prop), '1px');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
+    }, 'calc for ' + prop);
+});
+
+var lengthOrPercentageProperties = [
+  'border-top-left-radius',
+  'border-bottom-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'top',
+  'left',
+  'bottom',
+  'right',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'line-height',
+  'vertical-align',
+  'background-position',
+  'background-size',
+  'font-size',
+  'text-indent',
+  'transform-origin',
+  'perspective-origin',
+];
+
+lengthOrPercentageProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px + 0%)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1px + 0%)');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
+    }, 'calc for ' + prop);
+});
+
+var timeProperties = [
+  'transition-delay',
+];
+
+timeProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1s)');
+        assert_equals(div.style.getPropertyValue(prop), '1s');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1s');
+    }, 'calc for ' + prop);
+});
+
+var numberProperties = [
+  'z-index',
+  'column-count',
+  'opacity',
+  'transition-duration',
+];
+
+numberProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1)');
+        assert_equals(div.style.getPropertyValue(prop), '1');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1');
+    }, 'calc for ' + prop);
+});
+
+
+/* TODO: test these: 
+  counter-increment, counter-reset,
+  color, box-shadow, clip, text-shadow, transform
+  transition-timing-function
+  */
 </script>
 </head>
 </html>
