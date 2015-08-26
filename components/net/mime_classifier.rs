@@ -277,28 +277,28 @@ impl MIMEChecker for Mp4Matcher {
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
-    fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
+    fn classify_impl(&self, data: &[u8]) -> (&'static str, &'static str) {
         if (data.len() >= 2 &&
             ((data[0] == 0xFFu8 && data[1] == 0xFEu8) ||
             (data[0] == 0xFEu8 && data[1] == 0xFFu8))) ||
             (data.len() >= 3 && data[0] == 0xEFu8 && data[1] == 0xBBu8 && data[2] == 0xBFu8)
         {
-            Some(("text", "plain"))
+            ("text", "plain")
         }
         else if data.len() >= 1 && data.iter().any(|&x| x <= 0x08u8 ||
                                                         x == 0x0Bu8 ||
                                                         (x >= 0x0Eu8 && x <= 0x1Au8) ||
                                                         (x >= 0x1Cu8 && x <= 0x1Fu8)) {
-            Some(("application", "octet-stream"))
+            ("application", "octet-stream")
         }
         else {
-            Some(("text", "plain"))
+            ("text", "plain")
         }
     }
 }
 impl MIMEChecker for BinaryOrPlaintextClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
-        return as_string_option(self.classify_impl(data));
+        return as_string_option(Some(self.classify_impl(data)));
     }
 }
 struct GroupedClassifier {
