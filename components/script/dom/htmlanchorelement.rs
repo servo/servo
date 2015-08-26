@@ -67,7 +67,7 @@ impl HTMLAnchorElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLAnchorElement {
+impl VirtualMethods for HTMLAnchorElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)

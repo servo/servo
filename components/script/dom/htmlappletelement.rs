@@ -58,9 +58,9 @@ impl<'a> HTMLAppletElementMethods for &'a HTMLAppletElement {
     make_atomic_setter!(SetName, "name");
 }
 
-impl<'a> VirtualMethods for &'a HTMLAppletElement {
+impl VirtualMethods for HTMLAppletElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

@@ -80,9 +80,9 @@ impl HTMLBaseElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLBaseElement {
+impl VirtualMethods for HTMLBaseElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
     fn after_set_attr(&self, attr: &Attr) {

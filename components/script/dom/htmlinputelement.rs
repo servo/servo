@@ -456,7 +456,7 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLInputElement {
+impl VirtualMethods for HTMLInputElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
@@ -469,7 +469,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             }
@@ -532,7 +532,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -548,7 +548,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             }
             &atom!("type") => {
                 if self.input_type.get() == InputType::InputRadio {
-                    broadcast_radio_checked(*self,
+                    broadcast_radio_checked(self,
                                             self.get_radio_group_name()
                                                 .as_ref()
                                                 .map(|group| &**group));
@@ -584,7 +584,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -593,7 +593,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -617,8 +617,8 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(*self);
-            doc.r().request_focus(ElementCast::from_ref(*self));
+            let doc = document_from_node(self);
+            doc.r().request_focus(ElementCast::from_ref(self));
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
