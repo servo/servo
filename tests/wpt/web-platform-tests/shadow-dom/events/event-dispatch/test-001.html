@@ -35,7 +35,7 @@ A_05_05_01_T01.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #volume-slider-thumb relative target	#volume-slider-thumb
+    //For #volume-slider-thumb relative target #volume-slider-thumb
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').addEventListener('click',
 	    A_05_05_01_T01.step_func(function(event) {
 	    	invoked = true;
@@ -68,7 +68,7 @@ A_05_05_01_T02.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #volume-shadow-root relative target	#volume-slider-thumb
+    //For #volume-shadow-root relative target #volume-slider-thumb
     roots.volumeShadowRoot.addEventListener('click',
     		A_05_05_01_T02.step_func(function(event) {
     			invoked = true;
@@ -101,13 +101,13 @@ A_05_05_01_T03.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #volume-slider relative target #volume-slider
+    //For #volume-slider relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider').addEventListener('click',
     		A_05_05_01_T03.step_func(function(event) {
     			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
 		    			'Wrong target');
-		    	assert_true(event.currentTarget.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider',
 		    			'Wrong currentTarget');
 	    }), false);
 
@@ -135,13 +135,13 @@ A_05_05_01_T04.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #volume-slider-container relative target #volume-slider
+    //For #volume-slider-container relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider-container').addEventListener('click',
     		A_05_05_01_T04.step_func(function(event) {
     			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
 		    			'Wrong target');
-		    	assert_true(event.currentTarget.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider-container',
 		    			'Wrong currentTarget');
 	    }), false);
 
@@ -168,13 +168,13 @@ A_05_05_01_T05.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #controls relative target #volume-slider
+    //For #controls relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#controls').addEventListener('click',
     		A_05_05_01_T05.step_func(function(event) {
     			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
 		    			'Wrong target');
-		    	assert_true(event.currentTarget.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.currentTarget.getAttribute('id'), 'controls',
 		    			'Wrong currentTarget');
 	    }), false);
 
@@ -201,13 +201,13 @@ A_05_05_01_T06.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #player-shadow-root relative target #volume-slider
-    roots.playerShadowRoot.addEventListener('click',
+    //For #player-shadow-host relative target #player-shadow-host
+    d.querySelector('#player-shadow-host').addEventListener('click',
     		A_05_05_01_T06.step_func(function(event) {
     			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
 		    			'Wrong target');
-		    	assert_true(event.currentTarget.getAttribute('id'), 'volume-slider',
+		    	assert_equals(event.currentTarget.getAttribute('id'), 'player-shadow-host',
 		    			'Wrong currentTarget');
 	    }), false);
 
@@ -235,13 +235,13 @@ A_05_05_01_T07.step(unit(function (ctx) {
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
 
-    //For #player relative target #player
+    //For #player relative target #player-shadow-host
     d.querySelector('#player').addEventListener('click',
     		A_05_05_01_T07.step_func(function(event) {
     			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'player',
+		    	assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
 		    			'Wrong target');
-		    	assert_true(event.currentTarget.getAttribute('id'), 'player',
+		    	assert_equals(event.currentTarget.getAttribute('id'), 'player',
 		    			'Wrong currentTarget');
 	    }), false);
 

@@ -1050,6 +1050,10 @@
         "url": "/screen-orientation/page-visibility-manual.html"
       },
       {
+        "path": "selection/dir-manual.html",
+        "url": "/selection/dir-manual.html"
+      },
+      {
         "path": "svg/import/animate-dom-01-f-manual.svg",
         "url": "/svg/import/animate-dom-01-f-manual.svg"
       },
@@ -12204,22 +12208,6 @@
         "url": "/ambient-light/idlharness.html"
       },
       {
-        "path": "animation-timing/callback-invoked.html",
-        "url": "/animation-timing/callback-invoked.html"
-      },
-      {
-        "path": "animation-timing/cancel-invoked.html",
-        "url": "/animation-timing/cancel-invoked.html"
-      },
-      {
-        "path": "animation-timing/idlharness.html",
-        "url": "/animation-timing/idlharness.html"
-      },
-      {
-        "path": "animation-timing/same-dispatch-time.html",
-        "url": "/animation-timing/same-dispatch-time.html"
-      },
-      {
         "path": "battery-status/battery-interface-idlharness.html",
         "url": "/battery-status/battery-interface-idlharness.html"
       },
@@ -15476,6 +15464,10 @@
         "url": "/html/dom/elements/global-attributes/the-translate-attribute-012.html"
       },
       {
+        "path": "html/editing/activation/click.html",
+        "url": "/html/editing/activation/click.html"
+      },
+      {
         "path": "html/editing/dnd/dom/draggable.html",
         "url": "/html/editing/dnd/dom/draggable.html"
       },
@@ -17842,6 +17834,26 @@
       {
         "path": "html/syntax/serializing-html-fragments/outerHTML.html",
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html"
+      },
+      {
+        "path": "html/webappapis/animation-frames/callback-exception.html",
+        "url": "/html/webappapis/animation-frames/callback-exception.html"
+      },
+      {
+        "path": "html/webappapis/animation-frames/callback-invoked.html",
+        "url": "/html/webappapis/animation-frames/callback-invoked.html"
+      },
+      {
+        "path": "html/webappapis/animation-frames/cancel-invoked.html",
+        "url": "/html/webappapis/animation-frames/cancel-invoked.html"
+      },
+      {
+        "path": "html/webappapis/animation-frames/idlharness.html",
+        "url": "/html/webappapis/animation-frames/idlharness.html"
+      },
+      {
+        "path": "html/webappapis/animation-frames/same-dispatch-time.html",
+        "url": "/html/webappapis/animation-frames/same-dispatch-time.html"
       },
       {
         "path": "html/webappapis/atob/base64.html",
@@ -24988,10 +25000,6 @@
         "url": "/selection/deleteFromDocument.html"
       },
       {
-        "path": "selection/dir.manual.html",
-        "url": "/selection/dir.manual.html"
-      },
-      {
         "path": "selection/extend.html",
         "url": "/selection/extend.html"
       },
@@ -25140,10 +25148,6 @@
         "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-003.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-004.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-004.html"
-      },
-      {
         "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-005.html",
         "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-005.html"
       },
@@ -25158,10 +25162,6 @@
       {
         "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-002.html",
         "url": "/shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-002.html"
-      },
-      {
-        "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-003.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-003.html"
       },
       {
         "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-004.html",
@@ -25670,6 +25670,10 @@
       {
         "path": "webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html",
         "url": "/webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html"
+      },
+      {
+        "path": "webaudio/the-audio-api/the-offlineaudiocontext-interface/current-time-block-size.html",
+        "url": "/webaudio/the-audio-api/the-offlineaudiocontext-interface/current-time-block-size.html"
       },
       {
         "path": "webgl/bufferSubData.html",
@@ -27556,6 +27560,10 @@
         "url": "/workers/semantics/encodings/004.html"
       },
       {
+        "path": "workers/semantics/encodings/004.worker.js",
+        "url": "/workers/semantics/encodings/004.worker"
+      },
+      {
         "path": "workers/semantics/interface-objects/001.worker.js",
         "url": "/workers/semantics/interface-objects/001.worker"
       },
@@ -29097,14 +29105,7 @@
     ]
   },
   "local_changes": {
-    "deleted": [
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-      "2dcontext/transformations/canvas_transformations_reset_001.htm",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-    ],
+    "deleted": [],
     "items": {},
     "reftest_nodes": {}
   },
@@ -34582,7 +34583,7 @@
       }
     ]
   },
-  "rev": "58133dd71b16037669a0aa011b2afd448b52d434",
+  "rev": "acd60f9e55532f03fc905e61591b7fd7db2f08d1",
   "url_base": "/",
   "version": 2
 }

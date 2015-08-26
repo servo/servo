@@ -7,39 +7,185 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
-var expected = [
-  "parse-inline",
-  "parse-ext",
-  "dom-inline",
-  "dom-ext",
-];
-var tests = {};
-expected.forEach(function(id) {
-  tests[id] = async_test("Script " + id);
+var data = {
+  "parse-inline" : [],
+  "parse-ext" : [],
+  "dom-inline" : [],
+  "dom-ext" : [],
+  "nested" : ["nested-outer","nested-inner","nested-outer"],
+  "script-exec" : ["script-exec-before-after","script-exec-before-after"],
+  "script-load-error" : [null],
+  "script-window-error" : ["script-error-compile","script-error-runtime"],
+  "timeout" : [null],
+  "eval" : [],
+  "xhr-test" : [],
+  "script-svg" : [],
+  "script-async" : [],
+  "script-defer" : []
+};
+
+var expected = {};
+var actual = {};
+
+Object.keys(data).forEach(function(id) {
+  var test_expected = data[id];
+  if(test_expected.length == 0) {
+    test_expected = [id];
+  }
+  expected[id] = test_expected;
+  actual[id] = [];
 });
-function verifyScript(id) {
+
+var tests = {};
+setup({allow_uncaught_exception : true});
+
+Object.keys(expected).forEach(function(id) {
+  var testmsg = "Script " + id;
+  tests[id] = async_test(testmsg);
+});
+
+function verify(id) {
   tests[id].step(function() {
-    assert_equals(document.currentScript, document.getElementById(id));
-    this.done();
-  });
+    actual[id].push(document.currentScript);
+  })
 }
+
+function finish(id) {
+  tests[id].step(function() {
+    assert_array_equals(actual[id],expected[id].map(function(id) {
+      return document.getElementById(id);
+    }));
+    this.done();
+  })
+}
+
 </script>
 
 <!-- Test parser inserted scripts -->
 <script id="parse-inline">
-verifyScript("parse-inline");
+verify('parse-inline');
+finish('parse-inline')
 </script>
-<script id="parse-ext" src="data:text/plain,verifyScript('parse-ext');"></script>
+<script id="parse-ext" src="data:text/plain,verify('parse-ext')"></script>
+<script>finish('parse-ext');</script>
 
 <!-- Test DOM inserted scripts -->
 <script>
 var s = document.createElement("script");
-s.textContent = "verifyScript('dom-inline');";
+s.textContent = "verify('dom-inline');";
 s.id = "dom-inline";
 document.body.appendChild(s);
+finish('dom-inline');
 
 s = document.createElement("script");
-s.src = "data:text/plain,verifyScript('dom-ext');";
+s.src = "data:text/plain,verify('dom-ext');";
 s.id = "dom-ext";
+s.onload = function() {
+  finish('dom-ext');
+}
 document.body.appendChild(s);
 </script>
+
+<!-- Test Nested scripts -->
+<script id="nested-outer">
+ verify("nested");
+ var s = document.createElement("script");
+ s.textContent = "verify('nested')";
+ s.id = "nested-inner";
+ document.body.appendChild(s);
+ verify("nested");
+ finish('nested');
+</script>
+
+<!-- Test beforescriptexecute and afterscriptexecute -->
+<script id="script-exec-before-after">
+function verifyScriptExec(e) {
+  verify('script-exec');
+}
+
+document.addEventListener('beforescriptexecute', verifyScriptExec, false);
+document.addEventListener('afterscriptexecute', verifyScriptExec, false);
+
+var s = document.createElement("script");
+s.id = "script-exec-test";
+s.textContent = "function nop() { return false }";
+document.body.appendChild(s);
+
+document.removeEventListener('beforescriptexecute', verifyScriptExec);
+document.removeEventListener('afterscriptexecute', verifyScriptExec);
+
+finish('script-exec');
+</script>
+
+<!-- Test script load error event listener -->
+<script>
+function testLoadFail() {
+  verify('script-load-error');
+  finish('script-load-error');
+}
+</script>
+
+<script src="http://some.nonexistant.test/fail" id="script-load-error" onerror="testLoadFail()">
+</script>
+
+<!-- Test for runtime and compile time errors -->
+<script>
+  window.onerror = function() {
+    verify('script-window-error');
+  }
+
+  var s = document.createElement("script");
+  s.id = "script-error-compile";
+  s.textContent = "{";
+  document.body.appendChild(s);
+
+  window.onerror = function() {
+    verify('script-window-error');
+  }
+
+  s = document.createElement("script");
+  s.id = "script-error-runtime";
+  s.textContent = "undefinedfn();";
+  document.body.appendChild(s);
+
+  finish('script-window-error');
+</script>
+
+<!-- Verify in setTimeout -->
+<script>
+  setTimeout(function() {
+    verify('timeout');
+    finish('timeout');
+  },0);
+</script>
+
+<!-- Verify in eval -->
+<script id="eval">
+  eval('verify("eval")');
+  finish("eval");
+</script>
+
+<!-- Verify in synchronous xhr -->
+<script id="xhr-test">
+  var request = new XMLHttpRequest();
+  request.open('GET','/',false);
+  request.send(null);
+
+  if(request.status === 200) {
+    verify('xhr-test');
+    finish('xhr-test');
+  }
+</script>
+
+<!-- Testing script within svg -->
+<svg>
+  <script id="script-svg">
+    verify('script-svg');
+    finish('script-svg');
+  </script>
+</svg>
+
+<!-- Test script async and defer -->
+<script id='script-async' async src='data:text/plain,verify("script-async"),finish("script-async")'></script>
+
+<script id='script-defer' defer src='data:text/plain,verify("script-defer"),finish("script-defer")'></script>

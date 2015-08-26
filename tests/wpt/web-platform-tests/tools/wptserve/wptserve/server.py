@@ -233,6 +233,11 @@ class WebTestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.logger.debug("%s %s" % (request.method, request.request_path))
             handler = self.server.router.get_handler(request)
 
+            # If the handler we used for the request had a non-default base path
+            # set update the doc_root of the request to reflect this
+            if hasattr(handler, "base_path") and handler.base_path:
+                request.doc_root = handler.base_path
+
             if self.server.latency is not None:
                 if callable(self.server.latency):
                     latency = self.server.latency()

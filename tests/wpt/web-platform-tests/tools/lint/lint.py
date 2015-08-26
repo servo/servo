@@ -115,6 +115,11 @@ class Webidl2Regexp(Regexp):
     pattern = "webidl2\.js"
     error = "WEBIDL2.JS"
 
+class ConsoleRegexp(Regexp):
+    pattern = "console\.[a-zA-Z]+\s*\("
+    error = "CONSOLE"
+    file_extensions = [".html", ".htm", ".js", ".xht", ".html", ".svg"]
+
 class PrintRegexp(Regexp):
     pattern = "print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
@@ -126,6 +131,7 @@ regexps = [item() for item in
             CRRegexp,
             W3CTestOrgRegexp,
             Webidl2Regexp,
+            ConsoleRegexp,
             PrintRegexp]]
 
 def check_regexp_line(path, f):

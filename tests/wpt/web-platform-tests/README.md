@@ -166,7 +166,7 @@ The way to contribute is just as usual:
 * Fork this repository (and make sure you're still relatively in sync
   with it if you forked a while ago).
 * Create a branch for your changes:
-  `git checkout -b your-name/topic`.
+  `git checkout -b topic`.
 * Make your changes.
 * Run the lint script described below.
 * Commit locally and push that to your repo.

@@ -30,9 +30,9 @@ cache_test(function(cache) {
           return cache.match(test_url);
         })
       .then(function(result) {
-          assert_object_equals(result, response,
-                               'Cache.put should update the cache with ' +
-                               'new request and response.');
+          assert_response_equals(result, response,
+                                 'Cache.put should update the cache with ' +
+                                 'new request and response.');
           return result.text();
         })
       .then(function(body) {
@@ -75,9 +75,9 @@ cache_test(function(cache) {
           return cache.match(test_url);
         })
       .then(function(result) {
-          assert_object_equals(result, response,
-                               'Cache.put should update the cache with ' +
-                               'new Request and Response.');
+          assert_response_equals(result, response,
+                                 'Cache.put should update the cache with ' +
+                                 'new Request and Response.');
         });
   }, 'Cache.put with a Response containing an empty URL');
 
@@ -118,9 +118,9 @@ cache_test(function(cache) {
           return cache.match(test_url);
         })
       .then(function(result) {
-          assert_object_equals(result, response,
-                               'Cache.put should update the cache with ' +
-                               'new request and response.');
+          assert_response_equals(result, response,
+                                 'Cache.put should update the cache with ' +
+                                 'new request and response.');
           return result.text();
         })
       .then(function(body) {
@@ -142,9 +142,9 @@ cache_test(function(cache) {
           return cache.match(test_url);
         })
       .then(function(result) {
-          assert_object_equals(result, alternate_response,
-                               'Cache.put should replace existing ' +
-                               'response with new response.');
+          assert_response_equals(result, alternate_response,
+                                 'Cache.put should replace existing ' +
+                                 'response with new response.');
           return result.text();
         })
       .then(function(body) {
@@ -168,9 +168,9 @@ cache_test(function(cache) {
           return cache.match(test_url);
         })
       .then(function(result) {
-          assert_object_equals(result, alternate_response,
-                               'Cache.put should replace existing ' +
-                               'response with new response.');
+          assert_response_equals(result, alternate_response,
+                                 'Cache.put should replace existing ' +
+                                 'response with new response.');
           return result.text();
         })
       .then(function(body) {
@@ -248,9 +248,9 @@ cache_test(function(cache) {
           return cache.match(new URL('relative-url', location.href).href);
         })
       .then(function(result) {
-          assert_object_equals(result, response,
-                               'Cache.put should accept a relative URL ' +
-                               'as the request.');
+          assert_response_equals(result, response,
+                                 'Cache.put should accept a relative URL ' +
+                                 'as the request.');
         });
   }, 'Cache.put with a relative URL');
 

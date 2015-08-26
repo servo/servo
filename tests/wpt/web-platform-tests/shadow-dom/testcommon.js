@@ -228,30 +228,30 @@ function createTestMediaPlayer(d) {
     d.body.innerHTML = '' +
 	'<div id="player">' +
 		'<input type="checkbox" id="outside-control">' +
-		'<div id="player-shadow-root">' +
+		'<div id="player-shadow-host">' +
 	    '</div>' +
 	'</div>';
 
-	var playerShadowRoot = d.querySelector('#player-shadow-root').createShadowRoot();
+	var playerShadowRoot = d.querySelector('#player-shadow-host').createShadowRoot();
 	playerShadowRoot.innerHTML = '' +
 		'<div id="controls">' +
 			'<button class="play-button">PLAY</button>' +
-			'<input type="range" id="timeline">' +
-				'<div id="timeline-shadow-root">' +
+			'<div tabindex="0" id="timeline">' +
+				'<div id="timeline-shadow-host">' +
 				'</div>' +
-			'</input>' +
+			'</div>' +
 		    '<div class="volume-slider-container" id="volume-slider-container">' +
-		        '<input type="range" class="volume-slider" id="volume-slider">' +
-		            '<div id="volume-shadow-root">' +
+		        '<div tabindex="0" class="volume-slider" id="volume-slider">' +
+		            '<div id="volume-shadow-host">' +
 		            '</div>' +
-		        '</input>' +
+		        '</div>' +
 		    '</div>' +
 		'</div>';
 
-	var timeLineShadowRoot = playerShadowRoot.querySelector('#timeline-shadow-root').createShadowRoot();
+	var timeLineShadowRoot = playerShadowRoot.querySelector('#timeline-shadow-host').createShadowRoot();
 	timeLineShadowRoot.innerHTML =  '<div class="slider-thumb" id="timeline-slider-thumb"></div>';
 
-	var volumeShadowRoot = playerShadowRoot.querySelector('#volume-shadow-root').createShadowRoot();
+	var volumeShadowRoot = playerShadowRoot.querySelector('#volume-shadow-host').createShadowRoot();
 	volumeShadowRoot.innerHTML = '<div class="slider-thumb" id="volume-slider-thumb"></div>';
 
 	return {
