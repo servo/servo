@@ -593,15 +593,21 @@ impl<'a> WindowMethods for &'a Window {
 }
 
 
+pub trait ScriptHelpers {
+    fn evaluate_js_on_global_with_result(self, code: &str,
+                                         rval: MutableHandleValue);
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
+                                             rval: MutableHandleValue);
+}
 
 impl<'a, T: Reflectable> ScriptHelpers for &'a T {
-    pub fn evaluate_js_on_global_with_result(&self, code: &str,
+    fn evaluate_js_on_global_with_result(self, code: &str,
                                          rval: MutableHandleValue) {
         self.evaluate_script_on_global_with_result(code, "", rval)
     }
 
     #[allow(unsafe_code)]
-    pub fn evaluate_script_on_global_with_result(&self, code: &str, filename: &str,
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
         let this = self.reflector().get_jsobject();
         let global = global_object_for_js_object(this.get());

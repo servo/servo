@@ -267,8 +267,8 @@ impl EventTarget {
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 
-    fn set_event_handler_common<T: CallbackContainer>(
-        self, ty: &str, listener: Option<Rc<T>>)
+    pub fn set_event_handler_common<T: CallbackContainer>(
+        &self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
                                           EventHandlerNonNull::new(listener.callback()));

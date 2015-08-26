@@ -42,7 +42,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, AttributeHandlers};
-use dom::element::{ElementTypeId, FocusElementHelpers};
+use dom::element::ElementTypeId;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlanchorelement::HTMLAnchorElement;

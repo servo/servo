@@ -12,6 +12,7 @@ use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
 use dom::node::Node;
+use dom::window::ScriptHelpers;
 use js::jsapi::JSContext;
 use js::jsapi::{RootedValue, HandleValue};
 use js::jsval::UndefinedValue;

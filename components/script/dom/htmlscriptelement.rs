@@ -29,6 +29,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom::window::ScriptHelpers;
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use network_listener::{NetworkListener, PreInvoke};

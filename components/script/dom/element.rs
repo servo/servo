@@ -1717,7 +1717,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        ElementHelpers::local_name(&**self)
+        self.local_name()
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
