@@ -58,7 +58,10 @@ macro_rules! handle_potential_webgl_error {
                 $return_on_error
             }
         }
-    }
+    };
+    ($context:ident, $call:expr) => {
+        handle_potential_webgl_error!($context, $call, ());
+    };
 }
 
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
@@ -268,7 +271,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     fn AttachShader(self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
         if let Some(program) = program {
             if let Some(shader) = shader {
-                handle_potential_webgl_error!(self, program.attach_shader(shader), ());
+                handle_potential_webgl_error!(self, program.attach_shader(shader));
             }
         }
     }
@@ -283,7 +286,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
 
         if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self, buffer.bind(target), ())
+            handle_potential_webgl_error!(self, buffer.bind(target))
         } else {
             // Unbind the current buffer
             self.ipc_renderer
@@ -875,7 +878,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 if let Some(texture) = self.bound_texture_for(target) {
                     let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Float(value));
-                    handle_potential_webgl_error!(self, result, ());
+                    handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);
                 }
@@ -893,7 +896,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
                 if let Some(texture) = self.bound_texture_for(target) {
                     let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Int(value));
-                    handle_potential_webgl_error!(self, result, ());
+                    handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);
                 }
