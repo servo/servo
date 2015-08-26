@@ -6,7 +6,7 @@
 
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
-use dom::attr::{Attr, AttrSettingType, AttrHelpers, AttrHelpersForLayout};
+use dom::attr::{Attr, AttrSettingType, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -35,27 +35,26 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
-use dom::characterdata::CharacterDataHelpers;
 use dom::create::create_element;
-use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
+use dom::document::{Document, LayoutDocumentHelpers};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
-use dom::event::{Event, EventHelpers};
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
-use dom::htmliframeelement::{HTMLIFrameElement, RawHTMLIFrameElementHelpers};
-use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
-use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
-use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
-use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
-use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
@@ -569,38 +568,18 @@ pub enum StylePriority {
     Normal,
 }
 
-pub trait ElementHelpers<'a> {
-    fn html_element_in_html_document(self) -> bool;
-    fn local_name(self) -> &'a Atom;
-    fn parsed_name(self, name: DOMString) -> Atom;
-    fn namespace(self) -> &'a Namespace;
-    fn prefix(self) -> &'a Option<DOMString>;
-    fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
-    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>>;
-    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
-    fn summarize(self) -> Vec<AttrInfo>;
-    fn is_void(self) -> bool;
-    fn remove_inline_style_property(self, property: &str);
-    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
-    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority);
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
-    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
-    fn get_root_element(self) -> Root<Element>;
-    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
-}
 
-impl<'a> ElementHelpers<'a> for &'a Element {
-    fn html_element_in_html_document(self) -> bool {
+impl Element {
+    pub fn html_element_in_html_document(&self) -> bool {
         let node = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
-    fn local_name(self) -> &'a Atom {
+    pub fn local_name(&self) -> &Atom {
         &self.local_name
     }
 
-    fn parsed_name(self, name: DOMString) -> Atom {
+    pub fn parsed_name(&self, name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
             Atom::from_slice(&name.to_ascii_lowercase())
         } else {
@@ -608,27 +587,27 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn namespace(self) -> &'a Namespace {
+    pub fn namespace(&self) -> &Namespace {
         &self.namespace
     }
 
-    fn prefix(self) -> &'a Option<DOMString> {
+    pub fn prefix(&self) -> &Option<DOMString> {
         &self.prefix
     }
 
-    fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
+    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
         self.attrs.borrow()
     }
 
-    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
+    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
         self.attrs.borrow_mut()
     }
 
-    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<PropertyDeclarationBlock>> {
         &self.style_attribute
     }
 
-    fn summarize(self) -> Vec<AttrInfo> {
+    pub fn summarize(&self) -> Vec<AttrInfo> {
         let attrs = self.Attributes();
         let mut summarized = vec!();
         for i in 0..attrs.r().Length() {
@@ -638,7 +617,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         summarized
     }
 
-    fn is_void(self) -> bool {
+    pub fn is_void(&self) -> bool {
         if self.namespace != ns!(HTML) {
             return false
         }
@@ -652,7 +631,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn remove_inline_style_property(self, property: &str) {
+    pub fn remove_inline_style_property(&self, property: &str) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
@@ -673,7 +652,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+    pub fn update_inline_style(&self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
@@ -707,7 +686,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         });
     }
 
-    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority) {
+    pub fn set_inline_style_property_priority(&self, properties: &[&str], style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let (from, to) = if style_priority == StylePriority::Important {
@@ -732,7 +711,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+    pub fn get_inline_style_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
         Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.normal
@@ -743,7 +722,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+    pub fn get_important_inline_style_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
         Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.important
@@ -753,7 +732,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
+    pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
         let node = NodeCast::from_ref(self);
         let mut writer = vec![];
         match serialize(&mut writer, &node,
@@ -767,7 +746,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 
     // https://html.spec.whatwg.org/multipage/#root-element
-    fn get_root_element(self) -> Root<Element> {
+    pub fn get_root_element(&self) -> Root<Element> {
         let node = NodeCast::from_ref(self);
         node.inclusive_ancestors()
             .filter_map(ElementCast::to_root)
@@ -776,7 +755,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
-    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString> {
+    pub fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
         for node in NodeCast::from_ref(self).inclusive_ancestors() {
             match ElementCast::to_ref(node.r()) {
                 Some(element) => {
@@ -804,16 +783,9 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 }
 
-pub trait FocusElementHelpers {
-    /// https://html.spec.whatwg.org/multipage/#focusable-area
-    fn is_focusable_area(self) -> bool;
 
-    /// https://html.spec.whatwg.org/multipage/#concept-element-disabled
-    fn is_actually_disabled(self) -> bool;
-}
-
-impl<'a> FocusElementHelpers for &'a Element {
-    fn is_focusable_area(self) -> bool {
+impl Element {
+    pub fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;
         }
@@ -834,7 +806,7 @@ impl<'a> FocusElementHelpers for &'a Element {
         }
     }
 
-    fn is_actually_disabled(self) -> bool {
+    pub fn is_actually_disabled(&self) -> bool {
         let node = NodeCast::from_ref(self);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
@@ -1857,16 +1829,9 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 }
 
-pub trait ActivationElementHelpers<'a> {
-    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)>;
-    fn click_in_progress(self) -> bool;
-    fn set_click_in_progress(self, click: bool);
-    fn nearest_activable_element(self) -> Option<Root<Element>>;
-    fn authentic_click_activation<'b>(self, event: &'b Event);
-}
 
-impl<'a> ActivationElementHelpers<'a> for &'a Element {
-    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)> {
+impl Element {
+    pub fn as_maybe_activatable(&self) -> Option<&(Activatable + 'a)> {
         let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
@@ -1890,18 +1855,18 @@ impl<'a> ActivationElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn click_in_progress(self) -> bool {
+    pub fn click_in_progress(&self) -> bool {
         let node = NodeCast::from_ref(self);
         node.get_flag(CLICK_IN_PROGRESS)
     }
 
-    fn set_click_in_progress(self, click: bool) {
+    pub fn set_click_in_progress(&self, click: bool) {
         let node = NodeCast::from_ref(self);
         node.set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    fn nearest_activable_element(self) -> Option<Root<Element>> {
+    pub fn nearest_activable_element(&self) -> Option<Root<Element>> {
         match self.as_maybe_activatable() {
             Some(el) => Some(Root::from_ref(el.as_element())),
             None => {
@@ -1924,7 +1889,7 @@ impl<'a> ActivationElementHelpers<'a> for &'a Element {
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
-    fn authentic_click_activation<'b>(self, event: &'b Event) {
+    pub fn authentic_click_activation<'b>(&self, event: &'b Event) {
         // Not explicitly part of the spec, however this helps enforce the invariants
         // required to save state between pre-activation and post-activation
         // since we cannot nest authentic clicks (unlike synthetic click activation, where

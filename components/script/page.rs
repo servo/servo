@@ -4,8 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, Root};
-use dom::document::{Document, DocumentHelpers};
-use dom::node::NodeHelpers;
+use dom::document::Document;
 use dom::window::Window;
 
 use msg::constellation_msg::PipelineId;

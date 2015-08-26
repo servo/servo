@@ -14,7 +14,7 @@ use dom::domtokenlist::DOMTokenList;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;

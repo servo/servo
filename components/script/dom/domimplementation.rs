@@ -14,7 +14,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::validate_qualified_name;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentSource;
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
+use dom::document::{Document, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;

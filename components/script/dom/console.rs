@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::window::WindowHelpers;
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
