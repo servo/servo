@@ -605,7 +605,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(computed_value::T::Auto)
             } else {
-                Ok(computed_value::T::Number(try!(input.expect_integer()) as i32))
+                specified::parse_integer(input).map(computed_value::T::Number)
             }
         }
     </%self:longhand>
@@ -1289,7 +1289,8 @@ pub mod longhands {
                 if content::counter_name_is_illegal(&counter_name) {
                     return Err(())
                 }
-                let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
+                let counter_delta =
+                    input.try(|input| specified::parse_integer(input)).unwrap_or(1);
                 counters.push((counter_name, counter_delta))
             }
 
@@ -2628,7 +2629,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(SpecifiedValue::Auto)
             } else {
-                let count = try!(input.expect_integer());
+                let count = try!(specified::parse_integer(input));
                 // Zero is invalid
                 if count <= 0 {
                     return Err(())
@@ -4528,7 +4529,7 @@ pub mod longhands {
                     "steps" => {
                         let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
                         try!(input.parse_nested_block(|input| {
-                            step_count = try!(input.expect_integer());
+                            step_count = try!(specified::parse_integer(input));
                             try!(input.expect_comma());
                             start_end = try!(match_ignore_ascii_case! {
                                 try!(input.expect_ident()),
