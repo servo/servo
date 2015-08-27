@@ -25,7 +25,6 @@ use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
 use libc::uint8_t;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct TextEncoder {
     reflector_: Reflector,
     encoding: DOMString,

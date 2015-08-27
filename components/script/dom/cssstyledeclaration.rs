@@ -8,11 +8,9 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::DocumentHelpers;
-use dom::element::{ElementHelpers, StylePriority};
-use dom::htmlelement::HTMLElement;
-use dom::node::{window_from_node, document_from_node, NodeDamage, NodeHelpers};
-use dom::window::{Window, WindowHelpers};
+use dom::element::{StylePriority, Element};
+use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::window::Window;
 use selectors::parser::PseudoElement;
 use string_cache::Atom;
 use style::properties::PropertyDeclaration;
@@ -25,10 +23,9 @@ use std::cell::Ref;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
-    owner: JS<HTMLElement>,
+    owner: JS<Element>,
     readonly: bool,
     pseudo: Option<PseudoElement>,
 }
@@ -59,7 +56,7 @@ fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
 }
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: &HTMLElement,
+    pub fn new_inherited(owner: &Element,
                          pseudo: Option<PseudoElement>,
                          modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
@@ -70,29 +67,12 @@ impl CSSStyleDeclaration {
         }
     }
 
-    pub fn new(global: &Window, owner: &HTMLElement,
+    pub fn new(global: &Window, owner: &Element,
                pseudo: Option<PseudoElement>,
                modification_access: CSSModificationAccess) -> Root<CSSStyleDeclaration> {
         reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, pseudo, modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
-    }
-}
-
-trait PrivateCSSStyleDeclarationHelpers {
-    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
-    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>>;
-}
-
-impl PrivateCSSStyleDeclarationHelpers for HTMLElement {
-    fn get_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
-        let element = ElementCast::from_ref(self);
-        element.get_inline_style_declaration(property)
-    }
-
-    fn get_important_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
-        let element = ElementCast::from_ref(self);
-        element.get_important_inline_style_declaration(property)
     }
 }
 
@@ -164,7 +144,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
             // Step 2.2
             for longhand in &*longhand_properties {
                 // Step 2.2.1
-                let declaration = owner.get_declaration(&Atom::from_slice(&longhand));
+                let declaration = owner.get_inline_style_declaration(&Atom::from_slice(&longhand));
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
@@ -179,7 +159,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
 
         // Step 3 & 4
         // FIXME: redundant let binding https://github.com/rust-lang/rust/issues/22252
-        let result = match owner.get_declaration(&property) {
+        let result = match owner.get_inline_style_declaration(&property) {
             Some(declaration) => declaration.value(),
             None => "".to_owned(),
         };
@@ -205,7 +185,7 @@ impl<'a> CSSStyleDeclarationMethods for &'a CSSStyleDeclaration {
         } else {
             // FIXME: extra let binding https://github.com/rust-lang/rust/issues/22323
             let owner = self.owner.root();
-            if owner.get_important_declaration(&property).is_some() {
+            if owner.get_important_inline_style_declaration(&property).is_some() {
                 return "important".to_owned();
             }
         }

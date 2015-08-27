@@ -407,14 +407,65 @@ pub mod longhands {
     ${new_style_struct("Box", is_inherited=False)}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-    <%self:single_keyword_computed name="display"
-            custom_cascade="True"
-            values="inline block inline-block
-            table inline-table table-row-group table-header-group table-footer-group
-            table-row table-column-group table-column table-cell table-caption
-            list-item
-            none">
+    <%self:longhand name="display" custom_cascade="True">
+        <%
+            values = """inline block inline-block
+                table inline-table table-row-group table-header-group table-footer-group
+                table-row table-column-group table-column table-cell table-caption
+                list-item flex
+                none
+            """.split()
+            experimental_values = set("flex".split())
+        %>
+        pub use self::computed_value::T as SpecifiedValue;
         use values::computed::Context;
+
+        pub mod computed_value {
+            #[allow(non_camel_case_types)]
+            #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
+            #[derive(Deserialize, Serialize)]
+            pub enum T {
+                % for value in values:
+                    ${to_rust_ident(value)},
+                % endfor
+            }
+
+            impl ::cssparser::ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
+                where W: ::std::fmt::Write {
+                    match self {
+                        % for value in values:
+                            &T::${to_rust_ident(value)} => dest.write_str("${value}"),
+                        % endfor
+                    }
+                }
+            }
+        }
+        #[inline] pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::${to_rust_ident(values[0])}
+        }
+        pub fn parse(_context: &ParserContext, input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
+            match_ignore_ascii_case! { try!(input.expect_ident()),
+                % for value in values[:-1]:
+                    "${value}" => {
+                        % if value in experimental_values:
+                            if !::util::opts::experimental_enabled() { return Err(()) }
+                        % endif
+                        Ok(computed_value::T::${to_rust_ident(value)})
+                    },
+                % endfor
+                % for value in values[-1:]:
+                    "${value}" => {
+                        % if value in experimental_values:
+                            if !::util::opts::experimental_enabled() { return Err(()) }
+                        % endif
+                        Ok(computed_value::T::${to_rust_ident(value)})
+                    }
+                % endfor
+                _ => Err(())
+            }
+        }
 
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
@@ -457,7 +508,7 @@ pub mod longhands {
                 longhands::_servo_text_decorations_in_effect::derive_from_display(*computed_value,
                                                                                   &context);
         }
-    </%self:single_keyword_computed>
+    </%self:longhand>
 
     ${single_keyword("position", "static absolute relative fixed")}
     ${single_keyword("float", "none left right")}
@@ -4746,6 +4797,14 @@ pub mod longhands {
         pub use properties::longhands::transition_duration::{get_initial_single_value};
         pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
     </%self:longhand>
+
+    // CSS Flexible Box Layout Module Level 1
+    // http://www.w3.org/TR/css3-flexbox/
+
+    ${new_style_struct("Flex", is_inherited=False)}
+
+    // Flex container properties
+    ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
 }
 
 

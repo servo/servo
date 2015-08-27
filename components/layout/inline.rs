@@ -10,6 +10,7 @@ use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBui
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{MutableFlowUtils, OpaqueFlow};
 use flow::{self, BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
+use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
@@ -1656,9 +1657,10 @@ impl Flow for InlineFlow {
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    flow::mut_base(&mut *info.flow_ref).clip = clip;
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    flow::mut_base(flow).clip = clip;
 
-                    let block_flow = info.flow_ref.as_mut_block();
+                    let block_flow = flow.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;
@@ -1676,9 +1678,9 @@ impl Flow for InlineFlow {
                         self.base.stacking_relative_position_of_display_port;
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    flow::mut_base(&mut *info.flow_ref).clip = clip;
-
-                    let block_flow = info.flow_ref.as_mut_block();
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    flow::mut_base(flow).clip = clip;
+                    let block_flow = flow.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     block_flow.base.stacking_relative_position =
@@ -1687,9 +1689,10 @@ impl Flow for InlineFlow {
                         self.base.stacking_relative_position_of_display_port;
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    flow::mut_base(&mut *info.flow_ref).clip = clip;
+                    let flow = flow_ref::deref_mut(&mut info.flow_ref);
+                    flow::mut_base(flow).clip = clip;
 
-                    let block_flow = info.flow_ref.as_mut_block();
+                    let block_flow = flow.as_mut_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
                     let stacking_relative_position = self.base.stacking_relative_position;

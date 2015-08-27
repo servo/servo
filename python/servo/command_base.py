@@ -73,7 +73,8 @@ class CommandBase(object):
 
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
-            self.config = toml.loads(open(config_path).read())
+            with open(config_path) as f:
+                self.config = toml.loads(f.read())
         else:
             self.config = {}
 
@@ -121,14 +122,16 @@ class CommandBase(object):
     def rust_snapshot_path(self):
         if self._rust_snapshot_path is None:
             filename = path.join(self.context.topdir, "rust-snapshot-hash")
-            snapshot_hash = open(filename).read().strip()
+            with open(filename) as f:
+                snapshot_hash = f.read().strip()
             self._rust_snapshot_path = "%s-%s" % (snapshot_hash, host_triple())
         return self._rust_snapshot_path
 
     def cargo_build_id(self):
         if self._cargo_build_id is None:
             filename = path.join(self.context.topdir, "cargo-nightly-build")
-            self._cargo_build_id = open(filename).read().strip()
+            with open(filename) as f:
+                self._cargo_build_id = f.read().strip()
         return self._cargo_build_id
 
     def get_target_dir(self):

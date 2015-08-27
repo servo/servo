@@ -30,7 +30,6 @@ pub enum FormDatum {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct FormData {
     reflector_: Reflector,
     data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
@@ -121,12 +120,9 @@ impl<'a> FormDataMethods for &'a FormData {
     }
 }
 
-trait PrivateFormDataHelpers {
-  fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File>;
-}
 
-impl<'a> PrivateFormDataHelpers for &'a FormData {
-    fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
+impl FormData {
+    fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
         let f: Option<&File> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));

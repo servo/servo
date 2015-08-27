@@ -7,12 +7,12 @@ body {
 }
 /* Set the width of the content div so that the blocks will wrap downward when they're not flowing into a region */
 #content { 
-	-webkit-flow-into: content;
+	flow-into: content;
 	width: 125px;
 }
 /* Set regions to float left so the blocks will be laid out horizontally when they're flowing into the regions */
 .region {
-	-webkit-flow-from: content;
+	flow-from: content;
 	width: 125px;
 	height: 125px;
 	float:left;

@@ -41,18 +41,16 @@ def replaceFileIfChanged(filename, newContents):
 
     # oldFileContents = ""
     # try:
-    #     oldFile = open(filename, 'rb')
-    #     oldFileContents = ''.join(oldFile.readlines())
-    #     oldFile.close()
+    #     with open(filename, 'rb') as oldFile:
+    #         oldFileContents = ''.join(oldFile.readlines())
     # except:
     #     pass
 
     # if newContents == oldFileContents:
     #     return False
 
-    f = open(filename, 'wb')
-    f.write(newContents)
-    f.close()
+    with open(filename, 'wb') as f:
+        f.write(newContents)
 
     return True
 
@@ -1585,7 +1583,7 @@ class CGIndenter(CGThing):
 
     def define(self):
         defn = self.child.define()
-        if defn is not "":
+        if defn != "":
             return re.sub(lineStartDetector, self.indent, defn)
         else:
             return defn
@@ -3643,7 +3641,7 @@ class ClassMethod(ClassItem):
             'override': ' MOZ_OVERRIDE' if self.override else '',
             'args': args,
             'body': body,
-            'visibility': self.visibility + ' ' if self.visibility is not 'priv' else ''
+            'visibility': self.visibility + ' ' if self.visibility != 'priv' else ''
         })
 
     def define(self, cgClass):
@@ -3968,7 +3966,23 @@ class CGProxyIndexedSetter(CGProxySpecialOperation):
         CGProxySpecialOperation.__init__(self, descriptor, 'IndexedSetter')
 
 
-class CGProxyNamedGetter(CGProxySpecialOperation):
+class CGProxyNamedOperation(CGProxySpecialOperation):
+    """
+    Class to generate a call to a named operation.
+    """
+    def __init__(self, descriptor, name):
+        CGProxySpecialOperation.__init__(self, descriptor, name)
+
+    def define(self):
+        # Our first argument is the id we're getting.
+        argName = self.arguments[0].identifier.name
+        return ("let %s = jsid_to_str(cx, id);\n"
+                "let this = UnwrapProxy(proxy);\n"
+                "let this = &*this;\n" % argName +
+                CGProxySpecialOperation.define(self))
+
+
+class CGProxyNamedGetter(CGProxyNamedOperation):
     """
     Class to generate a call to an named getter. If templateValues is not None
     the returned value will be wrapped with wrapForType using templateValues.
@@ -3978,7 +3992,16 @@ class CGProxyNamedGetter(CGProxySpecialOperation):
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedGetter')
 
 
-class CGProxyNamedSetter(CGProxySpecialOperation):
+class CGProxyNamedPresenceChecker(CGProxyNamedGetter):
+    """
+    Class to generate a call that checks whether a named property exists.
+    For now, we just delegate to CGProxyNamedGetter
+    """
+    def __init__(self, descriptor):
+        CGProxyNamedGetter.__init__(self, descriptor)
+
+
+class CGProxyNamedSetter(CGProxyNamedOperation):
     """
     Class to generate a call to a named setter.
     """
@@ -3986,7 +4009,7 @@ class CGProxyNamedSetter(CGProxySpecialOperation):
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedSetter')
 
 
-class CGProxyNamedDeleter(CGProxySpecialOperation):
+class CGProxyNamedDeleter(CGProxyNamedOperation):
     """
     Class to generate a call to a named deleter.
     """
@@ -4059,9 +4082,6 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # properties that shadow prototype properties.
             namedGet = ("\n" +
                         "if RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
-                        "    let name = jsid_to_str(cx, id);\n" +
-                        "    let this = UnwrapProxy(proxy);\n" +
-                        "    let this = &*this;\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
                         "}\n")
         else:
@@ -4123,9 +4143,6 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
             if not self.descriptor.operations['NamedCreator'] is namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "    let name = jsid_to_str(cx, id);\n" +
-                    "    let this = UnwrapProxy(proxy);\n" +
-                    "    let this = &*this;\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
                     "    return JSTrue;\n" +
@@ -4134,9 +4151,6 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "}\n")
         else:
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
-                    "    let name = jsid_to_str(cx, id);\n" +
-                    "    let this = UnwrapProxy(proxy);\n" +
-                    "    let this = &*this;\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
                     "    if (found) {\n"
                     # TODO(Issue 5876)
@@ -4167,10 +4181,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
     def getBody(self):
         set = ""
         if self.descriptor.operations['NamedDeleter']:
-            set += ("let name = jsid_to_str(cx, id);\n" +
-                    "let this = UnwrapProxy(proxy);\n" +
-                    "let this = &*this;\n" +
-                    "%s") % (CGProxyNamedDeleter(self.descriptor).define())
+            set += CGProxyNamedDeleter(self.descriptor).define()
         set += "return proxyhandler::delete(%s) as u8;" % ", ".join(a.name for a in self.args)
         return set
 
@@ -4255,9 +4266,6 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             named = ("if RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
-                     "    let name = jsid_to_str(cx, id);\n" +
-                     "    let this = UnwrapProxy(proxy);\n" +
-                     "    let this = &*this;\n" +
                      CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
                      "    *bp = found as u8;\n"
                      "    return JSTrue;\n"
@@ -4331,9 +4339,6 @@ if !expando.ptr.is_null() {
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
-                        "    let name = jsid_to_str(cx, id);\n" +
-                        "    let this = UnwrapProxy(proxy);\n" +
-                        "    let this = &*this;\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n")
         else:
@@ -5775,12 +5780,17 @@ class GlobalGenRoots():
                      CGGeneric("use std::mem;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
-            protos = [CGGeneric('pub trait %s : Sized {}\n' % (name + 'Base'))]
+            protos = [CGGeneric("""\
+/// Types which are derived from `%(name)s` and can be freely converted
+/// to `%(name)s`
+pub trait %(name)sBase : Sized {}\n""" % {'name': name})]
             for proto in descriptor.prototypeChain:
                 protos += [CGGeneric('impl %s for %s {}\n' % (proto + 'Base',
                                                                       descriptor.concreteType))]
-            derived = [CGGeneric('pub trait %s : Sized { fn %s(&self) -> bool; }\n' %
-                                 (name + 'Derived', 'is_' + name.lower()))]
+            derived = [CGGeneric("""\
+/// Types which `%(name)s` derives from
+pub trait %(name)sDerived : Sized { fn %(method)s(&self) -> bool; }\n""" %
+                                 {'name': name, 'method': 'is_' + name.lower()})]
             for protoName in descriptor.prototypeChain[1:-1]:
                 protoDescriptor = config.getDescriptor(protoName)
                 delegate = string.Template("""\
@@ -5802,15 +5812,9 @@ impl ${selfName} for ${baseName} {
 pub struct ${name}Cast;
 impl ${name}Cast {
     #[inline]
+    /// Downcast an instance of a base class of `${name}` to an instance of
+    /// `${name}`, if it internally is an instance of `${name}`
     pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: &'a T) -> Option<&'a ${name}> {
-        match base.${checkFn}() {
-            true => Some(unsafe { mem::transmute(base) }),
-            false => None
-        }
-    }
-
-    #[inline]
-    pub fn to_borrowed_ref<'a, 'b, T: ${toBound}+Reflectable>(base: &'a &'b T) -> Option<&'a &'b ${name}> {
         match base.${checkFn}() {
             true => Some(unsafe { mem::transmute(base) }),
             false => None
@@ -5837,12 +5841,8 @@ impl ${name}Cast {
     }
 
     #[inline]
+    /// Upcast an instance of a derived class of `${name}` to `${name}`
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
-        unsafe { mem::transmute(derived) }
-    }
-
-    #[inline]
-    pub fn from_borrowed_ref<'a, 'b, T: ${fromBound}+Reflectable>(derived: &'a &'b T) -> &'a &'b ${name} {
         unsafe { mem::transmute(derived) }
     }
 

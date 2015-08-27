@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 
 #[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum XMLHttpRequestEventTargetTypeId {
@@ -15,7 +15,6 @@ pub enum XMLHttpRequestEventTargetTypeId {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct XMLHttpRequestEventTarget {
     eventtarget: EventTarget,
 }

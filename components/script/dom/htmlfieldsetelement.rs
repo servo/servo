@@ -3,26 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element, ElementHelpers};
+use dom::element::{Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
@@ -85,9 +82,9 @@ impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     make_bool_setter!(SetDisabled, "disabled");
 }
 
-impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
+impl VirtualMethods for HTMLFieldSetElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -98,7 +95,7 @@ impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
                 let maybe_legend = node.children()
@@ -138,7 +135,7 @@ impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 let maybe_legend = node.children()
@@ -171,4 +168,3 @@ impl<'a> VirtualMethods for &'a HTMLFieldSetElement {
         }
     }
 }
-

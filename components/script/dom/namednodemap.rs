@@ -9,14 +9,13 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
-use dom::element::{AttributeHandlers, Element, ElementHelpers};
+use dom::element::Element;
 use dom::window::Window;
 use util::str::DOMString;
 
 use string_cache::Atom;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,

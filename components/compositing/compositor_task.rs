@@ -66,7 +66,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
     while let Ok(msg) = receiver.recv() {
         match msg {
             ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
-                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
+                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth));
             }
 
             ScriptToCompositorMsg::GetClientWindow(send) => {
@@ -170,7 +170,7 @@ pub enum Msg {
     /// Alerts the compositor that the specified layer's rect has changed.
     SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
     /// Requests that the compositor assign the painted buffers to the given layers.
     AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor that the current page has changed its title.

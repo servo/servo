@@ -9,11 +9,16 @@ input[type="hidden"]    { display: none !important }
 input[type="checkbox"],
 input[type="radio"]     { font-family: monospace !important; border: none !important; background: transparent; }
 
-input[type="checkbox"]::before { content: "[ ]"; padding: 0; }
-input[type="checkbox"]:checked::before { content: "[✓]"; }
-input[type="checkbox"]:indeterminate::before { content: "[-]"; }
-input[type="radio"]::before { content: "( )"; padding: 0; }
-input[type="radio"]:checked::before { content: "(●)"; }
+input[type="checkbox"]::before { display: inline-block; border: solid currentcolor 1px; content: ""; padding: 0; width: 1em; height: 1em; text-align: center; }
+input[type="checkbox"]:checked::before { content: "✓"; }
+input[type="checkbox"]:indeterminate::before { content: "-"; }
+input[type="radio"]::before { display: inline-block; border: solid currentcolor 1px; content: ""; padding: 0; width: 1em; height: 1em; border-radius: 50%; text-align: center; }
+input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
+
+select                  { border-style: solid; border-width: 1px; padding: 0.25em 0.5em; border-radius: 6px; background: white; }
+select::after           { content: ""; display: inline-block; border-width: 5.2px 3px 0 3px; border-style: solid; border-color: currentcolor transparent transparent transparent; margin-left: 0.5em; }
+option                  { display: none !important }
+option[selected]        { display: inline !important }
 
 td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }

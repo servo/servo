@@ -12,7 +12,6 @@ use dom::window::Window;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Navigator {
     reflector_: Reflector,
 }
@@ -67,4 +66,3 @@ impl<'a> NavigatorMethods for &'a Navigator {
         navigatorinfo::AppVersion()
     }
 }
-

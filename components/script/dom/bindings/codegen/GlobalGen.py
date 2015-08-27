@@ -47,16 +47,14 @@ def main():
     parser = WebIDL.Parser(options.cachedir)
     for filename in fileList:
         fullPath = os.path.normpath(os.path.join(baseDir, filename))
-        f = open(fullPath, 'rb')
-        lines = f.readlines()
-        f.close()
+        with open(fullPath, 'rb') as f:
+            lines = f.readlines()
         parser.parse(''.join(lines), fullPath)
     parserResults = parser.finish()
 
     # Write the parser results out to a pickle.
-    resultsFile = open('ParserResults.pkl', 'wb')
-    cPickle.dump(parserResults, resultsFile, -1)
-    resultsFile.close()
+    with open('ParserResults.pkl', 'wb') as resultsFile:
+        cPickle.dump(parserResults, resultsFile, -1)
 
     # Load the configuration.
     config = Configuration(configFile, parserResults)

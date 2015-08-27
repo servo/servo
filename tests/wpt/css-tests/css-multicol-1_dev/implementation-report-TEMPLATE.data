@@ -5,10 +5,10 @@
 testname	revision	result	comment
 html4/break-before-always-001.htm	72a4a1eec3cbec490943a8993258bb32a5285250	?
 xhtml1/break-before-always-001.xht	72a4a1eec3cbec490943a8993258bb32a5285250	?
-html4/grid-inline-multicol-001.htm	a0af357d315758f568692084e5852c41776c61e6	?
-xhtml1/grid-inline-multicol-001.xht	a0af357d315758f568692084e5852c41776c61e6	?
-html4/grid-multicol-001.htm	b47a53c716718e3a62f445c44c7155fa761e8af6	?
-xhtml1/grid-multicol-001.xht	b47a53c716718e3a62f445c44c7155fa761e8af6	?
+html4/grid-inline-multicol-001.htm	40b1c5d5aa0df0497e38f2cfbaba0f4e4bcc963f	?
+xhtml1/grid-inline-multicol-001.xht	40b1c5d5aa0df0497e38f2cfbaba0f4e4bcc963f	?
+html4/grid-multicol-001.htm	521dbe45e2022be1140904fe6d2513370d6bfef3	?
+xhtml1/grid-multicol-001.xht	521dbe45e2022be1140904fe6d2513370d6bfef3	?
 html4/multicol-basic-001.htm	c4ece1b380b07334fb5a47bb1b48b7deb795696f	?
 xhtml1/multicol-basic-001.xht	c4ece1b380b07334fb5a47bb1b48b7deb795696f	?
 html4/multicol-basic-002.htm	d6a13af70f1cd2d552dfbcf706026fc02f34dde6	?

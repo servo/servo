@@ -416,7 +416,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.surface_map.insert_surfaces(&self.native_display, native_surfaces);
             }
 
-            (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point),
+            (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _),
              ShutdownState::NotShuttingDown) => {
                 self.scroll_fragment_to_point(pipeline_id, layer_id, point);
             }

@@ -258,6 +258,9 @@ test.txt  s:http h:www.example.com p:/test.txt
 \u4E2D/test.txt  s:http h:www.example.com p:/%E4%B8%AD/test.txt
 http://www.example2.com  s:http h:www.example2.com p:/
 //www.example2.com  s:http h:www.example2.com p:/
+file:...  s:file h: p:/...
+file:..  s:file h: p:/
+file:a  s:file h: p:/a
 
 # Based on http://trac.webkit.org/browser/trunk/LayoutTests/fast/url/host.html
 

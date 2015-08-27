@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Basic User Interface Module Level 3 CR Test Suite</h1>
-  <h2>Pointing Devices and Keyboards (142 tests)</h2>
+  <h2>Pointing Devices and Keyboards (144 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -671,7 +671,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.1.1.1">+</a>
         <a href="http://www.w3.org/TR/css3-ui/#canvas_cursor">6.1.1.1 Cursor of the canvas</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="canvas-cursor-001-6.1.1.1" class="primary image interact">
+        <td><strong>
+            <a href="canvas-cursor-001.xht">canvas-cursor-001</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>propagating the root cursor to the canvas
+          <ul class="assert">
+            <li>Test checks the cursor applied to the root element is propagated to the canvas.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="canvas-cursor-002-6.1.1.1" class="primary image interact">
+        <td><strong>
+            <a href="canvas-cursor-002.xht">canvas-cursor-002</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
+        <td>not propagating the body cursor to the canvas
+          <ul class="assert">
+            <li>Test checks the cursor applied to the body element is not propagated to the canvas.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.2">
       <tr><th colspan="4" scope="rowgroup">

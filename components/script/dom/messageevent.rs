@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventHelpers, EventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
@@ -22,7 +22,6 @@ use std::borrow::ToOwned;
 use std::default::Default;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct MessageEvent {
     event: Event,
     data: Heap<JSVal>,
@@ -106,4 +105,3 @@ impl<'a> MessageEventMethods for &'a MessageEvent {
         self.lastEventId.clone()
     }
 }
-

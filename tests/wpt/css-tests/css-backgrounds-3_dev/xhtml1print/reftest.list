@@ -213,6 +213,7 @@ border-top-right-radius-009.xht == border-top-right-radius-007.xht
 border-top-right-radius-010.xht == reference/border-radius-001-ref.xht
 border-top-right-radius-011.xht == reference/border-radius-001-ref.xht
 border-top-right-radius-014.xht == reference/border-radius-001-ref.xht
+box-shadow-001.xht == reference/box-shadow-001-ref.xht
 box-shadow-inset-spread-without-border-radius.xht == reference/box-shadow-inset-spread-without-border-radius.xht
 box-shadow-inset-without-border-radius.xht == reference/box-shadow-inset-without-border-radius.xht
 box-shadow-outset-spread-without-border-radius.xht == reference/box-shadow-outset-spread-without-border-radius.xht

@@ -15,13 +15,12 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::nodelist::NodeList;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DocumentFragment {
     node: Node,
 }
@@ -96,4 +95,3 @@ impl<'a> DocumentFragmentMethods for &'a DocumentFragment {
         root.query_selector_all(selectors)
     }
 }
-

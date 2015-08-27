@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
@@ -12,11 +11,10 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeHandlers;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
@@ -25,7 +23,6 @@ use std::sync::Arc;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     image: DOMRefCell<Option<Arc<Image>>>,
@@ -99,9 +96,9 @@ impl<'a> HTMLObjectElementMethods for &'a HTMLObjectElement {
     make_setter!(SetType, "type");
 }
 
-impl<'a> VirtualMethods for &'a HTMLObjectElement {
+impl VirtualMethods for HTMLObjectElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -118,4 +115,3 @@ impl<'a> VirtualMethods for &'a HTMLObjectElement {
         }
     }
 }
-

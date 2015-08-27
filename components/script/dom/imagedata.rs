@@ -18,7 +18,6 @@ use std::vec::Vec;
 
 #[dom_struct]
 #[allow(raw_pointer_derive)]
-#[derive(HeapSizeOf)]
 pub struct ImageData {
     reflector_: Reflector,
     width: u32,
@@ -52,14 +51,10 @@ impl ImageData {
     }
 }
 
-pub trait ImageDataHelpers {
-    fn get_data_array(self, global: &GlobalRef) -> Vec<u8>;
-    fn get_size(self) -> Size2D<i32>;
-}
 
-impl<'a> ImageDataHelpers for &'a ImageData {
+impl ImageData {
     #[allow(unsafe_code)]
-    fn get_data_array(self, global: &GlobalRef) -> Vec<u8> {
+    pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
             let cx = global.get_cx();
             let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), ptr::null()) as *const uint8_t;
@@ -68,7 +63,7 @@ impl<'a> ImageDataHelpers for &'a ImageData {
         }
     }
 
-    fn get_size(self) -> Size2D<i32> {
+    pub fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.Width() as i32, self.Height() as i32)
     }
 }

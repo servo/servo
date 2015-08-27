@@ -25,6 +25,10 @@
         var base = document.createElement("base");
         base.setAttribute("href", "/foo/bar");
         document.head.appendChild(base);
+        t1.add_cleanup(function () {
+          document.head.removeChild(base);
+        });
+
         assert_resolve_url(document, location.href.replace(location.pathname, "/foo"));
         assert_equals(document.baseURI, base.href, "The document base URL should be URL of the first base element that has an href attribute.");
       });
@@ -55,10 +59,10 @@
       var iframe = document.createElement("iframe");
       iframe.onload = this.step_func_done(function () {
         var doc = iframe.contentDocument;
-        var base = doc.body.appendChild(document.createElement("base"));
+        var base = doc.body.appendChild(doc.createElement("base"));
         base.href = "sub/";
         assert_resolve_url(doc, location.href.replace("/document-base-url.html", "/sub"));
-        assert_equals(doc.baseURI, document.baseURI);
+        assert_equals(doc.baseURI, document.baseURI.replace("/document-base-url.html", "/sub/"));
       });
       iframe.setAttribute("src", "about:blank");
       document.body.appendChild(iframe);

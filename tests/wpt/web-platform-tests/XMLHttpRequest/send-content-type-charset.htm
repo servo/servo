@@ -10,7 +10,8 @@
   <body>
     <div id="log"></div>
     <script>
-      function request(input, output) {
+      function request(input, output, title) {
+        title = title || document.title + ' - ' + input;
         test(function() {
         var client = new XMLHttpRequest()
         client.open("POST", "resources/content.py", false)
@@ -19,39 +20,63 @@
         client.send("TEST")
         assert_equals(client.responseText, "TEST")
         assert_equals(client.getResponseHeader("x-request-content-type"), output)
-        })
+        }, title)
       }
-      request(
-        "text/x-pink-unicorn; charset=windows-1252; charset=bogus; notrelated; charset=ascii",
-        "text/x-pink-unicorn; charset=UTF-8; charset=UTF-8; notrelated; charset=UTF-8"
-      )
+
       request(
         "text; charset=ascii",
-        "text; charset=ascii"
+        "text; charset=ascii",
+        "header with invalid MIME type is not changed"
       )
       request(
         "charset=ascii",
-        "charset=ascii"
+        "charset=ascii",
+        "known charset but bogus header - missing MIME type"
       )
       request(
-        "text/x-thepiano;charset= waddup",
-        "text/x-thepiano;charset=UTF-8"
-      )
-      request(
-        "text/x-pink-unicorn",
-        "text/x-pink-unicorn"
+        "charset=bogus",
+        "charset=bogus",
+        "bogus charset and bogus header - missing MIME type"
       )
       request(
         "text/plain;charset=utf-8",
-        "text/plain;charset=utf-8"
+        "text/plain;charset=utf-8",
+        "Correct text/plain MIME with charset"
       )
       request(
+        "text/x-pink-unicorn",
+        "text/x-pink-unicorn",
+        "If no charset= param is given, implementation should not add one - unknown MIME"
+      )
+      request(
+        "text/plain",
+        "text/plain",
+        "If no charset= param is given, implementation should not add one - known MIME"
+      )
+      request(
+        "text/x-thepiano;charset= waddup",
+        "text/x-thepiano;charset=UTF-8",
+        "charset given but wrong, fix it (unknown MIME, bogus charset)"
+      )
+      request( /**/
         "text/plain;charset=utf-8;charset=waddup",
-        "text/plain;charset=UTF-8;charset=UTF-8"
+        "text/plain;charset=UTF-8;charset=UTF-8",
+        "charset given but wrong, fix it (known MIME, bogus charset)"
+      )
+      request(
+        "text/plain;charset=shift-jis",
+        "text/plain;charset=UTF-8",
+        "charset given but wrong, fix it (known MIME, actual charset)"
+      )
+      request(
+        "text/x-pink-unicorn; charset=windows-1252; charset=bogus; notrelated; charset=ascii",
+        "text/x-pink-unicorn; charset=UTF-8; charset=UTF-8; notrelated; charset=UTF-8",
+        "If multiple charset parameters are given, all should be rewritten"
       )
       request(
         null,
-        "text/plain;charset=UTF-8"
+        "text/plain;charset=UTF-8",
+        "No content type set, give MIME and charset"
       )
     </script>
   </body>

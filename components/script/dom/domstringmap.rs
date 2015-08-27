@@ -8,12 +8,11 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
+use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMStringMap {
     reflector_: Reflector,
     element: JS<HTMLElement>,

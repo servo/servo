@@ -17,16 +17,15 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterDataTypeId;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Range {
     reflector_: Reflector,
     inner: Rc<RefCell<RangeInner>>,
@@ -126,12 +125,9 @@ impl Range {
     }
 }
 
-pub trait RangeHelpers<'a> {
-    fn inner(self) -> &'a Rc<RefCell<RangeInner>>;
-}
 
-impl<'a> RangeHelpers<'a> for &'a Range {
-    fn inner(self) -> &'a Rc<RefCell<RangeInner>> {
+impl Range {
+    pub fn inner(&self) -> &Rc<RefCell<RangeInner>> {
         &self.inner
     }
 }

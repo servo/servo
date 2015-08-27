@@ -17,10 +17,15 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
-use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
-use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
-use dom::imagedata::{ImageData, ImageDataHelpers};
-use dom::node::{window_from_node, NodeHelpers, NodeDamage};
+use dom::htmlcanvaselement::HTMLCanvasElement;
+use dom::htmlcanvaselement::utils as canvas_utils;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::imagedata::ImageData;
+use dom::node::{window_from_node, NodeDamage};
+
+use msg::constellation_msg::Msg as ConstellationMsg;
+use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
 
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
@@ -33,10 +38,6 @@ use canvas::canvas_paint_task::RectToi32;
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
-
-use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::{ImageCacheChan, ImageResponse};
 
 use ipc_channel::ipc::{self, IpcSender};
 use num::{Float, ToPrimitive};
@@ -60,7 +61,6 @@ pub enum CanvasFillOrStrokeStyle {
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
     global: GlobalField,
@@ -201,7 +201,7 @@ impl CanvasRenderingContext2D {
                                     Size2D::new(source_rect_clipped.size.width,
                                                 source_rect_clipped.size.height));
 
-        return (source_rect, dest_rect)
+        (source_rect, dest_rect)
     }
 
     //
@@ -364,9 +364,10 @@ impl CanvasRenderingContext2D {
             PixelFormat::KA8 => panic!("KA8 color type not supported"),
         };
 
-        return Some((image_data, image_size));
+        Some((image_data, image_size))
     }
 
+    // TODO(ecoal95): Move this to `HTMLCanvasElement`, and support WebGL contexts
     fn fetch_canvas_data(&self,
                          canvas_element: &HTMLCanvasElement,
                          source_rect: Rect<f64>)
@@ -385,18 +386,14 @@ impl CanvasRenderingContext2D {
         renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
                                                                     image_size, sender))).unwrap();
 
-        return Some((receiver.recv().unwrap(), image_size));
+        Some((receiver.recv().unwrap(), image_size))
     }
 
+    #[inline]
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
         let canvas = self.canvas.root();
         let window = window_from_node(canvas.r());
-        let window = window.r();
-        let image_cache = window.image_cache_task();
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        image_cache.request_image(url, ImageCacheChan(response_chan), None);
-        let result = response_port.recv().unwrap();
-        result.image_response
+        canvas_utils::request_image_from_cache(window.r(), url)
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -412,16 +409,12 @@ impl CanvasRenderingContext2D {
     }
 }
 
-pub trait CanvasRenderingContext2DHelpers {
-    fn get_renderer_id(self) -> usize;
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
-}
 
-impl<'a> CanvasRenderingContext2DHelpers for &'a CanvasRenderingContext2D {
-    fn get_renderer_id(self) -> usize {
+impl CanvasRenderingContext2D {
+    pub fn get_renderer_id(&self) -> usize {
         self.renderer_id
     }
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg> {
+    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
     }
 }

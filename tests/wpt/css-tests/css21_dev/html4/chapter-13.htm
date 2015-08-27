@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Paged media (133 tests)</h2>
+  <h2>Paged media (135 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -314,7 +314,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s13.2.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/page.html#page-selectors">13.2.2 Page selectors: selecting left, right, and first pages</a></th></tr>
-      <!-- 13 tests -->
+      <!-- 15 tests -->
       <tr id="first-page-selectors-001-13.2.2" class="primary paged">
         <td><strong>
             <a href="first-page-selectors-001.htm">first-page-selectors-001</a></strong></td>
@@ -356,6 +356,28 @@
         <td>Page Selectors - First Page in RTL Forced :right
           <ul class="assert">
             <li>The first page of a right-to-left document can be forced as :right by inserting a page break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="first-page-vlr-003-13.2.2" class="paged">
+        <td>
+            <a href="first-page-vlr-003.htm">first-page-vlr-003</a></td>
+        <td></td>
+        <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>first page of a document with vertical-lr writing-mode
+          <ul class="assert">
+            <li>When 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is left-to-right. This test checks that the first page of a document whose document root has 'writing-mode' set to 'vertical-lr' is the :right page.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="first-page-vrl-002-13.2.2" class="image paged">
+        <td>
+            <a href="first-page-vrl-002.htm">first-page-vrl-002</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
+        <td>first page of a document with vertical-rl writing-mode
+          <ul class="assert">
+            <li>When 'writing-mode' is set on the root element, then it determines the default page flow (or progression) direction. In this test, the page flow (or progression) direction is right-to-left. This test checks that the first page of a document whose document root has 'writing-mode' set to 'vertical-rl' is the :left page.</li>
           </ul>
         </td>
       </tr>
@@ -981,7 +1003,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-1.htm">moz-css21-block-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -989,7 +1011,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-10-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-10.htm">moz-css21-block-page-break-inside-avoid-10</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -997,7 +1019,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-11-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-11.htm">moz-css21-block-page-break-inside-avoid-11</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1005,7 +1027,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-12-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-12.htm">moz-css21-block-page-break-inside-avoid-12</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1013,7 +1035,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-13-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-13.htm">moz-css21-block-page-break-inside-avoid-13</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-8-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1021,7 +1043,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-14-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-14.htm">moz-css21-block-page-break-inside-avoid-14</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-14-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1029,7 +1051,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-15-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-15.htm">moz-css21-block-page-break-inside-avoid-15</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-15-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1037,7 +1059,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-2-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-2.htm">moz-css21-block-page-break-inside-avoid-2</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1045,7 +1067,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-3-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-3.htm">moz-css21-block-page-break-inside-avoid-3</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1053,7 +1075,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-4-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-4.htm">moz-css21-block-page-break-inside-avoid-4</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1061,7 +1083,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-5-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-5.htm">moz-css21-block-page-break-inside-avoid-5</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1069,7 +1091,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-6-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-6.htm">moz-css21-block-page-break-inside-avoid-6</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1077,7 +1099,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-7-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-7.htm">moz-css21-block-page-break-inside-avoid-7</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1085,7 +1107,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-8-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-8.htm">moz-css21-block-page-break-inside-avoid-8</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-8-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1093,7 +1115,7 @@
       <tr id="moz-css21-block-page-break-inside-avoid-9-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-block-page-break-inside-avoid-9.htm">moz-css21-block-page-break-inside-avoid-9</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1101,7 +1123,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-1.htm">moz-css21-float-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1109,7 +1131,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-2-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-2.htm">moz-css21-float-page-break-inside-avoid-2</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-2-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1117,7 +1139,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-3-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-3.htm">moz-css21-float-page-break-inside-avoid-3</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1125,7 +1147,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-4-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-4.htm">moz-css21-float-page-break-inside-avoid-4</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-block-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1133,7 +1155,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-5-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-5.htm">moz-css21-float-page-break-inside-avoid-5</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1141,7 +1163,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-6-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-6.htm">moz-css21-float-page-break-inside-avoid-6</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-6-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1149,7 +1171,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-7-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-7.htm">moz-css21-float-page-break-inside-avoid-7</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-7-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1157,7 +1179,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-8-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-8.htm">moz-css21-float-page-break-inside-avoid-8</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-8-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1165,7 +1187,7 @@
       <tr id="moz-css21-float-page-break-inside-avoid-9-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-float-page-break-inside-avoid-9.htm">moz-css21-float-page-break-inside-avoid-9</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-float-page-break-inside-avoid-9-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1173,7 +1195,7 @@
       <tr id="moz-css21-inline-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-inline-page-break-inside-avoid-1.htm">moz-css21-inline-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-inline-page-break-inside-avoid-1-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1181,7 +1203,7 @@
       <tr id="moz-css21-row-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-row-page-break-inside-avoid-1.htm">moz-css21-row-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1189,7 +1211,7 @@
       <tr id="moz-css21-row-page-break-inside-avoid-2-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-row-page-break-inside-avoid-2.htm">moz-css21-row-page-break-inside-avoid-2</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1197,7 +1219,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-1.htm">moz-css21-rowgroup-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1205,7 +1227,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-2-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-2.htm">moz-css21-rowgroup-page-break-inside-avoid-2</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1213,7 +1235,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-3-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-3.htm">moz-css21-rowgroup-page-break-inside-avoid-3</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1221,7 +1243,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-4-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-4.htm">moz-css21-rowgroup-page-break-inside-avoid-4</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-4-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1229,7 +1251,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-5-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-5.htm">moz-css21-rowgroup-page-break-inside-avoid-5</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1237,7 +1259,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-6-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-6.htm">moz-css21-rowgroup-page-break-inside-avoid-6</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1245,7 +1267,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-7-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-7.htm">moz-css21-rowgroup-page-break-inside-avoid-7</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-7-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1253,7 +1275,7 @@
       <tr id="moz-css21-rowgroup-page-break-inside-avoid-8-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-rowgroup-page-break-inside-avoid-8.htm">moz-css21-rowgroup-page-break-inside-avoid-8</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-rowgroup-page-break-inside-avoid-8-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1261,7 +1283,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-1.htm">moz-css21-table-page-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1269,7 +1291,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-2-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-2.htm">moz-css21-table-page-break-inside-avoid-2</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-2-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1277,7 +1299,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-3-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-3.htm">moz-css21-table-page-break-inside-avoid-3</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-3-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1285,7 +1307,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-4-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-4.htm">moz-css21-table-page-break-inside-avoid-4</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-4-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1293,7 +1315,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-5-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-5.htm">moz-css21-table-page-break-inside-avoid-5</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-5-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1301,7 +1323,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-6-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-6.htm">moz-css21-table-page-break-inside-avoid-6</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-6-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1309,7 +1331,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-7-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-7.htm">moz-css21-table-page-break-inside-avoid-7</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-7-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1317,7 +1339,7 @@
       <tr id="moz-css21-table-page-break-inside-avoid-8-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-css21-table-page-break-inside-avoid-8.htm">moz-css21-table-page-break-inside-avoid-8</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-css21-table-page-break-inside-avoid-6-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>CSS 2.1 page-break-inside:avoid
         </td>
@@ -1325,7 +1347,7 @@
       <tr id="moz-multicol3-column-balancing-break-inside-avoid-1-13.3.1.#propdef-page-break-inside" class="primary paged">
         <td><strong>
             <a href="moz-multicol3-column-balancing-break-inside-avoid-1.htm">moz-multicol3-column-balancing-break-inside-avoid-1</a></strong></td>
-        <td></td>
+        <td><a href="reference/moz-multicol3-column-balancing-break-inside-avoid-1-ref.htm">=</a> </td>
         <td><abbr class="paged" title="Only valid for paged media">Paged</abbr></td>
         <td>Balancing Overflow, page-break-inside:avoid
         </td>

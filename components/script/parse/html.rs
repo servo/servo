@@ -5,7 +5,6 @@
 #![allow(unsafe_code, unrooted_must_root)]
 
 use document_loader::DocumentLoader;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
@@ -14,20 +13,17 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
-use dom::characterdata::{CharacterDataHelpers, CharacterDataTypeId};
+use dom::characterdata::CharacterDataTypeId;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
+use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmlscriptelement::HTMLScriptElementHelpers;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
-use dom::processinginstruction::ProcessingInstructionHelpers;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
-use dom::text::Text;
 use parse::Parser;
 
 use encoding::types::Encoding;
@@ -36,7 +32,7 @@ use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
-use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
+use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -44,23 +40,6 @@ use string_cache::QualName;
 use tendril::StrTendril;
 use url::Url;
 use util::str::DOMString;
-
-trait SinkHelpers {
-    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node>;
-}
-
-impl SinkHelpers for servohtmlparser::Sink {
-    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node> {
-        match child {
-            AppendNode(n) => n.root(),
-            AppendText(t) => {
-                let doc = self.document.root();
-                let text = Text::new(t.into(), doc.r());
-                NodeCast::from_root(text)
-            }
-        }
-    }
-}
 
 impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;

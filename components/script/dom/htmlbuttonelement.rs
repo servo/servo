@@ -4,21 +4,19 @@
 
 use dom::activation::Activatable;
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ActivationElementHelpers;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl};
 use dom::htmlformelement::{SubmittedFrom};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
@@ -38,7 +36,6 @@ enum ButtonType {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>
@@ -132,9 +129,9 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     make_setter!(SetValue, "value");
 }
 
-impl<'a> VirtualMethods for &'a HTMLButtonElement {
+impl VirtualMethods for HTMLButtonElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -145,7 +142,7 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -160,7 +157,7 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -174,7 +171,7 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -183,7 +180,7 @@ impl<'a> VirtualMethods for &'a HTMLButtonElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -253,4 +250,3 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         }
     }
 }
-

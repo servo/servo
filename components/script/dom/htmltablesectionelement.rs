@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
 use dom::bindings::js::Root;
@@ -18,7 +18,6 @@ use std::cell::Cell;
 use util::str::{self, DOMString};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
@@ -52,19 +51,16 @@ impl HTMLTableSectionElement {
     }
 }
 
-pub trait HTMLTableSectionElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-}
 
-impl<'a> HTMLTableSectionElementHelpers for &'a HTMLTableSectionElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLTableSectionElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTableSectionElement {
+impl VirtualMethods for HTMLTableSectionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

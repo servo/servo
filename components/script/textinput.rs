@@ -5,7 +5,7 @@
 //! Common handling of keyboard input and state management for text input controls
 
 use clipboard_provider::ClipboardProvider;
-use dom::keyboardevent::{KeyboardEvent, KeyboardEventHelpers, key_value};
+use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use util::mem::HeapSizeOf;

@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLSpanElement {
     htmlelement: HTMLElement
 }
@@ -41,4 +40,3 @@ impl HTMLSpanElement {
         Node::reflect_node(box element, document, HTMLSpanElementBinding::Wrap)
     }
 }
-

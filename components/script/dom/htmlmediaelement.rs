@@ -11,7 +11,6 @@ use dom::node::NodeTypeId;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
 }
@@ -54,4 +53,3 @@ impl PartialEq for HTMLMediaElementTypeId {
         (*self as u8) == (*other as u8)
     }
 }
-

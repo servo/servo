@@ -13,6 +13,9 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
+[dependencies.hbs-pow]
+git = "https://github.com/libheartbeats/heartbeats-simple-rust.git"
+
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 

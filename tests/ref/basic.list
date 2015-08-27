@@ -54,7 +54,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 != block_image.html noteq_500x300_white.html
 == block_replaced_content_a.html block_replaced_content_ref.html
 == block_replaced_content_b.html block_replaced_content_ref.html
-== blur_a.html blur_ref.html
+!= blur_a.html blur_ref.html
 != border_black_groove.html border_black_solid.html
 != border_black_ridge.html border_black_groove.html
 != border_black_ridge.html border_black_solid.html
@@ -98,6 +98,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
 == first_of_type_pseudo_a.html first_of_type_pseudo_b.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
+experimental == flex_column_direction.html flex_column_direction_ref.html
+experimental == flex_row_direction.html flex_row_direction_ref.html
 == float_clearance_a.html float_clearance_ref.html
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
@@ -136,7 +138,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
 == iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
 == iframe/size_attributes.html iframe/size_attributes_ref.html
-experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_ref.html
+experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
 == iframe/stacking_context.html iframe/stacking_context_ref.html
 
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
@@ -177,7 +179,7 @@ experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_at
 == inline_margins_a.html inline_margins_ref.html
 == inline_margins_intrinsic_size_a.html inline_margins_intrinsic_size_ref.html
 == inline_padding_a.html inline_padding_b.html
-# inline_text_align_a.html inline_text_align_b.html
+== inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
 == input_button_margins_a.html input_button_margins_ref.html
@@ -255,6 +257,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html
 == overflow_auto.html overflow_simple_b.html
+== overflow_auto_stacking_order_a.html overflow_auto_stacking_order_ref.html
 # Should be ==?
 != overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
 == overflow_position_abs_simple_a.html overflow_position_abs_simple_b.html
@@ -289,11 +292,13 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_relative_a.html position_relative_b.html
 == position_relative_inline_block_a.html position_relative_inline_block_ref.html
 == position_relative_painting_order_a.html position_relative_painting_order_ref.html
+== position_relative_stacking_context_a.html position_relative_stacking_context_ref.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pre_with_tab.html pre_with_tab_ref.html
 == pseudo_element_a.html pseudo_element_b.html
 == pseudo_inherit.html pseudo_inherit_ref.html
+== quotes_none_a.html quotes_none_ref.html
 == quotes_simple_a.html quotes_simple_ref.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
@@ -373,6 +378,7 @@ experimental == viewport_rule.html viewport_rule_ref.html
 
 == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
 == webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
+== webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html

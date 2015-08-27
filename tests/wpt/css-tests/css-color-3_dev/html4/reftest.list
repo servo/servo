@@ -45,3 +45,4 @@ t425-hsla-parsing-f.htm == reference/t424-hsl-parsing-f-ref.htm
 t425-hsla-values-b.htm == reference/t425-hsla-values-b-ref.htm
 t44-currentcolor-background-b.htm == reference/t44-currentcolor-background-b-ref.htm
 t44-currentcolor-border-b.htm == reference/t44-currentcolor-border-b-ref.htm
+will-change-stacking-context-opacity-1.htm == reference/green-square-100-by-100-ref.htm

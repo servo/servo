@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Color Module Level 3 Conformance Test Suite</h1>
-  <h2>Color properties (12 tests)</h2>
+  <h2>Color properties (13 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -83,7 +83,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.2">+</a>
         <a href="http://www.w3.org/TR/css3-color/#transparency">3.2 Transparency: the &#8216;opacity&#8217; property</a></th></tr>
-      <!-- 10 tests -->
+      <!-- 11 tests -->
       <tr id="t32-opacity-basic-0.0-a-3.2" class="primary">
         <td><strong>
             <a href="t32-opacity-basic-0.0-a.htm">t32-opacity-basic-0.0-a</a></strong></td>
@@ -191,6 +191,17 @@
         <td>opacity
           <ul class="assert">
             <li>Opacity has z-ordering treatment of positioned elements and z-index applies.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="will-change-stacking-context-opacity-1-3.2" class="">
+        <td>
+            <a href="will-change-stacking-context-opacity-1.htm">will-change-stacking-context-opacity-1</a></td>
+        <td><a href="reference/green-square-100-by-100-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS will-change: 'will-change: opacity' creates a stacking context
+          <ul class="assert">
+            <li>If any non-initial value of a property would create a stacking context on the element, specifying that property in will-change must create a stacking context on the element.</li>
           </ul>
         </td>
       </tr>

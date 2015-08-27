@@ -31,15 +31,17 @@ use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{BLOCK_POSITION_IS_STATIC, HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::{BLOCK_POSITION_IS_STATIC};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
+use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow, PreorderFlowTraversal};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
-use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
+use fragment::{SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
@@ -787,6 +789,8 @@ impl BlockFlow {
                                          self.base.debug_id());
 
         if self.base.restyle_damage.contains(REFLOW) {
+            self.determine_if_layer_needed();
+
             // Our current border-box position.
             let mut cur_b = Au(0);
 
@@ -950,11 +954,6 @@ impl BlockFlow {
             }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                // Fixed position layers get layers.
-                if self.is_fixed() {
-                    self.base.flags.insert(NEEDS_LAYER);
-                }
-
                 // Store the content block-size for use in calculating the absolute flow's
                 // dimensions later.
                 //
@@ -1564,6 +1563,36 @@ impl BlockFlow {
         }
         self.base.flags = flags
     }
+
+    fn determine_if_layer_needed(&mut self) {
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            // Fixed position layers get layers.
+            if self.is_fixed() {
+                self.base.flags.insert(NEEDS_LAYER);
+                return
+            }
+        }
+
+        // This flow needs a layer if it has a 3d transform, or provides perspective
+        // to child layers. See http://dev.w3.org/csswg/css-transforms/#3d-rendering-contexts.
+        let has_3d_transform = self.transform_requires_layer();
+        let has_perspective = self.fragment.style().get_effects().perspective !=
+            LengthOrNone::None;
+
+        if has_3d_transform || has_perspective {
+            self.base.flags.insert(NEEDS_LAYER);
+            return
+        }
+
+        match (self.fragment.style().get_box().overflow_x,
+               self.fragment.style().get_box().overflow_y.0) {
+            (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
+            (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
+                self.base.flags.insert(NEEDS_LAYER);
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Flow for BlockFlow {
@@ -1745,6 +1774,12 @@ impl Flow for BlockFlow {
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+        if (self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
+                self.base.absolute_position_info.layers_needed_for_positioned_flows) ||
+                self.base.flags.contains(NEEDS_LAYER) {
+            self.fragment.flags.insert(HAS_LAYER)
+        }
+
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));
@@ -1754,15 +1789,7 @@ impl Flow for BlockFlow {
             self.base.stacking_relative_position_of_display_port = MAX_RECT;
         }
 
-        // This flow needs a layer if it has a 3d transform, or provides perspective
-        // to child layers. See http://dev.w3.org/csswg/css-transforms/#3d-rendering-contexts.
         let transform_style = self.fragment.style().get_used_transform_style();
-        let has_3d_transform = self.transform_requires_layer();
-        let has_perspective = self.fragment.style().get_effects().perspective != LengthOrNone::None;
-
-        if has_3d_transform || has_perspective {
-            self.base.flags.insert(NEEDS_LAYER);
-        }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             // `overflow: auto` and `overflow: scroll` force creation of layers, since we can only
@@ -1771,7 +1798,6 @@ impl Flow for BlockFlow {
                    self.fragment.style().get_box().overflow_y.0) {
                 (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
                 (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
-                    self.base.flags.insert(NEEDS_LAYER);
                     self.base.clip = ClippingRegion::max();
                     self.base.stacking_relative_position_of_display_port = MAX_RECT;
                 }
@@ -1886,7 +1912,7 @@ impl Flow for BlockFlow {
         }
 
         let stacking_relative_position_of_display_port_for_children =
-            if (is_stacking_context && self.will_get_layer()) || self.is_root() {
+            if is_stacking_context || self.is_root() {
                 let visible_rect =
                     match layout_context.shared.visible_rects.get(&self.layer_id(0)) {
                         Some(visible_rect) => *visible_rect,

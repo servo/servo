@@ -8,18 +8,16 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
 use dom::bindings::js::Root;
-use dom::characterdata::CharacterDataHelpers;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
+use dom::node::{ChildrenMutation, Node, NodeTypeId};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
 }
@@ -70,9 +68,9 @@ impl<'a> HTMLTitleElementMethods for &'a HTMLTitleElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTitleElement {
+impl VirtualMethods for HTMLTitleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -80,14 +78,14 @@ impl<'a> VirtualMethods for &'a HTMLTitleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
     }
 
     fn bind_to_tree(&self, is_in_doc: bool) {
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if is_in_doc {
             let document = node.owner_doc();
             document.r().title_changed();

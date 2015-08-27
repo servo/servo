@@ -7,10 +7,10 @@
 # Tool options
 [tools]
 # Where Rust compiler snapshots and other downloads will be stored.  Can be
-# shared by multiple Servo reposities.  Defaults to <servo-repo>/.servo
+# shared by multiple Servo repositories.  Defaults to <servo-repo>/.servo
 cache-dir = "./.servo"
 
-# Where cargo stores all of its clones  Defaults to <servo-repo>/.cargo
+# Where Cargo stores all of its clones  Defaults to <servo-repo>/.cargo
 cargo-home-dir = "./.cargo"
 
 # If system-rust is true, will use rustc/rustdoc from the path, or if
@@ -41,7 +41,7 @@ debug-mozjs = false
 #toolchain = "/opt/android-toolchain"
 
 # Gonk information
-# Please fill the ndk/toolchain for android too
+# Please fill the ndk/toolchain for Android too
 [gonk]
 # Path to B2G repo and build
 # Defaults to the value of $GONKDIR

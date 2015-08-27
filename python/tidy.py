@@ -17,7 +17,7 @@ import sys
 from licenseck import licenses
 
 filetypes_to_check = [".rs", ".rc", ".cpp", ".c", ".h", ".py", ".toml", ".webidl"]
-reftest_directories = ["tests/ref"]
+reftest_dir = "./tests/ref"
 reftest_filetype = ".list"
 python_dependencies = [
     "./python/dependencies/flake8-2.4.1-py2.py3-none-any.whl",
@@ -27,36 +27,27 @@ python_dependencies = [
 
 ignored_files = [
     # Upstream
-    "support/*",
-    "tests/wpt/*",
-    "python/mach/*",
-    "python/mozdebug/*",
-    "python/mozinfo/*",
-    "python/mozlog/*",
-    "python/toml/*",
-    "components/script/dom/bindings/codegen/parser/*",
-    "components/script/dom/bindings/codegen/ply/*",
+    "./support/*",
+    "./tests/wpt/*",
+    "./python/mach/*",
+    "./python/mozdebug/*",
+    "./python/mozinfo/*",
+    "./python/mozlog/*",
+    "./python/toml/*",
+    "./components/script/dom/bindings/codegen/parser/*",
+    "./components/script/dom/bindings/codegen/ply/*",
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "target/*",
-    "ports/gonk/src/native_window_glue.cpp",
-    "ports/cef/*",
+    "./target/*",
+    "./ports/gonk/src/native_window_glue.cpp",
+    "./ports/cef/*",
 
     # MIT license
-    "components/util/deque/mod.rs",
+    "./components/util/deque/mod.rs",
 
     # Hidden files/directories
-    ".*",
+    "./.*",
 ]
-
-
-def collect_file_names(top_directories=None):
-    if top_directories is None:
-        top_directories = os.listdir(".")
-    for top_directory in top_directories:
-        for dirname, dirs, files in os.walk(top_directory):
-            for basename in files:
-                yield os.path.join(dirname, basename)
 
 
 def should_check(file_name):
@@ -90,8 +81,9 @@ def check_license(file_name, contents):
 
 
 def check_length(idx, line):
-    if len(line) >= 120:
-        yield (idx + 1, "(much) overlong line")
+    max_length = 120
+    if len(line) >= max_length:
+        yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
 def check_whatwg_url(idx, line):
@@ -254,8 +246,7 @@ def check_rust(file_name, contents):
         # imports must be in the same line and alphabetically sorted
         if line.startswith("use "):
             use = line[4:]
-            match = use.find('{')
-            if match >= 0 and "}" not in use[match:]:
+            if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
             uses.append(use[:len(use) - 1])
         elif len(uses) > 0:
@@ -366,28 +357,45 @@ def check_reftest_order(files_to_check):
 
 def get_reftest_names(line):
     tokens = line.split()
-    if (len(tokens) == 3):
+    if len(tokens) == 3:
         return tokens[1] + tokens[2]
-    if (len(tokens) == 4):
+    if len(tokens) == 4:
         return tokens[2] + tokens[3]
     return None
+
+
+def get_html_file_names_from_reftest_list(reftest_dir, file_name):
+    for line in open(os.path.join(reftest_dir, file_name), "r"):
+        for token in line.split():
+            if fnmatch.fnmatch(token, '*.html'):
+                yield os.path.join(reftest_dir, token)
+
+
+def check_reftest_html_files_in_basic_list(reftest_dir):
+    basic_list_files = set(get_html_file_names_from_reftest_list(reftest_dir, "basic" + reftest_filetype))
+
+    for file_name in os.listdir(reftest_dir):
+        file_path = os.path.join(reftest_dir, file_name)
+        if fnmatch.fnmatch(file_path, '*.html') and file_path not in basic_list_files:
+            yield (file_path, "", "not found in basic.list")
 
 
 def scan():
     sys.path += python_dependencies
 
-    all_files = collect_file_names()
+    all_files = (os.path.join(r, f) for r, _, files in os.walk(".") for f in files)
     files_to_check = filter(should_check, all_files)
 
     checking_functions = [check_license, check_by_line, check_flake8, check_toml,
                           check_rust, check_webidl_spec, check_spec]
     errors = collect_errors_for_files(files_to_check, checking_functions)
 
-    reftest_files = collect_file_names(reftest_directories)
+    reftest_files = (os.path.join(r, f) for r, _, files in os.walk(reftest_dir) for f in files)
     reftest_to_check = filter(should_check_reftest, reftest_files)
     r_errors = check_reftest_order(reftest_to_check)
+    not_found_in_basic_list_errors = check_reftest_html_files_in_basic_list(reftest_dir)
 
-    errors = list(itertools.chain(errors, r_errors))
+    errors = list(itertools.chain(errors, r_errors, not_found_in_basic_list_errors))
 
     if errors:
         for error in errors:

@@ -210,7 +210,7 @@ var properties = {
     'line-height': ['number', 'length', 'percentage'],
     'letter-spacing': ['length'],
     // Note: percentage is Level3 and not implemented anywhere yet
-    // http://dev.w3.org/csswg/css3-text/#word-spacing
+    // https://drafts.csswg.org/css3-text/#word-spacing
     'word-spacing': ['length', 'percentage'],
     'text-indent': ['length', 'percentage'],
     'text-shadow': ['shadow'],
@@ -278,7 +278,7 @@ var unspecified_properties = {
     'border-bottom-right-radius': ['border-radius'],
     'background-image': ['image'],
     'background-size': ['background-size'],
-    // http://dev.w3.org/csswg/css3-background/#the-box-shadow
+    // https://drafts.csswg.org/css3-background/#the-box-shadow
     // Animatable:   yes, except between inner and outer shadows (Transition to/from an absent shadow is a transition to/from ‘0 0 transparent’ or ‘0 0 transparent inset’, as appropriate.) 
     'box-shadow': ['box-shadow'],
     'font-size-adjust': ['number'],

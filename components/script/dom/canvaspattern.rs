@@ -12,7 +12,6 @@ use euclid::size::Size2D;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,

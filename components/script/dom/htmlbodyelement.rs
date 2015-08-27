@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
@@ -11,13 +11,12 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 
@@ -35,7 +34,6 @@ use time;
 const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
@@ -88,27 +86,23 @@ impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
     }
 }
 
-pub trait HTMLBodyElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_background(self) -> Option<Url>;
-}
 
-impl<'a> HTMLBodyElementHelpers for &'a HTMLBodyElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLBodyElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 
     #[allow(unsafe_code)]
-    fn get_background(self) -> Option<Url> {
+    pub fn get_background(&self) -> Option<Url> {
         unsafe {
             self.background.borrow_for_layout().clone()
         }
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLBodyElement {
+impl VirtualMethods for HTMLBodyElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let element: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 
@@ -121,7 +115,7 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
             return
         }
 
-        let window = window_from_node(*self);
+        let window = window_from_node(self);
         let document = window.r().Document();
         document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
         let ConstellationChan(ref chan) = window.r().constellation_chan();
@@ -141,7 +135,7 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
                   "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
-            let window = window_from_node(*self);
+            let window = window_from_node(self);
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
@@ -149,7 +143,7 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
                 if FORWARDED_EVENTS.iter().any(|&event| &**name == event) {
                     EventTargetCast::from_ref(window.r())
                 } else {
-                    EventTargetCast::from_ref(*self)
+                    EventTargetCast::from_ref(self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
@@ -161,7 +155,7 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
                 self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
             }
             &atom!("background") => {
-                let doc = document_from_node(*self);
+                let doc = document_from_node(self);
                 let base = doc.r().url();
 
                 *self.background.borrow_mut() = UrlParser::new().base_url(&base).parse(&attr.value()).ok();
@@ -183,4 +177,3 @@ impl<'a> VirtualMethods for &'a HTMLBodyElement {
         }
     }
 }
-

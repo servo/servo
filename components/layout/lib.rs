@@ -4,13 +4,12 @@
 
 #![feature(append)]
 #![feature(arc_unique)]
+#![feature(arc_weak)]
 #![feature(box_str)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(custom_derive)]
-#![feature(filling_drop)]
 #![feature(hashmap_hasher)]
-#![feature(heap_api)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(raw)]
@@ -73,6 +72,7 @@ pub mod construct;
 pub mod context;
 pub mod data;
 pub mod display_list_builder;
+pub mod flex;
 pub mod floats;
 pub mod flow;
 pub mod flow_list;

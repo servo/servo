@@ -7,7 +7,6 @@ use msg::constellation_msg::PipelineId;
 use rustc_serialize::{json, Encoder, Encodable};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
-use std::mem;
 use std::net::TcpStream;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
@@ -37,7 +36,6 @@ pub struct TimelineActor {
 struct Emitter {
     from: String,
     stream: TcpStream,
-    markers: Vec<TimelineMarkerReply>,
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: PreciseTime,
 
@@ -154,7 +152,8 @@ impl TimelineActor {
         /// from queue and add marker to emitter
         /// Return true if closed (IntervalStart + IntervalEnd) pair was founded
         fn group(queue: &mut VecDeque<TimelineMarker>, depth: usize,
-                 start_payload: Option<TimelineMarker>, emitter: &mut Emitter) -> bool {
+                 start_payload: Option<TimelineMarker>, emitter: &Emitter,
+                 markers: &mut Vec<TimelineMarkerReply>) -> bool {
 
             if let Some(start_payload) = start_payload {
                 if start_payload.metadata != TracingMetadata::IntervalStart {
@@ -166,13 +165,13 @@ impl TimelineActor {
                         TracingMetadata::IntervalEnd => {
                             if depth == 0 {
                                 // Emit TimelineMarkerReply, pair was found
-                                emitter.add_marker(start_payload, end_payload);
+                                markers.push(emitter.marker(start_payload, end_payload));
                             }
                             return true;
                         }
                         TracingMetadata::IntervalStart => {
-                            if group(queue, depth + 1, Some(end_payload), emitter) {
-                                return group(queue, depth, Some(start_payload), emitter);
+                            if group(queue, depth + 1, Some(end_payload), emitter, markers) {
+                                return group(queue, depth, Some(start_payload), emitter, markers);
                             } else {
                                 queue.push_front(start_payload);
                             }
@@ -211,11 +210,12 @@ impl TimelineActor {
                 }
 
                 // Emit all markers
+                let mut markers = vec![];
                 for (_, queue) in &mut queues {
                     let start_payload = queue.pop_front();
-                    group(queue, 0, start_payload, &mut emitter);
+                    group(queue, 0, start_payload, &emitter, &mut markers);
                 }
-                emitter.send();
+                emitter.send(markers);
 
                 sleep_ms(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT);
             }
@@ -328,7 +328,6 @@ impl Emitter {
         Emitter {
             from: name,
             stream: stream,
-            markers: Vec::new(),
             registry: registry,
             start_stamp: start_stamp,
 
@@ -337,21 +336,22 @@ impl Emitter {
         }
     }
 
-    fn add_marker(&mut self, start_payload: TimelineMarker, end_payload: TimelineMarker) -> () {
-        self.markers.push(TimelineMarkerReply {
+    fn marker(&self, start_payload: TimelineMarker, end_payload: TimelineMarker)
+              -> TimelineMarkerReply {
+        TimelineMarkerReply {
             name: start_payload.name,
             start: HighResolutionStamp::new(self.start_stamp, start_payload.time),
             end: HighResolutionStamp::new(self.start_stamp, end_payload.time),
             stack: start_payload.stack,
             endStack: end_payload.stack,
-        });
+        }
     }
 
-    fn send(&mut self) -> () {
+    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> () {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
             __type__: "markers".to_string(),
-            markers: mem::replace(&mut self.markers, Vec::new()),
+            markers: markers,
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
         };

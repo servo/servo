@@ -19736,7 +19736,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s10.8">+</a>
         <a href="http://www.w3.org/TR/CSS21/visudet.html#line-height">10.8 Line height calculations: the 'line-height' and 'vertical-align' properties</a></th></tr>
-      <!-- 60 tests -->
+      <!-- 56 tests -->
       <tr id="c43-center-000-10.8" class="ahem image">
         <td>
             <a href="c43-center-000.xht">c43-center-000</a></td>
@@ -20296,56 +20296,12 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-002-10.8" class="ahem">
-        <td>
-            <a href="vertical-alignment-new-002.xht">vertical-alignment-new-002</a></td>
-        <td><a href="reference/vertical-alignment-new-002-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
-          <ul class="assert">
-            <li>This test checks the position of inline box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'top', the right edge of inline-box attaches the top of line-box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="vertical-alignment-new-004-10.8" class="ahem">
-        <td>
-            <a href="vertical-alignment-new-004.xht">vertical-alignment-new-004</a></td>
-        <td><a href="reference/vertical-alignment-new-004-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
-          <ul class="assert">
-            <li>This test checks the position of inline box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'text-top', the right edge of inline-box aligned with the top of parent inline-box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="vertical-alignment-new-006-10.8" class="ahem">
-        <td>
-            <a href="vertical-alignment-new-006.xht">vertical-alignment-new-006</a></td>
-        <td><a href="reference/vertical-alignment-new-006-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
-          <ul class="assert">
-            <li>This test checks the position of inline box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'text-bottom', the left edge of inline-box aligned with the bottom of parent inline-box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="vertical-alignment-new-008-10.8" class="ahem">
-        <td>
-            <a href="vertical-alignment-new-008.xht">vertical-alignment-new-008</a></td>
-        <td><a href="reference/vertical-alignment-new-008-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>vertical align - 'baseline' (alphabetical baseline with vertical layout)
-          <ul class="assert">
-            <li>This test checks the position of inline box with vertical align property. When 'writing-mode' is 'vertical-rl', 'vertical-align' is 'bottom', the left edge of inline-box attaches the bottom of line-box.</li>
-          </ul>
-        </td>
-      </tr>
     </tbody>
     <tbody id="s10.8.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s10.8.1">+</a>
         <a href="http://www.w3.org/TR/CSS21/visudet.html#leading">10.8.1 Leading and half-leading</a></th></tr>
-      <!-- 222 tests -->
+      <!-- 226 tests -->
       <tr id="border-padding-bleed-001-10.8.1" class="primary ahem">
         <td><strong>
             <a href="border-padding-bleed-001.xht">border-padding-bleed-001</a></strong></td>
@@ -20635,6 +20591,50 @@
           <ul class="assert">
             <li>it is a rectangular block that participates in an inline formatting context).</li>
             <li>The baseline of an 'inline-table' is the baseline of the first row of the table.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-table-alignment-002-10.8.1" class="ahem">
+        <td>
+            <a href="inline-table-alignment-002.xht">inline-table-alignment-002</a></td>
+        <td><a href="reference/inline-table-alignment-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-table alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of inline-table baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'mixed', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-table-alignment-003-10.8.1" class="ahem">
+        <td>
+            <a href="inline-table-alignment-003.xht">inline-table-alignment-003</a></td>
+        <td><a href="reference/inline-table-alignment-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-table alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of inline-table baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'mixed', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-table-alignment-004-10.8.1" class="ahem">
+        <td>
+            <a href="inline-table-alignment-004.xht">inline-table-alignment-004</a></td>
+        <td><a href="reference/inline-table-alignment-002-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-table alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of inline-table baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'upright', then the central baseline is used as the dominant baseline.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="inline-table-alignment-005-10.8.1" class="ahem">
+        <td>
+            <a href="inline-table-alignment-005.xht">inline-table-alignment-005</a></td>
+        <td><a href="reference/inline-table-alignment-003-ref.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>inline-table alignment - central alignment with vertical layout
+          <ul class="assert">
+            <li>This test checks the generation of inline-table baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'upright', then the central baseline is used as the dominant baseline.</li>
           </ul>
         </td>
       </tr>

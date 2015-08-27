@@ -227,7 +227,7 @@ pub fn get_null_window_handle() -> cef_window_handle_t {
 
 pub fn update() {
     BROWSERS.with(|browsers| {
-        for browser in &browsers.borrow() {
+        for browser in &*browsers.borrow() {
             if browser.downcast().callback_executed.get() == false {
                 browser_callback_after_created(browser.clone());
             }

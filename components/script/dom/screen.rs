@@ -10,7 +10,6 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Screen {
     reflector_: Reflector,
 }
@@ -40,4 +39,3 @@ impl<'a> ScreenMethods for &'a Screen {
         24
     }
 }
-

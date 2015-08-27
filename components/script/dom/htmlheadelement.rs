@@ -15,7 +15,6 @@ use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLHeadElement {
     htmlelement: HTMLElement
 }
@@ -46,12 +45,12 @@ impl HTMLHeadElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLHeadElement {
+impl VirtualMethods for HTMLHeadElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
     fn bind_to_tree(&self, _tree_in_doc: bool) {
-        load_script(*self);
+        load_script(self);
     }
 }

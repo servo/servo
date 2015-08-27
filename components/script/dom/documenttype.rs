@@ -10,7 +10,7 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -18,7 +18,6 @@ use std::borrow::ToOwned;
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DocumentType {
     node: Node,
     name: DOMString,
@@ -111,4 +110,3 @@ impl<'a> DocumentTypeMethods for &'a DocumentType {
         node.remove_self();
     }
 }
-
