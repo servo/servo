@@ -5773,12 +5773,17 @@ class GlobalGenRoots():
                      CGGeneric("use std::mem;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
-            protos = [CGGeneric('pub trait %s : Sized {}\n' % (name + 'Base'))]
+            protos = [CGGeneric("""\
+/// Types which are derived from `%(name)s` and can be freely converted
+/// to `%(name)s`
+pub trait %(name)sBase : Sized {}\n""" % {'name': name})]
             for proto in descriptor.prototypeChain:
                 protos += [CGGeneric('impl %s for %s {}\n' % (proto + 'Base',
                                                                       descriptor.concreteType))]
-            derived = [CGGeneric('pub trait %s : Sized { fn %s(&self) -> bool; }\n' %
-                                 (name + 'Derived', 'is_' + name.lower()))]
+            derived = [CGGeneric("""\
+/// Types which `%(name)s` derives from
+pub trait %(name)sDerived : Sized { fn %(method)s(&self) -> bool; }\n""" %
+                                 {'name': name, 'method': 'is_' + name.lower()})]
             for protoName in descriptor.prototypeChain[1:-1]:
                 protoDescriptor = config.getDescriptor(protoName)
                 delegate = string.Template("""\
@@ -5800,6 +5805,8 @@ impl ${selfName} for ${baseName} {
 pub struct ${name}Cast;
 impl ${name}Cast {
     #[inline]
+    /// Downcast an instance of a base class of `${name}` to an instance of
+    /// `${name}`, if it internally is an instance of `${name}`
     pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: &'a T) -> Option<&'a ${name}> {
         match base.${checkFn}() {
             true => Some(unsafe { mem::transmute(base) }),
@@ -5827,6 +5834,7 @@ impl ${name}Cast {
     }
 
     #[inline]
+    /// Upcast an instance of a derived class of `${name}` to `${name}`
     pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
         unsafe { mem::transmute(derived) }
     }
