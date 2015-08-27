@@ -45,6 +45,6 @@ pub fn get_pref(name: &str, default: bool) -> bool {
     *PREFS.lock().unwrap().get(name).unwrap_or(&default)
 }
 
-pub fn set_pref(name: String, value: bool) {
-    let _ = PREFS.lock().unwrap().insert(name, value);
+pub fn set_pref(name: &str, value: bool) {
+    let _ = PREFS.lock().unwrap().insert(name.to_owned(), value);
 }

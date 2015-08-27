@@ -10,6 +10,7 @@ use geometry::ScreenPx;
 use euclid::size::{Size2D, TypedSize2D};
 use getopts::Options;
 use num_cpus;
+use prefs;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -455,6 +456,8 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
+    opts.optmulti("", "pref",
+                  "A preference to set to enable", "dom.mozbrowser.enabled");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -623,6 +626,12 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     set_defaults(opts);
+
+    // This must happen after setting the default options, since the prefs rely on
+    // on the resource path.
+    for pref in opt_match.opt_strs("pref").iter() {
+        prefs::set_pref(pref, true);
+    }
 }
 
 // Make Opts available globally. This saves having to clone and pass
