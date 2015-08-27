@@ -272,9 +272,11 @@ pub enum LoadError {
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
-    if !headers.has::<AcceptEncoding>() {
-        headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    if headers.has::<AcceptEncoding>() {
+        return
     }
+
+    headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
 }
 
 fn set_default_accept(headers: &mut Headers) {
@@ -323,25 +325,27 @@ fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>)
 }
 
 fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
-    if url.scheme == "https" {
-        if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
-            if let Some(host) = url.domain() {
-                info!("adding host {} to the strict transport security list", host);
-                info!("- max-age {}", header.max_age);
+    if url.scheme != "https" {
+        return;
+    }
 
-                let include_subdomains = if header.include_subdomains {
-                    info!("- includeSubdomains");
-                    IncludeSubdomains::Included
-                } else {
-                    IncludeSubdomains::NotIncluded
-                };
+    if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
+        if let Some(host) = url.domain() {
+            info!("adding host {} to the strict transport security list", host);
+            info!("- max-age {}", header.max_age);
 
-                resource_mgr_chan.send(
-                    ControlMsg::SetHSTSEntryForHost(
-                        host.to_string(), include_subdomains, header.max_age
-                    )
-                ).unwrap();
-            }
+            let include_subdomains = if header.include_subdomains {
+                info!("- includeSubdomains");
+                IncludeSubdomains::Included
+            } else {
+                IncludeSubdomains::NotIncluded
+            };
+
+            resource_mgr_chan.send(
+                ControlMsg::SetHSTSEntryForHost(
+                    host.to_string(), include_subdomains, header.max_age
+                )
+            ).unwrap();
         }
     }
 }
