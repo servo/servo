@@ -351,7 +351,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mg
 }
 
 pub struct LoadResponse<R: HttpResponse> {
-    decoder: Decoders<R>,
+    decoder: Decoder<R>,
     pub metadata: Metadata
 }
 
@@ -360,15 +360,15 @@ impl<R: HttpResponse> Read for LoadResponse<R> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.decoder {
-            Decoders::Gzip(ref mut d) => d.read(buf),
-            Decoders::Deflate(ref mut d) => d.read(buf),
-            Decoders::Plain(ref mut d) => d.read(buf)
+            Decoder::Gzip(ref mut d) => d.read(buf),
+            Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Plain(ref mut d) => d.read(buf)
         }
     }
 }
 
 impl<R: HttpResponse> LoadResponse<R> {
-    fn new(m: Metadata, d: Decoders<R>) -> LoadResponse<R> {
+    fn new(m: Metadata, d: Decoder<R>) -> LoadResponse<R> {
         LoadResponse { metadata: m, decoder: d }
     }
 
@@ -378,7 +378,7 @@ impl<R: HttpResponse> LoadResponse<R> {
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok(LoadResponse::new(m, Decoders::Gzip(response_decoding)));
+                        return Ok(LoadResponse::new(m, Decoder::Gzip(response_decoding)));
                     }
                     Err(err) => {
                         return Err(LoadError::Decoding(m.final_url, err.to_string()));
@@ -387,41 +387,45 @@ impl<R: HttpResponse> LoadResponse<R> {
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok(LoadResponse::new(m, Decoders::Deflate(response_decoding)));
+                return Ok(LoadResponse::new(m, Decoder::Deflate(response_decoding)));
             }
             _ => {
-                return Ok(LoadResponse::new(m, Decoders::Plain(response)));
+                return Ok(LoadResponse::new(m, Decoder::Plain(response)));
             }
         }
     }
 }
 
-enum Decoders<R: Read> {
+enum Decoder<R: Read> {
     Gzip(GzDecoder<R>),
     Deflate(DeflateDecoder<R>),
     Plain(R)
 }
 
-fn send_request_to_devtools(
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
-    url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
+fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                            request_id: String,
+                            url: Url,
+                            method: Method,
+                            headers: Headers,
+                            body: Option<Vec<u8>>) {
 
     if let Some(ref chan) = devtools_chan {
         let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
-        chan.send(DevtoolsControlMsg::FromChrome(
-            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
-        )).unwrap();
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
+        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
     }
 }
 
-fn send_response_to_devtools(
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
-    headers: Option<Headers>, status: Option<RawStatus>) {
+fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                             request_id: String,
+                             headers: Option<Headers>,
+                             status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
         let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
-        chan.send(DevtoolsControlMsg::FromChrome(
-                ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
-                                                         net_event_response))).unwrap();
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
+        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
     }
 }
 pub fn load<A>(load_data: LoadData,
@@ -511,7 +515,7 @@ pub fn load<A>(load_data: LoadData,
         // TODO - This is the wrong behaviour according to the RFC. However, I'm not
         // sure how much "correctness" vs. real-world is important in this case.
         //
-        // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+        // https://tools.ietf.org/html/rfc7231#section-6.4
         let is_redirected_request = iters != 1;
         let response = match load_data.data {
             Some(ref data) if !is_redirected_request => {
