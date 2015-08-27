@@ -59,7 +59,6 @@ widthTests.forEach(function(item) {
 });
 
 var lengthProperties = [
-  'border-width',
   'border-top-width',
   'border-left-width',
   'border-right-width',
@@ -68,7 +67,6 @@ var lengthProperties = [
   'outline-offset',
   'letter-spacing',
   'word-spacing',
-  'border-spacing',
   'column-width',
   'column-gap',
   'perspective',
@@ -99,18 +97,14 @@ var lengthOrPercentageProperties = [
   'line-height',
   'vertical-align',
   'background-position',
-  'background-size',
   'font-size',
   'text-indent',
-  'transform-origin',
-  'perspective-origin',
 ];
 
 lengthOrPercentageProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px + 0%)');
         assert_equals(div.style.getPropertyValue(prop), 'calc(1px + 0%)');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
     }, 'calc for ' + prop);
 });
 
@@ -123,7 +117,6 @@ timeProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1s)');
         assert_equals(div.style.getPropertyValue(prop), '1s');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1s');
     }, 'calc for ' + prop);
 });
 
@@ -137,10 +130,23 @@ numberProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1)');
         assert_equals(div.style.getPropertyValue(prop), '1');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1');
     }, 'calc for ' + prop);
 });
 
+var otherProperties = [
+  ['border-width', 'calc(1px)', '1px 1px 1px 1px'],
+  ['border-spacing', 'calc(1px)', '1px 1px'],
+  ['transform-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50% 0px'],
+  ['perspective-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50%'],
+  ['background-size', 'calc(1px + 0%)', 'calc(1px + 0%) auto'],
+];
+
+otherProperties.forEach(function(testcase) {
+    test(function() {
+        div.style.setProperty(testcase[0], testcase[1]);
+        assert_equals(div.style.getPropertyValue(testcase[0]), testcase[2]);
+    }, 'calc for ' + testcase[0]);
+});
 
 /* TODO: test these: 
   counter-increment, counter-reset,
