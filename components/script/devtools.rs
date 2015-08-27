@@ -102,8 +102,8 @@ pub fn handle_get_layout(page: &Rc<Page>,
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
-    let width = *rect.r().Width();
-    let height = *rect.r().Height();
+    let width = rect.Width() as f32;
+    let height = rect.Height() as f32;
     reply.send(ComputedNodeLayout { width: width, height: height }).unwrap();
 }
 
