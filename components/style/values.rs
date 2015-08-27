@@ -879,6 +879,7 @@ pub mod specified {
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(Percentage),
+        Calc(Calc),
         None,
     }
 
@@ -887,6 +888,7 @@ pub mod specified {
             match *self {
                 LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
                 LengthOrPercentageOrNone::Percentage(percentage) => percentage.to_css(dest),
+                LengthOrPercentageOrNone::Calc(calc) => calc.to_css(dest),
                 LengthOrPercentageOrNone::None => dest.write_str("none"),
             }
         }
@@ -902,6 +904,10 @@ pub mod specified {
                     Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
+                    Ok(LengthOrPercentageOrNone::Calc(calc))
+                },
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                     Ok(LengthOrPercentageOrNone::None),
                 _ => Err(())
@@ -1630,6 +1636,7 @@ pub mod computed {
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
+        Calc(Calc),
         None,
     }
     impl fmt::Debug for LengthOrPercentageOrNone {
@@ -1637,6 +1644,7 @@ pub mod computed {
             match *self {
                 LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
                 LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
+                LengthOrPercentageOrNone::Calc(calc) => write!(f, "{:?}", calc),
                 LengthOrPercentageOrNone::None => write!(f, "none"),
             }
         }
@@ -1654,6 +1662,9 @@ pub mod computed {
                 specified::LengthOrPercentageOrNone::Percentage(value) => {
                     LengthOrPercentageOrNone::Percentage(value.0)
                 }
+                specified::LengthOrPercentageOrNone::Calc(calc) => {
+                    LengthOrPercentageOrNone::Calc(calc.to_computed_value(context))
+                }
                 specified::LengthOrPercentageOrNone::None => {
                     LengthOrPercentageOrNone::None
                 }
@@ -1667,6 +1678,7 @@ pub mod computed {
                 LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
                 LengthOrPercentageOrNone::Percentage(percentage) =>
                     write!(dest, "{}%", percentage * 100.),
+                LengthOrPercentageOrNone::Calc(calc) => calc.to_css(dest),
                 LengthOrPercentageOrNone::None => dest.write_str("none"),
             }
         }
