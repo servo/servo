@@ -1031,6 +1031,8 @@ impl ScriptTask {
                 CommonScriptMsg::FireTimer(TimerSource::FromWorker, _)) =>
                 panic!("Worker timeouts must not be sent to script task"),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) =>
+                // The category of the runnable is ignored by the pattern, however
+                // it is still respected by profiling (see categorize_msg).
                 runnable.handler(),
             MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
                 LiveDOMReferences::cleanup(addr),
