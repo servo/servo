@@ -489,7 +489,9 @@ impl HTMLScriptElement {
                     },
                     Some(ref s) => {
                         debug!("script language={}", *s);
-                        SCRIPT_JS_MIMES.contains(&&*format!("text/{}", s).to_ascii_lowercase())
+                        let mut language = format!("text/{}", s);
+                        language.make_ascii_lowercase();
+                        SCRIPT_JS_MIMES.contains(&&*language)
                     },
                     None => {
                         debug!("no script type or language, inferring js");

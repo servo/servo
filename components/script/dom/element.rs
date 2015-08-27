@@ -578,12 +578,11 @@ impl Element {
         &self.local_name
     }
 
-    pub fn parsed_name(&self, name: DOMString) -> Atom {
+    pub fn parsed_name(&self, mut name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
-            Atom::from_slice(&name.to_ascii_lowercase())
-        } else {
-            Atom::from_slice(&name)
+            name.make_ascii_lowercase();
         }
+        Atom::from_slice(&name)
     }
 
     pub fn namespace(&self) -> &Namespace {
@@ -830,7 +829,8 @@ impl Element {
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
-        attributes.r().iter()
+        attributes.r().
+        iter()
                   .find(|attr| attr.namespace() == namespace)
                   .map(|attr| Root::from_ref(*attr))
     }

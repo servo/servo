@@ -123,9 +123,10 @@ impl BlobMethods for Blob {
         };
         let relativeContentType = match contentType {
             None => "".to_owned(),
-            Some(str) => {
+            Some(mut str) => {
                 if is_ascii_printable(&str) {
-                    str.to_ascii_lowercase()
+                    str.make_ascii_lowercase();
+                    str
                 } else {
                     "".to_owned()
                 }
