@@ -433,11 +433,6 @@ impl<T: Reflectable> Root<T> {
         &**self
     }
 
-    /// Don't use this. Don't make me find you.
-    pub fn get_unsound_ref_forever<'a, 'b>(&'a self) -> &'b T {
-        unsafe { &**self.ptr }
-    }
-
     /// Generate a new root from a JS<T> reference
     #[allow(unrooted_must_root)]
     pub fn from_rooted(js: JS<T>) -> Root<T> {
