@@ -339,11 +339,13 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mg
                 IncludeSubdomains::NotIncluded
             };
 
-            resource_mgr_chan.send(
-                ControlMsg::SetHSTSEntryForHost(
-                    host.to_string(), include_subdomains, header.max_age
-                )
-            ).unwrap();
+            let msg = ControlMsg::SetHSTSEntryForHost(
+                host.to_string(),
+                include_subdomains,
+                header.max_age
+            );
+
+            resource_mgr_chan.send(msg).unwrap();
         }
     }
 }
