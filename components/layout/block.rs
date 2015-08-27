@@ -340,6 +340,10 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
+            (LengthOrPercentageOrNone::Calc(calc), Some(block_container_block_size)) => {
+                Some(block_container_block_size.scale_by(calc.percentage()) + calc.length())
+            }
+            (LengthOrPercentageOrNone::Calc(_), _) |
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),

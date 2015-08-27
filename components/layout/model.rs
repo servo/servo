@@ -411,6 +411,8 @@ pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au
     match length {
         LengthOrPercentageOrNone::None => None,
         LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+        LengthOrPercentageOrNone::Calc(calc) =>
+            Some(containing_length.scale_by(calc.percentage()) + calc.length()),
         LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
