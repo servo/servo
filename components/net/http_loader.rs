@@ -517,25 +517,31 @@ pub fn load<A>(load_data: LoadData,
         //
         // https://tools.ietf.org/html/rfc7231#section-6.4
         let is_redirected_request = iters != 1;
+        let request_id = uuid::Uuid::new_v4().to_simple_string();
         let response = match load_data.data {
             Some(ref data) if !is_redirected_request => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
+
+                // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
+                // in the message
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), load_data.headers.clone(),
+                    load_data.data.clone()
+                );
+
                 try!(req.send(&load_data.data))
             }
             _ => {
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), load_data.headers.clone(),
+                    None
+                );
+
                 try!(req.send(&None))
             }
         };
-
-        let request_id = uuid::Uuid::new_v4().to_simple_string();
-
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the
-        // message
-        send_request_to_devtools(
-            devtools_chan.clone(), request_id.clone(), url.clone(),
-            method.clone(), load_data.headers.clone(),
-            if is_redirected_request { None } else { load_data.data.clone() }
-        );
 
         info!("got HTTP response {}, headers:", response.status());
         if log_enabled!(log::LogLevel::Info) {
