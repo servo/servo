@@ -449,7 +449,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 }
 
 #[test]
-fn test_load_uses_explicit_accept_from_preserved_headers_in_load_data() {
+fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let mut accept_headers = Headers::new();
     accept_headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
 
@@ -457,7 +457,7 @@ fn test_load_uses_explicit_accept_from_preserved_headers_in_load_data() {
     let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.preserved_headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
+    load_data.headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
 
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
@@ -479,6 +479,23 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
+        body: <[_]>::to_vec("Yay!".as_bytes())
+    });
+}
+
+#[test]
+fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
+    let mut accept_encoding_headers = Headers::new();
+    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    load_data.headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
+        expected_headers: accept_encoding_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
     });
 }
