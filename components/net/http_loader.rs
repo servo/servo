@@ -124,20 +124,20 @@ pub trait HttpResponse: Read {
     fn status_raw(&self) -> &RawStatus;
 
     fn content_encoding(&self) -> Option<Encoding> {
-        match self.headers().get::<ContentEncoding>() {
-            Some(&ContentEncoding(ref encodings)) => {
-                if encodings.contains(&Encoding::Gzip) {
-                    Some(Encoding::Gzip)
-                } else if encodings.contains(&Encoding::Deflate) {
-                    Some(Encoding::Deflate)
-                } else {
-                    // TODO: Is this the correct behaviour?
-                    None
+        self.headers().get::<ContentEncoding>().and_then(|h| {
+            match h {
+                &ContentEncoding(ref encodings) => {
+                    if encodings.contains(&Encoding::Gzip) {
+                        Some(Encoding::Gzip)
+                    } else if encodings.contains(&Encoding::Deflate) {
+                        Some(Encoding::Deflate)
+                    } else {
+                        // TODO: Is this the correct behaviour?
+                        None
+                    }
                 }
             }
-
-            None => None
-        }
+        })
     }
 }
 
