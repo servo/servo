@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
@@ -11,13 +11,12 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 
@@ -87,18 +86,14 @@ impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
     }
 }
 
-pub trait HTMLBodyElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_background(self) -> Option<Url>;
-}
 
-impl<'a> HTMLBodyElementHelpers for &'a HTMLBodyElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLBodyElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 
     #[allow(unsafe_code)]
-    fn get_background(self) -> Option<Url> {
+    pub fn get_background(&self) -> Option<Url> {
         unsafe {
             self.background.borrow_for_layout().clone()
         }

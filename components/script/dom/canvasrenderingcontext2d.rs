@@ -17,11 +17,11 @@ use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
+use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::htmlcanvaselement::{HTMLCanvasElement, HTMLCanvasElementHelpers};
-use dom::htmlimageelement::{HTMLImageElement, HTMLImageElementHelpers};
-use dom::imagedata::{ImageData, ImageDataHelpers};
-use dom::node::{window_from_node, NodeHelpers, NodeDamage};
+use dom::htmlimageelement::HTMLImageElement;
+use dom::imagedata::ImageData;
+use dom::node::{window_from_node, NodeDamage};
 
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
@@ -409,16 +409,12 @@ impl CanvasRenderingContext2D {
     }
 }
 
-pub trait CanvasRenderingContext2DHelpers {
-    fn get_renderer_id(self) -> usize;
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
-}
 
-impl<'a> CanvasRenderingContext2DHelpers for &'a CanvasRenderingContext2D {
-    fn get_renderer_id(self) -> usize {
+impl CanvasRenderingContext2D {
+    pub fn get_renderer_id(&self) -> usize {
         self.renderer_id
     }
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg> {
+    pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
     }
 }

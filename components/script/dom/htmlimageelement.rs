@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::{AttrHelpers, AttrValue};
+use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
@@ -14,15 +14,13 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::document::{Document, DocumentHelpers};
-use dom::element::AttributeHandlers;
+use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{document_from_node, Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
+use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use string_cache::Atom;
 use util::str::DOMString;
@@ -51,19 +49,13 @@ impl HTMLImageElementDerived for EventTarget {
     }
 }
 
-pub trait HTMLImageElementHelpers {
-    fn get_url(&self) -> Option<Url>;
-}
 
-impl<'a> HTMLImageElementHelpers for &'a HTMLImageElement {
-    fn get_url(&self) -> Option<Url>{
+impl HTMLImageElement {
+    pub fn get_url(&self) -> Option<Url>{
         self.url.borrow().clone()
     }
 }
 
-trait PrivateHTMLImageElementHelpers {
-    fn update_image(self, value: Option<(DOMString, &Url)>);
-}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -112,10 +104,10 @@ impl Runnable for ImageResponseHandlerRunnable {
     }
 }
 
-impl<'a> PrivateHTMLImageElementHelpers for &'a HTMLImageElement {
+impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(self, value: Option<(DOMString, &Url)>) {
+    fn update_image(&self, value: Option<(DOMString, &Url)>) {
         let node = NodeCast::from_ref(self);
         let document = node.owner_doc();
         let window = document.r().window();

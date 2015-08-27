@@ -9,7 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEventTypeId};
 use util::str::DOMString;
 
@@ -257,18 +257,14 @@ impl<'a> EventMethods for &'a Event {
     }
 }
 
-pub trait EventHelpers {
-    fn set_trusted(self, trusted: bool);
-    fn fire(self, target: &EventTarget) -> bool;
-}
 
-impl<'a> EventHelpers for &'a Event {
-    fn set_trusted(self, trusted: bool) {
+impl Event {
+    pub fn set_trusted(&self, trusted: bool) {
         self.trusted.set(trusted);
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    fn fire(self, target: &EventTarget) -> bool {
+    pub fn fire(&self, target: &EventTarget) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self)
     }

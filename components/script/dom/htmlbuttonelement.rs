@@ -4,21 +4,19 @@
 
 use dom::activation::Activatable;
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ActivationElementHelpers;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl};
 use dom::htmlformelement::{SubmittedFrom};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 

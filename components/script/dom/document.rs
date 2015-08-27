@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::{DocumentLoader, LoadType};
-use dom::attr::{Attr, AttrHelpers, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -41,10 +41,9 @@ use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator, ElementHelpers, AttributeHandlers};
-use dom::element::{ElementTypeId, ActivationElementHelpers, FocusElementHelpers};
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::element::{Element, ElementCreator, ElementTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
@@ -57,7 +56,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeHelpers, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
+use dom::node::{self, Node, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -66,7 +65,7 @@ use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::window::{Window, WindowHelpers, ReflowReason};
+use dom::window::{Window, ReflowReason};
 
 use layout_interface::{HitTestResponse, MouseOverResponse};
 use layout_interface::{ReflowGoal, ReflowQueryType};
@@ -228,113 +227,35 @@ impl CollectionFilter for AppletsFilter {
     }
 }
 
-pub trait DocumentHelpers<'a> {
-    fn loader(&self) -> Ref<DocumentLoader>;
-    fn mut_loader(&self) -> RefMut<DocumentLoader>;
-    fn window(self) -> Root<Window>;
-    fn encoding_name(self) -> Ref<'a, DOMString>;
-    fn is_html_document(self) -> bool;
-    fn is_fully_active(self) -> bool;
-    /// https://dom.spec.whatwg.org/#concept-document-url
-    fn url(self) -> Url;
-    /// https://html.spec.whatwg.org/multipage/#fallback-base-url
-    fn fallback_base_url(self) -> Url;
-    /// https://html.spec.whatwg.org/multipage/#document-base-url
-    fn base_url(self) -> Url;
-    /// Returns the first `base` element in the DOM that has an `href` attribute.
-    fn base_element(self) -> Option<Root<HTMLBaseElement>>;
-    /// Refresh the cached first base element in the DOM.
-    fn refresh_base_element(self);
-    fn quirks_mode(self) -> QuirksMode;
-    fn set_quirks_mode(self, mode: QuirksMode);
-    fn set_encoding_name(self, name: DOMString);
-    fn content_changed(self, node: &Node, damage: NodeDamage);
-    fn content_and_heritage_changed(self, node: &Node, damage: NodeDamage);
-    fn reflow_if_reflow_timer_expired(self);
-    fn set_reflow_timeout(self, timeout: u64);
-    fn disarm_reflow_timeout(self);
-    fn unregister_named_element(self, to_unregister: &Element, id: Atom);
-    fn register_named_element(self, element: &Element, id: Atom);
-    fn find_fragment_node(self, fragid: &str) -> Option<Root<Element>>;
-    fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress>;
-    fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress>;
-    fn set_ready_state(self, state: DocumentReadyState);
-    fn get_focused_element(self) -> Option<Root<Element>>;
-    fn is_scripting_enabled(self) -> bool;
-    fn begin_focus_transaction(self);
-    fn request_focus(self, elem: &Element);
-    fn commit_focus_transaction(self, focus_type: FocusType);
-    fn title_changed(self);
-    fn send_title_to_compositor(self);
-    fn dirty_all_nodes(self);
-    fn dispatch_key_event(self,
-                          key: Key,
-                          state: KeyState,
-                          modifiers: KeyModifiers,
-                          compositor: &mut IpcSender<ScriptToCompositorMsg>);
-    fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
-                                   -> Fallible<Root<Node>>;
-    fn get_body_attribute(self, local_name: &Atom) -> DOMString;
-    fn set_body_attribute(self, local_name: &Atom, value: DOMString);
 
-    fn fire_mouse_event(self, point: Point2D<f32>,
-                             target: &EventTarget,
-                             event_name: String);
-    fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
-                          button: MouseButton, point: Point2D<f32>,
-                          mouse_event_type: MouseEventType);
-    /// Handles a mouse-move event coming from the compositor.
-    fn handle_mouse_move_event(self,
-                               js_runtime: *mut JSRuntime,
-                               point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>);
-
-    fn set_current_script(self, script: Option<&HTMLScriptElement>);
-    fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
-    /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn request_animation_frame(self, callback: Box<FnBox(f64, )>) -> i32;
-    /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
-    fn cancel_animation_frame(self, ident: i32);
-    /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
-    fn run_the_animation_frame_callbacks(self);
-    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad;
-    fn load_async(self, load: LoadType, listener: AsyncResponseTarget);
-    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
-    fn finish_load(self, load: LoadType);
-    fn notify_constellation_load(self);
-    fn set_current_parser(self, script: Option<&ServoHTMLParser>);
-    fn get_current_parser(self) -> Option<Root<ServoHTMLParser>>;
-    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>>;
-}
-
-impl<'a> DocumentHelpers<'a> for &'a Document {
+impl Document {
     #[inline]
-    fn loader(&self) -> Ref<DocumentLoader> {
+    pub fn loader(&self) -> Ref<DocumentLoader> {
         self.loader.borrow()
     }
 
     #[inline]
-    fn mut_loader(&self) -> RefMut<DocumentLoader> {
+    pub fn mut_loader(&self) -> RefMut<DocumentLoader> {
         self.loader.borrow_mut()
     }
 
     #[inline]
-    fn window(self) -> Root<Window> {
+    pub fn window(&self) -> Root<Window> {
         self.window.root()
     }
 
     #[inline]
-    fn encoding_name(self) -> Ref<'a, DOMString> {
+    pub fn encoding_name(&self) -> Ref<DOMString> {
         self.encoding_name.borrow()
     }
 
     #[inline]
-    fn is_html_document(self) -> bool {
+    pub fn is_html_document(&self) -> bool {
         self.is_html_document
     }
 
     // https://html.spec.whatwg.org/multipage/#fully-active
-    fn is_fully_active(self) -> bool {
+    pub fn is_fully_active(&self) -> bool {
         let window = self.window.root();
         let window = window.r();
         let browsing_context = window.browsing_context();
@@ -349,12 +270,12 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    fn url(self) -> Url {
+    pub fn url(&self) -> Url {
         self.url.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
-    fn fallback_base_url(self) -> Url {
+    pub fn fallback_base_url(&self) -> Url {
         // Step 1: iframe srcdoc (#4767).
         // Step 2: about:blank with a creator browsing context.
         // Step 3.
@@ -362,7 +283,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url
-    fn base_url(self) -> Url {
+    pub fn base_url(&self) -> Url {
         match self.base_element() {
             // Step 1.
             None => self.fallback_base_url(),
@@ -372,12 +293,12 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
-    fn base_element(self) -> Option<Root<HTMLBaseElement>> {
+    pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
         self.base_element.get().map(Root::from_rooted)
     }
 
     /// Refresh the cached first base element in the DOM.
-    fn refresh_base_element(self) {
+    pub fn refresh_base_element(&self) {
         let base = NodeCast::from_ref(self)
             .traverse_preorder()
             .filter_map(HTMLBaseElementCast::to_root)
@@ -386,11 +307,11 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         self.base_element.set(base.map(|element| JS::from_ref(&*element)));
     }
 
-    fn quirks_mode(self) -> QuirksMode {
+    pub fn quirks_mode(&self) -> QuirksMode {
         self.quirks_mode.get()
     }
 
-    fn set_quirks_mode(self, mode: QuirksMode) {
+    pub fn set_quirks_mode(&self, mode: QuirksMode) {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
@@ -401,21 +322,21 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    fn set_encoding_name(self, name: DOMString) {
+    pub fn set_encoding_name(&self, name: DOMString) {
         *self.encoding_name.borrow_mut() = name;
     }
 
-    fn content_changed(self, node: &Node, damage: NodeDamage) {
+    pub fn content_changed(&self, node: &Node, damage: NodeDamage) {
         node.dirty(damage);
     }
 
-    fn content_and_heritage_changed(self, node: &Node, damage: NodeDamage) {
+    pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
         node.force_dirty_ancestors(damage);
         node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
-    fn reflow_if_reflow_timer_expired(self) {
+    pub fn reflow_if_reflow_timer_expired(&self) {
         if let Some(reflow_timeout) = self.reflow_timeout.get() {
             if time::precise_time_ns() < reflow_timeout {
                 return
@@ -432,7 +353,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     /// Schedules a reflow to be kicked off at the given `timeout` (in `time::precise_time_ns()`
     /// units). This reflow happens even if the event loop is busy. This is used to display initial
     /// page content during parsing.
-    fn set_reflow_timeout(self, timeout: u64) {
+    pub fn set_reflow_timeout(&self, timeout: u64) {
         if let Some(existing_timeout) = self.reflow_timeout.get() {
             if existing_timeout < timeout {
                 return
@@ -442,12 +363,12 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Disables any pending reflow timeouts.
-    fn disarm_reflow_timeout(self) {
+    pub fn disarm_reflow_timeout(&self) {
         self.reflow_timeout.set(None)
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    fn unregister_named_element(self,
+    pub fn unregister_named_element(&self,
                                 to_unregister: &Element,
                                 id: Atom) {
         debug!("Removing named element from document {:p}: {:p} id={}", self, to_unregister, id);
@@ -469,7 +390,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Associate an element present in this document with the provided id.
-    fn register_named_element(self,
+    pub fn register_named_element(&self,
                               element: &Element,
                               id: Atom) {
         debug!("Adding named element to document {:p}: {:p} id={}", self, element, id);
@@ -512,7 +433,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
-    fn find_fragment_node(self, fragid: &str) -> Option<Root<Element>> {
+    pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
         self.GetElementById(fragid.to_owned()).or_else(|| {
             let check_anchor = |&node: &&HTMLAnchorElement| {
                 let elem = ElementCast::from_ref(node);
@@ -528,7 +449,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         })
     }
 
-    fn hit_test(self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
+    pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let root = self.GetDocumentElement();
         let root = match root.r() {
             Some(root) => root,
@@ -546,7 +467,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         address
     }
 
-    fn get_nodes_under_mouse(self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+    pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
         let root = self.GetDocumentElement();
         let root = match root.r() {
             Some(root) => root,
@@ -561,7 +482,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
-    fn set_ready_state(self, state: DocumentReadyState) {
+    pub fn set_ready_state(&self, state: DocumentReadyState) {
         self.ready_state.set(state);
 
         let window = self.window.root();
@@ -573,24 +494,24 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Return whether scripting is enabled or not
-    fn is_scripting_enabled(self) -> bool {
+    pub fn is_scripting_enabled(&self) -> bool {
         self.scripting_enabled.get()
     }
 
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
-    fn get_focused_element(self) -> Option<Root<Element>> {
+    pub fn get_focused_element(&self) -> Option<Root<Element>> {
         self.focused.get().map(Root::from_rooted)
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
-    fn begin_focus_transaction(self) {
+    pub fn begin_focus_transaction(&self) {
         self.possibly_focused.set(None);
     }
 
     /// Request that the given element receive focus once the current transaction is complete.
-    fn request_focus(self, elem: &Element) {
+    pub fn request_focus(&self, elem: &Element) {
         if elem.is_focusable_area() {
             self.possibly_focused.set(Some(JS::from_ref(elem)))
         }
@@ -598,7 +519,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
-    fn commit_focus_transaction(self, focus_type: FocusType) {
+    pub fn commit_focus_transaction(&self, focus_type: FocusType) {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
@@ -624,7 +545,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Handles any updates when the document's title has changed.
-    fn title_changed(self) {
+    pub fn title_changed(&self) {
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
         self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title()));
 
@@ -632,7 +553,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// Sends this document's title to the compositor.
-    fn send_title_to_compositor(self) {
+    pub fn send_title_to_compositor(&self) {
         let window = self.window();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let window = window.r();
@@ -640,14 +561,14 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
     }
 
-    fn dirty_all_nodes(self) {
+    pub fn dirty_all_nodes(&self) {
         let root = NodeCast::from_ref(self);
         for node in root.traverse_preorder() {
             node.r().dirty(NodeDamage::OtherNodeDamage)
         }
     }
 
-    fn handle_mouse_event(self, js_runtime: *mut JSRuntime,
+    pub fn handle_mouse_event(&self, js_runtime: *mut JSRuntime,
                           _button: MouseButton, point: Point2D<f32>,
                           mouse_event_type: MouseEventType) {
         let mouse_event_type_string = match mouse_event_type {
@@ -721,7 +642,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
     }
 
-    fn fire_mouse_event(self,
+    pub fn fire_mouse_event(&self,
                         point: Point2D<f32>,
                         target: &EventTarget,
                         event_name: String) {
@@ -744,7 +665,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         event.fire(target);
     }
 
-    fn handle_mouse_move_event(self,
+    pub fn handle_mouse_move_event(&self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
                                prev_mouse_over_targets: &mut RootedVec<JS<Node>>) {
@@ -808,7 +729,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// The entry point for all key processing for web content
-    fn dispatch_key_event(self,
+    pub fn dispatch_key_event(&self,
                           key: Key,
                           state: KeyState,
                           modifiers: KeyModifiers,
@@ -887,7 +808,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);
     }
 
-    fn node_from_nodes_and_strings(self, nodes: Vec<NodeOrString>)
+    pub fn node_from_nodes_and_strings(&self, nodes: Vec<NodeOrString>)
                                    -> Fallible<Root<Node>> {
         if nodes.len() == 1 {
             match nodes.into_iter().next().unwrap() {
@@ -915,7 +836,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    fn get_body_attribute(self, local_name: &Atom) -> DOMString {
+    pub fn get_body_attribute(&self, local_name: &Atom) -> DOMString {
         match self.GetBody().and_then(HTMLBodyElementCast::to_root) {
             Some(ref body) => {
                 ElementCast::from_ref(body.r()).get_string_attribute(local_name)
@@ -924,17 +845,17 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
         }
     }
 
-    fn set_body_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_body_attribute(&self, local_name: &Atom, value: DOMString) {
         if let Some(ref body) = self.GetBody().and_then(HTMLBodyElementCast::to_root) {
             ElementCast::from_ref(body.r()).set_string_attribute(local_name, value);
         }
     }
 
-    fn set_current_script(self, script: Option<&HTMLScriptElement>) {
+    pub fn set_current_script(&self, script: Option<&HTMLScriptElement>) {
         self.current_script.set(script.map(JS::from_ref));
     }
 
-    fn trigger_mozbrowser_event(self, event: MozBrowserEvent) {
+    pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if opts::experimental_enabled() {
             let window = self.window.root();
 
@@ -949,7 +870,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn request_animation_frame(self, callback: Box<FnBox(f64)>) -> i32 {
+    pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> i32 {
         let window = self.window.root();
         let window = window.r();
         let ident = self.animation_frame_ident.get() + 1;
@@ -967,7 +888,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
-    fn cancel_animation_frame(self, ident: i32) {
+    pub fn cancel_animation_frame(&self, ident: i32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
             let window = self.window.root();
@@ -980,7 +901,7 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
-    fn run_the_animation_frame_callbacks(self) {
+    pub fn run_the_animation_frame_callbacks(&self) {
         let animation_frame_list;
         {
             let mut list = self.animation_frame_list.borrow_mut();
@@ -1008,27 +929,27 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
                       ReflowReason::RequestAnimationFrame);
     }
 
-    fn prepare_async_load(self, load: LoadType) -> PendingAsyncLoad {
+    pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
         loader.prepare_async_load(load)
     }
 
-    fn load_async(self, load: LoadType, listener: AsyncResponseTarget) {
+    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
         loader.load_async(load, listener)
     }
 
-    fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
+    pub fn load_sync(&self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
         let mut loader = self.loader.borrow_mut();
         loader.load_sync(load)
     }
 
-    fn finish_load(self, load: LoadType) {
+    pub fn finish_load(&self, load: LoadType) {
         let mut loader = self.loader.borrow_mut();
         loader.finish_load(load);
     }
 
-    fn notify_constellation_load(self) {
+    pub fn notify_constellation_load(&self) {
         let window = self.window.root();
         let pipeline_id = window.r().pipeline();
         let ConstellationChan(ref chan) = window.r().constellation_chan();
@@ -1037,16 +958,16 @@ impl<'a> DocumentHelpers<'a> for &'a Document {
 
     }
 
-    fn set_current_parser(self, script: Option<&ServoHTMLParser>) {
+    pub fn set_current_parser(&self, script: Option<&ServoHTMLParser>) {
         self.current_parser.set(script.map(JS::from_ref));
     }
 
-    fn get_current_parser(self) -> Option<Root<ServoHTMLParser>> {
+    pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
         self.current_parser.get().map(Root::from_rooted)
     }
 
     /// Find an iframe element in the document.
-    fn find_iframe(self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
         NodeCast::from_ref(self).traverse_preorder()
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
@@ -1171,13 +1092,9 @@ impl Document {
     }
 }
 
-trait PrivateDocumentHelpers {
-    fn create_node_list<F: Fn(&Node) -> bool>(self, callback: F) -> Root<NodeList>;
-    fn get_html_element(self) -> Option<Root<HTMLHtmlElement>>;
-}
 
-impl<'a> PrivateDocumentHelpers for &'a Document {
-    fn create_node_list<F: Fn(&Node) -> bool>(self, callback: F) -> Root<NodeList> {
+impl Document {
+    fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
         let window = self.window.root();
         let doc = self.GetDocumentElement();
         let maybe_node = doc.r().map(NodeCast::from_ref);
@@ -1186,7 +1103,7 @@ impl<'a> PrivateDocumentHelpers for &'a Document {
         NodeList::new_simple_list(window.r(), iter)
     }
 
-    fn get_html_element(self) -> Option<Root<HTMLHtmlElement>> {
+    fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
         self.GetDocumentElement()
             .r()
             .and_then(HTMLHtmlElementCast::to_ref)
@@ -1194,12 +1111,9 @@ impl<'a> PrivateDocumentHelpers for &'a Document {
     }
 }
 
-trait PrivateClickEventHelpers {
-    fn click_event_filter_by_disabled_state(self) -> bool;
-}
 
-impl<'a> PrivateClickEventHelpers for &'a Node {
-    fn click_event_filter_by_disabled_state(self) -> bool {
+impl Node {
+    fn click_event_filter_by_disabled_state(&self) -> bool {
         match self.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |

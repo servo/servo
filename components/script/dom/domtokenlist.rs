@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -10,7 +10,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::node::window_from_node;
 
 use string_cache::Atom;
@@ -42,18 +42,14 @@ impl DOMTokenList {
     }
 }
 
-trait PrivateDOMTokenListHelpers {
-    fn attribute(self) -> Option<Root<Attr>>;
-    fn check_token_exceptions(self, token: &str) -> Fallible<Atom>;
-}
 
-impl<'a> PrivateDOMTokenListHelpers for &'a DOMTokenList {
-    fn attribute(self) -> Option<Root<Attr>> {
+impl DOMTokenList {
+    fn attribute(&self) -> Option<Root<Attr>> {
         let element = self.element.root();
         element.r().get_attribute(&ns!(""), &self.local_name)
     }
 
-    fn check_token_exceptions(self, token: &str) -> Fallible<Atom> {
+    fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
             "" => Err(Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),

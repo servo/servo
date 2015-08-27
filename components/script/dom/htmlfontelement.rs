@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
@@ -85,12 +85,9 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
-pub trait HTMLFontElementHelpers {
-    fn get_color(&self) -> Option<RGBA>;
-}
 
-impl HTMLFontElementHelpers for HTMLFontElement {
-    fn get_color(&self) -> Option<RGBA> {
+impl HTMLFontElement {
+    pub fn get_color(&self) -> Option<RGBA> {
         self.color.get()
     }
 }

@@ -4,7 +4,6 @@
 
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
-use dom::attr::AttrHelpers;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -15,16 +14,14 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
-use dom::event::{EventBubbles, EventCancelable, Event, EventHelpers};
+use dom::element::{Element, ElementTypeId};
+use dom::event::{EventBubbles, EventCancelable, Event};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -167,13 +164,9 @@ impl VirtualMethods for HTMLLinkElement {
     }
 }
 
-trait PrivateHTMLLinkElementHelpers {
-    fn handle_stylesheet_url(self, href: &str);
-    fn handle_favicon_url(self, href: &str);
-}
 
-impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
-    fn handle_stylesheet_url(self, href: &str) {
+impl HTMLLinkElement {
+    fn handle_stylesheet_url(&self, href: &str) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
@@ -201,7 +194,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(self, href: &str) {
+    fn handle_favicon_url(&self, href: &str) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {

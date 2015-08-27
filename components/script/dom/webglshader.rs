@@ -59,35 +59,25 @@ impl WebGLShader {
     }
 }
 
-pub trait WebGLShaderHelpers {
-    fn id(self) -> u32;
-    fn gl_type(self) -> u32;
-    fn compile(self);
-    fn delete(self);
-    fn info_log(self) -> Option<String>;
-    fn parameter(self, param_id: u32) -> WebGLResult<WebGLShaderParameter>;
-    fn source(self) -> Option<String>;
-    fn set_source(self, src: String);
-}
 
-impl<'a> WebGLShaderHelpers for &'a WebGLShader {
-    fn id(self) -> u32 {
+impl WebGLShader {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
-    fn gl_type(self) -> u32 {
+    pub fn gl_type(&self) -> u32 {
         self.gl_type
     }
 
     // TODO(ecoal95): Validate shaders to be conforming to the WebGL spec
     /// glCompileShader
-    fn compile(self) {
+    pub fn compile(&self) {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CompileShader(self.id))).unwrap()
     }
 
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id))).unwrap()
@@ -95,14 +85,14 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     }
 
     /// glGetShaderInfoLog
-    fn info_log(self) -> Option<String> {
+    pub fn info_log(&self) -> Option<String> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderInfoLog(self.id, sender))).unwrap();
         receiver.recv().unwrap()
     }
 
     /// glGetShaderParameter
-    fn parameter(self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
         match param_id {
             constants::SHADER_TYPE | constants::DELETE_STATUS | constants::COMPILE_STATUS => {},
             _ => return Err(WebGLError::InvalidEnum),
@@ -114,12 +104,12 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     }
 
     /// Get the shader source
-    fn source(self) -> Option<String> {
+    pub fn source(&self) -> Option<String> {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    fn set_source(self, source: String) {
+    pub fn set_source(&self, source: String) {
         *self.source.borrow_mut() = Some(source.clone());
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(self.id, source))).unwrap()
     }

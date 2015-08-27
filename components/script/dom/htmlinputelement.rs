@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
-use dom::attr::AttrHelpers;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -16,20 +15,17 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
-use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
-use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::document::Document;
+use dom::element::{Element, ElementTypeId, RawLayoutElementHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement};
 use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
+use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
@@ -331,16 +327,6 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     }
 }
 
-pub trait HTMLInputElementHelpers {
-    fn force_relayout(self);
-    fn radio_group_updated(self, group: Option<&str>);
-    fn get_radio_group_name(self) -> Option<String>;
-    fn update_checked_state(self, checked: bool, dirty: bool);
-    fn get_size(self) -> u32;
-    fn get_indeterminate_state(self) -> bool;
-    fn mutable(self) -> bool;
-    fn reset(self);
-}
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) {
@@ -384,27 +370,27 @@ fn in_same_group<'a,'b>(other: &'a HTMLInputElement,
     }
 }
 
-impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
-    fn force_relayout(self) {
+impl HTMLInputElement {
+    pub fn force_relayout(&self) {
         let doc = document_from_node(self);
         let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
-    fn radio_group_updated(self, group: Option<&str>) {
+    pub fn radio_group_updated(&self, group: Option<&str>) {
         if self.Checked() {
             broadcast_radio_checked(self, group);
         }
     }
 
-    fn get_radio_group_name(self) -> Option<String> {
+    pub fn get_radio_group_name(&self) -> Option<String> {
         //TODO: determine form owner
         let elem = ElementCast::from_ref(self);
         elem.get_attribute(&ns!(""), &atom!("name"))
             .map(|name| name.r().Value())
     }
 
-    fn update_checked_state(self, checked: bool, dirty: bool) {
+    pub fn update_checked_state(&self, checked: bool, dirty: bool) {
         self.checked.set(checked);
 
         if dirty {
@@ -422,16 +408,16 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
         //TODO: dispatch change event
     }
 
-    fn get_size(self) -> u32 {
+    pub fn get_size(&self) -> u32 {
         self.size.get()
     }
 
-    fn get_indeterminate_state(self) -> bool {
+    pub fn get_indeterminate_state(&self) -> bool {
         self.indeterminate.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    fn mutable(self) -> bool {
+    pub fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         let node = NodeCast::from_ref(self);
@@ -439,7 +425,7 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    fn reset(self) {
+    pub fn reset(&self) {
         match self.input_type.get() {
             InputType::InputRadio | InputType::InputCheckbox => {
                 self.update_checked_state(self.DefaultChecked(), false);

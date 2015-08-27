@@ -6,7 +6,7 @@
 
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
-use dom::attr::{Attr, AttrSettingType, AttrHelpers, AttrHelpersForLayout};
+use dom::attr::{Attr, AttrSettingType, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -35,27 +35,26 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
-use dom::characterdata::CharacterDataHelpers;
 use dom::create::create_element;
-use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
+use dom::document::{Document, LayoutDocumentHelpers};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
-use dom::event::{Event, EventHelpers};
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementHelpers};
-use dom::htmliframeelement::{HTMLIFrameElement, RawHTMLIFrameElementHelpers};
-use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
-use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
-use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
-use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
-use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltableelement::HTMLTableElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeHelpers, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
@@ -568,38 +567,18 @@ pub enum StylePriority {
     Normal,
 }
 
-pub trait ElementHelpers<'a> {
-    fn html_element_in_html_document(self) -> bool;
-    fn local_name(self) -> &'a Atom;
-    fn parsed_name(self, name: DOMString) -> Atom;
-    fn namespace(self) -> &'a Namespace;
-    fn prefix(self) -> &'a Option<DOMString>;
-    fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
-    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>>;
-    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
-    fn summarize(self) -> Vec<AttrInfo>;
-    fn is_void(self) -> bool;
-    fn remove_inline_style_property(self, property: &str);
-    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
-    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority);
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>>;
-    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString>;
-    fn get_root_element(self) -> Root<Element>;
-    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString>;
-}
 
-impl<'a> ElementHelpers<'a> for &'a Element {
-    fn html_element_in_html_document(self) -> bool {
+impl Element {
+    pub fn html_element_in_html_document(&self) -> bool {
         let node = NodeCast::from_ref(self);
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
-    fn local_name(self) -> &'a Atom {
+    pub fn local_name(&self) -> &Atom {
         &self.local_name
     }
 
-    fn parsed_name(self, name: DOMString) -> Atom {
+    pub fn parsed_name(&self, name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
             Atom::from_slice(&name.to_ascii_lowercase())
         } else {
@@ -607,27 +586,27 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn namespace(self) -> &'a Namespace {
+    pub fn namespace(&self) -> &Namespace {
         &self.namespace
     }
 
-    fn prefix(self) -> &'a Option<DOMString> {
+    pub fn prefix(&self) -> &Option<DOMString> {
         &self.prefix
     }
 
-    fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
+    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
         self.attrs.borrow()
     }
 
-    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
+    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
         self.attrs.borrow_mut()
     }
 
-    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<PropertyDeclarationBlock>> {
         &self.style_attribute
     }
 
-    fn summarize(self) -> Vec<AttrInfo> {
+    pub fn summarize(&self) -> Vec<AttrInfo> {
         let attrs = self.Attributes();
         let mut summarized = vec!();
         for i in 0..attrs.r().Length() {
@@ -637,7 +616,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         summarized
     }
 
-    fn is_void(self) -> bool {
+    pub fn is_void(&self) -> bool {
         if self.namespace != ns!(HTML) {
             return false
         }
@@ -651,7 +630,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn remove_inline_style_property(self, property: &str) {
+    pub fn remove_inline_style_property(&self, property: &str) {
         let mut inline_declarations = self.style_attribute.borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
@@ -672,7 +651,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+    pub fn update_inline_style(&self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
@@ -706,7 +685,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         });
     }
 
-    fn set_inline_style_property_priority(self, properties: &[&str], style_priority: StylePriority) {
+    pub fn set_inline_style_property_priority(&self, properties: &[&str], style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let (from, to) = if style_priority == StylePriority::Important {
@@ -731,7 +710,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         }
     }
 
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+    pub fn get_inline_style_declaration(&self, property: &Atom) -> Option<Ref<PropertyDeclaration>> {
         Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.normal
@@ -742,7 +721,8 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<Ref<'a, PropertyDeclaration>> {
+    pub fn get_important_inline_style_declaration(&self, property: &Atom)
+                                                  -> Option<Ref<PropertyDeclaration>> {
         Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.important
@@ -752,7 +732,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn serialize(self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
+    pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
         let node = NodeCast::from_ref(self);
         let mut writer = vec![];
         match serialize(&mut writer, &node,
@@ -766,7 +746,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 
     // https://html.spec.whatwg.org/multipage/#root-element
-    fn get_root_element(self) -> Root<Element> {
+    pub fn get_root_element(&self) -> Root<Element> {
         let node = NodeCast::from_ref(self);
         node.inclusive_ancestors()
             .filter_map(ElementCast::to_root)
@@ -775,7 +755,7 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
-    fn lookup_prefix(self, namespace: Namespace) -> Option<DOMString> {
+    pub fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
         for node in NodeCast::from_ref(self).inclusive_ancestors() {
             match ElementCast::to_ref(node.r()) {
                 Some(element) => {
@@ -803,16 +783,9 @@ impl<'a> ElementHelpers<'a> for &'a Element {
     }
 }
 
-pub trait FocusElementHelpers {
-    /// https://html.spec.whatwg.org/multipage/#focusable-area
-    fn is_focusable_area(self) -> bool;
 
-    /// https://html.spec.whatwg.org/multipage/#concept-element-disabled
-    fn is_actually_disabled(self) -> bool;
-}
-
-impl<'a> FocusElementHelpers for &'a Element {
-    fn is_focusable_area(self) -> bool {
+impl Element {
+    pub fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;
         }
@@ -833,7 +806,7 @@ impl<'a> FocusElementHelpers for &'a Element {
         }
     }
 
-    fn is_actually_disabled(self) -> bool {
+    pub fn is_actually_disabled(&self) -> bool {
         let node = NodeCast::from_ref(self);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
@@ -852,58 +825,9 @@ impl<'a> FocusElementHelpers for &'a Element {
     }
 }
 
-pub trait AttributeHandlers {
-    /// Returns the attribute with given namespace and case-sensitive local
-    /// name, if any.
-    fn get_attribute(self, namespace: &Namespace, local_name: &Atom)
-                     -> Option<Root<Attr>>;
-    /// Returns the first attribute with any namespace and given case-sensitive
-    /// name, if any.
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>>;
-    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>);
-    fn set_attribute_from_parser(self,
-                                 name: QualName,
-                                 value: DOMString,
-                                 prefix: Option<Atom>);
-    fn set_attribute(self, name: &Atom, value: AttrValue);
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
-                           name: Atom, namespace: Namespace,
-                           prefix: Option<Atom>, cb: F)
-        where F: Fn(&Attr) -> bool;
-    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
-                       value: DOMString) -> AttrValue;
 
-    /// Removes the first attribute with any given namespace and case-sensitive local
-    /// name, if any.
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
-                        -> Option<Root<Attr>>;
-    /// Removes the first attribute with any namespace and given case-sensitive name.
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>>;
-    /// Removes the first attribute that satisfies `find`.
-    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
-        where F: Fn(&Attr) -> bool;
-
-    fn has_class(self, name: &Atom) -> bool;
-
-    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString);
-
-    // https://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
-    fn has_attribute(self, local_name: &Atom) -> bool;
-    fn set_bool_attribute(self, local_name: &Atom, value: bool);
-    fn get_url_attribute(self, local_name: &Atom) -> DOMString;
-    fn set_url_attribute(self, local_name: &Atom, value: DOMString);
-    fn get_string_attribute(self, local_name: &Atom) -> DOMString;
-    fn set_string_attribute(self, local_name: &Atom, value: DOMString);
-    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom>;
-    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString);
-    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>);
-    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32;
-    fn set_uint_attribute(self, local_name: &Atom, value: u32);
-}
-
-impl<'a> AttributeHandlers for &'a Element {
-    fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
+impl Element {
+    pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
         attributes.r().iter()
@@ -912,14 +836,14 @@ impl<'a> AttributeHandlers for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
+    pub fn get_attribute_by_name(&self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
         self.attrs.borrow().iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
+    pub fn get_attributes(&self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
         for ref attr in self.attrs.borrow().iter() {
             let attr = attr.root();
             if attr.r().local_name() == local_name {
@@ -928,7 +852,7 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn set_attribute_from_parser(self,
+    pub fn set_attribute_from_parser(&self,
                                  qname: QualName,
                                  value: DOMString,
                                  prefix: Option<Atom>) {
@@ -949,7 +873,7 @@ impl<'a> AttributeHandlers for &'a Element {
         self.do_set_attribute(qname.local, value, name, qname.ns, prefix, |_| false)
     }
 
-    fn set_attribute(self, name: &Atom, value: AttrValue) {
+    pub fn set_attribute(&self, name: &Atom, value: AttrValue) {
         assert!(&**name == name.to_ascii_lowercase());
         assert!(!name.contains(":"));
 
@@ -958,7 +882,7 @@ impl<'a> AttributeHandlers for &'a Element {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-data-*
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
+    pub fn set_custom_attribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
         match xml_name_type(&name) {
             InvalidXMLName => return Err(InvalidCharacter),
@@ -974,7 +898,7 @@ impl<'a> AttributeHandlers for &'a Element {
         Ok(())
     }
 
-    fn do_set_attribute<F>(self,
+    pub fn do_set_attribute<F>(&self,
                            local_name: Atom,
                            value: AttrValue,
                            name: Atom,
@@ -1000,7 +924,7 @@ impl<'a> AttributeHandlers for &'a Element {
         (*self.attrs.borrow())[idx].root().r().set_value(set_type, value, self);
     }
 
-    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
+    pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == ns!("") {
             vtable_for(&NodeCast::from_ref(self))
@@ -1010,18 +934,18 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
+    pub fn remove_attribute(&self, namespace: &Namespace, local_name: &Atom)
                         -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
         })
     }
 
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>> {
+    pub fn remove_attribute_by_name(&self, name: &Atom) -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| attr.name() == name)
     }
 
-    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
+    pub fn do_remove_attribute<F>(&self, find: F) -> Option<Root<Attr>>
         where F: Fn(&Attr) -> bool
     {
         let idx = self.attrs.borrow().iter()
@@ -1054,7 +978,7 @@ impl<'a> AttributeHandlers for &'a Element {
         })
     }
 
-    fn has_class(self, name: &Atom) -> bool {
+    pub fn has_class(&self, name: &Atom) -> bool {
         let quirks_mode = {
             let node = NodeCast::from_ref(self);
             let owner_doc = node.owner_doc();
@@ -1071,20 +995,20 @@ impl<'a> AttributeHandlers for &'a Element {
         }).unwrap_or(false)
     }
 
-    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(local_name, value);
     }
 
-    fn has_attribute(self, local_name: &Atom) -> bool {
+    pub fn has_attribute(&self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
 
-    fn set_bool_attribute(self, local_name: &Atom, value: bool) {
+    pub fn set_bool_attribute(&self, local_name: &Atom, value: bool) {
         if self.has_attribute(local_name) == value { return; }
         if value {
             self.set_string_attribute(local_name, String::new());
@@ -1093,7 +1017,7 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn get_url_attribute(self, local_name: &Atom) -> DOMString {
+    pub fn get_url_attribute(&self, local_name: &Atom) -> DOMString {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
             return "".to_owned();
@@ -1108,22 +1032,22 @@ impl<'a> AttributeHandlers for &'a Element {
             Err(_) => "".to_owned()
         }
     }
-    fn set_url_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_url_attribute(&self, local_name: &Atom, value: DOMString) {
         self.set_string_attribute(local_name, value);
     }
 
-    fn get_string_attribute(self, local_name: &Atom) -> DOMString {
+    pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
             Some(x) => x.r().Value(),
             None => "".to_owned()
         }
     }
-    fn set_string_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value));
     }
 
-    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
+    pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
         self.get_attribute(&ns!(""), local_name).map(|attr| {
             attr.r()
                 .value()
@@ -1133,17 +1057,17 @@ impl<'a> AttributeHandlers for &'a Element {
         }).unwrap_or(vec!())
     }
 
-    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_tokenlist_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
-    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>) {
+    pub fn set_atomic_tokenlist_attribute(&self, local_name: &Atom, tokens: Vec<Atom>) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
-    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32 {
+    pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
@@ -1159,7 +1083,7 @@ impl<'a> AttributeHandlers for &'a Element {
             None => default,
         }
     }
-    fn set_uint_attribute(self, local_name: &Atom, value: u32) {
+    pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
@@ -1744,7 +1668,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn get_local_name<'b>(&'b self) -> &'b Atom {
-        ElementHelpers::local_name(&**self)
+        self.local_name()
     }
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
@@ -1795,7 +1719,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        AttributeHandlers::has_class(&**self, name)
+        Element::has_class(&**self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
@@ -1856,16 +1780,9 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 }
 
-pub trait ActivationElementHelpers<'a> {
-    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)>;
-    fn click_in_progress(self) -> bool;
-    fn set_click_in_progress(self, click: bool);
-    fn nearest_activable_element(self) -> Option<Root<Element>>;
-    fn authentic_click_activation<'b>(self, event: &'b Event);
-}
 
-impl<'a> ActivationElementHelpers<'a> for &'a Element {
-    fn as_maybe_activatable(self) -> Option<&'a (Activatable + 'a)> {
+impl Element {
+    pub fn as_maybe_activatable<'a>(&'a self) -> Option<&'a (Activatable + 'a)> {
         let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
@@ -1889,18 +1806,18 @@ impl<'a> ActivationElementHelpers<'a> for &'a Element {
         })
     }
 
-    fn click_in_progress(self) -> bool {
+    pub fn click_in_progress(&self) -> bool {
         let node = NodeCast::from_ref(self);
         node.get_flag(CLICK_IN_PROGRESS)
     }
 
-    fn set_click_in_progress(self, click: bool) {
+    pub fn set_click_in_progress(&self, click: bool) {
         let node = NodeCast::from_ref(self);
         node.set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
-    fn nearest_activable_element(self) -> Option<Root<Element>> {
+    pub fn nearest_activable_element(&self) -> Option<Root<Element>> {
         match self.as_maybe_activatable() {
             Some(el) => Some(Root::from_ref(el.as_element())),
             None => {
@@ -1923,7 +1840,7 @@ impl<'a> ActivationElementHelpers<'a> for &'a Element {
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
-    fn authentic_click_activation<'b>(self, event: &'b Event) {
+    pub fn authentic_click_activation<'b>(&self, event: &'b Event) {
         // Not explicitly part of the spec, however this helps enforce the invariants
         // required to save state between pre-activation and post-activation
         // since we cannot nest authentic clicks (unlike synthetic click activation, where

@@ -14,15 +14,14 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 
 use util::str::DOMString;
 

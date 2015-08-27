@@ -13,8 +13,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentSource;
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
-use dom::window::{Window, WindowHelpers};
+use dom::document::{Document, IsHTMLDocument};
+use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use util::str::DOMString;
 

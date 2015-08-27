@@ -6,7 +6,7 @@
 
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -32,20 +32,19 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
-use dom::characterdata::{CharacterData, CharacterDataHelpers, CharacterDataTypeId};
+use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::comment::Comment;
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
+use dom::document::{Document, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::ElementHelpers;
-use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
+use dom::element::{Element, ElementCreator, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
-use dom::nodelist::{NodeList, NodeListHelpers};
-use dom::processinginstruction::{ProcessingInstruction, ProcessingInstructionHelpers};
+use dom::nodelist::NodeList;
+use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-use dom::window::{Window, WindowHelpers};
+use dom::window::Window;
 use euclid::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use parse::html::parse_html_fragment;
@@ -295,16 +294,12 @@ pub enum NodeTypeId {
     Element(ElementTypeId),
 }
 
-trait PrivateNodeHelpers {
-    fn add_child(self, new_child: &Node, before: Option<&Node>);
-    fn remove_child(self, child: &Node);
-}
 
-impl<'a> PrivateNodeHelpers for &'a Node {
+impl Node {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(self, new_child: &Node, before: Option<&Node>) {
+    fn add_child(&self, new_child: &Node, before: Option<&Node>) {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
@@ -354,7 +349,7 @@ impl<'a> PrivateNodeHelpers for &'a Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(self, child: &Node) {
+    fn remove_child(&self, child: &Node) {
         assert!(child.parent_node.get().map(Root::from_rooted).r() == Some(self));
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
@@ -425,117 +420,9 @@ impl<'a> Iterator for QuerySelectorIterator {
     }
 }
 
-pub trait NodeHelpers {
-    fn ancestors(self) -> AncestorIterator;
-    fn inclusive_ancestors(self) -> AncestorIterator;
-    fn children(self) -> NodeSiblingIterator;
-    fn rev_children(self) -> ReverseSiblingIterator;
-    fn child_elements(self) -> ChildElementIterator;
-    fn following_siblings(self) -> NodeSiblingIterator;
-    fn preceding_siblings(self) -> ReverseSiblingIterator;
-    fn following_nodes(self, root: &Node) -> FollowingNodeIterator;
-    fn preceding_nodes(self, root: &Node) -> PrecedingNodeIterator;
-    fn descending_last_children(self) -> LastChildIterator;
-    fn is_in_doc(self) -> bool;
-    fn is_inclusive_ancestor_of(self, parent: &Node) -> bool;
-    fn is_parent_of(self, child: &Node) -> bool;
 
-    fn type_id(self) -> NodeTypeId;
-    fn len(self) -> u32;
-    fn index(self) -> u32;
-    fn children_count(self) -> u32;
-
-    fn owner_doc(self) -> Root<Document>;
-    fn set_owner_doc(self, document: &Document);
-    fn is_in_html_doc(self) -> bool;
-
-    fn is_doctype(self) -> bool;
-    fn is_anchor_element(self) -> bool;
-
-    fn get_flag(self, flag: NodeFlags) -> bool;
-    fn set_flag(self, flag: NodeFlags, value: bool);
-
-    fn get_hover_state(self) -> bool;
-    fn set_hover_state(self, state: bool);
-
-    fn get_focus_state(self) -> bool;
-    fn set_focus_state(self, state: bool);
-
-    fn get_active_state(self) -> bool;
-    fn set_active_state(self, state: bool);
-
-    fn get_disabled_state(self) -> bool;
-    fn set_disabled_state(self, state: bool);
-
-    fn get_enabled_state(self) -> bool;
-    fn set_enabled_state(self, state: bool);
-
-    fn get_has_changed(self) -> bool;
-    fn set_has_changed(self, state: bool);
-
-    fn get_is_dirty(self) -> bool;
-    fn set_is_dirty(self, state: bool);
-
-    fn get_has_dirty_siblings(self) -> bool;
-    fn set_has_dirty_siblings(self, state: bool);
-
-    fn get_has_dirty_descendants(self) -> bool;
-    fn set_has_dirty_descendants(self, state: bool);
-
-    /// Marks the given node as `IS_DIRTY`, its siblings as `HAS_DIRTY_SIBLINGS` (to deal with
-    /// sibling selectors), its ancestors as `HAS_DIRTY_DESCENDANTS`, and its descendants as
-    /// `IS_DIRTY`. If anything more than the node's style was damaged, this method also sets the
-    /// `HAS_CHANGED` flag.
-    fn dirty(self, damage: NodeDamage);
-
-    /// Similar to `dirty`, but will always walk the ancestors to mark them dirty,
-    /// too. This is useful when a node is reparented. The node will frequently
-    /// already be marked as `changed` to skip double-dirties, but the ancestors
-    /// still need to be marked as `HAS_DIRTY_DESCENDANTS`.
-    ///
-    /// See #4170
-    fn force_dirty_ancestors(self, damage: NodeDamage);
-
-    fn dirty_impl(self, damage: NodeDamage, force_ancestors: bool);
-
-    fn dump(self);
-    fn dump_indent(self, indent: u32);
-    fn debug_str(self) -> String;
-
-    fn traverse_preorder(self) -> TreeIterator;
-    fn inclusively_following_siblings(self) -> NodeSiblingIterator;
-    fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator;
-
-    fn to_trusted_node_address(self) -> TrustedNodeAddress;
-
-    fn get_bounding_content_box(self) -> Rect<Au>;
-    fn get_content_boxes(self) -> Vec<Rect<Au>>;
-    fn get_client_rect(self) -> Rect<i32>;
-
-    fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult;
-    fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult;
-    fn replace_with(self, nodes: Vec<NodeOrString>) -> ErrorResult;
-    fn prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult;
-    fn append(self, nodes: Vec<NodeOrString>) -> ErrorResult;
-
-    fn query_selector(self, selectors: DOMString) -> Fallible<Option<Root<Element>>>;
-    #[allow(unsafe_code)]
-    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator>;
-    fn query_selector_all(self, selectors: DOMString) -> Fallible<Root<NodeList>>;
-
-    fn remove_self(self);
-
-    fn get_unique_id(self) -> String;
-    fn summarize(self) -> NodeInfo;
-
-    fn teardown(self);
-
-    fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>>;
-
-}
-
-impl<'a> NodeHelpers for &'a Node {
-    fn teardown(self) {
+impl Node {
+    pub fn teardown(&self) {
         self.layout_data.dispose(self);
         for kid in self.children() {
             kid.r().teardown();
@@ -543,12 +430,12 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
-    fn dump(self) {
+    pub fn dump(&self) {
         self.dump_indent(0);
     }
 
     /// Dumps the node tree, for debugging, with indentation.
-    fn dump_indent(self, indent: u32) {
+    pub fn dump_indent(&self, indent: u32) {
         let mut s = String::new();
         for _ in 0..indent {
             s.push_str("    ");
@@ -564,21 +451,21 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     /// Returns a string that describes this node.
-    fn debug_str(self) -> String {
+    pub fn debug_str(&self) -> String {
         format!("{:?}", self.type_id)
     }
 
-    fn is_in_doc(self) -> bool {
+    pub fn is_in_doc(&self) -> bool {
         self.flags.get().contains(IS_IN_DOC)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
-    fn type_id(self) -> NodeTypeId {
+    pub fn type_id(&self) -> NodeTypeId {
         self.type_id
     }
 
     // https://dom.spec.whatwg.org/#concept-node-length
-    fn len(self) -> u32 {
+    pub fn len(&self) -> u32 {
         match self.type_id {
             NodeTypeId::DocumentType => 0,
             NodeTypeId::CharacterData(_) => {
@@ -589,29 +476,29 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-index
-    fn index(self) -> u32 {
+    pub fn index(&self) -> u32 {
         self.preceding_siblings().count() as u32
     }
 
-    fn children_count(self) -> u32 {
+    pub fn children_count(&self) -> u32 {
         self.children_count.get()
     }
 
     #[inline]
-    fn is_anchor_element(self) -> bool {
+    pub fn is_anchor_element(&self) -> bool {
         self.type_id == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
     }
 
     #[inline]
-    fn is_doctype(self) -> bool {
+    pub fn is_doctype(&self) -> bool {
         self.type_id == NodeTypeId::DocumentType
     }
 
-    fn get_flag(self, flag: NodeFlags) -> bool {
+    pub fn get_flag(&self, flag: NodeFlags) -> bool {
         self.flags.get().contains(flag)
     }
 
-    fn set_flag(self, flag: NodeFlags, value: bool) {
+    pub fn set_flag(&self, flag: NodeFlags, value: bool) {
         let mut flags = self.flags.get();
 
         if value {
@@ -623,90 +510,90 @@ impl<'a> NodeHelpers for &'a Node {
         self.flags.set(flags);
     }
 
-    fn get_hover_state(self) -> bool {
+    pub fn get_hover_state(&self) -> bool {
         self.get_flag(IN_HOVER_STATE)
     }
 
-    fn set_hover_state(self, state: bool) {
+    pub fn set_hover_state(&self, state: bool) {
         self.set_flag(IN_HOVER_STATE, state);
         self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
-    fn get_focus_state(self) -> bool {
+    pub fn get_focus_state(&self) -> bool {
         self.get_flag(IN_FOCUS_STATE)
     }
 
-    fn set_focus_state(self, state: bool) {
+    pub fn set_focus_state(&self, state: bool) {
         self.set_flag(IN_FOCUS_STATE, state);
         self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
-    fn get_active_state(self) -> bool {
+    pub fn get_active_state(&self) -> bool {
         self.get_flag(IN_ACTIVE_STATE)
     }
 
-    fn set_active_state(self, state: bool) {
+    pub fn set_active_state(&self, state: bool) {
         self.set_flag(IN_ACTIVE_STATE, state);
         self.dirty(NodeDamage::NodeStyleDamaged);
     }
 
-    fn get_disabled_state(self) -> bool {
+    pub fn get_disabled_state(&self) -> bool {
         self.get_flag(IN_DISABLED_STATE)
     }
 
-    fn set_disabled_state(self, state: bool) {
+    pub fn set_disabled_state(&self, state: bool) {
         self.set_flag(IN_DISABLED_STATE, state)
     }
 
-    fn get_enabled_state(self) -> bool {
+    pub fn get_enabled_state(&self) -> bool {
         self.get_flag(IN_ENABLED_STATE)
     }
 
-    fn set_enabled_state(self, state: bool) {
+    pub fn set_enabled_state(&self, state: bool) {
         self.set_flag(IN_ENABLED_STATE, state)
     }
 
-    fn get_has_changed(self) -> bool {
+    pub fn get_has_changed(&self) -> bool {
         self.get_flag(HAS_CHANGED)
     }
 
-    fn set_has_changed(self, state: bool) {
+    pub fn set_has_changed(&self, state: bool) {
         self.set_flag(HAS_CHANGED, state)
     }
 
-    fn get_is_dirty(self) -> bool {
+    pub fn get_is_dirty(&self) -> bool {
         self.get_flag(IS_DIRTY)
     }
 
-    fn set_is_dirty(self, state: bool) {
+    pub fn set_is_dirty(&self, state: bool) {
         self.set_flag(IS_DIRTY, state)
     }
 
-    fn get_has_dirty_siblings(self) -> bool {
+    pub fn get_has_dirty_siblings(&self) -> bool {
         self.get_flag(HAS_DIRTY_SIBLINGS)
     }
 
-    fn set_has_dirty_siblings(self, state: bool) {
+    pub fn set_has_dirty_siblings(&self, state: bool) {
         self.set_flag(HAS_DIRTY_SIBLINGS, state)
     }
 
-    fn get_has_dirty_descendants(self) -> bool {
+    pub fn get_has_dirty_descendants(&self) -> bool {
         self.get_flag(HAS_DIRTY_DESCENDANTS)
     }
 
-    fn set_has_dirty_descendants(self, state: bool) {
+    pub fn set_has_dirty_descendants(&self, state: bool) {
         self.set_flag(HAS_DIRTY_DESCENDANTS, state)
     }
 
-    fn force_dirty_ancestors(self, damage: NodeDamage) {
+    pub fn force_dirty_ancestors(&self, damage: NodeDamage) {
         self.dirty_impl(damage, true)
     }
 
-    fn dirty(self, damage: NodeDamage) {
+    pub fn dirty(&self, damage: NodeDamage) {
         self.dirty_impl(damage, false)
     }
 
-    fn dirty_impl(self, damage: NodeDamage, force_ancestors: bool) {
+    pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
         // 1. Dirty self.
         match damage {
             NodeDamage::NodeStyleDamaged => {}
@@ -755,83 +642,83 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    fn traverse_preorder(self) -> TreeIterator {
+    pub fn traverse_preorder(&self) -> TreeIterator {
         TreeIterator::new(self)
     }
 
-    fn inclusively_following_siblings(self) -> NodeSiblingIterator {
+    pub fn inclusively_following_siblings(&self) -> NodeSiblingIterator {
         NodeSiblingIterator {
             current: Some(Root::from_ref(self)),
         }
     }
 
-    fn inclusively_preceding_siblings(self) -> ReverseSiblingIterator {
+    pub fn inclusively_preceding_siblings(&self) -> ReverseSiblingIterator {
         ReverseSiblingIterator {
             current: Some(Root::from_ref(self)),
         }
     }
 
-    fn is_inclusive_ancestor_of(self, parent: &Node) -> bool {
+    pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
         self == parent || parent.ancestors().any(|ancestor| ancestor.r() == self)
     }
 
-    fn following_siblings(self) -> NodeSiblingIterator {
+    pub fn following_siblings(&self) -> NodeSiblingIterator {
         NodeSiblingIterator {
             current: self.GetNextSibling(),
         }
     }
 
-    fn preceding_siblings(self) -> ReverseSiblingIterator {
+    pub fn preceding_siblings(&self) -> ReverseSiblingIterator {
         ReverseSiblingIterator {
             current: self.GetPreviousSibling(),
         }
     }
 
-    fn following_nodes(self, root: &Node) -> FollowingNodeIterator {
+    pub fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
         FollowingNodeIterator {
             current: Some(Root::from_ref(self)),
             root: Root::from_ref(root),
         }
     }
 
-    fn preceding_nodes(self, root: &Node) -> PrecedingNodeIterator {
+    pub fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
         PrecedingNodeIterator {
             current: Some(Root::from_ref(self)),
             root: Root::from_ref(root),
         }
     }
 
-    fn descending_last_children(self) -> LastChildIterator {
+    pub fn descending_last_children(&self) -> LastChildIterator {
         LastChildIterator {
             current: self.GetLastChild(),
         }
     }
 
-    fn is_parent_of(self, child: &Node) -> bool {
+    pub fn is_parent_of(&self, child: &Node) -> bool {
         match child.parent_node.get() {
             Some(ref parent) => parent.root().r() == self,
             None => false,
         }
     }
 
-    fn to_trusted_node_address(self) -> TrustedNodeAddress {
+    pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
         TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
     }
 
-    fn get_bounding_content_box(self) -> Rect<Au> {
+    pub fn get_bounding_content_box(&self) -> Rect<Au> {
         window_from_node(self).r().content_box_query(self.to_trusted_node_address())
     }
 
-    fn get_content_boxes(self) -> Vec<Rect<Au>> {
+    pub fn get_content_boxes(&self) -> Vec<Rect<Au>> {
         window_from_node(self).r().content_boxes_query(self.to_trusted_node_address())
     }
 
-    fn get_client_rect(self) -> Rect<i32> {
+    pub fn get_client_rect(&self) -> Rect<i32> {
         window_from_node(self).r().client_rect_query(self.to_trusted_node_address())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -860,7 +747,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn after(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn after(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -883,7 +770,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn replace_with(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn replace_with(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         match self.parent_node.get() {
             None => {
                 // Step 1.
@@ -900,7 +787,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
         let node = try!(doc.r().node_from_nodes_and_strings(nodes));
@@ -910,7 +797,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
         let node = try!(doc.r().node_from_nodes_and_strings(nodes));
@@ -919,7 +806,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn query_selector(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
@@ -939,7 +826,7 @@ impl<'a> NodeHelpers for &'a Node {
     /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
     /// the iterator may be invalidated
     #[allow(unsafe_code)]
-    unsafe fn query_selector_iter(self, selectors: DOMString)
+    pub unsafe fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
@@ -956,49 +843,49 @@ impl<'a> NodeHelpers for &'a Node {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     #[allow(unsafe_code)]
-    fn query_selector_all(self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+    pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let window = window_from_node(self);
         let iter = try!(unsafe { self.query_selector_iter(selectors) });
         Ok(NodeList::new_simple_list(window.r(), iter))
     }
 
-    fn ancestors(self) -> AncestorIterator {
+    pub fn ancestors(&self) -> AncestorIterator {
         AncestorIterator {
             current: self.GetParentNode()
         }
     }
 
-    fn inclusive_ancestors(self) -> AncestorIterator {
+    pub fn inclusive_ancestors(&self) -> AncestorIterator {
         AncestorIterator {
             current: Some(Root::from_ref(self))
         }
     }
 
-    fn owner_doc(self) -> Root<Document> {
+    pub fn owner_doc(&self) -> Root<Document> {
         self.owner_doc.get().unwrap().root()
     }
 
-    fn set_owner_doc(self, document: &Document) {
+    pub fn set_owner_doc(&self, document: &Document) {
         self.owner_doc.set(Some(JS::from_ref(document)));
     }
 
-    fn is_in_html_doc(self) -> bool {
+    pub fn is_in_html_doc(&self) -> bool {
         self.owner_doc().r().is_html_document()
     }
 
-    fn children(self) -> NodeSiblingIterator {
+    pub fn children(&self) -> NodeSiblingIterator {
         NodeSiblingIterator {
             current: self.GetFirstChild(),
         }
     }
 
-    fn rev_children(self) -> ReverseSiblingIterator {
+    pub fn rev_children(&self) -> ReverseSiblingIterator {
         ReverseSiblingIterator {
             current: self.GetLastChild(),
         }
     }
 
-    fn child_elements(self) -> ChildElementIterator {
+    pub fn child_elements(&self) -> ChildElementIterator {
         fn to_temporary(node: Root<Node>) -> Option<Root<Element>> {
             ElementCast::to_root(node)
         }
@@ -1007,13 +894,13 @@ impl<'a> NodeHelpers for &'a Node {
             .peekable()
     }
 
-    fn remove_self(self) {
+    pub fn remove_self(&self) {
         if let Some(ref parent) = self.GetParentNode() {
             Node::remove(self, parent.r(), SuppressObserver::Unsuppressed);
         }
     }
 
-    fn get_unique_id(self) -> String {
+    pub fn get_unique_id(&self) -> String {
         if self.unique_id.borrow().is_empty() {
             let mut unique_id = self.unique_id.borrow_mut();
             *unique_id = uuid::Uuid::new_v4().to_simple_string();
@@ -1021,7 +908,7 @@ impl<'a> NodeHelpers for &'a Node {
         self.unique_id.borrow().clone()
     }
 
-    fn summarize(self) -> NodeInfo {
+    pub fn summarize(&self) -> NodeInfo {
         NodeInfo {
             uniqueId: self.get_unique_id(),
             baseURI: self.BaseURI(),
@@ -1057,7 +944,7 @@ impl<'a> NodeHelpers for &'a Node {
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
-    fn parse_fragment(self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
+    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_node: &Node = NodeCast::from_ref(self);
         let context_document = document_from_node(self);
         let fragment = DocumentFragment::new(context_document.r());
@@ -2607,14 +2494,9 @@ impl VirtualMethods for Node {
     }
 }
 
-pub trait DisabledStateHelpers {
-    fn check_ancestors_disabled_state_for_form_control(self);
-    fn check_parent_disabled_state_for_option(self);
-    fn check_disabled_attribute(self);
-}
 
-impl<'a> DisabledStateHelpers for &'a Node {
-    fn check_ancestors_disabled_state_for_form_control(self) {
+impl Node {
+    pub fn check_ancestors_disabled_state_for_form_control(&self) {
         if self.get_disabled_state() { return; }
         for ancestor in self.ancestors() {
             let ancestor = ancestor;
@@ -2641,7 +2523,7 @@ impl<'a> DisabledStateHelpers for &'a Node {
         }
     }
 
-    fn check_parent_disabled_state_for_option(self) {
+    pub fn check_parent_disabled_state_for_option(&self) {
         if self.get_disabled_state() { return; }
         if let Some(ref parent) = self.GetParentNode() {
             if parent.r().is_htmloptgroupelement() && parent.r().get_disabled_state() {
@@ -2651,7 +2533,7 @@ impl<'a> DisabledStateHelpers for &'a Node {
         }
     }
 
-    fn check_disabled_attribute(self) {
+    pub fn check_disabled_attribute(&self) {
         let elem = ElementCast::to_ref(self).unwrap();
         let has_disabled_attrib = elem.has_attribute(&atom!("disabled"));
         self.set_disabled_state(has_disabled_attrib);

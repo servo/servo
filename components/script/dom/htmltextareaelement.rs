@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrHelpers;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -15,18 +14,16 @@ use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLField
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
-use dom::element::{Element, AttributeHandlers};
+use dom::document::Document;
+use dom::element::{Element, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{ChildrenMutation, DisabledStateHelpers, Node, NodeDamage};
-use dom::node::{NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::node::{ChildrenMutation, Node, NodeDamage};
+use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
 use script_task::{Runnable, CommonScriptMsg};
 use textinput::{TextInput, Lines, KeyReaction};
@@ -203,37 +200,29 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     }
 }
 
-pub trait HTMLTextAreaElementHelpers {
-    fn mutable(self) -> bool;
-    fn reset(self);
-}
 
-impl<'a> HTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
+impl HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    fn mutable(self) -> bool {
+    pub fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-fe-mutable
         !(self.Disabled() || self.ReadOnly())
     }
-    fn reset(self) {
+    pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.SetValue(self.DefaultValue());
         self.value_changed.set(false);
     }
 }
 
-trait PrivateHTMLTextAreaElementHelpers {
-    fn force_relayout(self);
-    fn dispatch_change_event(self);
-}
 
-impl<'a> PrivateHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
-    fn force_relayout(self) {
+impl HTMLTextAreaElement {
+    fn force_relayout(&self) {
         let doc = document_from_node(self);
         let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
-    fn dispatch_change_event(self) {
+    fn dispatch_change_event(&self) {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),

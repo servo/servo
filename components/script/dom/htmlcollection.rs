@@ -9,8 +9,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers, ElementHelpers};
-use dom::node::{Node, NodeHelpers, TreeIterator};
+use dom::element::Element;
+use dom::node::{Node, TreeIterator};
 use dom::window::Window;
 use util::str::{DOMString, split_html_space_chars};
 

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -14,10 +13,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{DOMString, split_html_space_chars};

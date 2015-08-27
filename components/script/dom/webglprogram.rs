@@ -9,7 +9,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
-use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
+use dom::webglshader::WebGLShader;
 
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
@@ -54,18 +54,10 @@ impl WebGLProgram {
     }
 }
 
-pub trait WebGLProgramHelpers {
-    fn delete(self);
-    fn link(self);
-    fn use_program(self);
-    fn attach_shader(self, shader: &WebGLShader) -> WebGLResult<()>;
-    fn get_attrib_location(self, name: String) -> WebGLResult<Option<i32>>;
-    fn get_uniform_location(self, name: String) -> WebGLResult<Option<i32>>;
-}
 
-impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
+impl WebGLProgram {
     /// glDeleteProgram
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id))).unwrap();
@@ -73,17 +65,17 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
     }
 
     /// glLinkProgram
-    fn link(self) {
+    pub fn link(&self) {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::LinkProgram(self.id))).unwrap();
     }
 
     /// glUseProgram
-    fn use_program(self) {
+    pub fn use_program(&self) {
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::UseProgram(self.id))).unwrap();
     }
 
     /// glAttachShader
-    fn attach_shader(self, shader: &WebGLShader) -> WebGLResult<()> {
+    pub fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
@@ -104,7 +96,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
     }
 
     /// glGetAttribLocation
-    fn get_attrib_location(self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_attrib_location(&self, name: String) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }
@@ -120,7 +112,7 @@ impl<'a> WebGLProgramHelpers for &'a WebGLProgram {
     }
 
     /// glGetUniformLocation
-    fn get_uniform_location(self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_uniform_location(&self, name: String) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
@@ -18,16 +17,15 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::element::{Element, ElementTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 
 use msg::constellation_msg::FocusType;
 use util::str::DOMString;
@@ -81,18 +79,14 @@ impl HTMLElement {
     }
 }
 
-trait PrivateHTMLElementHelpers {
-    fn is_body_or_frameset(self) -> bool;
-    fn update_sequentially_focusable_status(self);
-}
 
-impl<'a> PrivateHTMLElementHelpers for &'a HTMLElement {
-    fn is_body_or_frameset(self) -> bool {
+impl HTMLElement {
+    fn is_body_or_frameset(&self) -> bool {
         let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 
-    fn update_sequentially_focusable_status(self) {
+    fn update_sequentially_focusable_status(&self) {
         let element = ElementCast::from_ref(self);
         let node = NodeCast::from_ref(self);
         if element.has_attribute(&atom!("tabindex")) {
@@ -276,11 +270,6 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
 }
 
 // https://html.spec.whatwg.org/#attr-data-*
-pub trait HTMLElementCustomAttributeHelpers {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn get_custom_attr(self, name: DOMString) -> Option<DOMString>;
-    fn delete_custom_attr(self, name: DOMString);
-}
 
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
@@ -295,8 +284,8 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
-impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
+impl HTMLElement {
+    pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
@@ -306,7 +295,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
         element.set_custom_attribute(to_snake_case(name), value)
     }
 
-    fn get_custom_attr(self, local_name: DOMString) -> Option<DOMString> {
+    pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.get_attribute(&ns!(""), &local_name).map(|attr| {
@@ -314,7 +303,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
         })
     }
 
-    fn delete_custom_attr(self, local_name: DOMString) {
+    pub fn delete_custom_attr(&self, local_name: DOMString) {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.remove_attribute(&ns!(""), &local_name);

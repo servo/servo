@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, AttrHelpersForLayout, AttrValue};
+use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -17,15 +17,13 @@ use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::element::{self, AttributeHandlers};
-use dom::event::EventHelpers;
+use dom::element::{ElementTypeId, self};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::{Window, WindowHelpers};
+use dom::window::Window;
 use page::IterablePage;
 
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -70,28 +68,14 @@ impl HTMLIFrameElementDerived for EventTarget {
     }
 }
 
-pub trait HTMLIFrameElementHelpers {
-    fn is_sandboxed(self) -> bool;
-    fn get_url(self) -> Option<Url>;
-    /// https://www.whatwg.org/html/#process-the-iframe-attributes
-    fn process_the_iframe_attributes(self);
-    fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>);
-    fn navigate_child_browsing_context(self, url: Url);
-    fn dispatch_mozbrowser_event(self, event: MozBrowserEvent);
-    fn update_subpage_id(self, new_subpage_id: SubpageId);
-}
 
-pub trait RawHTMLIFrameElementHelpers {
-    fn get_width(&self) -> LengthOrPercentageOrAuto;
-    fn get_height(&self) -> LengthOrPercentageOrAuto;
-}
 
-impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
-    fn is_sandboxed(self) -> bool {
+impl HTMLIFrameElement {
+    pub fn is_sandboxed(&self) -> bool {
         self.sandbox.get().is_some()
     }
 
-    fn get_url(self) -> Option<Url> {
+    pub fn get_url(&self) -> Option<Url> {
         let element = ElementCast::from_ref(self);
         element.get_attribute(&ns!(""), &atom!("src")).and_then(|src| {
             let url = src.r().value();
@@ -105,7 +89,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         })
     }
 
-    fn generate_new_subpage_id(self) -> (SubpageId, Option<SubpageId>) {
+    pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
         let old_subpage_id = self.subpage_id.get();
         let win = window_from_node(self);
         let subpage_id = win.r().get_next_subpage_id();
@@ -113,7 +97,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         (subpage_id, old_subpage_id)
     }
 
-    fn navigate_child_browsing_context(self, url: Url) {
+    pub fn navigate_child_browsing_context(&self, url: Url) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -139,7 +123,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         }
     }
 
-    fn process_the_iframe_attributes(self) {
+    pub fn process_the_iframe_attributes(&self) {
         let url = match self.get_url() {
             Some(url) => url.clone(),
             None => Url::parse("about:blank").unwrap(),
@@ -148,7 +132,7 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         self.navigate_child_browsing_context(url);
     }
 
-    fn dispatch_mozbrowser_event(self, event: MozBrowserEvent) {
+    pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
@@ -172,14 +156,14 @@ impl<'a> HTMLIFrameElementHelpers for &'a HTMLIFrameElement {
         }
     }
 
-    fn update_subpage_id(self, new_subpage_id: SubpageId) {
+    pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
         self.subpage_id.set(Some(new_subpage_id));
     }
 }
 
-impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
+impl HTMLIFrameElement {
     #[allow(unsafe_code)]
-    fn get_width(&self) -> LengthOrPercentageOrAuto {
+    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),
@@ -190,7 +174,7 @@ impl RawHTMLIFrameElementHelpers for HTMLIFrameElement {
     }
 
     #[allow(unsafe_code)]
-    fn get_height(&self) -> LengthOrPercentageOrAuto {
+    pub fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
             element::get_attr_for_layout(ElementCast::from_ref(&*self),
                                          &ns!(""),

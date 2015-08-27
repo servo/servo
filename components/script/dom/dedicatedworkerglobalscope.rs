@@ -6,7 +6,6 @@ use devtools;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
-use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
@@ -16,11 +15,10 @@ use dom::bindings::js::{RootCollection, Root};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
-use dom::errorevent::ErrorEvent;
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler, WorkerErrorHandler};
-use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler};
+use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
 use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
 
@@ -245,26 +243,20 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
-pub trait DedicatedWorkerGlobalScopeHelpers {
-    fn script_chan(self) -> Box<ScriptChan + Send>;
-    fn pipeline(self) -> PipelineId;
-    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>);
-    fn process_event(self, msg: CommonScriptMsg);
-}
 
-impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
-    fn script_chan(self) -> Box<ScriptChan + Send> {
+impl DedicatedWorkerGlobalScope {
+    pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         box WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
             worker: self.worker.borrow().as_ref().unwrap().clone(),
         }
     }
 
-    fn pipeline(self) -> PipelineId {
+    pub fn pipeline(&self) -> PipelineId {
         self.id
     }
 
-    fn new_script_pair(self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
+    pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         let chan = box SendableWorkerScriptChan {
             sender: tx,
@@ -273,21 +265,15 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
         (chan, box rx)
     }
 
-    fn process_event(self, msg: CommonScriptMsg) {
+    pub fn process_event(&self, msg: CommonScriptMsg) {
         self.handle_script_event(WorkerScriptMsg::Common(msg));
     }
 }
 
-trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn handle_script_event(self, msg: WorkerScriptMsg);
-    fn dispatch_error_to_worker(self, &ErrorEvent);
-    fn receive_event(self) -> Result<MixedMessage, RecvError>;
-    fn handle_event(self, event: MixedMessage);
-}
 
-impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalScope {
+impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
-    fn receive_event(self) -> Result<MixedMessage, RecvError> {
+    fn receive_event(&self) -> Result<MixedMessage, RecvError> {
         let scope = WorkerGlobalScopeCast::from_ref(self);
         let worker_port = &self.receiver;
         let devtools_port = scope.from_devtools_receiver();
@@ -311,7 +297,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
         }
     }
 
-    fn handle_script_event(self, msg: WorkerScriptMsg) {
+    fn handle_script_event(&self, msg: WorkerScriptMsg) {
         match msg {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = WorkerGlobalScopeCast::from_ref(self);
@@ -346,7 +332,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
         }
     }
 
-    fn handle_event(self, event: MixedMessage) {
+    fn handle_event(&self, event: MixedMessage) {
         match event {
             MixedMessage::FromDevtools(msg) => {
                 let global_ref = GlobalRef::Worker(WorkerGlobalScopeCast::from_ref(self));
@@ -366,16 +352,6 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for &'a DedicatedWorkerGlobalS
             },
         }
     }
-
-    fn dispatch_error_to_worker(self, errorevent: &ErrorEvent) {
-        let msg = errorevent.Message();
-        let file_name = errorevent.Filename();
-        let line_num = errorevent.Lineno();
-        let col_num = errorevent.Colno();
-        let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(CommonScriptMsg::RunnableMsg(
-            box WorkerErrorHandler::new(worker, msg, file_name, line_num, col_num))).unwrap();
- }
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {

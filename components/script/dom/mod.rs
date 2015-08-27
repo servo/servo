@@ -109,16 +109,10 @@
 //! Implementing methods for a DOM object
 //! =====================================
 //!
-//! XXX JSRef no longer exists - should we remove the *Helpers traits?
-//! In order to ensure that DOM objects are rooted when they are called, we
-//! require that all methods are implemented for `JSRef<'a, Foo>`. This means
-//! that all methods are defined on traits. Conventionally, those traits are
-//! called
-//!
 //! * `dom::bindings::codegen::Bindings::FooBindings::FooMethods` for methods
 //!   defined through IDL;
-//! * `FooHelpers` for public methods;
-//! * `PrivateFooHelpers` for private methods.
+//! * `&self` public methods for public helpers;
+//! * `&self` methods for private helpers.
 //!
 //! Accessing fields of a DOM object
 //! ================================

@@ -17,16 +17,14 @@ use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::htmlimageelement::HTMLImageElementHelpers;
-use dom::imagedata::ImageDataHelpers;
-use dom::node::{window_from_node, NodeHelpers, NodeDamage};
-use dom::webglbuffer::{WebGLBuffer, WebGLBufferHelpers};
-use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferHelpers};
-use dom::webglprogram::{WebGLProgram, WebGLProgramHelpers};
-use dom::webglrenderbuffer::{WebGLRenderbuffer, WebGLRenderbufferHelpers};
-use dom::webglshader::{WebGLShader, WebGLShaderHelpers};
-use dom::webgltexture::{TexParameterValue, WebGLTexture, WebGLTextureHelpers};
-use dom::webgluniformlocation::{WebGLUniformLocation, WebGLUniformLocationHelpers};
+use dom::node::{window_from_node, NodeDamage};
+use dom::webglbuffer::WebGLBuffer;
+use dom::webglframebuffer::WebGLFramebuffer;
+use dom::webglprogram::WebGLProgram;
+use dom::webglrenderbuffer::WebGLRenderbuffer;
+use dom::webglshader::WebGLShader;
+use dom::webgltexture::{TexParameterValue, WebGLTexture};
+use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
@@ -906,13 +904,9 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 }
 
-pub trait WebGLRenderingContextHelpers {
-    fn webgl_error(&self, err: WebGLError);
-    fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>>;
-}
 
-impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
-    fn webgl_error(&self, err: WebGLError) {
+impl WebGLRenderingContext {
+    pub fn webgl_error(&self, err: WebGLError) {
         // If an error has been detected no further errors must be
         // recorded until `getError` has been called
         if self.last_error.get().is_none() {
@@ -920,7 +914,7 @@ impl<'a> WebGLRenderingContextHelpers for &'a WebGLRenderingContext {
         }
     }
 
-    fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
         match target {
             constants::TEXTURE_2D => self.bound_texture_2d.get(),
             constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),

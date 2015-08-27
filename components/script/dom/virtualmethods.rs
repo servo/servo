@@ -37,7 +37,7 @@ use dom::element::ElementTypeId;
 use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::node::NodeTypeId;
-use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeHelpers};
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 
 use util::str::DOMString;
 

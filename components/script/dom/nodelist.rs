@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::node::{ChildrenMutation, Node, NodeHelpers};
+use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 
 use std::cell::Cell;
@@ -79,12 +79,9 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 }
 
-pub trait NodeListHelpers<'a> {
-    fn as_children_list(self) -> &'a ChildrenList;
-}
 
-impl<'a> NodeListHelpers<'a> for &'a NodeList {
-    fn as_children_list(self) -> &'a ChildrenList {
+impl NodeList {
+    pub fn as_children_list(&self) -> &ChildrenList {
         if let NodeListType::Children(ref list) = self.list_type {
             list
         } else {

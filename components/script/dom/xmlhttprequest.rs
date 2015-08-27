@@ -20,10 +20,9 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
-use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -747,29 +746,9 @@ impl XMLHttpRequestDerived for EventTarget {
 
 pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
-trait PrivateXMLHttpRequestHelpers {
-    fn change_ready_state(self, XMLHttpRequestState);
-    fn process_headers_available(self, cors_request: Option<CORSRequest>,
-                                 gen_id: GenerationId, metadata: Metadata) -> Result<(), Error>;
-    fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>);
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult;
-    fn process_partial_response(self, progress: XHRProgress);
-    fn terminate_ongoing_fetch(self);
-    fn insert_trusted_header(self, name: String, value: String);
-    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
-    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>);
-    fn dispatch_response_progress_event(self, type_: DOMString);
-    fn text_response(self) -> DOMString;
-    fn set_timeout(self, timeout: u32);
-    fn cancel_timeout(self);
-    fn filter_response_headers(self) -> Headers;
-    fn discard_subsequent_responses(self);
-    fn fetch(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
-             global: GlobalRef) -> ErrorResult;
-}
 
-impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
-    fn change_ready_state(self, rs: XMLHttpRequestState) {
+impl XMLHttpRequest {
+    fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
@@ -781,7 +760,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         event.r().fire(target);
     }
 
-    fn process_headers_available(self, cors_request: Option<CORSRequest>,
+    fn process_headers_available(&self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
 
         if let Some(ref req) = cors_request {
@@ -801,11 +780,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         Ok(())
     }
 
-    fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>) {
+    fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>) {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>)
+    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), String>)
                                  -> ErrorResult {
         match status {
             Ok(()) => {
@@ -819,7 +798,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
     }
 
-    fn process_partial_response(self, progress: XHRProgress) {
+    fn process_partial_response(&self, progress: XHRProgress) {
         let msg_id = progress.generation_id();
 
         // Aborts processing if abort() or open() was called
@@ -941,20 +920,20 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
     }
 
-    fn terminate_ongoing_fetch(self) {
+    fn terminate_ongoing_fetch(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         *self.timeout_target.borrow_mut() = None;
         self.response_status.set(Ok(()));
     }
 
-    fn insert_trusted_header(self, name: String, value: String) {
+    fn insert_trusted_header(&self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
         self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
-    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let upload_target = self.upload.root();
         let progressevent = ProgressEvent::new(global.r(),
@@ -970,19 +949,19 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         event.fire(target);
     }
 
-    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(self, type_: DOMString) {
+    fn dispatch_response_progress_event(&self, type_: DOMString) {
         let len = self.response.borrow().len() as u64;
         let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {**x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
-    fn set_timeout(self, duration_ms: u32) {
+    fn set_timeout(&self, duration_ms: u32) {
         struct XHRTimeout {
             xhr: TrustedXHRAddress,
             gen_id: GenerationId,
@@ -1025,13 +1004,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
     );
     }
 
-    fn cancel_timeout(self) {
+    fn cancel_timeout(&self) {
         if let Some(cancel_tx) = self.timeout_cancel.borrow_mut().take() {
             let _ = cancel_tx.send(());
         }
     }
 
-    fn text_response(self) -> DOMString {
+    fn text_response(&self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
@@ -1049,7 +1028,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
     }
-    fn filter_response_headers(self) -> Headers {
+    fn filter_response_headers(&self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
         use hyper::error::Result;
         use hyper::header::SetCookie;
@@ -1081,11 +1060,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         headers
     }
 
-    fn discard_subsequent_responses(self) {
+    fn discard_subsequent_responses(&self) {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(self,
+    fn fetch(&self,
               load_data: LoadData,
               cors_request: Result<Option<CORSRequest>,()>,
               global: GlobalRef) -> ErrorResult {

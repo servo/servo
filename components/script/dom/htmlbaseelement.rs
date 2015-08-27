@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
-use dom::document::{Document, DocumentHelpers};
-use dom::element::{ElementTypeId, AttributeHandlers};
+use dom::document::Document;
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node};

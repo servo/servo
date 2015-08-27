@@ -9,10 +9,9 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::event::{EventHelpers, EventBubbles, EventCancelable};
+use dom::event::{EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
-use dom::window::WindowHelpers;
 use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use page::IterablePage;
@@ -140,14 +139,10 @@ impl<'a> StorageMethods for &'a Storage {
     }
 }
 
-trait PrivateStorageHelpers {
-    fn broadcast_change_notification(self, key: Option<DOMString>, old_value: Option<DOMString>,
-                                     new_value: Option<DOMString>);
-}
 
-impl<'a> PrivateStorageHelpers for &'a Storage {
+impl Storage {
     /// https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    fn broadcast_change_notification(self, key: Option<DOMString>, old_value: Option<DOMString>,
+    fn broadcast_change_notification(&self, key: Option<DOMString>, old_value: Option<DOMString>,
                                      new_value: Option<DOMString>) {
         let global_root = self.global.root();
         let global_ref = global_root.r();

@@ -79,12 +79,9 @@ impl Blob {
     }
 }
 
-pub trait BlobHelpers {
-    fn read_out_buffer(self, send: Sender<Vec<u8>>);
-}
 
-impl<'a> BlobHelpers for &'a Blob {
-    fn read_out_buffer(self, send: Sender<Vec<u8>>) {
+impl Blob {
+    pub fn read_out_buffer(&self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
     }
 }

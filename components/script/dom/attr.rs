@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference, LayoutJS};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 
@@ -234,17 +234,9 @@ impl<'a> AttrMethods for &'a Attr {
     }
 }
 
-pub trait AttrHelpers<'a> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element);
-    fn value(self) -> Ref<'a, AttrValue>;
-    fn local_name(self) -> &'a Atom;
-    fn set_owner(self, owner: Option<&Element>);
-    fn owner(self) -> Option<Root<Element>>;
-    fn summarize(self) -> AttrInfo;
-}
 
-impl<'a> AttrHelpers<'a> for &'a Attr {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
+impl Attr {
+    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
 
         let node = NodeCast::from_ref(owner);
@@ -263,17 +255,17 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         }
     }
 
-    fn value(self) -> Ref<'a, AttrValue> {
+    pub fn value(&self) -> Ref<AttrValue> {
         self.value.borrow()
     }
 
-    fn local_name(self) -> &'a Atom {
+    pub fn local_name(&self) -> &Atom {
         &self.local_name
     }
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    fn set_owner(self, owner: Option<&Element>) {
+    pub fn set_owner(&self, owner: Option<&Element>) {
         let ref ns = self.namespace;
         match (self.owner().r(), owner) {
             (None, Some(new)) => {
@@ -289,11 +281,11 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         self.owner.set(owner.map(JS::from_ref))
     }
 
-    fn owner(self) -> Option<Root<Element>> {
+    pub fn owner(&self) -> Option<Root<Element>> {
         self.owner.get().map(Root::from_rooted)
     }
 
-    fn summarize(self) -> AttrInfo {
+    pub fn summarize(&self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
             namespace: (**ns).to_owned(),
