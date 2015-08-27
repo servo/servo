@@ -1,0 +1,112 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectReadOnlyMethods, Wrap};
+use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Root;
+use dom::bindings::utils::{Reflector, reflect_dom_object};
+use std::cell::Cell;
+
+#[dom_struct]
+pub struct DOMRectReadOnly {
+    reflector_: Reflector,
+    x: Cell<f64>,
+    y: Cell<f64>,
+    width: Cell<f64>,
+    height: Cell<f64>,
+}
+
+impl DOMRectReadOnly {
+    pub fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
+        DOMRectReadOnly {
+            x: Cell::new(x),
+            y: Cell::new(y),
+            width: Cell::new(width),
+            height: Cell::new(height),
+            reflector_: Reflector::new(),
+        }
+    }
+
+    pub fn new(global: GlobalRef, x: f64, y: f64, width: f64, height: f64) -> Root<DOMRectReadOnly> {
+        reflect_dom_object(box DOMRectReadOnly::new_inherited(x, y, width, height), global, Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef,
+                        x: f64, y: f64, width: f64, height: f64) -> Fallible<Root<DOMRectReadOnly>> {
+        Ok(DOMRectReadOnly::new(global, x, y, width, height))
+    }
+}
+
+impl DOMRectReadOnlyMethods for DOMRectReadOnly {
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-x
+    fn X(&self) -> f64 {
+        self.x.get()
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-y
+    fn Y(&self) -> f64 {
+        self.y.get()
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-width
+    fn Width(&self) -> f64 {
+        self.width.get()
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-height
+    fn Height(&self) -> f64 {
+        self.height.get()
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-top
+    fn Top(&self) -> f64 {
+        let height = self.height.get();
+        if height >= 0f64 { self.y.get() } else { self.y.get() + height }
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-right
+    fn Right(&self) -> f64 {
+        let width = self.width.get();
+        if width < 0f64 { self.x.get() } else { self.x.get() + width }
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-bottom
+    fn Bottom(&self) -> f64 {
+        let height = self.height.get();
+        if height < 0f64 { self.y.get() } else { self.y.get() + height }
+    }
+
+    // https://dev.w3.org/fxtf/geometry/Overview.html#dom-domrectreadonly-left
+    fn Left(&self) -> f64 {
+        let width = self.width.get();
+        if width >= 0f64 { self.x.get() } else { self.x.get() + width }
+    }
+}
+
+
+pub trait DOMRectWriteMethods {
+    fn SetX(&self, value: f64);
+    fn SetY(&self, value: f64);
+    fn SetWidth(&self, value: f64);
+    fn SetHeight(&self, value: f64);
+}
+
+impl DOMRectWriteMethods for DOMRectReadOnly {
+    fn SetX(&self, value: f64) {
+        self.x.set(value);
+    }
+
+    fn SetY(&self, value: f64) {
+        self.y.set(value);
+    }
+
+    fn SetWidth(&self, value: f64) {
+        self.width.set(value);
+    }
+
+    fn SetHeight(&self, value: f64) {
+        self.height.set(value);
+    }
+}
