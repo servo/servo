@@ -1720,7 +1720,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         }
     }
     fn has_class(&self, name: &Atom) -> bool {
-        AttributeHandlers::has_class(&**self, name)
+        Element::has_class(&**self, name)
     }
     fn each_class<F>(&self, mut callback: F)
         where F: FnMut(&Atom)
