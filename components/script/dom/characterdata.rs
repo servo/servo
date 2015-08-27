@@ -47,24 +47,24 @@ impl CharacterData {
     }
 }
 
-impl<'a> CharacterDataMethods for &'a CharacterData {
+impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
-    fn Data(self) -> DOMString {
+    fn Data(&self) -> DOMString {
         self.data.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
-    fn SetData(self, data: DOMString) {
+    fn SetData(&self, data: DOMString) {
         *self.data.borrow_mut() = data;
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         self.data.borrow().chars().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdataoffset-count
-    fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
+    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
         let data = self.data.borrow();
         // Step 1.
         let length = data.chars().count() as u32;
@@ -78,22 +78,22 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
-    fn AppendData(self, data: DOMString) {
+    fn AppendData(&self, data: DOMString) {
         self.append_data(&*data);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data
-    fn InsertData(self, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
         self.ReplaceData(offset, 0, arg)
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count
-    fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
+    fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
         self.ReplaceData(offset, count, "".to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-replacedataoffset-count-data
-    fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
+    fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
         // Step 1.
         let length = self.data.borrow().chars().count() as u32;
         if offset > length {
@@ -116,34 +116,34 @@ impl<'a> CharacterDataMethods for &'a CharacterData {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn Before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn After(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn ReplaceWith(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(self) {
+    fn Remove(&self) {
         let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(self) -> Option<Root<Element>> {
+    fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).preceding_siblings()
                                 .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(self) -> Option<Root<Element>> {
+    fn GetNextElementSibling(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).following_siblings()
                                 .filter_map(ElementCast::to_root).next()
     }

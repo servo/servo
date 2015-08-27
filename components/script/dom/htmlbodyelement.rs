@@ -68,19 +68,19 @@ impl HTMLBodyElement {
     }
 }
 
-impl<'a> HTMLBodyElementMethods for &'a HTMLBodyElement {
+impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
     make_getter!(BgColor, "bgcolor");
     make_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn GetOnunload(self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
         let win = window_from_node(self);
         win.r().GetOnunload()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn SetOnunload(self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnunload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }

@@ -238,33 +238,33 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
     }
 }
 
-impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
+impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    fn Src(self) -> DOMString {
+    fn Src(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    fn SetSrc(self, src: DOMString) {
+    fn SetSrc(&self, src: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_url_attribute(&atom!("src"), src)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(self) -> DOMString {
+    fn Sandbox(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("sandbox"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn SetSandbox(self, sandbox: DOMString) {
+    fn SetSandbox(&self, sandbox: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(self) -> Option<Root<Window>> {
+    fn GetContentWindow(&self) -> Option<Root<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
@@ -277,7 +277,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
-    fn GetContentDocument(self) -> Option<Root<Document>> {
+    fn GetContentDocument(&self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
             let self_url = match self.get_url() {
                 Some(self_url) => self_url,
@@ -301,7 +301,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     // exposing these APIs. See https://github.com/servo/servo/issues/5264.
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn Mozbrowser(self) -> bool {
+    fn Mozbrowser(&self) -> bool {
         if opts::experimental_enabled() {
             let element = ElementCast::from_ref(self);
             element.has_attribute(&Atom::from_slice("mozbrowser"))
@@ -311,7 +311,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(self, value: bool) -> ErrorResult {
+    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
         if opts::experimental_enabled() {
             let element = ElementCast::from_ref(self);
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
@@ -320,22 +320,22 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
-    fn GoBack(self) -> Fallible<()> {
+    fn GoBack(&self) -> Fallible<()> {
         Navigate(self, NavigationDirection::Back)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
-    fn GoForward(self) -> Fallible<()> {
+    fn GoForward(&self) -> Fallible<()> {
         Navigate(self, NavigationDirection::Forward)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(self, _hardReload: bool) -> Fallible<()> {
+    fn Reload(&self, _hardReload: bool) -> Fallible<()> {
         Err(NotSupported)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
-    fn Stop(self) -> Fallible<()> {
+    fn Stop(&self) -> Fallible<()> {
         Err(NotSupported)
     }
 

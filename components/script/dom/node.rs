@@ -1892,9 +1892,9 @@ impl Node {
     }
 }
 
-impl<'a> NodeMethods for &'a Node {
+impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-nodetype
-    fn NodeType(self) -> u16 {
+    fn NodeType(&self) -> u16 {
         match self.type_id {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
                 NodeConstants::TEXT_NODE,
@@ -1914,7 +1914,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodename
-    fn NodeName(self) -> DOMString {
+    fn NodeName(&self) -> DOMString {
         match self.type_id {
             NodeTypeId::Element(..) => {
                 let elem: &Element = ElementCast::to_ref(self).unwrap();
@@ -1937,12 +1937,12 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-baseuri
-    fn BaseURI(self) -> DOMString {
+    fn BaseURI(&self) -> DOMString {
         self.owner_doc().URL()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
-    fn GetOwnerDocument(self) -> Option<Root<Document>> {
+    fn GetOwnerDocument(&self) -> Option<Root<Document>> {
         match self.type_id {
             NodeTypeId::CharacterData(..) |
             NodeTypeId::Element(..) |
@@ -1953,22 +1953,22 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
-    fn GetParentNode(self) -> Option<Root<Node>> {
+    fn GetParentNode(&self) -> Option<Root<Node>> {
         self.parent_node.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentelement
-    fn GetParentElement(self) -> Option<Root<Element>> {
+    fn GetParentElement(&self) -> Option<Root<Element>> {
         self.GetParentNode().and_then(ElementCast::to_root)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-haschildnodes
-    fn HasChildNodes(self) -> bool {
+    fn HasChildNodes(&self) -> bool {
         self.first_child.get().is_some()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-childnodes
-    fn ChildNodes(self) -> Root<NodeList> {
+    fn ChildNodes(&self) -> Root<NodeList> {
         self.child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.r().window();
@@ -1977,39 +1977,39 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-firstchild
-    fn GetFirstChild(self) -> Option<Root<Node>> {
+    fn GetFirstChild(&self) -> Option<Root<Node>> {
         self.first_child.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lastchild
-    fn GetLastChild(self) -> Option<Root<Node>> {
+    fn GetLastChild(&self) -> Option<Root<Node>> {
         self.last_child.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-previoussibling
-    fn GetPreviousSibling(self) -> Option<Root<Node>> {
+    fn GetPreviousSibling(&self) -> Option<Root<Node>> {
         self.prev_sibling.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nextsibling
-    fn GetNextSibling(self) -> Option<Root<Node>> {
+    fn GetNextSibling(&self) -> Option<Root<Node>> {
         self.next_sibling.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn GetNodeValue(self) -> Option<DOMString> {
+    fn GetNodeValue(&self) -> Option<DOMString> {
         CharacterDataCast::to_ref(self).map(|c| c.Data())
     }
 
     // https://dom.spec.whatwg.org/#dom-node-nodevalue
-    fn SetNodeValue(self, val: Option<DOMString>) {
+    fn SetNodeValue(&self, val: Option<DOMString>) {
         if let NodeTypeId::CharacterData(..) = self.type_id {
             self.SetTextContent(val)
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
-    fn GetTextContent(self) -> Option<DOMString> {
+    fn GetTextContent(&self) -> Option<DOMString> {
         match self.type_id {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
@@ -2028,7 +2028,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
-    fn SetTextContent(self, value: Option<DOMString>) {
+    fn SetTextContent(&self, value: Option<DOMString>) {
         let value = value.unwrap_or(String::new());
         match self.type_id {
             NodeTypeId::DocumentFragment |
@@ -2058,17 +2058,17 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-insertbefore
-    fn InsertBefore(self, node: &Node, child: Option<&Node>) -> Fallible<Root<Node>> {
+    fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<Root<Node>> {
         Node::pre_insert(node, self, child)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-appendchild
-    fn AppendChild(self, node: &Node) -> Fallible<Root<Node>> {
+    fn AppendChild(&self, node: &Node) -> Fallible<Root<Node>> {
         Node::pre_insert(node, self, None)
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace
-    fn ReplaceChild(self, node: &Node, child: &Node) -> Fallible<Root<Node>> {
+    fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<Root<Node>> {
 
         // Step 1.
         match self.type_id {
@@ -2204,13 +2204,13 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-removechild
-    fn RemoveChild(self, node: &Node)
+    fn RemoveChild(&self, node: &Node)
                        -> Fallible<Root<Node>> {
         Node::pre_remove(node, self)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-normalize
-    fn Normalize(self) {
+    fn Normalize(&self) {
         let mut prev_text: Option<Root<Text>> = None;
         for child in self.children() {
             match TextCast::to_ref(child.r()) {
@@ -2239,7 +2239,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-clonenode
-    fn CloneNode(self, deep: bool) -> Root<Node> {
+    fn CloneNode(&self, deep: bool) -> Root<Node> {
         Node::clone(self, None, if deep {
             CloneChildrenFlag::CloneChildren
         } else {
@@ -2248,7 +2248,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-isequalnode
-    fn IsEqualNode(self, maybe_node: Option<&Node>) -> bool {
+    fn IsEqualNode(&self, maybe_node: Option<&Node>) -> bool {
         fn is_equal_doctype(node: &Node, other: &Node) -> bool {
             let doctype: &DocumentType = DocumentTypeCast::to_ref(node).unwrap();
             let other_doctype: &DocumentType = DocumentTypeCast::to_ref(other).unwrap();
@@ -2333,7 +2333,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
-    fn CompareDocumentPosition(self, other: &Node) -> u16 {
+    fn CompareDocumentPosition(&self, other: &Node) -> u16 {
         if self == other {
             // step 2.
             0
@@ -2387,7 +2387,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-contains
-    fn Contains(self, maybe_other: Option<&Node>) -> bool {
+    fn Contains(&self, maybe_other: Option<&Node>) -> bool {
         match maybe_other {
             None => false,
             Some(other) => self.is_inclusive_ancestor_of(other)
@@ -2395,7 +2395,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lookupprefix
-    fn LookupPrefix(self, namespace: Option<DOMString>) -> Option<DOMString> {
+    fn LookupPrefix(&self, namespace: Option<DOMString>) -> Option<DOMString> {
         let namespace = namespace_from_domstring(namespace);
 
         // Step 1.
@@ -2421,7 +2421,7 @@ impl<'a> NodeMethods for &'a Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
-    fn LookupNamespaceURI(self, prefix: Option<DOMString>) -> Option<DOMString> {
+    fn LookupNamespaceURI(&self, prefix: Option<DOMString>) -> Option<DOMString> {
         // Step 1.
         let prefix = match prefix {
             Some(ref p) if p.is_empty() => None,
@@ -2433,7 +2433,7 @@ impl<'a> NodeMethods for &'a Node {
      }
 
     // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
-    fn IsDefaultNamespace(self, namespace: Option<DOMString>) -> bool {
+    fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {
         // Step 1.
         let namespace = namespace_from_domstring(namespace);
         // Steps 2 and 3.

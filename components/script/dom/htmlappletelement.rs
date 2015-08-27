@@ -51,7 +51,7 @@ impl HTMLAppletElement {
     }
 }
 
-impl<'a> HTMLAppletElementMethods for &'a HTMLAppletElement {
+impl HTMLAppletElementMethods for HTMLAppletElement {
     // https://html.spec.whatwg.org/#the-applet-element:dom-applet-name
     make_getter!(Name);
     make_atomic_setter!(SetName, "name");

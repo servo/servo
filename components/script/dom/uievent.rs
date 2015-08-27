@@ -86,19 +86,19 @@ impl UIEvent {
     }
 }
 
-impl<'a> UIEventMethods for &'a UIEvent {
+impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
-    fn GetView(self) -> Option<Root<Window>> {
+    fn GetView(&self) -> Option<Root<Window>> {
         self.view.get().map(Root::from_rooted)
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-detail
-    fn Detail(self) -> i32 {
+    fn Detail(&self) -> i32 {
         self.detail.get()
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent
-    fn InitUIEvent(self,
+    fn InitUIEvent(&self,
                    type_: DOMString,
                    can_bubble: bool,
                    cancelable: bool,

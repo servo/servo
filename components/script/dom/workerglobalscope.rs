@@ -161,21 +161,21 @@ impl WorkerGlobalScope {
     }
 }
 
-impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
+impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
-    fn Self_(self) -> Root<WorkerGlobalScope> {
+    fn Self_(&self) -> Root<WorkerGlobalScope> {
         Root::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
-    fn Location(self) -> Root<WorkerLocation> {
+    fn Location(&self) -> Root<WorkerLocation> {
         self.location.or_init(|| {
             WorkerLocation::new(self, self.worker_url.clone())
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
-    fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
+    fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings {
             let url = UrlParser::new().base_url(&self.worker_url)
@@ -208,32 +208,32 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
-    fn Navigator(self) -> Root<WorkerNavigator> {
+    fn Navigator(&self) -> Root<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/console
-    fn Console(self) -> Root<Console> {
+    fn Console(&self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
-    fn Crypto(self) -> Root<Crypto> {
+    fn Crypto(&self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Worker(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
-    fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
+    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
-    fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
+    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -243,7 +243,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -253,12 +253,12 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
-    fn ClearTimeout(self, handle: i32) {
+    fn ClearTimeout(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -268,7 +268,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -278,7 +278,7 @@ impl<'a> WorkerGlobalScopeMethods for &'a WorkerGlobalScope {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
-    fn ClearInterval(self, handle: i32) {
+    fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 }

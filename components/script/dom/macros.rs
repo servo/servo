@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self) -> DOMString {
+        fn $attr(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -20,7 +20,7 @@ macro_rules! make_getter(
 #[macro_export]
 macro_rules! make_bool_getter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self) -> bool {
+        fn $attr(&self) -> bool {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -36,7 +36,7 @@ macro_rules! make_bool_getter(
 #[macro_export]
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(self) -> u32 {
+        fn $attr(&self) -> u32 {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -55,7 +55,7 @@ macro_rules! make_uint_getter(
 #[macro_export]
 macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self) -> DOMString {
+        fn $attr(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -72,7 +72,7 @@ macro_rules! make_url_getter(
 #[macro_export]
 macro_rules! make_url_or_base_getter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self) -> DOMString {
+        fn $attr(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -93,7 +93,7 @@ macro_rules! make_url_or_base_getter(
 #[macro_export]
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
-        fn $attr(self) -> DOMString {
+        fn $attr(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use std::ascii::AsciiExt;
             use std::borrow::ToOwned;
@@ -118,7 +118,7 @@ macro_rules! make_enumerated_getter(
 #[macro_export]
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self, value: DOMString) {
+        fn $attr(&self, value: DOMString) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -131,7 +131,7 @@ macro_rules! make_setter(
 #[macro_export]
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self, value: bool) {
+        fn $attr(&self, value: bool) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -144,7 +144,7 @@ macro_rules! make_bool_setter(
 #[macro_export]
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(self, value: u32) {
+        fn $attr(&self, value: u32) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let value = if value > 2147483647 {
@@ -165,7 +165,7 @@ macro_rules! make_uint_setter(
 #[macro_export]
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
+        fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let value = if value == 0 {
@@ -192,7 +192,7 @@ macro_rules! make_limited_uint_setter(
 #[macro_export]
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(self, value: DOMString) {
+        fn $attr(&self, value: DOMString) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
@@ -228,12 +228,12 @@ macro_rules! no_jsmanaged_fields(
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
     ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
-        fn $getter(self) -> Option<::std::rc::Rc<$handler>> {
+        fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
-        fn $setter(self, listener: Option<::std::rc::Rc<$handler>>) {
+        fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
             let eventtarget = EventTargetCast::from_ref(self);
             eventtarget.set_event_handler_common(stringify!($event_type), listener)
         }

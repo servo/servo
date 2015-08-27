@@ -52,9 +52,9 @@ impl NodeList {
     }
 }
 
-impl<'a> NodeListMethods for &'a NodeList {
+impl NodeListMethods for NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref list) => list.len(),
@@ -62,7 +62,7 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(self, index: u32) -> Option<Root<Node>> {
+    fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
                 elems.get(index as usize).map(|node| Root::from_rooted(*node))
@@ -72,7 +72,7 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Node>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item

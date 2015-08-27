@@ -47,9 +47,9 @@ impl ProcessingInstruction {
     }
 }
 
-impl<'a> ProcessingInstructionMethods for &'a ProcessingInstruction {
+impl ProcessingInstructionMethods for ProcessingInstruction {
     // https://dom.spec.whatwg.org/#dom-processinginstruction-target
-    fn Target(self) -> DOMString {
+    fn Target(&self) -> DOMString {
         self.target.clone()
     }
 }

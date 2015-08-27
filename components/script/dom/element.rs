@@ -1089,24 +1089,24 @@ impl Element {
     }
 }
 
-impl<'a> ElementMethods for &'a Element {
+impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-namespaceuri
-    fn GetNamespaceURI(self) -> Option<DOMString> {
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
         Node::namespace_to_string(self.namespace.clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-localname
-    fn LocalName(self) -> DOMString {
+    fn LocalName(&self) -> DOMString {
         (*self.local_name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
-    fn GetPrefix(self) -> Option<DOMString> {
+    fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix.clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-tagname
-    fn TagName(self) -> DOMString {
+    fn TagName(&self) -> DOMString {
         let qualified_name = match self.prefix {
             Some(ref prefix) => {
                 Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name))
@@ -1121,32 +1121,32 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
-    fn Id(self) -> DOMString {
+    fn Id(&self) -> DOMString {
         self.get_string_attribute(&atom!("id"))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
-    fn SetId(self, id: DOMString) {
+    fn SetId(&self, id: DOMString) {
         self.set_atomic_attribute(&atom!("id"), id);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classname
-    fn ClassName(self) -> DOMString {
+    fn ClassName(&self) -> DOMString {
         self.get_string_attribute(&atom!("class"))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classname
-    fn SetClassName(self, class: DOMString) {
+    fn SetClassName(&self, class: DOMString) {
         self.set_tokenlist_attribute(&atom!("class"), class);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classlist
-    fn ClassList(self) -> Root<DOMTokenList> {
+    fn ClassList(&self) -> Root<DOMTokenList> {
         self.class_list.or_init(|| DOMTokenList::new(self, &atom!("class")))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(self) -> Root<NamedNodeMap> {
+    fn Attributes(&self) -> Root<NamedNodeMap> {
         self.attr_list.or_init(|| {
             let doc = {
                 let node = NodeCast::from_ref(self);
@@ -1158,13 +1158,13 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
-    fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
+    fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         self.get_attribute_by_name(name)
                      .map(|s| s.r().Value())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributens
-    fn GetAttributeNS(self,
+    fn GetAttributeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
         let namespace = &namespace_from_domstring(namespace);
@@ -1173,7 +1173,7 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
-    fn SetAttribute(self,
+    fn SetAttribute(&self,
                     name: DOMString,
                     value: DOMString) -> ErrorResult {
         // Step 1.
@@ -1193,7 +1193,7 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributens
-    fn SetAttributeNS(self,
+    fn SetAttributeNS(&self,
                       namespace: Option<DOMString>,
                       qualified_name: DOMString,
                       value: DOMString) -> ErrorResult {
@@ -1210,13 +1210,13 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
-    fn RemoveAttribute(self, name: DOMString) {
+    fn RemoveAttribute(&self, name: DOMString) {
         let name = self.parsed_name(name);
         self.remove_attribute_by_name(&name);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributens
-    fn RemoveAttributeNS(self,
+    fn RemoveAttributeNS(&self,
                          namespace: Option<DOMString>,
                          local_name: DOMString) {
         let namespace = namespace_from_domstring(namespace);
@@ -1225,38 +1225,38 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattribute
-    fn HasAttribute(self, name: DOMString) -> bool {
+    fn HasAttribute(&self, name: DOMString) -> bool {
         self.GetAttribute(name).is_some()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattributens
-    fn HasAttributeNS(self,
+    fn HasAttributeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> bool {
         self.GetAttributeNS(namespace, local_name).is_some()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    fn GetElementsByTagName(self, localname: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
-    fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>,
+    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    fn GetElementsByClassName(self, classes: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(self) -> Root<DOMRectList> {
+    fn GetClientRects(&self) -> Root<DOMRectList> {
         let win = window_from_node(self);
         let node = NodeCast::from_ref(self);
         let raw_rects = node.get_content_boxes();
@@ -1269,7 +1269,7 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(self) -> Root<DOMRect> {
+    fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
@@ -1282,37 +1282,37 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
-    fn ClientTop(self) -> i32 {
+    fn ClientTop(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
-    fn ClientLeft(self) -> i32 {
+    fn ClientLeft(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
-    fn ClientWidth(self) -> i32 {
+    fn ClientWidth(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
-    fn ClientHeight(self) -> i32 {
+    fn ClientHeight(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         node.get_client_rect().size.height
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
-    fn GetInnerHTML(self) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self) -> Fallible<DOMString> {
         //XXX TODO: XML case
         self.serialize(ChildrenOnly)
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
-    fn SetInnerHTML(self, value: DOMString) -> Fallible<()> {
+    fn SetInnerHTML(&self, value: DOMString) -> Fallible<()> {
         let context_node = NodeCast::from_ref(self);
         // Step 1.
         let frag = try!(context_node.parse_fragment(value));
@@ -1322,12 +1322,12 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
-    fn GetOuterHTML(self) -> Fallible<DOMString> {
+    fn GetOuterHTML(&self) -> Fallible<DOMString> {
         self.serialize(IncludeNode)
     }
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
-    fn SetOuterHTML(self, value: DOMString) -> Fallible<()> {
+    fn SetOuterHTML(&self, value: DOMString) -> Fallible<()> {
         let context_document = document_from_node(self);
         let context_node = NodeCast::from_ref(self);
         // Step 1.
@@ -1362,83 +1362,83 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
-    fn GetPreviousElementSibling(self) -> Option<Root<Element>> {
+    fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).preceding_siblings()
                                 .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
-    fn GetNextElementSibling(self) -> Option<Root<Element>> {
+    fn GetNextElementSibling(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).following_siblings()
                                 .filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(self) -> Root<HTMLCollection> {
+    fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(self) -> Option<Root<Element>> {
+    fn GetFirstElementChild(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(self) -> Option<Root<Element>> {
+    fn GetLastElementChild(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
-    fn ChildElementCount(self) -> u32 {
+    fn ChildElementCount(&self) -> u32 {
         NodeCast::from_ref(self).child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn Prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn Append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn Before(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn After(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn ReplaceWith(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(self) {
+    fn Remove(&self) {
         let node = NodeCast::from_ref(self);
         node.remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-element-matches
-    fn Matches(self, selectors: DOMString) -> Fallible<bool> {
+    fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
@@ -1448,7 +1448,7 @@ impl<'a> ElementMethods for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-closest
-    fn Closest(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {

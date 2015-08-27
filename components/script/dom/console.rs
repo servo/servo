@@ -30,9 +30,9 @@ impl Console {
     }
 }
 
-impl<'a> ConsoleMethods for &'a Console {
+impl ConsoleMethods for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    fn Log(self, messages: Vec<DOMString>) {
+    fn Log(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Log, message));
@@ -40,7 +40,7 @@ impl<'a> ConsoleMethods for &'a Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Debug(self, messages: Vec<DOMString>) {
+    fn Debug(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Debug, message));
@@ -48,7 +48,7 @@ impl<'a> ConsoleMethods for &'a Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    fn Info(self, messages: Vec<DOMString>) {
+    fn Info(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Info, message));
@@ -56,7 +56,7 @@ impl<'a> ConsoleMethods for &'a Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    fn Warn(self, messages: Vec<DOMString>) {
+    fn Warn(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Warn, message));
@@ -64,7 +64,7 @@ impl<'a> ConsoleMethods for &'a Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    fn Error(self, messages: Vec<DOMString>) {
+    fn Error(&self, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
             propagate_console_msg(&self, prepare_message(LogLevel::Error, message));
@@ -72,7 +72,7 @@ impl<'a> ConsoleMethods for &'a Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    fn Assert(self, condition: bool, message: Option<DOMString>) {
+    fn Assert(&self, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = match message {
                 Some(ref message) => &**message,

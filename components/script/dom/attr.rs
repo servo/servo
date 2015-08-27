@@ -162,19 +162,19 @@ impl Attr {
     }
 }
 
-impl<'a> AttrMethods for &'a Attr {
+impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
-    fn LocalName(self) -> DOMString {
+    fn LocalName(&self) -> DOMString {
         (**self.local_name()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         (**self.value()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
@@ -185,32 +185,32 @@ impl<'a> AttrMethods for &'a Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn TextContent(self) -> DOMString {
+    fn TextContent(&self) -> DOMString {
         self.Value()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn SetTextContent(self, value: DOMString) {
+    fn SetTextContent(&self, value: DOMString) {
         self.SetValue(value)
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn NodeValue(self) -> DOMString {
+    fn NodeValue(&self) -> DOMString {
         self.Value()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn SetNodeValue(self, value: DOMString) {
+    fn SetNodeValue(&self, value: DOMString) {
         self.SetValue(value)
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-name
-    fn Name(self) -> DOMString {
+    fn Name(&self) -> DOMString {
         (*self.name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
-    fn GetNamespaceURI(self) -> Option<DOMString> {
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match &**atom {
             "" => None,
@@ -219,17 +219,17 @@ impl<'a> AttrMethods for &'a Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
-    fn GetPrefix(self) -> Option<DOMString> {
+    fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix().as_ref().map(|p| (**p).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
-    fn GetOwnerElement(self) -> Option<Root<Element>> {
+    fn GetOwnerElement(&self) -> Option<Root<Element>> {
         self.owner()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-specified
-    fn Specified(self) -> bool {
+    fn Specified(&self) -> bool {
         true // Always returns true
     }
 }

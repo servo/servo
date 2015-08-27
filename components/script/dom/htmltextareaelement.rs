@@ -114,7 +114,7 @@ impl HTMLTextAreaElement {
     }
 }
 
-impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
+impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // TODO A few of these attributes have default values and additional
     // constraints
 
@@ -163,18 +163,18 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     make_setter!(SetWrap, "wrap");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         "textarea".to_owned()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn DefaultValue(self) -> DOMString {
+    fn DefaultValue(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn SetDefaultValue(self, value: DOMString) {
+    fn SetDefaultValue(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value));
 
@@ -186,12 +186,12 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);

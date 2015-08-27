@@ -62,14 +62,14 @@ impl CustomEvent {
     }
 }
 
-impl<'a> CustomEventMethods for &'a CustomEvent {
+impl CustomEventMethods for CustomEvent {
     // https://dom.spec.whatwg.org/#dom-customevent-detail
-    fn Detail(self, _cx: *mut JSContext) -> JSVal {
+    fn Detail(&self, _cx: *mut JSContext) -> JSVal {
         self.detail.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
-    fn InitCustomEvent(self,
+    fn InitCustomEvent(&self,
                        _cx: *mut JSContext,
                        type_: DOMString,
                        can_bubble: bool,

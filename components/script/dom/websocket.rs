@@ -226,34 +226,34 @@ impl WebSocket {
     }
 }
 
-impl<'a> WebSocketMethods for &'a WebSocket {
+impl WebSocketMethods for WebSocket {
     event_handler!(open, GetOnopen, SetOnopen);
     event_handler!(close, GetOnclose, SetOnclose);
     event_handler!(error, GetOnerror, SetOnerror);
     event_handler!(message, GetOnmessage, SetOnmessage);
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
-    fn Url(self) -> DOMString {
+    fn Url(&self) -> DOMString {
         self.url.serialize()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
-    fn BinaryType(self) -> BinaryType {
+    fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
-    fn SetBinaryType(self, btype: BinaryType) {
+    fn SetBinaryType(&self, btype: BinaryType) {
         self.binary_type.set(btype)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(self, data: Option<USVString>) -> Fallible<()> {
+    fn Send(&self, data: Option<USVString>) -> Fallible<()> {
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
@@ -280,7 +280,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
-    fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+    fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
         fn send_close(this: &WebSocket) {
             this.ready_state.set(WebSocketRequestState::Closing);
 

@@ -291,16 +291,16 @@ impl XMLHttpRequest {
     }
 }
 
-impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
+impl XMLHttpRequestMethods for XMLHttpRequest {
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
+    fn Open(&self, method: ByteString, url: DOMString) -> ErrorResult {
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -365,14 +365,14 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open_(self, method: ByteString, url: DOMString, async: bool,
+    fn Open_(&self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
         self.sync.set(!async);
         self.Open(method, url)
     }
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
-    fn SetRequestHeader(self, name: ByteString, mut value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -422,12 +422,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
-    fn Timeout(self) -> u32 {
+    fn Timeout(&self) -> u32 {
         self.timeout.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
-    fn SetTimeout(self, timeout: u32) -> ErrorResult {
+    fn SetTimeout(&self, timeout: u32) -> ErrorResult {
         if self.sync.get() {
             // FIXME: Not valid for a worker environment
             Err(InvalidAccess)
@@ -451,12 +451,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-withcredentials-attribute
-    fn WithCredentials(self) -> bool {
+    fn WithCredentials(&self) -> bool {
         self.with_credentials.get()
     }
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
-    fn SetWithCredentials(self, with_credentials: bool) -> ErrorResult {
+    fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
@@ -473,12 +473,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
-    fn Upload(self) -> Root<XMLHttpRequestUpload> {
+    fn Upload(&self) -> Root<XMLHttpRequestUpload> {
         self.upload.root()
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(self, data: Option<SendParam>) -> ErrorResult {
+    fn Send(&self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -610,7 +610,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-abort()-method
-    fn Abort(self) {
+    fn Abort(&self) {
         self.terminate_ongoing_fetch();
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
@@ -628,22 +628,22 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
-    fn ResponseURL(self) -> DOMString {
+    fn ResponseURL(&self) -> DOMString {
         self.response_url.clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-status-attribute
-    fn Status(self) -> u16 {
+    fn Status(&self) -> u16 {
         self.status.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-statustext-attribute
-    fn StatusText(self) -> ByteString {
+    fn StatusText(&self) -> ByteString {
         self.status_text.borrow().clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
-    fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
+    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&h.name().parse().unwrap())
         }).map(|h| {
@@ -652,17 +652,17 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
-    fn GetAllResponseHeaders(self) -> ByteString {
+    fn GetAllResponseHeaders(&self) -> ByteString {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
-    fn ResponseType(self) -> XMLHttpRequestResponseType {
+    fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
-    fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global.root() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
@@ -680,7 +680,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    fn Response(self, cx: *mut JSContext) -> JSVal {
+    fn Response(&self, cx: *mut JSContext) -> JSVal {
          let mut rval = RootedValue::new(cx, UndefinedValue());
          match self.response_type.get() {
             _empty | Text => {
@@ -716,7 +716,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
-    fn GetResponseText(self) -> Fallible<DOMString> {
+    fn GetResponseText(&self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
                 match self.ready_state.get() {
@@ -729,7 +729,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(self) -> Option<Root<Document>> {
+    fn GetResponseXML(&self) -> Option<Root<Document>> {
         self.response_xml.get().map(Root::from_rooted)
     }
 }

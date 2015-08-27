@@ -49,7 +49,7 @@ impl HTMLFontElement {
     }
 }
 
-impl<'a> HTMLFontElementMethods for &'a HTMLFontElement {
+impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Color, "color");
     make_setter!(SetColor, "color");
 }
