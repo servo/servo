@@ -83,7 +83,7 @@ fn redirect_to(host: String) -> MockResponse {
 }
 
 
-enum RequestType {
+enum ResponseType {
     Redirect(String),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers)
@@ -91,24 +91,24 @@ enum RequestType {
 
 struct MockRequest {
     headers: Headers,
-    t: RequestType
+    t: ResponseType
 }
 
 impl MockRequest {
-    fn new(t: RequestType) -> MockRequest {
+    fn new(t: ResponseType) -> MockRequest {
         MockRequest { headers: Headers::new(), t: t }
     }
 }
 
-fn response_for_request_type(t: RequestType) -> Result<MockResponse, LoadError> {
+fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError> {
     match t {
-        RequestType::Redirect(location) => {
+        ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
         },
-        RequestType::Text(b) => {
+        ResponseType::Text(b) => {
             Ok(respond_with(b))
         },
-        RequestType::WithHeaders(b, mut h) => {
+        ResponseType::WithHeaders(b, mut h) => {
             Ok(respond_with_headers(b, &mut h))
         }
     }
@@ -127,11 +127,11 @@ impl HttpRequest for MockRequest {
 struct AssertMustHaveHeadersRequest {
     expected_headers: Headers,
     request_headers: Headers,
-    t: RequestType
+    t: ResponseType
 }
 
 impl AssertMustHaveHeadersRequest {
-    fn new(t: RequestType, expected_headers: Headers) -> Self {
+    fn new(t: ResponseType, expected_headers: Headers) -> Self {
         AssertMustHaveHeadersRequest { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
@@ -165,7 +165,7 @@ impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
     fn create(&self, _: Url, _: Method) -> Result<AssertMustHaveHeadersRequest, LoadError> {
         Ok(
             AssertMustHaveHeadersRequest::new(
-                RequestType::Text(self.body.clone()),
+                ResponseType::Text(self.body.clone()),
                 self.expected_headers.clone()
             )
         )
@@ -187,11 +187,11 @@ fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &
 struct AssertMustHaveBodyRequest {
     expected_body: Option<Vec<u8>>,
     headers: Headers,
-    t: RequestType
+    t: ResponseType
 }
 
 impl AssertMustHaveBodyRequest {
-    fn new(t: RequestType, expected_body: Option<Vec<u8>>) -> Self {
+    fn new(t: ResponseType, expected_body: Option<Vec<u8>>) -> Self {
         AssertMustHaveBodyRequest { expected_body: expected_body, headers: Headers::new(), t: t }
     }
 }
@@ -218,10 +218,10 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         fn create(&self, url: Url, method: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 assert_eq!(Method::Post, method);
-                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
             } else {
                 assert_eq!(Method::Get, method);
-                Ok(MockRequest::new(RequestType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
+                Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
             }
         }
     }
@@ -248,7 +248,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
             let mut headers = Headers::new();
             headers.set_raw("Content-Encoding", vec![b"deflate".to_vec()]);
-            Ok(MockRequest::new(RequestType::WithHeaders(encoded_content, headers)))
+            Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
 
@@ -274,7 +274,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
             let mut headers = Headers::new();
             headers.set_raw("Content-Encoding", vec![b"gzip".to_vec()]);
-            Ok(MockRequest::new(RequestType::WithHeaders(encoded_content, headers)))
+            Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
 
@@ -297,14 +297,14 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(
                     AssertMustHaveBodyRequest::new(
-                        RequestType::Redirect("http://mozilla.org".to_string()),
+                        ResponseType::Redirect("http://mozilla.org".to_string()),
                         Some(<[_]>::to_vec("Body on POST!".as_bytes()))
                     )
                 )
             } else {
                 Ok(
                     AssertMustHaveBodyRequest::new(
-                        RequestType::Text(<[_]>::to_vec("Yay!".as_bytes())),
+                        ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())),
                         None
                     )
                 )
@@ -332,7 +332,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
-            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
 
@@ -360,7 +360,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
-            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
 
@@ -388,7 +388,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set_raw("set-cookie", vec![b"mozillaIs=theBest".to_vec()]);
-            Ok(MockRequest::new(RequestType::WithHeaders(content, headers)))
+            Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
 
@@ -490,9 +490,9 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
             } else if url.domain().unwrap() == "mozilla.org" {
-                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.com".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.com".to_string())))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -520,7 +520,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(RequestType::Redirect(format!("{}/1", url.serialize()))))
+                Ok(MockRequest::new(ResponseType::Redirect(format!("{}/1", url.serialize()))))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -548,11 +548,11 @@ fn test_load_follows_a_redirect() {
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
-                Ok(MockRequest::new(RequestType::Redirect("http://mozilla.org".to_string())))
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_string())))
             } else if url.domain().unwrap() == "mozilla.org" {
                 Ok(
                     MockRequest::new(
-                        RequestType::Text(
+                        ResponseType::Text(
                             <[_]>::to_vec("Yay!".as_bytes())
                         )
                     )
