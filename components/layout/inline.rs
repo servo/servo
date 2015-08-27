@@ -9,7 +9,7 @@ use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{EarlyAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
+use flow::{EarlyAbsolutePositionInfo, LAYERS_NEEDED_FOR_DESCENDANTS, MutableFlowUtils, OpaqueFlow};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
@@ -1465,6 +1465,7 @@ impl Flow for InlineFlow {
 
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
+        let mut layers_needed_for_descendants = false;
         let line_count = self.lines.len();
         for line_index in 0..line_count {
             let line = &mut self.lines[line_index];
@@ -1492,6 +1493,10 @@ impl Flow for InlineFlow {
 
             for fragment_index in line.range.each_index() {
                 let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
+
+                if fragment.needs_layer() && !fragment.is_positioned() {
+                    layers_needed_for_descendants = true
+                }
 
                 let InlineMetrics {
                     mut block_size_above_baseline,
@@ -1588,6 +1593,10 @@ impl Flow for InlineFlow {
             }
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
         }
+
+        // Mark ourselves for layerization if that will be necessary to paint in the proper
+        // order (CSS 2.1, Appendix E).
+        self.base.flags.set(LAYERS_NEEDED_FOR_DESCENDANTS, layers_needed_for_descendants);
 
         if self.contains_positioned_fragments() {
             // Assign block-sizes for all flows in this absolute flow tree.
@@ -1773,10 +1782,12 @@ impl Flow for InlineFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         let mut overflow = ZERO_RECT;
+        let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
+        let relative_containing_block_size =
+            &self.base.early_absolute_position_info.relative_containing_block_size;
         for fragment in &self.fragments.fragments {
-            overflow = overflow.union(&fragment.compute_overflow(
-                    &self.base.early_absolute_position_info.relative_containing_block_size,
-                    self.base.early_absolute_position_info.relative_containing_block_mode));
+            overflow = overflow.union(&fragment.compute_overflow(&flow_size,
+                                                                 &relative_containing_block_size))
         }
         overflow
     }

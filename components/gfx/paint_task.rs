@@ -17,8 +17,8 @@ use font_context::FontContext;
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
-use msg::compositor_msg::{LayerProperties, PaintListener};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
+use msg::compositor_msg::{ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::PipelineExitType;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -48,15 +48,22 @@ pub struct PaintLayer {
     pub background_color: Color,
     /// The stacking context that represents the content of this layer.
     pub stacking_context: Arc<StackingContext>,
+    /// The scrolling policy of this layer.
+    pub scroll_policy: ScrollPolicy,
 }
 
 impl PaintLayer {
     /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId, background_color: Color, stacking_context: Arc<StackingContext>) -> PaintLayer {
+    pub fn new(id: LayerId,
+               background_color: Color,
+               stacking_context: Arc<StackingContext>,
+               scroll_policy: ScrollPolicy)
+               -> PaintLayer {
         PaintLayer {
             id: id,
             background_color: background_color,
             stacking_context: stacking_context,
+            scroll_policy: scroll_policy,
         }
     }
 
@@ -355,9 +362,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             let transform = transform.mul(&paint_layer.stacking_context.transform);
             let perspective = perspective.mul(&paint_layer.stacking_context.perspective);
 
-            let overflow_size =
-                Size2D::new(paint_layer.stacking_context.overflow.size.width.to_nearest_px() as f32,
-                            paint_layer.stacking_context.overflow.size.height.to_nearest_px() as f32);
+            let overflow_size = Size2D::new(
+                paint_layer.stacking_context.overflow.size.width.to_nearest_px() as f32,
+                paint_layer.stacking_context.overflow.size.height.to_nearest_px() as f32);
 
             // Layers start at the top left of their overflow rect, as far as the info
             // we give to the compositor is concerned.
@@ -379,6 +386,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 perspective: perspective,
                 establishes_3d_context: paint_layer.stacking_context.establishes_3d_context,
                 scrolls_overflow_area: paint_layer.stacking_context.scrolls_overflow_area,
+                subpage_layer_info: paint_layer.stacking_context.subpage_layer_info,
             });
 
             // When there is a new layer, the transforms and origin are handled by the compositor,

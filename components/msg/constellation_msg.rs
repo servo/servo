@@ -7,7 +7,6 @@
 
 use canvas_traits::CanvasMsg;
 use compositor_msg::Epoch;
-use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
@@ -221,7 +220,7 @@ pub enum Msg {
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
     DOMLoad(PipelineId),
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    FrameSize(PipelineId, SubpageId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
@@ -273,6 +272,9 @@ pub enum Msg {
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
+    /// Requests that the pipeline ID of the subpage identified by a (pipeline ID, subpage ID)
+    /// pair be sent to the compositor via a `CreateLayerForSubpage` message.
+    PrepareForSubpageLayerCreation(PipelineId, SubpageId),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]

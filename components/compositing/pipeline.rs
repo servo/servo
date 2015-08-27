@@ -4,9 +4,10 @@
 
 use CompositorProxy;
 use compositor_task;
+use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
+use euclid::size::TypedSize2D;
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -39,6 +40,8 @@ pub struct Pipeline {
     pub script_chan: Sender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
+    /// A channel to the compositor.
+    pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
     pub layout_shutdown_port: Receiver<()>,
     pub paint_shutdown_port: Receiver<()>,
@@ -46,7 +49,7 @@ pub struct Pipeline {
     pub url: Url,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
-    pub rect: Option<TypedRect<PagePx, f32>>,
+    pub size: Option<TypedSize2D<PagePx, f32>>,
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
@@ -88,7 +91,7 @@ pub struct InitialPipelineState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: profile_mem::ProfilerChan,
     /// Information about the initial window size.
-    pub window_rect: Option<TypedRect<PagePx, f32>>,
+    pub window_size: Option<TypedSize2D<PagePx, f32>>,
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
     /// A channel to the script thread, if applicable. If this is `Some`,
@@ -116,10 +119,10 @@ impl Pipeline {
             parent_info: state.parent_info,
         };
 
-        let window_size = state.window_rect.map(|rect| {
+        let window_size = state.window_size.map(|size| {
             WindowSizeData {
-                visible_viewport: rect.size,
-                initial_viewport: rect.size * ScaleFactor::new(1.0),
+                visible_viewport: size,
+                initial_viewport: size * ScaleFactor::new(1.0),
                 device_pixel_ratio: state.device_pixel_ratio,
             }
         });
@@ -164,11 +167,12 @@ impl Pipeline {
                                      state.parent_info,
                                      script_chan.clone(),
                                      LayoutControlChan(pipeline_chan),
+                                     state.compositor_proxy.clone_compositor_proxy(),
                                      chrome_to_paint_chan.clone(),
                                      layout_shutdown_port,
                                      paint_shutdown_port,
                                      state.load_data.url.clone(),
-                                     state.window_rect);
+                                     state.window_size);
 
         let pipeline_content = PipelineContent {
             id: state.id,
@@ -203,24 +207,26 @@ impl Pipeline {
                parent_info: Option<(PipelineId, SubpageId)>,
                script_chan: Sender<ConstellationControlMsg>,
                layout_chan: LayoutControlChan,
+               compositor_proxy: Box<CompositorProxy + 'static + Send>,
                chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
                layout_shutdown_port: Receiver<()>,
                paint_shutdown_port: Receiver<()>,
                url: Url,
-               rect: Option<TypedRect<PagePx, f32>>)
+               size: Option<TypedSize2D<PagePx, f32>>)
                -> Pipeline {
         Pipeline {
             id: id,
             parent_info: parent_info,
             script_chan: script_chan,
             layout_chan: layout_chan,
+            compositor_proxy: compositor_proxy,
             chrome_to_paint_chan: chrome_to_paint_chan,
             layout_shutdown_port: layout_shutdown_port,
             paint_shutdown_port: paint_shutdown_port,
             url: url,
             title: None,
             children: vec!(),
-            rect: rect,
+            size: size,
             running_animations: false,
         }
     }
@@ -239,13 +245,17 @@ impl Pipeline {
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
-        if self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
+        if self.script_chan
+               .send(ConstellationControlMsg::ExitPipeline(self.id, exit_type))
+               .is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.paint_shutdown_port.recv();
             let _ = self.layout_shutdown_port.recv();
         }
 
+        // The compositor wants to know when pipelines shut down too.
+        self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id))
     }
 
     pub fn freeze(&self) {

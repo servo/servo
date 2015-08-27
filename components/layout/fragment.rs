@@ -22,7 +22,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
@@ -2102,6 +2102,16 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
+    /// Returns true if this fragment unconditionally layerizes.
+    pub fn needs_layer(&self) -> bool {
+        // Canvas and iframes always layerize, as an special case
+        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
+        match self.specific {
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
+            _ => false,
+        }
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         if self.flags.contains(HAS_LAYER) {
@@ -2126,9 +2136,7 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // Canvas always layerizes, as an special case
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
-        if let SpecificFragmentInfo::Canvas(_) = self.specific {
+        if self.needs_layer() {
             return true
         }
 
@@ -2161,12 +2169,10 @@ impl Fragment {
 
     /// Computes the overflow rect of this fragment relative to the start of the flow.
     pub fn compute_overflow(&self,
-                            relative_containing_block_size: &LogicalSize<Au>,
-                            relative_containing_block_mode: WritingMode)
+                            flow_size: &Size2D<Au>,
+                            relative_containing_block_size: &LogicalSize<Au>)
                             -> Rect<Au> {
-        let container_size =
-            relative_containing_block_size.to_physical(relative_containing_block_mode);
-        let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+        let mut border_box = self.border_box.to_physical(self.style.writing_mode, *flow_size);
 
         // Relative position can cause us to draw outside our border box.
         //
@@ -2207,23 +2213,6 @@ impl Fragment {
         // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
         // box too.
         overflow
-    }
-
-    /// Remove any compositor layers associated with this fragment - it is being
-    /// removed from the tree or had its display property set to none.
-    /// TODO(gw): This just hides the compositor layer for now. In the future
-    /// it probably makes sense to provide a hint to the compositor whether
-    /// the layers should be destroyed to free memory.
-    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
-        match self.specific {
-            SpecificFragmentInfo::Iframe(ref iframe_info) => {
-                let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(Msg::FrameRect(iframe_info.pipeline_id,
-                                         iframe_info.subpage_id,
-                                         Rect::zero())).unwrap();
-            }
-            _ => {}
-        }
     }
 
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {

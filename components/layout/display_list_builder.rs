@@ -14,13 +14,12 @@ use azure::azure_hl::Color;
 use block::BlockFlow;
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::Matrix4;
-use euclid::{Point2D, Point3D, Rect, SideOffsets2D, Size2D};
+use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::{CoordinateSystem, Fragment, HAS_LAYER, IframeFragmentInfo, ImageFragmentInfo};
-use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
@@ -35,9 +34,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use msg::compositor_msg::{LayerId, ScrollPolicy};
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::compositor_msg::{LayerId, ScrollPolicy, SubpageLayerInfo};
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_task::UsePlaceholder;
 use std::default::Default;
@@ -70,7 +67,7 @@ const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 /// Whether a stacking context needs a layer or not.
 pub enum StackingContextLayerNecessity {
     Always(LayerId, ScrollPolicy),
-    IfCanvas(LayerId),
+    IfCanvasOrIframe(LayerId),
 }
 
 /// The results of display list building for a single flow.
@@ -206,13 +203,6 @@ pub trait FragmentDisplayListBuilding {
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>);
 
-    /// Sends the size and position of this iframe fragment to the constellation. This is out of
-    /// line to guide inlining.
-    fn finalize_position_and_size_of_iframe(&self,
-                                            iframe_fragment: &IframeFragmentInfo,
-                                            offset: Point2D<Au>,
-                                            layout_context: &LayoutContext);
-
     /// Returns the appropriate clipping region for descendants of this fragment.
     fn clipping_region_for_children(&self,
                                     current_clip: &ClippingRegion,
@@ -270,7 +260,6 @@ pub trait FragmentDisplayListBuilding {
                                needs_layer: StackingContextLayerNecessity,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
-
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -1060,28 +1049,6 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     &stacking_relative_border_box,
                                                     &clip)
         }
-
-        // If this is an iframe, then send its position and size up to the constellation.
-        //
-        // FIXME(pcwalton): Doing this during display list construction seems potentially
-        // problematic if iframes are outside the area we're computing the display list for, since
-        // they won't be able to reflow at all until the user scrolls to them. Perhaps we should
-        // separate this into two parts: first we should send the size only to the constellation
-        // once that's computed during assign-block-sizes, and second we should should send the
-        // origin to the constellation here during display list construction. This should work
-        // because layout for the iframe only needs to know size, and origin is only relevant if
-        // the iframe is actually going to be displayed.
-        if let SpecificFragmentInfo::Iframe(ref iframe_fragment) = self.specific {
-            let stacking_relative_border_box_in_parent_coordinate_system =
-                self.stacking_relative_border_box(stacking_relative_flow_origin,
-                                                  relative_containing_block_size,
-                                                  relative_containing_block_mode,
-                                                  CoordinateSystem::Parent);
-            self.finalize_position_and_size_of_iframe(
-                &**iframe_fragment,
-                stacking_relative_border_box_in_parent_coordinate_system.origin,
-                layout_context)
-        }
     }
 
     fn build_fragment_type_specific_display_items(&mut self,
@@ -1317,15 +1284,18 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        // Ensure every canvas has a layer
+        // Ensure every canvas or iframe has a layer.
         let (scroll_policy, layer_id) = match needs_layer {
-            StackingContextLayerNecessity::Always(layer_id, scroll_policy) =>
-                (scroll_policy, Some(layer_id)),
-            StackingContextLayerNecessity::IfCanvas(layer_id) => {
-                if let SpecificFragmentInfo::Canvas(_) = self.specific {
-                    (ScrollPolicy::Scrollable, Some(layer_id))
-                } else {
-                    (ScrollPolicy::Scrollable, None)
+            StackingContextLayerNecessity::Always(layer_id, scroll_policy) => {
+                (scroll_policy, Some(layer_id))
+            }
+            StackingContextLayerNecessity::IfCanvasOrIframe(layer_id) => {
+                // FIXME(pcwalton): So so bogus :(
+                match self.specific {
+                    SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => {
+                        (ScrollPolicy::Scrollable, Some(layer_id))
+                    }
+                    _ => (ScrollPolicy::Scrollable, None),
                 }
             }
         };
@@ -1340,6 +1310,18 @@ impl FragmentDisplayListBuilding for Fragment {
                               .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
             }
         }
+
+        let subpage_layer_info = match self.specific {
+            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
+                let border_padding = self.border_padding.to_physical(self.style().writing_mode);
+                Some(SubpageLayerInfo {
+                    pipeline_id: iframe_fragment_info.pipeline_id,
+                    subpage_id: iframe_fragment_info.subpage_id,
+                    origin: Point2D::new(border_padding.left, border_padding.top),
+                })
+            }
+            _ => None,
+        };
 
         let scrolls_overflow_area = mode == StackingContextCreationMode::OuterScrollWrapper;
         let transform_style = self.style().get_used_transform_style();
@@ -1357,28 +1339,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                       establishes_3d_context,
                                       scrolls_overflow_area,
                                       scroll_policy,
-                                      layer_id))
-    }
-
-    #[inline(never)]
-    fn finalize_position_and_size_of_iframe(&self,
-                                            iframe_fragment: &IframeFragmentInfo,
-                                            offset: Point2D<Au>,
-                                            layout_context: &LayoutContext) {
-        let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
-        let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-        let iframe_rect = Rect::new(Point2D::new((offset.x + border_padding.left).to_f32_px(),
-                                                 (offset.y + border_padding.top).to_f32_px()),
-                                    Size2D::new(content_size.width.to_f32_px(),
-                                                content_size.height.to_f32_px()));
-
-        debug!("finalizing position and size of iframe for {:?},{:?}",
-               iframe_fragment.pipeline_id,
-               iframe_fragment.subpage_id);
-        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
-        chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
-                                              iframe_fragment.subpage_id,
-                                              iframe_rect)).unwrap();
+                                      layer_id,
+                                      subpage_layer_info))
     }
 
     fn clipping_region_for_children(&self,
@@ -1643,7 +1605,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                    StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
@@ -1720,7 +1682,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                             &self.base,
                             display_list,
                             layout_context,
-                            StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                            StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
                             StackingContextCreationMode::Normal));
             }
             return
@@ -1785,7 +1747,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                    StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
@@ -1871,13 +1833,17 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
         // and remove the check for filter presence. Further details on #5812.
-        has_stacking_context = has_stacking_context && {
-            if let SpecificFragmentInfo::Canvas(_) = self.fragments.fragments[0].specific {
-                true
-            } else {
-                !self.fragments.fragments[0].style().get_effects().filter.is_empty()
+        //
+        // FIXME(#7424, pcwalton): This is terribly bogus! What is even going on here?
+        if has_stacking_context {
+            match self.fragments.fragments[0].specific {
+                SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => {}
+                _ => {
+                    has_stacking_context =
+                        !self.fragments.fragments[0].style().get_effects().filter.is_empty()
+                }
             }
-        };
+        }
 
         self.base.display_list_building_result = if has_stacking_context {
             DisplayListBuildingResult::StackingContext(
@@ -1885,7 +1851,8 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                    StackingContextLayerNecessity::Always(self.layer_id(),
+                                                          ScrollPolicy::Scrollable),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)

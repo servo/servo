@@ -100,7 +100,6 @@ impl CompositorEventListener for NullCompositor {
             // SetFrameTree.
 
             Msg::InitializeLayersForPipeline(..) |
-            Msg::SetLayerRect(..) |
             Msg::AssignPaintedBuffers(..) |
             Msg::ScrollFragmentPoint(..) |
             Msg::Status(..) |
@@ -122,6 +121,8 @@ impl CompositorEventListener for NullCompositor {
             Msg::HeadParsed => {}
             Msg::ReturnUnusedNativeSurfaces(..) => {}
             Msg::CollectMemoryReports(..) => {}
+            Msg::PipelineExited(..) => {}
+            Msg::CreateLayerForSubpage(..) => {}
         }
         true
     }
