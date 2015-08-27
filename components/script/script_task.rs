@@ -940,7 +940,7 @@ impl ScriptTask {
             match self.perf_profiler_next_report.get() {
                 None => self.perf_profiler_next_report.set(Some(start + REPORT_INTERVAL)),
                 Some(time) if time <= end => {
-                    self.perf_profiler_next_report.set(None);
+                    self.perf_profiler_next_report.set(Some(end + REPORT_INTERVAL));
 
                     let stdout = stdout();
                     let mut stdout = stdout.lock();
