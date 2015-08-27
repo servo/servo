@@ -1468,8 +1468,7 @@ pub mod longhands {
                         PositionCategory::VerticalKeyword,
                     specified::PositionComponent::Center =>
                         PositionCategory::OtherKeyword,
-                    specified::PositionComponent::Length(_) |
-                    specified::PositionComponent::Percentage(_) =>
+                    specified::PositionComponent::LengthOrPercentage(_) =>
                         PositionCategory::LengthOrPercentage,
                 }
             }
