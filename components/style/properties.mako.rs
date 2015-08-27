@@ -1894,14 +1894,22 @@ pub mod longhands {
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            let value = try!(input.try(specified::LengthOrPercentage::parse_non_negative));
-            match value {
-                specified::LengthOrPercentage::Length(value) => Ok(value),
+            input.try(specified::LengthOrPercentage::parse_non_negative)
+            .map(|value| match value {
+                specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
-                    Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0))),
-                // FIXME(dzbarsky) handle calc for font-size
-                specified::LengthOrPercentage::Calc(_) => return Err(())
-            }
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0)),
+                specified::LengthOrPercentage::Calc(mut calc) => {
+                    if let Some(specified::Percentage(percentage)) = calc.percentage {
+                        calc.em = Some(specified::FontRelativeLength::Em(match calc.em {
+                            Some(specified::FontRelativeLength::Em(em)) => em + percentage,
+                            _ => percentage
+                        }));
+                        calc.percentage = None;
+                    }
+                    specified::Length::Calc(calc)
+                }
+            })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
                     "xx-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
