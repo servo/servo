@@ -7,32 +7,28 @@
 
 use compositor_msg::Epoch;
 
-use canvas_traits::CanvasMsg;
-use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
-use offscreen_gl_context::GLContextAttributes;
 use png::Image;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use style::viewport::ViewportConstraints;
 use url::Url;
-use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
 use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
 
 #[derive(Clone)]
-pub struct ConstellationChan(pub Sender<Msg>);
+pub struct CompositorConstellationChan(pub Sender<MsgFromCompositor>);
 
-impl ConstellationChan {
-    pub fn new() -> (Receiver<Msg>, ConstellationChan) {
+impl CompositorConstellationChan {
+    pub fn new() -> (Receiver<MsgFromCompositor>, CompositorConstellationChan) {
         let (chan, port) = channel();
-        (port, ConstellationChan(chan))
+        (port, CompositorConstellationChan(chan))
     }
 }
 
@@ -213,18 +209,13 @@ pub enum FocusType {
     Parent,     // Focusing a parent element (an iframe)
 }
 
-/// Messages from the compositor and script to the constellation.
+/// Messages from the compositor to the constellation.
 #[derive(Deserialize, Serialize)]
-pub enum Msg {
+pub enum MsgFromCompositor {
     Exit,
     Failure(Failure),
     InitLoadUrl(Url),
-    LoadComplete(PipelineId),
-    /// Dispatched after the DOM load event has fired on a document
-    DOMLoad(PipelineId),
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),
@@ -232,12 +223,6 @@ pub enum Msg {
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
     GetPipelineTitle(PipelineId),
-    /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursor(Cursor),
-    /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// Indicates whether this pipeline is currently running animations.
-    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId),
     /// Request that the constellation send the current pipeline id for the provided frame
@@ -246,34 +231,12 @@ pub enum Msg {
     /// Request that the constellation send the FrameId corresponding to the document
     /// with the provided parent pipeline id and subpage id
     GetFrame(PipelineId, SubpageId, IpcSender<Option<FrameId>>),
-    /// Notifies the constellation that this frame has received focus.
-    Focus(PipelineId),
-    /// Requests that the constellation retrieve the current contents of the clipboard
-    GetClipboardContents(IpcSender<String>),
-    /// Requests that the constellation set the contents of the clipboard
-    SetClipboardContents(String),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId, SubpageId),
-    /// Favicon detected
-    NewFavicon(Url),
-    /// <head> tag finished parsing
-    HeadParsed,
-    /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
-    /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateCanvasPaintTask(Size2D<i32>, IpcSender<(IpcSender<CanvasMsg>, usize)>),
-    /// Requests that a new WebGL thread be created. (This is done in the constellation because
-    /// WebGL uses the GPU and we don't want to give untrusted content access to the GPU.)
-    CreateWebGLPaintTask(Size2D<i32>,
-                         GLContextAttributes,
-                         IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
-    /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
-    NodeStatus(Option<String>),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]

@@ -3,16 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
-use constellation_msg::{Key, KeyState, KeyModifiers};
+use constellation_msg::{Key, KeyState, KeyModifiers, PipelineId};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
-use std::fmt;
-use std::fmt::{Formatter, Debug};
-
-use constellation_msg::PipelineId;
+use std::fmt::{self, Formatter, Debug};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
@@ -124,4 +121,3 @@ pub enum ScriptToCompositorMsg {
     SendKeyEvent(Key, KeyState, KeyModifiers),
     Exit,
 }
-

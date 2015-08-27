@@ -16,15 +16,15 @@ use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use gfx_traits::paint_task::{ChromeToPaintMsg, PaintRequest};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
-use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
-use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::PipelineExitType;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
-use profile_traits::mem::{self, ReportsChan};
+use msg::compositor_msg::{Epoch, LayerId, LayerKind, LayerProperties, PaintListener};
+use msg::constellation_msg::CompositorConstellationChan as ConstellationChan;
+use msg::constellation_msg::MsgFromCompositor as ConstellationMsg;
+use msg::constellation_msg::{Failure, PipelineId, PipelineExitType};
+use profile_traits::mem;
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};
 use skia::gl_context::GLContext;
@@ -40,36 +40,6 @@ use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
-/// Information about a hardware graphics layer that layout sends to the painting task.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct PaintLayer {
-    /// A per-pipeline ID describing this layer that should be stable across reflows.
-    pub id: LayerId,
-    /// The color of the background in this layer. Used for unpainted content.
-    pub background_color: Color,
-    /// The scrolling policy of this layer.
-    pub scroll_policy: ScrollPolicy,
-}
-
-impl PaintLayer {
-    /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> PaintLayer {
-        PaintLayer {
-            id: id,
-            background_color: background_color,
-            scroll_policy: scroll_policy,
-        }
-    }
-}
-
-pub struct PaintRequest {
-    pub buffer_requests: Vec<BufferRequest>,
-    pub scale: f32,
-    pub layer_id: LayerId,
-    pub epoch: Epoch,
-    pub layer_kind: LayerKind,
-}
-
 pub enum Msg {
     FromLayout(LayoutToPaintMsg),
     FromChrome(ChromeToPaintMsg),
@@ -79,14 +49,6 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, Arc<StackingContext>),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
-}
-
-pub enum ChromeToPaintMsg {
-    Paint(Vec<PaintRequest>, FrameTreeId),
-    PaintPermissionGranted,
-    PaintPermissionRevoked,
-    CollectReports(ReportsChan),
     Exit(Option<IpcSender<()>>, PipelineExitType),
 }
 

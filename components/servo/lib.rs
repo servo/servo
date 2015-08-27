@@ -39,8 +39,8 @@ use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::CompositorConstellationChan as ConstellationChan;
+use msg::constellation_msg::MsgFromCompositor as ConstellationMsg;
 
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;

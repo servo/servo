@@ -16,14 +16,24 @@ path = "../net_traits"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.style]
+path = "../style"
+
 [dependencies.util]
 path = "../util"
+
+[dependencies.canvas_traits]
+path = "../canvas_traits"
 
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+features = ["texture_surface"]
 
 [dependencies.url]
 version = "0.2"
@@ -34,4 +44,3 @@ libc = "0.1"
 euclid = "0.1"
 serde = "0.5"
 serde_macros = "0.5"
-

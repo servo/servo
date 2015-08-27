@@ -26,7 +26,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
 use textinput::TextInput;

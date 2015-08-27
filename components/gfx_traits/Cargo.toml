@@ -7,5 +7,21 @@ authors = ["The Servo Project Developers"]
 name = "gfx_traits"
 path = "lib.rs"
 
+[dependencies]
+serde = "0.5"
+serde_macros = "0.5"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+
+[dependencies.ipc-channel]
+git = "https://github.com/pcwalton/ipc-channel"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.profile_traits]
+path = "../profile_traits"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"

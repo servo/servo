@@ -20,10 +20,10 @@ use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
-
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::{load_whole_resource, ResourceTask};
 use profile_traits::mem;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use util::str::DOMString;
 
 use ipc_channel::ipc::IpcSender;

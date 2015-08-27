@@ -19,9 +19,9 @@ extern crate rustc_serialize;
 extern crate uuid;
 extern crate ipc_channel;
 
-use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
-use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
+use msg::constellation_msg::CompositorConstellationChan as ConstellationChan;
+use msg::constellation_msg::MsgFromCompositor as ConstellationMsg;
+use msg::constellation_msg::{LoadData, FrameId, PipelineId, NavigationDirection, WebDriverCommandMsg};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
 
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};

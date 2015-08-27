@@ -4,6 +4,7 @@
 
 #![feature(box_syntax)]
 #![feature(iter_cmp)]
+#![feature(mpsc_select)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
 
@@ -58,4 +59,3 @@ mod scrolling;
 pub mod pipeline;
 pub mod constellation;
 pub mod windowing;
-
