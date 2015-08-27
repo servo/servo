@@ -73,20 +73,20 @@ impl TextDecoder {
 }
 
 
-impl<'a> TextDecoderMethods for &'a TextDecoder {
+impl TextDecoderMethods for TextDecoder {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
-    fn Encoding(self) -> DOMString {
+    fn Encoding(&self) -> DOMString {
         self.encoding.whatwg_name().unwrap().to_owned()
     }
 
     // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal
-    fn Fatal(self) -> bool {
+    fn Fatal(&self) -> bool {
         self.fatal
     }
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
-    fn Decode(self, _cx: *mut JSContext, input: Option<*mut JSObject>)
+    fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,

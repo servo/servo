@@ -86,9 +86,9 @@ impl Blob {
     }
 }
 
-impl<'a> BlobMethods for &'a Blob {
+impl BlobMethods for Blob {
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-size
-    fn Size(self) -> u64 {
+    fn Size(&self) -> u64 {
         match self.bytes {
             None => 0,
             Some(ref bytes) => bytes.len() as u64
@@ -96,12 +96,12 @@ impl<'a> BlobMethods for &'a Blob {
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         self.typeString.clone()
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo
-    fn Slice(self, start: Option<i64>, end: Option<i64>,
+    fn Slice(&self, start: Option<i64>, end: Option<i64>,
              contentType: Option<DOMString>) -> Root<Blob> {
         let size: i64 = self.Size().to_i64().unwrap();
         let relativeStart: i64 = match start {
@@ -149,12 +149,12 @@ impl<'a> BlobMethods for &'a Blob {
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-isClosed
-    fn IsClosed(self) -> bool {
+    fn IsClosed(&self) -> bool {
         self.isClosed_.get()
     }
 
     // https://dev.w3.org/2006/webapi/FileAPI/#dfn-close
-    fn Close(self) {
+    fn Close(&self) {
         // Step 1
         if self.isClosed_.get() {
             return;

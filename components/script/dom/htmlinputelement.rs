@@ -216,7 +216,7 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     }
 }
 
-impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
+impl HTMLInputElementMethods for HTMLInputElement {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
@@ -230,12 +230,12 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_bool_setter!(SetDefaultChecked, "checked");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
-    fn Checked(self) -> bool {
+    fn Checked(&self) -> bool {
         self.checked.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
-    fn SetChecked(self, checked: bool) {
+    fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
     }
 
@@ -262,12 +262,12 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
         self.force_relayout();
@@ -317,12 +317,12 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
-    fn Indeterminate(self) -> bool {
+    fn Indeterminate(&self) -> bool {
         self.indeterminate.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
-    fn SetIndeterminate(self, val: bool) {
+    fn SetIndeterminate(&self, val: bool) {
         self.indeterminate.set(val)
     }
 }

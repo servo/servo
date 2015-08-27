@@ -153,9 +153,9 @@ impl Worker {
     }
 }
 
-impl<'a> WorkerMethods for &'a Worker {
+impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();

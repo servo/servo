@@ -251,7 +251,7 @@ impl FileReader {
     }
 }
 
-impl<'a> FileReaderMethods for &'a FileReader {
+impl FileReaderMethods for FileReader {
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
     event_handler!(progress, GetOnprogress, SetOnprogress);
     event_handler!(load, GetOnload, SetOnload);
@@ -261,17 +261,17 @@ impl<'a> FileReaderMethods for &'a FileReader {
 
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(self, blob: &Blob) -> ErrorResult {
+    fn ReadAsDataURL(&self, blob: &Blob) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsDataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsText, blob, label)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-abort
-    fn Abort(self) {
+    fn Abort(&self) {
         // Step 2
         if self.ready_state.get() == FileReaderReadyState::Loading {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -290,17 +290,17 @@ impl<'a> FileReaderMethods for &'a FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
-    fn GetError(self) -> Option<Root<DOMException>> {
+    fn GetError(&self) -> Option<Root<DOMException>> {
         self.error.get().map(|error| error.root())
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result
-    fn GetResult(self) -> Option<DOMString> {
+    fn GetResult(&self) -> Option<DOMString> {
         self.result.borrow().clone()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readyState
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 }

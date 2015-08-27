@@ -34,19 +34,19 @@ impl WebGLActiveInfo {
     }
 }
 
-impl<'a> WebGLActiveInfoMethods for &'a WebGLActiveInfo {
+impl WebGLActiveInfoMethods for WebGLActiveInfo {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
-    fn Size(self) -> i32 {
+    fn Size(&self) -> i32 {
         self.size
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
-    fn Type(self) -> u32 {
+    fn Type(&self) -> u32 {
         self.ty
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
-    fn Name(self) -> DOMString {
+    fn Name(&self) -> DOMString {
         self.name.clone()
     }
 }

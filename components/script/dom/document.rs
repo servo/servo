@@ -1127,19 +1127,19 @@ impl Node {
     }
 }
 
-impl<'a> DocumentMethods for &'a Document {
+impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-implementation
-    fn Implementation(self) -> Root<DOMImplementation> {
+    fn Implementation(&self) -> Root<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-url
-    fn URL(self) -> DOMString {
+    fn URL(&self) -> DOMString {
         self.url().serialize()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
-    fn GetActiveElement(self) -> Option<Root<Element>> {
+    fn GetActiveElement(&self) -> Option<Root<Element>> {
         // TODO: Step 2.
 
         match self.get_focused_element() {
@@ -1152,7 +1152,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-hasfocus
-    fn HasFocus(self) -> bool {
+    fn HasFocus(&self) -> bool {
         let target = self;                                                        // Step 1.
         let window = self.window.root();
         let window = window.r();
@@ -1173,12 +1173,12 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
-    fn DocumentURI(self) -> DOMString {
+    fn DocumentURI(&self) -> DOMString {
         self.URL()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-compatmode
-    fn CompatMode(self) -> DOMString {
+    fn CompatMode(&self) -> DOMString {
         match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_owned(),
             Quirks => "BackCompat".to_owned()
@@ -1186,22 +1186,22 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
-    fn CharacterSet(self) -> DOMString {
+    fn CharacterSet(&self) -> DOMString {
         self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-inputencoding
-    fn InputEncoding(self) -> DOMString {
+    fn InputEncoding(&self) -> DOMString {
         self.encoding_name.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-content_type
-    fn ContentType(self) -> DOMString {
+    fn ContentType(&self) -> DOMString {
         self.content_type.clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
-    fn GetDoctype(self) -> Option<Root<DocumentType>> {
+    fn GetDoctype(&self) -> Option<Root<DocumentType>> {
         let node = NodeCast::from_ref(self);
         node.children()
             .filter_map(|c| DocumentTypeCast::to_ref(c.r()).map(Root::from_ref))
@@ -1209,39 +1209,39 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
-    fn GetDocumentElement(self) -> Option<Root<Element>> {
+    fn GetDocumentElement(&self) -> Option<Root<Element>> {
         let node = NodeCast::from_ref(self);
         node.child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
-    fn GetElementsByTagName(self, tag_name: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), tag_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
-    fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>, tag_name: DOMString)
+    fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
-    fn GetElementsByClassName(self, classes: DOMString) -> Root<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = self.window.root();
 
         HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
-    fn GetElementById(self, id: DOMString) -> Option<Root<Element>> {
+    fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
         let id = Atom::from_slice(&id);
         self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
-    fn CreateElement(self, mut local_name: DOMString) -> Fallible<Root<Element>> {
+    fn CreateElement(&self, mut local_name: DOMString) -> Fallible<Root<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
@@ -1254,7 +1254,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
-    fn CreateElementNS(self,
+    fn CreateElementNS(&self,
                        namespace: Option<DOMString>,
                        qualified_name: DOMString) -> Fallible<Root<Element>> {
         let (namespace, prefix, local_name) =
@@ -1264,7 +1264,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
-    fn CreateAttribute(self, local_name: DOMString) -> Fallible<Root<Attr>> {
+    fn CreateAttribute(&self, local_name: DOMString) -> Fallible<Root<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
@@ -1280,7 +1280,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
-    fn CreateAttributeNS(self, namespace: Option<DOMString>, qualified_name: DOMString)
+    fn CreateAttributeNS(&self, namespace: Option<DOMString>, qualified_name: DOMString)
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
@@ -1292,22 +1292,22 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    fn CreateDocumentFragment(self) -> Root<DocumentFragment> {
+    fn CreateDocumentFragment(&self) -> Root<DocumentFragment> {
         DocumentFragment::new(self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtextnode
-    fn CreateTextNode(self, data: DOMString) -> Root<Text> {
+    fn CreateTextNode(&self, data: DOMString) -> Root<Text> {
         Text::new(data, self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createcomment
-    fn CreateComment(self, data: DOMString) -> Root<Comment> {
+    fn CreateComment(&self, data: DOMString) -> Root<Comment> {
         Comment::new(data, self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
-    fn CreateProcessingInstruction(self, target: DOMString, data: DOMString) ->
+    fn CreateProcessingInstruction(&self, target: DOMString, data: DOMString) ->
             Fallible<Root<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(&target) == InvalidXMLName {
@@ -1324,7 +1324,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-importnode
-    fn ImportNode(self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
+    fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -1340,7 +1340,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(self, node: &Node) -> Fallible<Root<Node>> {
+    fn AdoptNode(&self, node: &Node) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
             return Err(NotSupported);
@@ -1354,7 +1354,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createevent
-    fn CreateEvent(self, interface: DOMString) -> Fallible<Root<Event>> {
+    fn CreateEvent(&self, interface: DOMString) -> Fallible<Root<Event>> {
         let window = self.window.root();
 
         match &*interface.to_ascii_lowercase() {
@@ -1375,7 +1375,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-lastmodified
-    fn LastModified(self) -> DOMString {
+    fn LastModified(&self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
             None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string(),
@@ -1383,24 +1383,24 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
-    fn CreateRange(self) -> Root<Range> {
+    fn CreateRange(&self) -> Root<Range> {
         Range::new_with_doc(self)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
-    fn CreateNodeIterator(self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
+    fn CreateNodeIterator(&self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
                         -> Root<NodeIterator> {
         NodeIterator::new(self, root, whatToShow, filter)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
-    fn CreateTreeWalker(self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
+    fn CreateTreeWalker(&self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
                         -> Root<TreeWalker> {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
     // https://html.spec.whatwg.org/#document.title
-    fn Title(self) -> DOMString {
+    fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
                 // Step 1.
@@ -1427,7 +1427,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#document.title
-    fn SetTitle(self, title: DOMString) {
+    fn SetTitle(&self, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -1478,7 +1478,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-head
-    fn GetHead(self) -> Option<Root<HTMLHeadElement>> {
+    fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
             node.children()
@@ -1488,12 +1488,12 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-currentscript
-    fn GetCurrentScript(self) -> Option<Root<HTMLScriptElement>> {
+    fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
         self.current_script.get().map(Root::from_rooted)
     }
 
     // https://html.spec.whatwg.org/#dom-document-body
-    fn GetBody(self) -> Option<Root<HTMLElement>> {
+    fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
             node.children().find(|child| {
@@ -1509,7 +1509,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-body
-    fn SetBody(self, new_body: Option<&HTMLElement>) -> ErrorResult {
+    fn SetBody(&self, new_body: Option<&HTMLElement>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
@@ -1552,7 +1552,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-getelementsbyname
-    fn GetElementsByName(self, name: DOMString) -> Root<NodeList> {
+    fn GetElementsByName(&self, name: DOMString) -> Root<NodeList> {
         self.create_node_list(|node| {
             let element = match ElementCast::to_ref(node) {
                 Some(element) => element,
@@ -1568,7 +1568,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-images
-    fn Images(self) -> Root<HTMLCollection> {
+    fn Images(&self) -> Root<HTMLCollection> {
         self.images.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1578,7 +1578,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-embeds
-    fn Embeds(self) -> Root<HTMLCollection> {
+    fn Embeds(&self) -> Root<HTMLCollection> {
         self.embeds.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1588,12 +1588,12 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-plugins
-    fn Plugins(self) -> Root<HTMLCollection> {
+    fn Plugins(&self) -> Root<HTMLCollection> {
         self.Embeds()
     }
 
     // https://html.spec.whatwg.org/#dom-document-links
-    fn Links(self) -> Root<HTMLCollection> {
+    fn Links(&self) -> Root<HTMLCollection> {
         self.links.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1603,7 +1603,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-forms
-    fn Forms(self) -> Root<HTMLCollection> {
+    fn Forms(&self) -> Root<HTMLCollection> {
         self.forms.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1613,7 +1613,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-scripts
-    fn Scripts(self) -> Root<HTMLCollection> {
+    fn Scripts(&self) -> Root<HTMLCollection> {
         self.scripts.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1623,7 +1623,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-anchors
-    fn Anchors(self) -> Root<HTMLCollection> {
+    fn Anchors(&self) -> Root<HTMLCollection> {
         self.anchors.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
@@ -1633,7 +1633,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-applets
-    fn Applets(self) -> Root<HTMLCollection> {
+    fn Applets(&self) -> Root<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
             let window = self.window.root();
@@ -1644,67 +1644,67 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/#dom-document-location
-    fn Location(self) -> Root<Location> {
+    fn Location(&self) -> Root<Location> {
         let window = self.window.root();
         let window = window.r();
         self.location.or_init(|| Location::new(window))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(self) -> Root<HTMLCollection> {
+    fn Children(&self) -> Root<HTMLCollection> {
         let window = self.window.root();
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(self) -> Option<Root<Element>> {
+    fn GetFirstElementChild(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(self) -> Option<Root<Element>> {
+    fn GetLastElementChild(&self) -> Option<Root<Element>> {
         NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
-    fn ChildElementCount(self) -> u32 {
+    fn ChildElementCount(&self) -> u32 {
         NodeCast::from_ref(self).child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn Prepend(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn Append(self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         NodeCast::from_ref(self).append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         let root = NodeCast::from_ref(self);
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(self, selectors: DOMString) -> Fallible<Root<NodeList>> {
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let root = NodeCast::from_ref(self);
         root.query_selector_all(selectors)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-readystate
-    fn ReadyState(self) -> DocumentReadyState {
+    fn ReadyState(&self) -> DocumentReadyState {
         self.ready_state.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
-    fn DefaultView(self) -> Root<Window> {
+    fn DefaultView(&self) -> Root<Window> {
         self.window.root()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
-    fn GetCookie(self) -> Fallible<DOMString> {
+    fn GetCookie(&self) -> Fallible<DOMString> {
         //TODO: return empty string for cookie-averse Document
         let url = self.url();
         if !is_scheme_host_port_tuple(&url) {
@@ -1718,7 +1718,7 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
-    fn SetCookie(self, cookie: DOMString) -> ErrorResult {
+    fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
         //TODO: ignore for cookie-averse Document
         let url = self.url();
         if !is_scheme_host_port_tuple(&url) {
@@ -1730,17 +1730,17 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
-    fn BgColor(self) -> DOMString {
+    fn BgColor(&self) -> DOMString {
         self.get_body_attribute(&atom!("bgcolor"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
-    fn SetBgColor(self, value: DOMString) {
+    fn SetBgColor(&self, value: DOMString) {
         self.set_body_attribute(&atom!("bgcolor"), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
+    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
                    -> *mut JSObject {
         #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
@@ -1826,23 +1826,23 @@ impl<'a> DocumentMethods for &'a Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#document
-    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-clear
-    fn Clear(self) {
+    fn Clear(&self) {
         // This method intentionally does nothing
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-captureevents
-    fn CaptureEvents(self) {
+    fn CaptureEvents(&self) {
         // This method intentionally does nothing
     }
 
     // https://html.spec.whatwg.org/#dom-document-releaseevents
-    fn ReleaseEvents(self) {
+    fn ReleaseEvents(&self) {
         // This method intentionally does nothing
     }
 

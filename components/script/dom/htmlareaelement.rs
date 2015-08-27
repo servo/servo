@@ -66,9 +66,9 @@ impl VirtualMethods for HTMLAreaElement {
     }
 }
 
-impl<'a> HTMLAreaElementMethods for &'a HTMLAreaElement {
+impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
-    fn RelList(self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })

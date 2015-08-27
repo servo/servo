@@ -4571,7 +4571,7 @@ class CGInterfaceTrait(CGThing):
             return "".join(", %s: %s" % argument for argument in arguments)
 
         methods = [
-            CGGeneric("fn %s(self%s) -> %s;\n" % (name, fmt(arguments), rettype))
+            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
             for name, arguments, rettype in members()
         ]
         if methods:

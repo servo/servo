@@ -40,10 +40,10 @@ impl Crypto {
     }
 }
 
-impl<'a> CryptoMethods for &'a Crypto {
+impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    fn GetRandomValues(self, _cx: *mut JSContext, input: *mut JSObject)
+    fn GetRandomValues(&self, _cx: *mut JSContext, input: *mut JSObject)
                        -> Fallible<*mut JSObject> {
         let mut length = 0;
         let mut data = ptr::null_mut();

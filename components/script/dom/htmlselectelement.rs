@@ -57,16 +57,16 @@ impl HTMLSelectElement {
     }
 }
 
-impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
+impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(self) -> Root<ValidityState> {
+    fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 
     // Note: this function currently only exists for test_union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
-    fn Add(self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 
     // https://www.whatwg.org/html/#dom-fe-disabled
@@ -94,7 +94,7 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
     make_uint_setter!(SetSize, "size", DEFAULT_SELECT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         if self.Multiple() {
             "select-multiple".to_owned()
         } else {

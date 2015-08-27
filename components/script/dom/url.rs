@@ -84,59 +84,59 @@ impl URL {
     }
 }
 
-impl<'a> URLMethods for &'a URL {
+impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-urlutils-hash
-    fn Hash(self) -> USVString {
+    fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-host
-    fn Host(self) -> USVString {
+    fn Host(&self) -> USVString {
         UrlHelper::Host(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-hostname
-    fn Hostname(self) -> USVString {
+    fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-href
-    fn Href(self) -> USVString {
+    fn Href(&self) -> USVString {
         UrlHelper::Href(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-password
-    fn Password(self) -> USVString {
+    fn Password(&self) -> USVString {
         UrlHelper::Password(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-pathname
-    fn Pathname(self) -> USVString {
+    fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-port
-    fn Port(self) -> USVString {
+    fn Port(&self) -> USVString {
         UrlHelper::Port(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-protocol
-    fn Protocol(self) -> USVString {
+    fn Protocol(&self) -> USVString {
         UrlHelper::Protocol(&self.url)
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-search
-    fn Search(self) -> USVString {
+    fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url)
     }
 
     // https://url.spec.whatwg.org/#URLUtils-stringification-behavior
-    fn Stringifier(self) -> DOMString {
+    fn Stringifier(&self) -> DOMString {
         self.Href().0
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-username
-    fn Username(self) -> USVString {
+    fn Username(&self) -> USVString {
         UrlHelper::Username(&self.url)
     }
 }

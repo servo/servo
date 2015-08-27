@@ -79,7 +79,7 @@ impl HTMLFormElement {
     }
 }
 
-impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
+impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 
@@ -105,12 +105,12 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     make_setter!(SetEnctype, "enctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
-    fn Encoding(self) -> DOMString {
+    fn Encoding(&self) -> DOMString {
         self.Enctype()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
-    fn SetEncoding(self, value: DOMString) {
+    fn SetEncoding(&self, value: DOMString) {
         self.SetEnctype(value)
     }
 
@@ -137,12 +137,12 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     make_setter!(SetTarget, "target");
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
-    fn Submit(self) {
+    fn Submit(&self) {
         self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
-    fn Reset(self) {
+    fn Reset(&self) {
         self.reset(ResetFrom::FromFormResetMethod);
     }
 }

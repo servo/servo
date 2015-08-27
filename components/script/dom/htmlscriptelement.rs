@@ -572,18 +572,18 @@ impl VirtualMethods for HTMLScriptElement {
     }
 }
 
-impl<'a> HTMLScriptElementMethods for &'a HTMLScriptElement {
+impl HTMLScriptElementMethods for HTMLScriptElement {
     make_url_getter!(Src);
 
     make_setter!(SetSrc, "src");
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn Text(self) -> DOMString {
+    fn Text(&self) -> DOMString {
         Node::collect_text_contents(NodeCast::from_ref(self).children())
     }
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn SetText(self, value: DOMString) {
+    fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }

@@ -208,7 +208,7 @@ impl HTMLLinkElement {
     }
 }
 
-impl<'a> HTMLLinkElementMethods for &'a HTMLLinkElement {
+impl HTMLLinkElementMethods for HTMLLinkElement {
     make_url_getter!(Href);
     make_setter!(SetHref, "href");
 
@@ -225,7 +225,7 @@ impl<'a> HTMLLinkElementMethods for &'a HTMLLinkElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })

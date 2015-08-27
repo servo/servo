@@ -58,9 +58,9 @@ impl URLSearchParams {
     }
 }
 
-impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
+impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
-    fn Append(self, name: DOMString, value: DOMString) {
+    fn Append(&self, name: DOMString, value: DOMString) {
         // Step 1.
         self.list.borrow_mut().push((name, value));
         // Step 2.
@@ -68,7 +68,7 @@ impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
-    fn Delete(self, name: DOMString) {
+    fn Delete(&self, name: DOMString) {
         // Step 1.
         self.list.borrow_mut().retain(|&(ref k, _)| k != &name);
         // Step 2.
@@ -76,7 +76,7 @@ impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
-    fn Get(self, name: DOMString) -> Option<DOMString> {
+    fn Get(&self, name: DOMString) -> Option<DOMString> {
         let list = self.list.borrow();
         list.iter().filter_map(|&(ref k, ref v)| {
             if k == &name {
@@ -88,13 +88,13 @@ impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
-    fn Has(self, name: DOMString) -> bool {
+    fn Has(&self, name: DOMString) -> bool {
         let list = self.list.borrow();
         list.iter().find(|&&(ref k, _)| k == &name).is_some()
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
-    fn Set(self, name: DOMString, value: DOMString) {
+    fn Set(&self, name: DOMString, value: DOMString) {
         let mut list = self.list.borrow_mut();
         let mut index = None;
         let mut i = 0;
@@ -118,7 +118,7 @@ impl<'a> URLSearchParamsMethods for &'a URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#stringification-behavior
-    fn Stringifier(self) -> DOMString {
+    fn Stringifier(&self) -> DOMString {
         self.serialize(None)
     }
 }

@@ -66,9 +66,9 @@ impl HTMLTableElement {
     }
 }
 
-impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
+impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
+    fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
         let node = NodeCast::from_ref(self);
         node.children()
             .filter_map(|c| {
@@ -78,7 +78,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn SetCaption(self, new_caption: Option<&HTMLTableCaptionElement>) {
+    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
         let node = NodeCast::from_ref(self);
 
         if let Some(ref caption) = self.GetCaption() {
@@ -92,7 +92,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
-    fn CreateCaption(self) -> Root<HTMLElement> {
+    fn CreateCaption(&self) -> Root<HTMLElement> {
         let caption = match self.GetCaption() {
             Some(caption) => caption,
             None => {
@@ -107,14 +107,14 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
-    fn DeleteCaption(self) {
+    fn DeleteCaption(&self) {
         if let Some(caption) = self.GetCaption() {
             NodeCast::from_ref(caption.r()).remove_self();
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
-    fn CreateTBody(self) -> Root<HTMLTableSectionElement> {
+    fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
         let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
                                                  None,
                                                  document_from_node(self).r());

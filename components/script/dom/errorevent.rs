@@ -114,29 +114,29 @@ impl ErrorEvent {
 
 }
 
-impl<'a> ErrorEventMethods for &'a ErrorEvent {
+impl ErrorEventMethods for ErrorEvent {
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno
-    fn Lineno(self) -> u32 {
+    fn Lineno(&self) -> u32 {
         self.lineno.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-colno
-    fn Colno(self) -> u32 {
+    fn Colno(&self) -> u32 {
         self.colno.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-message
-    fn Message(self) -> DOMString {
+    fn Message(&self) -> DOMString {
         self.message.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-filename
-    fn Filename(self) -> DOMString {
+    fn Filename(&self) -> DOMString {
         self.filename.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-error
-    fn Error(self, _cx: *mut JSContext) -> JSVal {
+    fn Error(&self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
 

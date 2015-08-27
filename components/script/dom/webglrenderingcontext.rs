@@ -143,14 +143,14 @@ impl Drop for WebGLRenderingContext {
     }
 }
 
-impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
+impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
-    fn Canvas(self) -> Root<HTMLCanvasElement> {
+    fn Canvas(&self) -> Root<HTMLCanvasElement> {
         self.canvas.root()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
-    fn DrawingBufferWidth(self) -> i32 {
+    fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferWidth(sender)))
@@ -159,7 +159,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
-    fn DrawingBufferHeight(self) -> i32 {
+    fn DrawingBufferHeight(&self) -> i32 {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferHeight(sender)))
@@ -168,7 +168,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn GetParameter(self, cx: *mut JSContext, parameter: u32) -> JSVal {
+    fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
         // TODO(ecoal95): Implement the missing parameters from the spec
         let mut rval = RootedValue::new(cx, UndefinedValue());
         match parameter {
@@ -183,7 +183,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn GetError(self) -> u32 {
+    fn GetError(&self) -> u32 {
         let error_code = if let Some(error) = self.last_error.get() {
             match error {
                 WebGLError::InvalidEnum => constants::INVALID_ENUM,
@@ -200,7 +200,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
-    fn GetContextAttributes(self) -> Option<WebGLContextAttributes> {
+    fn GetContextAttributes(&self) -> Option<WebGLContextAttributes> {
         let (sender, receiver) = ipc::channel().unwrap();
 
         // If the send does not succeed, assume context lost
@@ -223,49 +223,49 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    fn GetExtension(self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
+    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
         // TODO(ecoal95) we actually do not support extensions.
         // `getSupportedExtensions` cannot be implemented as of right now (see #544)
         0 as *mut JSObject
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn ActiveTexture(self, texture: u32) {
+    fn ActiveTexture(&self, texture: u32) {
         self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ActiveTexture(texture))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn BlendColor(self, r: f32, g: f32, b: f32, a: f32) {
+    fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
         self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendColor(r, g, b, a))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn BlendEquation(self, mode: u32) {
+    fn BlendEquation(&self, mode: u32) {
         self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendEquation(mode))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn BlendEquationSeparate(self, mode_rgb: u32, mode_alpha: u32) {
+    fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendEquationSeparate(mode_rgb, mode_alpha)))
             .unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn BlendFunc(self, src_factor: u32, dest_factor: u32) {
+    fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendFunc(src_factor, dest_factor)))
             .unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn BlendFuncSeparate(self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
+    fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
         self.ipc_renderer.send(
             CanvasMsg::WebGL(CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn AttachShader(self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
+    fn AttachShader(&self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
         if let Some(program) = program {
             if let Some(shader) = shader {
                 handle_potential_webgl_error!(self, program.attach_shader(shader));
@@ -274,7 +274,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BindBuffer(self, target: u32, buffer: Option<&WebGLBuffer>) {
+    fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
         match target {
             constants::ARRAY_BUFFER |
             constants::ELEMENT_ARRAY_BUFFER => (),
@@ -293,7 +293,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn BindFramebuffer(self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+    fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidOperation);
         }
@@ -308,7 +308,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn BindRenderbuffer(self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
+    fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
         if target != constants::RENDERBUFFER {
             return self.webgl_error(InvalidEnum);
         }
@@ -324,7 +324,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn BindTexture(self, target: u32, texture: Option<&WebGLTexture>) {
+    fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
         let slot = match target {
             constants::TEXTURE_2D => &self.bound_texture_2d,
             constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
@@ -347,7 +347,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData(self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
+    fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
         let data = match data {
             Some(data) => data,
             None => return,
@@ -369,41 +369,41 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
-    fn Clear(self, mask: u32) {
+    fn Clear(&self, mask: u32) {
         self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap();
         self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn ClearColor(self, red: f32, green: f32, blue: f32, alpha: f32) {
+    fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn ClearDepth(self, depth: f32) {
+    fn ClearDepth(&self, depth: f32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearDepth(depth as f64)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn ClearStencil(self, stencil: i32) {
+    fn ClearStencil(&self, stencil: i32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearStencil(stencil)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn ColorMask(self, r: bool, g: bool, b: bool, a: bool) {
+    fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::ColorMask(r, g, b, a)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn CullFace(self, mode: u32) {
+    fn CullFace(&self, mode: u32) {
         match mode {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
                 self.ipc_renderer
@@ -414,7 +414,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn FrontFace(self, mode: u32) {
+    fn FrontFace(&self, mode: u32) {
         match mode {
             constants::CW | constants::CCW =>
                 self.ipc_renderer
@@ -424,7 +424,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
         }
     }
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn DepthFunc(self, func: u32) {
+    fn DepthFunc(&self, func: u32) {
         match func {
             constants::NEVER | constants::LESS |
             constants::EQUAL | constants::LEQUAL |
@@ -438,21 +438,21 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn DepthMask(self, flag: bool) {
+    fn DepthMask(&self, flag: bool) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthMask(flag)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn DepthRange(self, near: f32, far: f32) {
+    fn DepthRange(&self, near: f32, far: f32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthRange(near as f64, far as f64)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn Enable(self, cap: u32) {
+    fn Enable(&self, cap: u32) {
         match cap {
             constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
@@ -465,7 +465,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn Disable(self, cap: u32) {
+    fn Disable(&self, cap: u32) {
         match cap {
             constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
@@ -478,7 +478,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn CompileShader(self, shader: Option<&WebGLShader>) {
+    fn CompileShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
             shader.compile()
         }
@@ -487,81 +487,81 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     // TODO(ecoal95): Probably in the future we should keep track of the
     // generated objects, either here or in the webgl task
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn CreateBuffer(self) -> Option<Root<WebGLBuffer>> {
+    fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
         WebGLBuffer::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn CreateFramebuffer(self) -> Option<Root<WebGLFramebuffer>> {
+    fn CreateFramebuffer(&self) -> Option<Root<WebGLFramebuffer>> {
         WebGLFramebuffer::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn CreateRenderbuffer(self) -> Option<Root<WebGLRenderbuffer>> {
+    fn CreateRenderbuffer(&self) -> Option<Root<WebGLRenderbuffer>> {
         WebGLRenderbuffer::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CreateTexture(self) -> Option<Root<WebGLTexture>> {
+    fn CreateTexture(&self) -> Option<Root<WebGLTexture>> {
         WebGLTexture::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn CreateProgram(self) -> Option<Root<WebGLProgram>> {
+    fn CreateProgram(&self) -> Option<Root<WebGLProgram>> {
         WebGLProgram::maybe_new(self.global.root().r(), self.ipc_renderer.clone())
     }
 
     // TODO(ecoal95): Check if constants are cross-platform or if we must make a translation
     // between WebGL constants and native ones.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn CreateShader(self, shader_type: u32) -> Option<Root<WebGLShader>> {
+    fn CreateShader(&self, shader_type: u32) -> Option<Root<WebGLShader>> {
         WebGLShader::maybe_new(self.global.root().r(), self.ipc_renderer.clone(), shader_type)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn DeleteBuffer(self, buffer: Option<&WebGLBuffer>) {
+    fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
             buffer.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn DeleteFramebuffer(self, framebuffer: Option<&WebGLFramebuffer>) {
+    fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
             framebuffer.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn DeleteRenderbuffer(self, renderbuffer: Option<&WebGLRenderbuffer>) {
+    fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
             renderbuffer.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn DeleteTexture(self, texture: Option<&WebGLTexture>) {
+    fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
             texture.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn DeleteProgram(self, program: Option<&WebGLProgram>) {
+    fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             program.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn DeleteShader(self, shader: Option<&WebGLShader>) {
+    fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
             shader.delete()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
-    fn DrawArrays(self, mode: u32, first: i32, count: i32) {
+    fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
@@ -583,14 +583,14 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn EnableVertexAttribArray(self, attrib_id: u32) {
+    fn EnableVertexAttribArray(&self, attrib_id: u32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::EnableVertexAttribArray(attrib_id)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetAttribLocation(self, program: Option<&WebGLProgram>, name: DOMString) -> i32 {
+    fn GetAttribLocation(&self, program: Option<&WebGLProgram>, name: DOMString) -> i32 {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)
         } else {
@@ -599,7 +599,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderInfoLog(self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+    fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
         if let Some(shader) = shader {
             shader.info_log()
         } else {
@@ -608,7 +608,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderParameter(self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
+    fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
         if let Some(shader) = shader {
             match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLShaderParameter::Invalid) {
                 WebGLShaderParameter::Int(val) => Int32Value(val),
@@ -621,7 +621,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn GetUniformLocation(self,
+    fn GetUniformLocation(&self,
                           program: Option<&WebGLProgram>,
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
         if let Some(program) = program {
@@ -633,7 +633,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn Hint(self, target: u32, mode: u32) {
+    fn Hint(&self, target: u32, mode: u32) {
         if target != constants::GENERATE_MIPMAP_HINT {
             return self.webgl_error(InvalidEnum);
         }
@@ -652,7 +652,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn LineWidth(self, width: f32) {
+    fn LineWidth(&self, width: f32) {
         if width.is_nan() || width <= 0f32 {
             return self.webgl_error(InvalidValue);
         }
@@ -665,7 +665,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     // NOTE: Usage of this function could affect rendering while we keep using
     //   readback to render to the page.
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn PixelStorei(self, param_name: u32, param_value: i32) {
+    fn PixelStorei(&self, param_name: u32, param_value: i32) {
         let mut texture_settings = self.texture_unpacking_settings.get();
         match param_name {
             constants::UNPACK_FLIP_Y_WEBGL => {
@@ -716,28 +716,28 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn PolygonOffset(self, factor: f32, units: f32) {
+    fn PolygonOffset(&self, factor: f32, units: f32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::PolygonOffset(factor, units)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn LinkProgram(self, program: Option<&WebGLProgram>) {
+    fn LinkProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             program.link()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn ShaderSource(self, shader: Option<&WebGLShader>, source: DOMString) {
+    fn ShaderSource(&self, shader: Option<&WebGLShader>, source: DOMString) {
         if let Some(shader) = shader {
             shader.set_source(source)
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderSource(self, shader: Option<&WebGLShader>) -> Option<DOMString> {
+    fn GetShaderSource(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
         if let Some(shader) = shader {
             shader.source()
         } else {
@@ -747,7 +747,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4fv(self,
+    fn Uniform4fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -771,14 +771,14 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn UseProgram(self, program: Option<&WebGLProgram>) {
+    fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             program.use_program()
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttribPointer(self, attrib_id: u32, size: i32, data_type: u32,
+    fn VertexAttribPointer(&self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) {
         if let constants::FLOAT = data_type {
            let msg = CanvasMsg::WebGL(
@@ -790,14 +790,14 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
-    fn Viewport(self, x: i32, y: i32, width: i32, height: i32) {
+    fn Viewport(&self, x: i32, y: i32, width: i32, height: i32) {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(CanvasWebGLMsg::Viewport(x, y, width, height)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D(self,
+    fn TexImage2D(&self,
                   target: u32,
                   level: i32,
                   internal_format: u32,
@@ -868,7 +868,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexParameterf(self, target: u32, name: u32, value: f32) {
+    fn TexParameterf(&self, target: u32, name: u32, value: f32) {
         match target {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
@@ -886,7 +886,7 @@ impl<'a> WebGLRenderingContextMethods for &'a WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexParameteri(self, target: u32, name: u32, value: i32) {
+    fn TexParameteri(&self, target: u32, name: u32, value: i32) {
         match target {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {

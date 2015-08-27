@@ -70,9 +70,9 @@ impl HTMLButtonElement {
     }
 }
 
-impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
+impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(self) -> Root<ValidityState> {
+    fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }
@@ -84,7 +84,7 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         let elem = ElementCast::from_ref(self);
         let mut ty = elem.get_string_attribute(&atom!("type"));
         ty.make_ascii_lowercase();

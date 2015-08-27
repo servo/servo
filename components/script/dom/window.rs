@@ -356,9 +356,9 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-impl<'a> WindowMethods for &'a Window {
+impl WindowMethods for Window {
     // https://html.spec.whatwg.org/#dom-alert
-    fn Alert(self, s: DOMString) {
+    fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
         // communicate test results.
@@ -372,52 +372,52 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
-    fn Close(self) {
+    fn Close(&self) {
         self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
-    fn Document(self) -> Root<Document> {
+    fn Document(&self) -> Root<Document> {
         self.browsing_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
-    fn Location(self) -> Root<Location> {
+    fn Location(&self) -> Root<Location> {
         self.Document().r().Location()
     }
 
     // https://html.spec.whatwg.org/#dom-sessionstorage
-    fn SessionStorage(self) -> Root<Storage> {
+    fn SessionStorage(&self) -> Root<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/#dom-localstorage
-    fn LocalStorage(self) -> Root<Storage> {
+    fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Console(self) -> Root<Console> {
+    fn Console(&self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
-    fn Crypto(self) -> Root<Crypto> {
+    fn Crypto(&self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
     // https://html.spec.whatwg.org/#dom-frameelement
-    fn GetFrameElement(self) -> Option<Root<Element>> {
+    fn GetFrameElement(&self) -> Option<Root<Element>> {
         self.browsing_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
-    fn Navigator(self) -> Root<Navigator> {
+    fn Navigator(&self) -> Root<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -427,7 +427,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -437,12 +437,12 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-cleartimeout
-    fn ClearTimeout(self, handle: i32) {
+    fn ClearTimeout(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -452,7 +452,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -462,32 +462,32 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-clearinterval
-    fn ClearInterval(self, handle: i32) {
+    fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(self) -> Root<Window> {
+    fn Window(&self) -> Root<Window> {
         Root::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(self) -> Root<Window> {
+    fn Self_(&self) -> Root<Window> {
         self.Window()
     }
 
     // https://www.whatwg.org/html/#dom-frames
-    fn Frames(self) -> Root<Window> {
+    fn Frames(&self) -> Root<Window> {
         self.Window()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn Parent(self) -> Root<Window> {
+    fn Parent(&self) -> Root<Window> {
         self.parent().unwrap_or(self.Window())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn Top(self) -> Root<Window> {
+    fn Top(&self) -> Root<Window> {
         let mut window = self.Window();
         while let Some(parent) = window.parent() {
             window = parent;
@@ -497,7 +497,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
-    fn Performance(self) -> Root<Performance> {
+    fn Performance(&self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
                              self.navigation_start_precise)
@@ -509,22 +509,22 @@ impl<'a> WindowMethods for &'a Window {
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
-    fn Screen(self) -> Root<Screen> {
+    fn Screen(&self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
-    fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
+    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
-    fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
+    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> i32 {
         let doc = self.Document();
 
         let callback  = move |now: f64| {
@@ -537,38 +537,38 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
-    fn CancelAnimationFrame(self, ident: i32) {
+    fn CancelAnimationFrame(&self, ident: i32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
-    fn CaptureEvents(self) {
+    fn CaptureEvents(&self) {
         // This method intentionally does nothing
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-releaseevents
-    fn ReleaseEvents(self) {
+    fn ReleaseEvents(&self) {
         // This method intentionally does nothing
     }
 
     // check-tidy: no specs after this line
-    fn Debug(self, message: DOMString) {
+    fn Debug(&self, message: DOMString) {
         debug!("{}", message);
     }
 
     #[allow(unsafe_code)]
-    fn Gc(self) {
+    fn Gc(&self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
         }
     }
 
-    fn Trap(self) {
+    fn Trap(&self) {
         breakpoint();
     }
 
-    fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {
+    fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -576,7 +576,7 @@ impl<'a> WindowMethods for &'a Window {
         }
     }
 
-    fn WebdriverTimeout(self) {
+    fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(Err(WebDriverJSError::Timeout)).unwrap();
@@ -584,7 +584,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
-    fn GetComputedStyle(self,
+    fn GetComputedStyle(&self,
                         element: &Element,
                         pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
         // Steps 1-4.

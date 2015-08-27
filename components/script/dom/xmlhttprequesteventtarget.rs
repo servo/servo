@@ -37,7 +37,7 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
 
 }
 
-impl<'a> XMLHttpRequestEventTargetMethods for &'a XMLHttpRequestEventTarget {
+impl XMLHttpRequestEventTargetMethods for XMLHttpRequestEventTarget {
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
     event_handler!(progress, GetOnprogress, SetOnprogress);
     event_handler!(abort, GetOnabort, SetOnabort);

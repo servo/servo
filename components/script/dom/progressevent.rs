@@ -61,19 +61,19 @@ impl ProgressEvent {
     }
 }
 
-impl<'a> ProgressEventMethods for &'a ProgressEvent {
+impl ProgressEventMethods for ProgressEvent {
     // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
-    fn LengthComputable(self) -> bool {
+    fn LengthComputable(&self) -> bool {
         self.length_computable
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
-    fn Loaded(self) -> u64 {
+    fn Loaded(&self) -> u64 {
         self.loaded
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-total
-    fn Total(self) -> u64 {
+    fn Total(&self) -> u64 {
         self.total
     }
 }

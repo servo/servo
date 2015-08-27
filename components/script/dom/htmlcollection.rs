@@ -192,19 +192,19 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
     }
 }
 
-impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
+impl HTMLCollectionMethods for HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         self.elements_iter().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn Item(self, index: u32) -> Option<Root<Element>> {
+    fn Item(&self, index: u32) -> Option<Root<Element>> {
         self.elements_iter().nth(index as usize)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedItem(self, key: DOMString) -> Option<Root<Element>> {
+    fn NamedItem(&self, key: DOMString) -> Option<Root<Element>> {
         // Step 1.
         if key.is_empty() {
             return None;
@@ -218,21 +218,21 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.NamedItem(name);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
     // https://dom.spec.whatwg.org/#interface-htmlcollection
-    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];
 

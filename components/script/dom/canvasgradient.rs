@@ -43,9 +43,9 @@ impl CanvasGradient {
     }
 }
 
-impl<'a> CanvasGradientMethods for &'a CanvasGradient {
+impl CanvasGradientMethods for CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
-    fn AddColorStop(self, offset: Finite<f64>, color: String) -> ErrorResult {
+    fn AddColorStop(&self, offset: Finite<f64>, color: String) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
             return Err(IndexSize);
         }

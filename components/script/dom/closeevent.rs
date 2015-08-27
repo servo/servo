@@ -68,19 +68,19 @@ impl CloseEvent {
     }
 }
 
-impl<'a> CloseEventMethods for &'a CloseEvent {
+impl CloseEventMethods for CloseEvent {
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-wasclean
-    fn WasClean(self) -> bool {
+    fn WasClean(&self) -> bool {
         self.wasClean
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-code
-    fn Code(self) -> u16 {
+    fn Code(&self) -> u16 {
         self.code
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-reason
-    fn Reason(self) -> DOMString {
+    fn Reason(&self) -> DOMString {
         self.reason.clone()
     }
 }

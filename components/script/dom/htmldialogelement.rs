@@ -51,7 +51,7 @@ impl HTMLDialogElement {
     }
 }
 
-impl<'a> HTMLDialogElementMethods for &'a HTMLDialogElement {
+impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
     make_bool_getter!(Open);
 
@@ -59,13 +59,13 @@ impl<'a> HTMLDialogElementMethods for &'a HTMLDialogElement {
     make_bool_setter!(SetOpen, "open");
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
-    fn ReturnValue(self) -> DOMString {
+    fn ReturnValue(&self) -> DOMString {
         let return_value = self.return_value.borrow();
         return_value.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
-    fn SetReturnValue(self, return_value: DOMString) {
+    fn SetReturnValue(&self, return_value: DOMString) {
         *self.return_value.borrow_mut() = return_value;
     }
 }
