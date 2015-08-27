@@ -78,7 +78,6 @@ lengthProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px)');
         assert_equals(div.style.getPropertyValue(prop), '1px');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
     }, 'calc for ' + prop);
 });
 
