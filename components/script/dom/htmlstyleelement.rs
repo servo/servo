@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{ElementTypeId, AttributeHandlers};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::window_from_node;

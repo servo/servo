@@ -19,7 +19,7 @@ use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::element::{Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;

@@ -16,7 +16,7 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

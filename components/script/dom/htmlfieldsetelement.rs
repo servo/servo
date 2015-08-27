@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast}
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};

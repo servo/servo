@@ -826,58 +826,9 @@ impl Element {
     }
 }
 
-pub trait AttributeHandlers {
-    /// Returns the attribute with given namespace and case-sensitive local
-    /// name, if any.
-    fn get_attribute(self, namespace: &Namespace, local_name: &Atom)
-                     -> Option<Root<Attr>>;
-    /// Returns the first attribute with any namespace and given case-sensitive
-    /// name, if any.
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>>;
-    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>);
-    fn set_attribute_from_parser(self,
-                                 name: QualName,
-                                 value: DOMString,
-                                 prefix: Option<Atom>);
-    fn set_attribute(self, name: &Atom, value: AttrValue);
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
-                           name: Atom, namespace: Namespace,
-                           prefix: Option<Atom>, cb: F)
-        where F: Fn(&Attr) -> bool;
-    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
-                       value: DOMString) -> AttrValue;
 
-    /// Removes the first attribute with any given namespace and case-sensitive local
-    /// name, if any.
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
-                        -> Option<Root<Attr>>;
-    /// Removes the first attribute with any namespace and given case-sensitive name.
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>>;
-    /// Removes the first attribute that satisfies `find`.
-    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
-        where F: Fn(&Attr) -> bool;
-
-    fn has_class(self, name: &Atom) -> bool;
-
-    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString);
-
-    // https://www.whatwg.org/html/#reflecting-content-attributes-in-idl-attributes
-    fn has_attribute(self, local_name: &Atom) -> bool;
-    fn set_bool_attribute(self, local_name: &Atom, value: bool);
-    fn get_url_attribute(self, local_name: &Atom) -> DOMString;
-    fn set_url_attribute(self, local_name: &Atom, value: DOMString);
-    fn get_string_attribute(self, local_name: &Atom) -> DOMString;
-    fn set_string_attribute(self, local_name: &Atom, value: DOMString);
-    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom>;
-    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString);
-    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>);
-    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32;
-    fn set_uint_attribute(self, local_name: &Atom, value: u32);
-}
-
-impl<'a> AttributeHandlers for &'a Element {
-    fn get_attribute(self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
+impl Element {
+    pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
         let mut attributes = RootedVec::new();
         self.get_attributes(local_name, &mut attributes);
         attributes.r().iter()
@@ -886,14 +837,14 @@ impl<'a> AttributeHandlers for &'a Element {
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attribute_by_name(self, name: DOMString) -> Option<Root<Attr>> {
+    pub fn get_attribute_by_name(&self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
         self.attrs.borrow().iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn get_attributes(self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
+    pub fn get_attributes(&self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
         for ref attr in self.attrs.borrow().iter() {
             let attr = attr.root();
             if attr.r().local_name() == local_name {
@@ -902,7 +853,7 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn set_attribute_from_parser(self,
+    pub fn set_attribute_from_parser(&self,
                                  qname: QualName,
                                  value: DOMString,
                                  prefix: Option<Atom>) {
@@ -923,7 +874,7 @@ impl<'a> AttributeHandlers for &'a Element {
         self.do_set_attribute(qname.local, value, name, qname.ns, prefix, |_| false)
     }
 
-    fn set_attribute(self, name: &Atom, value: AttrValue) {
+    pub fn set_attribute(&self, name: &Atom, value: AttrValue) {
         assert!(&**name == name.to_ascii_lowercase());
         assert!(!name.contains(":"));
 
@@ -932,7 +883,7 @@ impl<'a> AttributeHandlers for &'a Element {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-data-*
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
+    pub fn set_custom_attribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
         match xml_name_type(&name) {
             InvalidXMLName => return Err(InvalidCharacter),
@@ -948,7 +899,7 @@ impl<'a> AttributeHandlers for &'a Element {
         Ok(())
     }
 
-    fn do_set_attribute<F>(self,
+    pub fn do_set_attribute<F>(&self,
                            local_name: Atom,
                            value: AttrValue,
                            name: Atom,
@@ -974,7 +925,7 @@ impl<'a> AttributeHandlers for &'a Element {
         (*self.attrs.borrow())[idx].root().r().set_value(set_type, value, self);
     }
 
-    fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
+    pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == ns!("") {
             vtable_for(&NodeCast::from_ref(self))
@@ -984,18 +935,18 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn remove_attribute(self, namespace: &Namespace, local_name: &Atom)
+    pub fn remove_attribute(&self, namespace: &Namespace, local_name: &Atom)
                         -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
         })
     }
 
-    fn remove_attribute_by_name(self, name: &Atom) -> Option<Root<Attr>> {
+    pub fn remove_attribute_by_name(&self, name: &Atom) -> Option<Root<Attr>> {
         self.do_remove_attribute(|attr| attr.name() == name)
     }
 
-    fn do_remove_attribute<F>(self, find: F) -> Option<Root<Attr>>
+    pub fn do_remove_attribute<F>(&self, find: F) -> Option<Root<Attr>>
         where F: Fn(&Attr) -> bool
     {
         let idx = self.attrs.borrow().iter()
@@ -1028,7 +979,7 @@ impl<'a> AttributeHandlers for &'a Element {
         })
     }
 
-    fn has_class(self, name: &Atom) -> bool {
+    pub fn has_class(&self, name: &Atom) -> bool {
         let quirks_mode = {
             let node = NodeCast::from_ref(self);
             let owner_doc = node.owner_doc();
@@ -1045,20 +996,20 @@ impl<'a> AttributeHandlers for &'a Element {
         }).unwrap_or(false)
     }
 
-    fn set_atomic_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(local_name, value);
     }
 
-    fn has_attribute(self, local_name: &Atom) -> bool {
+    pub fn has_attribute(&self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
 
-    fn set_bool_attribute(self, local_name: &Atom, value: bool) {
+    pub fn set_bool_attribute(&self, local_name: &Atom, value: bool) {
         if self.has_attribute(local_name) == value { return; }
         if value {
             self.set_string_attribute(local_name, String::new());
@@ -1067,7 +1018,7 @@ impl<'a> AttributeHandlers for &'a Element {
         }
     }
 
-    fn get_url_attribute(self, local_name: &Atom) -> DOMString {
+    pub fn get_url_attribute(&self, local_name: &Atom) -> DOMString {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
             return "".to_owned();
@@ -1082,22 +1033,22 @@ impl<'a> AttributeHandlers for &'a Element {
             Err(_) => "".to_owned()
         }
     }
-    fn set_url_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_url_attribute(&self, local_name: &Atom, value: DOMString) {
         self.set_string_attribute(local_name, value);
     }
 
-    fn get_string_attribute(self, local_name: &Atom) -> DOMString {
+    pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
             Some(x) => x.r().Value(),
             None => "".to_owned()
         }
     }
-    fn set_string_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value));
     }
 
-    fn get_tokenlist_attribute(self, local_name: &Atom) -> Vec<Atom> {
+    pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
         self.get_attribute(&ns!(""), local_name).map(|attr| {
             attr.r()
                 .value()
@@ -1107,17 +1058,17 @@ impl<'a> AttributeHandlers for &'a Element {
         }).unwrap_or(vec!())
     }
 
-    fn set_tokenlist_attribute(self, local_name: &Atom, value: DOMString) {
+    pub fn set_tokenlist_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
-    fn set_atomic_tokenlist_attribute(self, local_name: &Atom, tokens: Vec<Atom>) {
+    pub fn set_atomic_tokenlist_attribute(&self, local_name: &Atom, tokens: Vec<Atom>) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
-    fn get_uint_attribute(self, local_name: &Atom, default: u32) -> u32 {
+    pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
@@ -1133,7 +1084,7 @@ impl<'a> AttributeHandlers for &'a Element {
             None => default,
         }
     }
-    fn set_uint_attribute(self, local_name: &Atom, value: u32) {
+    pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }

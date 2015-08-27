@@ -17,7 +17,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
+use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable, Event};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

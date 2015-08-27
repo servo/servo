@@ -37,7 +37,7 @@ use dom::comment::Comment;
 use dom::document::{Document, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
+use dom::element::{Element, ElementCreator, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
 use dom::nodelist::NodeList;

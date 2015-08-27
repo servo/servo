@@ -16,7 +16,7 @@ use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

@@ -10,7 +10,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::node::window_from_node;
 
 use string_cache::Atom;

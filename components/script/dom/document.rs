@@ -41,7 +41,7 @@ use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
+use dom::element::{Element, ElementCreator, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlanchorelement::HTMLAnchorElement;

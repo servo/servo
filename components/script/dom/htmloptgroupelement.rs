@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeHandlers;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

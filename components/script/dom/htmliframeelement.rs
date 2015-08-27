@@ -18,7 +18,7 @@ use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{self, AttributeHandlers};
+use dom::element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};

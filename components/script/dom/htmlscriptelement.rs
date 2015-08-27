@@ -22,7 +22,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, ElementCreator};
+use dom::element::ElementCreator;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

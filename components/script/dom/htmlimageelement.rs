@@ -15,7 +15,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::AttributeHandlers;
 use dom::element::ElementTypeId;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};

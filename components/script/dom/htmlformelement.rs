@@ -20,7 +20,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlbuttonelement::{HTMLButtonElement};
