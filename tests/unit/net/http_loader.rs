@@ -346,7 +346,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr.send(ControlMsg::GetHostMustBeSecured("mozilla.com".to_string(), tx)).unwrap();
 
-    assert!(!rx.recv().unwrap());
+    assert_eq!(rx.recv().unwrap(), false);
 }
 
 #[test]
@@ -435,8 +435,9 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
     let mut content_len_headers = Headers::new();
+    let content_len = format!("{}", content.len());
     content_len_headers.set_raw(
-        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]
+        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*content_len.as_bytes())]
     );
 
     let _ = load::<AssertRequestMustHaveHeaders>(
