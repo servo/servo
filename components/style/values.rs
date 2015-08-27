@@ -427,6 +427,31 @@ pub mod specified {
         }
     }
 
+    pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
+        match try!(input.next()) {
+            Token::Number(ref value) => value.int_value.ok_or(()),
+            Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                let ast = try!(input.parse_nested_block(|i| Calc::parse_sum(i, CalcUnit::Number)));
+
+                let mut result = None;
+
+                for ref node in ast.products {
+                    match try!(Calc::simplify_product(node)) {
+                        SimplifiedValueNode::Number(val) =>
+                            result = Some(result.unwrap_or(0) + val as i32),
+                        _ => unreachable!()
+                    }
+                }
+
+                match result {
+                    Some(result) => Ok(result),
+                    _ => Err(())
+                }
+            }
+            _ => Err(())
+        }
+    }
+
     pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
         match try!(input.next()) {
             Token::Number(ref value) => Ok(value.value),
