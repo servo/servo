@@ -22,7 +22,6 @@
 use devtools;
 use document_loader::{LoadType, DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
@@ -1798,7 +1797,7 @@ impl ScriptTask {
                         let element = ElementCast::to_ref(target.r()).unwrap();
                         let status = element.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
-                                let value = href.r().Value();
+                                let value = href.value();
                                 let url = document.r().url();
                                 UrlParser::new().base_url(&url).parse(&value).map(|url| url.serialize()).ok()
                             });

@@ -4,7 +4,6 @@
 
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
@@ -67,8 +66,8 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
         let elem = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(&ns!(""), &atom!("type")).map(|x| x.r().Value()),
-               elem.get_attribute(&ns!(""), &atom!("data")).map(|x| x.r().Value())) {
+        match (elem.get_attribute(&ns!(""), &atom!("type")),
+               elem.get_attribute(&ns!(""), &atom!("data"))) {
             (None, Some(_uri)) => {
                 // TODO(gw): Prefetch the image here.
             }

@@ -1581,11 +1581,11 @@ impl VirtualMethods for Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(self);
-            let value = attr.r().Value();
+            let value = attr.value();
             if !value.is_empty() {
+                let doc = document_from_node(self);
                 let value = Atom::from_slice(&value);
-                doc.r().register_named_element(self, value);
+                doc.register_named_element(self, value.to_owned());
             }
         }
     }
@@ -1598,11 +1598,11 @@ impl VirtualMethods for Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(self);
-            let value = attr.r().Value();
+            let value = attr.value();
             if !value.is_empty() {
+                let doc = document_from_node(self);
                 let value = Atom::from_slice(&value);
-                doc.r().unregister_named_element(self, value);
+                doc.unregister_named_element(self, value.to_owned());
             }
         }
     }
