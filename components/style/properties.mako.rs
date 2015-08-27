@@ -1915,7 +1915,7 @@ pub mod longhands {
         }
 
         #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
+        pub struct SpecifiedValue(pub specified::LengthOrPercentage);  // Percentages are the same as em.
         pub mod computed_value {
             use app_units::Au;
             pub type T = Au;
@@ -1935,25 +1935,14 @@ pub mod longhands {
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            use values::specified::{Length, LengthOrPercentage};
+
             input.try(specified::LengthOrPercentage::parse_non_negative)
-            .map(|value| match value {
-                specified::LengthOrPercentage::Length(value) => value,
-                specified::LengthOrPercentage::Percentage(value) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0)),
-                specified::LengthOrPercentage::Calc(mut calc) => {
-                    if let Some(specified::Percentage(percentage)) = calc.percentage {
-                        calc.em = Some(specified::FontRelativeLength::Em(match calc.em {
-                            Some(specified::FontRelativeLength::Em(em)) => em + percentage,
-                            _ => percentage
-                        }));
-                        calc.percentage = None;
-                    }
-                    specified::Length::Calc(calc)
-                }
-            })
             .or_else(|()| {
                 let ident = try!(input.expect_ident());
-                specified::Length::from_str(&ident as &str).ok_or(())
+                specified::Length::from_str(&ident as &str)
+                    .ok_or(())
+                    .map(specified::LengthOrPercentage::Length)
             })
             .map(SpecifiedValue)
         }
@@ -6514,6 +6503,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // Initialize `context`
     // Declarations blocks are already stored in increasing precedence order.
     for sub_list in applicable_declarations {
+        use values::specified::{LengthOrPercentage, Percentage};
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
@@ -6522,14 +6512,23 @@ pub fn cascade(viewport_size: Size2D<Au>,
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 match specified_value.0 {
-                                    Length::FontRelative(value) => {
+                                    LengthOrPercentage::Length(Length::FontRelative(value)) => {
                                         value.to_computed_value(context.inherited_font_size,
                                                                 context.root_font_size)
                                     }
-                                    Length::ServoCharacterWidth(value) => {
+                                    LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
                                         value.to_computed_value(context.inherited_font_size)
                                     }
-                                    _ => specified_value.0.to_computed_value(&context)
+                                    LengthOrPercentage::Length(l) => {
+                                        l.to_computed_value(&context)
+                                    }
+                                    LengthOrPercentage::Percentage(Percentage(value)) => {
+                                        context.inherited_font_size.scale_by(value)
+                                    }
+                                    LengthOrPercentage::Calc(calc) => {
+                                        let calc = calc.to_computed_value(&context);
+                                        calc.length() + context.inherited_font_size.scale_by(calc.percentage())
+                                    }
                                 }
                             }
                             DeclaredValue::Initial => longhands::font_size::get_initial_value(),
