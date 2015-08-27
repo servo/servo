@@ -124,19 +124,19 @@ impl HttpRequest for MockRequest {
     }
 }
 
-struct AssertMustHaveHeadersRequest {
+struct AssertRequestMustHaveHeaders {
     expected_headers: Headers,
     request_headers: Headers,
     t: ResponseType
 }
 
-impl AssertMustHaveHeadersRequest {
+impl AssertRequestMustHaveHeaders {
     fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        AssertMustHaveHeadersRequest { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
+        AssertRequestMustHaveHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
 
-impl HttpRequest for AssertMustHaveHeadersRequest {
+impl HttpRequest for AssertRequestMustHaveHeaders {
     type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
@@ -160,11 +160,11 @@ struct AssertMustHaveHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
-    type R = AssertMustHaveHeadersRequest;
+    type R = AssertRequestMustHaveHeaders;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertMustHaveHeadersRequest, LoadError> {
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
         Ok(
-            AssertMustHaveHeadersRequest::new(
+            AssertRequestMustHaveHeaders::new(
                 ResponseType::Text(self.body.clone()),
                 self.expected_headers.clone()
             )
@@ -417,7 +417,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertMustHaveHeadersRequest>(
+    let _ = load::<AssertRequestMustHaveHeaders>(
         load_data.clone(), resource_mgr, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: cookie,
@@ -439,7 +439,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         "Content-Length".to_owned(), vec![<[_]>::to_vec(&*format!("{}", content.len()).as_bytes())]
     );
 
-    let _ = load::<AssertMustHaveHeadersRequest>(
+    let _ = load::<AssertRequestMustHaveHeaders>(
         load_data.clone(), resource_mgr, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: content_len_headers,
@@ -459,7 +459,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
     });
@@ -475,7 +475,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
-    let _ = load::<AssertMustHaveHeadersRequest>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_encoding_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
     });
