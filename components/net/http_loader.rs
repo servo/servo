@@ -80,10 +80,10 @@ fn inner_url(url: &Url) -> Url {
 }
 
 fn load_for_consumer(load_data: LoadData,
-        start_chan: LoadConsumer,
-        classifier: Arc<MIMEClassifier>,
-        resource_mgr_chan: IpcSender<ControlMsg>,
-        devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+                     start_chan: LoadConsumer,
+                     classifier: Arc<MIMEClassifier>,
+                     resource_mgr_chan: IpcSender<ControlMsg>,
+                     devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
 
     match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &NetworkHttpRequestFactory) {
         Err(LoadError::UnsupportedScheme(url)) => {
