@@ -666,18 +666,16 @@ pub mod longhands {
         #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
-            Length(specified::Length),
             Number(CSSFloat),
-            Percentage(CSSFloat),
+            LengthOrPercentage(specified::LengthOrPercentage),
         }
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     SpecifiedValue::Normal => dest.write_str("normal"),
-                    SpecifiedValue::Length(length) => length.to_css(dest),
+                    SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                     SpecifiedValue::Number(number) => write!(dest, "{}", number),
-                    SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
                 }
             }
         }
@@ -685,22 +683,19 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use cssparser::Token;
             use std::ascii::AsciiExt;
-            match try!(input.next()) {
-                Token::Number(ref value) if value.value >= 0. => {
-                    Ok(SpecifiedValue::Number(value.value))
+            input.try(specified::LengthOrPercentage::parse)
+            .map(SpecifiedValue::LengthOrPercentage)
+            .or_else(|()| {
+                match try!(input.next()) {
+                    Token::Number(ref value) if value.value >= 0. => {
+                        Ok(SpecifiedValue::Number(value.value))
+                    }
+                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                        Ok(SpecifiedValue::Normal)
+                    }
+                    _ => Err(()),
                 }
-                Token::Percentage(ref value) if value.unit_value >= 0. => {
-                    Ok(SpecifiedValue::Percentage(value.unit_value))
-                }
-                Token::Dimension(ref value, ref unit) if value.value >= 0. => {
-                    specified::Length::parse_dimension(value.value, unit)
-                    .map(SpecifiedValue::Length)
-                }
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                    Ok(SpecifiedValue::Normal)
-                }
-                _ => Err(()),
-            }
+            })
         }
         pub mod computed_value {
             use std::fmt;
@@ -741,13 +736,21 @@ pub mod longhands {
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
                     SpecifiedValue::Normal => computed_value::T::Normal,
-                    SpecifiedValue::Length(value) => {
-                        computed_value::T::Length(value.to_computed_value(context))
-                    }
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
-                    SpecifiedValue::Percentage(value) => {
-                        let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
-                        computed_value::T::Length(fr.to_computed_value(context))
+                    SpecifiedValue::LengthOrPercentage(value) => {
+                        match value {
+                            specified::LengthOrPercentage::Length(value) =>
+                                computed_value::T::Length(value.to_computed_value(context)),
+                            specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
+                                let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                                computed_value::T::Length(fr.to_computed_value(context))
+                            },
+                            specified::LengthOrPercentage::Calc(calc) => {
+                                let calc = calc.to_computed_value(context);
+                                let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(calc.percentage()));
+                                computed_value::T::Length(calc.length() + fr.to_computed_value(context))
+                            }
+                        }
                     }
                 }
             }
