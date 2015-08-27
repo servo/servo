@@ -350,13 +350,13 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mg
     }
 }
 
-pub struct LoadResponse<R: HttpResponse> {
+pub struct StreamedResponse<R: HttpResponse> {
     decoder: Decoder<R>,
     pub metadata: Metadata
 }
 
 
-impl<R: HttpResponse> Read for LoadResponse<R> {
+impl<R: HttpResponse> Read for StreamedResponse<R> {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.decoder {
@@ -367,18 +367,18 @@ impl<R: HttpResponse> Read for LoadResponse<R> {
     }
 }
 
-impl<R: HttpResponse> LoadResponse<R> {
-    fn new(m: Metadata, d: Decoder<R>) -> LoadResponse<R> {
-        LoadResponse { metadata: m, decoder: d }
+impl<R: HttpResponse> StreamedResponse<R> {
+    fn new(m: Metadata, d: Decoder<R>) -> StreamedResponse<R> {
+        StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: R, m: Metadata) -> Result<LoadResponse<R>, LoadError> {
+    fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
         match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok(LoadResponse::new(m, Decoder::Gzip(response_decoding)));
+                        return Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)));
                     }
                     Err(err) => {
                         return Err(LoadError::Decoding(m.final_url, err.to_string()));
@@ -387,10 +387,10 @@ impl<R: HttpResponse> LoadResponse<R> {
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok(LoadResponse::new(m, Decoder::Deflate(response_decoding)));
+                return Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)));
             }
             _ => {
-                return Ok(LoadResponse::new(m, Decoder::Plain(response)));
+                return Ok(StreamedResponse::new(m, Decoder::Plain(response)));
             }
         }
     }
@@ -432,7 +432,7 @@ pub fn load<A>(load_data: LoadData,
             resource_mgr_chan: IpcSender<ControlMsg>,
             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
             request_factory: &HttpRequestFactory<R=A>)
-    -> Result<LoadResponse<A::R>, LoadError> where A: HttpRequest + 'static {
+    -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -626,7 +626,7 @@ pub fn load<A>(load_data: LoadData,
             metadata.headers.clone(), metadata.status.clone()
         );
 
-        return LoadResponse::from_http_response(response, metadata)
+        return StreamedResponse::from_http_response(response, metadata)
     }
 }
 
