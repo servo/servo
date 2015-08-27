@@ -187,6 +187,7 @@ pub mod cssstyledeclaration;
 pub mod dompoint;
 pub mod dompointreadonly;
 pub mod domrect;
+pub mod domrectreadonly;
 pub mod domrectlist;
 pub mod domstringmap;
 pub mod closeevent;
