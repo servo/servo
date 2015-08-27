@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};

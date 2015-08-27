@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{ElementTypeId, AttributeHandlers};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node};

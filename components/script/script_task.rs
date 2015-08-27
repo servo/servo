@@ -35,7 +35,7 @@ use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
 use dom::bindings::utils::{WRAP_CALLBACKS, DOM_CALLBACKS};
 use dom::document::{Document, IsHTMLDocument, DocumentProgressHandler};
 use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ServoHTMLParser, ParserContext};

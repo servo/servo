@@ -18,7 +18,7 @@ use dom::comment::Comment;
 use dom::document::Document;
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, AttributeHandlers, ElementCreator};
+use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};

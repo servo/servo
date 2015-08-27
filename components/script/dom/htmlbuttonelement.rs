@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLBut
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};

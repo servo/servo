@@ -7,7 +7,6 @@ macro_rules! make_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             element.get_string_attribute(&Atom::from_slice($htmlname))
@@ -23,7 +22,6 @@ macro_rules! make_bool_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> bool {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
@@ -40,7 +38,6 @@ macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(self) -> u32 {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
@@ -60,7 +57,6 @@ macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
@@ -78,7 +74,6 @@ macro_rules! make_url_or_base_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
@@ -100,7 +95,6 @@ macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
         fn $attr(self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use std::ascii::AsciiExt;
             use std::borrow::ToOwned;
             use string_cache::Atom;
@@ -126,7 +120,6 @@ macro_rules! make_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: DOMString) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
@@ -140,7 +133,6 @@ macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: bool) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
@@ -154,7 +146,6 @@ macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(self, value: u32) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let value = if value > 2147483647 {
                 $default
@@ -176,7 +167,6 @@ macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
@@ -204,7 +194,6 @@ macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(self, value: DOMString) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
-            use dom::element::AttributeHandlers;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not at runtime.
