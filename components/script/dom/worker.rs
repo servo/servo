@@ -186,20 +186,20 @@ impl Runnable for WorkerMessageHandler {
     }
 }
 
-pub struct WorkerEventHandler {
+pub struct SimpleWorkerErrorHandler {
     addr: TrustedWorkerAddress,
 }
 
-impl WorkerEventHandler {
-    pub fn new(addr: TrustedWorkerAddress) -> WorkerEventHandler {
-        WorkerEventHandler {
+impl SimpleWorkerErrorHandler {
+    pub fn new(addr: TrustedWorkerAddress) -> SimpleWorkerErrorHandler {
+        SimpleWorkerErrorHandler {
             addr: addr
         }
     }
 }
 
-impl Runnable for WorkerEventHandler {
-    fn handler(self: Box<WorkerEventHandler>) {
+impl Runnable for SimpleWorkerErrorHandler {
+    fn handler(self: Box<SimpleWorkerErrorHandler>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
     }
