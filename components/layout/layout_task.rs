@@ -13,7 +13,6 @@ use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
 use cssparser::ToCss;
-use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -51,7 +50,7 @@ use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_re
 use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use script::dom::bindings::js::LayoutJS;
-use script::dom::node::{LayoutData, Node};
+use script::dom::node::Node;
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
@@ -584,11 +583,6 @@ impl LayoutTask {
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
             }
-            Msg::ReapLayoutData(dead_layout_data) => {
-                unsafe {
-                    self.handle_reap_layout_data(dead_layout_data)
-                }
-            },
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
@@ -670,8 +664,7 @@ impl LayoutTask {
                                   info.layout_shutdown_chan);
     }
 
-    /// Enters a quiescent state in which no new messages except for
-    /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNow` is
+    /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
     fn prepare_to_exit<'a>(&'a self,
                            response_chan: Sender<()>,
@@ -679,11 +672,6 @@ impl LayoutTask {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
-                Msg::ReapLayoutData(dead_layout_data) => {
-                    unsafe {
-                        self.handle_reap_layout_data(dead_layout_data)
-                    }
-                }
                 Msg::ExitNow(exit_type) => {
                     debug!("layout task is exiting...");
                     self.exit_now(possibly_locked_rw_data, exit_type);
@@ -1055,6 +1043,7 @@ impl LayoutTask {
                 flow::mut_base(flow_ref::deref_mut(layout_root))
                     .display_list_building_result
                     .add_to(&mut *display_list);
+
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                 let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
@@ -1068,11 +1057,8 @@ impl LayoutTask {
                                                                      true,
                                                                      false,
                                                                      ScrollPolicy::Scrollable,
-                                                                     Some(layer_id)));
-                let paint_layer = PaintLayer::new(layer_id,
-                                                  root_background_color,
-                                                  stacking_context.clone());
-
+                                                                     Some(layer_id),
+                                                                     None));
                 if opts::get().dump_display_list {
                     stacking_context.print("DisplayList".to_owned());
                 }
@@ -1080,7 +1066,12 @@ impl LayoutTask {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context);
+                rw_data.stacking_context = Some(stacking_context.clone());
+
+                let paint_layer = PaintLayer::new(layout_root.layer_id(),
+                                                  root_background_color,
+                                                  stacking_context,
+                                                  ScrollPolicy::Scrollable);
 
                 debug!("Layout done!");
 
@@ -1419,13 +1410,6 @@ impl LayoutTask {
         for child in flow::child_iter(flow) {
             LayoutTask::reflow_all_nodes(child);
         }
-    }
-
-    /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
-    /// because the struct type is transmuted to a different type on the script side.
-    unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
-        let layout_data_wrapper: LayoutDataWrapper = transmute(layout_data);
-        layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());
     }
 
     /// Returns profiling information which is passed to the time profiler.

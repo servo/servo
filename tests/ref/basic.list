@@ -148,6 +148,7 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == iframe/size_attributes.html iframe/size_attributes_ref.html
 prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
 == iframe/stacking_context.html iframe/stacking_context_ref.html
+== iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
 == image_rendering_pixelated_a.html image_rendering_pixelated_ref.html

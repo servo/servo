@@ -190,13 +190,6 @@ impl NodeFlags {
     }
 }
 
-impl Drop for Node {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        self.layout_data.dispose(self);
-    }
-}
-
 /// suppress observers flag
 /// https://dom.spec.whatwg.org/#concept-node-insert
 /// https://dom.spec.whatwg.org/#concept-node-remove
@@ -236,16 +229,6 @@ impl LayoutDataRef {
     pub fn new() -> LayoutDataRef {
         LayoutDataRef {
             data_cell: RefCell::new(None),
-        }
-    }
-
-    /// Sends layout data, if any, back to the layout task to be destroyed.
-    pub fn dispose(&self, node: &Node) {
-        debug_assert!(task_state::get().is_script());
-        if let Some(layout_data) = mem::replace(&mut *self.data_cell.borrow_mut(), None) {
-            let win = window_from_node(node);
-            let LayoutChan(chan) = win.layout_chan();
-            chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
         }
     }
 
@@ -372,7 +355,6 @@ impl Node {
         for node in child.traverse_preorder() {
             node.set_flag(IS_IN_DOC, false);
             vtable_for(&&*node).unbind_from_tree(parent_in_doc);
-            node.layout_data.dispose(&node);
         }
 
         let document = child.owner_doc();
@@ -417,7 +399,6 @@ impl<'a> Iterator for QuerySelectorIterator {
 
 impl Node {
     pub fn teardown(&self) {
-        self.layout_data.dispose(self);
         for kid in self.children() {
             kid.r().teardown();
         }

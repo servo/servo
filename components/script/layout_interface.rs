@@ -6,7 +6,6 @@
 //! interface helps reduce coupling between these two components, and enables
 //! the DOM to be placed in a separate crate from layout.
 
-use dom::node::LayoutData;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -54,11 +53,6 @@ pub enum Msg {
     /// Updates the layout visible rects, affecting the area that display lists will be constructed
     /// for.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
-
-    /// Destroys layout data associated with a DOM node.
-    ///
-    /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
-    ReapLayoutData(LayoutData),
 
     /// Requests that the layout task measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
