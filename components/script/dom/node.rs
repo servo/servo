@@ -78,7 +78,6 @@ use uuid;
 
 /// An HTML node.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Node {
     /// The JavaScript reflector for this node.
     eventtarget: EventTarget,

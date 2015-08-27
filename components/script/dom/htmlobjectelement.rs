@@ -25,7 +25,6 @@ use std::sync::Arc;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     image: DOMRefCell<Option<Arc<Image>>>,
@@ -118,4 +117,3 @@ impl VirtualMethods for HTMLObjectElement {
         }
     }
 }
-

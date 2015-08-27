@@ -22,7 +22,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,

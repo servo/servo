@@ -22,7 +22,6 @@ use dom::virtualmethods::VirtualMethods;
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
@@ -171,4 +170,3 @@ impl VirtualMethods for HTMLFieldSetElement {
         }
     }
 }
-

@@ -105,7 +105,6 @@ pub enum ReflowReason {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]

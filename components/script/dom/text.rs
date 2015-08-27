@@ -21,7 +21,6 @@ use util::str::DOMString;
 
 /// An HTML text node.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Text {
     characterdata: CharacterData,
 }
@@ -102,4 +101,3 @@ impl<'a> TextMethods for &'a Text {
         text
     }
 }
-

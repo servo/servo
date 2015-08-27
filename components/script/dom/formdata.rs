@@ -30,7 +30,6 @@ pub enum FormDatum {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct FormData {
     reflector_: Reflector,
     data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,

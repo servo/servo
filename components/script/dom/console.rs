@@ -13,7 +13,6 @@ use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Console {
     reflector_: Reflector,
     global: GlobalField,

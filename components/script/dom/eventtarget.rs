@@ -130,7 +130,6 @@ pub struct EventListenerEntry {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct EventTarget {
     reflector_: Reflector,
     type_id: EventTargetTypeId,

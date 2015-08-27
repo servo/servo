@@ -11,7 +11,6 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLActiveInfo {
     reflector_: Reflector,
     size: i32,

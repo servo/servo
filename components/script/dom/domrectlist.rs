@@ -11,7 +11,6 @@ use dom::domrect::DOMRect;
 use dom::window::Window;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMRectList {
     reflector_: Reflector,
     rects: Vec<JS<DOMRect>>,
@@ -55,4 +54,3 @@ impl<'a> DOMRectListMethods for &'a DOMRectList {
         self.Item(index)
     }
 }
-

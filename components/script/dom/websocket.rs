@@ -67,7 +67,6 @@ enum MessageData {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: Url,

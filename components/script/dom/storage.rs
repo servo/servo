@@ -23,7 +23,6 @@ use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,

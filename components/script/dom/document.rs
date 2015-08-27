@@ -113,7 +113,6 @@ pub enum IsHTMLDocument {
 
 // https://dom.spec.whatwg.org/#document
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Document {
     node: Node,
     window: JS<Window>,

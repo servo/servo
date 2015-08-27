@@ -10,7 +10,6 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLShaderPrecisionFormat {
     reflector_: Reflector,
     range_min: i32,

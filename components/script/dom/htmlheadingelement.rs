@@ -23,7 +23,6 @@ pub enum HeadingLevel {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLHeadingElement {
     htmlelement: HTMLElement,
     level: HeadingLevel,
@@ -58,4 +57,3 @@ impl HTMLHeadingElement {
         Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
     }
 }
-

@@ -53,7 +53,6 @@ pub struct WorkerGlobalScopeInit {
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,

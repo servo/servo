@@ -18,7 +18,6 @@ use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#interface-urlsearchparams
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct URLSearchParams {
     reflector_: Reflector,
     // https://url.spec.whatwg.org/#concept-urlsearchparams-list

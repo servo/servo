@@ -22,7 +22,6 @@ no_jsmanaged_fields!(OsRng);
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Crypto {
     reflector_: Reflector,
     rng: DOMRefCell<OsRng>,

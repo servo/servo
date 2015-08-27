@@ -207,6 +207,7 @@ impl MutHeapJSVal {
 /// `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
+#[derive(HeapSizeOf)]
 pub struct MutHeap<T: HeapGCValue + Copy> {
     val: Cell<T>,
 }

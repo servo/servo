@@ -24,7 +24,6 @@ use std::ptr;
 use std::slice;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct TextDecoder {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rust-encoding"]

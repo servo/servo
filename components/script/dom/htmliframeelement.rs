@@ -55,7 +55,6 @@ enum SandboxAllowance {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     subpage_id: Cell<Option<SubpageId>>,
