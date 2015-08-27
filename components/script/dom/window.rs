@@ -542,6 +542,16 @@ impl<'a> WindowMethods for &'a Window {
         doc.r().cancel_animation_frame(ident);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
+    fn CaptureEvents(self) {
+        // This method intentionally does nothing
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-releaseevents
+    fn ReleaseEvents(self) {
+        // This method intentionally does nothing
+    }
+
     // check-tidy: no specs after this line
     fn Debug(self, message: DOMString) {
         debug!("{}", message);

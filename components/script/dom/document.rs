@@ -1825,10 +1825,25 @@ impl<'a> DocumentMethods for &'a Document {
         collection.r().reflector().get_jsobject().get()
     }
 
-    // https://html.spec.whatwg.org/#document
+    // https://html.spec.whatwg.org/multipage/#document
     fn SupportedPropertyNames(self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-clear
+    fn Clear(self) {
+        // This method intentionally does nothing
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-captureevents
+    fn CaptureEvents(self) {
+        // This method intentionally does nothing
+    }
+
+    // https://html.spec.whatwg.org/#dom-document-releaseevents
+    fn ReleaseEvents(self) {
+        // This method intentionally does nothing
     }
 
     global_event_handlers!();
