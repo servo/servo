@@ -1019,8 +1019,7 @@ pub mod specified {
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
     #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
-        Length(Length),
-        Percentage(Percentage),
+        LengthOrPercentage(LengthOrPercentage),
         Center,
         Left,
         Right,
@@ -1029,35 +1028,29 @@ pub mod specified {
     }
     impl PositionComponent {
         pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
-            match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) => {
-                    Length::parse_dimension(value.value, unit)
-                    .map(PositionComponent::Length)
+
+            input.try(LengthOrPercentage::parse)
+            .map(PositionComponent::LengthOrPercentage)
+            .or_else(|()| {
+                match try!(input.next()) {
+                    Token::Ident(value) => {
+                        match_ignore_ascii_case! { value,
+                            "center" => Ok(PositionComponent::Center),
+                            "left" => Ok(PositionComponent::Left),
+                            "right" => Ok(PositionComponent::Right),
+                            "top" => Ok(PositionComponent::Top),
+                            "bottom" => Ok(PositionComponent::Bottom)
+                            _ => Err(())
+                        }
+                    },
+                    _ => Err(())
                 }
-                Token::Percentage(ref value) => {
-                    Ok(PositionComponent::Percentage(Percentage(value.unit_value)))
-                }
-                Token::Number(ref value) if value.value == 0. => {
-                    Ok(PositionComponent::Length(Length::Absolute(Au(0))))
-                }
-                Token::Ident(value) => {
-                    match_ignore_ascii_case! { value,
-                        "center" => Ok(PositionComponent::Center),
-                        "left" => Ok(PositionComponent::Left),
-                        "right" => Ok(PositionComponent::Right),
-                        "top" => Ok(PositionComponent::Top),
-                        "bottom" => Ok(PositionComponent::Bottom)
-                        _ => Err(())
-                    }
-                }
-                _ => Err(())
-            }
+            })
         }
         #[inline]
         pub fn to_length_or_percentage(self) -> LengthOrPercentage {
             match self {
-                PositionComponent::Length(x) => LengthOrPercentage::Length(x),
-                PositionComponent::Percentage(x) => LengthOrPercentage::Percentage(x),
+                PositionComponent::LengthOrPercentage(value) => value,
                 PositionComponent::Center => LengthOrPercentage::Percentage(Percentage(0.5)),
                 PositionComponent::Left |
                 PositionComponent::Top => LengthOrPercentage::Percentage(Percentage(0.0)),
