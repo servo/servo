@@ -1936,12 +1936,20 @@ pub mod longhands {
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             input.try(specified::LengthOrPercentage::parse_non_negative)
-            .and_then(|value| match value {
-                specified::LengthOrPercentage::Length(value) => Ok(value),
+            .map(|value| match value {
+                specified::LengthOrPercentage::Length(value) => value,
                 specified::LengthOrPercentage::Percentage(value) =>
-                    Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0))),
-                // FIXME(dzbarsky) handle calc for font-size
-                specified::LengthOrPercentage::Calc(_) => Err(())
+                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0)),
+                specified::LengthOrPercentage::Calc(mut calc) => {
+                    if let Some(specified::Percentage(percentage)) = calc.percentage {
+                        calc.em = Some(specified::FontRelativeLength::Em(match calc.em {
+                            Some(specified::FontRelativeLength::Em(em)) => em + percentage,
+                            _ => percentage
+                        }));
+                        calc.percentage = None;
+                    }
+                    specified::Length::Calc(calc)
+                }
             })
             .or_else(|()| {
                 let ident = try!(input.expect_ident());
