@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::jsstring_to_str;
 use dom::bindings::global::GlobalRef;
@@ -110,8 +110,7 @@ pub fn handle_get_layout(page: &Rc<Page>,
     let height = *rect.r().Height();
 
     let window = page.window();
-    let html_elem = HTMLElementCast::to_ref(node.r()).expect("should be getting layout of element");
-    let computed_style = window.r().GetComputedStyle(html_elem, None);
+    let computed_style = window.r().GetComputedStyle(elem, None);
 
     reply.send(ComputedNodeLayout {
         display: computed_style.Display(),
