@@ -1035,7 +1035,8 @@ impl LayoutTask {
                     .add_to(&mut *display_list);
                 let paint_layer = PaintLayer::new(layout_root.layer_id(0),
                                                   root_background_color,
-                                                  ScrollPolicy::Scrollable);
+                                                  ScrollPolicy::Scrollable,
+                                                  None);
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
 
                 let stacking_context = Arc::new(StackingContext::new(display_list,

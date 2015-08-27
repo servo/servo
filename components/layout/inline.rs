@@ -1724,8 +1724,9 @@ impl Flow for InlineFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         let mut overflow = ZERO_RECT;
+        let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
         for fragment in &self.fragments.fragments {
-            overflow = overflow.union(&fragment.compute_overflow())
+            overflow = overflow.union(&fragment.compute_overflow(&flow_size))
         }
         overflow
     }

@@ -11,8 +11,9 @@ use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
 use std::fmt;
 use std::fmt::{Formatter, Debug};
+use util::geometry::Au;
 
-use constellation_msg::PipelineId;
+use constellation_msg::{PipelineId, SubpageId};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
@@ -85,6 +86,9 @@ pub struct LayerProperties {
     pub transform: Matrix4,
     /// The perspective transform for this layer
     pub perspective: Matrix4,
+    /// The subpage that this layer represents. If this is `Some`, this layer represents an
+    /// iframe.
+    pub subpage_layer_info: Option<SubpageLayerInfo>,
     /// Whether this layer establishes a new 3d rendering context.
     pub establishes_3d_context: bool,
     /// Whether this layer scrolls its overflow area.
@@ -123,5 +127,14 @@ pub enum ScriptToCompositorMsg {
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
     Exit,
+}
+
+/// Subpage (i.e. iframe)-specific information about each layer.
+#[derive(Clone, Copy, Deserialize, Serialize)]
+pub struct SubpageLayerInfo {
+    /// The ID of the subpage.
+    pub subpage_id: SubpageId,
+    /// The offset of the subpage within this layer (to account for borders).
+    pub origin: Point2D<Au>,
 }
 

@@ -18,10 +18,10 @@ use clipboard::ClipboardContext;
 use compositor_task::CompositorProxy;
 use compositor_task::Msg as CompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
-use euclid::point::Point2D;
+use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::{Rect, TypedRect};
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::Size2D;
+use euclid::size::{Size2D, TypedSize2D};
 use gfx::font_cache_task::FontCacheTask;
 use ipc_channel::ipc::{self, IpcSender};
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
@@ -196,7 +196,7 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub rect: Option<TypedRect<PagePx, f32>>,
+    pub size: Option<TypedSize2D<PagePx, f32>>,
     pub children: Vec<SendableFrameTree>,
 }
 
@@ -286,7 +286,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     parent_info: Option<(PipelineId, SubpageId)>,
-                    initial_window_rect: Option<TypedRect<PagePx, f32>>,
+                    initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<Sender<ConstellationControlMsg>>,
                     load_data: LoadData)
                     -> PipelineId {
@@ -307,7 +307,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                          self.storage_task.clone(),
                                          self.time_profiler_chan.clone(),
                                          self.mem_profiler_chan.clone(),
-                                         initial_window_rect,
+                                         initial_window_size,
                                          script_channel,
                                          load_data,
                                          self.window_size.device_pixel_ratio);
@@ -382,11 +382,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got init load URL message");
                 self.handle_init_load(url);
             }
-            // A layout assigned a size and position to a subframe. This needs to be reflected by
-            // all frame trees in the navigation context containing the subframe.
-            ConstellationMsg::FrameRect(pipeline_id, subpage_id, rect) => {
+            // A layout assigned a size to a subframe. This needs to be reflected by all frame
+            // trees in the navigation context containing the subframe.
+            ConstellationMsg::FrameSize(pipeline_id, subpage_id, size) => {
                 debug!("constellation got frame rect message");
-                self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
+                self.handle_frame_size_msg(pipeline_id, subpage_id, &Size2D::from_untyped(&size));
+            }
+            ConstellationMsg::SetSubpagePosition(pipeline_id, subpage_id, position) => {
+                debug!("constellation got frame rect message");
+                self.handle_subpage_position_msg(pipeline_id,
+                                                 subpage_id,
+                                                 &Point2D::from_untyped(&position));
             }
             ConstellationMsg::ScriptLoadedURLInIFrame(url,
                                                       source_pipeline_id,
@@ -571,10 +577,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
         debug!("creating replacement pipeline for about:failure");
 
-        let window_rect = self.pipeline(pipeline_id).rect;
+        let window_size = self.pipeline(pipeline_id).size;
         let new_pipeline_id =
             self.new_pipeline(parent_info,
-                              window_rect,
+                              window_size,
                               None,
                               LoadData::new(Url::parse("about:failure").unwrap()));
 
@@ -582,43 +588,70 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_init_load(&mut self, url: Url) {
-        let window_rect = Rect::new(Point2D::zero(), self.window_size.visible_viewport);
+        let window_size = self.window_size.visible_viewport;
         let root_pipeline_id =
-            self.new_pipeline(None, Some(window_rect), None, LoadData::new(url.clone()));
+            self.new_pipeline(None, Some(window_size), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
-    fn handle_frame_rect_msg(&mut self, containing_pipeline_id: PipelineId, subpage_id: SubpageId,
-                             rect: TypedRect<PagePx, f32>) {
+    fn handle_frame_size_msg(&mut self,
+                             containing_pipeline_id: PipelineId,
+                             subpage_id: SubpageId,
+                             size: &TypedSize2D<PagePx, f32>) {
         // Store the new rect inside the pipeline
         let (pipeline_id, script_chan) = {
             // Find the pipeline that corresponds to this rectangle. It's possible that this
             // pipeline may have already exited before we process this message, so just
             // early exit if that occurs.
-            let pipeline_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).map(|id| *id);
+            let pipeline_id = self.subpage_map
+                                  .get(&(containing_pipeline_id, subpage_id))
+                                  .map(|id| *id);
             let pipeline = match pipeline_id {
                 Some(pipeline_id) => self.mut_pipeline(pipeline_id),
                 None => return,
             };
-            pipeline.rect = Some(rect);
+            pipeline.size = Some(*size);
             (pipeline.id, pipeline.script_chan.clone())
         };
 
         script_chan.send(ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-            visible_viewport: rect.size,
-            initial_viewport: rect.size * ScaleFactor::new(1.0),
+            visible_viewport: *size,
+            initial_viewport: *size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
         })).unwrap();
 
         // If this pipeline is in the current frame tree,
         // send the updated rect to the script and compositor tasks
         if self.pipeline_is_in_current_frame(pipeline_id) {
-            self.compositor_proxy.send(CompositorMsg::SetLayerRect(
-                pipeline_id,
-                LayerId::null(),
-                rect.to_untyped()));
+            self.compositor_proxy.send(CompositorMsg::SetLayerSize(pipeline_id,
+                                                                   LayerId::null(),
+                                                                   size.to_untyped()));
+        }
+    }
+
+    fn handle_subpage_position_msg(&mut self,
+                                   containing_pipeline_id: PipelineId,
+                                   subpage_id: SubpageId,
+                                   position: &TypedPoint2D<PagePx, f32>) {
+        // Find the pipeline that corresponds to this rectangle. It's possible that this
+        // pipeline may have already exited before we process this message, so just
+        // early exit if that occurs.
+        let pipeline_id = self.subpage_map
+                              .get(&(containing_pipeline_id, subpage_id))
+                              .map(|id| *id);
+        let pipeline_id = match pipeline_id {
+            Some(pipeline_id) => pipeline_id,
+            None => return,
+        };
+
+        // If this pipeline is in the current frame tree,
+        // send the updated rect to the compositor tasks.
+        if self.pipeline_is_in_current_frame(pipeline_id) {
+            self.compositor_proxy.send(CompositorMsg::SetLayerPosition(pipeline_id,
+                                                                       LayerId::null(),
+                                                                       position.to_untyped()));
         }
     }
 
@@ -660,11 +693,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let old_pipeline_id = old_subpage_id.map(|old_subpage_id| {
             self.find_subpage(containing_pipeline_id, old_subpage_id).id
         });
-        let window_rect = old_pipeline_id.and_then(|old_pipeline_id| {
-            self.pipeline(old_pipeline_id).rect
+        let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
+            self.pipeline(old_pipeline_id).size
         });
         let new_pipeline_id = self.new_pipeline(Some((containing_pipeline_id, new_subpage_id)),
-                                                window_rect,
+                                                window_size,
                                                 script_chan,
                                                 LoadData::new(url));
         self.subpage_map.insert((containing_pipeline_id, new_subpage_id), new_pipeline_id);
@@ -725,8 +758,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let window_rect = self.pipeline(source_id).rect;
-                let new_pipeline_id = self.new_pipeline(None, window_rect, None, load_data);
+                let window_size = self.pipeline(source_id).size;
+                let new_pipeline_id = self.new_pipeline(None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptTask that will suspend all timers
@@ -1208,12 +1241,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // Check the visible rectangle for this pipeline. If the constellation
             // hasn't received a rectangle for this pipeline yet, then assume
             // that the output image isn't stable yet.
-            match pipeline.rect {
-                Some(rect) => {
+            match pipeline.size {
+                Some(size) => {
                     // If the rectangle for this pipeline is zero sized, it will
                     // never be painted. In this case, don't query the layout
                     // task as it won't contribute to the final output image.
-                    if rect.size == Size2D::zero() {
+                    if size == Size2D::zero() {
                         continue;
                     }
 
@@ -1331,7 +1364,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let mut frame_tree = SendableFrameTree {
             pipeline: pipeline.to_sendable(),
-            rect: pipeline.rect,
+            size: pipeline.size,
             children: vec!(),
         };
 

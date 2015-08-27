@@ -2015,10 +2015,11 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // Canvas always layerizes, as an special case
+        // Canvas and iframes always layerize, as an special case
         // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
-        if let SpecificFragmentInfo::Canvas(_) = self.specific {
-            return true
+        match self.specific {
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => return true,
+            _ => {}
         }
 
         // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
@@ -2049,10 +2050,8 @@ impl Fragment {
     }
 
     /// Computes the overflow rect of this fragment relative to the start of the flow.
-    pub fn compute_overflow(&self) -> Rect<Au> {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
-        let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+    pub fn compute_overflow(&self, flow_size: &Size2D<Au>) -> Rect<Au> {
+        let mut border_box = self.border_box.to_physical(self.style.writing_mode, *flow_size);
 
         // Relative position can cause us to draw outside our border box.
         //
@@ -2092,9 +2091,9 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::Iframe(ref iframe_info) => {
                 let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(Msg::FrameRect(iframe_info.pipeline_id,
+                chan.send(Msg::FrameSize(iframe_info.pipeline_id,
                                          iframe_info.subpage_id,
-                                         Rect::zero())).unwrap();
+                                         Size2D::zero())).unwrap();
             }
             _ => {}
         }

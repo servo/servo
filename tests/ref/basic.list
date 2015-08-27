@@ -312,6 +312,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
+== stacking_context_position_a.html stacking_context_position_ref.html
 == style_is_in_doc.html style_is_in_doc_ref.html
 == table_auto_width.html table_auto_width_ref.html
 == table_caption_bottom_a.html table_caption_bottom_ref.html

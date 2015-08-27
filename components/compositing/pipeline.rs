@@ -11,6 +11,7 @@ use compositor_task;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
+use euclid::size::{TypedSize2D};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -47,7 +48,7 @@ pub struct Pipeline {
     pub url: Url,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
-    pub rect: Option<TypedRect<PagePx, f32>>,
+    pub size: Option<TypedSize2D<PagePx, f32>>,
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
@@ -78,7 +79,7 @@ impl Pipeline {
                             storage_task: StorageTask,
                             time_profiler_chan: time::ProfilerChan,
                             mem_profiler_chan: profile_mem::ProfilerChan,
-                            window_rect: Option<TypedRect<PagePx, f32>>,
+                            window_size: Option<TypedSize2D<PagePx, f32>>,
                             script_chan: Option<Sender<ConstellationControlMsg>>,
                             load_data: LoadData,
                             device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
@@ -96,10 +97,10 @@ impl Pipeline {
             parent_info: parent_info,
         };
 
-        let window_size = window_rect.map(|rect| {
+        let window_size_data = window_size.map(|size| {
             WindowSizeData {
-                visible_viewport: rect.size,
-                initial_viewport: rect.size * ScaleFactor::new(1.0),
+                visible_viewport: size,
+                initial_viewport: size * ScaleFactor::new(1.0),
                 device_pixel_ratio: device_pixel_ratio,
             }
         });
@@ -148,7 +149,7 @@ impl Pipeline {
                                      layout_shutdown_port,
                                      paint_shutdown_port,
                                      load_data.url.clone(),
-                                     window_rect);
+                                     window_size);
 
         let pipeline_content = PipelineContent {
             id: id,
@@ -162,7 +163,7 @@ impl Pipeline {
             storage_task: storage_task,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            window_size: window_size,
+            window_size: window_size_data,
             script_chan: script_chan,
             load_data: load_data,
             failure: failure,
@@ -187,7 +188,7 @@ impl Pipeline {
                layout_shutdown_port: Receiver<()>,
                paint_shutdown_port: Receiver<()>,
                url: Url,
-               rect: Option<TypedRect<PagePx, f32>>)
+               size: Option<TypedSize2D<PagePx, f32>>)
                -> Pipeline {
         Pipeline {
             id: id,
@@ -200,7 +201,7 @@ impl Pipeline {
             url: url,
             title: None,
             children: vec!(),
-            rect: rect,
+            size: size,
             running_animations: false,
         }
     }

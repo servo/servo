@@ -8,7 +8,7 @@
 use compositor_msg::Epoch;
 
 use canvas_traits::CanvasMsg;
-use euclid::rect::Rect;
+use euclid::point::Point2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
@@ -222,7 +222,10 @@ pub enum Msg {
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
     DOMLoad(PipelineId),
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    FrameSize(PipelineId, SubpageId, Size2D<f32>),
+    /// The compositor sends this event to the constellation when it discovers the position of an
+    /// iframe.
+    SetSubpagePosition(PipelineId, SubpageId, Point2D<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),

@@ -93,7 +93,8 @@ impl CompositorEventListener for NullCompositor {
             // SetFrameTree.
 
             Msg::InitializeLayersForPipeline(..) |
-            Msg::SetLayerRect(..) |
+            Msg::SetLayerSize(..) |
+            Msg::SetLayerPosition(..) |
             Msg::AssignPaintedBuffers(..) |
             Msg::ChangeRunningAnimationsState(..) |
             Msg::ScrollFragmentPoint(..) |

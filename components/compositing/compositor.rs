@@ -35,7 +35,7 @@ use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineId, WindowSizeData};
+use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use png;
 use profile_traits::mem::{self, Reporter, ReporterRequest, ReportKind};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -394,9 +394,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 chan.send(Some(self.native_display.clone())).unwrap();
             }
 
-            (Msg::SetLayerRect(pipeline_id, layer_id, rect),
+            (Msg::SetLayerSize(pipeline_id, layer_id, size),
              ShutdownState::NotShuttingDown) => {
-                self.set_layer_rect(pipeline_id, layer_id, &rect);
+                self.set_layer_size(pipeline_id, layer_id, &size);
+            }
+
+            (Msg::SetLayerPosition(pipeline_id, layer_id, position),
+             ShutdownState::NotShuttingDown) => {
+                self.set_layer_position(pipeline_id, layer_id, &position);
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
@@ -618,9 +623,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composite_if_necessary(CompositingReason::NewFrameTree);
     }
 
-    fn create_root_layer_for_pipeline_and_rect(&mut self,
+    fn create_root_layer_for_pipeline_and_size(&mut self,
                                                pipeline: &CompositionPipeline,
-                                               frame_rect: Option<TypedRect<PagePx, f32>>)
+                                               frame_size: Option<TypedSize2D<PagePx, f32>>)
                                                -> Rc<Layer<CompositorData>> {
         let layer_properties = LayerProperties {
             id: LayerId::null(),
@@ -630,6 +635,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scroll_policy: ScrollPolicy::Scrollable,
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
+            subpage_layer_info: None,
             establishes_3d_context: true,
             scrolls_overflow_area: false,
         };
@@ -644,9 +650,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // All root layers mask to bounds.
         *root_layer.masks_to_bounds.borrow_mut() = true;
 
-        if let Some(ref frame_rect) = frame_rect {
-            let frame_rect = frame_rect.to_untyped();
-            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+        if let Some(ref frame_size) = frame_size {
+            let frame_size = frame_size.to_untyped();
+            root_layer.bounds.borrow_mut().size = Size2D::from_untyped(&frame_size);
+            /*root_layer.bounds.borrow_mut().origin =
+                Point2D::from_untyped(&Point2D::new(0.0, 0.0));*/
         }
 
         return root_layer;
@@ -654,12 +662,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn create_frame_tree_root_layers(&mut self,
                                      frame_tree: &SendableFrameTree,
-                                     frame_rect: Option<TypedRect<PagePx, f32>>)
+                                     frame_size: Option<TypedSize2D<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
-        let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
-                                                                      frame_rect);
+        let root_layer = self.create_root_layer_for_pipeline_and_size(&frame_tree.pipeline,
+                                                                      frame_size);
         for kid in &frame_tree.children {
-            root_layer.add_child(self.create_frame_tree_root_layers(kid, kid.rect));
+            root_layer.add_child(self.create_frame_tree_root_layers(kid, kid.size));
         }
         return root_layer;
     }
@@ -695,7 +703,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties) -> bool {
+    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties)
+                              -> bool {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
                 existing_layer.update_layer(properties);
@@ -741,7 +750,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                          layer_properties.id);
     }
 
-    fn create_or_update_descendant_layer(&mut self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_or_update_descendant_layer(&mut self,
+                                         pipeline_id: PipelineId,
+                                         layer_properties: LayerProperties) {
         debug_assert!(layer_properties.parent_id.is_some());
 
         if !self.update_layer_if_exists(pipeline_id, layer_properties) {
@@ -751,7 +762,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                          layer_properties.id);
     }
 
-    fn create_descendant_layer(&self, pipeline_id: PipelineId, layer_properties: LayerProperties) {
+    fn create_descendant_layer(&mut self,
+                               pipeline_id: PipelineId,
+                               layer_properties: LayerProperties) {
         let parent_id = layer_properties.parent_id.unwrap();
 
         if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
@@ -772,6 +785,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             parent_layer.add_child(new_layer);
+        }
+
+        if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
+            let layer_origin = Point2D::new(subpage_layer_info.origin.x.to_f32_px(),
+                                            subpage_layer_info.origin.y.to_f32_px());
+            self.send_subpage_position_request_to_constellation(pipeline_id,
+                                                                subpage_layer_info.subpage_id,
+                                                                &(layer_properties.rect.origin +
+                                                                  layer_origin));
         }
     }
 
@@ -828,19 +850,47 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::CompositeOnScrollTimeout(timestamp);
     }
 
-    fn set_layer_rect(&mut self,
+    fn set_layer_size(&mut self,
                       pipeline_id: PipelineId,
                       layer_id: LayerId,
-                      new_rect: &Rect<f32>) {
+                      new_size: &Size2D<f32>) {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
-                *layer.bounds.borrow_mut() = Rect::from_untyped(new_rect)
+                layer.bounds.borrow_mut().size = Size2D::from_untyped(new_size)
             }
-            None => panic!("Compositor received SetLayerRect for nonexistent \
-                            layer: {:?}", pipeline_id),
+            None => {
+                panic!("Compositor received SetLayerSize for nonexistent layer: {:?}", pipeline_id)
+            }
         };
 
         self.send_buffer_requests_for_all_layers();
+    }
+
+    fn send_subpage_position_request_to_constellation(&mut self,
+                                                      pipeline_id: PipelineId,
+                                                      subpage_id: SubpageId,
+                                                      new_position: &Point2D<f32>) {
+        self.constellation_chan
+            .0
+            .send(ConstellationMsg::SetSubpagePosition(pipeline_id, subpage_id, *new_position))
+            .unwrap();
+    }
+
+    fn set_layer_position(&mut self,
+                          pipeline_id: PipelineId,
+                          layer_id: LayerId,
+                          new_position: &Point2D<f32>) {
+        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            Some(ref layer) => {
+                layer.bounds.borrow_mut().origin = Point2D::from_untyped(new_position)
+            }
+            None => {
+                panic!("Compositor received trying to set layer position of nonexistent layer: \
+                        {:?}/{:?}",
+                       pipeline_id,
+                       layer_id)
+            }
+        }
     }
 
     fn assign_painted_buffers(&mut self,

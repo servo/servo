@@ -20,7 +20,7 @@ use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
-use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
+use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy, SubpageLayerInfo};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::PipelineExitType;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -49,15 +49,23 @@ pub struct PaintLayer {
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+    /// The subpage that this layer reflects. If `None`, this layer belongs to the main page. If
+    /// `Some`, this layer represents another pipeline (i.e. is an iframe).
+    pub subpage_layer_info: Option<SubpageLayerInfo>,
 }
 
 impl PaintLayer {
     /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> PaintLayer {
+    pub fn new(id: LayerId,
+               background_color: Color,
+               scroll_policy: ScrollPolicy,
+               subpage_layer_info: Option<SubpageLayerInfo>)
+               -> PaintLayer {
         PaintLayer {
             id: id,
             background_color: background_color,
             scroll_policy: scroll_policy,
+            subpage_layer_info: subpage_layer_info,
         }
     }
 }
@@ -374,6 +382,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                         scroll_policy: paint_layer.scroll_policy,
                         transform: transform,
                         perspective: perspective,
+                        subpage_layer_info: paint_layer.subpage_layer_info,
                         establishes_3d_context: establishes_3d_context,
                         scrolls_overflow_area: scrolls_overflow_area,
                     });

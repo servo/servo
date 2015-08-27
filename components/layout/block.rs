@@ -2056,7 +2056,8 @@ impl Flow for BlockFlow {
     }
 
     fn compute_overflow(&self) -> Rect<Au> {
-        self.fragment.compute_overflow()
+        let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
+        self.fragment.compute_overflow(&flow_size)
     }
 
     fn iterate_through_fragment_border_boxes(&self,

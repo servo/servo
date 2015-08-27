@@ -13,6 +13,7 @@ use windowing::{WindowEvent, WindowMethods};
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::size::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -156,8 +157,10 @@ pub enum Msg {
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
     InitializeLayersForPipeline(PipelineId, Epoch, Vec<LayerProperties>),
-    /// Alerts the compositor that the specified layer's rect has changed.
-    SetLayerRect(PipelineId, LayerId, Rect<f32>),
+    /// Alerts the compositor that the specified layer's size has changed.
+    SetLayerSize(PipelineId, LayerId, Size2D<f32>),
+    /// Alerts the compositor that the specified layer's position has changed.
+    SetLayerPosition(PipelineId, LayerId, Point2D<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Requests that the compositor assign the painted buffers to the given layers.
@@ -210,7 +213,8 @@ impl Debug for Msg {
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
-            Msg::SetLayerRect(..) => write!(f, "SetLayerRect"),
+            Msg::SetLayerSize(..) => write!(f, "SetLayerSize"),
+            Msg::SetLayerPosition(..) => write!(f, "SetLayerPosition"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
