@@ -24,7 +24,6 @@ use dom::node::{Node, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
-use dom::text::Text;
 use parse::Parser;
 
 use encoding::types::Encoding;
@@ -33,7 +32,7 @@ use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
-use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText, NextParserState};
+use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -41,23 +40,6 @@ use string_cache::QualName;
 use tendril::StrTendril;
 use url::Url;
 use util::str::DOMString;
-
-trait SinkHelpers {
-    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node>;
-}
-
-impl SinkHelpers for servohtmlparser::Sink {
-    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node> {
-        match child {
-            AppendNode(n) => n.root(),
-            AppendText(t) => {
-                let doc = self.document.root();
-                let text = Text::new(t.into(), doc.r());
-                NodeCast::from_root(text)
-            }
-        }
-    }
-}
 
 impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
