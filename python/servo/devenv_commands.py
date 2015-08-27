@@ -119,8 +119,9 @@ class MachCommands(CommandBase):
             params = []
         # get all directories under tests/
         tests_dirs = listdir('tests')
-        # Remove 'wpt' from obtained dir list
-        tests_dirs = filter(lambda dir: dir != 'wpt', tests_dirs)
+        # Directories to be excluded under tests/
+        excluded_tests_dirs = ['wpt', 'jquery']
+        tests_dirs = filter(lambda dir: dir not in excluded_tests_dirs, tests_dirs)
         # Set of directories in project root
         root_dirs = ['components', 'ports', 'python', 'etc', 'resources']
         # Generate absolute paths for directories in tests/ and project-root/
@@ -128,4 +129,6 @@ class MachCommands(CommandBase):
         root_dirs_abs = [path.join(self.context.topdir, s) for s in root_dirs]
         # Absolute paths for all directories to be considered
         grep_paths = root_dirs_abs + tests_dirs_abs
-        return subprocess.call(["git"] + ["grep"] + params + ['--'] + grep_paths, env=self.build_env())
+        return subprocess.call(
+            ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
+            env=self.build_env())
