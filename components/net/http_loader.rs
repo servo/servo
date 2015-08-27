@@ -293,9 +293,7 @@ fn set_default_accept(headers: &mut Headers) {
 
 fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcSender<ControlMsg>) {
     let (tx, rx) = ipc::channel().unwrap();
-    resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url.clone(),
-                                                        tx,
-                                                        CookieSource::HTTP)).unwrap();
+    resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url, tx, CookieSource::HTTP)).unwrap();
     if let Some(cookie_list) = rx.recv().unwrap() {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
@@ -409,12 +407,8 @@ fn send_request_to_devtools(
     if let Some(ref chan) = devtools_chan {
         let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
         chan.send(DevtoolsControlMsg::FromChrome(
-                ChromeToDevtoolsControlMsg::NetworkEvent(
-                    request_id.clone(),
-                    net_event
-                )
-            )
-        ).unwrap();
+            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
+        )).unwrap();
     }
 }
 
@@ -422,10 +416,7 @@ fn send_response_to_devtools(
     devtools_chan: Option<Sender<DevtoolsControlMsg>>, request_id: String,
     headers: Option<Headers>, status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
-        let net_event_response =
-            NetworkEvent::HttpResponse(headers.clone(),
-                                       status.clone(),
-                                       None);
+        let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
         chan.send(DevtoolsControlMsg::FromChrome(
                 ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
                                                          net_event_response))).unwrap();
@@ -619,7 +610,7 @@ pub fn load<A>(load_data: LoadData,
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?
         send_response_to_devtools(
-            devtools_chan.clone(), request_id.clone(),
+            devtools_chan, request_id,
             metadata.headers.clone(), metadata.status.clone()
         );
 
