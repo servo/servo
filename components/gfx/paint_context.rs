@@ -731,7 +731,9 @@ impl<'a> PaintContext<'a> {
                         f32::consts::FRAC_PI_4
                     } else {
                         let line = Line { start: box_BL, end: inner_BL };
-                        let ellipse = Ellipse { origin: origin, width: radius.bottom_left, height: radius.bottom_left };
+                        let ellipse = Ellipse { origin: origin,
+                                                width: radius.bottom_left,
+                                                height: radius.bottom_left };
                         PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
                     };
 
@@ -791,7 +793,9 @@ impl<'a> PaintContext<'a> {
                         f32::consts::FRAC_PI_4
                     } else {
                         let line = Line { start: inner_BR, end: box_BR };
-                        let ellipse = Ellipse { origin: origin, width: radius.bottom_right, height: radius.bottom_right };
+                        let ellipse = Ellipse { origin: origin,
+                                                width: radius.bottom_right,
+                                                height: radius.bottom_right };
                         PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
                     };
 
@@ -825,7 +829,9 @@ impl<'a> PaintContext<'a> {
                         f32::consts::FRAC_PI_4
                     } else {
                         let line = Line { start: inner_BR, end: box_BR };
-                        let ellipse = Ellipse { origin: origin, width: radius.bottom_right, height: radius.bottom_right };
+                        let ellipse = Ellipse { origin: origin,
+                                                width: radius.bottom_right,
+                                                height: radius.bottom_right };
                         PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
                     };
 
@@ -850,7 +856,9 @@ impl<'a> PaintContext<'a> {
                         f32::consts::FRAC_PI_4
                     } else {
                         let line = Line { start: box_BL, end: inner_BL };
-                        let ellipse = Ellipse { origin: origin, width: radius.bottom_left, height: radius.bottom_left };
+                        let ellipse = Ellipse { origin: origin,
+                                                width: radius.bottom_left,
+                                                height: radius.bottom_left };
                         PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
                     };
 
