@@ -51,7 +51,7 @@ class Longhand(object):
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = THIS_STYLE_STRUCT
-        self.experimental = experimental
+        self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         if derived_from is None:
             self.derived_from = None
@@ -64,7 +64,7 @@ class Shorthand(object):
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None
-        self.experimental = experimental
+        self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
 
 class StyleStruct(object):
@@ -450,7 +450,9 @@ pub mod longhands {
                 % for value in values[:-1]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::opts::experimental_enabled() { return Err(()) }
+                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                                return Err(())
+                            }
                         % endif
                         Ok(computed_value::T::${to_rust_ident(value)})
                     },
@@ -458,7 +460,9 @@ pub mod longhands {
                 % for value in values[-1:]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::opts::experimental_enabled() { return Err(()) }
+                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                                return Err(())
+                            }
                         % endif
                         Ok(computed_value::T::${to_rust_ident(value)})
                     }
@@ -5720,7 +5724,7 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     "${property.name}" => {
                         % if property.experimental:
-                            if !::util::opts::experimental_enabled() {
+                            if !::util::prefs::get_pref("${property.experimental}", false) {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
@@ -5739,7 +5743,7 @@ impl PropertyDeclaration {
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
                     % if shorthand.experimental:
-                        if !::util::opts::experimental_enabled() {
+                        if !::util::prefs::get_pref("${shorthand.experimental}", false) {
                             return PropertyDeclarationParseResult::ExperimentalProperty
                         }
                     % endif

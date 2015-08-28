@@ -60,6 +60,7 @@ pub mod logical_geometry;
 pub mod mem;
 pub mod opts;
 pub mod persistent_list;
+pub mod prefs;
 pub mod range;
 pub mod resource_files;
 pub mod str;

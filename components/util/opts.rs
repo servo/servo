@@ -10,6 +10,7 @@ use geometry::ScreenPx;
 use euclid::size::{Size2D, TypedSize2D};
 use getopts::Options;
 use num_cpus;
+use prefs;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -17,7 +18,6 @@ use std::fs::{File, PathExt};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
@@ -49,9 +49,6 @@ pub struct Opts {
     /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
     pub mem_profiler_period: Option<f64>,
-
-    /// Enable experimental web features (`-e`).
-    pub enable_experimental: bool,
 
     /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
     /// sequential algorithm.
@@ -384,7 +381,6 @@ pub fn default_opts() -> Opts {
         device_pixels_per_px: None,
         time_profiler_period: None,
         mem_profiler_period: None,
-        enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
         nossl: false,
@@ -434,7 +430,6 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
-    opts.optflag("e", "experimental", "Enable experimental web features");
     opts.optopt("t", "threads", "Number of paint threads", "1");
     opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
     opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
@@ -461,6 +456,8 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
+    opts.optmulti("", "pref",
+                  "A preference to set to enable", "dom.mozbrowser.enabled");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -589,7 +586,6 @@ pub fn from_cmdline_args(args: &[String]) {
         device_pixels_per_px: device_pixels_per_px,
         time_profiler_period: time_profiler_period,
         mem_profiler_period: mem_profiler_period,
-        enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
         nossl: nossl,
@@ -630,19 +626,12 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     set_defaults(opts);
-}
 
-static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
-
-/// Turn on experimental features globally. Normally this is done
-/// during initialization by `set` or `from_cmdline_args`, but
-/// tests that require experimental features will also set it.
-pub fn set_experimental_enabled(new_value: bool) {
-    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
-}
-
-pub fn experimental_enabled() -> bool {
-    EXPERIMENTAL_ENABLED.load(Ordering::SeqCst)
+    // This must happen after setting the default options, since the prefs rely on
+    // on the resource path.
+    for pref in opt_match.opt_strs("pref").iter() {
+        prefs::set_pref(pref, true);
+    }
 }
 
 // Make Opts available globally. This saves having to clone and pass
@@ -653,7 +642,7 @@ const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
 
 lazy_static! {
     static ref OPTIONS: Opts = {
-        let opts = unsafe {
+        unsafe {
             let initial = if !DEFAULT_OPTIONS.is_null() {
                 let opts = Box::from_raw(DEFAULT_OPTIONS);
                 *opts
@@ -662,9 +651,7 @@ lazy_static! {
             };
             DEFAULT_OPTIONS = INVALID_OPTIONS;
             initial
-        };
-        set_experimental_enabled(opts.enable_experimental);
-        opts
+        }
     };
 }
 
