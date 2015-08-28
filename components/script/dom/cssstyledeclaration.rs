@@ -74,9 +74,7 @@ impl CSSStyleDeclaration {
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
-}
 
-impl CSSStyleDeclaration {
     fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
         let node = NodeCast::from_ref(owner.r());

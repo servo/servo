@@ -44,9 +44,7 @@ impl HTMLCollection {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
     }
-}
 
-impl HTMLCollection {
     pub fn create(window: &Window, root: &Node,
                   filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
         HTMLCollection::new(window, Collection(JS::from_ref(root), filter))

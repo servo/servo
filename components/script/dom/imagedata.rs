@@ -49,10 +49,7 @@ impl ImageData {
         reflect_dom_object(imagedata,
                            global, ImageDataBinding::Wrap)
     }
-}
 
-
-impl ImageData {
     #[allow(unsafe_code)]
     pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
         unsafe {

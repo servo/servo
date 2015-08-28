@@ -143,9 +143,7 @@ impl HTMLImageElement {
             }
         }
     }
-}
 
-impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),

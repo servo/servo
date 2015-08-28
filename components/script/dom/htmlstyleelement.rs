@@ -48,10 +48,7 @@ impl HTMLStyleElement {
         let element = HTMLStyleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
-}
 
-
-impl HTMLStyleElement {
     pub fn parse_own_css(&self) {
         let node = NodeCast::from_ref(self);
         let element = ElementCast::from_ref(self);

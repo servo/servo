@@ -77,10 +77,7 @@ impl Blob {
         };
         Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
     }
-}
 
-
-impl Blob {
     pub fn read_out_buffer(&self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
     }

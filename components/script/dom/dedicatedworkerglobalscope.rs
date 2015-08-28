@@ -187,9 +187,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
-}
 
-impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
@@ -242,10 +240,7 @@ impl DedicatedWorkerGlobalScope {
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         });
     }
-}
 
-
-impl DedicatedWorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         box WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
@@ -269,10 +264,7 @@ impl DedicatedWorkerGlobalScope {
     pub fn process_event(&self, msg: CommonScriptMsg) {
         self.handle_script_event(WorkerScriptMsg::Common(msg));
     }
-}
 
-
-impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     fn receive_event(&self) -> Result<MixedMessage, RecvError> {
         let scope = WorkerGlobalScopeCast::from_ref(self);

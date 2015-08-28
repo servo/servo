@@ -407,10 +407,7 @@ impl CanvasRenderingContext2D {
 
         Some(Rect::new(Point2D::new(x as f32, y as f32), Size2D::new(w as f32, h as f32)))
     }
-}
 
-
-impl CanvasRenderingContext2D {
     pub fn get_renderer_id(&self) -> usize {
         self.renderer_id
     }

@@ -503,10 +503,7 @@ impl HTMLScriptElement {
     pub fn mark_already_started(&self) {
         self.already_started.set(true);
     }
-}
 
-
-impl HTMLScriptElement {
     fn dispatch_event(&self,
                       type_: DOMString,
                       bubbles: EventBubbles,

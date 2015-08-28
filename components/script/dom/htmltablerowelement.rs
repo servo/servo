@@ -50,11 +50,7 @@ impl HTMLTableRowElement {
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
-}
 
-
-
-impl HTMLTableRowElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
