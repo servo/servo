@@ -16,7 +16,7 @@ use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::event::{EventBubbles, EventCancelable, Event};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -103,33 +103,26 @@ impl VirtualMethods for HTMLLinkElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
-        let node = NodeCast::from_ref(self);
-        if !node.is_in_doc() {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        if !NodeCast::from_ref(self).is_in_doc() || mutation == AttributeMutation::Removed {
             return;
         }
-
-        let element = ElementCast::from_ref(self);
-        let rel = get_attr(element, &atom!("rel"));
-
-        match (rel, attr.local_name()) {
-            (ref rel, &atom!("href")) => {
-                if is_stylesheet(rel) {
+        let rel = get_attr(ElementCast::from_ref(self), &atom!(rel));
+        match attr.local_name() {
+            &atom!(href) => {
+                if is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
-                } else if is_favicon(rel) {
+                } else if is_favicon(&rel) {
                     self.handle_favicon_url(&attr.value());
                 }
-            }
-            (ref rel, &atom!("media")) => {
-                if is_stylesheet(rel) {
+            },
+            &atom!(media) => {
+                if is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 }
-            }
-            (_, _) => ()
+            },
+            _ => {},
         }
     }
 

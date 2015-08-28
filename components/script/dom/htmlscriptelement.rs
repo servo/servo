@@ -21,7 +21,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
-use dom::element::{ElementCreator, ElementTypeId};
+use dom::element::{AttributeMutation, ElementCreator, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -532,13 +532,14 @@ impl VirtualMethods for HTMLScriptElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-        let node = NodeCast::from_ref(self);
-        if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
-            self.prepare();
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        if attr.local_name() == &atom!("src") {
+            if let AttributeMutation::Set(_) = mutation {
+                if !self.parser_inserted.get() && NodeCast::from_ref(self).is_in_doc() {
+                    self.prepare();
+                }
+            }
         }
     }
 
