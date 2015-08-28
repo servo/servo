@@ -434,7 +434,6 @@ impl<'a> PaintContext<'a> {
     // - intersection at ellipse.center + (0, ellipse.height), the angle is 0 rad.
     // - intersection at ellipse.center + (0, -ellipse.height), the angle is 0 rad.
     // - intersection at ellipse.center + (+-ellipse.width, 0), the angle is pi/2.
-
     fn ellipse_line_intersection_angles(e: Ellipse, l: Line)
                                         -> (Option<(Point2D<f32>, f32)>, Option<(Point2D<f32>, f32)>) {
         fn point_angle(e: Ellipse, intersect_point: Point2D<f32>) -> f32 {
