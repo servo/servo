@@ -477,9 +477,6 @@ impl<'a> GlyphStore {
             }
         };
 
-        // FIXME(pcwalton): Is this necessary? I think it's a no-op.
-        entry = entry.adapt_character_flags_of_entry(self.entry_buffer[i.to_usize()]);
-
         if character == Some(' ') {
             entry = entry.set_char_is_space()
         }
