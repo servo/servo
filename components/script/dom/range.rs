@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextCast, TextDerived};
 use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -667,6 +667,41 @@ impl RangeMethods for Range {
         }
 
         Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-range-surroundcontents
+    fn SurroundContents(&self, new_parent: &Node) -> ErrorResult {
+        // Step 1.
+        let start = self.StartContainer();
+        let end = self.EndContainer();
+
+        if start.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(end.r()) && !n.is_text()) ||
+           end.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(start.r()) && !n.is_text()) {
+             return Err(Error::InvalidState);
+        }
+
+        // Step 2.
+        match new_parent.type_id() {
+            NodeTypeId::Document |
+            NodeTypeId::DocumentType |
+            NodeTypeId::DocumentFragment => return Err(Error::InvalidNodeType),
+            _ => ()
+        }
+
+        // Step 3.
+        let fragment = try!(self.ExtractContents());
+
+        // Step 4.
+        Node::replace_all(None, new_parent);
+
+        // Step 5.
+        try!(self.InsertNode(new_parent));
+
+        // Step 6.
+        let _ = try!(new_parent.AppendChild(NodeCast::from_ref(fragment.r())));
+
+        // Step 7.
+        self.SelectNode(new_parent)
     }
 }
 
