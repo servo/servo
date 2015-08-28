@@ -170,6 +170,7 @@
             test(function() {
                 var optgroup = document.createElement("optgroup");
                 optgroup.disabled = true;
+                check_disabled_selector(optgroup, true);
 
                 var option = document.createElement("option");
                 check_disabled_selector(option, false);

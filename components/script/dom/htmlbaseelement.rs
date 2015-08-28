@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node};
@@ -56,15 +56,6 @@ impl HTMLBaseElement {
         parsed.unwrap_or(base)
     }
 
-    /// Update the cached base element in response to adding or removing an
-    /// attribute.
-    pub fn add_remove_attr(&self, attr: &Attr) {
-        if *attr.local_name() == atom!("href") {
-            let document = document_from_node(self);
-            document.refresh_base_element();
-        }
-    }
-
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
     pub fn bind_unbind(&self, tree_in_doc: bool) {
@@ -84,14 +75,11 @@ impl VirtualMethods for HTMLBaseElement {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        self.super_type().unwrap().after_set_attr(attr);
-        self.add_remove_attr(attr);
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        self.super_type().unwrap().before_remove_attr(attr);
-        self.add_remove_attr(attr);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        if *attr.local_name() == atom!(href) {
+            document_from_node(self).refresh_base_element();
+        }
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

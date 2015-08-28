@@ -48,6 +48,9 @@
   document.getElementById("button1").setAttribute("disabled", "disabled");
   testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set");
 
+  document.getElementById("button1").setAttribute("disabled", "disabled");
+  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set twice");
+
   document.getElementById("input2").setAttribute("type", "submit"); // change input type to submit
   testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match disabled elements whose type has changed");
 

@@ -297,6 +297,7 @@ impl Document {
     }
 
     /// Refresh the cached first base element in the DOM.
+    /// https://github.com/w3c/web-platform-tests/issues/2122
     pub fn refresh_base_element(&self) {
         let base = NodeCast::from_ref(self)
             .traverse_preorder()

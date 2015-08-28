@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTab
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
@@ -157,39 +157,32 @@ impl VirtualMethods for HTMLTableElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
-            }
-            &atom!("border") => {
+            &atom!(bgcolor) => {
+                self.background_color.set(mutation.new_value(attr).and_then(|value| {
+                    str::parse_legacy_color(&value).ok()
+                }));
+            },
+            &atom!(border) => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
-                self.border.set(Some(str::parse_unsigned_integer(attr.value()
-                                                                     .chars()).unwrap_or(1)))
+                self.border.set(mutation.new_value(attr).map(|value| {
+                    str::parse_unsigned_integer(value.chars()).unwrap_or(1)
+                }));
             }
-            &atom!("cellspacing") => {
-                self.cellspacing.set(str::parse_unsigned_integer(attr.value().chars()))
-            }
-            &atom!("width") => self.width.set(str::parse_length(&attr.value())),
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("bgcolor") => self.background_color.set(None),
-            &atom!("border") => self.border.set(None),
-            &atom!("cellspacing") => self.cellspacing.set(None),
-            &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
-            _ => ()
+            &atom!(cellspacing) => {
+                self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
+                    str::parse_unsigned_integer(value.chars())
+                }));
+            },
+            &atom!(width) => {
+                let width = mutation.new_value(attr).map(|value| {
+                    str::parse_length(&value)
+                });
+                self.width.set(width.unwrap_or(LengthOrPercentageOrAuto::Auto));
+            },
+            _ => {},
         }
     }
 
