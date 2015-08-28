@@ -381,15 +381,11 @@ impl<'a> PaintContext<'a> {
         return (Some(x1), Some(x2));
     }
 
-    fn intersect_ellipse_line(e: Ellipse, line: Line) -> (Option<Point2D<f32>>, Option<Point2D<f32>>)  {
-        if line.end.x - line.start.x <= f32::EPSILON {
-            panic!("Error line segment end.x > start.x!!");
-        }
+    fn intersect_ellipse_line(e: Ellipse, l: Line) -> (Option<Point2D<f32>>, Option<Point2D<f32>>) {
+        debug_assert!(l.end.x - l.start.x <= f32::EPSILON, "Error line segment end.x > start.x!!");
         // shift the origin to center of the ellipse.
-        let line = Line { start: Point2D { x: line.start.x - e.origin.x,
-                                           y: line.start.y - e.origin.y },
-                          end: Point2D { x: line.end.x - e.origin.x,
-                                         y: line.end.y - e.origin.y} };
+        let line = Line { start: l.start - e.origin,
+                          end: l.end - e.origin };
 
         let a = (line.end.y - line.start.y)/(line.end.x - line.start.x);
         let b = line.start.y - (a * line.start.x);
@@ -410,28 +406,34 @@ impl<'a> PaintContext<'a> {
         let intersections = PaintContext::solve_quadratic(quad_a, quad_b, quad_c);
         match intersections {
             (Some(x0), Some(x1)) => {
-                let mut p0 = Point2D { x: x0 + e.origin.x, y: a * x0 + b + e.origin.y };
-                let mut p1 = Point2D { x: x1 + e.origin.x, y: a * x1 + b + e.origin.y };
+                let mut p0 = Point2D::new(x0, a * x0 + b) + e.origin;
+                let mut p1 = Point2D::new(x1, a * x1 + b) + e.origin;
                 
                 if x0 > x1 {
                     mem::swap(&mut p0, &mut p1);
-                    let tmp = p0;
-                    p0 = p1;
-                    p1 = tmp;
                 }
                 (Some(p0), Some(p1))
             },
             (Some(x0), None) => {
-                let p = Point2D { x: x0 + e.origin.x, y: a * x0 + b + e.origin.y };
+                let p = Point2D::new(x0, a * x0 + b) + e.origin;
                 (Some(p), None)
             },
             (None, Some(x1)) => {
-                let p = Point2D { x: x1 + e.origin.x, y: a * x1 + b + e.origin.y };
+                let p = Point2D::new(x1, a * x1 + b) + e.origin;
                 (Some(p), None)
             },
             (None, None) => (None, None),
         }
     }
+
+    // Given an ellipse and line segment, the line segment may intersect the
+    // ellipse at 0, 1, or 2 points. We compute those intersection points.
+    // For each intersection point the angle of the point on the ellipse relative to
+    // the top|bottom of the ellipse is computed.
+    // Examples:
+    // - intersection at ellipse.center + (0, ellipse.height), the angle is 0 rad.
+    // - intersection at ellipse.center + (0, -ellipse.height), the angle is 0 rad.
+    // - intersection at ellipse.center + (+-ellipse.width, 0), the angle is pi/2.
 
     fn ellipse_line_intersection_angles(e: Ellipse, l: Line)
                                         -> (Option<(Point2D<f32>, f32)>, Option<(Point2D<f32>, f32)>) {
@@ -450,18 +452,18 @@ impl<'a> PaintContext<'a> {
 
     fn ellipse_rightmost_line_intersection_angle(e: Ellipse, l: Line) -> Option<f32> {
         match PaintContext::ellipse_line_intersection_angles(e, l) {
-            (Some((p0, angle0)), Some((p1, angle1))) => if p0.x < p1.x { Some(angle1) } else { Some(angle0) },
+            (Some((p0, angle0)), Some((p1, _))) if p0.x > p1.x => Some(angle0),
+            (_, Some((_, angle1))) => Some(angle1),
             (Some((_, angle0)), None) => Some(angle0),
-            (None, Some((_, angle1))) => Some(angle1),
             (None, None) => None,
         }
     }
 
     fn ellipse_leftmost_line_intersection_angle(e: Ellipse, l: Line) -> Option<f32> {
         match PaintContext::ellipse_line_intersection_angles(e, l) {
-            (Some((p0, angle0)), Some((p1, angle1))) => if p0.x < p1.x { Some(angle0) } else { Some(angle1) },
+            (Some((p0, angle0)), Some((p1, _))) if p0.x < p1.x => Some(angle0),
+            (_, Some((_, angle1))) => Some(angle1),
             (Some((_, angle0)), None) => Some(angle0),
-            (None, Some((_, angle1))) => Some(angle1),
             (None, None) => None,
         }
     }
