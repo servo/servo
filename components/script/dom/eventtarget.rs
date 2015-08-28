@@ -163,10 +163,7 @@ impl EventTarget {
     pub fn type_id<'a>(&'a self) -> &'a EventTargetTypeId {
         &self.type_id
     }
-}
 
-
-impl EventTarget {
     pub fn dispatch_event_with_target(&self,
                                   target: &EventTarget,
                                   event: &Event) -> bool {

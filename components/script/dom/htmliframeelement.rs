@@ -159,9 +159,7 @@ impl HTMLIFrameElement {
     pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
         self.subpage_id.set(Some(new_subpage_id));
     }
-}
 
-impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
@@ -183,9 +181,7 @@ impl HTMLIFrameElement {
             }).unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
-}
 
-impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {

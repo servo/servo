@@ -49,10 +49,7 @@ impl HTMLTableSectionElement {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
     }
-}
 
-
-impl HTMLTableSectionElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }

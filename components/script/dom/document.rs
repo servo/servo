@@ -1090,10 +1090,7 @@ impl Document {
         }
         document
     }
-}
 
-
-impl Document {
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
         let window = self.window.root();
         let doc = self.GetDocumentElement();

@@ -40,10 +40,7 @@ impl DOMTokenList {
                            GlobalRef::Window(window.r()),
                            DOMTokenListBinding::Wrap)
     }
-}
 
-
-impl DOMTokenList {
     fn attribute(&self) -> Option<Root<Attr>> {
         let element = self.element.root();
         element.r().get_attribute(&ns!(""), &self.local_name)

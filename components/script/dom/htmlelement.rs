@@ -77,10 +77,7 @@ impl HTMLElement {
         let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
-}
 
-
-impl HTMLElement {
     fn is_body_or_frameset(&self) -> bool {
         let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
