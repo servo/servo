@@ -382,7 +382,7 @@ impl<'a> PaintContext<'a> {
     }
 
     fn intersect_ellipse_line(e: Ellipse, l: Line) -> (Option<Point2D<f32>>, Option<Point2D<f32>>) {
-        debug_assert!(l.end.x - l.start.x <= f32::EPSILON, "Error line segment end.x > start.x!!");
+        debug_assert!(l.end.x - l.start.x > f32::EPSILON, "Error line segment end.x > start.x!!");
         // shift the origin to center of the ellipse.
         let line = Line { start: l.start - e.origin,
                           end: l.end - e.origin };
