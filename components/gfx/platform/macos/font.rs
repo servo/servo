@@ -33,11 +33,6 @@ pub struct FontTable {
     data: CFData,
 }
 
-// Noncopyable.
-impl Drop for FontTable {
-    fn drop(&mut self) {}
-}
-
 impl FontTable {
     pub fn wrap(data: CFData) -> FontTable {
         FontTable { data: data }
