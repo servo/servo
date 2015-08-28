@@ -739,7 +739,8 @@ pub mod longhands {
                             },
                             specified::LengthOrPercentage::Calc(calc) => {
                                 let calc = calc.to_computed_value(context);
-                                let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(calc.percentage()));
+                                let fr = specified::FontRelativeLength::Em(calc.percentage());
+                                let fr = specified::Length::FontRelative(fr);
                                 computed_value::T::Length(calc.length() + fr.to_computed_value(context))
                             }
                         }
