@@ -11,12 +11,12 @@ use euclid::rect::Rect;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, TrustedNodeAddress};
+use script_traits::MsgFromScript as ConstellationMsg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use sequential;
 
 use std::sync::{Arc, Mutex};

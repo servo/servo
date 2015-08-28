@@ -9,8 +9,7 @@
 use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use floats::ClearType;
-use flow;
-use flow::Flow;
+use flow::{self, Flow};
 use flow_ref::{self, FlowRef};
 use incremental::{self, RestyleDamage};
 use inline::{InlineFragmentContext, InlineFragmentNodeInfo, InlineMetrics};
@@ -25,10 +24,12 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
+use script_traits::MsgFromScript as Msg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -2391,4 +2392,3 @@ bitflags! {
         const HAS_LAYER = 0x01,
     }
 }
-

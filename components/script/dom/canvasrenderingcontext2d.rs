@@ -23,10 +23,6 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
 use dom::node::{window_from_node, NodeDamage};
 
-use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::ImageResponse;
-
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
 use euclid::matrix2d::Matrix2D;
@@ -38,6 +34,9 @@ use canvas::canvas_paint_task::RectToi32;
 use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
+use script_traits::MsgFromScript as ConstellationMsg;
 
 use ipc_channel::ipc::{self, IpcSender};
 use num::{Float, ToPrimitive};

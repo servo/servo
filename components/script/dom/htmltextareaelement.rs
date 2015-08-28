@@ -24,9 +24,9 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
-use script_task::{Runnable, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable};
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use textinput::{TextInput, Lines, KeyReaction};
 
 use string_cache::Atom;

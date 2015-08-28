@@ -17,8 +17,8 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use script_traits::MsgFromScript as ConstellationMsg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 
 use cssparser::RGBA;
 use url::{Url, UrlParser};

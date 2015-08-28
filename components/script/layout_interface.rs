@@ -12,13 +12,12 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
-use msg::compositor_msg::Epoch;
-use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use msg::constellation_msg::{WindowSizeData};
+use msg::compositor_msg::{Epoch, LayerId};
+use msg::constellation_msg::{Failure, PipelineExitType, PipelineId, WindowSizeData};
 use net_traits::PendingAsyncLoad;
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::mem::ReportsChan;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
@@ -251,4 +250,3 @@ pub struct NewLayoutTaskInfo {
     pub paint_chan: Box<Any + Send>,
     pub layout_shutdown_chan: Sender<()>,
 }
-

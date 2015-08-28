@@ -4,9 +4,9 @@
 
 use construct::{ConstructionItem, ConstructionResult};
 use incremental::RestyleDamage;
-use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
 use script::dom::node::SharedLayoutData;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 

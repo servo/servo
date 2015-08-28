@@ -12,17 +12,20 @@ use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::rect::{TypedRect};
 use euclid::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
+use gfx::paint_task::{LayoutToPaintMsg, PaintTask};
+use gfx_traits::paint_task::ChromeToPaintMsg;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
+use msg::constellation_msg::CompositorConstellationChan;
+use msg::constellation_msg::{Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
+use script_traits::ScriptConstellationChan;
 use std::any::Any;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -69,7 +72,8 @@ impl Pipeline {
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF, STF>(id: PipelineId,
                             parent_info: Option<(PipelineId, SubpageId)>,
-                            constellation_chan: ConstellationChan,
+                            compositor_constellation_chan: CompositorConstellationChan,
+                            script_constellation_chan: ScriptConstellationChan,
                             compositor_proxy: Box<CompositorProxy + 'static + Send>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             image_cache_task: ImageCacheTask,
@@ -153,7 +157,8 @@ impl Pipeline {
         let pipeline_content = PipelineContent {
             id: id,
             parent_info: parent_info,
-            constellation_chan: constellation_chan,
+            compositor_constellation_chan: compositor_constellation_chan,
+            script_constellation_chan: script_constellation_chan,
             compositor_proxy: compositor_proxy,
             devtools_chan: script_to_devtools_chan,
             image_cache_task: image_cache_task,
@@ -281,7 +286,8 @@ impl Pipeline {
 pub struct PipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
-    constellation_chan: ConstellationChan,
+    compositor_constellation_chan: CompositorConstellationChan,
+    script_constellation_chan: ScriptConstellationChan,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     image_cache_task: ImageCacheTask,
@@ -326,7 +332,7 @@ impl PipelineContent {
                                   &layout_pair,
                                   self.script_chan.clone(),
                                   mem::replace(&mut self.script_port, None).unwrap(),
-                                  self.constellation_chan.clone(),
+                                  self.script_constellation_chan.clone(),
                                   self.failure.clone(),
                                   self.resource_task,
                                   self.storage_task.clone(),
@@ -342,7 +348,7 @@ impl PipelineContent {
                                   self.parent_info.is_some(),
                                   layout_pair,
                                   self.pipeline_port.unwrap(),
-                                  self.constellation_chan,
+                                  self.script_constellation_chan,
                                   self.failure,
                                   self.script_chan.clone(),
                                   self.layout_to_paint_chan.clone(),
@@ -360,7 +366,7 @@ impl PipelineContent {
                           mem::replace(&mut self.layout_to_paint_port, None).unwrap(),
                           mem::replace(&mut self.chrome_to_paint_port, None).unwrap(),
                           self.compositor_proxy.clone_compositor_proxy(),
-                          self.constellation_chan.clone(),
+                          self.compositor_constellation_chan.clone(),
                           self.font_cache_task.clone(),
                           self.failure.clone(),
                           self.time_profiler_chan.clone(),
@@ -369,4 +375,3 @@ impl PipelineContent {
 
     }
 }
-

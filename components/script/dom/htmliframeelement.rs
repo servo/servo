@@ -27,8 +27,9 @@ use dom::window::Window;
 use page::IterablePage;
 
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
+use msg::constellation_msg::{PipelineId, SubpageId, MozBrowserEvent, NavigationDirection};
+use script_traits::MsgFromScript as ConstellationMsg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use string_cache::Atom;
 use util::opts;
 use util::str::DOMString;

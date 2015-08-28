@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use script_traits::MsgFromScript as ConstellationMsg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 
 use ipc_channel::ipc;
 use std::borrow::ToOwned;

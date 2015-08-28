@@ -31,9 +31,9 @@ use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
 
-use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
+use script_traits::MsgFromScript as ConstellationMsg;
 
 use std::cell::Cell;
 use std::mem;

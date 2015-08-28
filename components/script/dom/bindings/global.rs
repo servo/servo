@@ -14,11 +14,12 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
-use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use msg::constellation_msg::{PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
+use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
+use script_traits::ScriptConstellationChan as ConstellationChan;
 
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{GetGlobalForObjectCrossCompartment};

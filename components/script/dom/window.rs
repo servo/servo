@@ -36,13 +36,14 @@ use page::Page;
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
 use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_traits::ConstellationControlMsg;
+use script_traits::ScriptConstellationChan as ConstellationChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use devtools_traits::{TracingMetadata};
 use msg::compositor_msg::ScriptToCompositorMsg;
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
