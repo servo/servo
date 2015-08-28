@@ -32,7 +32,6 @@ use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::create::create_element;
@@ -827,12 +826,9 @@ impl Element {
 
 impl Element {
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
-        let mut attributes = RootedVec::new();
-        self.get_attributes(local_name, &mut attributes);
-        attributes.r().
-        iter()
-                  .find(|attr| attr.namespace() == namespace)
-                  .map(|attr| Root::from_ref(*attr))
+        self.attrs.borrow().iter().map(|attr| attr.root()).find(|attr| {
+            attr.namespace() == namespace && attr.local_name() == local_name
+        })
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
@@ -840,16 +836,6 @@ impl Element {
         let name = &self.parsed_name(name);
         self.attrs.borrow().iter().map(|attr| attr.root())
              .find(|a| a.r().name() == name)
-    }
-
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    pub fn get_attributes(&self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
-        for ref attr in self.attrs.borrow().iter() {
-            let attr = attr.root();
-            if attr.r().local_name() == local_name {
-                attributes.push(JS::from_rooted(&attr));
-            }
-        }
     }
 
     pub fn set_attribute_from_parser(&self,
@@ -1763,14 +1749,9 @@ impl<'a> ::selectors::Element for Root<Element> {
                     })
             },
             NamespaceConstraint::Any => {
-                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
-                self.get_attributes(local_name, &mut attributes);
-                attributes.iter().any(|attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.root();
-                        let value = attr.r().value();
-                        test(&value)
-                    })
+                self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+                     attr.local_name() == local_name && test(&attr.value())
+                })
             }
         }
     }
