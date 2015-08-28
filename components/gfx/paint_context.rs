@@ -369,13 +369,13 @@ impl<'a> PaintContext<'a> {
     }
 
     fn solve_quadratic(a: f32, b: f32, c: f32) -> (Option<f32>, Option<f32>) {
-        let descriminant = b * b - 4. * a * c;
-        if descriminant < 0. {
+        let discriminant = b * b - 4. * a * c;
+        if discriminant < 0. {
             return (None, None);
         }
-        let x1 = (-b + descriminant.sqrt())/(2. * a);
-        let x2 = (-b - descriminant.sqrt())/(2. * a);
-        if descriminant == 0. {
+        let x1 = (-b + discriminant.sqrt())/(2. * a);
+        let x2 = (-b - discriminant.sqrt())/(2. * a);
+        if discriminant == 0. {
             return (Some(x1), None);
         }
         return (Some(x1), Some(x2));
@@ -386,13 +386,13 @@ impl<'a> PaintContext<'a> {
             panic!("Error line segment end.x > start.x!!");
         }
         // shift the origin to center of the ellipse.
-        let l = Line { start: Point2D { x: line.start.x - e.origin.x,
-                                        y: line.start.y - e.origin.y},
-                       end: Point2D { x: line.end.x - e.origin.x,
-                                      y: line.end.y - e.origin.y}};
+        let line = Line { start: Point2D { x: line.start.x - e.origin.x,
+                                           y: line.start.y - e.origin.y },
+                          end: Point2D { x: line.end.x - e.origin.x,
+                                         y: line.end.y - e.origin.y} };
 
-        let a = (l.end.y - l.start.y)/(l.end.x - l.start.x);
-        let b = l.start.y - (a * l.start.x);
+        let a = (line.end.y - line.start.y)/(line.end.x - line.start.x);
+        let b = line.start.y - (a * line.start.x);
         // given the equation of a line,
         // y = a * x + b,
         // and the equation of an ellipse,
@@ -410,9 +410,11 @@ impl<'a> PaintContext<'a> {
         let intersections = PaintContext::solve_quadratic(quad_a, quad_b, quad_c);
         match intersections {
             (Some(x0), Some(x1)) => {
-                let mut p0 = Point2D {x: x0 + e.origin.x, y: a * x0 + b + e.origin.y};
-                let mut p1 = Point2D {x: x1 + e.origin.x, y: a * x1 + b + e.origin.y};
+                let mut p0 = Point2D { x: x0 + e.origin.x, y: a * x0 + b + e.origin.y };
+                let mut p1 = Point2D { x: x1 + e.origin.x, y: a * x1 + b + e.origin.y };
+                
                 if x0 > x1 {
+                    mem::swap(&mut p0, &mut p1);
                     let tmp = p0;
                     p0 = p1;
                     p1 = tmp;
@@ -420,11 +422,11 @@ impl<'a> PaintContext<'a> {
                 (Some(p0), Some(p1))
             },
             (Some(x0), None) => {
-                let p = Point2D {x: x0 + e.origin.x, y: a * x0 + b + e.origin.y};
+                let p = Point2D { x: x0 + e.origin.x, y: a * x0 + b + e.origin.y };
                 (Some(p), None)
             },
             (None, Some(x1)) => {
-                let p = Point2D {x: x1 + e.origin.x, y: a * x1 + b + e.origin.y};
+                let p = Point2D { x: x1 + e.origin.x, y: a * x1 + b + e.origin.y };
                 (Some(p), None)
             },
             (None, None) => (None, None),
@@ -636,10 +638,10 @@ impl<'a> PaintContext<'a> {
                     let origin = edge_TR + Point2D::new((border.right - radius.top_right).max(0.),
                                                         radius.top_right);
 
-                    let l = Line {start: inner_TR, end: box_TR};
-                    let e = Ellipse {origin: origin, width: radius.top_right, height: radius.top_right};
-                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(e, l).unwrap();
-                    path_builder.arc(origin, radius.top_right,  rad_T, rad_R - angle, false);
+                    let line = Line { start: inner_TR, end: box_TR };
+                    let ellipse = Ellipse { origin: origin, width: radius.top_right, height: radius.top_right };
+                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap();
+                    path_builder.arc(origin, radius.top_right, rad_T, rad_R - angle, false);
                     if distance_to_elbow_TR != 0. {
                         path_builder.arc(origin, distance_to_elbow_TR, rad_R - angle, rad_T, true);
                     }
@@ -656,9 +658,9 @@ impl<'a> PaintContext<'a> {
                 if radius.top_left != 0. {
                     let origin = edge_TL + Point2D::new(-(border.left - radius.top_left).max(0.),
                                                         radius.top_left);
-                    let l = Line {start: box_TL, end: inner_TL};
-                    let e = Ellipse {origin: origin, width: radius.top_left, height: radius.top_left};
-                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: box_TL, end: inner_TL };
+                    let ellipse = Ellipse { origin: origin, width: radius.top_left, height: radius.top_left };
+                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap();
                     if distance_to_elbow_TL != 0. {
                         path_builder.arc(origin, distance_to_elbow_TL, rad_T, rad_L + angle, true);
                     }
@@ -685,9 +687,9 @@ impl<'a> PaintContext<'a> {
                 if radius.top_left != 0. {
                     let origin = edge_TL + Point2D::new(radius.top_left,
                                                         -(border.top - radius.top_left).max(0.));
-                    let l = Line {start: box_TL, end: inner_TL};
-                    let e = Ellipse {origin: origin, width: radius.top_left, height: radius.top_left};
-                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: box_TL, end: inner_TL };
+                    let ellipse = Ellipse { origin: origin, width: radius.top_left, height: radius.top_left };
+                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap();
                     path_builder.arc(origin, radius.top_left, rad_L, rad_L + angle, false);
                     if distance_to_elbow_TL != 0. {
                         path_builder.arc(origin, distance_to_elbow_TL, rad_L + angle, rad_L, true);
@@ -706,9 +708,9 @@ impl<'a> PaintContext<'a> {
                     let origin = edge_BL +
                         Point2D::new(radius.bottom_left,
                                      (border.bottom - radius.bottom_left).max(0.));
-                    let l = Line {start: box_BL, end: inner_BL};
-                    let e = Ellipse {origin: origin, width: radius.bottom_left, height: radius.bottom_left};
-                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: box_BL, end: inner_BL };
+                    let ellipse = Ellipse { origin: origin, width: radius.bottom_left, height: radius.bottom_left };
+                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap();
                     if distance_to_elbow_BL != 0. {
                         path_builder.arc(origin, distance_to_elbow_BL,  rad_L, rad_L - angle, true);
                     }
@@ -735,9 +737,9 @@ impl<'a> PaintContext<'a> {
                 if radius.top_right != 0. {
                     let origin = edge_TR + Point2D::new(-radius.top_right,
                                                         -(border.top - radius.top_right).max(0.));
-                    let l = Line {start: inner_TR, end: box_TR};
-                    let e = Ellipse {origin: origin, width: radius.top_right, height: radius.top_right};
-                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: inner_TR, end: box_TR };
+                    let ellipse = Ellipse { origin: origin, width: radius.top_right, height: radius.top_right };
+                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap();
                     if distance_to_elbow_TR != 0. {
                         path_builder.arc(origin, distance_to_elbow_TR, rad_R, rad_R - angle, true);
                     }
@@ -756,9 +758,9 @@ impl<'a> PaintContext<'a> {
                     let origin = edge_BR +
                         Point2D::new(-radius.bottom_right,
                                      (border.bottom - radius.bottom_right).max(0.));
-                    let l = Line {start: inner_BR, end: box_BR};
-                    let e = Ellipse {origin: origin, width: radius.bottom_right, height: radius.bottom_right};
-                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: inner_BR, end: box_BR };
+                    let ellipse = Ellipse { origin: origin, width: radius.bottom_right, height: radius.bottom_right };
+                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap();
                     path_builder.arc(origin, radius.bottom_right, rad_R, rad_R + angle, false);
                     if distance_to_elbow_BR != 0. {
                         path_builder.arc(origin, distance_to_elbow_BR, rad_R + angle, rad_R, true);
@@ -785,9 +787,9 @@ impl<'a> PaintContext<'a> {
                 if radius.bottom_right != 0. {
                     let origin = edge_BR + Point2D::new((border.right - radius.bottom_right).max(0.),
                                                         -radius.bottom_right);
-                    let l = Line {start: inner_BR, end: box_BR};
-                    let e = Ellipse {origin: origin, width: radius.bottom_right, height: radius.bottom_right};
-                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: inner_BR, end: box_BR };
+                    let ellipse = Ellipse { origin: origin, width: radius.bottom_right, height: radius.bottom_right };
+                    let angle = PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap();
                     if distance_to_elbow_BR != 0. {
                         path_builder.arc(origin, distance_to_elbow_BR,   rad_B, rad_R + angle, true);
                     }
@@ -805,9 +807,9 @@ impl<'a> PaintContext<'a> {
                 if radius.bottom_left != 0. {
                     let origin = edge_BL - Point2D::new((border.left - radius.bottom_left).max(0.),
                                                    radius.bottom_left);
-                    let l = Line {start: box_BL, end: inner_BL};
-                    let e = Ellipse {origin: origin, width: radius.bottom_left, height: radius.bottom_left};
-                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(e, l).unwrap();
+                    let line = Line { start: box_BL, end: inner_BL };
+                    let ellipse = Ellipse { origin: origin, width: radius.bottom_left, height: radius.bottom_left };
+                    let angle = PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap();
                     path_builder.arc(origin, radius.bottom_left, rad_B, rad_L - angle, false);
                     if distance_to_elbow_BL != 0. {
                         path_builder.arc(origin, distance_to_elbow_BL,  rad_L - angle, rad_B, true);
