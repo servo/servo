@@ -1472,6 +1472,7 @@ class AttrDefiner(PropertyDefiner):
     def __init__(self, descriptor, name, static):
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
+        self.descriptor = descriptor
         self.regular = [
             m
             for m in descriptor.interface.members
@@ -1488,14 +1489,14 @@ class AttrDefiner(PropertyDefiner):
 
         def getter(attr):
             if self.static:
-                accessor = 'get_' + attr.identifier.name
+                accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
                     accessor = "generic_lenient_getter"
                 else:
                     accessor = "generic_getter"
-                jitinfo = "&%s_getterinfo" % attr.identifier.name
+                jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -1506,14 +1507,14 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
 
             if self.static:
-                accessor = 'set_' + attr.identifier.name
+                accessor = 'set_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
                     accessor = "generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
-                jitinfo = "&%s_setterinfo" % attr.identifier.name
+                jitinfo = "&%s_setterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -2835,7 +2836,10 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, method):
         name = method.identifier.name
-        return MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        return MakeNativeName(nativeName)
 
 
 class CGStaticMethod(CGAbstractStaticBindingMethod):
@@ -2862,7 +2866,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     """
     def __init__(self, descriptor, attr):
         self.attr = attr
-        name = 'get_' + attr.identifier.name
+        name = 'get_' + descriptor.internalNameFor(attr.identifier.name)
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
@@ -2880,7 +2884,10 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        nativeName = MakeNativeName(nativeName)
         infallible = ('infallible' in
                       descriptor.getExtendedAttributes(attr, getter=True))
         if attr.type.nullable() or not infallible:
@@ -2914,7 +2921,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     """
     def __init__(self, descriptor, attr):
         self.attr = attr
-        name = 'set_' + attr.identifier.name
+        name = 'set_' + descriptor.internalNameFor(attr.identifier.name)
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('HandleObject', 'obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
@@ -2931,7 +2938,10 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        return "Set" + MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        return "Set" + MakeNativeName(nativeName)
 
 
 class CGStaticSetter(CGAbstractStaticBindingMethod):
@@ -3045,8 +3055,9 @@ class CGMemberJITInfo(CGThing):
 
     def define(self):
         if self.member.isAttr():
-            getterinfo = ("%s_getterinfo" % self.member.identifier.name)
-            getter = ("get_%s" % self.member.identifier.name)
+            internalMemberName = self.descriptor.internalNameFor(self.member.identifier.name)
+            getterinfo = ("%s_getterinfo" % internalMemberName)
+            getter = ("get_%s" % internalMemberName)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
 
             movable = self.mayBeMovable() and getterinfal
@@ -3070,8 +3081,8 @@ class CGMemberJITInfo(CGThing):
                                         slotIndex,
                                         [self.member.type], None)
             if (not self.member.readonly or self.member.getExtendedAttribute("PutForwards")):
-                setterinfo = ("%s_setterinfo" % self.member.identifier.name)
-                setter = ("set_%s" % self.member.identifier.name)
+                setterinfo = ("%s_setterinfo" % internalMemberName)
+                setter = ("set_%s" % internalMemberName)
                 # Setters are always fallible, since they have to do a typed unwrap.
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, "AliasEverything",
