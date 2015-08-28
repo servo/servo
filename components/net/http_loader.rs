@@ -42,8 +42,8 @@ pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                hsts_list: Arc<Mutex<HSTSList>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data, senders, classifier| {
-        spawn_named("http_loader".to_owned(),
+    box move |load_data: LoadData, senders, classifier| {
+        spawn_named(format!("http_loader for {}", load_data.url.serialize()),
                     move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
     }
 }
