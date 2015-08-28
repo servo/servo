@@ -58,7 +58,7 @@ impl GlyphEntry {
                starts_ligature,
                glyph_count);
 
-        GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
+        GlyphEntry::new(glyph_count as u32)
     }
 
     /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
@@ -66,7 +66,7 @@ impl GlyphEntry {
     fn missing(glyph_count: usize) -> GlyphEntry {
         assert!(glyph_count <= u16::MAX as usize);
 
-        GlyphEntry::new((glyph_count as u32) << GLYPH_COUNT_SHIFT)
+        GlyphEntry::new(glyph_count as u32)
     }
 }
 
@@ -75,14 +75,13 @@ pub type GlyphId = u32;
 
 // TODO: make this more type-safe.
 
-static FLAG_CHAR_IS_SPACE: u32      = 0x10000000;
-// These two bits store some BREAK_TYPE_* flags
-static FLAG_IS_SIMPLE_GLYPH: u32    = 0x80000000;
+const FLAG_CHAR_IS_SPACE: u32      = 0x40000000;
+const FLAG_IS_SIMPLE_GLYPH: u32    = 0x80000000;
 
 // glyph advance; in Au's.
-static GLYPH_ADVANCE_MASK: u32      = 0x0FFF0000;
-static GLYPH_ADVANCE_SHIFT: u32     = 16;
-static GLYPH_ID_MASK: u32           = 0x0000FFFF;
+const GLYPH_ADVANCE_MASK: u32      = 0x3FFF0000;
+const GLYPH_ADVANCE_SHIFT: u32     = 16;
+const GLYPH_ID_MASK: u32           = 0x0000FFFF;
 
 // Non-simple glyphs (more than one glyph per char; missing glyph,
 // newline, tab, large advance, or nonzero x/y offsets) may have one
@@ -91,8 +90,7 @@ static GLYPH_ID_MASK: u32           = 0x0000FFFF;
 // unicode char.
 
 // The number of detailed glyphs for this char.
-static GLYPH_COUNT_MASK:              u32 = 0x00FFFF00;
-static GLYPH_COUNT_SHIFT:             u32 = 8;
+const GLYPH_COUNT_MASK:              u32 = 0x0000FFFF;
 
 fn is_simple_glyph_id(id: GlyphId) -> bool {
     ((id as u32) & GLYPH_ID_MASK) == id
@@ -132,7 +130,7 @@ impl GlyphEntry {
 
     fn glyph_count(&self) -> u16 {
         assert!(!self.is_simple());
-        ((self.value & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT) as u16
+        (self.value & GLYPH_COUNT_MASK) as u16
     }
 
     #[inline(always)]
