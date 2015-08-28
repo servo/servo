@@ -253,7 +253,10 @@ def check_rust(file_name, contents):
             sorted_uses = sorted(uses)
             for i in range(len(uses)):
                 if sorted_uses[i] != uses[i]:
-                    yield (idx + 1 - len(uses) + i, "use statement is not in alphabetical order")
+                    message = "use statement is not in alphabetical order"
+                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i])
+                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i])
+                    yield (idx + 1 - len(uses) + i, message + expected + found)
             uses = []
 
 
