@@ -408,7 +408,6 @@ impl<'a> PaintContext<'a> {
             (Some(x0), Some(x1)) => {
                 let mut p0 = Point2D::new(x0, a * x0 + b) + e.origin;
                 let mut p1 = Point2D::new(x1, a * x1 + b) + e.origin;
-                
                 if x0 > x1 {
                     mem::swap(&mut p0, &mut p1);
                 }
@@ -1720,4 +1719,3 @@ fn radii_apply_to_border_direction(direction: Direction, radius: &BorderRadii<Az
         (Direction::Left, a, _, b, _) => a != 0.0 || b != 0.0,
     }
 }
-
