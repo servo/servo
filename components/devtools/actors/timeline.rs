@@ -6,7 +6,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::{json, Encoder, Encodable};
 use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
 use std::net::TcpStream;
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
@@ -17,7 +16,7 @@ use actors::framerate::FramerateActor;
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
-use devtools_traits::{PreciseTime, TimelineMarker, TracingMetadata, TimelineMarkerType};
+use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use protocol::JsonPacketStream;
 use util::task;
 
@@ -148,72 +147,15 @@ impl TimelineActor {
             return;
         }
 
-        /// Select root(with depth 0) TimelineMarker pair (IntervalStart + IntervalEnd)
-        /// from queue and add marker to emitter
-        /// Return true if closed (IntervalStart + IntervalEnd) pair was founded
-        fn group(queue: &mut VecDeque<TimelineMarker>, depth: usize,
-                 start_payload: Option<TimelineMarker>, emitter: &Emitter,
-                 markers: &mut Vec<TimelineMarkerReply>) -> bool {
-
-            if let Some(start_payload) = start_payload {
-                if start_payload.metadata != TracingMetadata::IntervalStart {
-                    panic!("Start payload doesn't have metadata IntervalStart");
-                }
-
-                if let Some(end_payload) = queue.pop_front() {
-                    match end_payload.metadata {
-                        TracingMetadata::IntervalEnd => {
-                            if depth == 0 {
-                                // Emit TimelineMarkerReply, pair was found
-                                markers.push(emitter.marker(start_payload, end_payload));
-                            }
-                            return true;
-                        }
-                        TracingMetadata::IntervalStart => {
-                            if group(queue, depth + 1, Some(end_payload), emitter, markers) {
-                                return group(queue, depth, Some(start_payload), emitter, markers);
-                            } else {
-                                queue.push_front(start_payload);
-                            }
-                        }
-                        _ => panic!("Unknown tracingMetadata")
-                    }
-                } else {
-                    queue.push_front(start_payload);
-                }
-            }
-
-            false
-        }
-
         task::spawn_named("PullTimelineMarkers".to_string(), move || {
-            let mut queues = HashMap::new();
-            queues.insert("Reflow".to_string(), VecDeque::new());
-            queues.insert("DOMEvent".to_string(), VecDeque::new());
-
             loop {
                 if !*is_recording.lock().unwrap() {
                     break;
                 }
 
-                // Creating queues by marker.name
-                loop {
-                    match receiver.try_recv() {
-                        Ok(marker) => {
-                            if let Some(list) = queues.get_mut(&marker.name) {
-                                list.push_back(marker);
-                            }
-                        }
-
-                        Err(_) => break
-                    }
-                }
-
-                // Emit all markers
                 let mut markers = vec![];
-                for (_, queue) in &mut queues {
-                    let start_payload = queue.pop_front();
-                    group(queue, 0, start_payload, &emitter, &mut markers);
+                while let Ok(marker) = receiver.try_recv() {
+                    markers.push(emitter.marker(marker));
                 }
                 emitter.send(markers);
 
@@ -336,14 +278,13 @@ impl Emitter {
         }
     }
 
-    fn marker(&self, start_payload: TimelineMarker, end_payload: TimelineMarker)
-              -> TimelineMarkerReply {
+    fn marker(&self, payload: TimelineMarker) -> TimelineMarkerReply {
         TimelineMarkerReply {
-            name: start_payload.name,
-            start: HighResolutionStamp::new(self.start_stamp, start_payload.time),
-            end: HighResolutionStamp::new(self.start_stamp, end_payload.time),
-            stack: start_payload.stack,
-            endStack: end_payload.stack,
+            name: payload.name,
+            start: HighResolutionStamp::new(self.start_stamp, payload.start_time),
+            end: HighResolutionStamp::new(self.start_stamp, payload.end_time),
+            stack: payload.start_stack,
+            endStack: payload.end_stack,
         }
     }
 

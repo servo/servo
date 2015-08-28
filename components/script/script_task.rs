@@ -52,8 +52,8 @@ use timers::TimerId;
 use webdriver_handlers;
 
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{TracingMetadata};
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker};
+use devtools_traits::{StartedTimelineMarker, TimelineMarkerType};
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType};
@@ -2016,23 +2016,22 @@ impl Drop for ScriptTask {
 }
 
 struct AutoDOMEventMarker<'a> {
-    script_task: &'a ScriptTask
+    script_task: &'a ScriptTask,
+    marker: Option<StartedTimelineMarker>,
 }
 
 impl<'a> AutoDOMEventMarker<'a> {
     fn new(script_task: &'a ScriptTask) -> AutoDOMEventMarker<'a> {
-        let marker = TimelineMarker::new("DOMEvent".to_owned(), TracingMetadata::IntervalStart);
-        script_task.emit_timeline_marker(marker);
         AutoDOMEventMarker {
-            script_task: script_task
+            script_task: script_task,
+            marker: Some(TimelineMarker::start("DOMEvent".to_owned())),
         }
     }
 }
 
 impl<'a> Drop for AutoDOMEventMarker<'a> {
     fn drop(&mut self) {
-        let marker = TimelineMarker::new("DOMEvent".to_owned(), TracingMetadata::IntervalEnd);
-        self.script_task.emit_timeline_marker(marker);
+        self.script_task.emit_timeline_marker(self.marker.take().unwrap().end());
     }
 }
 

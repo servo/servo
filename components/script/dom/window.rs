@@ -40,7 +40,6 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use webdriver_handlers::jsval_to_webdriver;
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{TracingMetadata};
 use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
@@ -681,10 +680,11 @@ impl Window {
 
         debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
 
-        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalStart);
-            self.emit_timeline_marker(marker);
-        }
+        let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
+            Some(TimelineMarker::start("Reflow".to_owned()))
+        } else {
+            None
+        };
 
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
@@ -725,9 +725,8 @@ impl Window {
 
         self.pending_reflow_count.set(0);
 
-        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalEnd);
-            self.emit_timeline_marker(marker);
+        if let Some(marker) = marker {
+            self.emit_timeline_marker(marker.end());
         }
     }
 
