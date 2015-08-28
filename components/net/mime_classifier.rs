@@ -125,10 +125,11 @@ impl <'a, T: Iterator<Item=&'a u8> + Clone> Matches for T {
     // Side effects
     // moves the iterator when match is found
     fn matches(&mut self, matches: &[u8]) -> bool {
-        if self.clone().zip(matches).all(|(s, m)| *s == *m) {
+        let result = self.clone().zip(matches).all(|(s, m)| *s == *m);
+        if result {
             self.nth(matches.len());
-            true
-        } else { false }
+        }
+        result
     }
 }
 
@@ -151,7 +152,7 @@ impl ByteMatcher {
                 .and_then(|start|
                     if data[start..].iter()
                         .zip(self.pattern.iter()).zip(self.mask.iter())
-                        .all(|((d, p), m)| (*d & *m) == (*p & *m)) {
+                        .all(|((&data, &pattern), &mask)| (data & mask) == (pattern & mask)) {
                         Some(start + self.pattern.len())
                     } else {
                         None
@@ -202,11 +203,9 @@ impl Mp4Matcher {
             return false;
         }
 
-        let mp4 =  [0x6D, 0x70, 0x34];
+        let mp4 = [0x6D, 0x70, 0x34];
         data[8..].starts_with(&mp4) ||
-        (0..).map(|i| 16 + 4 * i) // better to use step_by once stabilized
-        .take_while(|&bytes_read| bytes_read < box_size)
-        .any(|bytes_read| data[bytes_read..].starts_with(&mp4))
+        data[16..box_size].chunks(4).any(|chunk| chunk.starts_with(&mp4))
     }
 
 }
@@ -345,19 +344,39 @@ impl MIMEChecker for GroupedClassifier {
     }
 }
 
-fn eats_until<'a, T>(matcher: &mut T, start: &[u8], end: &[u8]) -> Option<bool>
+enum Match {
+    Start,
+    DidNotMatch,
+    StartAndEnd
+}
+
+impl Match {
+    fn chain<F: FnOnce() -> Match>(self, f: F) -> Match {
+        if let Match::DidNotMatch = self {
+            return f();
+        }
+        self
+    }
+}
+
+fn eats_until<'a, T>(matcher: &mut T, start: &[u8], end: &[u8]) -> Match
 where T: Iterator<Item=&'a u8> + Clone {
-    if matcher.matches(start) {
-        if end.len() == 1 {
-            return matcher.find(|&x| *x == end[0]).map(|_| true)
+    if !matcher.matches(start) {
+        Match::DidNotMatch
+    } else if end.len() == 1 {
+        if matcher.any(|&x| x == end[0]) {
+            Match::StartAndEnd
         } else {
-            loop {
-                if matcher.matches(end) { return Some(true); }
-                if matcher.next().is_none() { return Some(false); }
+            Match::Start
+        }
+    } else {
+        while !matcher.matches(end) {
+            if matcher.next().is_none() {
+                return Match::Start;
             }
         }
+        Match::StartAndEnd
     }
-    None
 }
 
 struct FeedsClassifier;
@@ -380,32 +399,38 @@ impl FeedsClassifier {
         //       eg. an html page with a feed example
         loop {
 
-            if matcher.find(|&x| *x == b'<').is_none() { return None; }
-
-            match eats_until(&mut matcher, b"?", b"?>")
-               .or_else(|| eats_until(&mut matcher, b"!--", b"-->"))
-               .or_else(|| eats_until(&mut matcher, b"!", b">")) {
-                Some(true) => continue,
-                None => {},
-                Some(false) => return None
+            if matcher.find(|&x| *x == b'<').is_none() {
+                return None;
             }
 
-            if matcher.matches(b"rss") { return Some(("application", "rss+xml")); }
-            if matcher.matches(b"feed") { return Some(("application", "atom+xml")); }
+            match eats_until(&mut matcher, b"?", b"?>")
+               .chain(|| eats_until(&mut matcher, b"!--", b"-->"))
+               .chain(|| eats_until(&mut matcher, b"!", b">")) {
+                Match::StartAndEnd => continue,
+                Match::DidNotMatch => {},
+                Match::Start       => return None
+            }
+
+            if matcher.matches(b"rss") {
+                return Some(("application", "rss+xml"));
+            }
+            if matcher.matches(b"feed") {
+                return Some(("application", "atom+xml"));
+            }
             if matcher.matches(b"rdf: RDF") {
-                loop {
-                    if matcher.next().is_none() { return None; }
+                while matcher.next().is_some() {
                     match eats_until(&mut matcher,
                                      b"http: //purl.org/rss/1.0/",
                                      b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#")
-                       .or_else(|| eats_until(&mut matcher,
-                                              b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#",
-                                              b"http: //purl.org/rss/1.0/")) {
-                        Some(true) => return Some(("application", "rss+xml")),
-                        None => continue,
-                        Some(false) => return None
+                       .chain(|| eats_until(&mut matcher,
+                                            b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#",
+                                            b"http: //purl.org/rss/1.0/")) {
+                        Match::StartAndEnd => return Some(("application", "rss+xml")),
+                        Match::DidNotMatch => {},
+                        Match::Start       => return None
                     }
                 }
+                return None;
             }
         }
     }
