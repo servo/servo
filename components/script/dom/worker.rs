@@ -34,6 +34,7 @@ use url::UrlParser;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
+use std::rc::Rc;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -152,6 +153,7 @@ impl<'a> WorkerMethods for &'a Worker {
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);
+    event_handler!(error, GetOnerror, SetOnerror);
 }
 
 pub struct WorkerMessageHandler {

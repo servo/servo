@@ -4,9 +4,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.whatwg.org/html/#abstractworker
+
+/* Personal Notes
+ * NoInterfaceObject - http://www.w3.org/TR/WebIDL/#NoInterfaceObject
+ * Exposed - http://heycam.github.io/webidl/#Exposed
+ *
+ */
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface AbstractWorker {
-  //         attribute EventHandler onerror;
+    attribute EventHandler onerror;
 };
 
 // https://www.whatwg.org/html/#worker
@@ -18,4 +24,5 @@ interface Worker : EventTarget {
   void postMessage(any message/*, optional sequence<Transferable> transfer*/);
            attribute EventHandler onmessage;
 };
+
 Worker implements AbstractWorker;
