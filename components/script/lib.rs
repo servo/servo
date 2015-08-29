@@ -86,7 +86,6 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
-mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;

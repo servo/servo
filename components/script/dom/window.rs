@@ -52,9 +52,9 @@ use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{MainThreadScriptChan, SendableMainThreadScriptChan};
-use script_task::{MainThreadScriptMsg, ScriptChan, ScriptPort, TimerSource};
-use script_traits::ConstellationControlMsg;
+use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
+use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -70,7 +70,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use time;
-use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use timers::{ActiveTimers, IsInterval, TimerCallback};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -129,7 +129,9 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
-    timers: TimerManager,
+    #[ignore_heap_size_of = "channels are hard"]
+    scheduler_chan: Sender<TimerEventRequest>,
+    timers: ActiveTimers,
 
     next_worker_id: Cell<WorkerId>,
 
@@ -425,8 +427,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -435,8 +436,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
@@ -450,8 +450,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -460,8 +459,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -1076,7 +1074,7 @@ impl Window {
             MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
-    pub fn handle_fire_timer(&self, timer_id: TimerId) {
+    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
         self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
     }
@@ -1120,6 +1118,10 @@ impl Window {
 
     pub fn constellation_chan(&self) -> ConstellationChan {
         self.constellation_chan.clone()
+    }
+
+    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+        self.scheduler_chan.clone()
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -1267,6 +1269,8 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
+               scheduler_chan: Sender<TimerEventRequest>,
+               timer_event_chan: MainThreadTimerEventChan,
                layout_chan: LayoutChan,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
@@ -1299,7 +1303,8 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
-            timers: TimerManager::new(),
+            scheduler_chan: scheduler_chan.clone(),
+            timers: ActiveTimers::new(box timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,
