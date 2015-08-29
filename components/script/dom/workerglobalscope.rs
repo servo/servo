@@ -22,12 +22,13 @@ use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::{ResourceTask, load_whole_resource};
 use profile_traits::mem;
-use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, TimerSource};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::mpsc::Receiver;
-use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use std::sync::mpsc::{Receiver, Sender};
+use timers::{ActiveTimers, IsInterval, TimerCallback};
 use url::{Url, UrlParser};
 use util::str::DOMString;
 
@@ -42,6 +43,7 @@ pub struct WorkerGlobalScopeInit {
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan,
+    pub scheduler_chan: Sender<TimerEventRequest>,
     pub worker_id: WorkerId,
 }
 
@@ -60,7 +62,7 @@ pub struct WorkerGlobalScope {
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
-    timers: TimerManager,
+    timers: ActiveTimers,
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -82,13 +84,17 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     constellation_chan: ConstellationChan,
+
+    #[ignore_heap_size_of = "Defined in std"]
+    scheduler_chan: Sender<TimerEventRequest>,
 }
 
 impl WorkerGlobalScope {
     pub fn new_inherited(init: WorkerGlobalScopeInit,
                          worker_url: Url,
                          runtime: Rc<Runtime>,
-                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>)
+                         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+                         timer_event_chan: Box<TimerEventChan + Send>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -101,13 +107,14 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             console: Default::default(),
             crypto: Default::default(),
-            timers: TimerManager::new(),
+            timers: ActiveTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
+            scheduler_chan: init.scheduler_chan,
         }
     }
 
@@ -129,6 +136,10 @@ impl WorkerGlobalScope {
 
     pub fn constellation_chan(&self) -> ConstellationChan {
         self.constellation_chan.clone()
+    }
+
+    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+        self.scheduler_chan.clone()
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
@@ -232,8 +243,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -242,8 +252,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -257,8 +266,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -267,8 +275,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWorker,
-                                            self.script_chan())
+                                            TimerSource::FromWorker)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -329,7 +336,7 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn handle_fire_timer(&self, timer_id: TimerId) {
+    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
     }
 

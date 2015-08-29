@@ -84,6 +84,7 @@ use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
+use script_traits::{TimerEvent, TimerEventChan, TimerEventRequest, TimerSource};
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -98,7 +99,6 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time::{Tm, now};
-use timers::TimerId;
 use url::{Url, UrlParser};
 use util::opts;
 use util::str::DOMString;
@@ -158,12 +158,6 @@ impl InProgressLoad {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum TimerSource {
-    FromWindow(PipelineId),
-    FromWorker
-}
-
 pub trait Runnable {
     fn handler(self: Box<Self>);
 }
@@ -177,6 +171,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
+    FromScheduler(TimerEvent),
 }
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -184,10 +179,6 @@ pub enum CommonScriptMsg {
     /// Requests that the script task measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
-    /// Fires a JavaScript timeout
-    /// TimerSource must be FromWindow when dispatched to ScriptTask and
-    /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
-    FireTimer(TimerSource, TimerId),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
     RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
@@ -207,6 +198,7 @@ pub enum ScriptTaskEventCategory {
     NetworkEvent,
     Resize,
     ScriptEvent,
+    TimerEvent,
     UpdateReplacedElement,
     SetViewport,
     WebSocketEvent,
@@ -329,6 +321,20 @@ impl MainThreadScriptChan {
     }
 }
 
+pub struct MainThreadTimerEventChan(Sender<TimerEvent>);
+
+impl TimerEventChan for MainThreadTimerEventChan {
+    fn send(&self, event: TimerEvent) -> Result<(), ()> {
+        let MainThreadTimerEventChan(ref chan) = *self;
+        chan.send(event).map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<TimerEventChan + Send> {
+        let MainThreadTimerEventChan(ref chan) = *self;
+        box MainThreadTimerEventChan((*chan).clone())
+    }
+}
+
 pub struct StackRootTLS;
 
 impl StackRootTLS {
@@ -410,6 +416,10 @@ pub struct ScriptTask {
 
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: RefCell<HashSet<PipelineId>>,
+
+    scheduler_chan: Sender<TimerEventRequest>,
+    timer_event_chan: Sender<TimerEvent>,
+    timer_event_port: Receiver<TimerEvent>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -606,6 +616,8 @@ impl ScriptTask {
         let image_cache_port =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
 
+        let (timer_event_chan, timer_event_port) = channel();
+
         ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
@@ -633,6 +645,10 @@ impl ScriptTask {
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
             closed_pipelines: RefCell::new(HashSet::new()),
+
+            scheduler_chan: state.scheduler_chan,
+            timer_event_chan: timer_event_chan,
+            timer_event_port: timer_event_port,
         }
     }
 
@@ -719,26 +735,30 @@ impl ScriptTask {
         // Receive at least one message so we don't spinloop.
         let mut event = {
             let sel = Select::new();
-            let mut port1 = sel.handle(&self.port);
-            let mut port2 = sel.handle(&self.control_port);
-            let mut port3 = sel.handle(&self.devtools_port);
-            let mut port4 = sel.handle(&self.image_cache_port);
+            let mut script_port = sel.handle(&self.port);
+            let mut control_port = sel.handle(&self.control_port);
+            let mut timer_event_port = sel.handle(&self.timer_event_port);
+            let mut devtools_port = sel.handle(&self.devtools_port);
+            let mut image_cache_port = sel.handle(&self.image_cache_port);
             unsafe {
-                port1.add();
-                port2.add();
+                script_port.add();
+                control_port.add();
+                timer_event_port.add();
                 if self.devtools_chan.is_some() {
-                    port3.add();
+                    devtools_port.add();
                 }
-                port4.add();
+                image_cache_port.add();
             }
             let ret = sel.wait();
-            if ret == port1.id() {
+            if ret == script_port.id() {
                 MixedMessage::FromScript(self.port.recv().unwrap())
-            } else if ret == port2.id() {
+            } else if ret == control_port.id() {
                 MixedMessage::FromConstellation(self.control_port.recv().unwrap())
-            } else if ret == port3.id() {
+            } else if ret == timer_event_port.id() {
+                MixedMessage::FromScheduler(self.timer_event_port.recv().unwrap())
+            } else if ret == devtools_port.id() {
                 MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
-            } else if ret == port4.id() {
+            } else if ret == image_cache_port.id() {
                 MixedMessage::FromImageCache(self.image_cache_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
@@ -799,12 +819,15 @@ impl ScriptTask {
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
                 Err(_) => match self.port.try_recv() {
-                    Err(_) => match self.devtools_port.try_recv() {
-                        Err(_) => match self.image_cache_port.try_recv() {
-                            Err(_) => break,
-                            Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                    Err(_) => match self.timer_event_port.try_recv() {
+                        Err(_) => match self.devtools_port.try_recv() {
+                            Err(_) => match self.image_cache_port.try_recv() {
+                                Err(_) => break,
+                                Ok(ev) => event = MixedMessage::FromImageCache(ev),
+                            },
+                            Ok(ev) => event = MixedMessage::FromDevtools(ev),
                         },
-                        Ok(ev) => event = MixedMessage::FromDevtools(ev),
+                        Ok(ev) => event = MixedMessage::FromScheduler(ev),
                     },
                     Ok(ev) => event = MixedMessage::FromScript(ev),
                 },
@@ -825,6 +848,7 @@ impl ScriptTask {
                     },
                     MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    MixedMessage::FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }
@@ -873,7 +897,8 @@ impl ScriptTask {
                         *category,
                     _ => ScriptTaskEventCategory::ScriptEvent
                 }
-            }
+            },
+            MixedMessage::FromScheduler(_) => ScriptTaskEventCategory::TimerEvent,
         }
     }
 
@@ -895,6 +920,7 @@ impl ScriptTask {
                 ScriptTaskEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
                 ScriptTaskEventCategory::UpdateReplacedElement => ProfilerCategory::ScriptUpdateReplacedElement,
                 ScriptTaskEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
+                ScriptTaskEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptTaskEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
                 ScriptTaskEventCategory::XhrEvent => ProfilerCategory::ScriptXhrEvent,
@@ -968,12 +994,6 @@ impl ScriptTask {
                 runnable.handler(self),
             MainThreadScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
-            MainThreadScriptMsg::Common(
-                CommonScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id)) =>
-                self.handle_fire_timer_msg(id, timer_id),
-            MainThreadScriptMsg::Common(
-                CommonScriptMsg::FireTimer(TimerSource::FromWorker, _)) =>
-                panic!("Worker timeouts must not be sent to script task"),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) =>
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -983,6 +1003,22 @@ impl ScriptTask {
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
         }
+    }
+
+    fn handle_timer_event(&self, timer_event: TimerEvent) {
+        let TimerEvent(source, id) = timer_event;
+
+        let pipeline_id = match source {
+            TimerSource::FromWindow(pipeline_id) => pipeline_id,
+            TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script task"),
+        };
+
+        let page = self.root_page();
+        let page = page.find(pipeline_id).expect("ScriptTask: received fire timer msg for a
+            pipeline ID not associated with this script task. This is a bug.");
+        let window = page.window();
+
+        window.r().handle_fire_timer(id);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
@@ -1274,15 +1310,6 @@ impl ScriptTask {
         let path_seg = format!("url({})", urls.join(", "));
         reports.extend(ScriptTask::get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
-    }
-
-    /// Handles a timer that fired.
-    fn handle_fire_timer_msg(&self, id: PipelineId, timer_id: TimerId) {
-        let page = self.root_page();
-        let page = page.find(id).expect("ScriptTask: received fire timer msg for a
-            pipeline ID not associated with this script task. This is a bug.");
-        let window = page.window();
-        window.r().handle_fire_timer(timer_id);
     }
 
     /// Handles freeze message
@@ -1592,6 +1619,8 @@ impl ScriptTask {
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
+                                 self.scheduler_chan.clone(),
+                                 MainThreadTimerEventChan(self.timer_event_chan.clone()),
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
