@@ -125,6 +125,10 @@ impl <'a, T: Iterator<Item=&'a u8> + Clone> Matches for T {
     // Side effects
     // moves the iterator when match is found
     fn matches(&mut self, matches: &[u8]) -> bool {
+        if self.clone().nth(matches.len()).is_none() {
+            // there are less than matches.len() elements in self
+            return false
+        }
         let result = self.clone().zip(matches).all(|(s, m)| *s == *m);
         if result {
             self.nth(matches.len());
@@ -381,9 +385,10 @@ where T: Iterator<Item=&'a u8> + Clone {
 
 struct FeedsClassifier;
 impl FeedsClassifier {
+    // Implements sniffing for mislabeled feeds (https://mimesniff.spec.whatwg.org/#sniffing-a-mislabeled-feed)
     fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
 
-        // can not be feed unless length is > 3
+        // Step 4: can not be feed unless length is > 3
         if data.len() < 3 {
             return None;
         }
@@ -403,6 +408,7 @@ impl FeedsClassifier {
                 return None;
             }
 
+            // Steps 5.2.1 to 5.2.4
             match eats_until(&mut matcher, b"?", b"?>")
                .chain(|| eats_until(&mut matcher, b"!--", b"-->"))
                .chain(|| eats_until(&mut matcher, b"!", b">")) {
@@ -411,20 +417,23 @@ impl FeedsClassifier {
                 Match::Start       => return None
             }
 
+            // Step 5.2.5
             if matcher.matches(b"rss") {
                 return Some(("application", "rss+xml"));
             }
+            // Step 5.2.6
             if matcher.matches(b"feed") {
                 return Some(("application", "atom+xml"));
             }
-            if matcher.matches(b"rdf: RDF") {
+            // Step 5.2.7
+            if matcher.matches(b"rdf:RDF") {
                 while matcher.next().is_some() {
                     match eats_until(&mut matcher,
-                                     b"http: //purl.org/rss/1.0/",
-                                     b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#")
+                                     b"http://purl.org/rss/1.0/",
+                                     b"http://www.w3.org/1999/02/22-rdf-syntax-ns#")
                        .chain(|| eats_until(&mut matcher,
-                                            b"http: //www.w3.org/1999/02/22-rdf-syntax-ns#",
-                                            b"http: //purl.org/rss/1.0/")) {
+                                            b"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                                            b"http://purl.org/rss/1.0/")) {
                         Match::StartAndEnd => return Some(("application", "rss+xml")),
                         Match::DidNotMatch => {},
                         Match::Start       => return None
