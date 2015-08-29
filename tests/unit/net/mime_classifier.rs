@@ -434,7 +434,14 @@ fn test_sniff_utf_8_bom() {
 
 #[test]
 fn test_sniff_rss_feed() {
+    // RSS feeds
     test_sniff_full(&PathBuf::from("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/rdf_rss.xml"), "application", "rss+xml", Some(("text", "html")));
+    // Not RSS feeds
+    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_1.xml"), "text", "html", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_2.xml"), "text", "html", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_3.xml"), "text", "html", Some(("text", "html")));
+    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_4.xml"), "text", "html", Some(("text", "html")));
 }
 
 #[test]
