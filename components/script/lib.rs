@@ -97,7 +97,6 @@ mod timers;
 pub mod textinput;
 pub mod clipboard_provider;
 mod devtools;
-mod horribly_inefficient_timers;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;

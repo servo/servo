@@ -7,7 +7,7 @@
 //! to depend on script.
 
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![plugin(serde_macros, plugins)]
 #![deny(missing_docs)]
 
 extern crate devtools_traits;
@@ -37,6 +37,7 @@ use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
 use util::geometry::Au;
+use util::mem::HeapSizeOf;
 
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -171,6 +172,35 @@ pub enum CompositorEvent {
 /// crates that don't need to know about them.
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
 
+/// Requests a TimerEvent-Message be sent in n milliseconds, where n is the last argument.
+pub struct TimerEventRequest(pub Box<TimerEventChan + Send>, pub TimerSource, pub TimerEventId, pub u32);
+
+/// Notifies the script task to fire due timers.
+/// TimerSource must be FromWindow when dispatched to ScriptTask and
+/// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
+pub struct TimerEvent(pub TimerSource, pub TimerEventId);
+
+/// A cloneable interface for sending timer events.
+pub trait TimerEventChan {
+    /// Send a timer event to the associated event loop.
+    fn send(&self, msg: TimerEvent) -> Result<(), ()>;
+    /// Clone this handle.
+    fn clone(&self) -> Box<TimerEventChan + Send>;
+}
+
+/// Describes the task that requested the TimerEvent.
+#[derive(Copy, Clone, HeapSizeOf)]
+pub enum TimerSource {
+    /// The event was requested from a window (ScriptTask).
+    FromWindow(PipelineId),
+    /// The event was requested from a worker (DedicatedGlobalWorkerScope).
+    FromWorker
+}
+
+/// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
+#[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
+pub struct TimerEventId(pub u32);
+
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
 pub trait ScriptTaskFactory {
@@ -182,7 +212,8 @@ pub trait ScriptTaskFactory {
               layout_chan: &OpaqueScriptLayoutChannel,
               control_chan: Sender<ConstellationControlMsg>,
               control_port: Receiver<ConstellationControlMsg>,
-              constellation_msg: ConstellationChan,
+              constellation_chan: ConstellationChan,
+              scheduler_chan: Sender<TimerEventRequest>,
               failure_msg: Failure,
               resource_task: ResourceTask,
               storage_task: StorageTask,

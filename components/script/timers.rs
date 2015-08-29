@@ -9,36 +9,90 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
 
-use horribly_inefficient_timers;
-use script_task::{ScriptChan, TimerSource, CommonScriptMsg};
+use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
-use util::task::spawn_named;
 
 use js::jsapi::{RootedValue, HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 
-use std::borrow::ToOwned;
+use num::traits::Saturating;
 use std::cell::Cell;
-use std::cmp;
-use std::collections::HashMap;
+use std::cmp::{self, Ord, Ordering};
+use std::collections::BinaryHeap;
 use std::default::Default;
-use std::hash::{Hash, Hasher};
 use std::rc::Rc;
-use std::sync::mpsc::Select;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::Sender;
+use time;
 
-#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf)]
-pub struct TimerId(i32);
+#[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
+pub struct TimerHandle(i32);
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[privatize]
-struct TimerHandle {
-    handle: TimerId,
-    data: TimerData,
-    #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Option<Sender<TimerControlMsg>>,
+pub struct ActiveTimers {
+    #[ignore_heap_size_of = "Defined in std"]
+    timer_event_chan: Box<TimerEventChan + Send>,
+    #[ignore_heap_size_of = "Defined in std"]
+    scheduler_chan: Sender<TimerEventRequest>,
+    next_timer_handle: Cell<TimerHandle>,
+    timers: DOMRefCell<BinaryHeap<Timer>>,
+    suspended_since: Cell<Option<u64>>,
+    suspension_offset: Cell<u64>,
+    /// Calls to `fire_timer` with a different argument than this get ignored.
+    /// They were previously scheduled and got invalidated when
+    ///  - timers were suspended,
+    ///  - the timer it was scheduled for got canceled or
+    ///  - a timer was added with an earlier callback time. In this case the
+    ///    original timer is rescheduled when it is the next one to get called.
+    expected_event_id: Cell<TimerEventId>,
+}
+
+// Holder for the various JS values associated with setTimeout
+// (ie. function value to invoke and all arguments to pass
+//      to the function when calling it)
+// TODO: Handle rooting during fire_timer when movable GC is turned on
+#[derive(JSTraceable, HeapSizeOf)]
+#[privatize]
+struct Timer {
+    handle: TimerHandle,
+    source: TimerSource,
+    callback: TimerCallback,
+    arguments: Vec<Heap<JSVal>>,
+    is_interval: IsInterval,
+    duration: u32,
+    next_call: u64,
+}
+
+// Enum allowing more descriptive values for the is_interval field
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+pub enum IsInterval {
+    Interval,
+    NonInterval,
+}
+
+impl Ord for Timer {
+    fn cmp(&self, other: &Timer) -> Ordering {
+        // TimerEntries are stored in a max heap. => earlier is greater
+        match self.next_call.cmp(&other.next_call).reverse() {
+            Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
+            res @ _ => res
+        }
+    }
+}
+
+impl PartialOrd for Timer {
+    fn partial_cmp(&self, other: &Timer) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Eq for Timer {}
+impl PartialEq for Timer {
+    fn eq(&self, other: &Timer) -> bool {
+        self == other
+    }
 }
 
 #[derive(JSTraceable, Clone)]
@@ -54,214 +108,190 @@ impl HeapSizeOf for TimerCallback {
     }
 }
 
-impl Hash for TimerId {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let TimerId(id) = *self;
-        id.hash(state);
-    }
-}
-
-impl TimerHandle {
-    fn cancel(&mut self) {
-        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Cancel).ok());
-    }
-    fn suspend(&mut self) {
-        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Suspend).ok());
-    }
-    fn resume(&mut self) {
-        self.control_chan.as_ref().map(|chan| chan.send(TimerControlMsg::Resume).ok());
-    }
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
-pub struct TimerManager {
-    active_timers: DOMRefCell<HashMap<TimerId, TimerHandle>>,
-    next_timer_handle: Cell<i32>,
-}
-
-
-impl Drop for TimerManager {
-    fn drop(&mut self) {
-        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
-            timer_handle.cancel();
-        }
-    }
-}
-
-// Enum allowing more descriptive values for the is_interval field
-#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
-pub enum IsInterval {
-    Interval,
-    NonInterval,
-}
-
-// Messages sent control timers from script task
-#[derive(JSTraceable, PartialEq, Copy, Clone, Debug)]
-pub enum TimerControlMsg {
-    Cancel,
-    Suspend,
-    Resume
-}
-
-// Holder for the various JS values associated with setTimeout
-// (ie. function value to invoke and all arguments to pass
-//      to the function when calling it)
-// TODO: Handle rooting during fire_timer when movable GC is turned on
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
-struct TimerData {
-    is_interval: IsInterval,
-    callback: TimerCallback,
-    args: Vec<Heap<JSVal>>
-}
-
-impl TimerManager {
-    pub fn new() -> TimerManager {
-        TimerManager {
-            active_timers: DOMRefCell::new(HashMap::new()),
-            next_timer_handle: Cell::new(0)
-        }
-    }
-
-    pub fn suspend(&self) {
-        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
-            timer_handle.suspend();
-        }
-    }
-    pub fn resume(&self) {
-        for (_, timer_handle) in &mut *self.active_timers.borrow_mut() {
-            timer_handle.resume();
+impl ActiveTimers {
+    pub fn new(timer_event_chan: Box<TimerEventChan + Send>,
+               scheduler_chan: Sender<TimerEventRequest>)
+               -> ActiveTimers {
+        ActiveTimers {
+            timer_event_chan: timer_event_chan,
+            scheduler_chan: scheduler_chan,
+            next_timer_handle: Cell::new(TimerHandle(1)),
+            timers: DOMRefCell::new(BinaryHeap::new()),
+            suspended_since: Cell::new(None),
+            suspension_offset: Cell::new(0),
+            expected_event_id: Cell::new(TimerEventId(0)),
         }
     }
 
     #[allow(unsafe_code)]
     pub fn set_timeout_or_interval(&self,
-                                  callback: TimerCallback,
-                                  arguments: Vec<HandleValue>,
-                                  timeout: i32,
-                                  is_interval: IsInterval,
-                                  source: TimerSource,
-                                  script_chan: Box<ScriptChan + Send>)
-                                  -> i32 {
-        let duration_ms = cmp::max(0, timeout) as u32;
-        let handle = self.next_timer_handle.get();
-        self.next_timer_handle.set(handle + 1);
+                               callback: TimerCallback,
+                               arguments: Vec<HandleValue>,
+                               timeout: i32,
+                               is_interval: IsInterval,
+                               source: TimerSource)
+                               -> i32 {
+        assert!(self.suspended_since.get().is_none());
 
-        // Spawn a new timer task; it will dispatch the `CommonScriptMsg::FireTimer`
-        // to the relevant script handler that will deal with it.
-        let (control_chan, control_port) = channel();
-        let spawn_name = match source {
-            TimerSource::FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
-            TimerSource::FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
-            TimerSource::FromWindow(_) => "Window:SetTimeout",
-            TimerSource::FromWorker => "Worker:SetTimeout",
-        }.to_owned();
-        spawn_named(spawn_name, move || {
-            let timeout_port = if is_interval == IsInterval::Interval {
-                horribly_inefficient_timers::periodic(duration_ms)
-            } else {
-                horribly_inefficient_timers::oneshot(duration_ms)
+        let TimerHandle(new_handle) = self.next_timer_handle.get();
+        self.next_timer_handle.set(TimerHandle(new_handle + 1));
+
+        let min_duration = match is_interval {
+            IsInterval::NonInterval => 0,
+            IsInterval::Interval => 1,
+        };
+        let duration = cmp::max(min_duration, timeout as u32);
+
+        let next_call = self.base_time() + (duration as u64);
+
+        let timer = Timer {
+            handle: TimerHandle(new_handle),
+            source: source,
+            callback: callback,
+            arguments: arguments.iter().map(|arg| {
+                    let mut heap_ptr: Heap<JSVal> = Heap::default();
+                    heap_ptr.set(arg.get());
+                    heap_ptr
+                }).collect(),
+            is_interval: is_interval,
+            duration: duration,
+            next_call: next_call,
+        };
+
+        self.timers.borrow_mut().push(timer);
+        let TimerHandle(max_handle) = self.timers.borrow().peek().unwrap().handle;
+
+        if max_handle == new_handle {
+            self.schedule_timer_call();
+        }
+
+        new_handle
+    }
+
+    // FIXME extra parameter is_interval: IsInterval
+    pub fn clear_timeout_or_interval(&self, handle: i32) {
+        let handle = TimerHandle(handle);
+        let was_first = self.is_next_timer(handle);
+
+        {
+            let mut timers = self.timers.borrow_mut();
+            let new_timers = timers.drain().filter(|t| t.handle != handle).collect();
+            *timers = new_timers;
+        }
+
+        if was_first {
+            self.invalidate_expected_event_id();
+            self.schedule_timer_call();
+        }
+    }
+
+    // FIXME swap parameters this and id
+    pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
+        if self.expected_event_id.get() != id {
+            return;
+        }
+
+        assert!(self.suspended_since.get().is_none());
+
+        let base_time = self.base_time();
+
+        // Since the event id was the expected one, at least one timer should be due.
+        assert!(base_time >= self.timers.borrow().peek().unwrap().next_call);
+
+        loop {
+            let timer = {
+                let mut timers = self.timers.borrow_mut();
+
+                if timers.is_empty() || timers.peek().unwrap().next_call > base_time {
+                    break;
+                }
+
+                timers.pop().unwrap()
             };
-            let control_port = control_port;
 
-            let select = Select::new();
-            let mut timeout_handle = select.handle(&timeout_port);
-            unsafe { timeout_handle.add() };
-            let mut control_handle = select.handle(&control_port);
-            unsafe { control_handle.add() };
+            match timer.callback.clone() {
+                TimerCallback::FunctionTimerCallback(function) => {
+                    let arguments: Vec<JSVal> = timer.arguments.iter().map(|arg| arg.get()).collect();
+                    let arguments = arguments.iter().map(|arg| HandleValue { ptr: arg }).collect();
 
-            loop {
-                let id = select.wait();
-
-                if id == timeout_handle.id() {
-                    timeout_port.recv().unwrap();
-                    if script_chan.send(CommonScriptMsg::FireTimer(source, TimerId(handle))).is_err() {
-                        break;
-                    }
-
-                    if is_interval == IsInterval::NonInterval {
-                        break;
-                    }
-                } else if id == control_handle.id() {;
-                    match control_port.recv().unwrap() {
-                        TimerControlMsg::Suspend => {
-                            let msg = control_port.recv().unwrap();
-                            match msg {
-                                TimerControlMsg::Suspend => panic!("Nothing to suspend!"),
-                                TimerControlMsg::Resume => {},
-                                TimerControlMsg::Cancel => {
-                                    break;
-                                },
-                            }
-                            },
-                        TimerControlMsg::Resume => panic!("Nothing to resume!"),
-                        TimerControlMsg::Cancel => {
-                            break;
-                        }
-                    }
+                    let _ = function.Call_(this, arguments, Report);
+                }
+                TimerCallback::StringTimerCallback(code_str) => {
+                    let proxy = this.reflector().get_jsobject();
+                    let cx = global_object_for_js_object(proxy.get()).r().get_cx();
+                    let mut rval = RootedValue::new(cx, UndefinedValue());
+                    this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
                 }
             }
-        });
-        let timer_id = TimerId(handle);
-        let timer = TimerHandle {
-            handle: timer_id,
-            control_chan: Some(control_chan),
-            data: TimerData {
-                is_interval: is_interval,
-                callback: callback,
-                args: Vec::with_capacity(arguments.len())
+
+            if timer.is_interval == IsInterval::Interval {
+                let mut timer = timer;
+                timer.next_call += timer.duration as u64;
+                self.timers.borrow_mut().push(timer);
             }
+        }
+
+        self.schedule_timer_call();
+    }
+
+    fn is_next_timer(&self, handle: TimerHandle) -> bool {
+        match self.timers.borrow().peek() {
+            None => false,
+            Some(ref max_timer) => max_timer.handle == handle
+        }
+    }
+
+    fn schedule_timer_call(&self) {
+        assert!(self.suspended_since.get().is_none());
+
+        let timers = self.timers.borrow();
+
+        if timers.is_empty() {
+            return;
+        }
+
+        let timer = timers.peek().unwrap();
+        let expected_event_id = self.invalidate_expected_event_id();
+
+        let delay = (timer.next_call.saturating_sub(precise_time_ms())) as u32;
+        let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
+                                        expected_event_id, delay);
+        self.scheduler_chan.send(request).unwrap();
+    }
+
+    pub fn suspend(&self) {
+        assert!(self.suspended_since.get().is_none());
+
+        self.suspended_since.set(Some(precise_time_ms()));
+        self.invalidate_expected_event_id();
+    }
+
+    pub fn resume(&self) {
+        assert!(self.suspended_since.get().is_some());
+
+        let additional_offset = match self.suspended_since.get() {
+            Some(suspended_since) => precise_time_ms() - suspended_since,
+            None => panic!("Timers are not suspended.")
         };
-        self.active_timers.borrow_mut().insert(timer_id, timer);
 
-        // This is a bit complicated, but this ensures that the vector's
-        // buffer isn't reallocated (and moved) after setting the Heap values
-        let mut timers = self.active_timers.borrow_mut();
-        let mut timer = timers.get_mut(&timer_id).unwrap();
-        for _ in 0..arguments.len() {
-            timer.data.args.push(Heap::default());
-        }
-        for (i, item) in arguments.iter().enumerate() {
-            timer.data.args.get_mut(i).unwrap().set(item.get());
-        }
-        handle
+        self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
+
+        self.schedule_timer_call();
     }
 
-    pub fn clear_timeout_or_interval(&self, handle: i32) {
-        let mut timer_handle = self.active_timers.borrow_mut().remove(&TimerId(handle));
-        match timer_handle {
-            Some(ref mut handle) => handle.cancel(),
-            None => {}
-        }
+    fn base_time(&self) -> u64 {
+        precise_time_ms() - self.suspension_offset.get()
     }
 
-    pub fn fire_timer<T: Reflectable>(&self, timer_id: TimerId, this: &T) {
-
-        let (is_interval, callback, args): (IsInterval, TimerCallback, Vec<JSVal>) =
-            match self.active_timers.borrow().get(&timer_id) {
-                Some(timer_handle) =>
-                    (timer_handle.data.is_interval,
-                     timer_handle.data.callback.clone(),
-                     timer_handle.data.args.iter().map(|arg| arg.get()).collect()),
-                None => return,
-            };
-
-        match callback {
-            TimerCallback::FunctionTimerCallback(function) => {
-                let arg_handles = args.iter().by_ref().map(|arg| HandleValue { ptr: arg }).collect();
-                let _ = function.Call_(this, arg_handles, Report);
-            }
-            TimerCallback::StringTimerCallback(code_str) => {
-                let proxy = this.reflector().get_jsobject();
-                let cx = global_object_for_js_object(proxy.get()).r().get_cx();
-                let mut rval = RootedValue::new(cx, UndefinedValue());
-                this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
-            }
-        }
-
-        if is_interval == IsInterval::NonInterval {
-            self.active_timers.borrow_mut().remove(&timer_id);
-        }
+    fn invalidate_expected_event_id(&self) -> TimerEventId {
+        let TimerEventId(currently_expected) = self.expected_event_id.get();
+        let next_id = TimerEventId(currently_expected + 1);
+        self.expected_event_id.set(next_id);
+        next_id
     }
 }
+
+fn precise_time_ms() -> u64 {
+    time::precise_time_ns() / (1000 * 1000)
+}
+

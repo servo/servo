@@ -4,6 +4,7 @@
 
 use CompositorProxy;
 use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use script_traits::TimerEventRequest;
 use script_traits::{LayoutControlMsg, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
@@ -70,6 +71,7 @@ impl Pipeline {
     pub fn create<LTF, STF>(id: PipelineId,
                             parent_info: Option<(PipelineId, SubpageId)>,
                             constellation_chan: ConstellationChan,
+                            scheduler_chan: Sender<TimerEventRequest>,
                             compositor_proxy: Box<CompositorProxy + 'static + Send>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             image_cache_task: ImageCacheTask,
@@ -154,6 +156,7 @@ impl Pipeline {
             id: id,
             parent_info: parent_info,
             constellation_chan: constellation_chan,
+            scheduler_chan: scheduler_chan,
             compositor_proxy: compositor_proxy,
             devtools_chan: script_to_devtools_chan,
             image_cache_task: image_cache_task,
@@ -282,6 +285,7 @@ pub struct PipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan,
+    scheduler_chan: Sender<TimerEventRequest>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     image_cache_task: ImageCacheTask,
@@ -327,6 +331,7 @@ impl PipelineContent {
                                   self.script_chan.clone(),
                                   mem::replace(&mut self.script_port, None).unwrap(),
                                   self.constellation_chan.clone(),
+                                  self.scheduler_chan.clone(),
                                   self.failure.clone(),
                                   self.resource_task,
                                   self.storage_task.clone(),

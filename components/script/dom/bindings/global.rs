@@ -15,6 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
+use script_traits::TimerEventRequest;
 
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
@@ -24,6 +25,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use std::sync::mpsc::Sender;
 use url::Url;
 
 use util::mem::HeapSizeOf;
@@ -97,6 +99,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.constellation_chan(),
             GlobalRef::Worker(worker) => worker.constellation_chan(),
+        }
+    }
+
+    /// Get the scheduler channel to request timer events.
+    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+        match *self {
+            GlobalRef::Window(window) => window.scheduler_chan(),
+            GlobalRef::Worker(worker) => worker.scheduler_chan(),
         }
     }
 

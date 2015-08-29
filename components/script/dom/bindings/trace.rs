@@ -58,14 +58,14 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
 use profile_traits::mem::ProfilerChan;
-use script_traits::UntrustedNodeAddress;
+use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use serde::{Serialize, Deserialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::hash_state::HashState;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
@@ -261,6 +261,15 @@ impl<K, V, S> JSTraceable for HashMap<K, V, S>
     }
 }
 
+impl<T: JSTraceable + Ord> JSTraceable for BinaryHeap<T> {
+    #[inline]
+    fn trace(&self, trc: *mut JSTracer) {
+        for e in self.iter() {
+            e.trace(trc);
+        }
+    }
+}
+
 impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -287,6 +296,7 @@ no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
+no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
 no_jsmanaged_fields!(Runtime);
@@ -307,6 +317,13 @@ no_jsmanaged_fields!(ProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 
 impl JSTraceable for Box<ScriptChan + Send> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<TimerEventChan + Send> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

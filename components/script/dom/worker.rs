@@ -76,6 +76,7 @@ impl Worker {
 
         let resource_task = global.resource_task();
         let constellation_chan = global.constellation_chan();
+        let scheduler_chan = global.scheduler_chan();
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone());
@@ -105,6 +106,7 @@ impl Worker {
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
+            scheduler_chan: scheduler_chan,
             worker_id: worker_id,
         };
         DedicatedWorkerGlobalScope::run_worker_scope(

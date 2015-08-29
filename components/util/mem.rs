@@ -6,7 +6,7 @@
 
 use libc::{c_void, size_t};
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, LinkedList, hash_state};
+use std::collections::{BinaryHeap, HashMap, LinkedList, hash_state};
 use std::hash::Hash;
 use std::mem::{size_of, transmute};
 use std::rc::Rc;
@@ -201,6 +201,13 @@ impl<K: HeapSizeOf, V: HeapSizeOf, S> HeapSizeOf for HashMap<K, V, S>
         self.iter().fold(size, |n, (key, value)| {
             n + key.heap_size_of_children() + value.heap_size_of_children()
         })
+    }
+}
+
+impl<T: HeapSizeOf + Ord> HeapSizeOf for BinaryHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // TODO Delegate to HeapSizeOf of internal Vec? That would capture extra capacity…
+        self.iter().fold(0, |n, elem| n + elem.heap_size_of_children())
     }
 }
 

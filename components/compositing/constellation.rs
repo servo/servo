@@ -10,6 +10,7 @@
 //! `LayoutTask`, and `PaintTask`.
 
 use pipeline::{Pipeline, CompositionPipeline};
+use timer_scheduler::TimerScheduler;
 
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
@@ -43,6 +44,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptState, ScriptTaskFactory};
+use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -137,6 +139,8 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    scheduler_chan: Sender<TimerEventRequest>,
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -268,6 +272,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
+                scheduler_chan: TimerScheduler::new().start(),
             };
             constellation.run();
         });
@@ -299,6 +304,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Pipeline::create::<LTF, STF>(pipeline_id,
                                          parent_info,
                                          self.chan.clone(),
+                                         self.scheduler_chan.clone(),
                                          self.compositor_proxy.clone_compositor_proxy(),
                                          self.devtools_chan.clone(),
                                          self.image_cache_task.clone(),
