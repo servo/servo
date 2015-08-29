@@ -20,6 +20,7 @@ use util::str::DOMString;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::slice::SliceConcatExt;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -50,9 +51,8 @@ macro_rules! css_properties(
 );
 
 fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
-    list.iter().fold(String::new(), |accum, ref declaration| {
-        accum + &declaration.value() + " "
-    })
+    let strings: Vec<_> = list.iter().map(|d| d.value()).collect();
+    strings.join(" ")
 }
 
 impl CSSStyleDeclaration {
