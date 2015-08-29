@@ -19,13 +19,7 @@
 
 // The Servo engine
 extern crate servo;
-// Window graphics compositing and message dispatch
-extern crate compositing;
-// Servo networking
-extern crate net;
-extern crate net_traits;
-// Servo common utilitiess
-extern crate util;
+
 // The window backed by glutin
 extern crate glutin_app as app;
 extern crate time;
@@ -35,11 +29,11 @@ extern crate env_logger;
 #[macro_use]
 extern crate android_glue;
 
-use compositing::windowing::WindowEvent;
-use net_traits::hosts;
 use servo::Browser;
+use servo::compositing::windowing::WindowEvent;
+use servo::net_traits::hosts;
+use servo::util::opts;
 use std::rc::Rc;
-use util::opts;
 
 #[cfg(target_os="android")]
 use std::borrow::ToOwned;
