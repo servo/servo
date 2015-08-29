@@ -6,47 +6,60 @@ use std::borrow::ToOwned;
 
 pub struct MIMEClassifier {
     image_classifier: GroupedClassifier,
-    audio_video_classifer: GroupedClassifier,
+    audio_video_classifier: GroupedClassifier,
     scriptable_classifier: GroupedClassifier,
     plaintext_classifier: GroupedClassifier,
-    archive_classifer: GroupedClassifier,
+    archive_classifier: GroupedClassifier,
     binary_or_plaintext: BinaryOrPlaintextClassifier,
     feeds_classifier: FeedsClassifier
+}
+
+pub enum MIMEMediaType {
+    Xml,
+    Html,
+    AudioVideo,
+    Image,
+    SniffForUnknownType,
+    Unknown
+}
+
+pub enum MIMEApacheBugFlag {
+    ON,
+    OFF
+}
+
+pub enum MIMENoSniffFlag {
+    ON,
+    OFF
 }
 
 impl MIMEClassifier {
     //Performs MIME Type Sniffing Algorithm (section 7)
     pub fn classify(&self,
-                    no_sniff: bool,
-                    check_for_apache_bug: bool,
+                    no_sniff_flag: MIMENoSniffFlag,
+                    apache_bug_flag: MIMEApacheBugFlag,
                     supplied_type: &Option<(String, String)>,
                     data: &[u8]) -> Option<(String, String)> {
 
         match *supplied_type {
-            None => self.sniff_unknown_type(!no_sniff, data),
+            None => self.sniff_unknown_type(no_sniff_flag, data),
             Some((ref media_type, ref media_subtype)) => {
-                match (&**media_type, &**media_subtype) {
-                    ("unknown", "unknown") |
-                    ("application", "unknown") |
-                    ("*", "*") => self.sniff_unknown_type(!no_sniff, data),
-                    _ => {
-                        if no_sniff {
-                            supplied_type.clone()
-                        } else if check_for_apache_bug {
-                            self.sniff_text_or_data(data)
-                        } else if MIMEClassifier::is_xml(media_type, media_subtype) {
-                            supplied_type.clone()
-                        } else if MIMEClassifier::is_html(media_type, media_subtype) {
+                match no_sniff_flag {
+                    MIMENoSniffFlag::ON => supplied_type.clone(),
+                    MIMENoSniffFlag::OFF => match apache_bug_flag {
+                        MIMEApacheBugFlag::ON => self.sniff_text_or_data(data),
+                        MIMEApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
+                                                                                       media_subtype) {
+                            MIMEMediaType::SniffForUnknownType => self.sniff_unknown_type(no_sniff_flag,
+                                                                                          data),
+                            MIMEMediaType::Xml => supplied_type.clone(),
                             //Implied in section 7.3, but flow is not clear
-                            self.feeds_classifier.classify(data).or(supplied_type.clone())
-                        } else {
-                            match (&**media_type, &**media_subtype) {
-                                ("image", _) => self.image_classifier.classify(data),
-                                ("audio", _) | ("video", _) | ("application", "ogg") =>
-                                    self.audio_video_classifer.classify(data),
-                                _ => None
-                            }.or(supplied_type.clone())
-                        }
+                            MIMEMediaType::Html =>
+                                self.feeds_classifier.classify(data).or(supplied_type.clone()),
+                            MIMEMediaType::Image => self.image_classifier.classify(data),
+                            MIMEMediaType::AudioVideo => self.audio_video_classifier.classify(data),
+                            MIMEMediaType::Unknown => None
+                        }.or(supplied_type.clone())
                     }
                 }
             }
@@ -56,30 +69,13 @@ impl MIMEClassifier {
     pub fn new() -> MIMEClassifier {
          MIMEClassifier {
              image_classifier: GroupedClassifier::image_classifer(),
-             audio_video_classifer: GroupedClassifier::audio_video_classifer(),
+             audio_video_classifier: GroupedClassifier::audio_video_classifier(),
              scriptable_classifier: GroupedClassifier::scriptable_classifier(),
              plaintext_classifier: GroupedClassifier::plaintext_classifier(),
-             archive_classifer: GroupedClassifier::archive_classifier(),
+             archive_classifier: GroupedClassifier::archive_classifier(),
              binary_or_plaintext: BinaryOrPlaintextClassifier,
              feeds_classifier: FeedsClassifier
          }
-    }
-    //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &[u8]) ->
-      Option<(String, String)> {
-        if sniff_scriptable {
-            self.scriptable_classifier.classify(data)
-        } else {
-            None
-        }.or_else(|| self.plaintext_classifier.classify(data))
-         .or_else(|| self.image_classifier.classify(data))
-         .or_else(|| self.audio_video_classifer.classify(data))
-         .or_else(|| self.archive_classifer.classify(data))
-         .or_else(|| self.binary_or_plaintext.classify(data))
-    }
-
-    fn sniff_text_or_data(&self, data: &[u8]) -> Option<(String, String)> {
-        self.binary_or_plaintext.classify(data)
     }
 
     fn is_xml(tp: &str, sub_tp: &str) -> bool {
@@ -92,6 +88,59 @@ impl MIMEClassifier {
 
     fn is_html(tp: &str, sub_tp: &str) -> bool {
         tp == "text" && sub_tp == "html"
+    }
+
+    fn is_image(tp: &str) -> bool {
+        tp == "image"
+    }
+
+    fn is_audio_video(tp: &str, sub_tp: &str) -> bool {
+        tp == "audio" ||
+        tp == "video" ||
+        (tp == "application" && sub_tp == "ogg")
+    }
+
+    fn should_sniff_unknown_type(tp: &str, sub_tp: &str) -> bool {
+        match(tp, sub_tp) {
+            ("unknown", "unknown") |
+            ("application", "unknown") |
+            ("*", "*") => true,
+            _ => false
+        }
+    }
+
+    pub fn get_media_type(media_type: &String,
+                          media_subtype: &String) -> MIMEMediaType {
+        if MIMEClassifier::should_sniff_unknown_type(media_type, media_subtype) {
+            MIMEMediaType::SniffForUnknownType
+        } else if MIMEClassifier::is_xml(media_type, media_subtype) {
+            MIMEMediaType::Xml
+        } else if MIMEClassifier::is_html(media_type, media_subtype) {
+           MIMEMediaType::Html
+        } else if MIMEClassifier::is_image(media_type) {
+            MIMEMediaType::Image
+        } else if MIMEClassifier::is_audio_video(media_type, media_subtype) {
+            MIMEMediaType::AudioVideo
+        } else {
+            MIMEMediaType::Unknown
+        }
+    }
+
+    //some sort of iterator over the classifiers might be better?
+    fn sniff_unknown_type(&self, no_sniff_flag: MIMENoSniffFlag, data: &[u8]) ->
+      Option<(String, String)> {
+        match no_sniff_flag {
+            MIMENoSniffFlag::OFF => self.scriptable_classifier.classify(data),
+            _ => None
+        }.or_else(|| self.plaintext_classifier.classify(data))
+         .or_else(|| self.image_classifier.classify(data))
+         .or_else(|| self.audio_video_classifier.classify(data))
+         .or_else(|| self.archive_classifier.classify(data))
+         .or_else(|| self.binary_or_plaintext.classify(data))
+    }
+
+    fn sniff_text_or_data(&self, data: &[u8]) -> Option<(String, String)> {
+        self.binary_or_plaintext.classify(data)
     }
 }
 
@@ -265,7 +314,7 @@ impl GroupedClassifier {
             ]
         }
     }
-    fn audio_video_classifer() -> GroupedClassifier {
+    fn audio_video_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::video_webm(),

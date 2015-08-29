@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::mime_classifier::as_string_option;
-use net::mime_classifier::{Mp4Matcher, MIMEClassifier};
+use net::mime_classifier::{Mp4Matcher, MIMEClassifier, MIMEApacheBugFlag, MIMENoSniffFlag};
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
@@ -37,8 +37,12 @@ fn test_sniff_mp4_matcher() {
 }
 
 #[cfg(test)]
-fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string: &str,
-                   supplied_type: Option<(&'static str, &'static str)>) {
+fn test_sniff_parametrable_flags(filename_orig: &path::Path,
+                                 type_string: &str,
+                                 subtype_string: &str,
+                                 supplied_type: Option<(&'static str, &'static str)>,
+                                 no_sniff_flag: MIMENoSniffFlag,
+                                 apache_bug_flag: MIMEApacheBugFlag) {
     let current_working_directory = env::current_dir().unwrap();
     println!("The current directory is {}", current_working_directory.display());
 
@@ -51,7 +55,7 @@ fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string
 
     match read_result {
         Ok(data) => {
-            match classifier.classify(false, false, &as_string_option(supplied_type), &data) {
+            match classifier.classify(no_sniff_flag, apache_bug_flag, &as_string_option(supplied_type), &data) {
                 Some((parsed_type, parsed_subtp)) => {
                     if (&parsed_type[..] != type_string) ||
                         (&parsed_subtp[..] != subtype_string) {
@@ -67,6 +71,17 @@ fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string
         Err(e) => panic!("Couldn't read from file {:?} with error {}",
                          filename, e),
     }
+}
+
+#[cfg(test)]
+fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string: &str,
+                   supplied_type: Option<(&'static str, &'static str)>) {
+                       test_sniff_parametrable_flags(filename_orig,
+                                                    type_string,
+                                                    subtype_string,
+                                                    supplied_type,
+                                                    MIMENoSniffFlag::OFF,
+                                                    MIMEApacheBugFlag::OFF)
 }
 
 #[cfg(test)]
@@ -448,3 +463,69 @@ fn test_sniff_rss_feed() {
 fn test_sniff_atom_feed() {
     test_sniff_full(&PathBuf::from("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
 }
+
+#[test]
+fn test_sniff_binary_file() {
+    test_sniff_full(&PathBuf::from("unknown/binary_file"), "application", "octet-stream", None);
+}
+
+#[test]
+fn test_sniff_atom_feed_with_no_sniff_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("text/xml/feed.atom"),
+                                  "text",
+                                  "html",
+                                  Some(("text", "html")),
+                                  MIMENoSniffFlag::ON,
+                                  MIMEApacheBugFlag::OFF);
+}
+
+#[test]
+fn test_sniff_with_no_sniff_flag_on_and_apache_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("text/xml/feed.atom"),
+                                  "text",
+                                  "html",
+                                  Some(("text", "html")),
+                                  MIMENoSniffFlag::ON,
+                                  MIMEApacheBugFlag::ON);
+}
+
+#[test]
+fn test_sniff_utf_8_bom_with_apache_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("text/plain/utf8bom.txt"),
+                                  "text",
+                                  "plain",
+                                  None,
+                                  MIMENoSniffFlag::OFF,
+                                  MIMEApacheBugFlag::ON);
+}
+
+#[test]
+fn test_sniff_utf_16be_bom_with_apache_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("text/plain/utf16bebom.txt"),
+                                  "text",
+                                  "plain",
+                                  None,
+                                  MIMENoSniffFlag::OFF,
+                                  MIMEApacheBugFlag::ON);
+}
+
+#[test]
+fn test_sniff_utf_16le_bom_with_apache_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("text/plain/utf16lebom.txt"),
+                                  "text",
+                                  "plain",
+                                  None,
+                                  MIMENoSniffFlag::OFF,
+                                  MIMEApacheBugFlag::ON);
+}
+
+#[test]
+fn test_sniff_octet_stream_apache_flag_on() {
+    test_sniff_parametrable_flags(&PathBuf::from("unknown/binary_file"),
+                                  "application",
+                                  "octet-stream",
+                                  None,
+                                  MIMENoSniffFlag::OFF,
+                                  MIMEApacheBugFlag::ON);
+}
+
