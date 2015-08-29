@@ -112,8 +112,6 @@ impl WebGLPaintTask {
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.get_attrib_location(program_id, name, chan),
-            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) =>
-                self.get_shader_info_log(shader_id, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
                 self.get_shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
@@ -321,13 +319,6 @@ impl WebGLPaintTask {
         };
 
         chan.send(attrib_location).unwrap();
-    }
-
-    fn get_shader_info_log(&self, shader_id: u32, chan: IpcSender<Option<String>>) {
-        // TODO(ecoal95): Right now we always return a value, we should
-        // check for gl errors and return None there
-        let info = gl::get_shader_info_log(shader_id);
-        chan.send(Some(info)).unwrap();
     }
 
     fn get_shader_parameter(&self,

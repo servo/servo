@@ -157,7 +157,6 @@ pub enum CanvasWebGLMsg {
     BindTexture(u32, u32),
     DrawArrays(u32, i32, i32),
     EnableVertexAttribArray(u32),
-    GetShaderInfoLog(u32, IpcSender<Option<String>>),
     GetShaderParameter(u32, u32, IpcSender<WebGLShaderParameter>),
     GetAttribLocation(u32, String, IpcSender<Option<i32>>),
     GetUniformLocation(u32, String, IpcSender<Option<i32>>),
