@@ -499,10 +499,6 @@ impl Document {
         }
     }
 
-}
-
-impl<'a> DocumentHelpers<'a> for &'a Document {
-
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         let window = self.window.root();
