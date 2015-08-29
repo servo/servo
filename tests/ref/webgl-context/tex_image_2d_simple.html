@@ -10,6 +10,7 @@
   </style>
   <canvas id="c" width="256" height="256"></canvas>
   <script id="vertex_shader" type="x-shader/x-vertex">
+  precision mediump float;
   attribute vec2 a_texCoord;
   attribute vec2 a_position;
   varying vec2 v_texCoord;
@@ -21,6 +22,7 @@
   </script>
 
   <script id="fragment_shader" type="x-shader/x-fragment">
+  precision mediump float;
   uniform sampler2D u_image;
   varying vec2 v_texCoord;
   void main() {
