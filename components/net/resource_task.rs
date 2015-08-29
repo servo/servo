@@ -10,8 +10,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use file_loader;
 use http_loader::{self, create_http_connector, Connector};
-use mime_classifier::MIMEClassifier;
-
+use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
@@ -29,7 +28,9 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::sync::Arc;
+
+use std::sync::{Arc, Mutex};
+
 use std::sync::mpsc::{channel, Sender};
 
 pub enum ProgressSender {
@@ -72,21 +73,20 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
-        let mut nosniff = false;
-        let mut check_for_apache_bug = false;
+        let mut no_sniff = NoSniffFlag::OFF;
+        let mut check_for_apache_bug = ApacheBugFlag::OFF;
 
         if let Some(ref headers) = metadata.headers {
             if let Some(ref raw_content_type) = headers.get_raw("content-type") {
                 if raw_content_type.len() > 0 {
                     let ref last_raw_content_type = raw_content_type[raw_content_type.len() - 1];
-                    check_for_apache_bug = last_raw_content_type == b"text/plain"
-                                        || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
-                                        || last_raw_content_type == b"text/plain; charset=iso-8859-1"
-                                        || last_raw_content_type == b"text/plain; charset=UTF-8";
+                    check_for_apache_bug = apache_bug_predicate(last_raw_content_type)
                 }
             }
             if let Some(ref raw_content_type_options) = headers.get_raw("X-content-type-options") {
-                nosniff = raw_content_type_options.iter().any(|ref opt| *opt == b"nosniff");
+                if raw_content_type_options.iter().any(|ref opt| *opt == b"nosniff") {
+                    no_sniff = NoSniffFlag::ON
+                }
             }
         }
 
@@ -94,7 +94,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        metadata.content_type = classifier.classify(nosniff, check_for_apache_bug, &supplied_type,
+        metadata.content_type = classifier.classify(no_sniff, check_for_apache_bug, &supplied_type,
                                                     &partial_body).map(|(toplevel, sublevel)| {
             let mime_tp: TopLevel = toplevel.parse().unwrap();
             let mime_sb: SubLevel = sublevel.parse().unwrap();
@@ -104,6 +104,17 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
     }
 
     start_sending_opt(start_chan, metadata)
+}
+
+fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
+    if last_raw_content_type == b"text/plain"
+           || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
+           || last_raw_content_type == b"text/plain; charset=iso-8859-1"
+           || last_raw_content_type == b"text/plain; charset=UTF-8" {
+        ApacheBugFlag::ON
+    } else {
+        ApacheBugFlag::OFF
+    }
 }
 
 /// For use by loaders in responding to a Load message.
