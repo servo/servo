@@ -339,7 +339,7 @@ class CGMethodCall(CGThing):
                 code = (
                     "if argc < %d {\n"
                     "    throw_type_error(cx, \"Not enough arguments to %s.\");\n"
-                    "    return 0;\n"
+                    "    return JSFalse;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
                     CGWrapper(CGGeneric(code), pre="\n", post="\n"))
@@ -512,11 +512,11 @@ class CGMethodCall(CGThing):
             CGSwitch("argcount",
                      argCountCases,
                      CGGeneric("throw_type_error(cx, \"Not enough arguments to %s.\");\n"
-                               "return 0;" % methodName)))
+                               "return JSFalse;" % methodName)))
         # XXXjdm Avoid unreachable statement warnings
         # overloadCGThings.append(
         #     CGGeneric('panic!("We have an always-returning default case");\n'
-        #               'return 0;'))
+        #               'return JSFalse;'))
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
@@ -888,7 +888,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if invalidEnumValueFatal:
             handleInvalidEnumValueCode = exceptionCode
         else:
-            handleInvalidEnumValueCode = "return 1;"
+            handleInvalidEnumValueCode = "return JSTrue;"
 
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
@@ -1012,7 +1012,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = CGGeneric(typeName)
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(dictionary) => dictionary,\n"
-                    "    Err(_) => return 0,\n"
+                    "    Err(_) => return JSFalse,\n"
                     "}" % typeName)
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
@@ -1037,7 +1037,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         conversionBehavior = "()"
 
     if failureCode is None:
-        failureCode = 'return 0'
+        failureCode = 'return JSFalse'
 
     declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
@@ -1216,7 +1216,7 @@ class CGArgumentConverter(CGThing):
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='return 1;', pre=''):
+def wrapForType(jsvalRef, result='result', successCode='return JSTrue;', pre=''):
     """
     Reflect a Rust value into JS.
 
@@ -2778,7 +2778,7 @@ class CGSetterCall(CGPerSignatureCall):
 
     def wrap_return_value(self):
         # We have no return value
-        return "\nreturn 1;"
+        return "\nreturn JSTrue;"
 
     def getArgc(self):
         return "1"
@@ -2950,7 +2950,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "let args = CallArgs::from_vp(vp, argc);\n"
             "if (argc == 0) {\n"
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
-            "    return 0;\n"
+            "    return JSFalse;\n"
             "}" % self.attr.identifier.name)
         call = CGSetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
