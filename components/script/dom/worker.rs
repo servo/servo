@@ -34,7 +34,6 @@ use url::UrlParser;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
-use std::rc::Rc;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
