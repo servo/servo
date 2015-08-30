@@ -85,21 +85,14 @@ impl FormDataMethods for FormData {
         self.data.borrow_mut().remove(&name);
     }
 
-    #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#dom-formdata-get
     fn Get(&self, name: DOMString) -> Option<FileOrString> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        if data.contains_key(&name) {
-            match data[&name][0].clone() {
-                FormDatum::StringData(ref s) => Some(eString(s.clone())),
-                FormDatum::FileData(ref f) => {
-                    Some(eFile(f.root()))
-                }
-            }
-        } else {
-            None
-        }
+        self.data.borrow()
+                 .get(&name)
+                 .map(|entry| match entry[0] {
+                     FormDatum::StringData(ref s) => eString(s.clone()),
+                     FormDatum::FileData(ref f) => eFile(f.root()),
+                 })
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
