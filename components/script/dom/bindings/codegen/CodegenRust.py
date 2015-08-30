@@ -1634,7 +1634,6 @@ class CGImports(CGWrapper):
                 'unused_imports',
                 'unused_variables',
                 'unused_assignments',
-                'dead_code',
             ]
 
         def componentTypes(type):
