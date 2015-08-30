@@ -1631,7 +1631,6 @@ class CGImports(CGWrapper):
                 'unreachable_code',
                 'non_camel_case_types',
                 'non_upper_case_globals',
-                'unused_parens',
                 'unused_imports',
                 'unused_variables',
                 'unused_assignments',
@@ -2955,7 +2954,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
                                                         self.attr)
         checkForArg = CGGeneric(
             "let args = CallArgs::from_vp(vp, argc);\n"
-            "if (argc == 0) {\n"
+            "if argc == 0 {\n"
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return JSFalse;\n"
             "}" % self.attr.identifier.name)
@@ -4346,7 +4345,7 @@ if !expando.ptr.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
+            getNamed = ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n")
         else:
@@ -5514,7 +5513,7 @@ class CallbackMember(CGNativeMember):
             conversion = (
                 CGIfWrapper(CGGeneric(conversion),
                             "%s.is_some()" % arg.identifier.name).define() +
-                " else if (argc == %d) {\n"
+                " else if argc == %d {\n"
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"
                 "} else {\n"
