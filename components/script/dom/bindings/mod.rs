@@ -169,13 +169,13 @@ pub mod codegen {
         include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
     }
     #[allow(unreachable_code, non_camel_case_types, non_upper_case_globals, unused_parens,
-            unused_imports, unused_variables, unused_unsafe, unused_mut, unused_assignments,
+            unused_imports, unused_variables, unused_mut, unused_assignments,
             dead_code)]
     pub mod RegisterBindings {
         include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
     }
     #[allow(unreachable_code, non_camel_case_types, non_upper_case_globals, unused_parens,
-            unused_imports, unused_variables, unused_unsafe, unused_mut, unused_assignments,
+            unused_imports, unused_variables, unused_mut, unused_assignments,
             dead_code)]
     pub mod UnionTypes {
         include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));

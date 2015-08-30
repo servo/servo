@@ -890,16 +890,21 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             handleInvalidEnumValueCode = "return JSTrue;"
 
+        transmute = "mem::transmute(index)"
+        if isMember == 'Dictionary':
+            transmute = 'unsafe { ' + transmute + ' }'
+
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
-            "        unsafe { mem::transmute(index) }\n"
+            "        %(transmute)s\n"
             "    },\n"
             "}" % {"values": enum + "Values::strings",
                    "exceptionCode": exceptionCode,
+                   "transmute": transmute,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -1629,7 +1634,6 @@ class CGImports(CGWrapper):
                 'unused_parens',
                 'unused_imports',
                 'unused_variables',
-                'unused_unsafe',
                 'unused_mut',
                 'unused_assignments',
                 'dead_code',
@@ -2049,7 +2053,7 @@ class CGAbstractMethod(CGThing):
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, pub=False, templateArgs=None,
-                 unsafe=True):
+                 unsafe=False):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2165,7 +2169,8 @@ class CGWrapMethod(CGAbstractMethod):
             args = [Argument('*mut JSContext', 'cx'),
                     Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
         retval = 'Root<%s>' % descriptor.concreteType
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
+                                  pub=True, unsafe=True)
 
     def definition_body(self):
         if not self.descriptor.isGlobal():
@@ -2309,6 +2314,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
+            self.unsafe = True
             getParentProto = "parent_proto.ptr = JS_GetObjectPrototype(cx, global)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
@@ -2382,7 +2388,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('HandleObject', 'receiver'),
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  'void', args, pub=pub)
+                                  'void', args, pub=pub, unsafe=True)
         self.id = idPrefix + "ID::" + self.descriptor.name
 
     def definition_body(self):
@@ -2452,7 +2458,9 @@ class CGDefineProxyHandler(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert descriptor.proxy
-        CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler', '*const libc::c_void', [], pub=True)
+        CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler',
+                                  '*const libc::c_void', [],
+                                  pub=True, unsafe=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -4021,7 +4029,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('HandleObject', 'obj')]
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy",
-                                  '*const ' + descriptor.concreteType, args, alwaysInline=True)
+                                  '*const ' + descriptor.concreteType, args,
+                                  alwaysInline=True, unsafe=True)
 
     def definition_body(self):
         return CGGeneric("""\
