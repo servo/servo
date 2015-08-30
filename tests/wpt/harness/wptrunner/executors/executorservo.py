@@ -65,6 +65,10 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         args = ["--cpu", "--hard-fail", "-u", "Servo/wptrunner", "-z", self.test_url(test)]
         for stylesheet in self.browser.user_stylesheets:
             args += ["--user-stylesheet", stylesheet]
+
+        for pref in test.environment.get('prefs', {}):
+            args += ["--pref", pref]
+
         debug_args, command = browser_command(self.binary, args, self.debug_info)
 
         self.command = command
@@ -195,6 +199,8 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                             "--output=%s" % output_path, full_url]
             for stylesheet in self.browser.user_stylesheets:
                 self.command += ["--user-stylesheet", stylesheet]
+            for pref in test.environment.get('prefs', {}):
+                self.command += ["--pref", pref]
 
             env = os.environ.copy()
             env["HOST_FILE"] = self.hosts_path
