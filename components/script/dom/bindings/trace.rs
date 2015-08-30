@@ -29,7 +29,7 @@
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
 //! a datatype.
 
-use dom::bindings::js::JS;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use script_task::ScriptChan;
@@ -69,6 +69,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
+use std::iter::{FromIterator, IntoIterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -508,6 +509,17 @@ impl<T: JSTraceable + Reflectable> Deref for RootedVec<T> {
 impl<T: JSTraceable + Reflectable> DerefMut for RootedVec<T> {
     fn deref_mut(&mut self) -> &mut Vec<T> {
         &mut self.v
+    }
+}
+
+impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
+    #[allow(moved_no_move)]
+    fn from_iter<T>(iterable: T) -> RootedVec<JS<A>> where T: IntoIterator<Item=Root<A>> {
+        let mut vec = RootedVec::new_with_destination_address(unsafe {
+            return_address() as *const libc::c_void
+        });
+        vec.extend(iterable.into_iter().map(|item| JS::from_rooted(&item)));
+        vec
     }
 }
 
