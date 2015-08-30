@@ -1634,7 +1634,6 @@ class CGImports(CGWrapper):
                 'unused_parens',
                 'unused_imports',
                 'unused_variables',
-                'unused_mut',
                 'unused_assignments',
                 'dead_code',
             ]
@@ -2115,7 +2114,7 @@ class CGAbstractMethod(CGThing):
 
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
+    create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
@@ -2164,10 +2163,10 @@ class CGWrapMethod(CGAbstractMethod):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
             args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
         else:
             args = [Argument('*mut JSContext', 'cx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
@@ -2858,7 +2857,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
-        setupArgs = CGGeneric("let mut args = CallArgs::from_vp(vp, argc);\n")
+        setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
         return CGList([setupArgs, call])
 
@@ -2909,7 +2908,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        setupArgs = CGGeneric("let mut args = CallArgs::from_vp(vp, argc);\n")
+        setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([setupArgs, call])
@@ -4227,7 +4226,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
                     let cstring = CString::new(name).unwrap();
                     let jsstring = JS_InternString(cx, cstring.as_ptr());
-                    let mut rooted = RootedString::new(cx, jsstring);
+                    let rooted = RootedString::new(cx, jsstring);
                     let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
                     let rooted_jsid = RootedId::new(cx, jsid);
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
@@ -5548,6 +5547,8 @@ class CallbackMember(CGNativeMember):
             "}\n")
 
     def getArgcDecl(self):
+        if self.argCount <= 1:
+            return CGGeneric("let argc = %s;" % self.argCountStr)
         return CGGeneric("let mut argc = %s;" % self.argCountStr)
 
     @staticmethod
