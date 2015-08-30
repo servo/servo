@@ -144,10 +144,39 @@ fn setup_logging() {
 }
 
 #[cfg(target_os="android")]
+const URL_LOCATION: &'static str = "/sdcard/servo/url.txt";
+
+#[cfg(target_os="android")]
+const DEFAULT_HOMEPAGE: &'static str = "http://en.wikipedia.org/wiki/Rust";
+
+#[cfg(target_os="android")]
 fn get_args() -> Vec<String> {
+    use std::io::prelude::*;
+    use std::io::BufReader;
+    use std::fs::File;
+
+    let f = File::open(URL_LOCATION);
+    let mut str = String::new();
+
+    match f {
+        Ok(file) => {
+            let mut reader = BufReader::new(file);
+
+            match reader.read_line(&mut str) {
+                Ok(_) => {},
+                Err(_) => {
+                    str.push_str(DEFAULT_HOMEPAGE);
+                }
+            }
+        },
+        Err(_) => {
+            str.push_str(DEFAULT_HOMEPAGE);
+        }
+    }
+
     vec![
         "servo".to_owned(),
-        "http://en.wikipedia.org/wiki/Rust".to_owned()
+        str
     ]
 }
 
