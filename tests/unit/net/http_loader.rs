@@ -209,6 +209,26 @@ impl HttpRequest for AssertMustHaveBodyRequest {
 }
 
 #[test]
+fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = None;
+    load_data.method = Method::Post;
+
+    let mut content_length = Headers::new();
+    content_length.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec("0".as_bytes())]);
+
+    let _ = load::<AssertRequestMustHaveHeaders>(
+        load_data.clone(), resource_mgr, None,
+        &AssertMustHaveHeadersRequestFactory {
+            expected_headers: content_length,
+            body: <[_]>::to_vec(&[])
+        });
+}
+
+#[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     struct Factory;
 

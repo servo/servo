@@ -533,6 +533,10 @@ pub fn load<A>(load_data: LoadData,
                 try!(req.send(&load_data.data))
             }
             _ => {
+                if load_data.method != Method::Get && load_data.method != Method::Head {
+                    req.headers_mut().set(ContentLength(0))
+                }
+
                 send_request_to_devtools(
                     devtools_chan.clone(), request_id.clone(), url.clone(),
                     method.clone(), load_data.headers.clone(),
