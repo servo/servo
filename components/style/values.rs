@@ -151,6 +151,7 @@ pub mod specified {
     pub enum FontRelativeLength {
         Em(CSSFloat),
         Ex(CSSFloat),
+        Ch(CSSFloat),
         Rem(CSSFloat)
     }
 
@@ -159,6 +160,7 @@ pub mod specified {
             match self {
                 &FontRelativeLength::Em(length) => write!(dest, "{}em", length),
                 &FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
+                &FontRelativeLength::Ch(length) => write!(dest, "{}ch", length),
                 &FontRelativeLength::Rem(length) => write!(dest, "{}rem", length)
             }
         }
@@ -172,9 +174,10 @@ pub mod specified {
         {
             match self {
                 &FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
-                &FontRelativeLength::Ex(length) => {
-                    let x_height = 0.5;  // TODO: find that from the font
-                    reference_font_size.scale_by(length * x_height)
+                &FontRelativeLength::Ex(length) | &FontRelativeLength::Ch(length) => {
+                    // https://github.com/servo/servo/issues/7462
+                    let em_factor = 0.5;
+                    reference_font_size.scale_by(length * em_factor)
                 },
                 &FontRelativeLength::Rem(length) => root_font_size.scale_by(length)
             }
@@ -284,6 +287,7 @@ pub mod specified {
             match self {
                 FontRelativeLength::Em(v) => FontRelativeLength::Em(v * scalar),
                 FontRelativeLength::Ex(v) => FontRelativeLength::Ex(v * scalar),
+                FontRelativeLength::Ch(v) => FontRelativeLength::Ch(v * scalar),
                 FontRelativeLength::Rem(v) => FontRelativeLength::Rem(v * scalar),
             }
         }
@@ -338,6 +342,7 @@ pub mod specified {
                 // font-relative
                 "em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
                 "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
+                "ch" => Ok(Length::FontRelative(FontRelativeLength::Ch(value))),
                 "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
                 // viewport percentages
                 "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
