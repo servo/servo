@@ -112,14 +112,12 @@ impl WebGLPaintTask {
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
                 self.get_attrib_location(program_id, name, chan),
-            CanvasWebGLMsg::GetShaderInfoLog(shader_id, chan) =>
-                self.get_shader_info_log(shader_id, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
                 self.get_shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
                 self.get_uniform_location(program_id, name, chan),
-            CanvasWebGLMsg::CompileShader(shader_id) =>
-                self.compile_shader(shader_id),
+            CanvasWebGLMsg::CompileShader(shader_id, source) =>
+                self.compile_shader(shader_id, source),
             CanvasWebGLMsg::CreateBuffer(chan) =>
                 self.create_buffer(chan),
             CanvasWebGLMsg::CreateFramebuffer(chan) =>
@@ -154,8 +152,6 @@ impl WebGLPaintTask {
                 gl::bind_texture(target, id),
             CanvasWebGLMsg::LinkProgram(program_id) =>
                 gl::link_program(program_id),
-            CanvasWebGLMsg::ShaderSource(shader_id, source) =>
-                gl::shader_source(shader_id, &[source.as_bytes()]),
             CanvasWebGLMsg::Uniform4fv(uniform_id, data) =>
                 gl::uniform_4f(uniform_id, data[0], data[1], data[2], data[3]),
             CanvasWebGLMsg::UseProgram(program_id) =>
@@ -303,11 +299,9 @@ impl WebGLPaintTask {
         gl::bind_framebuffer(target, id);
     }
 
-    // TODO(ecoal95): This is not spec-compliant, we must check
-    // the version of GLSL used. This functionality should probably
-    // be in the WebGLShader object
     #[inline]
-    fn compile_shader(&self, shader_id: u32) {
+    fn compile_shader(&self, shader_id: u32, source: String) {
+        gl::shader_source(shader_id, &[source.as_bytes()]);
         gl::compile_shader(shader_id);
     }
 
@@ -321,13 +315,6 @@ impl WebGLPaintTask {
         };
 
         chan.send(attrib_location).unwrap();
-    }
-
-    fn get_shader_info_log(&self, shader_id: u32, chan: IpcSender<Option<String>>) {
-        // TODO(ecoal95): Right now we always return a value, we should
-        // check for gl errors and return None there
-        let info = gl::get_shader_info_log(shader_id);
-        chan.send(Some(info)).unwrap();
     }
 
     fn get_shader_parameter(&self,

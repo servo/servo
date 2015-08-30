@@ -42,6 +42,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "angle"
+version = "0.1.0"
+source = "git+https://github.com/ecoal95/angle?branch=servo#77288884bd7a89bf3019ca94dcda6c94cb178aa4"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "aster"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1193,6 +1201,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "script"
 version = "0.0.1"
 dependencies = [
+ "angle 0.1.0 (git+https://github.com/ecoal95/angle?branch=servo)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",

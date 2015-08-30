@@ -78,6 +78,7 @@ extern crate url;
 extern crate uuid;
 extern crate string_cache;
 extern crate offscreen_gl_context;
+extern crate angle;
 extern crate tendril;
 
 pub mod cors;
