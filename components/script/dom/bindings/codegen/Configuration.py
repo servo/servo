@@ -263,6 +263,8 @@ class Descriptor(DescriptorProvider):
         self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
         self._binaryNames.setdefault('__stringifier', 'Stringifier')
 
+        self._internalNames = desc.get('internalNames', {})
+
         for member in self.interface.members:
             if not member.isAttr() and not member.isMethod():
                 continue
@@ -272,6 +274,8 @@ class Descriptor(DescriptorProvider):
                 assert len(binaryName) == 1
                 self._binaryNames.setdefault(member.identifier.name,
                                              binaryName[0])
+            self._internalNames.setdefault(member.identifier.name,
+                                           member.identifier.name.replace('-', '_'))
 
         # Build the prototype chain.
         self.prototypeChain = []
@@ -284,6 +288,9 @@ class Descriptor(DescriptorProvider):
 
     def binaryNameFor(self, name):
         return self._binaryNames.get(name, name)
+
+    def internalNameFor(self, name):
+        return self._internalNames.get(name, name)
 
     def getExtendedAttributes(self, member, getter=False, setter=False):
         def maybeAppendInfallibleToAttrs(attrs, throws):

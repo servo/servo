@@ -120,6 +120,10 @@ impl TestBindingMethods for TestBinding {
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
     fn ForwardedAttribute(&self) -> Root<TestBinding> { Root::from_ref(self) }
     fn BinaryRenamedAttribute(&self) -> DOMString { "".to_owned() }
+    fn SetBinaryRenamedAttribute2(&self, _: DOMString) {}
+    fn BinaryRenamedAttribute2(&self) -> DOMString { "".to_owned() }
+    fn Attr_to_automatically_rename(&self) -> DOMString { "".to_owned() }
+    fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
         let global = self.global.root();

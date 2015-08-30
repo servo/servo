@@ -6585,6 +6585,9 @@ macro_rules! css_properties_accessors {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
                 % if property.derived_from is None:
+                    % if '-' in property.name:
+                        [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
+                    % endif
                     % if property != LONGHANDS[-1]:
                         [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
                     % else:
