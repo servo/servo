@@ -41,8 +41,10 @@ pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data, senders, classifier| {
-        spawn_named(format!("http_loader for {}", load_data.url.serialize()),
-                    move || load_for_consumer(load_data, senders, classifier, resource_mgr_chan, devtools_chan))
+        let l: LoadData = (load_data as LoadData).clone();
+        let name = format!("http_loader for {}", l.url.serialize());
+        spawn_named(name,
+                    move || load_for_consumer(l, senders, classifier, resource_mgr_chan, devtools_chan))
     }
 }
 
