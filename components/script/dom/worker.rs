@@ -163,6 +163,7 @@ impl WorkerMethods for Worker {
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage);
+    event_handler!(error, GetOnerror, SetOnerror);
 }
 
 pub struct WorkerMessageHandler {
