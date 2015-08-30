@@ -1625,10 +1625,6 @@ class CGImports(CGWrapper):
         """
         if ignored_warnings is None:
             ignored_warnings = [
-                # Allow unreachable_code because we use 'break' in a way that
-                # sometimes produces two 'break's in a row. See for example
-                # CallbackMember.getArgConversions.
-                'unreachable_code',
                 'non_camel_case_types',
                 'non_upper_case_globals',
                 'unused_imports',
