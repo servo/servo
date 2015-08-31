@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(arc_weak)]
-#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(box_raw))]
+#![feature(box_raw)]
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]

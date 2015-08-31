@@ -263,7 +263,7 @@ impl FontHandleMethods for FontHandle {
         return metrics;
     }
 
-    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
         let tag = tag as FT_ULong;
 
         unsafe {
@@ -277,7 +277,7 @@ impl FontHandleMethods for FontHandle {
             if !FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len).succeeded() {
                 return None
             }
-            Some(FontTable { buffer: buf })
+            Some(box FontTable { buffer: buf })
         }
     }
 }
