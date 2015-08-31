@@ -65,6 +65,7 @@ pub struct HTMLInputElement {
     placeholder: DOMRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
+    maxlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
@@ -104,6 +105,7 @@ impl InputActivationState {
 }
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
+static DEFAULT_MAX_LENGTH : i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -116,6 +118,7 @@ impl HTMLInputElement {
             placeholder: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
+            maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None)),
             activation_state: DOMRefCell::new(InputActivationState::new())
@@ -339,17 +342,16 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
-    fn MaxLength(&self) -> i32 {
-        match self.textinput.borrow().max_length {
-            Some(max_length) => max_length as i32,
-            None => i32::MAX
-        }
-    }
+    make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
-    fn SetMaxLength(&self, max_length: i32) {
-        if max_length > 0 {
-            self.textinput.borrow_mut().max_length = Some(max_length as usize)
+    fn SetMaxLength(&self, val: i32) {
+        self.maxlength.set(val);
+
+        if val >= 0 {
+            self.textinput.borrow_mut().max_length = Some(val as usize)
+        } else {
+            self.textinput.borrow_mut().max_length = None
         }
     }
 
