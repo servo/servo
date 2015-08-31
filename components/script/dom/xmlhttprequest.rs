@@ -959,7 +959,7 @@ impl XMLHttpRequest {
 
     fn dispatch_response_progress_event(&self, type_: DOMString) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {**x as u64});
+        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(&self, duration_ms: u32) {
