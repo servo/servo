@@ -323,6 +323,7 @@ def check_spec(file_name, contents):
         raise StopIteration
     file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
     patt = re.compile("^\s*\/\/.+")
+    macro_patt = re.compile("^\s*\S+!(.*)$")
     pattern = "impl %sMethods for %s {" % (file_name, file_name)
     contents = contents.splitlines(True)
     brace_count = 0
@@ -333,7 +334,7 @@ def check_spec(file_name, contents):
         if not patt.match(line):
             if pattern.lower() in line.lower():
                 in_impl = True
-            if "fn " in line and brace_count == 1:
+            if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
                 if "// https://" not in contents[idx - 1] and "// https://" not in contents[idx - 2]:
                     yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
             if '{' in line and in_impl:

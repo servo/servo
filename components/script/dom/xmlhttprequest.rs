@@ -293,6 +293,7 @@ impl XMLHttpRequest {
 }
 
 impl XMLHttpRequestMethods for XMLHttpRequest {
+    // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate

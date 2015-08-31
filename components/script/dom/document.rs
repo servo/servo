@@ -1842,6 +1842,7 @@ impl DocumentMethods for Document {
         // This method intentionally does nothing
     }
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 }
