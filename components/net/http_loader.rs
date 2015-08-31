@@ -460,7 +460,7 @@ pub fn load<A>(load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if &*url.scheme != "https" && request_must_be_secured(&url, &resource_mgr_chan) {
+        if &*url.scheme == "http" && request_must_be_secured(&url, &resource_mgr_chan) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
