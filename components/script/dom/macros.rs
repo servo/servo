@@ -27,6 +27,25 @@ macro_rules! make_bool_getter(
 );
 
 #[macro_export]
+macro_rules! make_int_getter(
+    ($attr:ident, $htmlname:expr, $default:expr) => (
+        fn $attr(&self) -> i32 {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_int_attribute(&Atom::from_slice($htmlname), $default)
+        }
+    );
+    ($attr:ident, $htmlname:expr) => {
+        make_int_getter!($attr, $htmlname, 0);
+    };
+    ($attr:ident) => {
+        make_int_getter!($attr, to_lower!(stringify!($attr)));
+    }
+);
+
+#[macro_export]
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self) -> u32 {

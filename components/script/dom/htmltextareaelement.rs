@@ -30,7 +30,6 @@ use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use selectors::states::*;
 use std::cell::Cell;
-use std::i32;
 use string_cache::Atom;
 use textinput::{KeyReaction, Lines, TextInput};
 use util::str::DOMString;
@@ -90,7 +89,6 @@ impl<'a> RawLayoutHTMLTextAreaElementHelpers for &'a HTMLTextAreaElement {
 
 static DEFAULT_COLS: u32 = 20;
 static DEFAULT_ROWS: u32 = 2;
-static DEFAULT_MAX_LENGTH: i32 = i32::MAX;
 
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString,
