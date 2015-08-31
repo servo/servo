@@ -323,7 +323,7 @@ def check_spec(file_name, contents):
         raise StopIteration
     file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
     patt = re.compile("^\s*\/\/.+")
-    pattern = "impl<'a> %sMethods for &'a %s {" % (file_name, file_name)
+    pattern = "impl %sMethods for %s {" % (file_name, file_name)
     contents = contents.splitlines(True)
     brace_count = 0
     in_impl = False
