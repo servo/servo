@@ -2,49 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
-use hsts::{HSTSList, secure_url};
+use file_loader;
+use flate2::read::{DeflateDecoder, GzDecoder};
+use hsts::secure_url;
+use hyper::Error as HttpError;
+use hyper::client::{Request, Response};
+use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
+use hyper::header::{Location, qitem, StrictTransportSecurity};
+use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
+use hyper::http::RawStatus;
+use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::net::{Fresh, HttpsConnector, Openssl};
+use hyper::status::{StatusCode, StatusClass};
+use ipc_channel::ipc::{self, IpcSender};
+use log;
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
-
-use file_loader;
-use flate2::read::{DeflateDecoder, GzDecoder};
-use hyper::Error as HttpError;
-use hyper::client::Request;
-use hyper::header::StrictTransportSecurity;
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host, Location, qitem, Quality, QualityItem};
-use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{HttpConnector, HttpsConnector, Openssl};
-use hyper::status::{StatusCode, StatusClass};
-use ipc_channel::ipc::{self, IpcSender};
-use log;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
+use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use std::borrow::ToOwned;
+use std::boxed::FnBox;
 use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::mpsc::{Sender, channel};
 use url::{Url, UrlParser};
-use util::opts;
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
-
-use std::borrow::ToOwned;
-use std::boxed::FnBox;
 use uuid;
 
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
-               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               hsts_list: Arc<Mutex<HSTSList>>)
+               devtools_chan: Option<Sender<DevtoolsControlMsg>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
     box move |load_data: LoadData, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()),
-                    move || load(load_data, senders, classifier, resource_mgr_chan, devtools_chan, hsts_list))
+                    move || load_for_consumer(load_data, senders, classifier, resource_mgr_chan, devtools_chan))
     }
 }
 
@@ -76,21 +74,365 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn request_must_be_secured(hsts_list: &HSTSList, url: &Url) -> bool {
-    match url.domain() {
-        Some(ref h) => {
-            hsts_list.is_host_secure(h)
-        },
-        _ => false
+fn inner_url(url: &Url) -> Url {
+    let inner_url = url.non_relative_scheme_data().unwrap();
+    Url::parse(inner_url).unwrap()
+}
+
+fn load_for_consumer(load_data: LoadData,
+                     start_chan: LoadConsumer,
+                     classifier: Arc<MIMEClassifier>,
+                     resource_mgr_chan: IpcSender<ControlMsg>,
+                     devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+
+    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &NetworkHttpRequestFactory) {
+        Err(LoadError::UnsupportedScheme(url)) => {
+            let s = format!("{} request, but we don't support that scheme", &*url.scheme);
+            send_error(url, s, start_chan)
+        }
+        Err(LoadError::Connection(url, e)) => {
+            send_error(url, e, start_chan)
+        }
+        Err(LoadError::MaxRedirects(url)) => {
+            send_error(url, "too many redirects".to_string(), start_chan)
+        }
+        Err(LoadError::Cors(url, msg)) |
+        Err(LoadError::InvalidRedirect(url, msg)) |
+        Err(LoadError::Decoding(url, msg)) => {
+            send_error(url, msg, start_chan)
+        }
+        Err(LoadError::Ssl(url, msg)) => {
+            info!("ssl validation error {}, '{}'", url.serialize(), msg);
+
+            let mut image = resources_dir_path();
+            image.push("badcert.html");
+            let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+
+            file_loader::factory(load_data, start_chan, classifier)
+
+        }
+        Ok(mut load_response) => {
+            let metadata = load_response.metadata.clone();
+            send_data(&mut load_response, start_chan, metadata, classifier)
+        }
     }
 }
 
-fn load(mut load_data: LoadData,
-        start_chan: LoadConsumer,
-        classifier: Arc<MIMEClassifier>,
-        resource_mgr_chan: IpcSender<ControlMsg>,
-        devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-        hsts_list: Arc<Mutex<HSTSList>>) {
+pub trait HttpResponse: Read {
+    fn headers(&self) -> &Headers;
+    fn status(&self) -> StatusCode;
+    fn status_raw(&self) -> &RawStatus;
+
+    fn content_encoding(&self) -> Option<Encoding> {
+        self.headers().get::<ContentEncoding>().and_then(|h| {
+            match h {
+                &ContentEncoding(ref encodings) => {
+                    if encodings.contains(&Encoding::Gzip) {
+                        Some(Encoding::Gzip)
+                    } else if encodings.contains(&Encoding::Deflate) {
+                        Some(Encoding::Deflate)
+                    } else {
+                        // TODO: Is this the correct behaviour?
+                        None
+                    }
+                }
+            }
+        })
+    }
+}
+
+struct WrappedHttpResponse {
+    response: Response
+}
+
+impl Read for WrappedHttpResponse {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.response.read(buf)
+    }
+}
+
+impl HttpResponse for WrappedHttpResponse {
+    fn headers(&self) -> &Headers {
+        &self.response.headers
+    }
+
+    fn status(&self) -> StatusCode {
+        self.response.status
+    }
+
+    fn status_raw(&self) -> &RawStatus {
+        self.response.status_raw()
+    }
+}
+
+pub trait HttpRequestFactory {
+    type R: HttpRequest;
+
+    fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError>;
+}
+
+struct NetworkHttpRequestFactory;
+
+impl HttpRequestFactory for NetworkHttpRequestFactory {
+    type R = WrappedHttpRequest;
+
+    fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
+        let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
+        context.set_verify(SSL_VERIFY_PEER, None);
+        context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
+
+        let connector = HttpsConnector::new(Openssl { context: Arc::new(context) });
+        let connection = Request::with_connector(method.clone(), url.clone(), &connector);
+
+        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
+    function: \"SSL3_GET_SERVER_CERTIFICATE\", \
+    reason: \"certificate verify failed\" }]))";
+
+        let request = match connection {
+            Ok(req) => req,
+
+            Err(HttpError::Io(ref io_error)) if (
+                io_error.kind() == io::ErrorKind::Other &&
+                io_error.description() == "Error in OpenSSL" &&
+                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
+                format!("{:?}", io_error.cause()) == ssl_err_string
+            ) => {
+                return Err(
+                    LoadError::Ssl(
+                        url.clone(),
+                        format!("ssl error {:?}: {:?} {:?}",
+                                io_error.kind(),
+                                io_error.description(),
+                                io_error.cause())
+                    )
+                )
+            },
+            Err(e) => {
+                 return Err(LoadError::Connection(url.clone(), e.description().to_string()))
+            }
+        };
+
+        Ok(WrappedHttpRequest { request: request })
+    }
+}
+
+pub trait HttpRequest {
+    type R: HttpResponse + 'static;
+
+    fn headers_mut(&mut self) -> &mut Headers;
+    fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
+}
+
+struct WrappedHttpRequest {
+    request: Request<Fresh>
+}
+
+impl HttpRequest for WrappedHttpRequest {
+    type R = WrappedHttpResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers {
+        self.request.headers_mut()
+    }
+
+    fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
+        let url = self.request.url.clone();
+        let mut request_writer = match self.request.start() {
+            Ok(streaming) => streaming,
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+        };
+
+        if let Some(ref data) = *body {
+            match request_writer.write_all(&data) {
+                Err(e) => {
+                    return Err(LoadError::Connection(url, e.description().to_string()))
+                }
+                _ => {}
+            }
+        }
+
+        let response = match request_writer.send() {
+            Ok(w) => w,
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+        };
+
+        Ok(WrappedHttpResponse { response: response })
+    }
+}
+
+#[derive(Debug)]
+pub enum LoadError {
+    UnsupportedScheme(Url),
+    Connection(Url, String),
+    Cors(Url, String),
+    Ssl(Url, String),
+    InvalidRedirect(Url, String),
+    Decoding(Url, String),
+    MaxRedirects(Url)
+}
+
+fn set_default_accept_encoding(headers: &mut Headers) {
+    if headers.has::<AcceptEncoding>() {
+        return
+    }
+
+    headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+}
+
+fn set_default_accept(headers: &mut Headers) {
+    if !headers.has::<Accept>() {
+        let accept = Accept(vec![
+                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                            ]);
+        headers.set(accept);
+    }
+}
+
+fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url, tx, CookieSource::HTTP)).unwrap();
+    if let Some(cookie_list) = rx.recv().unwrap() {
+        let mut v = Vec::new();
+        v.push(cookie_list.into_bytes());
+        headers.set_raw("Cookie".to_owned(), v);
+    }
+}
+
+fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    if let Some(cookies) = response.headers().get_raw("set-cookie") {
+        for cookie in cookies.iter() {
+            if let Ok(cookies) = String::from_utf8(cookie.clone()) {
+                resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                                    cookies,
+                                                                    CookieSource::HTTP)).unwrap();
+            }
+        }
+    }
+}
+
+fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>) -> bool {
+    let (tx, rx) = ipc::channel().unwrap();
+    resource_mgr_chan.send(
+        ControlMsg::GetHostMustBeSecured(url.domain().unwrap().to_string(), tx)
+    ).unwrap();
+
+    rx.recv().unwrap()
+}
+
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
+    if url.scheme != "https" {
+        return;
+    }
+
+    if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
+        if let Some(host) = url.domain() {
+            info!("adding host {} to the strict transport security list", host);
+            info!("- max-age {}", header.max_age);
+
+            let include_subdomains = if header.include_subdomains {
+                info!("- includeSubdomains");
+                IncludeSubdomains::Included
+            } else {
+                IncludeSubdomains::NotIncluded
+            };
+
+            let msg = ControlMsg::SetHSTSEntryForHost(
+                host.to_string(),
+                include_subdomains,
+                header.max_age
+            );
+
+            resource_mgr_chan.send(msg).unwrap();
+        }
+    }
+}
+
+pub struct StreamedResponse<R: HttpResponse> {
+    decoder: Decoder<R>,
+    pub metadata: Metadata
+}
+
+
+impl<R: HttpResponse> Read for StreamedResponse<R> {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.decoder {
+            Decoder::Gzip(ref mut d) => d.read(buf),
+            Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Plain(ref mut d) => d.read(buf)
+        }
+    }
+}
+
+impl<R: HttpResponse> StreamedResponse<R> {
+    fn new(m: Metadata, d: Decoder<R>) -> StreamedResponse<R> {
+        StreamedResponse { metadata: m, decoder: d }
+    }
+
+    fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
+        match response.content_encoding() {
+            Some(Encoding::Gzip) => {
+                let result = GzDecoder::new(response);
+                match result {
+                    Ok(response_decoding) => {
+                        return Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)));
+                    }
+                    Err(err) => {
+                        return Err(LoadError::Decoding(m.final_url, err.to_string()));
+                    }
+                }
+            }
+            Some(Encoding::Deflate) => {
+                let response_decoding = DeflateDecoder::new(response);
+                return Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)));
+            }
+            _ => {
+                return Ok(StreamedResponse::new(m, Decoder::Plain(response)));
+            }
+        }
+    }
+}
+
+enum Decoder<R: Read> {
+    Gzip(GzDecoder<R>),
+    Deflate(DeflateDecoder<R>),
+    Plain(R)
+}
+
+fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                            request_id: String,
+                            url: Url,
+                            method: Method,
+                            headers: Headers,
+                            body: Option<Vec<u8>>) {
+
+    if let Some(ref chan) = devtools_chan {
+        let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
+        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
+    }
+}
+
+fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                             request_id: String,
+                             headers: Option<Headers>,
+                             status: Option<RawStatus>) {
+    if let Some(ref chan) = devtools_chan {
+        let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
+
+        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
+        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
+    }
+}
+pub fn load<A>(load_data: LoadData,
+            resource_mgr_chan: IpcSender<ControlMsg>,
+            devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+            request_factory: &HttpRequestFactory<R=A>)
+    -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -102,6 +444,7 @@ fn load(mut load_data: LoadData,
     // specified in the hosts file.
     let mut url = replace_hosts(&load_data.url);
     let mut redirected_to = HashSet::new();
+    let mut method = load_data.method.clone();
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
@@ -109,80 +452,30 @@ fn load(mut load_data: LoadData,
     // the source rather than rendering the contents of the URL.
     let viewing_source = url.scheme == "view-source";
     if viewing_source {
-        let inner_url = load_data.url.non_relative_scheme_data().unwrap();
-        doc_url = Url::parse(inner_url).unwrap();
-        url = replace_hosts(&doc_url);
-        match &*url.scheme {
-            "http" | "https" => {}
-            _ => {
-                let s = format!("The {} scheme with view-source is not supported", url.scheme);
-                send_error(url, s, start_chan);
-                return;
-            }
-        };
+        url = inner_url(&load_data.url);
+        doc_url = url.clone();
     }
 
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
 
-        if &*url.scheme != "https" && request_must_be_secured(&hsts_list.lock().unwrap(), &url) {
+        if &*url.scheme == "http" && request_must_be_secured(&url, &resource_mgr_chan) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), start_chan);
-            return;
+            return Err(LoadError::MaxRedirects(url));
         }
 
-        match &*url.scheme {
-            "http" | "https" => {}
-            _ => {
-                let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, start_chan);
-                return;
-            }
+        if &*url.scheme != "http" && &*url.scheme != "https" {
+            return Err(LoadError::UnsupportedScheme(url));
         }
 
         info!("requesting {}", url.serialize());
 
-        let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
-function: \"SSL3_GET_SERVER_CERTIFICATE\", \
-reason: \"certificate verify failed\" }]))";
-
-        let req = if opts::get().nossl {
-            Request::with_connector(load_data.method.clone(), url.clone(), &HttpConnector)
-        } else {
-            let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-            context.set_verify(SSL_VERIFY_PEER, None);
-            context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-            Request::with_connector(load_data.method.clone(), url.clone(),
-                &HttpsConnector::new(Openssl { context: Arc::new(context) }))
-        };
-
-        let mut req = match req {
-            Ok(req) => req,
-            Err(HttpError::Io(ref io_error)) if (
-                io_error.kind() == io::ErrorKind::Other &&
-                io_error.description() == "Error in OpenSSL" &&
-                // FIXME: This incredibly hacky. Make it more robust, and at least test it.
-                format!("{:?}", io_error.cause()) == ssl_err_string
-            ) => {
-                let mut image = resources_dir_path();
-                image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
-                file_loader::factory(load_data, start_chan, classifier);
-                return;
-            },
-            Err(e) => {
-                println!("{:?}", e);
-                send_error(url, e.description().to_string(), start_chan);
-                return;
-            }
-        };
-
-        //Ensure that the host header is set from the original url
+        // Ensure that the host header is set from the original url
         let host = Host {
             hostname: doc_url.serialize_host().unwrap(),
             port: doc_url.port_or_default()
@@ -192,156 +485,90 @@ reason: \"certificate verify failed\" }]))";
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
         // Only preserve ones which have been explicitly marked as such.
-        if iters == 1 {
+        let mut request_headers = if iters == 1 {
             let mut combined_headers = load_data.headers.clone();
             combined_headers.extend(load_data.preserved_headers.iter());
-            *req.headers_mut() = combined_headers;
+            combined_headers
         } else {
-            *req.headers_mut() = load_data.preserved_headers.clone();
-        }
+            load_data.preserved_headers.clone()
+        };
 
-        req.headers_mut().set(host);
+        request_headers.set(host);
 
-        if !req.headers().has::<Accept>() {
-            let accept = Accept(vec![
-                qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
-                QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
-                QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
-            ]);
-            req.headers_mut().set(accept);
-        }
+        set_default_accept(&mut request_headers);
+        set_default_accept_encoding(&mut request_headers);
+        set_request_cookies(doc_url.clone(), &mut request_headers, &resource_mgr_chan);
 
-        let (tx, rx) = ipc::channel().unwrap();
-        resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(doc_url.clone(),
-                                                            tx,
-                                                            CookieSource::HTTP)).unwrap();
-        if let Some(cookie_list) = rx.recv().unwrap() {
-            let mut v = Vec::new();
-            v.push(cookie_list.into_bytes());
-            req.headers_mut().set_raw("Cookie".to_owned(), v);
-        }
+        let mut req = try!(request_factory.create(url.clone(), method.clone()));
+        *req.headers_mut() = request_headers;
 
-        if !req.headers().has::<AcceptEncoding>() {
-            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
-        }
         if log_enabled!(log::LogLevel::Info) {
-            info!("{}", load_data.method);
-            for header in req.headers().iter() {
+            info!("{}", method);
+            for header in req.headers_mut().iter() {
                 info!(" - {}", header);
             }
             info!("{:?}", load_data.data);
         }
 
         // Avoid automatically sending request body if a redirect has occurred.
-        let writer = match load_data.data {
-            Some(ref data) if iters == 1 => {
-                req.headers_mut().set(ContentLength(data.len() as u64));
-                let mut writer = match req.start() {
-                    Ok(w) => w,
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
-                };
-                match writer.write_all(&*data) {
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
-                    _ => {}
-                };
-                writer
-            },
-            _ => {
-                match load_data.method {
-                    Method::Get | Method::Head => (),
-                    _ => req.headers_mut().set(ContentLength(0))
-                }
-                match req.start() {
-                    Ok(w) => w,
-                    Err(e) => {
-                        send_error(url, e.description().to_string(), start_chan);
-                        return;
-                    }
-                }
-            }
-        };
-
-        // Send an HttpRequest message to devtools with a unique request_id
-        // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id in the message
+        //
+        // TODO - This is the wrong behaviour according to the RFC. However, I'm not
+        // sure how much "correctness" vs. real-world is important in this case.
+        //
+        // https://tools.ietf.org/html/rfc7231#section-6.4
+        let is_redirected_request = iters != 1;
         let request_id = uuid::Uuid::new_v4().to_simple_string();
-        if let Some(ref chan) = devtools_chan {
-            let net_event = NetworkEvent::HttpRequest(load_data.url.clone(),
-                                                      load_data.method.clone(),
-                                                      load_data.headers.clone(),
-                                                      load_data.data.clone());
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id.clone(),
-                                                             net_event))).unwrap();
-        }
+        let response = match load_data.data {
+            Some(ref data) if !is_redirected_request => {
+                req.headers_mut().set(ContentLength(data.len() as u64));
 
-        let mut response = match writer.send() {
-            Ok(r) => r,
-            Err(e) => {
-                send_error(url, e.description().to_string(), start_chan);
-                return;
+                // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
+                // in the message
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), load_data.headers.clone(),
+                    load_data.data.clone()
+                );
+
+                try!(req.send(&load_data.data))
+            }
+            _ => {
+                if load_data.method != Method::Get && load_data.method != Method::Head {
+                    req.headers_mut().set(ContentLength(0))
+                }
+
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), load_data.headers.clone(),
+                    None
+                );
+
+                try!(req.send(&None))
             }
         };
 
-        // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {}, headers:", response.status);
+        info!("got HTTP response {}, headers:", response.status());
         if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers.iter() {
+            for header in response.headers().iter() {
                 info!(" - {}", header);
             }
         }
 
-        if let Some(cookies) = response.headers.get_raw("set-cookie") {
-            for cookie in cookies {
-                if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                    resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(doc_url.clone(),
-                                                                        cookies,
-                                                                        CookieSource::HTTP)).unwrap();
-                }
-            }
-        }
+        set_cookies_from_response(doc_url.clone(), &response, &resource_mgr_chan);
+        update_sts_list_from_response(&url, &response, &resource_mgr_chan);
 
-        if url.scheme == "https" {
-            if let Some(header) = response.headers.get::<StrictTransportSecurity>() {
-                if let Some(host) = url.domain() {
-                    info!("adding host {} to the strict transport security list", host);
-                    info!("- max-age {}", header.max_age);
-
-                    let include_subdomains = if header.include_subdomains {
-                        info!("- includeSubdomains");
-                        IncludeSubdomains::Included
-                    } else {
-                        IncludeSubdomains::NotIncluded
-                    };
-
-                    resource_mgr_chan.send(
-                        ControlMsg::SetHSTSEntryForHost(
-                            host.to_string(), include_subdomains, header.max_age
-                        )
-                    ).unwrap();
-                }
-            }
-        }
-
-
-        if response.status.class() == StatusClass::Redirection {
-            match response.headers.get::<Location>() {
+        // --- Loop if there's a redirect
+        if response.status().class() == StatusClass::Redirection {
+            match response.headers().get::<Location>() {
                 Some(&Location(ref new_url)) => {
                     // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                     match load_data.cors {
                         Some(ref c) => {
                             if c.preflight {
-                                // The preflight lied
-                                send_error(url,
-                                           "Preflight fetch inconsistent with main fetch".to_string(),
-                                           start_chan);
-                                return;
+                                return Err(
+                                    LoadError::Cors(
+                                        url,
+                                        "Preflight fetch inconsistent with main fetch".to_string()));
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
                                 // but they don't seem necessary until credentials are implemented
@@ -349,28 +576,28 @@ reason: \"certificate verify failed\" }]))";
                         }
                         _ => {}
                     }
+
                     let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(doc_url, e.to_string(), start_chan);
-                            return;
+                            return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
                         }
                     };
+
                     info!("redirecting to {}", new_doc_url);
                     url = replace_hosts(&new_doc_url);
                     doc_url = new_doc_url;
 
                     // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
                     // historically UAs have rewritten POST->GET on 301 and 302 responses.
-                    if load_data.method == Method::Post &&
-                        (response.status == StatusCode::MovedPermanently ||
-                         response.status == StatusCode::Found) {
-                        load_data.method = Method::Get;
+                    if method == Method::Post &&
+                        (response.status() == StatusCode::MovedPermanently ||
+                         response.status() == StatusCode::Found) {
+                        method = Method::Get;
                     }
 
-                    if redirected_to.contains(&doc_url) {
-                        send_error(doc_url, "redirect loop".to_string(), start_chan);
-                        return;
+                    if redirected_to.contains(&url) {
+                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_string()));
                     }
 
                     redirected_to.insert(doc_url.clone());
@@ -380,11 +607,13 @@ reason: \"certificate verify failed\" }]))";
             }
         }
 
-        let mut adjusted_headers = response.headers.clone();
+        let mut adjusted_headers = response.headers().clone();
+
         if viewing_source {
             adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
         }
-        let mut metadata: Metadata = Metadata::default(doc_url);
+
+        let mut metadata: Metadata = Metadata::default(doc_url.clone());
         metadata.set_content_type(match adjusted_headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
@@ -392,56 +621,16 @@ reason: \"certificate verify failed\" }]))";
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
 
-        let mut encoding_str: Option<String> = None;
-        //FIXME: Implement Content-Encoding Header https://github.com/hyperium/hyper/issues/391
-        if let Some(encodings) = response.headers.get_raw("content-encoding") {
-            for encoding in encodings {
-                if let Ok(encodings) = String::from_utf8(encoding.clone()) {
-                    if encodings == "gzip" || encodings == "deflate" {
-                        encoding_str = Some(encodings);
-                        break;
-                    }
-                }
-            }
-        }
-
+        // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
-        if let Some(ref chan) = devtools_chan {
-            let net_event_response =
-                NetworkEvent::HttpResponse(metadata.headers.clone(),
-                                           metadata.status.clone(),
-                                           None);
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::NetworkEvent(request_id,
-                                                             net_event_response))).unwrap();
-        }
+        // TODO: Send this message even when the load fails?
+        send_response_to_devtools(
+            devtools_chan, request_id,
+            metadata.headers.clone(), metadata.status.clone()
+        );
 
-        match encoding_str {
-            Some(encoding) => {
-                if encoding == "gzip" {
-                    let result = GzDecoder::new(response);
-                    match result {
-                        Ok(mut response_decoding) => {
-                            send_data(&mut response_decoding, start_chan, metadata, classifier);
-                        }
-                        Err(err) => {
-                            send_error(metadata.final_url, err.to_string(), start_chan);
-                            return;
-                        }
-                    }
-                } else if encoding == "deflate" {
-                    let mut response_decoding = DeflateDecoder::new(response);
-                    send_data(&mut response_decoding, start_chan, metadata, classifier);
-                }
-            },
-            None => {
-                send_data(&mut response, start_chan, metadata, classifier);
-            }
-        }
-
-        // We didn't get redirected.
-        break;
+        return StreamedResponse::from_http_response(response, metadata)
     }
 }
 
