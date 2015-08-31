@@ -64,7 +64,7 @@ impl HTMLCollection {
                 }
             }
         }
-        let filter = AllElementFilter {namespace_filter: namespace_filter};
+        let filter = AllElementFilter { namespace_filter: namespace_filter };
         HTMLCollection::create(window, root, box filter)
     }
 

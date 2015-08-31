@@ -52,9 +52,9 @@ impl ProgressEvent {
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Root<ProgressEvent>> {
-        let bubbles = if init.parent.bubbles {EventBubbles::Bubbles} else {EventBubbles::DoesNotBubble};
-        let cancelable = if init.parent.cancelable {EventCancelable::Cancelable}
-                         else {EventCancelable::NotCancelable};
+        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable }
+                         else { EventCancelable::NotCancelable };
         let ev = ProgressEvent::new(global, type_, bubbles, cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)

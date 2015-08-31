@@ -199,7 +199,7 @@ impl AssertMustHaveBodyRequest {
 impl HttpRequest for AssertMustHaveBodyRequest {
     type R = MockResponse;
 
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers}
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
 
     fn send(self, body: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         assert_eq!(self.expected_body, *body);
