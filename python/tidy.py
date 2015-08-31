@@ -188,11 +188,15 @@ def check_rust(file_name, contents):
             line = merged_lines + line
             merged_lines = ''
 
-        # get rid of strings and chars because cases like regex expression
-        line = re.sub('".*?"|\'.*?\'', '', line)
+        # get rid of strings and chars because cases like regex expression, keep attributes
+        if not line.startswith("#"):
+            line = re.sub('".*?"|\'.*?\'', '', line)
 
-        # get rid of comments and attributes
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
+        # get rid of comments
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
+
+        # get rid of attributes that do not contain =
+        line = re.sub('^#[A-Za-z0-9\(\)_\[\]_]*?$', '', line)
 
         match = re.search(r",[A-Za-z0-9]", line)
         if match:
@@ -214,7 +218,7 @@ def check_rust(file_name, contents):
 
         # * not included because of dereferencing and casting
         # - not included because of unary negation
-        match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
+        match = re.search(r"[\+/\%=][A-Za-z0-9\"]", line)
         if match and not is_associated_type(match, line, 0):
             yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
