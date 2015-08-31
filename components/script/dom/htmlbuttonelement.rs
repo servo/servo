@@ -98,22 +98,29 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/#htmlbuttonelement
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_url_or_base_getter!(FormAction);
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_setter!(SetFormAction, "formaction");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_enumerated_getter!(
         FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_setter!(SetFormMethod, "formmethod");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_getter!(FormTarget);
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name

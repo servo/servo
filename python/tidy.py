@@ -323,6 +323,16 @@ def check_spec(file_name, contents):
         raise StopIteration
     file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
     patt = re.compile("^\s*\/\/.+")
+
+    # Pattern representing a line with a macro
+    macro_patt = re.compile("^\s*\S+!(.*)$")
+
+    # Pattern representing a line with comment containing a spec link
+    link_patt = re.compile("^\s*///? https://.+$")
+
+    # Pattern representing a line with comment
+    comment_patt = re.compile("^\s*///?.+$")
+
     pattern = "impl %sMethods for %s {" % (file_name, file_name)
     contents = contents.splitlines(True)
     brace_count = 0
@@ -333,9 +343,16 @@ def check_spec(file_name, contents):
         if not patt.match(line):
             if pattern.lower() in line.lower():
                 in_impl = True
-            if "fn " in line and brace_count == 1:
-                if "// https://" not in contents[idx - 1] and "// https://" not in contents[idx - 2]:
-                    yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+            if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
+                for up_idx in range(1, idx + 1):
+                    up_line = contents[idx - up_idx]
+                    if link_patt.match(up_line):
+                        # Comment with spec link exists
+                        break
+                    if not comment_patt.match(up_line):
+                        # No more comments exist above, yield warning
+                        yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+                        break
             if '{' in line and in_impl:
                 brace_count += 1
             if '}' in line and in_impl:

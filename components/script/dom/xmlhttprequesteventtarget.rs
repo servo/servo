@@ -38,11 +38,24 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
 }
 
 impl XMLHttpRequestEventTargetMethods for XMLHttpRequestEventTarget {
+    // https://xhr.spec.whatwg.org/#handler-xhr-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-onprogress
     event_handler!(progress, GetOnprogress, SetOnprogress);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-onerror
     event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-onload
     event_handler!(load, GetOnload, SetOnload);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-ontimeout
     event_handler!(timeout, GetOntimeout, SetOntimeout);
+
+    // https://xhr.spec.whatwg.org/#handler-xhr-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 }

@@ -247,6 +247,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_uint_getter!(Size, "size", DEFAULT_INPUT_SIZE);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type

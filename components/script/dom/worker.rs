@@ -162,7 +162,10 @@ impl WorkerMethods for Worker {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }
 

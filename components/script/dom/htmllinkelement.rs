@@ -209,19 +209,34 @@ impl HTMLLinkElement {
 }
 
 impl HTMLLinkElementMethods for HTMLLinkElement {
+    // https://html.spec.whatwg.org/multipage/#dom-link-href
     make_url_getter!(Href);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-href
     make_setter!(SetHref, "href");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_getter!(Rel);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_setter!(SetRel, "rel");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_getter!(Media);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_setter!(SetMedia, "media");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
     make_getter!(Hreflang);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
     make_setter!(SetHreflang, "hreflang");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_getter!(Type);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist

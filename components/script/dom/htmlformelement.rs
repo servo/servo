@@ -122,6 +122,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
