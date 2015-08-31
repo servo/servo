@@ -1629,8 +1629,7 @@ impl Node {
             Node::adopt(node, &*parent.owner_doc());
         }
         // Step 2.
-        let mut removed_nodes = RootedVec::new();
-        removed_nodes.extend(parent.children().map(|child| JS::from_rooted(&child)));
+        let removed_nodes = parent.children().collect::<RootedVec<_>>();
         // Step 3.
         let mut added_nodes = RootedVec::new();
         let added_nodes = if let Some(node) = node.as_ref() {
