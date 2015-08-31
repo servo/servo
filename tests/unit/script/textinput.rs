@@ -9,9 +9,9 @@
 
 use msg::constellation_msg::{Key, KeyModifiers};
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 use msg::constellation_msg::SUPER;
-#[cfg(not(target_os="macos"))]
+#[cfg(not(target_os = "macos"))]
 use msg::constellation_msg::CONTROL;
 
 use script::clipboard_provider::DummyClipboardContext;
@@ -194,9 +194,9 @@ fn test_textinput_set_content() {
 
 #[test]
 fn test_clipboard_paste() {
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     const MODIFIERS: KeyModifiers = SUPER;
-    #[cfg(not(target_os="macos"))]
+    #[cfg(not(target_os = "macos"))]
     const MODIFIERS: KeyModifiers = CONTROL;
 
     let mut textinput = TextInput::new(Lines::Single, "defg".to_owned(), DummyClipboardContext::new("abc"));

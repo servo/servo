@@ -33,7 +33,7 @@
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
-#![doc="The script crate contains all matters DOM."]
+#![doc = "The script crate contains all matters DOM."]
 
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
@@ -103,7 +103,7 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
     use std::mem;
@@ -119,7 +119,7 @@ fn perform_platform_specific_initialization() {
     }
 }
 
-#[cfg(not(target_os="linux"))]
+#[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]
