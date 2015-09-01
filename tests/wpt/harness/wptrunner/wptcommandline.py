@@ -35,7 +35,7 @@ def require_arg(kwargs, name, value_func=None):
 
 
 def create_parser(product_choices=None):
-    from mozlog.structured import commandline
+    from mozlog import commandline
 
     import products
 
@@ -153,6 +153,8 @@ def create_parser(product_choices=None):
 
     gecko_group = parser.add_argument_group("Gecko-specific")
     gecko_group.add_argument("--prefs-root", dest="prefs_root", action="store", type=abs_path,
+                             help="Path to the folder containing browser prefs")
+    gecko_group.add_argument("--e10s", dest="gecko_e10s", action="store_true",
                              help="Path to the folder containing browser prefs")
 
     b2g_group = parser.add_argument_group("B2G-specific")
@@ -290,7 +292,7 @@ def check_args(kwargs):
             kwargs["debugger"] = mozdebug.get_default_debugger_name()
         debug_info = mozdebug.get_debugger_info(kwargs["debugger"],
                                                 kwargs["debugger_args"])
-        if debug_info.interactive:
+        if debug_info and debug_info.interactive:
             if kwargs["processes"] != 1:
                 kwargs["processes"] = 1
             kwargs["no_capture_stdio"] = True

@@ -43,6 +43,8 @@ def load_product(config, product):
     browser_kwargs = getattr(module, data["browser_kwargs"])
     executor_kwargs = getattr(module, data["executor_kwargs"])
     env_options = getattr(module, data["env_options"])()
+    run_info_extras = (getattr(module, data["run_info_extras"])
+                       if "run_info_extras" in data else lambda **kwargs:{})
 
     executor_classes = {}
     for test_type, cls_name in data["executor"].iteritems():
@@ -52,4 +54,4 @@ def load_product(config, product):
     return (check_args,
             browser_cls, browser_kwargs,
             executor_classes, executor_kwargs,
-            env_options)
+            env_options, run_info_extras)

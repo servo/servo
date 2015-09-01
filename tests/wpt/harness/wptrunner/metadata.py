@@ -10,8 +10,8 @@ import types
 import uuid
 from collections import defaultdict
 
-from mozlog.structured import reader
-from mozlog.structured import structuredlog
+from mozlog import reader
+from mozlog import structuredlog
 
 import expected
 import manifestupdate

@@ -10,7 +10,7 @@ from collections import defaultdict
 import wptrunner
 import wpttest
 
-from mozlog.structured import commandline, reader
+from mozlog import commandline, reader
 
 logger = None
 
