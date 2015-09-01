@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
 use hyper::header::{Headers, Location, ContentLength};
@@ -15,6 +16,7 @@ use net_traits::LoadData;
 use net_traits::{ResourceTask, ControlMsg, CookieSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
+use std::sync::mpsc;
 use url::Url;
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
@@ -226,6 +228,57 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
         });
+}
+
+#[test]
+fn test_request_and_response_data_with_network_messages() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(
+                        ResponseType::Text(
+                            <[_]>::to_vec("Yay!".as_bytes())
+                        )
+                    ))
+        }
+    }
+
+    let url = Url::parse("https://mozilla.com").unwrap();
+    let (setup_chan, setup_port) = mpsc::channel::<DevtoolsControlMsg>();
+    let resource_mgr = new_resource_task("Test-agent".to_string(), Some(setup_chan.clone()));
+    let mut load_data = LoadData::new(url.clone(), None);
+    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), Some(setup_chan), &Factory).unwrap();
+
+    match setup_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+        ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)) => {
+            match net_event {
+                NetworkEvent::HttpRequest(url_req, method, headers, body) => {
+                    assert_eq!(url, url_req);
+                },
+
+                _ => (),
+            }
+        },
+        _ => (),
+    }
+
+    match setup_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response)) => {
+            match net_event_response {
+                NetworkEvent::HttpResponse(headers, status, _) => {
+                    //assert_eq!(headers, Headers::new());
+                },
+
+                _ => (),
+            }
+        },
+        _ => (),
+    }
 }
 
 #[test]

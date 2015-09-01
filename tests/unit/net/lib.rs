@@ -7,6 +7,7 @@
 extern crate ipc_channel;
 extern crate net;
 extern crate net_traits;
+extern crate devtools_traits;
 extern crate url;
 extern crate util;
 extern crate time;
