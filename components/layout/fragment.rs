@@ -2272,6 +2272,11 @@ impl Fragment {
         }
         false
     }
+
+    /// Returns true if this node is absolutely positioned.
+    pub fn is_absolutely_positioned(&self) -> bool {
+        self.style.get_box().position == position::T::absolute
+    }
 }
 
 impl fmt::Debug for Fragment {

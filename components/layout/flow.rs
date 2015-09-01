@@ -510,6 +510,17 @@ pub trait MutableOwnedFlowUtils {
     ///
     /// Set this flow as the Containing Block for all the absolute descendants.
     fn set_absolute_descendants(&mut self, abs_descendants: AbsoluteDescendants);
+
+    /// Sets the flow as the containing block for all absolute descendants that have been marked
+    /// as having reached their containing block. This is needed in order to handle cases like:
+    ///
+    ///     <div>
+    ///         <span style="position: relative">
+    ///             <span style="position: absolute; ..."></span>
+    ///         </span>
+    ///     </div>
+    fn take_applicable_absolute_descendants(&mut self,
+                                            absolute_descendants: &mut AbsoluteDescendants);
 }
 
 #[derive(RustcEncodable, PartialEq, Debug)]
@@ -731,6 +742,7 @@ impl AbsoluteDescendants {
     pub fn push(&mut self, given_descendant: FlowRef) {
         self.descendant_links.push(AbsoluteDescendantInfo {
             flow: given_descendant,
+            has_reached_containing_block: false,
         });
     }
 
@@ -749,29 +761,38 @@ impl AbsoluteDescendants {
             iter: self.descendant_links.iter_mut(),
         }
     }
+
+    /// Mark these descendants as having reached their containing block.
+    pub fn mark_as_having_reached_containing_block(&mut self) {
+        for descendant_info in self.descendant_links.iter_mut() {
+            descendant_info.has_reached_containing_block = true
+        }
+    }
 }
 
-/// TODO(pcwalton): This structure is going to need a flag to record whether the absolute
-/// descendants have reached their containing block yet. The reason is so that we can handle cases
-/// like the following:
-///
-///     <div>
-///         <span id=a style="position: absolute; ...">foo</span>
-///         <span style="position: relative">
-///             <span id=b style="position: absolute; ...">bar</span>
-///         </span>
-///     </div>
-///
-/// When we go to create the `InlineFlow` for the outer `div`, our absolute descendants will
-/// be `a` and `b`. At this point, we need a way to distinguish between the two, because the
-/// containing block for `a` will be different from the containing block for `b`. Specifically,
-/// the latter's containing block is the inline flow itself, while the former's containing
-/// block is going to be some parent of the outer `div`. Hence we need this flag as a way to
-/// distinguish the two; it will be false for `a` and true for `b`.
+/// Information about each absolutely-positioned descendant of the given flow.
 #[derive(Clone)]
 pub struct AbsoluteDescendantInfo {
     /// The absolute descendant flow in question.
     flow: FlowRef,
+
+    /// Whether the absolute descendant has reached its containing block. This exists so that we
+    /// can handle cases like the following:
+    ///
+    ///     <div>
+    ///         <span id=a style="position: absolute; ...">foo</span>
+    ///         <span style="position: relative">
+    ///             <span id=b style="position: absolute; ...">bar</span>
+    ///         </span>
+    ///     </div>
+    ///
+    /// When we go to create the `InlineFlow` for the outer `div`, our absolute descendants will
+    /// be `a` and `b`. At this point, we need a way to distinguish between the two, because the
+    /// containing block for `a` will be different from the containing block for `b`. Specifically,
+    /// the latter's containing block is the inline flow itself, while the former's containing
+    /// block is going to be some parent of the outer `div`. Hence we need this flag as a way to
+    /// distinguish the two; it will be false for `a` and true for `b`.
+    has_reached_containing_block: bool,
 }
 
 pub struct AbsoluteDescendantIter<'a> {
@@ -1414,6 +1435,36 @@ impl MutableOwnedFlowUtils for FlowRef {
         let this = self.clone();
         let base = mut_base(flow_ref::deref_mut(self));
         base.abs_descendants = abs_descendants;
+        for descendant_link in base.abs_descendants.descendant_links.iter_mut() {
+            debug_assert!(!descendant_link.has_reached_containing_block);
+            let descendant_base = mut_base(flow_ref::deref_mut(&mut descendant_link.flow));
+            descendant_base.absolute_cb.set(this.clone());
+        }
+    }
+
+    /// Sets the flow as the containing block for all absolute descendants that have been marked
+    /// as having reached their containing block. This is needed in order to handle cases like:
+    ///
+    ///     <div>
+    ///         <span style="position: relative">
+    ///             <span style="position: absolute; ..."></span>
+    ///         </span>
+    ///     </div>
+    fn take_applicable_absolute_descendants(&mut self,
+                                            absolute_descendants: &mut AbsoluteDescendants) {
+        let mut applicable_absolute_descendants = AbsoluteDescendants::new();
+        for absolute_descendant in absolute_descendants.descendant_links.iter() {
+            if absolute_descendant.has_reached_containing_block {
+                applicable_absolute_descendants.push(absolute_descendant.flow.clone());
+            }
+        }
+        absolute_descendants.descendant_links.retain(|descendant| {
+            !descendant.has_reached_containing_block
+        });
+
+        let this = self.clone();
+        let base = mut_base(flow_ref::deref_mut(self));
+        base.abs_descendants = applicable_absolute_descendants;
         for descendant_link in base.abs_descendants.iter() {
             let descendant_base = mut_base(descendant_link);
             descendant_base.absolute_cb.set(this.clone());

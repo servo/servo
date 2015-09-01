@@ -1277,7 +1277,7 @@ impl InlineFlow {
     }
 
     fn containing_block_range_for_flow(&self, opaque_flow: OpaqueFlow) -> Range<FragmentIndex> {
-        let index = FragmentIndex(self.fragments.fragments.iter().position(|fragment| {
+        match self.fragments.fragments.iter().position(|fragment| {
             match fragment.specific {
                 SpecificFragmentInfo::InlineAbsolute(ref inline_absolute) => {
                     OpaqueFlow::from_flow(&*inline_absolute.flow_ref) == opaque_flow
@@ -1288,9 +1288,19 @@ impl InlineFlow {
                 }
                 _ => false,
             }
-        }).expect("containing_block_range_for_flow(): couldn't find inline absolute fragment!")
-                                 as isize);
-        self.containing_block_range_for_flow_surrounding_fragment_at_index(index)
+        }) {
+            Some(index) => {
+                let index = FragmentIndex(index as isize);
+                self.containing_block_range_for_flow_surrounding_fragment_at_index(index)
+            }
+            None => {
+                // FIXME(pcwalton): This is quite wrong. We should only return the range
+                // surrounding the inline fragments that constitute the containing block. But this
+                // suffices to get Google looking right.
+                Range::new(FragmentIndex(0),
+                           FragmentIndex(self.fragments.fragments.len() as isize))
+            }
+        }
     }
 }
 
@@ -1766,9 +1776,7 @@ impl Flow for InlineFlow {
     }
 
     fn contains_positioned_fragments(&self) -> bool {
-        self.fragments.fragments.iter().any(|fragment| {
-            fragment.style.get_box().position != position::T::static_
-        })
+        self.fragments.fragments.iter().any(|fragment| fragment.is_positioned())
     }
 
     fn contains_relatively_positioned_fragments(&self) -> bool {
@@ -1781,10 +1789,13 @@ impl Flow for InlineFlow {
         let mut containing_block_size = LogicalSize::new(self.base.writing_mode, Au(0), Au(0));
         for index in self.containing_block_range_for_flow(for_flow).each_index() {
             let fragment = &self.fragments.fragments[index.get() as usize];
+            if fragment.is_absolutely_positioned() {
+                continue
+            }
             containing_block_size.inline = containing_block_size.inline +
                 fragment.border_box.size.inline;
             containing_block_size.block = max(containing_block_size.block,
-                                              fragment.border_box.size.block)
+                                              fragment.border_box.size.block);
         }
         containing_block_size
     }

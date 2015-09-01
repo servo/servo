@@ -294,14 +294,16 @@ impl<'a> FlowConstructor<'a> {
     }
 
     #[inline]
-    fn set_flow_construction_result(&self, node: &ThreadSafeLayoutNode, result: ConstructionResult) {
-        match result {
-            ConstructionResult::None => {
-                let mut layout_data_ref = node.mutate_layout_data();
-                let layout_data = layout_data_ref.as_mut().expect("no layout data");
-                layout_data.remove_compositor_layers(self.layout_context.shared.constellation_chan.clone());
-            }
-            _ => {}
+    fn set_flow_construction_result(&self,
+                                    node: &ThreadSafeLayoutNode,
+                                    result: ConstructionResult) {
+        if let ConstructionResult::None = result {
+            let mut layout_data_ref = node.mutate_layout_data();
+            let layout_data = layout_data_ref.as_mut().expect("no layout data");
+            layout_data.remove_compositor_layers(self.layout_context
+                                                     .shared
+                                                     .constellation_chan
+                                                     .clone());
         }
 
         node.set_flow_construction_result(result);
@@ -467,8 +469,8 @@ impl<'a> FlowConstructor<'a> {
 
         // Set up absolute descendants as necessary.
         //
-        // TODO(pcwalton): The inline flow itself may need to become the containing block for
-        // absolute descendants in order to handle cases like:
+        // The inline flow itself may need to become the containing block for absolute descendants
+        // in order to handle cases like:
         //
         //      <div>
         //          <span style="position: relative">
@@ -477,6 +479,7 @@ impl<'a> FlowConstructor<'a> {
         //      </div>
         //
         // See the comment above `flow::AbsoluteDescendantInfo` for more information.
+        inline_flow_ref.take_applicable_absolute_descendants(&mut fragments.absolute_descendants);
         absolute_descendants.push_descendants(fragments.absolute_descendants);
 
         {
@@ -878,6 +881,15 @@ impl<'a> FlowConstructor<'a> {
         if opt_inline_block_splits.len() > 0 || !fragment_accumulator.fragments.is_empty()
                 || abs_descendants.len() > 0 {
             fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
+
+            // If the node is positioned, then it's the containing block for all absolutely-
+            // positioned descendants.
+            if node.style().get_box().position != position::T::static_ {
+                fragment_accumulator.fragments
+                                    .absolute_descendants
+                                    .mark_as_having_reached_containing_block();
+            }
+
             let construction_item = ConstructionItem::InlineFragments(
                     InlineFragmentsConstructionResult {
                 splits: opt_inline_block_splits,
