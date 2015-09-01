@@ -205,3 +205,57 @@ fn test_clipboard_paste() {
     textinput.handle_keydown_aux(Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
+
+#[test]
+fn test_textinput_cursor_position_correct_after_clearing_selection() {
+    let mut textinput = TextInput::new(Lines::Single, "abcdef".to_owned(), DummyClipboardContext::new(""));
+
+    // Single line - Forward
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal(1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    // Single line - Backward
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal(-1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+
+
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+
+    // Multiline - Forward
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal(1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 1);
+
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 1);
+
+    // Multiline - Backward
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal(-1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 0);
+
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 0);
+}
