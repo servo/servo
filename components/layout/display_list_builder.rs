@@ -33,7 +33,7 @@ use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
-use gfx::paint_task::{PaintLayer, THREAD_TINT_COLORS};
+use gfx::paint_task::THREAD_TINT_COLORS;
 use gfx_traits::color;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::compositor_msg::{ScrollPolicy, LayerId};
@@ -69,9 +69,9 @@ use util::opts;
 /// FIXME(pcwalton): This is pretty ugly. Consider modifying `LayerId` somehow.
 const FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL: u32 = 1000000;
 
-/// A possible `PaintLayer` for an stacking context
-pub enum StackingContextLayer {
-    Existing(PaintLayer),
+/// Whether a stacking context needs a layer or not.
+pub enum StackingContextLayerNecessity {
+    Always(LayerId, ScrollPolicy),
     IfCanvas(LayerId),
 }
 
@@ -261,7 +261,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               layer: StackingContextLayer,
+                               needs_layer: StackingContextLayerNecessity,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
 
@@ -1145,7 +1145,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               layer: StackingContextLayer,
+                               needs_layer: StackingContextLayerNecessity,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
         let border_box = match mode {
@@ -1259,13 +1259,14 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         // Ensure every canvas has a layer
-        let layer = match layer {
-            StackingContextLayer::Existing(existing_layer) => Some(existing_layer),
-            StackingContextLayer::IfCanvas(layer_id) => {
+        let (scroll_policy, layer_id) = match needs_layer {
+            StackingContextLayerNecessity::Always(layer_id, scroll_policy) =>
+                (scroll_policy, Some(layer_id)),
+            StackingContextLayerNecessity::IfCanvas(layer_id) => {
                 if let SpecificFragmentInfo::Canvas(_) = self.specific {
-                    Some(PaintLayer::new(layer_id, color::transparent(), ScrollPolicy::Scrollable))
+                    (ScrollPolicy::Scrollable, Some(layer_id))
                 } else {
-                    None
+                    (ScrollPolicy::Scrollable, None)
                 }
             }
         };
@@ -1273,7 +1274,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // If it's a canvas we must propagate the layer and the renderer to the paint
         // task
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
-            let layer_id = layer.as_ref().unwrap().id;
+            let layer_id = layer_id.unwrap();
             if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
                 layout_context.shared
                               .canvas_layers_sender
@@ -1292,11 +1293,12 @@ impl FragmentDisplayListBuilding for Fragment {
                                       self.style().get_box().z_index.number_or_zero(),
                                       filters,
                                       self.style().get_effects().mix_blend_mode,
-                                      layer,
                                       transform,
                                       perspective,
                                       establishes_3d_context,
-                                      scrolls_overflow_area))
+                                      scrolls_overflow_area,
+                                      scroll_policy,
+                                      layer_id))
     }
 
     #[inline(never)]
@@ -1565,15 +1567,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 ScrollPolicy::Scrollable
             };
 
-            let paint_layer = PaintLayer::new(self.layer_id(0),
-                                              color::transparent(),
-                                              scroll_policy);
-            let layer = StackingContextLayer::Existing(paint_layer);
             let stacking_context = self.fragment.create_stacking_context(
                 &self.base,
                 display_list,
                 layout_context,
-                layer,
+                StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
                 StackingContextCreationMode::Normal);
             DisplayListBuildingResult::StackingContext(stacking_context)
         } else if self.fragment.establishes_stacking_context() {
@@ -1582,7 +1580,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
                     StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
@@ -1659,7 +1657,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                             &self.base,
                             display_list,
                             layout_context,
-                            StackingContextLayer::IfCanvas(self.layer_id(0)),
+                            StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
                             StackingContextCreationMode::Normal));
             }
             return
@@ -1683,26 +1681,22 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else {
             self.layer_id(0)
         };
-        let paint_layer = PaintLayer::new(layer_id, color::transparent(), scroll_policy);
         let stacking_context = self.fragment.create_stacking_context(
             &self.base,
             display_list,
             layout_context,
-            StackingContextLayer::Existing(paint_layer),
+            StackingContextLayerNecessity::Always(layer_id, scroll_policy),
             stacking_context_creation_mode);
 
         let outermost_stacking_context = match outer_display_list_for_overflow_scroll {
             Some(mut outer_display_list_for_overflow_scroll) => {
                 outer_display_list_for_overflow_scroll.children.push_back(stacking_context);
 
-                let paint_layer = PaintLayer::new(self.layer_id(0),
-                                                  color::transparent(),
-                                                  scroll_policy);
                 self.fragment.create_stacking_context(
                     &self.base,
                     outer_display_list_for_overflow_scroll,
                     layout_context,
-                    StackingContextLayer::Existing(paint_layer),
+                    StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
                     StackingContextCreationMode::OuterScrollWrapper)
             }
             None => stacking_context,
@@ -1728,7 +1722,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
@@ -1828,7 +1822,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayer::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)

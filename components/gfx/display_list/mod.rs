@@ -28,8 +28,9 @@ use azure::azure_hl::Color;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use gfx_traits::color;
 use libc::uintptr_t;
-use msg::compositor_msg::{LayerId, LayerKind};
+use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
 use net_traits::image::base::Image;
 use paint_task::PaintLayer;
 use smallvec::SmallVec;
@@ -98,8 +99,8 @@ pub struct DisplayList {
     pub outlines: LinkedList<DisplayItem>,
     /// Child stacking contexts.
     pub children: LinkedList<Arc<StackingContext>>,
-    /// Child stacking contexts with their own layers.
-    pub layered_children: LinkedList<Arc<StackingContext>>,
+    /// Child PaintLayers that will be rendered on top of everything else.
+    pub layered_children: LinkedList<PaintLayer>,
 }
 
 impl DisplayList {
@@ -131,10 +132,10 @@ impl DisplayList {
         children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
         for stacking_context in children.into_iter() {
-            if stacking_context.layer.is_some() {
-                self.layered_children.push_back(stacking_context);
-            } else {
-                self.children.push_back(stacking_context);
+            match stacking_context.layer_id {
+                Some(layer_id) => self.layered_children.push_back(
+                    PaintLayer::new(layer_id, color::transparent(), stacking_context)),
+                None => self.children.push_back(stacking_context),
             }
         }
     }
@@ -150,7 +151,7 @@ impl DisplayList {
         self.positioned_content.append(&mut other.positioned_content);
         self.outlines.append(&mut other.outlines);
         self.children.append(&mut other.children);
-        self.layered_children.append(&mut other.children);
+        self.layered_children.append(&mut other.layered_children);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
@@ -248,12 +249,12 @@ impl DisplayList {
             }
         }
         if !self.layered_children.is_empty() {
-            println!("{} Layered children stacking contexts list length: {}",
+            println!("{} Child layers list length: {}",
                      indentation,
                      self.layered_children.len());
-            for stacking_context in &self.layered_children {
-                stacking_context.print(indentation.clone() +
-                                       &indentation[0..MIN_INDENTATION_LENGTH]);
+            for paint_layer in &self.layered_children {
+                paint_layer.stacking_context.print(indentation.clone() +
+                                                   &indentation[0..MIN_INDENTATION_LENGTH]);
             }
         }
     }
@@ -264,10 +265,6 @@ impl DisplayList {
 pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
-
-    /// The layer for this stacking context, if there is one.
-    #[ignore_heap_size_of = "FIXME(njn): should measure this at some point"]
-    pub layer: Option<PaintLayer>,
 
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
@@ -295,6 +292,13 @@ pub struct StackingContext {
 
     /// Whether this stacking context scrolls its overflow area.
     pub scrolls_overflow_area: bool,
+
+    /// The scrolling policy of this stacking context, if it is promoted
+    /// to a layer.
+    pub scroll_policy: ScrollPolicy,
+
+    /// The layer id for this stacking context, if there is one.
+    pub layer_id: Option<LayerId>,
 }
 
 impl StackingContext {
@@ -306,11 +310,12 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
-               layer: Option<PaintLayer>,
                transform: Matrix4,
                perspective: Matrix4,
                establishes_3d_context: bool,
-               scrolls_overflow_area: bool)
+               scrolls_overflow_area: bool,
+               scroll_policy: ScrollPolicy,
+               layer_id: Option<LayerId>)
                -> StackingContext {
         display_list.sort_and_layerize_children();
         StackingContext {
@@ -320,11 +325,12 @@ impl StackingContext {
             z_index: z_index,
             filters: filters,
             blend_mode: blend_mode,
-            layer: layer,
             transform: transform,
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
+            scroll_policy: scroll_policy,
+            layer_id: layer_id,
         }
     }
 
@@ -452,7 +458,7 @@ impl StackingContext {
 
         // If a layer is being used, the transform for this layer
         // will be handled by the compositor.
-        let transform = match self.layer {
+        let transform = match self.layer_id {
             Some(..) => *transform,
             None => transform.mul(&self.transform),
         };
@@ -556,6 +562,14 @@ impl StackingContext {
                                                                      point.y.to_f32_px()));
         point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
 
+        // Layers are positioned on top of this layer should get a shot at the hit test first.
+        for layer in self.display_list.layered_children.iter().rev() {
+            layer.stacking_context.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
         // Iterate through display items in reverse stacking order. Steps here refer to the
         // painting steps in CSS 2.1 Appendix E.
         //
@@ -635,15 +649,15 @@ impl StackingContext {
 /// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
 pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
                                            -> Option<Arc<StackingContext>> {
-    match this.layer {
-        Some(ref layer) if layer.id == layer_id => return Some((*this).clone()),
-        Some(_) | None => {}
+    for kid in &this.display_list.layered_children {
+        if let Some(stacking_context) = kid.find_stacking_context_with_layer_id(layer_id) {
+            return Some(stacking_context);
+        }
     }
 
-    for kid in &this.display_list.layered_children {
-        match find_stacking_context_with_layer_id(kid, layer_id) {
-            Some(stacking_context) => return Some(stacking_context),
-            None => {}
+    for kid in &this.display_list.children {
+        if let Some(stacking_context) = find_stacking_context_with_layer_id(kid, layer_id) {
+            return Some(stacking_context);
         }
     }
 

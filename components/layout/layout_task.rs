@@ -1033,22 +1033,23 @@ impl LayoutTask {
                 flow::mut_base(flow_ref::deref_mut(layout_root))
                     .display_list_building_result
                     .add_to(&mut *display_list);
-                let paint_layer = PaintLayer::new(layout_root.layer_id(0),
-                                                  root_background_color,
-                                                  ScrollPolicy::Scrollable);
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-
+                let layer_id = layout_root.layer_id(0);
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
                                                                      0,
                                                                      filter::T::new(Vec::new()),
                                                                      mix_blend_mode::T::normal,
-                                                                     Some(paint_layer),
                                                                      Matrix4::identity(),
                                                                      Matrix4::identity(),
                                                                      true,
-                                                                     false));
+                                                                     false,
+                                                                     ScrollPolicy::Scrollable,
+                                                                     Some(layer_id)));
+                let paint_layer = PaintLayer::new(layer_id,
+                                                  root_background_color,
+                                                  stacking_context.clone());
 
                 if opts::get().dump_display_list {
                     println!("#### start printing display list.");
@@ -1058,13 +1059,13 @@ impl LayoutTask {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context.clone());
+                rw_data.stacking_context = Some(stacking_context);
 
                 debug!("Layout done!");
 
                 rw_data.epoch.next();
                 self.paint_chan
-                    .send(LayoutToPaintMsg::PaintInit(rw_data.epoch, stacking_context))
+                    .send(LayoutToPaintMsg::PaintInit(rw_data.epoch, paint_layer))
                     .unwrap();
             }
         });
