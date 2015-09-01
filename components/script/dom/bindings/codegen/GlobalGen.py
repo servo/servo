@@ -28,7 +28,7 @@ def generate_file(config, name, filename):
 def main():
     # Parse arguments.
     from optparse import OptionParser
-    usageString = "usage: %prog [options] webidldir [files]"
+    usageString = "usage: %prog [options] configFile outputdir webidldir [files]"
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
@@ -40,8 +40,9 @@ def main():
         o.error(usageString)
 
     configFile = args[0]
-    baseDir = args[1]
-    fileList = args[2:]
+    outputdir = args[1]
+    baseDir = args[2]
+    fileList = args[3:]
 
     # Parse the WebIDL.
     parser = WebIDL.Parser(options.cachedir)
@@ -59,22 +60,17 @@ def main():
     # Load the configuration.
     config = Configuration(configFile, parserResults)
 
-    # Generate the prototype list.
-    generate_file(config, 'PrototypeList', 'PrototypeList.rs')
+    to_generate = [
+        ('PrototypeList', 'PrototypeList.rs'),
+        ('RegisterBindings', 'RegisterBindings.rs'),
+        ('InterfaceTypes', 'InterfaceTypes.rs'),
+        ('InheritTypes', 'InheritTypes.rs'),
+        ('Bindings', 'Bindings/mod.rs'),
+        ('UnionTypes', 'UnionTypes.rs'),
+    ]
 
-    # Generate the common code.
-    generate_file(config, 'RegisterBindings', 'RegisterBindings.rs')
-
-    # Generate the type list.
-    generate_file(config, 'InterfaceTypes', 'InterfaceTypes.rs')
-
-    # Generate the type list.
-    generate_file(config, 'InheritTypes', 'InheritTypes.rs')
-
-    # Generate the module declarations.
-    generate_file(config, 'Bindings', 'Bindings/mod.rs')
-
-    generate_file(config, 'UnionTypes', 'UnionTypes.rs')
+    for name, filename in to_generate:
+        generate_file(config, name, os.path.join(outputdir, filename))
 
 if __name__ == '__main__':
     main()
