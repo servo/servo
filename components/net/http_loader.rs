@@ -200,7 +200,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             ) => {
                 return Err(
                     LoadError::Ssl(
-                        url.clone(),
+                        url,
                         format!("ssl error {:?}: {:?} {:?}",
                                 io_error.kind(),
                                 io_error.description(),
@@ -209,7 +209,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
                 )
             },
             Err(e) => {
-                 return Err(LoadError::Connection(url.clone(), e.description().to_string()))
+                 return Err(LoadError::Connection(url, e.description().to_string()))
             }
         };
 
