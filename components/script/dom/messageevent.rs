@@ -89,19 +89,19 @@ impl MessageEvent {
     }
 }
 
-impl<'a> MessageEventMethods for &'a MessageEvent {
+impl MessageEventMethods for MessageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
-    fn Data(self, _cx: *mut JSContext) -> JSVal {
+    fn Data(&self, _cx: *mut JSContext) -> JSVal {
         self.data.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
-    fn Origin(self) -> DOMString {
+    fn Origin(&self) -> DOMString {
         self.origin.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid
-    fn LastEventId(self) -> DOMString {
+    fn LastEventId(&self) -> DOMString {
         self.lastEventId.clone()
     }
 }

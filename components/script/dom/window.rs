@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use devtools_traits::{TracingMetadata};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -35,24 +33,25 @@ use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
+use page::Page;
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_traits::ConstellationControlMsg;
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use webdriver_handlers::jsval_to_webdriver;
+
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
-use num::traits::ToPrimitive;
-use page::Page;
 use profile_traits::mem;
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
-use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
-use script_traits::ConstellationControlMsg;
 use string_cache::Atom;
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 use util::geometry::{self, Au, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use util::{breakpoint, opts};
-use webdriver_handlers::jsval_to_webdriver;
 
 use euclid::scale_factor::ScaleFactor;
 use euclid::{Point2D, Rect, Size2D};
@@ -66,6 +65,7 @@ use selectors::parser::PseudoElement;
 use url::Url;
 
 use libc;
+use num::traits::ToPrimitive;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -362,9 +362,9 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-impl<'a> WindowMethods for &'a Window {
+impl WindowMethods for Window {
     // https://html.spec.whatwg.org/#dom-alert
-    fn Alert(self, s: DOMString) {
+    fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
         // communicate test results.
@@ -378,52 +378,52 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
-    fn Close(self) {
+    fn Close(&self) {
         self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
-    fn Document(self) -> Root<Document> {
+    fn Document(&self) -> Root<Document> {
         self.browsing_context().as_ref().unwrap().active_document()
     }
 
     // https://html.spec.whatwg.org/#dom-location
-    fn Location(self) -> Root<Location> {
+    fn Location(&self) -> Root<Location> {
         self.Document().r().Location()
     }
 
     // https://html.spec.whatwg.org/#dom-sessionstorage
-    fn SessionStorage(self) -> Root<Storage> {
+    fn SessionStorage(&self) -> Root<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/#dom-localstorage
-    fn LocalStorage(self) -> Root<Storage> {
+    fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Console(self) -> Root<Console> {
+    fn Console(&self) -> Root<Console> {
         self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
-    fn Crypto(self) -> Root<Crypto> {
+    fn Crypto(&self) -> Root<Crypto> {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
     // https://html.spec.whatwg.org/#dom-frameelement
-    fn GetFrameElement(self) -> Option<Root<Element>> {
+    fn GetFrameElement(&self) -> Option<Root<Element>> {
         self.browsing_context().as_ref().unwrap().frame_element()
     }
 
     // https://html.spec.whatwg.org/#dom-navigator
-    fn Navigator(self) -> Root<Navigator> {
+    fn Navigator(&self) -> Root<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -433,7 +433,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
-    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -443,12 +443,12 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-cleartimeout
-    fn ClearTimeout(self, handle: i32) {
+    fn ClearTimeout(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval(self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
                                             timeout,
@@ -458,7 +458,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
-    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
@@ -468,32 +468,32 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://html.spec.whatwg.org/#dom-windowtimers-clearinterval
-    fn ClearInterval(self, handle: i32) {
+    fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(self) -> Root<Window> {
+    fn Window(&self) -> Root<Window> {
         Root::from_ref(self)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(self) -> Root<Window> {
+    fn Self_(&self) -> Root<Window> {
         self.Window()
     }
 
     // https://www.whatwg.org/html/#dom-frames
-    fn Frames(self) -> Root<Window> {
+    fn Frames(&self) -> Root<Window> {
         self.Window()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn Parent(self) -> Root<Window> {
+    fn Parent(&self) -> Root<Window> {
         self.parent().unwrap_or(self.Window())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn Top(self) -> Root<Window> {
+    fn Top(&self) -> Root<Window> {
         let mut window = self.Window();
         while let Some(parent) = window.parent() {
             window = parent;
@@ -503,34 +503,39 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
-    fn Performance(self) -> Root<Performance> {
+    fn Performance(&self) -> Root<Performance> {
         self.performance.or_init(|| {
             Performance::new(self, self.navigation_start,
                              self.navigation_start_precise)
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
+
+    // https://html.spec.whatwg.org/multipage/#handler-window-onunload
     event_handler!(unload, GetOnunload, SetOnunload);
+
+    // https://html.spec.whatwg.org/multipage/#handler-onerror
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
-    fn Screen(self) -> Root<Screen> {
+    fn Screen(&self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa
-    fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {
+    fn Btoa(&self, btoa: DOMString) -> Fallible<DOMString> {
         base64_btoa(btoa)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-atob
-    fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
+    fn Atob(&self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn RequestAnimationFrame(self, callback: Rc<FrameRequestCallback>) -> i32 {
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> i32 {
         let doc = self.Document();
 
         let callback  = move |now: f64| {
@@ -543,28 +548,38 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
-    fn CancelAnimationFrame(self, ident: i32) {
+    fn CancelAnimationFrame(&self, ident: i32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
+    fn CaptureEvents(&self) {
+        // This method intentionally does nothing
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-releaseevents
+    fn ReleaseEvents(&self) {
+        // This method intentionally does nothing
+    }
+
     // check-tidy: no specs after this line
-    fn Debug(self, message: DOMString) {
+    fn Debug(&self, message: DOMString) {
         debug!("{}", message);
     }
 
     #[allow(unsafe_code)]
-    fn Gc(self) {
+    fn Gc(&self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
         }
     }
 
-    fn Trap(self) {
+    fn Trap(&self) {
         breakpoint();
     }
 
-    fn WebdriverCallback(self, cx: *mut JSContext, val: HandleValue) {
+    fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
         let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
@@ -572,7 +587,7 @@ impl<'a> WindowMethods for &'a Window {
         }
     }
 
-    fn WebdriverTimeout(self) {
+    fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(Err(WebDriverJSError::Timeout)).unwrap();
@@ -580,7 +595,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
-    fn GetComputedStyle(self,
+    fn GetComputedStyle(&self,
                         element: &Element,
                         pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
         // Steps 1-4.
@@ -598,7 +613,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
-    fn InnerHeight(self) -> i32 {
+    fn InnerHeight(&self) -> i32 {
         let size = self.window_size.get();
         match size {
             Some(e) => e.visible_viewport.height.get().to_i32().unwrap_or(0),
@@ -608,7 +623,7 @@ impl<'a> WindowMethods for &'a Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
-    fn InnerWidth(self) -> i32 {
+    fn InnerWidth(&self) -> i32 {
         let size = self.window_size.get();
         match size {
             Some(e) => e.visible_viewport.width.get().to_i32().unwrap_or(0),
@@ -617,27 +632,27 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
-    fn ScrollX(self) -> i32 {
+    fn ScrollX(&self) -> i32 {
         self.current_viewport.get().origin.x.to_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pagexoffset
-    fn PageXOffset(self) -> i32 {
+    fn PageXOffset(&self) -> i32 {
         self.ScrollX()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrolly
-    fn ScrollY(self) -> i32 {
+    fn ScrollY(&self) -> i32 {
         self.current_viewport.get().origin.y.to_px()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-pageyoffset
-    fn PageYOffset(self) -> i32 {
+    fn PageYOffset(&self) -> i32 {
         self.ScrollY()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll(self, options: &ScrollToOptions) {
+    fn Scroll(&self, options: &ScrollToOptions) {
         // Step 1
         let left = options.left.unwrap_or(0.0f64);
         let top = options.top.unwrap_or(0.0f64);
@@ -646,22 +661,22 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll_(self, x: f64, y: f64) {
+    fn Scroll_(&self, x: f64, y: f64) {
         self.scroll(x, y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
-    fn ScrollTo(self, options: &ScrollToOptions) {
+    fn ScrollTo(&self, options: &ScrollToOptions) {
         self.Scroll(options);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
-    fn ScrollTo_(self, x: f64, y: f64) {
+    fn ScrollTo_(&self, x: f64, y: f64) {
         self.scroll(x, y, ScrollBehavior::Auto);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy(self, options: &ScrollToOptions)  {
+    fn ScrollBy(&self, options: &ScrollToOptions)  {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
@@ -670,7 +685,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy_(self, x: f64, y: f64)  {
+    fn ScrollBy_(&self, x: f64, y: f64)  {
         // Step 3
         let left = x + self.ScrollX() as f64;
         // Step 4
@@ -681,7 +696,7 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
-    fn ResizeTo(self, x: i32, y: i32) {
+    fn ResizeTo(&self, x: i32, y: i32) {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
@@ -689,14 +704,14 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
-    fn ResizeBy(self, x: i32, y: i32) {
+    fn ResizeBy(&self, x: i32, y: i32) {
         let (size, _) = self.client_window();
         // Step 1
         self.ResizeTo(x + size.width.to_i32().unwrap_or(1), y + size.height.to_i32().unwrap_or(1))
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveto
-    fn MoveTo(self, x: i32, y: i32) {
+    fn MoveTo(&self, x: i32, y: i32) {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
@@ -704,38 +719,38 @@ impl<'a> WindowMethods for &'a Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
-    fn MoveBy(self, x: i32, y: i32) {
+    fn MoveBy(&self, x: i32, y: i32) {
         let (_, origin) = self.client_window();
         // Step 1
         self.MoveTo(x + origin.x, y + origin.y)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screenx
-    fn ScreenX(self) -> i32 {
+    fn ScreenX(&self) -> i32 {
         let (_, origin) = self.client_window();
         origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-screeny
-    fn ScreenY(self) -> i32 {
+    fn ScreenY(&self) -> i32 {
         let (_, origin) = self.client_window();
         origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-outerheight
-    fn OuterHeight(self) -> i32 {
+    fn OuterHeight(&self) -> i32 {
         let (size, _) = self.client_window();
         size.height.to_i32().unwrap_or(1)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-outerwidth
-    fn OuterWidth(self) -> i32 {
+    fn OuterWidth(&self) -> i32 {
         let (size, _) = self.client_window();
         size.width.to_i32().unwrap_or(1)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
-    fn DevicePixelRatio(self) -> Finite<f64> {
+    fn DevicePixelRatio(&self) -> Finite<f64> {
         let dpr = self.window_size.get()
          .map(|data| data.device_pixel_ratio).unwrap_or(ScaleFactor::new(1.0f32)).get();
         Finite::wrap(dpr as f64)
@@ -863,6 +878,7 @@ impl Window {
             ScrollBehavior::Smooth => true
         };
 
+        // TODO (farodin91): Raise an event to stop the current_viewport
         let size = self.current_viewport.get().size;
         self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
 
@@ -897,10 +913,11 @@ impl Window {
 
         debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
 
-        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalStart);
-            self.emit_timeline_marker(marker);
-        }
+        let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
+            Some(TimelineMarker::start("Reflow".to_owned()))
+        } else {
+            None
+        };
 
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
@@ -941,9 +958,8 @@ impl Window {
 
         self.pending_reflow_count.set(0);
 
-        if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            let marker = TimelineMarker::new("Reflow".to_owned(), TracingMetadata::IntervalEnd);
-            self.emit_timeline_marker(marker);
+        if let Some(marker) = marker {
+            self.emit_timeline_marker(marker.end());
         }
     }
 

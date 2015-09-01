@@ -32,6 +32,7 @@ use dom::window::ScriptHelpers;
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 
 use encoding::all::UTF_8;
@@ -426,7 +427,7 @@ impl HTMLScriptElement {
                 element: handler,
                 is_error: false,
             };
-            chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
         }
     }
 
@@ -439,7 +440,7 @@ impl HTMLScriptElement {
             element: handler,
             is_error: true,
         };
-        chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+        chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
@@ -502,10 +503,7 @@ impl HTMLScriptElement {
     pub fn mark_already_started(&self) {
         self.already_started.set(true);
     }
-}
 
-
-impl HTMLScriptElement {
     fn dispatch_event(&self,
                       type_: DOMString,
                       bubbles: EventBubbles,
@@ -572,18 +570,19 @@ impl VirtualMethods for HTMLScriptElement {
     }
 }
 
-impl<'a> HTMLScriptElementMethods for &'a HTMLScriptElement {
+impl HTMLScriptElementMethods for HTMLScriptElement {
+    // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_url_getter!(Src);
-
+    // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn Text(self) -> DOMString {
+    fn Text(&self) -> DOMString {
         Node::collect_text_contents(NodeCast::from_ref(self).children())
     }
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn SetText(self, value: DOMString) {
+    fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }

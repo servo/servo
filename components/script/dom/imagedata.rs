@@ -49,10 +49,7 @@ impl ImageData {
         reflect_dom_object(imagedata,
                            global, ImageDataBinding::Wrap)
     }
-}
 
-
-impl ImageData {
     #[allow(unsafe_code)]
     pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
@@ -68,19 +65,19 @@ impl ImageData {
     }
 }
 
-impl<'a> ImageDataMethods for &'a ImageData {
+impl ImageDataMethods for ImageData {
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-width
-    fn Width(self) -> u32 {
+    fn Width(&self) -> u32 {
         self.width
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-height
-    fn Height(self) -> u32 {
+    fn Height(&self) -> u32 {
         self.height
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    fn Data(self, _: *mut JSContext) -> *mut JSObject {
+    fn Data(&self, _: *mut JSContext) -> *mut JSObject {
         self.data.get()
     }
 }

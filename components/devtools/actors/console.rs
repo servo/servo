@@ -17,9 +17,9 @@ use devtools_traits::EvaluateJSReply::{StringValue, BooleanValue, ActorValue};
 use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR, CONSOLE_API};
 use msg::constellation_msg::PipelineId;
 
-use core::cell::RefCell;
 use ipc_channel::ipc::{self, IpcSender};
 use rustc_serialize::json::{self, Json, ToJson};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::sync::mpsc::channel;

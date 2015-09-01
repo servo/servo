@@ -49,9 +49,9 @@ impl Text {
     }
 }
 
-impl<'a> TextMethods for &'a Text {
+impl TextMethods for Text {
     // https://dom.spec.whatwg.org/#dom-text-splittextoffset
-    fn SplitText(self, offset: u32) -> Fallible<Root<Text>> {
+    fn SplitText(&self, offset: u32) -> Fallible<Root<Text>> {
         let cdata = CharacterDataCast::from_ref(self);
         // Step 1.
         let length = cdata.Length();
@@ -87,7 +87,7 @@ impl<'a> TextMethods for &'a Text {
     }
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
-    fn WholeText(self) -> DOMString {
+    fn WholeText(&self) -> DOMString {
         let first = NodeCast::from_ref(self).inclusively_preceding_siblings()
                                             .take_while(|node| node.r().is_text())
                                             .last().unwrap();

@@ -339,7 +339,7 @@ class CGMethodCall(CGThing):
                 code = (
                     "if argc < %d {\n"
                     "    throw_type_error(cx, \"Not enough arguments to %s.\");\n"
-                    "    return 0;\n"
+                    "    return JSFalse;\n"
                     "}" % (requiredArgs, methodName))
                 self.cgRoot.prepend(
                     CGWrapper(CGGeneric(code), pre="\n", post="\n"))
@@ -512,11 +512,11 @@ class CGMethodCall(CGThing):
             CGSwitch("argcount",
                      argCountCases,
                      CGGeneric("throw_type_error(cx, \"Not enough arguments to %s.\");\n"
-                               "return 0;" % methodName)))
+                               "return JSFalse;" % methodName)))
         # XXXjdm Avoid unreachable statement warnings
         # overloadCGThings.append(
         #     CGGeneric('panic!("We have an always-returning default case");\n'
-        #               'return 0;'))
+        #               'return JSFalse;'))
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
 
@@ -888,7 +888,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if invalidEnumValueFatal:
             handleInvalidEnumValueCode = exceptionCode
         else:
-            handleInvalidEnumValueCode = "return 1;"
+            handleInvalidEnumValueCode = "return JSTrue;"
+
+        transmute = "mem::transmute(index)"
+        if isMember == 'Dictionary':
+            transmute = 'unsafe { ' + transmute + ' }'
 
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
@@ -896,10 +900,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
-            "        unsafe { mem::transmute(index) }\n"
+            "        %(transmute)s\n"
             "    },\n"
             "}" % {"values": enum + "Values::strings",
                    "exceptionCode": exceptionCode,
+                   "transmute": transmute,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -1012,7 +1017,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         declType = CGGeneric(typeName)
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(dictionary) => dictionary,\n"
-                    "    Err(_) => return 0,\n"
+                    "    Err(_) => return JSFalse,\n"
                     "}" % typeName)
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
@@ -1037,7 +1042,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         conversionBehavior = "()"
 
     if failureCode is None:
-        failureCode = 'return 0'
+        failureCode = 'return JSFalse'
 
     declType = CGGeneric(builtinNames[type.tag()])
     if type.nullable():
@@ -1216,7 +1221,7 @@ class CGArgumentConverter(CGThing):
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='return 1;', pre=''):
+def wrapForType(jsvalRef, result='result', successCode='return JSTrue;', pre=''):
     """
     Reflect a Rust value into JS.
 
@@ -1472,6 +1477,7 @@ class AttrDefiner(PropertyDefiner):
     def __init__(self, descriptor, name, static):
         PropertyDefiner.__init__(self, descriptor, name)
         self.name = name
+        self.descriptor = descriptor
         self.regular = [
             m
             for m in descriptor.interface.members
@@ -1488,14 +1494,14 @@ class AttrDefiner(PropertyDefiner):
 
         def getter(attr):
             if self.static:
-                accessor = 'get_' + attr.identifier.name
+                accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
                     accessor = "generic_lenient_getter"
                 else:
                     accessor = "generic_getter"
-                jitinfo = "&%s_getterinfo" % attr.identifier.name
+                jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -1506,14 +1512,14 @@ class AttrDefiner(PropertyDefiner):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
 
             if self.static:
-                accessor = 'set_' + attr.identifier.name
+                accessor = 'set_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLenientThis():
                     accessor = "generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
-                jitinfo = "&%s_setterinfo" % attr.identifier.name
+                jitinfo = "&%s_setterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
                     % {"info": jitinfo,
@@ -1620,19 +1626,11 @@ class CGImports(CGWrapper):
         """
         if ignored_warnings is None:
             ignored_warnings = [
-                # Allow unreachable_code because we use 'break' in a way that
-                # sometimes produces two 'break's in a row. See for example
-                # CallbackMember.getArgConversions.
-                'unreachable_code',
                 'non_camel_case_types',
                 'non_upper_case_globals',
-                'unused_parens',
                 'unused_imports',
                 'unused_variables',
-                'unused_unsafe',
-                'unused_mut',
                 'unused_assignments',
-                'dead_code',
             ]
 
         def componentTypes(type):
@@ -2049,7 +2047,7 @@ class CGAbstractMethod(CGThing):
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, pub=False, templateArgs=None,
-                 unsafe=True):
+                 unsafe=False):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2111,7 +2109,7 @@ class CGAbstractMethod(CGThing):
 
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
+    create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
@@ -2160,12 +2158,13 @@ class CGWrapMethod(CGAbstractMethod):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
             args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
         else:
             args = [Argument('*mut JSContext', 'cx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
+                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
-        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
+                                  pub=True, unsafe=True)
 
     def definition_body(self):
         if not self.descriptor.isGlobal():
@@ -2309,6 +2308,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
+            self.unsafe = True
             getParentProto = "parent_proto.ptr = JS_GetObjectPrototype(cx, global)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
@@ -2382,7 +2382,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('HandleObject', 'receiver'),
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  'void', args, pub=pub)
+                                  'void', args, pub=pub, unsafe=True)
         self.id = idPrefix + "ID::" + self.descriptor.name
 
     def definition_body(self):
@@ -2452,7 +2452,9 @@ class CGDefineProxyHandler(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert descriptor.proxy
-        CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler', '*const libc::c_void', [], pub=True)
+        CGAbstractMethod.__init__(self, descriptor, 'DefineProxyHandler',
+                                  '*const libc::c_void', [],
+                                  pub=True, unsafe=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -2778,7 +2780,7 @@ class CGSetterCall(CGPerSignatureCall):
 
     def wrap_return_value(self):
         # We have no return value
-        return "\nreturn 1;"
+        return "\nreturn JSTrue;"
 
     def getArgc(self):
         return "1"
@@ -2835,7 +2837,10 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, method):
         name = method.identifier.name
-        return MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        return MakeNativeName(nativeName)
 
 
 class CGStaticMethod(CGAbstractStaticBindingMethod):
@@ -2850,7 +2855,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
-        setupArgs = CGGeneric("let mut args = CallArgs::from_vp(vp, argc);\n")
+        setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGMethodCall(["global.r()"], nativeName, True, self.descriptor, self.method)
         return CGList([setupArgs, call])
 
@@ -2862,7 +2867,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     """
     def __init__(self, descriptor, attr):
         self.attr = attr
-        name = 'get_' + attr.identifier.name
+        name = 'get_' + descriptor.internalNameFor(attr.identifier.name)
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
@@ -2880,7 +2885,10 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        nativeName = MakeNativeName(nativeName)
         infallible = ('infallible' in
                       descriptor.getExtendedAttributes(attr, getter=True))
         if attr.type.nullable() or not infallible:
@@ -2901,7 +2909,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        setupArgs = CGGeneric("let mut args = CallArgs::from_vp(vp, argc);\n")
+        setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGGetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([setupArgs, call])
@@ -2914,7 +2922,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     """
     def __init__(self, descriptor, attr):
         self.attr = attr
-        name = 'set_' + attr.identifier.name
+        name = 'set_' + descriptor.internalNameFor(attr.identifier.name)
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('HandleObject', 'obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
@@ -2931,7 +2939,10 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        return "Set" + MakeNativeName(descriptor.binaryNameFor(name))
+        nativeName = descriptor.binaryNameFor(name)
+        if nativeName == name:
+            nativeName = descriptor.internalNameFor(name)
+        return "Set" + MakeNativeName(nativeName)
 
 
 class CGStaticSetter(CGAbstractStaticBindingMethod):
@@ -2948,9 +2959,9 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
                                                         self.attr)
         checkForArg = CGGeneric(
             "let args = CallArgs::from_vp(vp, argc);\n"
-            "if (argc == 0) {\n"
+            "if argc == 0 {\n"
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
-            "    return 0;\n"
+            "    return JSFalse;\n"
             "}" % self.attr.identifier.name)
         call = CGSetterCall(["global.r()"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
@@ -3045,8 +3056,9 @@ class CGMemberJITInfo(CGThing):
 
     def define(self):
         if self.member.isAttr():
-            getterinfo = ("%s_getterinfo" % self.member.identifier.name)
-            getter = ("get_%s" % self.member.identifier.name)
+            internalMemberName = self.descriptor.internalNameFor(self.member.identifier.name)
+            getterinfo = ("%s_getterinfo" % internalMemberName)
+            getter = ("get_%s" % internalMemberName)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
 
             movable = self.mayBeMovable() and getterinfal
@@ -3070,8 +3082,8 @@ class CGMemberJITInfo(CGThing):
                                         slotIndex,
                                         [self.member.type], None)
             if (not self.member.readonly or self.member.getExtendedAttribute("PutForwards")):
-                setterinfo = ("%s_setterinfo" % self.member.identifier.name)
-                setter = ("set_%s" % self.member.identifier.name)
+                setterinfo = ("%s_setterinfo" % internalMemberName)
+                setter = ("set_%s" % internalMemberName)
                 # Setters are always fallible, since they have to do a typed unwrap.
                 result += self.defineJitInfo(setterinfo, setter, "Setter",
                                              False, False, "AliasEverything",
@@ -4021,7 +4033,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('HandleObject', 'obj')]
         CGAbstractMethod.__init__(self, descriptor, "UnwrapProxy",
-                                  '*const ' + descriptor.concreteType, args, alwaysInline=True)
+                                  '*const ' + descriptor.concreteType, args,
+                                  alwaysInline=True, unsafe=True)
 
     def definition_body(self):
         return CGGeneric("""\
@@ -4218,7 +4231,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
                     let cstring = CString::new(name).unwrap();
                     let jsstring = JS_InternString(cx, cstring.as_ptr());
-                    let mut rooted = RootedString::new(cx, jsstring);
+                    let rooted = RootedString::new(cx, jsstring);
                     let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
                     let rooted_jsid = RootedId::new(cx, jsid);
                     AppendToAutoIdVector(props, rooted_jsid.handle().get());
@@ -4338,7 +4351,7 @@ if !expando.ptr.is_null() {
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
+            getNamed = ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
                         "}\n")
         else:
@@ -4571,7 +4584,7 @@ class CGInterfaceTrait(CGThing):
             return "".join(", %s: %s" % argument for argument in arguments)
 
         methods = [
-            CGGeneric("fn %s(self%s) -> %s;\n" % (name, fmt(arguments), rettype))
+            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
             for name, arguments, rettype in members()
         ]
         if methods:
@@ -5506,7 +5519,7 @@ class CallbackMember(CGNativeMember):
             conversion = (
                 CGIfWrapper(CGGeneric(conversion),
                             "%s.is_some()" % arg.identifier.name).define() +
-                " else if (argc == %d) {\n"
+                " else if argc == %d {\n"
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"
                 "} else {\n"
@@ -5539,6 +5552,8 @@ class CallbackMember(CGNativeMember):
             "}\n")
 
     def getArgcDecl(self):
+        if self.argCount <= 1:
+            return CGGeneric("let argc = %s;" % self.argCountStr)
         return CGGeneric("let mut argc = %s;" % self.argCountStr)
 
     @staticmethod

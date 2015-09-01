@@ -70,18 +70,18 @@ fn collect_text(node: &&Node, value: &mut DOMString) {
     }
 }
 
-impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
+impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://www.whatwg.org/html/#dom-option-disabled
     make_bool_getter!(Disabled);
 
     // https://www.whatwg.org/html/#dom-option-disabled
-    fn SetDisabled(self, disabled: bool) {
+    fn SetDisabled(&self, disabled: bool) {
         let elem = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // https://www.whatwg.org/html/#dom-option-text
-    fn Text(self) -> DOMString {
+    fn Text(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
@@ -90,13 +90,13 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
     }
 
     // https://www.whatwg.org/html/#dom-option-text
-    fn SetText(self, value: DOMString) {
+    fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         let attr = &atom!("value");
         if element.has_attribute(attr) {
@@ -110,7 +110,7 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
     make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
-    fn Label(self) -> DOMString {
+    fn Label(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         let attr = &atom!("label");
         if element.has_attribute(attr) {

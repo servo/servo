@@ -93,6 +93,12 @@ partial interface Window {
   /*[Replaceable]*/ readonly attribute Performance performance;
 };
 
+// https://html.spec.whatwg.org/multipage/#Window-partial
+partial interface Window {
+  void captureEvents();
+  void releaseEvents();
+};
+
 // https://drafts.csswg.org/cssom/#extensions-to-the-window-interface
 partial interface Window {
    [NewObject]

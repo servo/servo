@@ -124,21 +124,19 @@ pub struct NodeInfo {
     pub incompleteValue: bool,
 }
 
-#[derive(PartialEq, Eq, Deserialize, Serialize)]
-pub enum TracingMetadata {
-    Default,
-    IntervalStart,
-    IntervalEnd,
-    Event,
-    EventBacktrace,
+pub struct StartedTimelineMarker {
+    name: String,
+    start_time: PreciseTime,
+    start_stack: Option<Vec<()>>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct TimelineMarker {
     pub name: String,
-    pub metadata: TracingMetadata,
-    pub time: PreciseTime,
-    pub stack: Option<Vec<()>>,
+    pub start_time: PreciseTime,
+    pub start_stack: Option<Vec<()>>,
+    pub end_time: PreciseTime,
+    pub end_stack: Option<Vec<()>>,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
@@ -270,12 +268,23 @@ pub enum NetworkEvent {
 }
 
 impl TimelineMarker {
-    pub fn new(name: String, metadata: TracingMetadata) -> TimelineMarker {
-        TimelineMarker {
+    pub fn start(name: String) -> StartedTimelineMarker {
+        StartedTimelineMarker {
             name: name,
-            metadata: metadata,
-            time: PreciseTime::now(),
-            stack: None,
+            start_time: PreciseTime::now(),
+            start_stack: None,
+        }
+    }
+}
+
+impl StartedTimelineMarker {
+    pub fn end(self) -> TimelineMarker {
+        TimelineMarker {
+            name: self.name,
+            start_time: self.start_time,
+            start_stack: self.start_stack,
+            end_time: PreciseTime::now(),
+            end_stack: None,
         }
     }
 }

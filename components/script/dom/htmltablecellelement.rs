@@ -74,9 +74,11 @@ impl HTMLTableCellElement {
     }
 }
 
-impl<'a> HTMLTableCellElementMethods for &'a HTMLTableCellElement {
+impl HTMLTableCellElementMethods for HTMLTableCellElement {
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_getter!(ColSpan, "colspan", DEFAULT_COLSPAN);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan");
 }
 

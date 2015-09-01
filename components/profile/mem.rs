@@ -368,7 +368,7 @@ mod system_reporter {
     use std::mem::size_of;
     use std::ptr::null_mut;
     use super::{JEMALLOC_HEAP_ALLOCATED_STR, SYSTEM_HEAP_ALLOCATED_STR};
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     use task_info::task_basic_info::{virtual_size, resident_size};
 
     /// Collects global measurements from the OS and heap allocators.
@@ -418,12 +418,12 @@ mod system_reporter {
         request.reports_channel.send(reports);
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     extern {
         fn mallinfo() -> struct_mallinfo;
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     #[repr(C)]
     pub struct struct_mallinfo {
         arena:    c_int,
@@ -438,7 +438,7 @@ mod system_reporter {
         keepcost: c_int,
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn get_system_heap_allocated() -> Option<usize> {
         let info: struct_mallinfo = unsafe { mallinfo() };
 
@@ -457,7 +457,7 @@ mod system_reporter {
         }
     }
 
-    #[cfg(not(target_os="linux"))]
+    #[cfg(not(target_os = "linux"))]
     fn get_system_heap_allocated() -> Option<usize> {
         None
     }
@@ -507,14 +507,14 @@ mod system_reporter {
         ($e:expr) => (match $e { Some(e) => e, None => return None })
     );
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn page_size() -> usize {
         unsafe {
             ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
         }
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn get_proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
@@ -527,37 +527,37 @@ mod system_reporter {
         Some(npages * page_size())
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn get_vsize() -> Option<usize> {
         get_proc_self_statm_field(0)
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn get_resident() -> Option<usize> {
         get_proc_self_statm_field(1)
     }
 
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     fn get_vsize() -> Option<usize> {
         virtual_size()
     }
 
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     fn get_resident() -> Option<usize> {
         resident_size()
     }
 
-    #[cfg(not(any(target_os="linux", target_os = "macos")))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     fn get_vsize() -> Option<usize> {
         None
     }
 
-    #[cfg(not(any(target_os="linux", target_os = "macos")))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
     fn get_resident() -> Option<usize> {
         None
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn get_resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
         use std::collections::HashMap;
@@ -658,7 +658,7 @@ mod system_reporter {
         segs
     }
 
-    #[cfg(not(target_os="linux"))]
+    #[cfg(not(target_os = "linux"))]
     fn get_resident_segments() -> Vec<(String, usize)> {
         vec![]
     }

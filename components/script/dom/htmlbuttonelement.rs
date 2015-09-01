@@ -70,9 +70,9 @@ impl HTMLButtonElement {
     }
 }
 
-impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
+impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(self) -> Root<ValidityState> {
+    fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }
@@ -84,7 +84,7 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         let elem = ElementCast::from_ref(self);
         let mut ty = elem.get_string_attribute(&atom!("type"));
         ty.make_ascii_lowercase();
@@ -98,22 +98,29 @@ impl<'a> HTMLButtonElementMethods for &'a HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");
 
-    // https://html.spec.whatwg.org/multipage/#htmlbuttonelement
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_url_or_base_getter!(FormAction);
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
     make_setter!(SetFormAction, "formaction");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_enumerated_getter!(
         FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
     make_setter!(SetFormMethod, "formmethod");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_getter!(FormTarget);
 
+    // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name

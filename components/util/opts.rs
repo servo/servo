@@ -10,6 +10,7 @@ use geometry::ScreenPx;
 use euclid::size::{Size2D, TypedSize2D};
 use getopts::Options;
 use num_cpus;
+use prefs;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -17,7 +18,6 @@ use std::fs::{File, PathExt};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
-use std::sync::atomic::{AtomicBool, Ordering, ATOMIC_BOOL_INIT};
 use url::{self, Url};
 
 /// Global flags for Servo, currently set on the command line.
@@ -50,16 +50,11 @@ pub struct Opts {
     /// and cause it to produce output on that interval (`-m`).
     pub mem_profiler_period: Option<f64>,
 
-    /// Enable experimental web features (`-e`).
-    pub enable_experimental: bool,
-
     /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
     /// sequential algorithm.
     pub layout_threads: usize,
 
     pub nonincremental_layout: bool,
-
-    pub nossl: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
@@ -122,6 +117,9 @@ pub struct Opts {
     /// that information to a JSON file that can be viewed in the task
     /// profile viewer.
     pub profile_tasks: bool,
+
+    /// Periodically print out on which events script tasks spend their processing time.
+    pub profile_script_events: bool,
 
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
@@ -213,6 +211,9 @@ pub struct DebugOptions {
     /// Instrument each task, writing the output to a file.
     pub profile_tasks: bool,
 
+    /// Profile which events script tasks spend their time on.
+    pub profile_script_events: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -265,6 +266,7 @@ impl DebugOptions {
                 "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
+                "profile-script-events" => debug_options.profile_script_events = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -331,10 +333,10 @@ fn args_fail(msg: &str) -> ! {
 
 // Always use CPU painting on android.
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 static FORCE_CPU_PAINTING: bool = true;
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
 enum UserAgent {
@@ -357,15 +359,15 @@ fn default_user_agent_string(agent: UserAgent) -> String {
     }.to_owned()
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
 // FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
 // correct string in Gonk builds (i.e., it will never be chosen today).
-#[cfg(target_os="gonk")]
+#[cfg(target_os = "gonk")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
 
-#[cfg(not(any(target_os="android", target_os="gonk")))]
+#[cfg(not(any(target_os = "android", target_os = "gonk")))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
@@ -377,10 +379,8 @@ pub fn default_opts() -> Opts {
         device_pixels_per_px: None,
         time_profiler_period: None,
         mem_profiler_period: None,
-        enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
-        nossl: false,
         userscripts: None,
         user_stylesheets: Vec::new(),
         output_file: None,
@@ -409,6 +409,7 @@ pub fn default_opts() -> Opts {
         relayout_event: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
+        profile_script_events: false,
         resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
@@ -426,7 +427,6 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
-    opts.optflag("e", "experimental", "Enable experimental web features");
     opts.optopt("t", "threads", "Number of paint threads", "1");
     opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
     opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
@@ -453,6 +453,8 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("h", "help", "Print this message");
     opts.optopt("", "resources-path", "Path to find static resources", "/home/servo/resources");
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
+    opts.optmulti("", "pref",
+                  "A preference to set to enable", "dom.mozbrowser.enabled");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -527,7 +529,6 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     let nonincremental_layout = opt_match.opt_present("i");
-    let nossl = opt_match.opt_present("no-ssl");
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
@@ -581,10 +582,8 @@ pub fn from_cmdline_args(args: &[String]) {
         device_pixels_per_px: device_pixels_per_px,
         time_profiler_period: time_profiler_period,
         mem_profiler_period: mem_profiler_period,
-        enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
-        nossl: nossl,
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets: user_stylesheets,
         output_file: opt_match.opt_str("o"),
@@ -594,6 +593,7 @@ pub fn from_cmdline_args(args: &[String]) {
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
+        profile_script_events: debug_options.profile_script_events,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
@@ -621,19 +621,12 @@ pub fn from_cmdline_args(args: &[String]) {
     };
 
     set_defaults(opts);
-}
 
-static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
-
-/// Turn on experimental features globally. Normally this is done
-/// during initialization by `set` or `from_cmdline_args`, but
-/// tests that require experimental features will also set it.
-pub fn set_experimental_enabled(new_value: bool) {
-    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
-}
-
-pub fn experimental_enabled() -> bool {
-    EXPERIMENTAL_ENABLED.load(Ordering::SeqCst)
+    // This must happen after setting the default options, since the prefs rely on
+    // on the resource path.
+    for pref in opt_match.opt_strs("pref").iter() {
+        prefs::set_pref(pref, true);
+    }
 }
 
 // Make Opts available globally. This saves having to clone and pass
@@ -644,7 +637,7 @@ const INVALID_OPTIONS: *mut Opts = 0x01 as *mut Opts;
 
 lazy_static! {
     static ref OPTIONS: Opts = {
-        let opts = unsafe {
+        unsafe {
             let initial = if !DEFAULT_OPTIONS.is_null() {
                 let opts = Box::from_raw(DEFAULT_OPTIONS);
                 *opts
@@ -653,9 +646,7 @@ lazy_static! {
             };
             DEFAULT_OPTIONS = INVALID_OPTIONS;
             initial
-        };
-        set_experimental_enabled(opts.enable_experimental);
-        opts
+        }
     };
 }
 

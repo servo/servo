@@ -6,13 +6,11 @@
 
 use devtools_traits::PreciseTime;
 use rustc_serialize::json;
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::marker::Reflect;
-use std::mem::{replace, transmute};
+use std::mem::replace;
 use std::net::TcpStream;
-use std::raw::TraitObject;
 use std::sync::{Arc, Mutex};
 
 #[derive(PartialEq)]
@@ -24,7 +22,7 @@ pub enum ActorMessageStatus {
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor: Any {
+pub trait Actor: Any + ActorAsAny {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
@@ -33,55 +31,14 @@ pub trait Actor: Any {
     fn name(&self) -> String;
 }
 
-impl Actor + Send {
-    /// Returns true if the boxed type is the same as `T`
-    #[inline]
-    pub fn is<T: Reflect + 'static>(&self) -> bool {
-        // Get TypeId of the type this function is instantiated with
-        let t = TypeId::of::<T>();
+trait ActorAsAny {
+    fn actor_as_any(&self) -> &Any;
+    fn actor_as_any_mut(&mut self) -> &mut Any;
+}
 
-        // Get TypeId of the type in the trait object
-        let boxed = self.get_type_id();
-
-        // Compare both TypeIds on equality
-        t == boxed
-    }
-
-    /// Returns some reference to the boxed value if it is of type `T`, or
-    /// `None` if it isn't.
-    #[inline]
-    #[allow(unsafe_code)]
-    pub fn downcast_ref<T: Reflect + 'static>(&self) -> Option<&T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute(self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Returns some mutable reference to the boxed value if it is of type `T`, or
-    /// `None` if it isn't.
-    #[inline]
-    #[allow(unsafe_code)]
-    pub fn downcast_mut<T: Reflect + 'static>(&mut self) -> Option<&mut T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute(self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
+impl<T: Actor> ActorAsAny for T {
+    fn actor_as_any(&self) -> &Any { self }
+    fn actor_as_any_mut(&mut self) -> &mut Any { self }
 }
 
 /// A list of known, owned actors.
@@ -179,15 +136,15 @@ impl ActorRegistry {
     }
 
     /// Find an actor by registered name
-    pub fn find<'a, T: Reflect + 'static>(&'a self, name: &str) -> &'a T {
+    pub fn find<'a, T: Any>(&'a self, name: &str) -> &'a T {
         let actor = self.actors.get(&name.to_string()).unwrap();
-        actor.downcast_ref::<T>().unwrap()
+        actor.actor_as_any().downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
-    pub fn find_mut<'a, T: Reflect + 'static>(&'a mut self, name: &str) -> &'a mut T {
+    pub fn find_mut<'a, T: Any>(&'a mut self, name: &str) -> &'a mut T {
         let actor = self.actors.get_mut(&name.to_string()).unwrap();
-        actor.downcast_mut::<T>().unwrap()
+        actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
     }
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not

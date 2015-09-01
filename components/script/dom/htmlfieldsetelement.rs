@@ -51,9 +51,9 @@ impl HTMLFieldSetElement {
     }
 }
 
-impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
+impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     // https://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(self) -> Root<HTMLCollection> {
+    fn Elements(&self) -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
@@ -70,7 +70,7 @@ impl<'a> HTMLFieldSetElementMethods for &'a HTMLFieldSetElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(self) -> Root<ValidityState> {
+    fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }

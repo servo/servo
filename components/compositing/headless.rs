@@ -7,6 +7,7 @@ use windowing::WindowEvent;
 
 use euclid::scale_factor::ScaleFactor;
 use euclid::{Size2D, Point2D};
+use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
@@ -92,6 +93,19 @@ impl CompositorEventListener for NullCompositor {
                let rect = (Size2D::zero(), Point2D::zero());
                 send.send(rect).unwrap();
             }
+
+            Msg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
+                match animation_state {
+                    AnimationState::AnimationsPresent |
+                    AnimationState::NoAnimationsPresent |
+                    AnimationState::NoAnimationCallbacksPresent => {}
+                    AnimationState::AnimationCallbacksPresent => {
+                        let msg = ConstellationMsg::TickAnimation(pipeline_id);
+                        self.constellation_chan.0.send(msg).unwrap()
+                    }
+                }
+            }
+
             // Explicitly list ignored messages so that when we add a new one,
             // we'll notice and think about whether it needs a response, like
             // SetFrameTree.
@@ -99,7 +113,6 @@ impl CompositorEventListener for NullCompositor {
             Msg::InitializeLayersForPipeline(..) |
             Msg::SetLayerRect(..) |
             Msg::AssignPaintedBuffers(..) |
-            Msg::ChangeRunningAnimationsState(..) |
             Msg::ScrollFragmentPoint(..) |
             Msg::Status(..) |
             Msg::LoadStart(..) |

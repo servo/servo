@@ -22,6 +22,7 @@ use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
+use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{Runnable, CommonScriptMsg};
 
 use net_traits::hosts::replace_hosts;
@@ -182,7 +183,7 @@ impl WebSocket {
                     let task = box CloseTask {
                         addr: address,
                     };
-                    sender.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+                    sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
                     return;
                 }
             };
@@ -192,7 +193,7 @@ impl WebSocket {
                 addr: address.clone(),
                 sender: ws_sender.clone(),
             };
-            sender.send(CommonScriptMsg::RunnableMsg(open_task)).unwrap();
+            sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
 
             for message in receiver.incoming_messages() {
                 let message = match message {
@@ -208,7 +209,7 @@ impl WebSocket {
                         let task = box CloseTask {
                             addr: address,
                         };
-                        sender.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+                        sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
                         break;
                     },
                     Err(_) => break,
@@ -217,7 +218,7 @@ impl WebSocket {
                     address: address.clone(),
                     message: message,
                 };
-                sender.send(CommonScriptMsg::RunnableMsg(message_task)).unwrap();
+                sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, message_task)).unwrap();
             }
         });
 
@@ -226,34 +227,41 @@ impl WebSocket {
     }
 }
 
-impl<'a> WebSocketMethods for &'a WebSocket {
+impl WebSocketMethods for WebSocket {
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onopen
     event_handler!(open, GetOnopen, SetOnopen);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onclose
     event_handler!(close, GetOnclose, SetOnclose);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onerror
     event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
-    fn Url(self) -> DOMString {
+    fn Url(&self) -> DOMString {
         self.url.serialize()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
-    fn BinaryType(self) -> BinaryType {
+    fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
-    fn SetBinaryType(self, btype: BinaryType) {
+    fn SetBinaryType(&self, btype: BinaryType) {
         self.binary_type.set(btype)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(self, data: Option<USVString>) -> Fallible<()> {
+    fn Send(&self, data: Option<USVString>) -> Fallible<()> {
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
@@ -280,7 +288,7 @@ impl<'a> WebSocketMethods for &'a WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
-    fn Close(self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+    fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
         fn send_close(this: &WebSocket) {
             this.ready_state.set(WebSocketRequestState::Closing);
 

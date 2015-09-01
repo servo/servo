@@ -30,7 +30,7 @@ use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandbo
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
 use string_cache::Atom;
-use util::opts;
+use util::prefs;
 use util::str::DOMString;
 
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
@@ -40,6 +40,10 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
+
+pub fn mozbrowser_enabled() -> bool {
+    prefs::get_pref("dom.mozbrowser.enabled", false)
+}
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -117,7 +121,7 @@ impl HTMLIFrameElement {
                                                             old_subpage_id,
                                                             sandboxed)).unwrap();
 
-        if opts::experimental_enabled() {
+        if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
             self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
@@ -136,7 +140,7 @@ impl HTMLIFrameElement {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
-        assert!(opts::experimental_enabled());
+        assert!(mozbrowser_enabled());
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
@@ -159,9 +163,7 @@ impl HTMLIFrameElement {
     pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
         self.subpage_id.set(Some(new_subpage_id));
     }
-}
 
-impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
@@ -183,9 +185,7 @@ impl HTMLIFrameElement {
             }).unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
-}
 
-impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
@@ -238,33 +238,33 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
     }
 }
 
-impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
+impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    fn Src(self) -> DOMString {
+    fn Src(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
-    fn SetSrc(self, src: DOMString) {
+    fn SetSrc(&self, src: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_url_attribute(&atom!("src"), src)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(self) -> DOMString {
+    fn Sandbox(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("sandbox"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn SetSandbox(self, sandbox: DOMString) {
+    fn SetSandbox(&self, sandbox: DOMString) {
         let element = ElementCast::from_ref(self);
         element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(self) -> Option<Root<Window>> {
+    fn GetContentWindow(&self) -> Option<Root<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
@@ -277,7 +277,7 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
-    fn GetContentDocument(self) -> Option<Root<Document>> {
+    fn GetContentDocument(&self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
             let self_url = match self.get_url() {
                 Some(self_url) => self_url,
@@ -301,8 +301,8 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     // exposing these APIs. See https://github.com/servo/servo/issues/5264.
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn Mozbrowser(self) -> bool {
-        if opts::experimental_enabled() {
+    fn Mozbrowser(&self) -> bool {
+        if mozbrowser_enabled() {
             let element = ElementCast::from_ref(self);
             element.has_attribute(&Atom::from_slice("mozbrowser"))
         } else {
@@ -311,8 +311,8 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(self, value: bool) -> ErrorResult {
-        if opts::experimental_enabled() {
+    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
+        if mozbrowser_enabled() {
             let element = ElementCast::from_ref(self);
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
         }
@@ -320,31 +320,33 @@ impl<'a> HTMLIFrameElementMethods for &'a HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
-    fn GoBack(self) -> Fallible<()> {
+    fn GoBack(&self) -> Fallible<()> {
         Navigate(self, NavigationDirection::Back)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
-    fn GoForward(self) -> Fallible<()> {
+    fn GoForward(&self) -> Fallible<()> {
         Navigate(self, NavigationDirection::Forward)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(self, _hardReload: bool) -> Fallible<()> {
+    fn Reload(&self, _hardReload: bool) -> Fallible<()> {
         Err(NotSupported)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
-    fn Stop(self) -> Fallible<()> {
+    fn Stop(&self) -> Fallible<()> {
         Err(NotSupported)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-dim-width
     make_getter!(Width);
-
+    // https://html.spec.whatwg.org/multipage/#dom-dim-width
     make_setter!(SetWidth, "width");
 
+    // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_getter!(Height);
-
+    // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_setter!(SetHeight, "height");
 }
 

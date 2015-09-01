@@ -163,10 +163,7 @@ impl EventTarget {
     pub fn type_id<'a>(&'a self) -> &'a EventTargetTypeId {
         &self.type_id
     }
-}
 
-
-impl EventTarget {
     pub fn dispatch_event_with_target(&self,
                                   target: &EventTarget,
                                   event: &Event) -> bool {
@@ -284,9 +281,9 @@ impl EventTarget {
     }
 }
 
-impl<'a> EventTargetMethods for &'a EventTarget {
+impl EventTargetMethods for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
-    fn AddEventListener(self,
+    fn AddEventListener(&self,
                         ty: DOMString,
                         listener: Option<Rc<EventListener>>,
                         capture: bool) {
@@ -312,7 +309,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
-    fn RemoveEventListener(self,
+    fn RemoveEventListener(&self,
                            ty: DOMString,
                            listener: Option<Rc<EventListener>>,
                            capture: bool) {
@@ -336,7 +333,7 @@ impl<'a> EventTargetMethods for &'a EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
-    fn DispatchEvent(self, event: &Event) -> Fallible<bool> {
+    fn DispatchEvent(&self, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(InvalidState);
         }

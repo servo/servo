@@ -52,9 +52,9 @@ impl NodeList {
     }
 }
 
-impl<'a> NodeListMethods for &'a NodeList {
+impl NodeListMethods for NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref list) => list.len(),
@@ -62,7 +62,7 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(self, index: u32) -> Option<Root<Node>> {
+    fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
                 elems.get(index as usize).map(|node| Root::from_rooted(*node))
@@ -72,7 +72,7 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Node>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
@@ -215,7 +215,10 @@ impl ChildrenList {
                     },
                 };
                 list.last_visited.set(Some(JS::from_ref(visited)));
-            } else {
+            } else if added.len() != 1 {
+                // The replaced child isn't the last visited one, and there are
+                // 0 or more than 1 nodes to replace it. Special care must be
+                // given to update the state of that ChildrenList.
                 match (prev, next) {
                     (Some(_), None) => {},
                     (None, Some(next)) => {

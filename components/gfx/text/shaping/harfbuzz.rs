@@ -576,13 +576,13 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
 fn glyph_space_advance(font: *mut Font) -> f64 {
     let space_unicode = ' ';
     let space_glyph: hb_codepoint_t;
-    match unsafe {(*font).glyph_index(space_unicode)} {
+    match unsafe { (*font).glyph_index(space_unicode) } {
         Some(g) => {
             space_glyph = g as hb_codepoint_t;
         }
         None => panic!("No space info")
     }
-    let space_advance = unsafe {(*font).glyph_h_advance(space_glyph as GlyphId)};
+    let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
     space_advance
 }
 

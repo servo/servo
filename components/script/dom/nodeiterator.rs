@@ -66,19 +66,19 @@ impl NodeIterator {
     }
 }
 
-impl<'a> NodeIteratorMethods for &'a NodeIterator {
+impl NodeIteratorMethods for NodeIterator {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
-    fn Root(self) -> Root<Node> {
+    fn Root(&self) -> Root<Node> {
         self.root_node.root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-whattoshow
-    fn WhatToShow(self) -> u32 {
+    fn WhatToShow(&self) -> u32 {
         self.what_to_show
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-filter
-    fn GetFilter(self) -> Option<Rc<NodeFilter>> {
+    fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
             Filter::Callback(ref nf) => Some((*nf).clone()),
@@ -87,17 +87,17 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
-    fn ReferenceNode(self) -> Root<Node> {
+    fn ReferenceNode(&self) -> Root<Node> {
         self.reference_node.get().root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-pointerbeforereferencenode
-    fn PointerBeforeReferenceNode(self) -> bool {
+    fn PointerBeforeReferenceNode(&self) -> bool {
         self.pointer_before_reference_node.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
-    fn NextNode(self) -> Fallible<Option<Root<Node>>> {
+    fn NextNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -141,7 +141,7 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
-    fn PreviousNode(self) -> Fallible<Option<Root<Node>>> {
+    fn PreviousNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -186,7 +186,7 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-detach
-    fn Detach(self) {
+    fn Detach(&self) {
         // This method intentionally left blank.
     }
 }

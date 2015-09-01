@@ -18,12 +18,14 @@
 #![feature(drain)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]
+#![feature(iter_arith)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(rc_unique)]
 #![feature(slice_patterns)]
+#![feature(str_split_at)]
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
@@ -31,7 +33,7 @@
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
-#![doc="The script crate contains all matters DOM."]
+#![doc = "The script crate contains all matters DOM."]
 
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
@@ -76,6 +78,7 @@ extern crate url;
 extern crate uuid;
 extern crate string_cache;
 extern crate offscreen_gl_context;
+extern crate angle;
 extern crate tendril;
 
 pub mod cors;
@@ -100,7 +103,7 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
     use std::mem;
@@ -116,7 +119,7 @@ fn perform_platform_specific_initialization() {
     }
 }
 
-#[cfg(not(target_os="linux"))]
+#[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]

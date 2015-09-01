@@ -49,8 +49,11 @@ impl HTMLFontElement {
     }
 }
 
-impl<'a> HTMLFontElementMethods for &'a HTMLFontElement {
+impl HTMLFontElementMethods for HTMLFontElement {
+    // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_getter!(Color, "color");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_setter!(SetColor, "color");
 }
 

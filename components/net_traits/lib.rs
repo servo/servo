@@ -161,6 +161,7 @@ pub enum ControlMsg {
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     /// Store a domain's STS information
     SetHSTSEntryForHost(String, IncludeSubdomains, u64),
+    GetHostMustBeSecured(String, IpcSender<bool>),
     Exit
 }
 

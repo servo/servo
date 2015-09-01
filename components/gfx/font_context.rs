@@ -31,16 +31,16 @@ use std::sync::Arc;
 use azure::azure_hl::BackendType;
 use azure::scaled_font::ScaledFont;
 
-#[cfg(any(target_os="linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 use azure::scaled_font::FontInfo;
 
-#[cfg(any(target_os="linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     ScaledFont::new(BackendType::Skia, FontInfo::FontData(&template.bytes),
                     pt_size.to_f32_px())
 }
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     let cgfont = template.ctfont().as_ref().unwrap().copy_to_CGFont();
     ScaledFont::new(BackendType::Skia, &cgfont, pt_size.to_f32_px())

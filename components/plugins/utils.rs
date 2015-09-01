@@ -17,14 +17,14 @@ use syntax::ptr::P;
 /// Try not to use this for types defined in crates you own, use match_lang_ty instead (for lint passes)
 pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]> {
     match ty.node {
-        TyPath(_, Path {segments: ref seg, ..}) => {
+        TyPath(_, Path { segments: ref seg, .. }) => {
             // So ast::Path isn't the full path, just the tokens that were provided.
             // I could muck around with the maps and find the full path
             // however the more efficient way is to simply reverse the iterators and zip them
             // which will compare them in reverse until one of them runs out of segments
             if seg.iter().rev().zip(segments.iter().rev()).all(|(a, b)| a.identifier.name.as_str() == *b) {
                 match seg.last() {
-                    Some(&PathSegment {parameters: AngleBracketedParameters(ref a), ..}) => {
+                    Some(&PathSegment { parameters: AngleBracketedParameters(ref a), .. }) => {
                         Some(&a.types)
                     }
                     _ => None

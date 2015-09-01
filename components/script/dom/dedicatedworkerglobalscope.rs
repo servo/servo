@@ -17,9 +17,10 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, WorkerEventHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, SimpleWorkerErrorHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
+use script_task::ScriptTaskEventCategory::WorkerEvent;
 use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
 
 use devtools_traits::DevtoolScriptControlMsg;
@@ -186,9 +187,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender, receiver);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
-}
 
-impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: Url,
                             id: PipelineId,
@@ -207,8 +206,8 @@ impl DedicatedWorkerGlobalScope {
             let (url, source) = match load_whole_resource(&init.resource_task, worker_url) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
-                    parent_sender.send(CommonScriptMsg::RunnableMsg(
-                        box WorkerEventHandler::new(worker))).unwrap();
+                    parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                        box SimpleWorkerErrorHandler::new(worker))).unwrap();
                     return;
                 }
                 Ok((metadata, bytes)) => {
@@ -241,10 +240,7 @@ impl DedicatedWorkerGlobalScope {
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         });
     }
-}
 
-
-impl DedicatedWorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         box WorkerThreadWorkerChan {
             sender: self.own_sender.clone(),
@@ -268,10 +264,7 @@ impl DedicatedWorkerGlobalScope {
     pub fn process_event(&self, msg: CommonScriptMsg) {
         self.handle_script_event(WorkerScriptMsg::Common(msg));
     }
-}
 
-
-impl DedicatedWorkerGlobalScope {
     #[allow(unsafe_code)]
     fn receive_event(&self) -> Result<MixedMessage, RecvError> {
         let scope = WorkerGlobalScopeCast::from_ref(self);
@@ -308,7 +301,7 @@ impl DedicatedWorkerGlobalScope {
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(runnable)) => {
+            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 runnable.handler()
             },
             WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
@@ -354,16 +347,17 @@ impl DedicatedWorkerGlobalScope {
     }
 }
 
-impl<'a> DedicatedWorkerGlobalScopeMethods for &'a DedicatedWorkerGlobalScope {
+impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(CommonScriptMsg::RunnableMsg(
+        self.parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
             box WorkerMessageHandler::new(worker, data))).unwrap();
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 }
 

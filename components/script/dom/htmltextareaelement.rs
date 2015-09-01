@@ -25,6 +25,7 @@ use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{Runnable, CommonScriptMsg};
 use textinput::{TextInput, Lines, KeyReaction};
 
@@ -114,12 +115,14 @@ impl HTMLTextAreaElement {
     }
 }
 
-impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
+impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // TODO A few of these attributes have default values and additional
     // constraints
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_uint_getter!(Cols, "cols", DEFAULT_COLS);
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
 
     // https://www.whatwg.org/html/#dom-fe-disabled
@@ -154,6 +157,8 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_uint_getter!(Rows, "rows", DEFAULT_ROWS);
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_limited_uint_setter!(SetRows, "rows", DEFAULT_ROWS);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
@@ -163,18 +168,18 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     make_setter!(SetWrap, "wrap");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         "textarea".to_owned()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn DefaultValue(self) -> DOMString {
+    fn DefaultValue(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         node.GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn SetDefaultValue(self, value: DOMString) {
+    fn SetDefaultValue(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value));
 
@@ -186,12 +191,12 @@ impl<'a> HTMLTextAreaElementMethods for &'a HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
@@ -356,7 +361,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                             let dispatcher = ChangeEventRunnable {
                                 element: handler,
                             };
-                            let _ = chan.send(CommonScriptMsg::RunnableMsg(box dispatcher));
+                            let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
                         }
 
                         self.force_relayout();

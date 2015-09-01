@@ -153,16 +153,20 @@ impl Worker {
     }
 }
 
-impl<'a> WorkerMethods for &'a Worker {
+impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
+
+    // https://html.spec.whatwg.org/multipage/#handler-workerglobalscope-onerror
+    event_handler!(error, GetOnerror, SetOnerror);
 }
 
 pub struct WorkerMessageHandler {
@@ -186,20 +190,20 @@ impl Runnable for WorkerMessageHandler {
     }
 }
 
-pub struct WorkerEventHandler {
+pub struct SimpleWorkerErrorHandler {
     addr: TrustedWorkerAddress,
 }
 
-impl WorkerEventHandler {
-    pub fn new(addr: TrustedWorkerAddress) -> WorkerEventHandler {
-        WorkerEventHandler {
+impl SimpleWorkerErrorHandler {
+    pub fn new(addr: TrustedWorkerAddress) -> SimpleWorkerErrorHandler {
+        SimpleWorkerErrorHandler {
             addr: addr
         }
     }
 }
 
-impl Runnable for WorkerEventHandler {
-    fn handler(self: Box<WorkerEventHandler>) {
+impl Runnable for SimpleWorkerErrorHandler {
+    fn handler(self: Box<SimpleWorkerErrorHandler>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
     }

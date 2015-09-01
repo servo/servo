@@ -188,33 +188,35 @@ def check_rust(file_name, contents):
             line = merged_lines + line
             merged_lines = ''
 
-        # get rid of strings and chars because cases like regex expression
-        line = re.sub('".*?"|\'.*?\'', '', line)
+        # get rid of strings and chars because cases like regex expression, keep attributes
+        if not line_is_attribute(line):
+            line = re.sub('".*?"|\'.*?\'', '', line)
 
-        # get rid of comments and attributes
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
+        # get rid of comments
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
+
+        # get rid of attributes that do not contain =
+        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
         match = re.search(r",[A-Za-z0-9]", line)
         if match:
             yield (idx + 1, "missing space after ,")
 
-        # Avoid flagging <Item=Foo> constructs
-        def is_associated_type(match, line, index):
-            open_angle = line[0:match.end()].rfind('<')
-            close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
-            is_equals = match.group(0)[index] == '='
-            generic_open = open_angle != -1 and open_angle < match.start()
-            generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-            return is_equals and generic_open and generic_close
+        if line_is_attribute(line):
+            pre_space_re = r"[A-Za-z0-9]="
+            post_space_re = r"=[A-Za-z0-9\"]"
+        else:
+            # - not included because of scientific notation (1e-6)
+            pre_space_re = r"[A-Za-z0-9][\+/\*%=]"
+            # * not included because of dereferencing and casting
+            # - not included because of unary negation
+            post_space_re = r"[\+/\%=][A-Za-z0-9\"]"
 
-        # - not included because of scientific notation (1e-6)
-        match = re.search(r"[A-Za-z0-9][\+/\*%=]", line)
+        match = re.search(pre_space_re, line)
         if match and not is_associated_type(match, line, 1):
             yield (idx + 1, "missing space before %s" % match.group(0)[1])
 
-        # * not included because of dereferencing and casting
-        # - not included because of unary negation
-        match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
+        match = re.search(post_space_re, line)
         if match and not is_associated_type(match, line, 0):
             yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
@@ -243,6 +245,16 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space before {")
 
+        # ignored cases like {} and }}
+        match = re.search(r"[^\s{}]}", line)
+        if match and not (line.startswith("use") or line.startswith("pub use")):
+            yield (idx + 1, "missing space before }")
+
+        # ignored cases like {} and {{
+        match = re.search(r"{[^\s{}]", line)
+        if match and not (line.startswith("use") or line.startswith("pub use")):
+            yield (idx + 1, "missing space after {")
+
         # imports must be in the same line and alphabetically sorted
         if line.startswith("use "):
             use = line[4:]
@@ -253,8 +265,25 @@ def check_rust(file_name, contents):
             sorted_uses = sorted(uses)
             for i in range(len(uses)):
                 if sorted_uses[i] != uses[i]:
-                    yield (idx + 1 - len(uses) + i, "use statement is not in alphabetical order")
+                    message = "use statement is not in alphabetical order"
+                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i])
+                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i])
+                    yield (idx + 1 - len(uses) + i, message + expected + found)
             uses = []
+
+
+# Avoid flagging <Item=Foo> constructs
+def is_associated_type(match, line, index):
+    open_angle = line[0:match.end()].rfind('<')
+    close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
+    is_equals = match.group(0)[index] == '='
+    generic_open = open_angle != -1 and open_angle < match.start()
+    generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
+    return is_equals and generic_open and generic_close
+
+
+def line_is_attribute(line):
+    return re.search(r"#\[.*\]", line)
 
 
 def check_webidl_spec(file_name, contents):
@@ -310,7 +339,17 @@ def check_spec(file_name, contents):
         raise StopIteration
     file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
     patt = re.compile("^\s*\/\/.+")
-    pattern = "impl<'a> %sMethods for &'a %s {" % (file_name, file_name)
+
+    # Pattern representing a line with a macro
+    macro_patt = re.compile("^\s*\S+!(.*)$")
+
+    # Pattern representing a line with comment containing a spec link
+    link_patt = re.compile("^\s*///? https://.+$")
+
+    # Pattern representing a line with comment
+    comment_patt = re.compile("^\s*///?.+$")
+
+    pattern = "impl %sMethods for %s {" % (file_name, file_name)
     contents = contents.splitlines(True)
     brace_count = 0
     in_impl = False
@@ -320,9 +359,16 @@ def check_spec(file_name, contents):
         if not patt.match(line):
             if pattern.lower() in line.lower():
                 in_impl = True
-            if "fn " in line and brace_count == 1:
-                if "// https://" not in contents[idx - 1] and "// https://" not in contents[idx - 2]:
-                    yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+            if ("fn " in line or macro_patt.match(line)) and brace_count == 1:
+                for up_idx in range(1, idx + 1):
+                    up_line = contents[idx - up_idx]
+                    if link_patt.match(up_line):
+                        # Comment with spec link exists
+                        break
+                    if not comment_patt.match(up_line):
+                        # No more comments exist above, yield warning
+                        yield (idx + 1, "method declared in webidl is missing a comment with a specification link")
+                        break
             if '{' in line and in_impl:
                 brace_count += 1
             if '}' in line and in_impl:

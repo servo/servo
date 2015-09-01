@@ -6,7 +6,7 @@
 // https://www.whatwg.org/html/#abstractworker
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface AbstractWorker {
-  //         attribute EventHandler onerror;
+    attribute EventHandler onerror;
 };
 
 // https://www.whatwg.org/html/#worker

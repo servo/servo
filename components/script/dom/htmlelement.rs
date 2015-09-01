@@ -77,10 +77,7 @@ impl HTMLElement {
         let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
-}
 
-
-impl HTMLElement {
     fn is_body_or_frameset(&self) -> bool {
         let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
@@ -124,34 +121,40 @@ impl HTMLElement {
     }
 }
 
-impl<'a> HTMLElementMethods for &'a HTMLElement {
+impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
-    fn Style(self) -> Root<CSSStyleDeclaration> {
+    fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
             CSSStyleDeclaration::new(global.r(), ElementCast::from_ref(self), None, CSSModificationAccess::ReadWrite)
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title);
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_setter!(SetTitle, "title");
 
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_getter!(Lang);
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_setter!(SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden);
+    // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
-    fn Dataset(self) -> Root<DOMStringMap> {
+    fn Dataset(&self) -> Root<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
-    fn GetOnload(self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().GetOnload()
@@ -162,7 +165,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
-    fn SetOnload(self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().SetOnload(listener)
@@ -173,7 +176,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
-    fn Click(self) {
+    fn Click(&self) {
         let maybe_input: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
         if let Some(i) = maybe_input {
             if i.Disabled() {
@@ -186,7 +189,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
-    fn Focus(self) {
+    fn Focus(&self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let element = ElementCast::from_ref(self);
@@ -198,7 +201,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
-    fn Blur(self) {
+    fn Blur(&self) {
         // TODO: Run the unfocusing steps.
         let node = NodeCast::from_ref(self);
         if !node.get_focus_state() {
@@ -212,7 +215,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn GetOffsetParent(self) -> Option<Root<Element>> {
+    fn GetOffsetParent(&self) -> Option<Root<Element>> {
         if self.is_htmlbodyelement() || self.is_htmlhtmlelement() {
             return None;
         }
@@ -225,7 +228,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetTop(self) -> i32 {
+    fn OffsetTop(&self) -> i32 {
         if self.is_htmlbodyelement() {
             return 0;
         }
@@ -238,7 +241,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetLeft(self) -> i32 {
+    fn OffsetLeft(&self) -> i32 {
         if self.is_htmlbodyelement() {
             return 0;
         }
@@ -251,7 +254,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetWidth(self) -> i32 {
+    fn OffsetWidth(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
@@ -260,7 +263,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetHeight(self) -> i32 {
+    fn OffsetHeight(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());

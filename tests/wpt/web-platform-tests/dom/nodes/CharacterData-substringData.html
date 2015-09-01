@@ -121,6 +121,15 @@ function testNode(create, type) {
     assert_equals(node.substringData(12, 4), "char")
     assert_equals(node.substringData(39, 2), "資料")
   }, type + ".substringData() with non-ASCII data")
+
+  test(function() {
+    var node = create()
+    assert_equals(node.data, "test")
+
+    node.data = "🌠 test 🌠 TEST"
+
+    assert_equals(node.substringData(5, 8), "st 🌠 TE")  // Counting UTF-16 code units
+  }, type + ".substringData() with non-BMP data")
 }
 
 testNode(function() { return document.createTextNode("test") }, "Text")

@@ -44,9 +44,9 @@ impl DOMParser {
     }
 }
 
-impl<'a> DOMParserMethods for &'a DOMParser {
+impl DOMParserMethods for DOMParser {
     // https://domparsing.spec.whatwg.org/#the-domparser-interface
-    fn ParseFromString(self,
+    fn ParseFromString(&self,
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Root<Document>> {

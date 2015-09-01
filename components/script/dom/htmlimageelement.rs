@@ -21,6 +21,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
 use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use string_cache::Atom;
 use util::str::DOMString;
@@ -131,7 +132,7 @@ impl HTMLImageElement {
                     // Return the image via a message to the script task, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    script_chan.send(CommonScriptMsg::RunnableMsg(
+                    script_chan.send(CommonScriptMsg::RunnableMsg(UpdateReplacedElement,
                         box ImageResponseHandlerRunnable::new(
                             trusted_node.clone(), image_response))).unwrap();
                 });
@@ -142,9 +143,7 @@ impl HTMLImageElement {
             }
         }
     }
-}
 
-impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
@@ -197,55 +196,59 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     }
 }
 
-impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
+impl HTMLImageElementMethods for HTMLImageElement {
+    // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_setter!(SetAlt, "alt");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_url_getter!(Src);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    fn SetIsMap(self, is_map: bool) {
+    fn SetIsMap(&self, is_map: bool) {
         let element = ElementCast::from_ref(self);
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn Width(self) -> u32 {
+    fn Width(&self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(self, width: u32) {
+    fn SetWidth(&self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn Height(self) -> u32 {
+    fn Height(&self) -> u32 {
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(self, height: u32) {
+    fn SetHeight(&self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
-    fn NaturalWidth(self) -> u32 {
+    fn NaturalWidth(&self) -> u32 {
         let image = self.image.borrow();
 
         match *image {
@@ -255,7 +258,7 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
-    fn NaturalHeight(self) -> u32 {
+    fn NaturalHeight(&self) -> u32 {
         let image = self.image.borrow();
 
         match *image {
@@ -265,33 +268,45 @@ impl<'a> HTMLImageElementMethods for &'a HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
-    fn Complete(self) -> bool {
+    fn Complete(&self) -> bool {
         let image = self.image.borrow();
         image.is_some()
     }
 
-    // https://html.spec.whatwg.org/#dom-img-name
+    // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_atomic_setter!(SetName, "name");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-align
     make_getter!(Align);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-align
     make_setter!(SetAlign, "align");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-hspace
     make_uint_getter!(Hspace);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-hspace
     make_uint_setter!(SetHspace, "hspace");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-vspace
     make_uint_getter!(Vspace);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-vspace
     make_uint_setter!(SetVspace, "vspace");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_getter!(LongDesc);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_setter!(SetLongDesc, "longdesc");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_getter!(Border);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_setter!(SetBorder, "border");
 }
 
