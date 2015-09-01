@@ -199,7 +199,9 @@ def check_rust(file_name, contents):
         line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
         match = re.search(r",[^\s]", line)
-        if match:
+        macro_match = re.search(r"[\$]", line)
+
+        if match and not macro_match:
             yield (idx + 1, "missing space after ,")
 
         if line_is_attribute(line):
