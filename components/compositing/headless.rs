@@ -6,7 +6,7 @@ use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::Size2D;
+use euclid::{Size2D, Point2D};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
@@ -89,6 +89,11 @@ impl CompositorEventListener for NullCompositor {
                 response_chan.send(()).unwrap();
             }
 
+            Msg::GetClientWindow(send) => {
+               let rect = (Size2D::zero(), Point2D::zero());
+                send.send(rect).unwrap();
+            }
+
             Msg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 match animation_state {
                     AnimationState::AnimationsPresent |
@@ -121,6 +126,8 @@ impl CompositorEventListener for NullCompositor {
             Msg::ViewportConstrained(..) => {}
             Msg::CreatePng(..) |
             Msg::PaintTaskExited(..) |
+            Msg::MoveTo(..) |
+            Msg::ResizeTo(..) |
             Msg::IsReadyToSaveImageReply(..) => {}
             Msg::NewFavicon(..) => {}
             Msg::HeadParsed => {}
