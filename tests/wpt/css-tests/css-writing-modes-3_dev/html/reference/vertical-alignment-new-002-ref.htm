@@ -10,9 +10,13 @@
       vertical-align: top;
     }
 
+    img#blue
+    {
+      padding-left: 60px; /* = the position of blue square */
+    }
+
     img#orange
     {
-      padding-top: 60px; /* = the height of first character */
       padding-left: 120px; /* = the position of orange square */
     }
 
@@ -22,11 +26,11 @@
 
 <body>
 
-<p>Test passes if the right edge of an orange square touches the left edge of a blue square.</p>
+<p>Test passes if the right edge of an blue square is aligned with the left edge of a orange square.</p>
 
 <div>
-   <img id="orange" src="support/swatch-orange.png" width="60" height="60" alt="Image download support must be enabled"><!--
---><img src="support/swatch-blue.png" width="120" height="120" alt="Image download support must be enabled">
+   <img id="blue" src="support/swatch-blue.png" width="60" height="60" alt="Image download support must be enabled"><br><!--
+--><img id="orange" src="support/swatch-orange.png" width="30" height="30" alt="Image download support must be enabled">
 </div>
 
 

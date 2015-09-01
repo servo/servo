@@ -11,17 +11,16 @@
     <style type="text/css"><![CDATA[
     div#rl
     {
-      border-right: blue solid 2em;
       writing-mode: vertical-rl;
       font: 3.75em/3 Ahem; /* computes to 60px/180px */
-      color: white;
+      color: blue;
     }
 
     span#orange
     {
+      font-size: 0.5em;
       color: orange;
       vertical-align: top;
-      line-height: 1;
     }
     ]]></style>
 
@@ -29,7 +28,7 @@
 
   <body>
 
-  <p>Test passes if the right edge of an orange square touches the left edge of a blue square.</p>
+  <p>Test passes if the right edge of an blue square is aligned with the left edge of a orange square.</p>
 
   <div id="rl">A<span id="orange">O</span></div>
 
