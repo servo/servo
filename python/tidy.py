@@ -198,7 +198,7 @@ def check_rust(file_name, contents):
         # get rid of attributes that do not contain =
         line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
-        match = re.search(r",[A-Za-z0-9]", line)
+        match = re.search(r",[^\s]", line)
         if match:
             yield (idx + 1, "missing space after ,")
 
