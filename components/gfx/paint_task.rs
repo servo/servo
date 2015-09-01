@@ -20,7 +20,7 @@ use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
-use msg::compositor_msg::{LayerProperties, PaintListener, ScrollPolicy};
+use msg::compositor_msg::{LayerProperties, PaintListener};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::PipelineExitType;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -41,24 +41,34 @@ use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
     /// The color of the background in this layer. Used for unpainted content.
     pub background_color: Color,
-    /// The scrolling policy of this layer.
-    pub scroll_policy: ScrollPolicy,
+    /// The stacking context that represents the content of this layer.
+    pub stacking_context: Arc<StackingContext>,
 }
 
 impl PaintLayer {
     /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> PaintLayer {
+    pub fn new(id: LayerId, background_color: Color, stacking_context: Arc<StackingContext>) -> PaintLayer {
         PaintLayer {
             id: id,
             background_color: background_color,
-            scroll_policy: scroll_policy,
+            stacking_context: stacking_context,
         }
+    }
+
+    pub fn find_stacking_context_with_layer_id(&self,
+                                               layer_id: LayerId)
+                                               -> Option<Arc<StackingContext>> {
+        if self.id == layer_id {
+            return Some(self.stacking_context.clone());
+        }
+
+        display_list::find_stacking_context_with_layer_id(&self.stacking_context, layer_id)
     }
 }
 
@@ -77,7 +87,7 @@ pub enum Msg {
 
 #[derive(Deserialize, Serialize)]
 pub enum LayoutToPaintMsg {
-    PaintInit(Epoch, Arc<StackingContext>),
+    PaintInit(Epoch, PaintLayer),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
     Exit(Option<IpcSender<()>>, PipelineExitType),
 }
@@ -101,8 +111,8 @@ pub struct PaintTask<C> {
     /// A channel to the time profiler.
     time_profiler_chan: time::ProfilerChan,
 
-    /// The root stacking context sent to us by the layout thread.
-    root_stacking_context: Option<Arc<StackingContext>>,
+    /// The root paint layer sent to us by the layout thread.
+    root_paint_layer: Option<PaintLayer>,
 
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
@@ -159,7 +169,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
-                    root_stacking_context: None,
+                    root_paint_layer: None,
                     paint_permission: false,
                     current_epoch: None,
                     worker_threads: worker_threads,
@@ -205,9 +215,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             };
 
             match message {
-                Msg::FromLayout(LayoutToPaintMsg::PaintInit(epoch, stacking_context)) => {
+                Msg::FromLayout(LayoutToPaintMsg::PaintInit(epoch, paint_layer)) => {
                     self.current_epoch = Some(epoch);
-                    self.root_stacking_context = Some(stacking_context.clone());
+                    self.root_paint_layer = Some(paint_layer);
 
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
@@ -253,7 +263,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 Msg::FromChrome(ChromeToPaintMsg::PaintPermissionGranted) => {
                     self.paint_permission = true;
 
-                    if self.root_stacking_context.is_some() {
+                    if self.root_paint_layer.is_some() {
                         self.initialize_layers();
                     }
                 }
@@ -286,10 +296,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               layer_id: LayerId,
               layer_kind: LayerKind) {
         time::profile(time::ProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
-            // Bail out if there is no appropriate stacking context.
-            let stacking_context = if let Some(ref stacking_context) = self.root_stacking_context {
-                match display_list::find_stacking_context_with_layer_id(stacking_context,
-                                                                        layer_id) {
+            // Bail out if there is no appropriate layer.
+            let stacking_context = if let Some(ref paint_layer) = self.root_paint_layer {
+                match paint_layer.find_stacking_context_with_layer_id(layer_id) {
                     Some(stacking_context) => stacking_context,
                     None => return,
                 }
@@ -322,84 +331,105 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
     }
 
     fn initialize_layers(&mut self) {
-        let root_stacking_context = match self.root_stacking_context {
+        let root_paint_layer = match self.root_paint_layer {
             None => return,
-            Some(ref root_stacking_context) => root_stacking_context,
+            Some(ref root_paint_layer) => root_paint_layer,
         };
 
         let mut properties = Vec::new();
-        build(&mut properties,
-              &**root_stacking_context,
-              &ZERO_POINT,
-              &Matrix4::identity(),
-              &Matrix4::identity(),
-              None);
+        build_from_paint_layer(&mut properties,
+                               root_paint_layer,
+                               &ZERO_POINT,
+                               &Matrix4::identity(),
+                               &Matrix4::identity(),
+                               None);
         self.compositor.initialize_layers_for_pipeline(self.id,
                                                        properties,
                                                        self.current_epoch.unwrap());
 
-        fn build(properties: &mut Vec<LayerProperties>,
-                 stacking_context: &StackingContext,
-                 page_position: &Point2D<Au>,
-                 transform: &Matrix4,
-                 perspective: &Matrix4,
-                 parent_id: Option<LayerId>) {
-            let transform = transform.mul(&stacking_context.transform);
-            let perspective = perspective.mul(&stacking_context.perspective);
+        fn build_from_paint_layer(properties: &mut Vec<LayerProperties>,
+                                  paint_layer: &PaintLayer,
+                                  page_position: &Point2D<Au>,
+                                  transform: &Matrix4,
+                                  perspective: &Matrix4,
+                                  parent_id: Option<LayerId>) {
+            let transform = transform.mul(&paint_layer.stacking_context.transform);
+            let perspective = perspective.mul(&paint_layer.stacking_context.perspective);
 
-            let (next_parent_id, page_position, transform, perspective) =
-                match stacking_context.layer {
-                Some(ref paint_layer) => {
-                    let overflow_size =
-                        Size2D::new(stacking_context.overflow.size.width.to_nearest_px() as f32,
-                                    stacking_context.overflow.size.height.to_nearest_px() as f32);
-                    let establishes_3d_context = stacking_context.establishes_3d_context;
-                    let scrolls_overflow_area = stacking_context.scrolls_overflow_area;
+            let overflow_size =
+                Size2D::new(paint_layer.stacking_context.overflow.size.width.to_nearest_px() as f32,
+                            paint_layer.stacking_context.overflow.size.height.to_nearest_px() as f32);
 
-                    // Layers start at the top left of their overflow rect, as far as the info
-                    // we give to the compositor is concerned.
-                    let overflow_relative_page_position = *page_position +
-                                                          stacking_context.bounds.origin +
-                                                          stacking_context.overflow.origin;
-                    let layer_position = Rect::new(
-                        Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
-                                     overflow_relative_page_position.y.to_nearest_px() as f32),
-                        overflow_size);
+            // Layers start at the top left of their overflow rect, as far as the info
+            // we give to the compositor is concerned.
+            let overflow_relative_page_position = *page_position +
+                                                  paint_layer.stacking_context.bounds.origin +
+                                                  paint_layer.stacking_context.overflow.origin;
+            let layer_position = Rect::new(
+                Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
+                             overflow_relative_page_position.y.to_nearest_px() as f32),
+                overflow_size);
 
-                    properties.push(LayerProperties {
-                        id: paint_layer.id,
-                        parent_id: parent_id,
-                        rect: layer_position,
-                        background_color: paint_layer.background_color,
-                        scroll_policy: paint_layer.scroll_policy,
-                        transform: transform,
-                        perspective: perspective,
-                        establishes_3d_context: establishes_3d_context,
-                        scrolls_overflow_area: scrolls_overflow_area,
-                    });
+            properties.push(LayerProperties {
+                id: paint_layer.id,
+                parent_id: parent_id,
+                rect: layer_position,
+                background_color: paint_layer.background_color,
+                scroll_policy: paint_layer.stacking_context.scroll_policy,
+                transform: transform,
+                perspective: perspective,
+                establishes_3d_context: paint_layer.stacking_context.establishes_3d_context,
+                scrolls_overflow_area: paint_layer.stacking_context.scrolls_overflow_area,
+            });
 
-                    // When there is a new layer, the transforms and origin
-                    // are handled by the compositor.
-                    (Some(paint_layer.id),
-                     -stacking_context.overflow.origin,
-                     Matrix4::identity(),
-                     Matrix4::identity())
-                }
-                None => {
-                    (parent_id,
-                     stacking_context.bounds.origin + *page_position,
-                     transform,
-                     perspective)
-                }
-            };
+            // When there is a new layer, the transforms and origin are handled by the compositor,
+            // so the new transform and perspective matrices are just the identity.
+            continue_walking_stacking_context(properties,
+                                              &paint_layer.stacking_context,
+                                              &-paint_layer.stacking_context.overflow.origin,
+                                              &Matrix4::identity(),
+                                              &Matrix4::identity(),
+                                              Some(paint_layer.id));
+        }
 
+        fn build_from_stacking_context(properties: &mut Vec<LayerProperties>,
+                                       stacking_context: &Arc<StackingContext>,
+                                       page_position: &Point2D<Au>,
+                                       transform: &Matrix4,
+                                       perspective: &Matrix4,
+                                       parent_id: Option<LayerId>) {
+            continue_walking_stacking_context(properties,
+                                              stacking_context,
+                                              &(stacking_context.bounds.origin + *page_position),
+                                              &transform.mul(&stacking_context.transform),
+                                              &perspective.mul(&stacking_context.perspective),
+                                              parent_id);
+        }
+
+        fn continue_walking_stacking_context(properties: &mut Vec<LayerProperties>,
+                                             stacking_context: &Arc<StackingContext>,
+                                             page_position: &Point2D<Au>,
+                                             transform: &Matrix4,
+                                             perspective: &Matrix4,
+                                             parent_id: Option<LayerId>) {
             for kid in stacking_context.display_list.children.iter() {
-                build(properties, &**kid, &page_position, &transform, &perspective, next_parent_id)
+                build_from_stacking_context(properties,
+                                            &kid,
+                                            &page_position,
+                                            &transform,
+                                            &perspective,
+                                            parent_id)
             }
 
             for kid in stacking_context.display_list.layered_children.iter() {
-                build(properties, &**kid, &page_position, &transform, &perspective, next_parent_id)
+                build_from_paint_layer(properties,
+                                       &kid,
+                                       &page_position,
+                                       &transform,
+                                       &perspective,
+                                       parent_id)
             }
+
         }
     }
 }
