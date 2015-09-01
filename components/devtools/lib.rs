@@ -11,12 +11,8 @@
 #![crate_type = "rlib"]
 
 #![feature(box_syntax)]
-#![feature(core)]
 #![feature(custom_derive)]
-#![feature(get_type_id)]
 #![feature(plugin)]
-#![feature(raw)]
-#![feature(reflect_marker)]
 #![plugin(serde_macros)]
 
 #![allow(non_snake_case)]
@@ -25,7 +21,6 @@
 #[macro_use]
 extern crate log;
 
-extern crate core;
 extern crate devtools_traits;
 extern crate rustc_serialize;
 extern crate ipc_channel;
