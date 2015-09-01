@@ -11,32 +11,52 @@ use dom::webglobject::WebGLObject;
 
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 
+use angle::hl::{BuiltInResources, Output, ShaderValidator};
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError, WebGLShaderParameter};
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::cell::RefCell;
+use std::sync::{Once, ONCE_INIT};
+
+#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+pub enum ShaderCompilationStatus {
+    NotCompiled,
+    Succeeded,
+    Failed,
+}
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
     gl_type: u32,
     source: RefCell<Option<String>>,
+    info_log: RefCell<Option<String>>,
     is_deleted: Cell<bool>,
-    // TODO(ecoal95): Evaluate moving this to `WebGLObject`
+    compilation_status: Cell<ShaderCompilationStatus>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
 
+#[cfg(not(target_os = "android"))]
+const SHADER_OUTPUT_FORMAT: Output = Output::Glsl;
+
+#[cfg(target_os = "android")]
+const SHADER_OUTPUT_FORMAT: Output = Output::Essl;
+
+static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
+
 impl WebGLShader {
     fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32, shader_type: u32) -> WebGLShader {
+        GLSLANG_INITIALIZATION.call_once(|| ::angle::hl::initialize().unwrap());
         WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             gl_type: shader_type,
             source: RefCell::new(None),
+            info_log: RefCell::new(None),
             is_deleted: Cell::new(false),
+            compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
             renderer: renderer,
         }
     }
@@ -60,35 +80,48 @@ impl WebGLShader {
     }
 }
 
-pub trait WebGLShaderHelpers {
-    fn id(self) -> u32;
-    fn gl_type(self) -> u32;
-    fn compile(self);
-    fn delete(self);
-    fn info_log(self) -> Option<String>;
-    fn parameter(self, param_id: u32) -> WebGLResult<WebGLShaderParameter>;
-    fn source(self) -> Option<String>;
-    fn set_source(self, src: String);
-}
 
-impl<'a> WebGLShaderHelpers for &'a WebGLShader {
-    fn id(self) -> u32 {
+impl WebGLShader {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
-    fn gl_type(self) -> u32 {
+    pub fn gl_type(&self) -> u32 {
         self.gl_type
     }
 
-    // TODO(ecoal95): Validate shaders to be conforming to the WebGL spec
     /// glCompileShader
-    fn compile(self) {
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CompileShader(self.id))).unwrap()
+    pub fn compile(&self) {
+        if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
+            debug!("Compiling already compiled shader {}", self.id);
+        }
+
+        if let Some(ref source) = *self.source.borrow() {
+            let validator = ShaderValidator::for_webgl(self.gl_type,
+                                                       SHADER_OUTPUT_FORMAT,
+                                                       &BuiltInResources::default()).unwrap();
+            match validator.compile_and_translate(&[source.as_bytes()]) {
+                Ok(translated_source) => {
+                    // NOTE: At this point we should be pretty sure that the compilation in the paint task
+                    // will succeed.
+                    // It could be interesting to retrieve the info log from the paint task though
+                    let msg = CanvasWebGLMsg::CompileShader(self.id, translated_source);
+                    self.renderer.send(CanvasMsg::WebGL(msg)).unwrap();
+                    self.compilation_status.set(ShaderCompilationStatus::Succeeded);
+                },
+                Err(error) => {
+                    self.compilation_status.set(ShaderCompilationStatus::Failed);
+                    debug!("Shader {} compilation failed: {}", self.id, error);
+                },
+            }
+
+            *self.info_log.borrow_mut() = Some(validator.info_log());
+        }
     }
 
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id))).unwrap()
@@ -96,14 +129,12 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     }
 
     /// glGetShaderInfoLog
-    fn info_log(self) -> Option<String> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderInfoLog(self.id, sender))).unwrap();
-        receiver.recv().unwrap()
+    pub fn info_log(&self) -> Option<String> {
+        self.info_log.borrow().clone()
     }
 
     /// glGetShaderParameter
-    fn parameter(self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
+    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLShaderParameter> {
         match param_id {
             constants::SHADER_TYPE | constants::DELETE_STATUS | constants::COMPILE_STATUS => {},
             _ => return Err(WebGLError::InvalidEnum),
@@ -115,14 +146,12 @@ impl<'a> WebGLShaderHelpers for &'a WebGLShader {
     }
 
     /// Get the shader source
-    fn source(self) -> Option<String> {
+    pub fn source(&self) -> Option<String> {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    fn set_source(self, source: String) {
-        *self.source.borrow_mut() = Some(source.clone());
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ShaderSource(self.id, source))).unwrap()
+    pub fn set_source(&self, source: String) {
+        *self.source.borrow_mut() = Some(source);
     }
 }
-

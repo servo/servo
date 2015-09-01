@@ -14,7 +14,6 @@ use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ProgressEvent {
     event: Event,
     length_computable: bool,
@@ -53,29 +52,28 @@ impl ProgressEvent {
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Root<ProgressEvent>> {
-        let bubbles = if init.parent.bubbles {EventBubbles::Bubbles} else {EventBubbles::DoesNotBubble};
-        let cancelable = if init.parent.cancelable {EventCancelable::Cancelable}
-                         else {EventCancelable::NotCancelable};
+        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable }
+                         else { EventCancelable::NotCancelable };
         let ev = ProgressEvent::new(global, type_, bubbles, cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
 }
 
-impl<'a> ProgressEventMethods for &'a ProgressEvent {
+impl ProgressEventMethods for ProgressEvent {
     // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
-    fn LengthComputable(self) -> bool {
+    fn LengthComputable(&self) -> bool {
         self.length_computable
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-loaded
-    fn Loaded(self) -> u64 {
+    fn Loaded(&self) -> u64 {
         self.loaded
     }
 
     // https://xhr.spec.whatwg.org/#dom-progressevent-total
-    fn Total(self) -> u64 {
+    fn Total(&self) -> u64 {
         self.total
     }
 }
-

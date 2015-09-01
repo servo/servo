@@ -13,12 +13,12 @@
 
 #![deny(unsafe_code)]
 
-use block::{BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use block::{BlockFlow, FloatNonReplaced, AbsoluteNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
-use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, OpaqueFlow};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -224,6 +224,26 @@ impl TableWrapperFlow {
         let border_collapse = self.block_flow.fragment.style.get_inheritedtable().border_collapse;
         if self.block_flow.base.flags.is_float() {
             let inline_size_computer = FloatedTable {
+                minimum_width_of_all_columns: minimum_width_of_all_columns,
+                preferred_width_of_all_columns: preferred_width_of_all_columns,
+                border_collapse: border_collapse,
+            };
+            let input =
+                inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
+                                                                           parent_flow_inline_size,
+                                                                           layout_context);
+
+            let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
+                                                                              &input);
+            inline_size_computer.set_inline_size_constraint_solutions(&mut self.block_flow,
+                                                                      solution);
+            inline_size_computer.set_inline_position_of_flow_if_necessary(&mut self.block_flow,
+                                                                          solution);
+            return
+        }
+
+        if !self.block_flow.base.flags.contains(INLINE_POSITION_IS_STATIC) {
+            let inline_size_computer = AbsoluteTable {
                 minimum_width_of_all_columns: minimum_width_of_all_columns,
                 preferred_width_of_all_columns: preferred_width_of_all_columns,
                 border_collapse: border_collapse,
@@ -791,3 +811,54 @@ impl ISizeAndMarginsComputer for FloatedTable {
         FloatNonReplaced.solve_inline_size_constraints(block, input)
     }
 }
+
+struct AbsoluteTable {
+    minimum_width_of_all_columns: Au,
+    preferred_width_of_all_columns: Au,
+    border_collapse: border_collapse::T,
+}
+
+impl ISizeAndMarginsComputer for AbsoluteTable {
+    fn compute_border_and_padding(&self, block: &mut BlockFlow, containing_block_inline_size: Au) {
+        block.fragment.compute_border_and_padding(containing_block_inline_size,
+                                                  self.border_collapse)
+    }
+
+    fn initial_computed_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    layout_context: &LayoutContext)
+                                    -> MaybeAuto {
+        let containing_block_inline_size =
+            self.containing_block_inline_size(block,
+                                              parent_flow_inline_size,
+                                              layout_context);
+        initial_computed_inline_size(block,
+                                     containing_block_inline_size,
+                                     self.minimum_width_of_all_columns,
+                                     self.preferred_width_of_all_columns)
+    }
+
+    fn containing_block_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    layout_context: &LayoutContext)
+                                    -> Au {
+        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, layout_context)
+    }
+
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        AbsoluteNonReplaced.solve_inline_size_constraints(block, input)
+    }
+
+    fn set_inline_position_of_flow_if_necessary(&self,
+                                                block: &mut BlockFlow,
+                                                solution: ISizeConstraintSolution) {
+        AbsoluteNonReplaced.set_inline_position_of_flow_if_necessary(block, solution);
+    }
+
+}
+

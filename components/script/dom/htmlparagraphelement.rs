@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLParagraphElement {
     htmlelement: HTMLElement
 }
@@ -44,4 +43,3 @@ impl HTMLParagraphElement {
         Node::reflect_node(box element, document, HTMLParagraphElementBinding::Wrap)
     }
 }
-

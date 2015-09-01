@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
@@ -19,7 +19,6 @@ use cssparser::RGBA;
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
     color: Cell<Option<RGBA>>,
@@ -50,14 +49,17 @@ impl HTMLFontElement {
     }
 }
 
-impl<'a> HTMLFontElementMethods for &'a HTMLFontElement {
+impl HTMLFontElementMethods for HTMLFontElement {
+    // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_getter!(Color, "color");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_setter!(SetColor, "color");
 }
 
-impl<'a> VirtualMethods for &'a HTMLFontElement {
+impl VirtualMethods for HTMLFontElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -86,13 +88,9 @@ impl<'a> VirtualMethods for &'a HTMLFontElement {
     }
 }
 
-pub trait HTMLFontElementHelpers {
-    fn get_color(&self) -> Option<RGBA>;
-}
 
-impl HTMLFontElementHelpers for HTMLFontElement {
-    fn get_color(&self) -> Option<RGBA> {
+impl HTMLFontElement {
+    pub fn get_color(&self) -> Option<RGBA> {
         self.color.get()
     }
 }
-

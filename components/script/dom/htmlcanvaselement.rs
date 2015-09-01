@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -15,7 +14,6 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, HeapGCValue, Root};
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::AttributeHandlers;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -47,7 +45,6 @@ pub enum CanvasContext {
 impl HeapGCValue for CanvasContext {}
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: MutNullableHeap<CanvasContext>,
@@ -154,17 +151,9 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     }
 }
 
-pub trait HTMLCanvasElementHelpers {
-    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>>;
-    fn get_or_init_webgl_context(self,
-                                 cx: *mut JSContext,
-                                 attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>>;
 
-    fn is_valid(self) -> bool;
-}
-
-impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
-    fn get_or_init_2d_context(self) -> Option<Root<CanvasRenderingContext2D>> {
+impl HTMLCanvasElement {
+    pub fn get_or_init_2d_context(&self) -> Option<Root<CanvasRenderingContext2D>> {
         if self.context.get().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
@@ -178,7 +167,7 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
         }
     }
 
-    fn get_or_init_webgl_context(self,
+    pub fn get_or_init_webgl_context(&self,
                                  cx: *mut JSContext,
                                  attrs: Option<HandleValue>) -> Option<Root<WebGLRenderingContext>> {
         if self.context.get().is_none() {
@@ -211,36 +200,36 @@ impl<'a> HTMLCanvasElementHelpers for &'a HTMLCanvasElement {
         }
     }
 
-    fn is_valid(self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.height.get() != 0 && self.width.get() != 0
     }
 }
 
-impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
+impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn Width(self) -> u32 {
+    fn Width(&self) -> u32 {
         self.width.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn SetWidth(self, width: u32) {
+    fn SetWidth(&self, width: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn Height(self) -> u32 {
+    fn Height(&self) -> u32 {
         self.height.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn SetHeight(self, height: u32) {
+    fn SetHeight(&self, height: u32) {
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
-    fn GetContext(self,
+    fn GetContext(&self,
                   cx: *mut JSContext,
                   id: DOMString,
                   attributes: Vec<HandleValue>)
@@ -261,9 +250,9 @@ impl<'a> HTMLCanvasElementMethods for &'a HTMLCanvasElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLCanvasElement {
+impl VirtualMethods for HTMLCanvasElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let element: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 
@@ -340,4 +329,3 @@ pub mod utils {
         result.image_response
     }
 }
-

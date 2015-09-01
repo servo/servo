@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::node::{ChildrenMutation, Node, NodeHelpers};
+use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 
 use std::cell::Cell;
@@ -22,7 +22,6 @@ pub enum NodeListType {
 
 // https://dom.spec.whatwg.org/#interface-nodelist
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NodeList {
     reflector_: Reflector,
     list_type: NodeListType,
@@ -53,9 +52,9 @@ impl NodeList {
     }
 }
 
-impl<'a> NodeListMethods for &'a NodeList {
+impl NodeListMethods for NodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref list) => list.len(),
@@ -63,7 +62,7 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn Item(self, index: u32) -> Option<Root<Node>> {
+    fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
                 elems.get(index as usize).map(|node| Root::from_rooted(*node))
@@ -73,19 +72,16 @@ impl<'a> NodeListMethods for &'a NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Node>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Node>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
     }
 }
 
-pub trait NodeListHelpers<'a> {
-    fn as_children_list(self) -> &'a ChildrenList;
-}
 
-impl<'a> NodeListHelpers<'a> for &'a NodeList {
-    fn as_children_list(self) -> &'a ChildrenList {
+impl NodeList {
+    pub fn as_children_list(&self) -> &ChildrenList {
         if let NodeListType::Children(ref list) = self.list_type {
             list
         } else {
@@ -219,7 +215,10 @@ impl ChildrenList {
                     },
                 };
                 list.last_visited.set(Some(JS::from_ref(visited)));
-            } else {
+            } else if added.len() != 1 {
+                // The replaced child isn't the last visited one, and there are
+                // 0 or more than 1 nodes to replace it. Special care must be
+                // given to update the state of that ChildrenList.
                 match (prev, next) {
                     (Some(_), None) => {},
                     (None, Some(next)) => {

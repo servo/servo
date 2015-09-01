@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
 use dom::bindings::js::Root;
@@ -18,7 +18,6 @@ use std::cell::Cell;
 use util::str::{self, DOMString};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
@@ -51,22 +50,15 @@ impl HTMLTableRowElement {
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
-}
 
-
-pub trait HTMLTableRowElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-}
-
-impl<'a> HTMLTableRowElementHelpers for &'a HTMLTableRowElement {
-    fn get_background_color(self) -> Option<RGBA> {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTableRowElement {
+impl VirtualMethods for HTMLTableRowElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 

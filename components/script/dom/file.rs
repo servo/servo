@@ -11,7 +11,6 @@ use dom::blob::{Blob, BlobTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct File {
     blob: Blob,
     name: DOMString,
@@ -40,10 +39,9 @@ impl File {
     }
 }
 
-impl<'a> FileMethods for &'a File {
+impl FileMethods for File {
     // https://w3c.github.io/FileAPI/#dfn-name
-    fn Name(self) -> DOMString {
+    fn Name(&self) -> DOMString {
         self.name.clone()
     }
 }
-

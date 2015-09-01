@@ -4,7 +4,6 @@
 
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
-use dom::attr::AttrHelpers;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -15,16 +14,14 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
-use dom::event::{EventBubbles, EventCancelable, Event, EventHelpers};
+use dom::element::{Element, ElementTypeId};
+use dom::event::{EventBubbles, EventCancelable, Event};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -39,7 +36,6 @@ use string_cache::Atom;
 use url::UrlParser;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
@@ -101,9 +97,9 @@ fn is_favicon(value: &Option<String>) -> bool {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLLinkElement {
+impl VirtualMethods for HTMLLinkElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -112,12 +108,12 @@ impl<'a> VirtualMethods for &'a HTMLLinkElement {
             s.after_set_attr(attr);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if !node.is_in_doc() {
             return;
         }
 
-        let element = ElementCast::from_ref(*self);
+        let element = ElementCast::from_ref(self);
         let rel = get_attr(element, &atom!("rel"));
 
         match (rel, attr.local_name()) {
@@ -150,7 +146,7 @@ impl<'a> VirtualMethods for &'a HTMLLinkElement {
         }
 
         if tree_in_doc {
-            let element = ElementCast::from_ref(*self);
+            let element = ElementCast::from_ref(self);
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
@@ -168,13 +164,9 @@ impl<'a> VirtualMethods for &'a HTMLLinkElement {
     }
 }
 
-trait PrivateHTMLLinkElementHelpers {
-    fn handle_stylesheet_url(self, href: &str);
-    fn handle_favicon_url(self, href: &str);
-}
 
-impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
-    fn handle_stylesheet_url(self, href: &str) {
+impl HTMLLinkElement {
+    fn handle_stylesheet_url(&self, href: &str) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
@@ -202,7 +194,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
         }
     }
 
-    fn handle_favicon_url(self, href: &str) {
+    fn handle_favicon_url(&self, href: &str) {
         let window = window_from_node(self);
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
@@ -216,24 +208,39 @@ impl<'a> PrivateHTMLLinkElementHelpers for &'a HTMLLinkElement {
     }
 }
 
-impl<'a> HTMLLinkElementMethods for &'a HTMLLinkElement {
+impl HTMLLinkElementMethods for HTMLLinkElement {
+    // https://html.spec.whatwg.org/multipage/#dom-link-href
     make_url_getter!(Href);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-href
     make_setter!(SetHref, "href");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_getter!(Rel);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-rel
     make_setter!(SetRel, "rel");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_getter!(Media);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_setter!(SetMedia, "media");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
     make_getter!(Hreflang);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
     make_setter!(SetHreflang, "hreflang");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_getter!(Type);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(self) -> Root<DOMTokenList> {
+    fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })

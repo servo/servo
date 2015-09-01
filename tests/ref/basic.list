@@ -12,6 +12,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == abs_rel_explicit_height.html abs_rel_explicit_height_ref.html
 == absolute_hypothetical_with_intervening_inline_block_a.html absolute_hypothetical_with_intervening_inline_block_ref.html
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
+== absolute_table.html absolute_table_ref.html
 == absolute_z_index_auto_paint_order_a.html absolute_z_index_auto_paint_order_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
@@ -61,6 +62,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_code_tag.html border_code_tag_ref.html
 == border_collapse_missing_cell_a.html border_collapse_missing_cell_ref.html
 == border_collapse_simple_a.html border_collapse_simple_ref.html
+== border_radius_asymmetric_sizes_a.html border_radius_asymmetric_sizes_ref.html
 == border_radius_clip_a.html border_radius_clip_ref.html
 != border_radius_dashed_a.html border_radius_dashed_ref.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
@@ -99,8 +101,8 @@ flaky_cpu == append_style_a.html append_style_b.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
 == first_of_type_pseudo_a.html first_of_type_pseudo_b.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
-experimental == flex_column_direction.html flex_column_direction_ref.html
-experimental == flex_row_direction.html flex_row_direction_ref.html
+prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
+prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
 == float_clearance_a.html float_clearance_ref.html
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
@@ -139,7 +141,7 @@ experimental == flex_row_direction.html flex_row_direction_ref.html
 == iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
 == iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
 == iframe/size_attributes.html iframe/size_attributes_ref.html
-experimental == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
+prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_mode.html iframe/size_attributes_vertical_writing_mode_ref.html
 == iframe/stacking_context.html iframe/stacking_context_ref.html
 
 != image_rendering_auto_a.html image_rendering_pixelated_a.html
@@ -358,7 +360,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == transform_simple_a.html transform_simple_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
-flaky_cpu,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
+flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_inline_block_a.html vertical_align_inline_block_ref.html
 == vertical_align_inside_table_a.html vertical_align_inside_table_ref.html
@@ -374,7 +376,7 @@ resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmi
 # resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
-experimental == viewport_rule.html viewport_rule_ref.html
+prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
 == visibility_hidden.html visibility_hidden_ref.html
 
 == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html

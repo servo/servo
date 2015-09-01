@@ -9,8 +9,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers, ElementHelpers};
-use dom::node::{Node, NodeHelpers, TreeIterator};
+use dom::element::Element;
+use dom::node::{Node, TreeIterator};
 use dom::window::Window;
 use util::str::{DOMString, split_html_space_chars};
 
@@ -26,7 +26,6 @@ pub trait CollectionFilter : JSTraceable {
 pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLCollection {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
@@ -45,9 +44,7 @@ impl HTMLCollection {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
     }
-}
 
-impl HTMLCollection {
     pub fn create(window: &Window, root: &Node,
                   filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
         HTMLCollection::new(window, Collection(JS::from_ref(root), filter))
@@ -67,7 +64,7 @@ impl HTMLCollection {
                 }
             }
         }
-        let filter = AllElementFilter {namespace_filter: namespace_filter};
+        let filter = AllElementFilter { namespace_filter: namespace_filter };
         HTMLCollection::create(window, root, box filter)
     }
 
@@ -193,19 +190,19 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
     }
 }
 
-impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
+impl HTMLCollectionMethods for HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         self.elements_iter().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn Item(self, index: u32) -> Option<Root<Element>> {
+    fn Item(&self, index: u32) -> Option<Root<Element>> {
         self.elements_iter().nth(index as usize)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
-    fn NamedItem(self, key: DOMString) -> Option<Root<Element>> {
+    fn NamedItem(&self, key: DOMString) -> Option<Root<Element>> {
         // Step 1.
         if key.is_empty() {
             return None;
@@ -219,21 +216,21 @@ impl<'a> HTMLCollectionMethods for &'a HTMLCollection {
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.Item(index);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Root<Element>> {
         let maybe_elem = self.NamedItem(name);
         *found = maybe_elem.is_some();
         maybe_elem
     }
 
     // https://dom.spec.whatwg.org/#interface-htmlcollection
-    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // Step 1
         let mut result = vec![];
 

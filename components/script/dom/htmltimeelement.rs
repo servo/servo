@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTimeElement {
     htmlelement: HTMLElement
 }
@@ -41,4 +40,3 @@ impl HTMLTimeElement {
         Node::reflect_node(box element, document, HTMLTimeElementBinding::Wrap)
     }
 }
-

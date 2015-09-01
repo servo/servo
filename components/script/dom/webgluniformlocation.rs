@@ -9,7 +9,6 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
@@ -28,12 +27,9 @@ impl WebGLUniformLocation {
     }
 }
 
-pub trait WebGLUniformLocationHelpers {
-    fn id(self) -> i32;
-}
 
-impl<'a> WebGLUniformLocationHelpers for &'a WebGLUniformLocation {
-    fn id(self) -> i32 {
+impl WebGLUniformLocation {
+    pub fn id(&self) -> i32 {
         self.id
     }
 }

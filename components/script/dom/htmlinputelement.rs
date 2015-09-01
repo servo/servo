@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
-use dom::attr::AttrHelpers;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -16,20 +15,17 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
-use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, Element};
-use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::document::Document;
+use dom::element::{Element, ElementTypeId, RawLayoutElementHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement, HTMLFormElementHelpers};
+use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement};
 use dom::htmlformelement::{SubmittedFrom, ResetFrom};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
+use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use msg::constellation_msg::ConstellationChan;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
@@ -60,7 +56,6 @@ enum InputType {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
@@ -221,7 +216,7 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     }
 }
 
-impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
+impl HTMLInputElementMethods for HTMLInputElement {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
@@ -235,12 +230,12 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_bool_setter!(SetDefaultChecked, "checked");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
-    fn Checked(self) -> bool {
+    fn Checked(&self) -> bool {
         self.checked.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
-    fn SetChecked(self, checked: bool) {
+    fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
     }
 
@@ -252,6 +247,8 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_uint_getter!(Size, "size", DEFAULT_INPUT_SIZE);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-size
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
@@ -267,12 +264,12 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
         self.force_relayout();
@@ -322,26 +319,16 @@ impl<'a> HTMLInputElementMethods for &'a HTMLInputElement {
     make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
-    fn Indeterminate(self) -> bool {
+    fn Indeterminate(&self) -> bool {
         self.indeterminate.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
-    fn SetIndeterminate(self, val: bool) {
+    fn SetIndeterminate(&self, val: bool) {
         self.indeterminate.set(val)
     }
 }
 
-pub trait HTMLInputElementHelpers {
-    fn force_relayout(self);
-    fn radio_group_updated(self, group: Option<&str>);
-    fn get_radio_group_name(self) -> Option<String>;
-    fn update_checked_state(self, checked: bool, dirty: bool);
-    fn get_size(self) -> u32;
-    fn get_indeterminate_state(self) -> bool;
-    fn mutable(self) -> bool;
-    fn reset(self);
-}
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) {
@@ -385,27 +372,27 @@ fn in_same_group<'a,'b>(other: &'a HTMLInputElement,
     }
 }
 
-impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
-    fn force_relayout(self) {
+impl HTMLInputElement {
+    pub fn force_relayout(&self) {
         let doc = document_from_node(self);
         let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
-    fn radio_group_updated(self, group: Option<&str>) {
+    pub fn radio_group_updated(&self, group: Option<&str>) {
         if self.Checked() {
             broadcast_radio_checked(self, group);
         }
     }
 
-    fn get_radio_group_name(self) -> Option<String> {
+    pub fn get_radio_group_name(&self) -> Option<String> {
         //TODO: determine form owner
         let elem = ElementCast::from_ref(self);
         elem.get_attribute(&ns!(""), &atom!("name"))
             .map(|name| name.r().Value())
     }
 
-    fn update_checked_state(self, checked: bool, dirty: bool) {
+    pub fn update_checked_state(&self, checked: bool, dirty: bool) {
         self.checked.set(checked);
 
         if dirty {
@@ -423,16 +410,16 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
         //TODO: dispatch change event
     }
 
-    fn get_size(self) -> u32 {
+    pub fn get_size(&self) -> u32 {
         self.size.get()
     }
 
-    fn get_indeterminate_state(self) -> bool {
+    pub fn get_indeterminate_state(&self) -> bool {
         self.indeterminate.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    fn mutable(self) -> bool {
+    pub fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         let node = NodeCast::from_ref(self);
@@ -440,7 +427,7 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    fn reset(self) {
+    pub fn reset(&self) {
         match self.input_type.get() {
             InputType::InputRadio | InputType::InputCheckbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
@@ -456,9 +443,9 @@ impl<'a> HTMLInputElementHelpers for &'a HTMLInputElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLInputElement {
+impl VirtualMethods for HTMLInputElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -469,7 +456,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             }
@@ -532,7 +519,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -548,7 +535,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             }
             &atom!("type") => {
                 if self.input_type.get() == InputType::InputRadio {
-                    broadcast_radio_checked(*self,
+                    broadcast_radio_checked(self,
                                             self.get_radio_group_name()
                                                 .as_ref()
                                                 .map(|group| &**group));
@@ -584,7 +571,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -593,7 +580,7 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -617,8 +604,8 @@ impl<'a> VirtualMethods for &'a HTMLInputElement {
 
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(*self);
-            doc.r().request_focus(ElementCast::from_ref(*self));
+            let doc = document_from_node(self);
+            doc.r().request_focus(ElementCast::from_ref(self));
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
@@ -652,9 +639,9 @@ impl<'a> FormControl<'a> for &'a HTMLInputElement {
     }
 }
 
-impl<'a> Activatable for &'a HTMLInputElement {
+impl Activatable for HTMLInputElement {
     fn as_element<'b>(&'b self) -> &'b Element {
-        ElementCast::from_ref(*self)
+        ElementCast::from_ref(self)
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -698,7 +685,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
                 InputType::InputRadio => {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner();
-                    let doc = document_from_node(*self);
+                    let doc = document_from_node(self);
                     let doc_node = NodeCast::from_ref(doc.r());
                     let group = self.get_radio_group_name();;
 
@@ -803,19 +790,19 @@ impl<'a> Activatable for &'a HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
-                    let win = window_from_node(*self);
+                    let win = window_from_node(self);
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "input".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(self);
                     event.r().fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = EventTargetCast::from_ref(*self);
+                    let target = EventTargetCast::from_ref(self);
                     event.r().fire(target);
                 }
             },
@@ -826,7 +813,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
-        let doc = document_from_node(*self);
+        let doc = document_from_node(self);
         let node = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
         let form = match owner {
@@ -834,7 +821,7 @@ impl<'a> Activatable for &'a HTMLInputElement {
             Some(ref f) => f
         };
 
-        let elem = ElementCast::from_ref(*self);
+        let elem = ElementCast::from_ref(self);
         if elem.click_in_progress() {
             return;
         }

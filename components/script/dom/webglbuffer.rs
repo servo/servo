@@ -14,7 +14,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLBuffer {
     webgl_object: WebGLObject,
     id: u32,
@@ -50,19 +49,14 @@ impl WebGLBuffer {
     }
 }
 
-pub trait WebGLBufferHelpers {
-    fn id(self) -> u32;
-    fn bind(self, target: u32) -> WebGLResult<()>;
-    fn delete(self);
-}
 
-impl<'a> WebGLBufferHelpers for &'a WebGLBuffer {
-    fn id(self) -> u32 {
+impl WebGLBuffer {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
     // NB: Only valid buffer targets come here
-    fn bind(self, target: u32) -> WebGLResult<()> {
+    pub fn bind(&self, target: u32) -> WebGLResult<()> {
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
@@ -75,7 +69,7 @@ impl<'a> WebGLBufferHelpers for &'a WebGLBuffer {
         Ok(())
     }
 
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteBuffer(self.id))).unwrap();

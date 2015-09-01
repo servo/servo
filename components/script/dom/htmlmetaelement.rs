@@ -14,7 +14,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
 }
@@ -45,7 +44,7 @@ impl HTMLMetaElement {
     }
 }
 
-impl<'a> HTMLMetaElementMethods for &'a HTMLMetaElement {
+impl HTMLMetaElementMethods for HTMLMetaElement {
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
     make_getter!(Name, "name");
 

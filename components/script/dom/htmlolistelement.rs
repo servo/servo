@@ -13,7 +13,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLOListElement {
     htmlelement: HTMLElement,
 }
@@ -43,4 +42,3 @@ impl HTMLOListElement {
         Node::reflect_node(box element, document, HTMLOListElementBinding::Wrap)
     }
 }
-

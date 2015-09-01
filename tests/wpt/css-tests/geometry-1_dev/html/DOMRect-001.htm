@@ -26,13 +26,16 @@
                 { x: 0, y: 0, width: 0, height: 0, top: 0, right: 0, bottom: 0, left: 0 });
         },'testConstructor0');
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMRect(1); });
+            checkDOMRect(new DOMRect(1),
+                { x: 1, y: 0, width: 0, height: 0, top: 0, right: 1, bottom: 0, left: 1 });
         },'testConstructor1');
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMRect(1, 2); });
+            checkDOMRect(new DOMRect(1, 2),
+                { x: 1, y: 2, width: 0, height: 0, top: 2, right: 1, bottom: 2, left: 1 });
         },'testConstructor2');
         test(function() {
-            assert_throws(new TypeError(), function() { new DOMRect(1, 2, 3); });
+            checkDOMRect(new DOMRect(1, 2, 3),
+                { x: 1, y: 2, width: 3, height: 0, top: 2, right: 4, bottom: 2, left: 1 });
         },'testConstructor3');
         test(function() {
             checkDOMRect(new DOMRect(1, 2, 3, 4),

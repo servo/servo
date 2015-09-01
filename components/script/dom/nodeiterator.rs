@@ -12,14 +12,13 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers};
-use dom::node::{Node, NodeHelpers};
+use dom::document::Document;
+use dom::node::Node;
 
 use std::cell::Cell;
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,
@@ -67,19 +66,19 @@ impl NodeIterator {
     }
 }
 
-impl<'a> NodeIteratorMethods for &'a NodeIterator {
+impl NodeIteratorMethods for NodeIterator {
     // https://dom.spec.whatwg.org/#dom-nodeiterator-root
-    fn Root(self) -> Root<Node> {
+    fn Root(&self) -> Root<Node> {
         self.root_node.root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-whattoshow
-    fn WhatToShow(self) -> u32 {
+    fn WhatToShow(&self) -> u32 {
         self.what_to_show
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-filter
-    fn GetFilter(self) -> Option<Rc<NodeFilter>> {
+    fn GetFilter(&self) -> Option<Rc<NodeFilter>> {
         match self.filter {
             Filter::None => None,
             Filter::Callback(ref nf) => Some((*nf).clone()),
@@ -88,17 +87,17 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
-    fn ReferenceNode(self) -> Root<Node> {
+    fn ReferenceNode(&self) -> Root<Node> {
         self.reference_node.get().root()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-pointerbeforereferencenode
-    fn PointerBeforeReferenceNode(self) -> bool {
+    fn PointerBeforeReferenceNode(&self) -> bool {
         self.pointer_before_reference_node.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-nextnode
-    fn NextNode(self) -> Fallible<Option<Root<Node>>> {
+    fn NextNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -142,7 +141,7 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-previousnode
-    fn PreviousNode(self) -> Fallible<Option<Root<Node>>> {
+    fn PreviousNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
         let node = self.reference_node.get().root();
@@ -187,19 +186,15 @@ impl<'a> NodeIteratorMethods for &'a NodeIterator {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-detach
-    fn Detach(self) {
+    fn Detach(&self) {
         // This method intentionally left blank.
     }
 }
 
-trait PrivateNodeIteratorHelpers {
-    fn accept_node(self, node: &Node) -> Fallible<u16>;
-    fn is_root_node(self, node: &Node) -> bool;
-}
 
-impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
+impl NodeIterator {
     // https://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(self, node: &Node) -> Fallible<u16> {
+    fn accept_node(&self, node: &Node) -> Fallible<u16> {
         // Step 1.
         let n = node.NodeType() - 1;
         // Step 2.
@@ -212,10 +207,6 @@ impl<'a> PrivateNodeIteratorHelpers for &'a NodeIterator {
             Filter::Native(f) => Ok((f)(node)),
             Filter::Callback(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
-    }
-
-    fn is_root_node(self, node: &Node) -> bool {
-        JS::from_ref(node) == self.root_node
     }
 }
 

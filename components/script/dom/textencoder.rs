@@ -25,7 +25,6 @@ use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
 use libc::uint8_t;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct TextEncoder {
     reflector_: Reflector,
     encoding: DOMString,
@@ -71,15 +70,15 @@ impl TextEncoder {
     }
 }
 
-impl<'a> TextEncoderMethods for &'a TextEncoder {
+impl TextEncoderMethods for TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
-    fn Encoding(self) -> DOMString {
+    fn Encoding(&self) -> DOMString {
         self.encoding.clone()
     }
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    fn Encode(self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
+    fn Encode(&self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
         unsafe {
             let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
             let length = encoded.len() as u32;

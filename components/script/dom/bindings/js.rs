@@ -207,6 +207,7 @@ impl MutHeapJSVal {
 /// `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
+#[derive(HeapSizeOf)]
 pub struct MutHeap<T: HeapGCValue + Copy> {
     val: Cell<T>,
 }
@@ -431,11 +432,6 @@ impl<T: Reflectable> Root<T> {
     /// outlive the lifetime of this root.
     pub fn r<'a>(&'a self) -> &'a T {
         &**self
-    }
-
-    /// Don't use this. Don't make me find you.
-    pub fn get_unsound_ref_forever<'a, 'b>(&'a self) -> &'b T {
-        unsafe { &**self.ptr }
     }
 
     /// Generate a new root from a JS<T> reference

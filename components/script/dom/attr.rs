@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference, LayoutJS};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 
@@ -111,7 +111,6 @@ impl Deref for AttrValue {
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Attr {
     reflector_: Reflector,
     local_name: Atom,
@@ -163,19 +162,19 @@ impl Attr {
     }
 }
 
-impl<'a> AttrMethods for &'a Attr {
+impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
-    fn LocalName(self) -> DOMString {
+    fn LocalName(&self) -> DOMString {
         (**self.local_name()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         (**self.value()).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(self, value: DOMString) {
+    fn SetValue(&self, value: DOMString) {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
@@ -186,32 +185,32 @@ impl<'a> AttrMethods for &'a Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn TextContent(self) -> DOMString {
+    fn TextContent(&self) -> DOMString {
         self.Value()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-textcontent
-    fn SetTextContent(self, value: DOMString) {
+    fn SetTextContent(&self, value: DOMString) {
         self.SetValue(value)
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn NodeValue(self) -> DOMString {
+    fn NodeValue(&self) -> DOMString {
         self.Value()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-nodevalue
-    fn SetNodeValue(self, value: DOMString) {
+    fn SetNodeValue(&self, value: DOMString) {
         self.SetValue(value)
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-name
-    fn Name(self) -> DOMString {
+    fn Name(&self) -> DOMString {
         (*self.name).to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
-    fn GetNamespaceURI(self) -> Option<DOMString> {
+    fn GetNamespaceURI(&self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match &**atom {
             "" => None,
@@ -220,32 +219,24 @@ impl<'a> AttrMethods for &'a Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
-    fn GetPrefix(self) -> Option<DOMString> {
+    fn GetPrefix(&self) -> Option<DOMString> {
         self.prefix().as_ref().map(|p| (**p).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
-    fn GetOwnerElement(self) -> Option<Root<Element>> {
+    fn GetOwnerElement(&self) -> Option<Root<Element>> {
         self.owner()
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-specified
-    fn Specified(self) -> bool {
+    fn Specified(&self) -> bool {
         true // Always returns true
     }
 }
 
-pub trait AttrHelpers<'a> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element);
-    fn value(self) -> Ref<'a, AttrValue>;
-    fn local_name(self) -> &'a Atom;
-    fn set_owner(self, owner: Option<&Element>);
-    fn owner(self) -> Option<Root<Element>>;
-    fn summarize(self) -> AttrInfo;
-}
 
-impl<'a> AttrHelpers<'a> for &'a Attr {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
+impl Attr {
+    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
 
         let node = NodeCast::from_ref(owner);
@@ -264,17 +255,17 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         }
     }
 
-    fn value(self) -> Ref<'a, AttrValue> {
+    pub fn value(&self) -> Ref<AttrValue> {
         self.value.borrow()
     }
 
-    fn local_name(self) -> &'a Atom {
+    pub fn local_name(&self) -> &Atom {
         &self.local_name
     }
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    fn set_owner(self, owner: Option<&Element>) {
+    pub fn set_owner(&self, owner: Option<&Element>) {
         let ref ns = self.namespace;
         match (self.owner().r(), owner) {
             (None, Some(new)) => {
@@ -290,11 +281,11 @@ impl<'a> AttrHelpers<'a> for &'a Attr {
         self.owner.set(owner.map(JS::from_ref))
     }
 
-    fn owner(self) -> Option<Root<Element>> {
+    pub fn owner(&self) -> Option<Root<Element>> {
         self.owner.get().map(Root::from_rooted)
     }
 
-    fn summarize(self) -> AttrInfo {
+    pub fn summarize(&self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
             namespace: (**ns).to_owned(),

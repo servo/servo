@@ -183,7 +183,7 @@ impl TimerManager {
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }
-                } else if id == control_handle.id() {;
+                } else if id == control_handle.id() {
                     match control_port.recv().unwrap() {
                         TimerControlMsg::Suspend => {
                             let msg = control_port.recv().unwrap();
@@ -194,7 +194,7 @@ impl TimerManager {
                                     break;
                                 },
                             }
-                            },
+                        },
                         TimerControlMsg::Resume => panic!("Nothing to resume!"),
                         TimerControlMsg::Cancel => {
                             break;

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -10,7 +10,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{Element, AttributeHandlers};
+use dom::element::Element;
 use dom::node::window_from_node;
 
 use string_cache::Atom;
@@ -19,7 +19,6 @@ use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
 use std::borrow::ToOwned;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMTokenList {
     reflector_: Reflector,
     element: JS<Element>,
@@ -41,20 +40,13 @@ impl DOMTokenList {
                            GlobalRef::Window(window.r()),
                            DOMTokenListBinding::Wrap)
     }
-}
 
-trait PrivateDOMTokenListHelpers {
-    fn attribute(self) -> Option<Root<Attr>>;
-    fn check_token_exceptions(self, token: &str) -> Fallible<Atom>;
-}
-
-impl<'a> PrivateDOMTokenListHelpers for &'a DOMTokenList {
-    fn attribute(self) -> Option<Root<Attr>> {
+    fn attribute(&self) -> Option<Root<Attr>> {
         let element = self.element.root();
         element.r().get_attribute(&ns!(""), &self.local_name)
     }
 
-    fn check_token_exceptions(self, token: &str) -> Fallible<Atom> {
+    fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
             "" => Err(Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
@@ -64,9 +56,9 @@ impl<'a> PrivateDOMTokenListHelpers for &'a DOMTokenList {
 }
 
 // https://dom.spec.whatwg.org/#domtokenlist
-impl<'a> DOMTokenListMethods for &'a DOMTokenList {
+impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         self.attribute().map(|attr| {
             let attr = attr.r();
             attr.value().tokens().map(|tokens| tokens.len()).unwrap_or(0)
@@ -74,7 +66,7 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
-    fn Item(self, index: u32) -> Option<DOMString> {
+    fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
             let attr = attr.r();
             attr.value().tokens().and_then(|tokens| {
@@ -84,7 +76,7 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
-    fn Contains(self, token: DOMString) -> Fallible<bool> {
+    fn Contains(&self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(&token).map(|token| {
             self.attribute().map(|attr| {
                 let attr = attr.r();
@@ -98,7 +90,7 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-add
-    fn Add(self, tokens: Vec<DOMString>) -> ErrorResult {
+    fn Add(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
@@ -112,7 +104,7 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-remove
-    fn Remove(self, tokens: Vec<DOMString>) -> ErrorResult {
+    fn Remove(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
@@ -126,7 +118,7 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-toggle
-    fn Toggle(self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
+    fn Toggle(&self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
         let element = self.element.root();
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         let token = try!(self.check_token_exceptions(&token));
@@ -151,13 +143,13 @@ impl<'a> DOMTokenListMethods for &'a DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#stringification-behavior
-    fn Stringifier(self) -> DOMString {
+    fn Stringifier(&self) -> DOMString {
         let tokenlist = self.element.root().r().get_tokenlist_attribute(&self.local_name);
         str_join(&tokenlist, "\x20")
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<DOMString> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<DOMString> {
         let item = self.Item(index);
         *found = item.is_some();
         item

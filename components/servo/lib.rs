@@ -17,21 +17,66 @@
 // The `Browser` is fed events from a generic type that implements the
 // `WindowMethods` trait.
 
-extern crate compositing;
-extern crate devtools;
-extern crate devtools_traits;
-extern crate net;
-extern crate net_traits;
-extern crate msg;
-extern crate profile;
-extern crate profile_traits;
 #[macro_use]
-extern crate util;
-extern crate script;
-extern crate layout;
-extern crate gfx;
+extern crate util as _util;
+
+mod export {
+    extern crate compositing;
+    extern crate devtools;
+    extern crate devtools_traits;
+    extern crate net;
+    extern crate net_traits;
+    extern crate msg;
+    extern crate profile;
+    extern crate profile_traits;
+    extern crate script;
+    extern crate script_traits;
+    extern crate layout;
+    extern crate gfx;
+    extern crate style;
+    extern crate canvas;
+    extern crate canvas_traits;
+
+    extern crate euclid;
+    extern crate url;
+    extern crate layers;
+    extern crate gleam;
+}
+
 extern crate libc;
+
+#[cfg(feature = "webdriver")]
 extern crate webdriver_server;
+
+#[cfg(feature = "webdriver")]
+fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan) {
+    webdriver_server::start_server(port, constellation.clone());
+}
+
+#[cfg(not(feature = "webdriver"))]
+fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan) { }
+
+pub use _util as util;
+pub use export::compositing;
+pub use export::devtools;
+pub use export::devtools_traits;
+pub use export::net;
+pub use export::net_traits;
+pub use export::msg;
+pub use export::profile;
+pub use export::profile_traits;
+pub use export::script;
+pub use export::script_traits;
+pub use export::layout;
+pub use export::gfx;
+pub use export::style;
+pub use export::canvas;
+pub use export::canvas_traits;
+
+pub use export::euclid;
+pub use export::url;
+pub use export::layers;
+pub use export::gleam::gl;
 
 use compositing::CompositorEventListener;
 use compositing::windowing::WindowEvent;
@@ -110,9 +155,11 @@ impl Browser {
                                                       devtools_chan,
                                                       supports_clipboard);
 
-        if let Some(port) = opts.webdriver_port {
-            webdriver_server::start_server(port, constellation_chan.clone());
-        };
+        if cfg!(feature = "webdriver") {
+            if let Some(port) = opts.webdriver_port {
+                webdriver(port, constellation_chan.clone());
+            }
+        }
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.

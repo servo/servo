@@ -55,6 +55,10 @@ features = ["query_encoding", "serde_serialization"]
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
+[dependencies.angle]
+git = "https://github.com/ecoal95/angle"
+branch = "servo"
+
 [dependencies.cssparser]
 version = "0.3"
 features = [ "serde-serialization" ]

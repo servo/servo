@@ -19,29 +19,23 @@
 
 // The Servo engine
 extern crate servo;
-// Window graphics compositing and message dispatch
-extern crate compositing;
-// Servo networking
-extern crate net;
-extern crate net_traits;
-// Servo common utilitiess
-extern crate util;
+
 // The window backed by glutin
 extern crate glutin_app as app;
 extern crate time;
 extern crate env_logger;
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
 
-use compositing::windowing::WindowEvent;
-use net_traits::hosts;
 use servo::Browser;
+use servo::compositing::windowing::WindowEvent;
+use servo::net_traits::hosts;
+use servo::util::opts;
 use std::rc::Rc;
-use util::opts;
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 use std::borrow::ToOwned;
 
 fn main() {
@@ -134,16 +128,16 @@ impl app::NestedEventLoopListener for BrowserWrapper {
     }
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 fn setup_logging() {
     android::setup_logging();
 }
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 fn setup_logging() {
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 fn get_args() -> Vec<String> {
     vec![
         "servo".to_owned(),
@@ -151,7 +145,7 @@ fn get_args() -> Vec<String> {
     ]
 }
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 fn get_args() -> Vec<String> {
     use std::env;
     env::args().collect()
@@ -189,10 +183,10 @@ mod android {
         use self::libc::funcs::c95::stdio::fgets;
         use self::libc::funcs::posix88::stdio::fdopen;
         use self::libc::funcs::posix88::unistd::{pipe, dup2};
+        use servo::util::task::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;
         use std::str::from_utf8;
-        use util::task::spawn_named;
 
         unsafe {
             let mut pipes: [c_int; 2] = [ 0, 0 ];

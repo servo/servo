@@ -9,7 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEventTypeId};
 use util::str::DOMString;
 
@@ -54,7 +54,6 @@ pub enum EventCancelable {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Event {
     reflector_: Reflector,
     type_id: EventTypeId,
@@ -173,67 +172,67 @@ impl Event {
     }
 }
 
-impl<'a> EventMethods for &'a Event {
+impl EventMethods for Event {
     // https://dom.spec.whatwg.org/#dom-event-eventphase
-    fn EventPhase(self) -> u16 {
+    fn EventPhase(&self) -> u16 {
         self.phase.get() as u16
     }
 
     // https://dom.spec.whatwg.org/#dom-event-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         self.type_.borrow().clone()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
-    fn GetTarget(self) -> Option<Root<EventTarget>> {
+    fn GetTarget(&self) -> Option<Root<EventTarget>> {
         self.target.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
-    fn GetCurrentTarget(self) -> Option<Root<EventTarget>> {
+    fn GetCurrentTarget(&self) -> Option<Root<EventTarget>> {
         self.current_target.get().map(Root::from_rooted)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
-    fn DefaultPrevented(self) -> bool {
+    fn DefaultPrevented(&self) -> bool {
         self.canceled.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-preventdefault
-    fn PreventDefault(self) {
+    fn PreventDefault(&self) {
         if self.cancelable.get() {
             self.canceled.set(true)
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-event-stoppropagation
-    fn StopPropagation(self) {
+    fn StopPropagation(&self) {
         self.stop_propagation.set(true);
     }
 
     // https://dom.spec.whatwg.org/#dom-event-stopimmediatepropagation
-    fn StopImmediatePropagation(self) {
+    fn StopImmediatePropagation(&self) {
         self.stop_immediate.set(true);
         self.stop_propagation.set(true);
     }
 
     // https://dom.spec.whatwg.org/#dom-event-bubbles
-    fn Bubbles(self) -> bool {
+    fn Bubbles(&self) -> bool {
         self.bubbles.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-cancelable
-    fn Cancelable(self) -> bool {
+    fn Cancelable(&self) -> bool {
         self.cancelable.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-timestamp
-    fn TimeStamp(self) -> u64 {
+    fn TimeStamp(&self) -> u64 {
         self.timestamp
     }
 
     // https://dom.spec.whatwg.org/#dom-event-initevent
-    fn InitEvent(self,
+    fn InitEvent(&self,
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
@@ -253,23 +252,19 @@ impl<'a> EventMethods for &'a Event {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
-    fn IsTrusted(self) -> bool {
+    fn IsTrusted(&self) -> bool {
         self.trusted.get()
     }
 }
 
-pub trait EventHelpers {
-    fn set_trusted(self, trusted: bool);
-    fn fire(self, target: &EventTarget) -> bool;
-}
 
-impl<'a> EventHelpers for &'a Event {
-    fn set_trusted(self, trusted: bool) {
+impl Event {
+    pub fn set_trusted(&self, trusted: bool) {
         self.trusted.set(trusted);
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    fn fire(self, target: &EventTarget) -> bool {
+    pub fn fire(&self, target: &EventTarget) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self)
     }

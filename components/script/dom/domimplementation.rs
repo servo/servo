@@ -14,7 +14,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::validate_qualified_name;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentSource;
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
+use dom::document::{Document, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -27,7 +27,6 @@ use std::borrow::ToOwned;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMImplementation {
     reflector_: Reflector,
     document: JS<Document>,
@@ -50,9 +49,9 @@ impl DOMImplementation {
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
-impl<'a> DOMImplementationMethods for &'a DOMImplementation {
+impl DOMImplementationMethods for DOMImplementation {
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
-    fn CreateDocumentType(self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
+    fn CreateDocumentType(&self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
         let document = self.document.root();
@@ -60,7 +59,7 @@ impl<'a> DOMImplementationMethods for &'a DOMImplementation {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
-    fn CreateDocument(self, namespace: Option<DOMString>, qname: DOMString,
+    fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<&DocumentType>) -> Fallible<Root<Document>> {
         let doc = self.document.root();
         let doc = doc.r();
@@ -109,7 +108,7 @@ impl<'a> DOMImplementationMethods for &'a DOMImplementation {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    fn CreateHTMLDocument(self, title: Option<DOMString>) -> Root<Document> {
+    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Root<Document> {
         let document = self.document.root();
         let document = document.r();
         let win = document.window();
@@ -168,7 +167,7 @@ impl<'a> DOMImplementationMethods for &'a DOMImplementation {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature
-    fn HasFeature(self) -> bool {
+    fn HasFeature(&self) -> bool {
         true
     }
 }

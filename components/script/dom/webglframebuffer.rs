@@ -14,7 +14,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     id: u32,
@@ -48,23 +47,18 @@ impl WebGLFramebuffer {
     }
 }
 
-pub trait WebGLFramebufferHelpers {
-    fn id(self) -> u32;
-    fn bind(self, target: u32);
-    fn delete(self);
-}
 
-impl<'a> WebGLFramebufferHelpers for &'a WebGLFramebuffer {
-    fn id(self) -> u32 {
+impl WebGLFramebuffer {
+    pub fn id(&self) -> u32 {
         self.id
     }
 
-    fn bind(self, target: u32) {
+    pub fn bind(&self, target: u32) {
         let cmd = CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
         self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
     }
 
-    fn delete(self) {
+    pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteFramebuffer(self.id))).unwrap();

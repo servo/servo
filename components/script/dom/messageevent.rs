@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventHelpers, EventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
@@ -22,7 +22,6 @@ use std::borrow::ToOwned;
 use std::default::Default;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct MessageEvent {
     event: Event,
     data: Heap<JSVal>,
@@ -90,20 +89,19 @@ impl MessageEvent {
     }
 }
 
-impl<'a> MessageEventMethods for &'a MessageEvent {
+impl MessageEventMethods for MessageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
-    fn Data(self, _cx: *mut JSContext) -> JSVal {
+    fn Data(&self, _cx: *mut JSContext) -> JSVal {
         self.data.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
-    fn Origin(self) -> DOMString {
+    fn Origin(&self) -> DOMString {
         self.origin.clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid
-    fn LastEventId(self) -> DOMString {
+    fn LastEventId(&self) -> DOMString {
         self.lastEventId.clone()
     }
 }
-

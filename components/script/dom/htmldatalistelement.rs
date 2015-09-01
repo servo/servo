@@ -17,7 +17,6 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
 }
@@ -49,9 +48,9 @@ impl HTMLDataListElement {
     }
 }
 
-impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
+impl HTMLDataListElementMethods for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
-    fn Options(self) -> Root<HTMLCollection> {
+    fn Options(&self) -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
@@ -65,4 +64,3 @@ impl<'a> HTMLDataListElementMethods for &'a HTMLDataListElement {
         HTMLCollection::create(window.r(), node, filter)
     }
 }
-

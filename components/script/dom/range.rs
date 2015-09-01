@@ -17,16 +17,15 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterDataTypeId;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Range {
     reflector_: Reflector,
     inner: Rc<RefCell<RangeInner>>,
@@ -126,50 +125,47 @@ impl Range {
     }
 }
 
-pub trait RangeHelpers<'a> {
-    fn inner(self) -> &'a Rc<RefCell<RangeInner>>;
-}
 
-impl<'a> RangeHelpers<'a> for &'a Range {
-    fn inner(self) -> &'a Rc<RefCell<RangeInner>> {
+impl Range {
+    pub fn inner(&self) -> &Rc<RefCell<RangeInner>> {
         &self.inner
     }
 }
 
-impl<'a> RangeMethods for &'a Range {
+impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-startcontainer
-    fn StartContainer(self) -> Root<Node> {
+    fn StartContainer(&self) -> Root<Node> {
         self.inner().borrow().start.node()
     }
 
     // https://dom.spec.whatwg.org/#dom-range-startoffset
-    fn StartOffset(self) -> u32 {
+    fn StartOffset(&self) -> u32 {
         self.inner().borrow().start.offset
     }
 
     // https://dom.spec.whatwg.org/#dom-range-endcontainer
-    fn EndContainer(self) -> Root<Node> {
+    fn EndContainer(&self) -> Root<Node> {
         self.inner().borrow().end.node()
     }
 
     // https://dom.spec.whatwg.org/#dom-range-endoffset
-    fn EndOffset(self) -> u32 {
+    fn EndOffset(&self) -> u32 {
         self.inner().borrow().end.offset
     }
 
     // https://dom.spec.whatwg.org/#dom-range-collapsed
-    fn Collapsed(self) -> bool {
+    fn Collapsed(&self) -> bool {
         let inner = self.inner().borrow();
         inner.start == inner.end
     }
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
-    fn CommonAncestorContainer(self) -> Root<Node> {
+    fn CommonAncestorContainer(&self) -> Root<Node> {
         self.inner().borrow().common_ancestor_container()
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartnode-offset
-    fn SetStart(self, node: &Node, offset: u32) -> ErrorResult {
+    fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             Err(Error::InvalidNodeType)
@@ -184,7 +180,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendnode-offset
-    fn SetEnd(self, node: &Node, offset: u32) -> ErrorResult {
+    fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             Err(Error::InvalidNodeType)
@@ -199,46 +195,46 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartbeforenode
-    fn SetStartBefore(self, node: &Node) -> ErrorResult {
+    fn SetStartBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartafternode
-    fn SetStartAfter(self, node: &Node) -> ErrorResult {
+    fn SetStartAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendbeforenode
-    fn SetEndBefore(self, node: &Node) -> ErrorResult {
+    fn SetEndBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendafternode
-    fn SetEndAfter(self, node: &Node) -> ErrorResult {
+    fn SetEndAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-collapsetostart
-    fn Collapse(self, to_start: bool) {
+    fn Collapse(&self, to_start: bool) {
         self.inner().borrow_mut().collapse(to_start);
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodenode
-    fn SelectNode(self, node: &Node) -> ErrorResult {
+    fn SelectNode(&self, node: &Node) -> ErrorResult {
         self.inner().borrow_mut().select_node(node)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-selectnodecontentsnode
-    fn SelectNodeContents(self, node: &Node) -> ErrorResult {
+    fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
         self.inner().borrow_mut().select_node_contents(node)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-compareboundarypointshow-sourcerange
-    fn CompareBoundaryPoints(self, how: u16, source_range: &Range)
+    fn CompareBoundaryPoints(&self, how: u16, source_range: &Range)
                              -> Fallible<i16> {
         if how > RangeConstants::END_TO_START {
             // Step 1.
@@ -279,7 +275,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-clonerange
-    fn CloneRange(self) -> Root<Range> {
+    fn CloneRange(&self) -> Root<Range> {
         let inner = self.inner().borrow();
         let start = &inner.start;
         let end = &inner.end;
@@ -290,7 +286,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-ispointinrangenode-offset
-    fn IsPointInRange(self, node: &Node, offset: u32) -> Fallible<bool> {
+    fn IsPointInRange(&self, node: &Node, offset: u32) -> Fallible<bool> {
         match self.inner().borrow().compare_point(node, offset) {
             Ok(Ordering::Less) => Ok(false),
             Ok(Ordering::Equal) => Ok(true),
@@ -304,7 +300,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
-    fn ComparePoint(self, node: &Node, offset: u32) -> Fallible<i16> {
+    fn ComparePoint(&self, node: &Node, offset: u32) -> Fallible<i16> {
         self.inner().borrow().compare_point(node, offset).map(|order| {
             match order {
                 Ordering::Less => -1,
@@ -315,7 +311,7 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-intersectsnode
-    fn IntersectsNode(self, node: &Node) -> bool {
+    fn IntersectsNode(&self, node: &Node) -> bool {
         let inner = self.inner().borrow();
         let start = &inner.start;
         let start_node = start.node();
@@ -347,7 +343,7 @@ impl<'a> RangeMethods for &'a Range {
 
     // https://dom.spec.whatwg.org/#dom-range-clonecontents
     // https://dom.spec.whatwg.org/#concept-range-clone
-    fn CloneContents(self) -> Fallible<Root<DocumentFragment>> {
+    fn CloneContents(&self) -> Fallible<Root<DocumentFragment>> {
         let inner = self.inner.borrow();
         let start = &inner.start;
         let end = &inner.end;
@@ -456,7 +452,7 @@ impl<'a> RangeMethods for &'a Range {
 
     // https://dom.spec.whatwg.org/#dom-range-extractcontents
     // https://dom.spec.whatwg.org/#concept-range-extract
-    fn ExtractContents(self) -> Fallible<Root<DocumentFragment>> {
+    fn ExtractContents(&self) -> Fallible<Root<DocumentFragment>> {
 
         // Step 3.
         let (start_node, start_offset, end_node, end_offset) = {
@@ -585,13 +581,13 @@ impl<'a> RangeMethods for &'a Range {
     }
 
     // https://dom.spec.whatwg.org/#dom-range-detach
-    fn Detach(self) {
+    fn Detach(&self) {
         // This method intentionally left blank.
     }
 
     // https://dom.spec.whatwg.org/#dom-range-insertnode
     // https://dom.spec.whatwg.org/#concept-range-insert
-    fn InsertNode(self, node: &Node) -> ErrorResult {
+    fn InsertNode(&self, node: &Node) -> ErrorResult {
         let (start_node, start_offset) = {
             let inner = self.inner().borrow();
             let start = &inner.start;

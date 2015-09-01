@@ -20,9 +20,9 @@ extern crate util;
 extern crate url;
 extern crate style;
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 extern crate core_foundation;
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 extern crate io_surface;
 
 pub mod compositor_msg;

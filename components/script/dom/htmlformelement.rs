@@ -18,16 +18,14 @@ use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
-use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
-use dom::element::{Element, AttributeHandlers};
-use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::document::Document;
+use dom::element::{Element, ElementTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlinputelement::{HTMLInputElement, HTMLInputElementHelpers};
-use dom::htmltextareaelement::HTMLTextAreaElementHelpers;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use dom::htmlinputelement::HTMLInputElement;
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use hyper::header::ContentType;
 use hyper::method::Method;
@@ -43,7 +41,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
@@ -82,7 +79,7 @@ impl HTMLFormElement {
     }
 }
 
-impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
+impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
     make_getter!(AcceptCharset, "accept-charset");
 
@@ -108,12 +105,12 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     make_setter!(SetEnctype, "enctype");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
-    fn Encoding(self) -> DOMString {
+    fn Encoding(&self) -> DOMString {
         self.Enctype()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
-    fn SetEncoding(self, value: DOMString) {
+    fn SetEncoding(&self, value: DOMString) {
         self.SetEnctype(value)
     }
 
@@ -125,6 +122,8 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-name
     make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
@@ -140,12 +139,12 @@ impl<'a> HTMLFormElementMethods for &'a HTMLFormElement {
     make_setter!(SetTarget, "target");
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
-    fn Submit(self) {
+    fn Submit(&self) {
         self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
-    fn Reset(self) {
+    fn Reset(&self) {
         self.reset(ResetFrom::FromFormResetMethod);
     }
 }
@@ -162,17 +161,9 @@ pub enum ResetFrom {
     NotFromFormResetMethod
 }
 
-pub trait HTMLFormElementHelpers {
-    // https://html.spec.whatwg.org/multipage/#concept-form-submit
-    fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
-    // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
-    fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
-    // https://html.spec.whatwg.org/multipage/#dom-form-reset
-    fn reset(self, submit_method_flag: ResetFrom);
-}
 
-impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
-    fn submit(self, _submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
+impl HTMLFormElement {
+    pub fn submit(&self, _submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self);
         let win = window_from_node(self);
@@ -236,7 +227,7 @@ impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
             win.r().pipeline(), load_data)).unwrap();
     }
 
-    fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
+    pub fn get_form_dataset<'b>(&self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
@@ -363,7 +354,7 @@ impl<'a> HTMLFormElementHelpers for &'a HTMLFormElement {
         ret
     }
 
-    fn reset(self, _reset_method_flag: ResetFrom) {
+    pub fn reset(&self, _reset_method_flag: ResetFrom) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -571,9 +562,9 @@ pub trait FormControl<'a> : Copy + Sized {
     fn to_element(self) -> &'a Element;
 }
 
-impl<'a> VirtualMethods for &'a HTMLFormElement {
+impl VirtualMethods for HTMLFormElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_borrowed_ref(self) as &VirtualMethods)
+        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

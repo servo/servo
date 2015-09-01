@@ -12,7 +12,6 @@ use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct DOMPoint {
     point: DOMPointReadOnly
 }
@@ -34,45 +33,44 @@ impl DOMPoint {
     }
 }
 
-impl<'a> DOMPointMethods for &'a DOMPoint {
+impl DOMPointMethods for DOMPoint {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
-    fn X(self) -> f64 {
+    fn X(&self) -> f64 {
         self.point.X()
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
-    fn SetX(self, value: f64) {
+    fn SetX(&self, value: f64) {
         self.point.SetX(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
-    fn Y(self) -> f64 {
+    fn Y(&self) -> f64 {
         self.point.Y()
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
-    fn SetY(self, value: f64) {
+    fn SetY(&self, value: f64) {
         self.point.SetY(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
-    fn Z(self) -> f64 {
+    fn Z(&self) -> f64 {
         self.point.Z()
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
-    fn SetZ(self, value: f64) {
+    fn SetZ(&self, value: f64) {
         self.point.SetZ(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
-    fn W(self) -> f64 {
+    fn W(&self) -> f64 {
         self.point.W()
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
-    fn SetW(self, value: f64) {
+    fn SetW(&self, value: f64) {
         self.point.SetW(value);
     }
 }
-

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -14,16 +13,14 @@ use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{DOMString, split_html_space_chars};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLOptionElement {
     htmlelement: HTMLElement
 }
@@ -73,18 +70,18 @@ fn collect_text(node: &&Node, value: &mut DOMString) {
     }
 }
 
-impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
+impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://www.whatwg.org/html/#dom-option-disabled
     make_bool_getter!(Disabled);
 
     // https://www.whatwg.org/html/#dom-option-disabled
-    fn SetDisabled(self, disabled: bool) {
+    fn SetDisabled(&self, disabled: bool) {
         let elem = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // https://www.whatwg.org/html/#dom-option-text
-    fn Text(self) -> DOMString {
+    fn Text(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
@@ -93,13 +90,13 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
     }
 
     // https://www.whatwg.org/html/#dom-option-text
-    fn SetText(self, value: DOMString) {
+    fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
-    fn Value(self) -> DOMString {
+    fn Value(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         let attr = &atom!("value");
         if element.has_attribute(attr) {
@@ -113,7 +110,7 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
     make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
-    fn Label(self) -> DOMString {
+    fn Label(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         let attr = &atom!("label");
         if element.has_attribute(attr) {
@@ -128,9 +125,9 @@ impl<'a> HTMLOptionElementMethods for &'a HTMLOptionElement {
 
 }
 
-impl<'a> VirtualMethods for &'a HTMLOptionElement {
+impl VirtualMethods for HTMLOptionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -141,7 +138,7 @@ impl<'a> VirtualMethods for &'a HTMLOptionElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -156,7 +153,7 @@ impl<'a> VirtualMethods for &'a HTMLOptionElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_parent_disabled_state_for_option();
@@ -170,7 +167,7 @@ impl<'a> VirtualMethods for &'a HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_parent_disabled_state_for_option();
     }
 
@@ -179,7 +176,7 @@ impl<'a> VirtualMethods for &'a HTMLOptionElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.GetParentNode().is_some() {
             node.check_parent_disabled_state_for_option();
         } else {
@@ -187,4 +184,3 @@ impl<'a> VirtualMethods for &'a HTMLOptionElement {
         }
     }
 }
-

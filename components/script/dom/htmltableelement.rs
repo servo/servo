@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -11,12 +11,12 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTab
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{ElementHelpers, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
@@ -27,7 +27,6 @@ use string_cache::Atom;
 use std::cell::Cell;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
@@ -67,9 +66,9 @@ impl HTMLTableElement {
     }
 }
 
-impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
+impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn GetCaption(self) -> Option<Root<HTMLTableCaptionElement>> {
+    fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
         let node = NodeCast::from_ref(self);
         node.children()
             .filter_map(|c| {
@@ -79,7 +78,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn SetCaption(self, new_caption: Option<&HTMLTableCaptionElement>) {
+    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
         let node = NodeCast::from_ref(self);
 
         if let Some(ref caption) = self.GetCaption() {
@@ -93,7 +92,7 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
-    fn CreateCaption(self) -> Root<HTMLElement> {
+    fn CreateCaption(&self) -> Root<HTMLElement> {
         let caption = match self.GetCaption() {
             Some(caption) => caption,
             None => {
@@ -108,14 +107,14 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
-    fn DeleteCaption(self) {
+    fn DeleteCaption(&self) {
         if let Some(caption) = self.GetCaption() {
             NodeCast::from_ref(caption.r()).remove_self();
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
-    fn CreateTBody(self) -> Root<HTMLTableSectionElement> {
+    fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
         let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
                                                  None,
                                                  document_from_node(self).r());
@@ -133,34 +132,28 @@ impl<'a> HTMLTableElementMethods for &'a HTMLTableElement {
     }
 }
 
-pub trait HTMLTableElementHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_border(self) -> Option<u32>;
-    fn get_cellspacing(self) -> Option<u32>;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-}
 
-impl<'a> HTMLTableElementHelpers for &'a HTMLTableElement {
-    fn get_background_color(self) -> Option<RGBA> {
+impl HTMLTableElement {
+    pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 
-    fn get_border(self) -> Option<u32> {
+    pub fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
 
-    fn get_cellspacing(self) -> Option<u32> {
+    pub fn get_cellspacing(&self) -> Option<u32> {
         self.cellspacing.get()
     }
 
-    fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLTableElement {
+impl VirtualMethods for HTMLTableElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -207,4 +200,3 @@ impl<'a> VirtualMethods for &'a HTMLTableElement {
         }
     }
 }
-

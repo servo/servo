@@ -339,7 +339,7 @@ bidi-normal-007.xht == reference/bidi-normal-007.xht
 bidi-normal-008.xht == reference/bidi-normal-008.xht
 bidi-normal-009.xht == reference/bidi-normal-009.xht
 bidi-normal-010.xht == reference/bidi-normal-010.xht
-bidi-normal-011.xht == reference/bidi-embed-011.xht
+bidi-normal-011.xht == reference/bidi-normal-011.xht
 bidi-override-001.xht == reference/bidi-override-001.xht
 bidi-override-002.xht == reference/bidi-override-002.xht
 bidi-override-003.xht == reference/bidi-override-003.xht

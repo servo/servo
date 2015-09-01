@@ -14,7 +14,6 @@ use util::str::DOMString;
 
 /// An HTML processing instruction node.
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct ProcessingInstruction {
     characterdata: CharacterData,
     target: DOMString,
@@ -41,20 +40,16 @@ impl ProcessingInstruction {
     }
 }
 
-pub trait ProcessingInstructionHelpers<'a> {
-    fn target(self) -> &'a DOMString;
-}
 
-impl<'a> ProcessingInstructionHelpers<'a> for &'a ProcessingInstruction {
-    fn target(self) -> &'a DOMString {
+impl ProcessingInstruction {
+    pub fn target(&self) -> &DOMString {
         &self.target
     }
 }
 
-impl<'a> ProcessingInstructionMethods for &'a ProcessingInstruction {
+impl ProcessingInstructionMethods for ProcessingInstruction {
     // https://dom.spec.whatwg.org/#dom-processinginstruction-target
-    fn Target(self) -> DOMString {
+    fn Target(&self) -> DOMString {
         self.target.clone()
     }
 }
-

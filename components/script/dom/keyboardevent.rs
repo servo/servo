@@ -24,7 +24,6 @@ use std::cell::{RefCell, Cell};
 no_jsmanaged_fields!(Key);
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
@@ -136,17 +135,13 @@ impl KeyboardEvent {
     }
 }
 
-pub trait KeyboardEventHelpers {
-    fn get_key(self) -> Option<Key>;
-    fn get_key_modifiers(self) -> KeyModifiers;
-}
 
-impl<'a> KeyboardEventHelpers for &'a KeyboardEvent {
-    fn get_key(self) -> Option<Key> {
+impl KeyboardEvent {
+    pub fn get_key(&self) -> Option<Key> {
         self.key.get().clone()
     }
 
-    fn get_key_modifiers(self) -> KeyModifiers {
+    pub fn get_key_modifiers(&self) -> KeyModifiers {
         let mut result = KeyModifiers::empty();
         if self.shift.get() {
             result = result | constellation_msg::SHIFT;
@@ -762,9 +757,9 @@ impl KeyEventProperties {
     }
 }
 
-impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
+impl KeyboardEventMethods for KeyboardEvent {
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
-    fn InitKeyboardEvent(self,
+    fn InitKeyboardEvent(&self,
                          typeArg: DOMString,
                          canBubbleArg: bool,
                          cancelableArg: bool,
@@ -787,52 +782,52 @@ impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-key
-    fn Key(self) -> DOMString {
+    fn Key(&self) -> DOMString {
         self.key_string.borrow().clone()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-code
-    fn Code(self) -> DOMString {
+    fn Code(&self) -> DOMString {
         self.code.borrow().clone()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-location
-    fn Location(self) -> u32 {
+    fn Location(&self) -> u32 {
         self.location.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-ctrlKey
-    fn CtrlKey(self) -> bool {
+    fn CtrlKey(&self) -> bool {
         self.ctrl.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-shiftKey
-    fn ShiftKey(self) -> bool {
+    fn ShiftKey(&self) -> bool {
         self.shift.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-altKey
-    fn AltKey(self) -> bool {
+    fn AltKey(&self) -> bool {
         self.alt.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-metaKey
-    fn MetaKey(self) -> bool {
+    fn MetaKey(&self) -> bool {
         self.meta.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-repeat
-    fn Repeat(self) -> bool {
+    fn Repeat(&self) -> bool {
         self.repeat.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-isComposing
-    fn IsComposing(self) -> bool {
+    fn IsComposing(&self) -> bool {
         self.is_composing.get()
     }
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-getModifierState
-    fn GetModifierState(self, keyArg: DOMString) -> bool {
+    fn GetModifierState(&self, keyArg: DOMString) -> bool {
         match &*keyArg {
             "Ctrl" => self.CtrlKey(),
             "Alt" => self.AltKey(),
@@ -845,17 +840,17 @@ impl<'a> KeyboardEventMethods for &'a KeyboardEvent {
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-charCode
-    fn CharCode(self) -> u32 {
+    fn CharCode(&self) -> u32 {
         self.char_code.get().unwrap_or(0)
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-keyCode
-    fn KeyCode(self) -> u32 {
+    fn KeyCode(&self) -> u32 {
         self.key_code.get()
     }
 
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-which
-    fn Which(self) -> u32 {
+    fn Which(&self) -> u32 {
         self.char_code.get().unwrap_or(self.KeyCode())
     }
 }

@@ -14,7 +14,6 @@ use dom::node::{Node, NodeTypeId};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement
 }
@@ -44,4 +43,3 @@ impl HTMLVideoElement {
         Node::reflect_node(box element, document, HTMLVideoElementBinding::Wrap)
     }
 }
-

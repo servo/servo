@@ -3,26 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser as CssParser;
-use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{ElementTypeId, AttributeHandlers};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::window_from_node;
-use dom::node::{ChildrenMutation, Node, NodeHelpers, NodeTypeId};
+use dom::node::{ChildrenMutation, Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 use layout_interface::{LayoutChan, Msg};
 use style::media_queries::parse_media_query_list;
 use style::stylesheets::{Origin, Stylesheet};
 use util::str::DOMString;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
 }
@@ -51,14 +48,8 @@ impl HTMLStyleElement {
         let element = HTMLStyleElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
     }
-}
 
-pub trait StyleElementHelpers {
-    fn parse_own_css(self);
-}
-
-impl<'a> StyleElementHelpers for &'a HTMLStyleElement {
-    fn parse_own_css(self) {
+    pub fn parse_own_css(&self) {
         let node = NodeCast::from_ref(self);
         let element = ElementCast::from_ref(self);
         assert!(node.is_in_doc());
@@ -82,9 +73,9 @@ impl<'a> StyleElementHelpers for &'a HTMLStyleElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLStyleElement {
+impl VirtualMethods for HTMLStyleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -92,7 +83,7 @@ impl<'a> VirtualMethods for &'a HTMLStyleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.is_in_doc() {
             self.parse_own_css();
         }
@@ -108,4 +99,3 @@ impl<'a> VirtualMethods for &'a HTMLStyleElement {
         }
     }
 }
-

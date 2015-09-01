@@ -10,7 +10,6 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct Screen {
     reflector_: Reflector,
 }
@@ -29,15 +28,14 @@ impl Screen {
     }
 }
 
-impl<'a> ScreenMethods for &'a Screen {
+impl ScreenMethods for Screen {
     // https://drafts.csswg.org/cssom-view/#dom-screen-colordepth
-    fn ColorDepth(self) -> u32 {
+    fn ColorDepth(&self) -> u32 {
         24
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-screen-pixeldepth
-    fn PixelDepth(self) -> u32 {
+    fn PixelDepth(&self) -> u32 {
         24
     }
 }
-

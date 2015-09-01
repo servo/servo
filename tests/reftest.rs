@@ -140,7 +140,7 @@ struct Reftest {
     servo_args: Vec<String>,
     render_mode: RenderMode,
     is_flaky: bool,
-    experimental: bool,
+    prefs: Vec<String>,
     fragment_identifier: Option<String>,
     resolution: Option<String>,
 }
@@ -198,7 +198,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
 
         let conditions_list = test_line.conditions.split(',');
         let mut flakiness = RenderMode::empty();
-        let mut experimental = false;
+        let mut prefs = vec![];
         let mut fragment_identifier = None;
         let mut resolution = None;
         for condition in conditions_list {
@@ -207,8 +207,12 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
                 "flaky_gpu" => flakiness.insert(GPU_RENDERING),
                 "flaky_linux" => flakiness.insert(LINUX_TARGET),
                 "flaky_macos" => flakiness.insert(MACOS_TARGET),
-                "experimental" => experimental = true,
-                _ => (),
+                _ => ()
+            }
+            if condition.starts_with("prefs:\"") {
+                if let Some(joined) = condition.split("\"").nth(1) {
+                    prefs.extend(joined.split(",").map(str::to_owned));
+                }
             }
             if condition.starts_with("fragment=") {
                 fragment_identifier = Some(condition["fragment=".len()..].to_string());
@@ -226,7 +230,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             render_mode: render_mode,
             servo_args: servo_args.to_vec(),
             is_flaky: render_mode.intersects(flakiness),
-            experimental: experimental,
+            prefs: prefs,
             fragment_identifier: fragment_identifier,
             resolution: resolution,
         };
@@ -275,8 +279,9 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     if reftest.render_mode.contains(GPU_RENDERING) {
         command.arg("-g");
     }
-    if reftest.experimental {
-        command.arg("--experimental");
+    for pref in &reftest.prefs {
+        command.arg("--pref");
+        command.arg(pref);
     }
     if let Some(ref resolution) = reftest.resolution {
         command.arg("--resolution");

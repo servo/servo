@@ -9,28 +9,35 @@
 
 use msg::constellation_msg::{Key, KeyModifiers};
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 use msg::constellation_msg::SUPER;
-#[cfg(not(target_os="macos"))]
+#[cfg(not(target_os = "macos"))]
 use msg::constellation_msg::CONTROL;
 
 use script::clipboard_provider::DummyClipboardContext;
-use script::textinput::{TextInput, Selection, Lines, DeleteDir};
+use script::textinput::{TextInput, Selection, Lines, Direction};
 use std::borrow::ToOwned;
 
 #[test]
 fn test_textinput_delete_char() {
     let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
     textinput.adjust_horizontal(2, Selection::NotSelected);
-    textinput.delete_char(DeleteDir::Backward);
+    textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
 
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "adefg");
 
     textinput.adjust_horizontal(2, Selection::Selected);
-    textinput.delete_char(DeleteDir::Forward);
+    textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠b".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.delete_char(Direction::Forward);
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "ab");
 }
 
 #[test]
@@ -43,6 +50,14 @@ fn test_textinput_insert_char() {
     textinput.adjust_horizontal(2, Selection::Selected);
     textinput.insert_char('b');
     assert_eq!(textinput.get_content(), "ababefg");
+
+    let mut textinput = TextInput::new(Lines::Single, "a🌠c".to_owned(), DummyClipboardContext::new(""));
+    // Same as "Right" key
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    textinput.insert_char('b');
+    // Not splitting surrogate pairs.
+    assert_eq!(textinput.get_content(), "a🌠bc");
 }
 
 #[test]
@@ -179,9 +194,9 @@ fn test_textinput_set_content() {
 
 #[test]
 fn test_clipboard_paste() {
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     const MODIFIERS: KeyModifiers = SUPER;
-    #[cfg(not(target_os="macos"))]
+    #[cfg(not(target_os = "macos"))]
     const MODIFIERS: KeyModifiers = CONTROL;
 
     let mut textinput = TextInput::new(Lines::Single, "defg".to_owned(), DummyClipboardContext::new("abc"));
@@ -189,4 +204,58 @@ fn test_clipboard_paste() {
     assert_eq!(textinput.edit_point.index, 0);
     textinput.handle_keydown_aux(Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
+}
+
+#[test]
+fn test_textinput_cursor_position_correct_after_clearing_selection() {
+    let mut textinput = TextInput::new(Lines::Single, "abcdef".to_owned(), DummyClipboardContext::new(""));
+
+    // Single line - Forward
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal(1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    // Single line - Backward
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal(-1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+    textinput.adjust_horizontal(3, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+
+
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+
+    // Multiline - Forward
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal(1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 1);
+
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 1);
+
+    // Multiline - Backward
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal(-1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 0);
+
+    textinput.adjust_horizontal(-4, Selection::NotSelected);
+    textinput.adjust_horizontal(4, Selection::Selected);
+    textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.index, 0);
+    assert_eq!(textinput.edit_point.line, 0);
 }

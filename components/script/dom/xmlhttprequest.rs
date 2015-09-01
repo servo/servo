@@ -20,14 +20,14 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
-use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::XhrEvent;
 use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 
 use encoding::all::UTF_8;
@@ -116,7 +116,6 @@ impl XHRProgress {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
@@ -293,16 +292,17 @@ impl XMLHttpRequest {
     }
 }
 
-impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
+impl XMLHttpRequestMethods for XMLHttpRequest {
+    // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
+    fn Open(&self, method: ByteString, url: DOMString) -> ErrorResult {
         //FIXME(seanmonstar): use a Trie instead?
         let maybe_method = method.as_str().and_then(|s| {
             // Note: hyper tests against the uppercase versions
@@ -367,14 +367,14 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-open()-method
-    fn Open_(self, method: ByteString, url: DOMString, async: bool,
+    fn Open_(&self, method: ByteString, url: DOMString, async: bool,
                  _username: Option<DOMString>, _password: Option<DOMString>) -> ErrorResult {
         self.sync.set(!async);
         self.Open(method, url)
     }
 
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
-    fn SetRequestHeader(self, name: ByteString, mut value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -424,12 +424,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
-    fn Timeout(self) -> u32 {
+    fn Timeout(&self) -> u32 {
         self.timeout.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-timeout-attribute
-    fn SetTimeout(self, timeout: u32) -> ErrorResult {
+    fn SetTimeout(&self, timeout: u32) -> ErrorResult {
         if self.sync.get() {
             // FIXME: Not valid for a worker environment
             Err(InvalidAccess)
@@ -453,12 +453,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-withcredentials-attribute
-    fn WithCredentials(self) -> bool {
+    fn WithCredentials(&self) -> bool {
         self.with_credentials.get()
     }
 
     // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
-    fn SetWithCredentials(self, with_credentials: bool) -> ErrorResult {
+    fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
@@ -475,12 +475,12 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
-    fn Upload(self) -> Root<XMLHttpRequestUpload> {
+    fn Upload(&self) -> Root<XMLHttpRequestUpload> {
         self.upload.root()
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(self, data: Option<SendParam>) -> ErrorResult {
+    fn Send(&self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(InvalidState); // Step 1, 2
         }
@@ -612,7 +612,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-abort()-method
-    fn Abort(self) {
+    fn Abort(&self) {
         self.terminate_ongoing_fetch();
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
@@ -630,22 +630,22 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responseurl-attribute
-    fn ResponseURL(self) -> DOMString {
+    fn ResponseURL(&self) -> DOMString {
         self.response_url.clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-status-attribute
-    fn Status(self) -> u16 {
+    fn Status(&self) -> u16 {
         self.status.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-statustext-attribute
-    fn StatusText(self) -> ByteString {
+    fn StatusText(&self) -> ByteString {
         self.status_text.borrow().clone()
     }
 
     // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
-    fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
+    fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
             name.eq_ignore_case(&h.name().parse().unwrap())
         }).map(|h| {
@@ -654,17 +654,17 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
-    fn GetAllResponseHeaders(self) -> ByteString {
+    fn GetAllResponseHeaders(&self) -> ByteString {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
-    fn ResponseType(self) -> XMLHttpRequestResponseType {
+    fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.get()
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
-    fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
+    fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global.root() {
             GlobalRoot::Worker(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
@@ -682,7 +682,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
 
     #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#the-response-attribute
-    fn Response(self, cx: *mut JSContext) -> JSVal {
+    fn Response(&self, cx: *mut JSContext) -> JSVal {
          let mut rval = RootedValue::new(cx, UndefinedValue());
          match self.response_type.get() {
             _empty | Text => {
@@ -718,7 +718,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetext-attribute
-    fn GetResponseText(self) -> Fallible<DOMString> {
+    fn GetResponseText(&self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
                 match self.ready_state.get() {
@@ -731,7 +731,7 @@ impl<'a> XMLHttpRequestMethods for &'a XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
-    fn GetResponseXML(self) -> Option<Root<Document>> {
+    fn GetResponseXML(&self) -> Option<Root<Document>> {
         self.response_xml.get().map(Root::from_rooted)
     }
 }
@@ -748,29 +748,9 @@ impl XMLHttpRequestDerived for EventTarget {
 
 pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
-trait PrivateXMLHttpRequestHelpers {
-    fn change_ready_state(self, XMLHttpRequestState);
-    fn process_headers_available(self, cors_request: Option<CORSRequest>,
-                                 gen_id: GenerationId, metadata: Metadata) -> Result<(), Error>;
-    fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>);
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>) -> ErrorResult;
-    fn process_partial_response(self, progress: XHRProgress);
-    fn terminate_ongoing_fetch(self);
-    fn insert_trusted_header(self, name: String, value: String);
-    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>);
-    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>);
-    fn dispatch_response_progress_event(self, type_: DOMString);
-    fn text_response(self) -> DOMString;
-    fn set_timeout(self, timeout: u32);
-    fn cancel_timeout(self);
-    fn filter_response_headers(self) -> Headers;
-    fn discard_subsequent_responses(self);
-    fn fetch(self, load_data: LoadData, cors_request: Result<Option<CORSRequest>,()>,
-             global: GlobalRef) -> ErrorResult;
-}
 
-impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
-    fn change_ready_state(self, rs: XMLHttpRequestState) {
+impl XMLHttpRequest {
+    fn change_ready_state(&self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
@@ -782,7 +762,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         event.r().fire(target);
     }
 
-    fn process_headers_available(self, cors_request: Option<CORSRequest>,
+    fn process_headers_available(&self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
 
         if let Some(ref req) = cors_request {
@@ -802,11 +782,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         Ok(())
     }
 
-    fn process_data_available(self, gen_id: GenerationId, payload: Vec<u8>) {
+    fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>) {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(self, gen_id: GenerationId, status: Result<(), String>)
+    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), String>)
                                  -> ErrorResult {
         match status {
             Ok(()) => {
@@ -820,7 +800,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
     }
 
-    fn process_partial_response(self, progress: XHRProgress) {
+    fn process_partial_response(&self, progress: XHRProgress) {
         let msg_id = progress.generation_id();
 
         // Aborts processing if abort() or open() was called
@@ -942,20 +922,20 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         }
     }
 
-    fn terminate_ongoing_fetch(self) {
+    fn terminate_ongoing_fetch(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         *self.timeout_target.borrow_mut() = None;
         self.response_status.set(Ok(()));
     }
 
-    fn insert_trusted_header(self, name: String, value: String) {
+    fn insert_trusted_header(&self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
         self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
-    fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let upload_target = self.upload.root();
         let progressevent = ProgressEvent::new(global.r(),
@@ -971,19 +951,19 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         event.fire(target);
     }
 
-    fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(self, type_: DOMString) {
+    fn dispatch_response_progress_event(&self, type_: DOMString) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {**x as u64});
+        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
         self.dispatch_progress_event(false, type_, len, total);
     }
-    fn set_timeout(self, duration_ms: u32) {
+    fn set_timeout(&self, duration_ms: u32) {
         struct XHRTimeout {
             xhr: TrustedXHRAddress,
             gen_id: GenerationId,
@@ -1011,7 +991,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
             sleep_ms(duration_ms);
             match cancel_rx.try_recv() {
                 Err(TryRecvError::Empty) => {
-                    timeout_target.send(CommonScriptMsg::RunnableMsg(box XHRTimeout {
+                    timeout_target.send(CommonScriptMsg::RunnableMsg(XhrEvent, box XHRTimeout {
                         xhr: xhr,
                         gen_id: gen_id,
                     })).unwrap();
@@ -1026,13 +1006,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
     );
     }
 
-    fn cancel_timeout(self) {
+    fn cancel_timeout(&self) {
         if let Some(cancel_tx) = self.timeout_cancel.borrow_mut().take() {
             let _ = cancel_tx.send(());
         }
     }
 
-    fn text_response(self) -> DOMString {
+    fn text_response(&self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
@@ -1050,7 +1030,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned()
     }
-    fn filter_response_headers(self) -> Headers {
+    fn filter_response_headers(&self) -> Headers {
         // https://fetch.spec.whatwg.org/#concept-response-header-list
         use hyper::error::Result;
         use hyper::header::SetCookie;
@@ -1082,11 +1062,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for &'a XMLHttpRequest {
         headers
     }
 
-    fn discard_subsequent_responses(self) {
+    fn discard_subsequent_responses(&self) {
         self.response_status.set(Err(()));
     }
 
-    fn fetch(self,
+    fn fetch(&self,
               load_data: LoadData,
               cors_request: Result<Option<CORSRequest>,()>,
               global: GlobalRef) -> ErrorResult {

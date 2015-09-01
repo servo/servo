@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, AttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
@@ -11,11 +11,10 @@ use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeHandlers;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
@@ -25,7 +24,6 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
@@ -59,16 +57,16 @@ impl HTMLSelectElement {
     }
 }
 
-impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
+impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
-    fn Validity(self) -> Root<ValidityState> {
+    fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
     }
 
     // Note: this function currently only exists for test_union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
-    fn Add(self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
+    fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 
     // https://www.whatwg.org/html/#dom-fe-disabled
@@ -96,7 +94,7 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
     make_uint_setter!(SetSize, "size", DEFAULT_SELECT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
-    fn Type(self) -> DOMString {
+    fn Type(&self) -> DOMString {
         if self.Multiple() {
             "select-multiple".to_owned()
         } else {
@@ -105,9 +103,9 @@ impl<'a> HTMLSelectElementMethods for &'a HTMLSelectElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLSelectElement {
+impl VirtualMethods for HTMLSelectElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -118,7 +116,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -133,7 +131,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
 
         match attr.local_name() {
             &atom!("disabled") => {
-                let node = NodeCast::from_ref(*self);
+                let node = NodeCast::from_ref(self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
@@ -147,7 +145,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -156,7 +154,7 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
@@ -171,4 +169,3 @@ impl<'a> VirtualMethods for &'a HTMLSelectElement {
         }
     }
 }
-

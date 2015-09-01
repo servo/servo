@@ -115,6 +115,8 @@ interface TestBinding {
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
   [BinaryName="BinaryRenamedAttribute"] attribute DOMString attrToBinaryRename;
+  [BinaryName="BinaryRenamedAttribute2"] attribute DOMString attr-to-binary-rename;
+  attribute DOMString attr-to-automatically-rename;
 
   [PutForwards=booleanAttribute]
   readonly attribute TestBinding forwardedAttribute;

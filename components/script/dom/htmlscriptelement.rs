@@ -6,7 +6,6 @@ use std::ascii::AsciiExt;
 
 use document_loader::LoadType;
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -21,20 +20,19 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
-use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
-use dom::element::{AttributeHandlers, ElementCreator};
-use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
+use dom::document::Document;
+use dom::element::{ElementCreator, ElementTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeHelpers};
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
-use dom::servohtmlparser::ServoHTMLParserHelpers;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::{WindowHelpers, ScriptHelpers};
+use dom::window::ScriptHelpers;
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{ScriptChan, Runnable, CommonScriptMsg};
 
 use encoding::all::UTF_8;
@@ -52,7 +50,6 @@ use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
 
@@ -111,35 +108,6 @@ impl HTMLScriptElement {
     }
 }
 
-pub trait HTMLScriptElementHelpers {
-    /// Prepare a script (<https://www.whatwg.org/html/#prepare-a-script>)
-    fn prepare(self) -> NextParserState;
-
-    /// [Execute a script block]
-    /// (https://html.spec.whatwg.org/multipage/#execute-the-script-block)
-    fn execute(self, load: ScriptOrigin);
-
-    /// Prepare a script, steps 6 and 7.
-    fn is_javascript(self) -> bool;
-
-    /// Set the "already started" flag (<https://whatwg.org/html/#already-started>)
-    fn mark_already_started(self);
-
-    // Queues error event
-    fn queue_error_event(self);
-
-    /// Dispatch beforescriptexecute event.
-    fn dispatch_before_script_execute_event(self) -> bool;
-
-    /// Dispatch afterscriptexecute event.
-    fn dispatch_after_script_execute_event(self);
-
-    /// Dispatch load event.
-    fn dispatch_load_event(self);
-
-    /// Dispatch error event.
-    fn dispatch_error_event(self);
-}
 
 /// Supported script types as defined by
 /// <https://whatwg.org/html/#support-the-scripting-language>.
@@ -213,8 +181,8 @@ impl AsyncResponseListener for ScriptContext {
 
 impl PreInvoke for ScriptContext {}
 
-impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
-    fn prepare(self) -> NextParserState {
+impl HTMLScriptElement {
+    pub fn prepare(&self) -> NextParserState {
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 1.
         if self.already_started.get() {
@@ -366,7 +334,7 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
         NextParserState::Continue
     }
 
-    fn execute(self, load: ScriptOrigin) {
+    pub fn execute(&self, load: ScriptOrigin) {
         // Step 1.
         // TODO: If the element is flagged as "parser-inserted", but the
         // element's node document is not the Document of the parser that
@@ -459,11 +427,11 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
                 element: handler,
                 is_error: false,
             };
-            chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
         }
     }
 
-    fn queue_error_event(self) {
+    pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         let window = window.r();
         let chan = window.script_chan();
@@ -472,34 +440,34 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
             element: handler,
             is_error: true,
         };
-        chan.send(CommonScriptMsg::RunnableMsg(dispatcher)).unwrap();
+        chan.send(CommonScriptMsg::RunnableMsg(ScriptEvent, dispatcher)).unwrap();
     }
 
-    fn dispatch_before_script_execute_event(self) -> bool {
+    pub fn dispatch_before_script_execute_event(&self) -> bool {
         self.dispatch_event("beforescriptexecute".to_owned(),
                             EventBubbles::Bubbles,
                             EventCancelable::Cancelable)
     }
 
-    fn dispatch_after_script_execute_event(self) {
+    pub fn dispatch_after_script_execute_event(&self) {
         self.dispatch_event("afterscriptexecute".to_owned(),
                             EventBubbles::Bubbles,
                             EventCancelable::NotCancelable);
     }
 
-    fn dispatch_load_event(self) {
+    pub fn dispatch_load_event(&self) {
         self.dispatch_event("load".to_owned(),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
 
-    fn dispatch_error_event(self) {
+    pub fn dispatch_error_event(&self) {
         self.dispatch_event("error".to_owned(),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
     }
 
-    fn is_javascript(self) -> bool {
+    pub fn is_javascript(&self) -> bool {
         let element = ElementCast::from_ref(self);
         match element.get_attribute(&ns!(""), &atom!("type")).map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
@@ -532,20 +500,11 @@ impl<'a> HTMLScriptElementHelpers for &'a HTMLScriptElement {
         }
     }
 
-    fn mark_already_started(self) {
+    pub fn mark_already_started(&self) {
         self.already_started.set(true);
     }
-}
 
-trait PrivateHTMLScriptElementHelpers {
-    fn dispatch_event(self,
-                      type_: DOMString,
-                      bubbles: EventBubbles,
-                      cancelable: EventCancelable) -> bool;
-}
-
-impl<'a> PrivateHTMLScriptElementHelpers for &'a HTMLScriptElement {
-    fn dispatch_event(self,
+    fn dispatch_event(&self,
                       type_: DOMString,
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> bool {
@@ -561,9 +520,9 @@ impl<'a> PrivateHTMLScriptElementHelpers for &'a HTMLScriptElement {
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLScriptElement {
+impl VirtualMethods for HTMLScriptElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &&HTMLElement = HTMLElementCast::from_borrowed_ref(self);
+        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -571,7 +530,7 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.after_set_attr(attr);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -581,7 +540,7 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(*self);
+        let node = NodeCast::from_ref(self);
         if !self.parser_inserted.get() && node.is_in_doc() {
             self.prepare();
         }
@@ -611,18 +570,19 @@ impl<'a> VirtualMethods for &'a HTMLScriptElement {
     }
 }
 
-impl<'a> HTMLScriptElementMethods for &'a HTMLScriptElement {
+impl HTMLScriptElementMethods for HTMLScriptElement {
+    // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_url_getter!(Src);
-
+    // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn Text(self) -> DOMString {
+    fn Text(&self) -> DOMString {
         Node::collect_text_contents(NodeCast::from_ref(self).children())
     }
 
     // https://www.whatwg.org/html/#dom-script-text
-    fn SetText(self, value: DOMString) {
+    fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }

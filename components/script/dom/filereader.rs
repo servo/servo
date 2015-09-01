@@ -12,16 +12,17 @@ use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{Root, JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::blob::{Blob, BlobHelpers};
+use dom::blob::Blob;
 use dom::domexception::{DOMException, DOMErrorName};
-use dom::event::{EventHelpers, EventCancelable, EventBubbles};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::event::{EventCancelable, EventBubbles};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{EncodingRef, DecoderTrap};
 use hyper::mime::{Mime, Attr};
 use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+use script_task::ScriptTaskEventCategory::FileRead;
 use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
 use std::cell::{Cell, RefCell};
 use std::sync::mpsc;
@@ -67,7 +68,6 @@ pub enum FileReaderReadyState {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct FileReader {
     eventtarget: EventTarget,
     global: GlobalField,
@@ -252,27 +252,38 @@ impl FileReader {
     }
 }
 
-impl<'a> FileReaderMethods for &'a FileReader {
+impl FileReaderMethods for FileReader {
+    // https://w3c.github.io/FileAPI/#dfn-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
+
+    // https://w3c.github.io/FileAPI/#dfn-onprogress
     event_handler!(progress, GetOnprogress, SetOnprogress);
+
+    // https://w3c.github.io/FileAPI/#dfn-onload
     event_handler!(load, GetOnload, SetOnload);
+
+    // https://w3c.github.io/FileAPI/#dfn-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
+
+    // https://w3c.github.io/FileAPI/#dfn-onerror
     event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://w3c.github.io/FileAPI/#dfn-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn ReadAsDataURL(self, blob: &Blob) -> ErrorResult {
+    fn ReadAsDataURL(&self, blob: &Blob) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsDataUrl, blob, None)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn ReadAsText(self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
         self.read(FileReaderFunction::ReadAsText, blob, label)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-abort
-    fn Abort(self) {
+    fn Abort(&self) {
         // Step 2
         if self.ready_state.get() == FileReaderReadyState::Loading {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -291,30 +302,24 @@ impl<'a> FileReaderMethods for &'a FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
-    fn GetError(self) -> Option<Root<DOMException>> {
+    fn GetError(&self) -> Option<Root<DOMException>> {
         self.error.get().map(|error| error.root())
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result
-    fn GetResult(self) -> Option<DOMString> {
+    fn GetResult(&self) -> Option<DOMString> {
         self.result.borrow().clone()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readyState
-    fn ReadyState(self) -> u16 {
+    fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 }
 
-trait PrivateFileReaderHelpers {
-    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>);
-    fn terminate_ongoing_reading(self);
-    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult;
-    fn change_ready_state(self, state: FileReaderReadyState);
-}
 
-impl<'a> PrivateFileReaderHelpers for &'a FileReader {
-    fn dispatch_progress_event(self, type_: DOMString, loaded: u64, total: Option<u64>) {
+impl FileReader {
+    fn dispatch_progress_event(&self, type_: DOMString, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
@@ -326,12 +331,12 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         event.fire(target);
     }
 
-    fn terminate_ongoing_reading(self) {
+    fn terminate_ongoing_reading(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
     }
 
-    fn read(self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn read(&self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
         let root = self.global.root();
         let global = root.r();
         // Step 1
@@ -369,7 +374,7 @@ impl<'a> PrivateFileReaderHelpers for &'a FileReader {
         Ok(())
     }
 
-    fn change_ready_state(self, state: FileReaderReadyState) {
+    fn change_ready_state(&self, state: FileReaderReadyState) {
         self.ready_state.set(state);
     }
 }
@@ -408,22 +413,22 @@ fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, bl
     let chan = &script_chan;
     // Step 4
     let task = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
-    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
     let task = box FileReaderEvent::ProcessReadData(filereader.clone(),
         gen_id, DOMString::new());
-    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 
     let bytes = match blob_contents.recv() {
         Ok(bytes) => bytes,
         Err(_) => {
             let task = box FileReaderEvent::ProcessReadError(filereader,
                 gen_id, DOMErrorName::NotFoundError);
-            chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+            chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
             return;
         }
     };
 
     let task = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, bytes);
-    chan.send(CommonScriptMsg::RunnableMsg(task)).unwrap();
+    chan.send(CommonScriptMsg::RunnableMsg(FileRead, task)).unwrap();
 }

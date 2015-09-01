@@ -17,7 +17,6 @@ use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct CustomEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
@@ -63,14 +62,14 @@ impl CustomEvent {
     }
 }
 
-impl<'a> CustomEventMethods for &'a CustomEvent {
+impl CustomEventMethods for CustomEvent {
     // https://dom.spec.whatwg.org/#dom-customevent-detail
-    fn Detail(self, _cx: *mut JSContext) -> JSVal {
+    fn Detail(&self, _cx: *mut JSContext) -> JSVal {
         self.detail.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
-    fn InitCustomEvent(self,
+    fn InitCustomEvent(&self,
                        _cx: *mut JSContext,
                        type_: DOMString,
                        can_bubble: bool,
@@ -85,4 +84,3 @@ impl<'a> CustomEventMethods for &'a CustomEvent {
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }
-

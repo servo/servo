@@ -30,7 +30,6 @@ pub enum FormDatum {
 }
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct FormData {
     reflector_: Reflector,
     data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
@@ -58,10 +57,10 @@ impl FormData {
     }
 }
 
-impl<'a> FormDataMethods for &'a FormData {
+impl FormDataMethods for FormData {
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
-    fn Append(self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
+    fn Append(&self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
         let file = FormDatum::FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
@@ -73,7 +72,7 @@ impl<'a> FormDataMethods for &'a FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-append
-    fn Append_(self, name: DOMString, value: DOMString) {
+    fn Append_(&self, name: DOMString, value: DOMString) {
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(FormDatum::StringData(value)),
@@ -82,51 +81,41 @@ impl<'a> FormDataMethods for &'a FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-delete
-    fn Delete(self, name: DOMString) {
+    fn Delete(&self, name: DOMString) {
         self.data.borrow_mut().remove(&name);
     }
 
-    #[allow(unsafe_code)]
     // https://xhr.spec.whatwg.org/#dom-formdata-get
-    fn Get(self, name: DOMString) -> Option<FileOrString> {
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let data = self.data.borrow();
-        if data.contains_key(&name) {
-            match data[&name][0].clone() {
-                FormDatum::StringData(ref s) => Some(eString(s.clone())),
-                FormDatum::FileData(ref f) => {
-                    Some(eFile(f.root()))
-                }
-            }
-        } else {
-            None
-        }
+    fn Get(&self, name: DOMString) -> Option<FileOrString> {
+        self.data.borrow()
+                 .get(&name)
+                 .map(|entry| match entry[0] {
+                     FormDatum::StringData(ref s) => eString(s.clone()),
+                     FormDatum::FileData(ref f) => eFile(f.root()),
+                 })
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-has
-    fn Has(self, name: DOMString) -> bool {
+    fn Has(&self, name: DOMString) -> bool {
         self.data.borrow().contains_key(&name)
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
-    fn Set_(self, name: DOMString, value: DOMString) {
+    fn Set_(&self, name: DOMString, value: DOMString) {
         self.data.borrow_mut().insert(name, vec!(FormDatum::StringData(value)));
     }
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
-    fn Set(self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
+    fn Set(&self, name: DOMString, value: &Blob, filename: Option<DOMString>) {
         let file = FormDatum::FileData(JS::from_rooted(&self.get_file_from_blob(value, filename)));
         self.data.borrow_mut().insert(name, vec!(file));
     }
 }
 
-trait PrivateFormDataHelpers {
-  fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File>;
-}
 
-impl<'a> PrivateFormDataHelpers for &'a FormData {
-    fn get_file_from_blob(self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
+impl FormData {
+    fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
         let f: Option<&File> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));

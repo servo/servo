@@ -9,14 +9,13 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
-use dom::element::{AttributeHandlers, Element, ElementHelpers};
+use dom::element::Element;
 use dom::window::Window;
 use util::str::DOMString;
 
 use string_cache::Atom;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct NamedNodeMap {
     reflector_: Reflector,
     owner: JS<Element>,
@@ -36,9 +35,9 @@ impl NamedNodeMap {
     }
 }
 
-impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
+impl NamedNodeMapMethods for NamedNodeMap {
     // https://dom.spec.whatwg.org/#dom-namednodemap-length
-    fn Length(self) -> u32 {
+    fn Length(&self) -> u32 {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -47,7 +46,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn Item(self, index: u32) -> Option<Root<Attr>> {
+    fn Item(&self, index: u32) -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -56,7 +55,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
-    fn GetNamedItem(self, name: DOMString) -> Option<Root<Attr>> {
+    fn GetNamedItem(&self, name: DOMString) -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -64,7 +63,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditemns
-    fn GetNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
+    fn GetNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
                      -> Option<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -74,7 +73,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
-    fn RemoveNamedItem(self, name: DOMString) -> Fallible<Root<Attr>> {
+    fn RemoveNamedItem(&self, name: DOMString) -> Fallible<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let owner = owner.r();
@@ -83,7 +82,7 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns
-    fn RemoveNamedItemNS(self, namespace: Option<DOMString>, local_name: DOMString)
+    fn RemoveNamedItemNS(&self, namespace: Option<DOMString>, local_name: DOMString)
                       -> Fallible<Root<Attr>> {
         let owner = self.owner.root();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
@@ -93,20 +92,20 @@ impl<'a> NamedNodeMapMethods for &'a NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.Item(index);
         *found = item.is_some();
         item
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<Root<Attr>> {
+    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Root<Attr>> {
         let item = self.GetNamedItem(name);
         *found = item.is_some();
         item
     }
 
-    fn SupportedPropertyNames(self) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]
     }

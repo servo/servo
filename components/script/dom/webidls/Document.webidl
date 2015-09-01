@@ -146,9 +146,10 @@ partial interface Document {
   [SameObject]
   readonly attribute HTMLCollection applets;
 
-  // void clear();
-  // void captureEvents();
-  // void releaseEvents();
+  void clear();
+  void captureEvents();
+  void releaseEvents();
 
+  // Tracking issue for document.all: https://github.com/servo/servo/issues/7396
   // readonly attribute HTMLAllCollection all;
 };

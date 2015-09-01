@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
-use dom::attr::AttrHelpers;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
@@ -18,16 +17,15 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
-use dom::document::{Document, DocumentHelpers};
+use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::element::{Element, ElementTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
 
 use msg::constellation_msg::FocusType;
 use util::str::DOMString;
@@ -40,7 +38,6 @@ use std::intrinsics;
 use std::rc::Rc;
 
 #[dom_struct]
-#[derive(HeapSizeOf)]
 pub struct HTMLElement {
     element: Element,
     style_decl: MutNullableHeap<JS<CSSStyleDeclaration>>,
@@ -80,20 +77,13 @@ impl HTMLElement {
         let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
-}
 
-trait PrivateHTMLElementHelpers {
-    fn is_body_or_frameset(self) -> bool;
-    fn update_sequentially_focusable_status(self);
-}
-
-impl<'a> PrivateHTMLElementHelpers for &'a HTMLElement {
-    fn is_body_or_frameset(self) -> bool {
+    fn is_body_or_frameset(&self) -> bool {
         let eventtarget = EventTargetCast::from_ref(self);
         eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
     }
 
-    fn update_sequentially_focusable_status(self) {
+    fn update_sequentially_focusable_status(&self) {
         let element = ElementCast::from_ref(self);
         let node = NodeCast::from_ref(self);
         if element.has_attribute(&atom!("tabindex")) {
@@ -131,34 +121,40 @@ impl<'a> PrivateHTMLElementHelpers for &'a HTMLElement {
     }
 }
 
-impl<'a> HTMLElementMethods for &'a HTMLElement {
+impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
-    fn Style(self) -> Root<CSSStyleDeclaration> {
+    fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
             CSSStyleDeclaration::new(global.r(), ElementCast::from_ref(self), None, CSSModificationAccess::ReadWrite)
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title);
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_setter!(SetTitle, "title");
 
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_getter!(Lang);
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_setter!(SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden);
+    // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
-    fn Dataset(self) -> Root<DOMStringMap> {
+    fn Dataset(&self) -> Root<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
-    fn GetOnload(self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().GetOnload()
@@ -169,7 +165,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
-    fn SetOnload(self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self);
             win.r().SetOnload(listener)
@@ -180,7 +176,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
-    fn Click(self) {
+    fn Click(&self) {
         let maybe_input: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
         if let Some(i) = maybe_input {
             if i.Disabled() {
@@ -193,7 +189,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
-    fn Focus(self) {
+    fn Focus(&self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let element = ElementCast::from_ref(self);
@@ -205,7 +201,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
-    fn Blur(self) {
+    fn Blur(&self) {
         // TODO: Run the unfocusing steps.
         let node = NodeCast::from_ref(self);
         if !node.get_focus_state() {
@@ -219,7 +215,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn GetOffsetParent(self) -> Option<Root<Element>> {
+    fn GetOffsetParent(&self) -> Option<Root<Element>> {
         if self.is_htmlbodyelement() || self.is_htmlhtmlelement() {
             return None;
         }
@@ -232,7 +228,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetTop(self) -> i32 {
+    fn OffsetTop(&self) -> i32 {
         if self.is_htmlbodyelement() {
             return 0;
         }
@@ -245,7 +241,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetLeft(self) -> i32 {
+    fn OffsetLeft(&self) -> i32 {
         if self.is_htmlbodyelement() {
             return 0;
         }
@@ -258,7 +254,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetWidth(self) -> i32 {
+    fn OffsetWidth(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
@@ -267,7 +263,7 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
-    fn OffsetHeight(self) -> i32 {
+    fn OffsetHeight(&self) -> i32 {
         let node = NodeCast::from_ref(self);
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
@@ -277,11 +273,6 @@ impl<'a> HTMLElementMethods for &'a HTMLElement {
 }
 
 // https://html.spec.whatwg.org/#attr-data-*
-pub trait HTMLElementCustomAttributeHelpers {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn get_custom_attr(self, name: DOMString) -> Option<DOMString>;
-    fn delete_custom_attr(self, name: DOMString);
-}
 
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
@@ -296,8 +287,8 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
-impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
+impl HTMLElement {
+    pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
@@ -307,7 +298,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
         element.set_custom_attribute(to_snake_case(name), value)
     }
 
-    fn get_custom_attr(self, local_name: DOMString) -> Option<DOMString> {
+    pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.get_attribute(&ns!(""), &local_name).map(|attr| {
@@ -315,16 +306,16 @@ impl<'a> HTMLElementCustomAttributeHelpers for &'a HTMLElement {
         })
     }
 
-    fn delete_custom_attr(self, local_name: DOMString) {
+    pub fn delete_custom_attr(&self, local_name: DOMString) {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.remove_attribute(&ns!(""), &local_name);
     }
 }
 
-impl<'a> VirtualMethods for &'a HTMLElement {
+impl VirtualMethods for HTMLElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &&Element = ElementCast::from_borrowed_ref(self);
+        let element: &Element = ElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
 
@@ -348,11 +339,11 @@ impl<'a> VirtualMethods for &'a HTMLElement {
 
         let name = attr.local_name();
         if name.starts_with("on") {
-            let window = window_from_node(*self);
+            let window = window_from_node(self);
             let (cx, url, reflector) = (window.r().get_cx(),
                                         window.r().get_url(),
                                         window.r().reflector().get_jsobject());
-            let evtarget = EventTargetCast::from_ref(*self);
+            let evtarget = EventTargetCast::from_ref(self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   &name[2..],
                                                   (**attr.value()).to_owned());
