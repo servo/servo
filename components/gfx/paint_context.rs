@@ -470,6 +470,7 @@ impl<'a> PaintContext<'a> {
         radius.width <= 0. || radius.height <= 0.
     }
 
+    // Adapted from gecko:gfx/2d/PathHelpers.h:EllipseToBezier
     fn ellipse_to_bezier(path_builder: &mut PathBuilder,
                          origin: Point2D<AzFloat>,
                          radius: Size2D<AzFloat>,
@@ -509,10 +510,11 @@ impl<'a> PaintContext<'a> {
     }
 
     #[allow(non_snake_case)]
-    fn border_bounds(bounds: &Rect<f32>, border: &SideOffsets2D<f32>) -> ((Point2D<f32>, Point2D<f32>),
-                                                                          (Point2D<f32>, Point2D<f32>),
-                                                                          (Point2D<f32>, Point2D<f32>),
-                                                                          (Point2D<f32>, Point2D<f32>)) {
+    fn border_bounds(bounds: &Rect<f32>,
+                     border: &SideOffsets2D<f32>) -> ((Point2D<f32>, Point2D<f32>),
+                                                      (Point2D<f32>, Point2D<f32>),
+                                                      (Point2D<f32>, Point2D<f32>),
+                                                      (Point2D<f32>, Point2D<f32>)) {
         // T = top, B = bottom, L = left, R = right
         let box_TL = bounds.origin;
         let box_TR = box_TL + Point2D::new(bounds.size.width, 0.0);
@@ -534,7 +536,9 @@ impl<'a> PaintContext<'a> {
                                                        (Point2D<f32>, Size2D<f32>),
                                                        (Point2D<f32>, Size2D<f32>)) {
 
-        fn distance_to_elbow(radius: &Size2D<AzFloat>, corner_width: f32, corner_height: f32) -> Size2D<f32> {
+        fn distance_to_elbow(radius: &Size2D<AzFloat>,
+                             corner_width: f32,
+                             corner_height: f32) -> Size2D<f32> {
             if corner_width >= radius.width || corner_height >= radius.height {
                 Size2D::zero()
             } else {
@@ -745,8 +749,10 @@ impl<'a> PaintContext<'a> {
                 let edge_BR = box_TR + dx(-border.right - dist_to_elbow_TR.width) + dy(border.top);
                 let edge_BL = box_TL + dx(border.left + dist_to_elbow_TL.width) + dy(border.top);
 
-                let corner_TL = edge_TL + dx_if(PaintContext::is_zero_radius(&radii.top_left), -border.left);
-                let corner_TR = edge_TR + dx_if(PaintContext::is_zero_radius(&radii.top_right), border.right);
+                let corner_TL = edge_TL + dx_if(PaintContext::is_zero_radius(&radii.top_left),
+                                                -border.left);
+                let corner_TR = edge_TR + dx_if(PaintContext::is_zero_radius(&radii.top_right),
+                                                border.right);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -781,10 +787,13 @@ impl<'a> PaintContext<'a> {
                 let edge_TL = box_TL + dy(radii.top_left.height.max(border.top));
                 let edge_BL = box_BL + dy(-radii.bottom_left.height.max(border.bottom));
                 let edge_TR = box_TL + dx(border.left) + dy(border.top + dist_to_elbow_TL.height);
-                let edge_BR = box_BL + dx(border.left) + dy(-border.bottom - dist_to_elbow_BL.height);
+                let edge_BR = box_BL + dx(border.left) + dy(-border.bottom -
+                                                            dist_to_elbow_BL.height);
 
-                let corner_TL = edge_TL + dy_if(PaintContext::is_zero_radius(&radii.top_left), -border.top);
-                let corner_BL = edge_BL + dy_if(PaintContext::is_zero_radius(&radii.bottom_left), border.bottom);
+                let corner_TL = edge_TL + dy_if(PaintContext::is_zero_radius(&radii.top_left),
+                                                -border.top);
+                let corner_BL = edge_BL + dy_if(PaintContext::is_zero_radius(&radii.bottom_left),
+                                                border.bottom);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -819,10 +828,13 @@ impl<'a> PaintContext<'a> {
                 let edge_TR = box_TR + dy(radii.top_right.height.max(border.top));
                 let edge_BR = box_BR + dy(-radii.bottom_right.height.max(border.bottom));
                 let edge_TL = box_TR + dx(-border.right) + dy(border.top + dist_to_elbow_TR.height);
-                let edge_BL = box_BR + dx(-border.right) + dy(-border.bottom - dist_to_elbow_BR.height);
+                let edge_BL = box_BR + dx(-border.right) + dy(-border.bottom -
+                                                              dist_to_elbow_BR.height);
 
-                let corner_TR = edge_TR + dy_if(PaintContext::is_zero_radius(&radii.top_right), -border.top);
-                let corner_BR = edge_BR + dy_if(PaintContext::is_zero_radius(&radii.bottom_right), border.bottom);
+                let corner_TR = edge_TR + dy_if(PaintContext::is_zero_radius(&radii.top_right),
+                                                -border.top);
+                let corner_BR = edge_BR + dy_if(PaintContext::is_zero_radius(&radii.bottom_right),
+                                                border.bottom);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -857,11 +869,15 @@ impl<'a> PaintContext<'a> {
             Direction::Bottom => {
                 let edge_BL = box_BL + dx(radii.bottom_left.width.max(border.left));
                 let edge_BR = box_BR + dx(-radii.bottom_right.width.max(border.right));
-                let edge_TL = box_BL + dy(-border.bottom) + dx(border.left + dist_to_elbow_BL.width);
-                let edge_TR = box_BR + dy(-border.bottom) + dx(-border.right - dist_to_elbow_BR.width);
+                let edge_TL = box_BL + dy(-border.bottom) + dx(border.left +
+                                                               dist_to_elbow_BL.width);
+                let edge_TR = box_BR + dy(-border.bottom) + dx(-border.right -
+                                                               dist_to_elbow_BR.width);
 
-                let corner_BR = edge_BR + dx_if(PaintContext::is_zero_radius(&radii.bottom_right), border.right);
-                let corner_BL = edge_BL + dx_if(PaintContext::is_zero_radius(&radii.bottom_left), -border.left);
+                let corner_BR = edge_BR + dx_if(PaintContext::is_zero_radius(&radii.bottom_right),
+                                                border.right);
+                let corner_BL = edge_BL + dx_if(PaintContext::is_zero_radius(&radii.bottom_left),
+                                                -border.left);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -962,7 +978,8 @@ impl<'a> PaintContext<'a> {
                                   &box_BR,
                                   &zero_elbow,
                                   false);
-        path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left.width, bounds.max_y())); // 6
+        path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left.width,
+                                          bounds.max_y()));                                            // 6
         PaintContext::draw_corner(path_builder,                                                        // 7
                                   &origin_BL,
                                   &radii.bottom_left,
@@ -977,7 +994,8 @@ impl<'a> PaintContext<'a> {
                                   &box_BL,
                                   &zero_elbow,
                                   false);
-        path_builder.line_to(Point2D::new(bounds.origin.x, bounds.origin.y + radii.top_left.height));   // 8
+        path_builder.line_to(Point2D::new(bounds.origin.x,
+                                          bounds.origin.y + radii.top_left.height));                    // 8
         PaintContext::draw_corner(path_builder,                                                         // 9
                                   &origin_TL,
                                   &radii.top_left,

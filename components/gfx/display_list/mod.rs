@@ -979,7 +979,10 @@ impl<T> Default for BorderRadii<T> where T: Default, T: Clone {
                                       Default::default());
         let bottom_right = Size2D::new(Default::default(),
                                        Default::default());
-        BorderRadii { top_left: top_left, top_right: top_right, bottom_left: bottom_left, bottom_right: bottom_right }
+        BorderRadii { top_left: top_left,
+                      top_right: top_right,
+                      bottom_left: bottom_left,
+                      bottom_right: bottom_right }
     }
 }
 
