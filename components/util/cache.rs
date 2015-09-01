@@ -76,7 +76,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K, V> {
         self.entries[last_index].1.clone()
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a,(K, V)> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, (K, V)> {
         self.entries.iter()
     }
 

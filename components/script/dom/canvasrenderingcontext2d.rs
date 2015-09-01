@@ -1153,7 +1153,7 @@ impl Drop for CanvasRenderingContext2D {
     }
 }
 
-pub fn parse_color(string: &str) -> Result<RGBA,()> {
+pub fn parse_color(string: &str) -> Result<RGBA, ()> {
     let mut parser = Parser::new(&string);
     match CSSColor::parse(&mut parser) {
         Ok(CSSColor::RGBA(rgba)) => {

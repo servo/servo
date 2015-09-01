@@ -1068,7 +1068,7 @@ impl XMLHttpRequest {
 
     fn fetch(&self,
               load_data: LoadData,
-              cors_request: Result<Option<CORSRequest>,()>,
+              cors_request: Result<Option<CORSRequest>, ()>,
               global: GlobalRef) -> ErrorResult {
         let cors_request = match cors_request {
             Err(_) => {

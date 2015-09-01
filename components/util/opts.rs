@@ -435,7 +435,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
     opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
     opts.optflagopt("", "userscripts",
-                    "Uses userscripts in resources/user-agent-js, or a specified full path","");
+                    "Uses userscripts in resources/user-agent-js, or a specified full path", "");
     opts.optmulti("", "user-stylesheet",
                   "A user stylesheet to be added to every document", "file.css");
     opts.optflag("z", "headless", "Headless mode");

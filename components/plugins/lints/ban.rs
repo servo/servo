@@ -23,13 +23,13 @@ impl LintPass for BanPass {
     }
 
     fn check_ty(&mut self, cx: &Context, ty: &ast::Ty) {
-        if match_ty_unwrap(ty, &["std","cell","Cell"])
+        if match_ty_unwrap(ty, &["std", "cell", "Cell"])
             .and_then(|t| t.get(0))
             .and_then(|t| match_ty_unwrap(&**t, &["dom", "bindings", "js", "JS"]))
             .is_some() {
             cx.span_lint(BANNED_TYPE, ty.span, "Banned type Cell<JS<T>> detected. Use MutHeap<JS<T>> instead")
         }
-        if match_ty_unwrap(ty, &["std","cell","Cell"])
+        if match_ty_unwrap(ty, &["std", "cell", "Cell"])
             .and_then(|t| t.get(0))
             .and_then(|t| match_ty_unwrap(&**t, &["js", "jsval", "JSVal"]))
             .is_some() {
