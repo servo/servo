@@ -627,7 +627,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "khronos_api 0.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
