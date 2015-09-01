@@ -5,9 +5,8 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use compositor_msg::Epoch;
-
 use canvas_traits::CanvasMsg;
+use compositor_msg::Epoch;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
