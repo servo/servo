@@ -24,6 +24,7 @@ from servo.command_base import CommandBase, cd
 
 @CommandProvider
 class MachCommands(CommandBase):
+
     @Command('cargo',
              description='Run Cargo',
              category='devenv')
@@ -132,3 +133,14 @@ class MachCommands(CommandBase):
         return subprocess.call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
             env=self.build_env())
+
+    @Command('wpt-upgrade',
+             description='upgrade wptrunner.',
+             category='devenv')
+    def upgrade_wpt_runner(self):
+        cd(path.join(self.context.topdir, 'test', 'wpt', 'harness'))
+        subprocess.call(["git", "init"], env=self.build_env())
+        subprocess.call(["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"],
+                        env=self.build_env())
+        subprocess.call(["git", "fetch", "upstream"], env=self.build_env())
+        subprocess.call(["git", "reset", '--', "hard", "remotes/upstream/master"], env=self.build_env())
