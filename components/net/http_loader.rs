@@ -183,7 +183,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
         context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
 
         let connector = HttpsConnector::new(Openssl { context: Arc::new(context) });
-        let connection = Request::with_connector(method.clone(), url.clone(), &connector);
+        let connection = Request::with_connector(method, url.clone(), &connector);
 
         let ssl_err_string = "Some(OpenSslErrors([UnknownError { library: \"SSL routines\", \
     function: \"SSL3_GET_SERVER_CERTIFICATE\", \
