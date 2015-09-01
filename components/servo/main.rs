@@ -25,7 +25,7 @@ extern crate glutin_app as app;
 extern crate time;
 extern crate env_logger;
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
 
@@ -35,7 +35,7 @@ use servo::net_traits::hosts;
 use servo::util::opts;
 use std::rc::Rc;
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 use std::borrow::ToOwned;
 
 fn main() {
@@ -128,16 +128,16 @@ impl app::NestedEventLoopListener for BrowserWrapper {
     }
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 fn setup_logging() {
     android::setup_logging();
 }
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 fn setup_logging() {
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 fn get_args() -> Vec<String> {
     vec![
         "servo".to_owned(),
@@ -145,7 +145,7 @@ fn get_args() -> Vec<String> {
     ]
 }
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 fn get_args() -> Vec<String> {
     use std::env;
     env::args().collect()

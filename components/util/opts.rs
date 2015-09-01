@@ -333,10 +333,10 @@ fn args_fail(msg: &str) -> ! {
 
 // Always use CPU painting on android.
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 static FORCE_CPU_PAINTING: bool = true;
 
-#[cfg(not(target_os="android"))]
+#[cfg(not(target_os = "android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
 enum UserAgent {
@@ -359,15 +359,15 @@ fn default_user_agent_string(agent: UserAgent) -> String {
     }.to_owned()
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
 // FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
 // correct string in Gonk builds (i.e., it will never be chosen today).
-#[cfg(target_os="gonk")]
+#[cfg(target_os = "gonk")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
 
-#[cfg(not(any(target_os="android", target_os="gonk")))]
+#[cfg(not(any(target_os = "android", target_os = "gonk")))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {

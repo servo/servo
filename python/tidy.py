@@ -188,33 +188,35 @@ def check_rust(file_name, contents):
             line = merged_lines + line
             merged_lines = ''
 
-        # get rid of strings and chars because cases like regex expression
-        line = re.sub('".*?"|\'.*?\'', '', line)
+        # get rid of strings and chars because cases like regex expression, keep attributes
+        if not line_is_attribute(line):
+            line = re.sub('".*?"|\'.*?\'', '', line)
 
-        # get rid of comments and attributes
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$|^#.*?$', '', line)
+        # get rid of comments
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
+
+        # get rid of attributes that do not contain =
+        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
 
         match = re.search(r",[A-Za-z0-9]", line)
         if match:
             yield (idx + 1, "missing space after ,")
 
-        # Avoid flagging <Item=Foo> constructs
-        def is_associated_type(match, line, index):
-            open_angle = line[0:match.end()].rfind('<')
-            close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
-            is_equals = match.group(0)[index] == '='
-            generic_open = open_angle != -1 and open_angle < match.start()
-            generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
-            return is_equals and generic_open and generic_close
+        if line_is_attribute(line):
+            pre_space_re = r"[A-Za-z0-9]="
+            post_space_re = r"=[A-Za-z0-9\"]"
+        else:
+            # - not included because of scientific notation (1e-6)
+            pre_space_re = r"[A-Za-z0-9][\+/\*%=]"
+            # * not included because of dereferencing and casting
+            # - not included because of unary negation
+            post_space_re = r"[\+/\%=][A-Za-z0-9\"]"
 
-        # - not included because of scientific notation (1e-6)
-        match = re.search(r"[A-Za-z0-9][\+/\*%=]", line)
+        match = re.search(pre_space_re, line)
         if match and not is_associated_type(match, line, 1):
             yield (idx + 1, "missing space before %s" % match.group(0)[1])
 
-        # * not included because of dereferencing and casting
-        # - not included because of unary negation
-        match = re.search(r"[\+/\%=][A-Za-z0-9]", line)
+        match = re.search(post_space_re, line)
         if match and not is_associated_type(match, line, 0):
             yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
@@ -268,6 +270,20 @@ def check_rust(file_name, contents):
                     found = "\n\t\033[91mfound: {}\033[0m".format(uses[i])
                     yield (idx + 1 - len(uses) + i, message + expected + found)
             uses = []
+
+
+# Avoid flagging <Item=Foo> constructs
+def is_associated_type(match, line, index):
+    open_angle = line[0:match.end()].rfind('<')
+    close_angle = line[open_angle:].find('>') if open_angle != -1 else -1
+    is_equals = match.group(0)[index] == '='
+    generic_open = open_angle != -1 and open_angle < match.start()
+    generic_close = close_angle != -1 and close_angle + open_angle >= match.end()
+    return is_equals and generic_open and generic_close
+
+
+def line_is_attribute(line):
+    return re.search(r"#\[.*\]", line)
 
 
 def check_webidl_spec(file_name, contents):

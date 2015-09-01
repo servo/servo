@@ -39,9 +39,9 @@ extern crate clipboard;
 extern crate time;
 extern crate url;
 
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 extern crate core_graphics;
-#[cfg(target_os="macos")]
+#[cfg(target_os = "macos")]
 extern crate core_text;
 
 pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};

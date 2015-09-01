@@ -139,7 +139,7 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
     }
 }
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
         "Fira Sans".to_owned(),
@@ -148,7 +148,7 @@ pub fn get_last_resort_font_families() -> Vec<String> {
     )
 }
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!("Roboto".to_owned())
 }

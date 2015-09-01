@@ -35,7 +35,7 @@ use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
 use util::opts;
 
-#[cfg(all(feature = "headless", target_os="linux"))]
+#[cfg(all(feature = "headless", target_os = "linux"))]
 use std::ptr;
 
 #[cfg(feature = "window")]
@@ -56,15 +56,15 @@ bitflags! {
 }
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
-#[cfg(all(feature = "window", target_os="macos"))]
+#[cfg(all(feature = "window", target_os = "macos"))]
 const CMD_OR_CONTROL: constellation_msg::KeyModifiers = SUPER;
-#[cfg(all(feature = "window", not(target_os="macos")))]
+#[cfg(all(feature = "window", not(target_os = "macos")))]
 const CMD_OR_CONTROL: constellation_msg::KeyModifiers = CONTROL;
 
 // Some shortcuts use Cmd on Mac and Alt on other systems.
-#[cfg(all(feature = "window", target_os="macos"))]
+#[cfg(all(feature = "window", target_os = "macos"))]
 const CMD_OR_ALT: constellation_msg::KeyModifiers = SUPER;
-#[cfg(all(feature = "window", not(target_os="macos")))]
+#[cfg(all(feature = "window", not(target_os = "macos")))]
 const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
@@ -138,22 +138,22 @@ impl Window {
         }
     }
 
-    #[cfg(not(target_os="android"))]
+    #[cfg(not(target_os = "android"))]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGl, (3, 0))
     }
 
-    #[cfg(target_os="android")]
+    #[cfg(target_os = "android")]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGlEs, (2, 0))
     }
 
-    #[cfg(not(target_os="android"))]
+    #[cfg(not(target_os = "android"))]
     fn load_gl_functions(window: &glutin::Window) {
         gl::load_with(|s| window.get_proc_address(s));
     }
 
-    #[cfg(target_os="android")]
+    #[cfg(target_os = "android")]
     fn load_gl_functions(_: &glutin::Window) {
     }
 
@@ -290,7 +290,7 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    #[cfg(target_os="macos")]
+    #[cfg(target_os = "macos")]
     fn handle_next_event(&self) -> bool {
         let event = self.window.wait_events().next().unwrap();
         let mut close = self.handle_window_event(event);
@@ -305,7 +305,7 @@ impl Window {
         close
     }
 
-    #[cfg(any(target_os="linux", target_os="android"))]
+    #[cfg(any(target_os = "linux", target_os = "android"))]
     fn handle_next_event(&self) -> bool {
         use std::thread::sleep_ms;
 
@@ -478,7 +478,7 @@ impl Window {
         result
     }
 
-    #[cfg(all(feature = "window", not(target_os="win")))]
+    #[cfg(all(feature = "window", not(target_os = "win")))]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match (mods, key) {
             (CMD_OR_CONTROL, Key::LeftBracket) => {
@@ -491,19 +491,19 @@ impl Window {
         }
     }
 
-    #[cfg(all(feature = "window", target_os="win"))]
+    #[cfg(all(feature = "window", target_os = "win"))]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
     }
 }
 
 // WindowProxy is not implemented for android yet
 
-#[cfg(all(feature = "window", target_os="android"))]
+#[cfg(all(feature = "window", target_os = "android"))]
 fn create_window_proxy(_: &Rc<Window>) -> Option<glutin::WindowProxy> {
     None
 }
 
-#[cfg(all(feature = "window", not(target_os="android")))]
+#[cfg(all(feature = "window", not(target_os = "android")))]
 fn create_window_proxy(window: &Rc<Window>) -> Option<glutin::WindowProxy> {
     Some(window.window.create_window_proxy())
 }
@@ -623,7 +623,7 @@ impl WindowMethods for Window {
         true
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn native_display(&self) -> NativeDisplay {
         use x11::xlib;
         unsafe {
@@ -631,7 +631,7 @@ impl WindowMethods for Window {
         }
     }
 
-    #[cfg(not(target_os="linux"))]
+    #[cfg(not(target_os = "linux"))]
     fn native_display(&self) -> NativeDisplay {
         NativeDisplay::new()
     }
@@ -791,7 +791,7 @@ impl WindowMethods for Window {
         true
     }
 
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     fn native_display(&self) -> NativeDisplay {
         NativeDisplay::new(ptr::null_mut())
     }

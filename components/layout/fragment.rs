@@ -2300,10 +2300,10 @@ bitflags! {
     // Various flags we can use when splitting fragments. See
     // `calculate_split_position_using_breaking_strategy()`.
     flags SplitOptions: u8 {
-        #[doc="True if this is the first fragment on the line."]
+        #[doc = "True if this is the first fragment on the line."]
         const STARTS_LINE = 0x01,
-        #[doc="True if we should attempt to split at character boundaries if this split fails. \
-               This is used to implement `overflow-wrap: break-word`."]
+        #[doc = "True if we should attempt to split at character boundaries if this split fails. \
+                 This is used to implement `overflow-wrap: break-word`."]
         const RETRY_AT_CHARACTER_BOUNDARIES = 0x02,
     }
 }

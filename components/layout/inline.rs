@@ -183,9 +183,9 @@ int_range_index! {
 
 bitflags! {
     flags InlineReflowFlags: u8 {
-        #[doc="The `white-space: nowrap` property from CSS 2.1 § 16.6 is in effect."]
+        #[doc = "The `white-space: nowrap` property from CSS 2.1 § 16.6 is in effect."]
         const NO_WRAP_INLINE_REFLOW_FLAG = 0x01,
-        #[doc="The `white-space: pre` property from CSS 2.1 § 16.6 is in effect."]
+        #[doc = "The `white-space: pre` property from CSS 2.1 § 16.6 is in effect."]
         const WRAP_ON_NEWLINE_INLINE_REFLOW_FLAG = 0x02
     }
 }
