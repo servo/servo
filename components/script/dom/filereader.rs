@@ -253,11 +253,22 @@ impl FileReader {
 }
 
 impl FileReaderMethods for FileReader {
+    // https://w3c.github.io/FileAPI/#dfn-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
+
+    // https://w3c.github.io/FileAPI/#dfn-onprogress
     event_handler!(progress, GetOnprogress, SetOnprogress);
+
+    // https://w3c.github.io/FileAPI/#dfn-onload
     event_handler!(load, GetOnload, SetOnload);
+
+    // https://w3c.github.io/FileAPI/#dfn-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
+
+    // https://w3c.github.io/FileAPI/#dfn-onerror
     event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://w3c.github.io/FileAPI/#dfn-onloadend
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
     //TODO https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer

@@ -197,18 +197,22 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
+    // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_setter!(SetAlt, "alt");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_url_getter!(Src);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap);
-
+    // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
@@ -269,28 +273,40 @@ impl HTMLImageElementMethods for HTMLImageElement {
         image.is_some()
     }
 
-    // https://html.spec.whatwg.org/#dom-img-name
+    // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_atomic_setter!(SetName, "name");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-align
     make_getter!(Align);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-align
     make_setter!(SetAlign, "align");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-hspace
     make_uint_getter!(Hspace);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-hspace
     make_uint_setter!(SetHspace, "hspace");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-vspace
     make_uint_getter!(Vspace);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-vspace
     make_uint_setter!(SetVspace, "vspace");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_getter!(LongDesc);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
     make_setter!(SetLongDesc, "longdesc");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_getter!(Border);
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-border
     make_setter!(SetBorder, "border");
 }
 

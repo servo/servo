@@ -228,9 +228,16 @@ impl WebSocket {
 }
 
 impl WebSocketMethods for WebSocket {
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onopen
     event_handler!(open, GetOnopen, SetOnopen);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onclose
     event_handler!(close, GetOnclose, SetOnclose);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onerror
     event_handler!(error, GetOnerror, SetOnerror);
+
+    // https://html.spec.whatwg.org/multipage/#handler-websocket-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url

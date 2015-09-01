@@ -130,16 +130,22 @@ impl HTMLElementMethods for HTMLElement {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_getter!(Title);
+    // https://html.spec.whatwg.org/multipage/#attr-title
     make_setter!(SetTitle, "title");
 
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_getter!(Lang);
+    // https://html.spec.whatwg.org/multipage/#attr-lang
     make_setter!(SetLang, "lang");
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden);
+    // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset

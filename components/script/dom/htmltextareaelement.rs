@@ -121,6 +121,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_uint_getter!(Cols, "cols", DEFAULT_COLS);
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
 
     // https://www.whatwg.org/html/#dom-fe-disabled
@@ -155,6 +157,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_uint_getter!(Rows, "rows", DEFAULT_ROWS);
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
     make_limited_uint_setter!(SetRows, "rows", DEFAULT_ROWS);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap

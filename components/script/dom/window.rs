@@ -503,8 +503,13 @@ impl WindowMethods for Window {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
+
+    // https://html.spec.whatwg.org/multipage/#handler-window-onunload
     event_handler!(unload, GetOnunload, SetOnunload);
+
+    // https://html.spec.whatwg.org/multipage/#handler-onerror
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
