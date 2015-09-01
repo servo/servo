@@ -2049,7 +2049,7 @@ impl Fragment {
     }
 
     /// Computes the overflow rect of this fragment relative to the start of the flow.
-    pub fn compute_overflow(&self) -> Rect<Au> {
+    pub fn compute_overflow(&self, relative_containing_block_size: &LogicalSize<Au>) -> Rect<Au> {
         // FIXME(pcwalton, #2795): Get the real container size.
         let container_size = Size2D::zero();
         let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
@@ -2058,10 +2058,9 @@ impl Fragment {
         //
         // FIXME(pcwalton): I'm not a fan of the way this makes us crawl though so many styles all
         // the time. Can't we handle relative positioning by just adjusting `border_box`?
-        let relative_position =
-            self.relative_position(&LogicalSize::zero(self.style.writing_mode));
-        border_box = border_box.translate_by_size(&relative_position.to_physical(
-                self.style.writing_mode));
+        let relative_position = self.relative_position(relative_containing_block_size);
+        border_box =
+            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
         let mut overflow = border_box;
 
         // Box shadows cause us to draw outside our border box.

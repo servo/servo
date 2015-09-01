@@ -184,11 +184,11 @@ impl Flow for ListItemFlow {
                                                               .stacking_relative_position,
                                                          &self.block_flow
                                                               .base
-                                                              .absolute_position_info
+                                                              .early_absolute_position_info
                                                               .relative_containing_block_size,
                                                          self.block_flow
                                                              .base
-                                                             .absolute_position_info
+                                                             .early_absolute_position_info
                                                              .relative_containing_block_mode,
                                                          CoordinateSystem::Own)
                            .translate(stacking_context_position));

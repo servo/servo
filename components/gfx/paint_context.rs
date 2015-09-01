@@ -1176,14 +1176,13 @@ impl<'a> PaintContext<'a> {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let font = self.font_context.get_paint_font_from_template(
                 &text.text_run.font_template, text.text_run.actual_pt_size);
-            font
-            .borrow()
-            .draw_text(&temporary_draw_target.draw_target,
-                       &*text.text_run,
-                       &text.range,
-                       baseline_origin,
-                       text.text_color,
-                       opts::get().enable_text_antialiasing);
+            font.borrow()
+                .draw_text(&temporary_draw_target.draw_target,
+                           &*text.text_run,
+                           &text.range,
+                           baseline_origin,
+                           text.text_color,
+                           opts::get().enable_text_antialiasing);
         }
 
         // Blur, if necessary.
@@ -1245,8 +1244,9 @@ impl<'a> PaintContext<'a> {
 
             // Calculate the transform matrix.
             let old_transform = self.draw_target.get_transform();
-            let inflated_size = Rect::new(Point2D::new(0.0, 0.0), Size2D::new(size.width as AzFloat,
-                                                                              size.height as AzFloat));
+            let inflated_size = Rect::new(Point2D::new(0.0, 0.0),
+                                          Size2D::new(size.width as AzFloat,
+                                                      size.height as AzFloat));
             let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
             matrix = Matrix2D::identity().translate(
                 -temporary_draw_target_bounds.origin.x as AzFloat,
@@ -1276,7 +1276,8 @@ impl<'a> PaintContext<'a> {
         self.draw_target.set_transform(&Matrix2D::identity());
         let rect = Rect::new(Point2D::new(0.0, 0.0), self.draw_target.get_size().to_azure_size());
 
-        let rect_temporary = Rect::new(Point2D::new(0.0, 0.0), temporary_draw_target.get_size().to_azure_size());
+        let rect_temporary = Rect::new(Point2D::new(0.0, 0.0),
+                                       temporary_draw_target.get_size().to_azure_size());
 
         // Create the Azure filter pipeline.
         let mut accum_blur = Au(0);
@@ -1297,7 +1298,10 @@ impl<'a> PaintContext<'a> {
             self.pop_clip_if_applicable();
 
             debug!("######### use expanded Rect.");
-            self.draw_target.draw_filter(&filter_node, &rect_temporary, &rect_temporary.origin, draw_options);
+            self.draw_target.draw_filter(&filter_node,
+                                         &rect_temporary,
+                                         &rect_temporary.origin,
+                                         draw_options);
             self.push_clip_if_applicable();
         } else {
             debug!("######### use regular Rect.");
@@ -1348,9 +1352,10 @@ impl<'a> PaintContext<'a> {
         }
 
         // Draw the shadow, and blur if we need to.
-        temporary_draw_target.draw_target.fill(&path,
-                                               Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
-                                               &DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
+        temporary_draw_target.draw_target.fill(
+            &path,
+            Pattern::Color(ColorPattern::new(color)).to_pattern_ref(),
+            &DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None));
         self.blur_if_necessary(temporary_draw_target, blur_radius);
 
         // Undo the draw target's clip if we need to, and push back the stacking context clip.

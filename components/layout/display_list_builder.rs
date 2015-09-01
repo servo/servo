@@ -1152,9 +1152,9 @@ impl FragmentDisplayListBuilding for Fragment {
             StackingContextCreationMode::Normal |
             StackingContextCreationMode::OuterScrollWrapper => {
                 self.stacking_relative_border_box(&base_flow.stacking_relative_position,
-                                                  &base_flow.absolute_position_info
+                                                  &base_flow.early_absolute_position_info
                                                             .relative_containing_block_size,
-                                                  base_flow.absolute_position_info
+                                                  base_flow.early_absolute_position_info
                                                            .relative_containing_block_mode,
                                                   CoordinateSystem::Parent)
             }
@@ -1533,8 +1533,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             .build_display_list(display_list,
                                 layout_context,
                                 &self.base.stacking_relative_position,
-                                &self.base.absolute_position_info.relative_containing_block_size,
-                                self.base.absolute_position_info.relative_containing_block_mode,
+                                &self.base
+                                     .early_absolute_position_info
+                                     .relative_containing_block_size,
+                                self.base
+                                    .early_absolute_position_info
+                                    .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_level,
                                 &clip,
@@ -1616,8 +1620,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &mut outer_display_list_for_overflow_scroll,
                     layout_context,
                     &self.base.stacking_relative_position,
-                    &self.base.absolute_position_info.relative_containing_block_size,
-                    self.base.absolute_position_info.relative_containing_block_mode,
+                    &self.base.early_absolute_position_info.relative_containing_block_size,
+                    self.base.early_absolute_position_info.relative_containing_block_mode,
                     border_painting_mode,
                     BackgroundAndBorderLevel::RootOfStackingContext,
                     &clip,
@@ -1775,10 +1779,10 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                         layout_context,
                                         &self.base.stacking_relative_position,
                                         &self.base
-                                             .absolute_position_info
+                                             .early_absolute_position_info
                                              .relative_containing_block_size,
                                         self.base
-                                            .absolute_position_info
+                                            .early_absolute_position_info
                                             .relative_containing_block_mode,
                                         BorderPaintingMode::Separate,
                                         BackgroundAndBorderLevel::Content,
@@ -1857,11 +1861,11 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                       &self.block_flow.base.stacking_relative_position,
                                       &self.block_flow
                                            .base
-                                           .absolute_position_info
+                                           .early_absolute_position_info
                                            .relative_containing_block_size,
                                       self.block_flow
                                           .base
-                                          .absolute_position_info
+                                          .early_absolute_position_info
                                           .relative_containing_block_mode,
                                       BorderPaintingMode::Separate,
                                       BackgroundAndBorderLevel::Content,

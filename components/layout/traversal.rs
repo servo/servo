@@ -7,7 +7,7 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
-use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
+use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow::{self, Flow};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
@@ -368,7 +368,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
         }
 
         flow.assign_block_size(self.layout_context);
-        flow.store_overflow(self.layout_context);
+        flow.early_store_overflow(self.layout_context);
     }
 
     #[inline]

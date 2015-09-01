@@ -222,7 +222,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         if impacted {
             mut_base(self).thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
-            self.store_overflow(layout_context);
+            // FIXME(pcwalton): Should use `early_store_overflow()` here but that fails due to a
+            // compiler bug (`Self` does not have a constant size).
+            if !self.contains_relatively_positioned_fragments() {
+                self.store_overflow(layout_context)
+            }
             mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
@@ -246,7 +250,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         match self.class() {
             FlowClass::Block |
             FlowClass::TableCaption |
-            FlowClass::TableCell if !base(self).children.is_empty() => {
+            FlowClass::TableCell => {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
@@ -309,13 +313,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     // dispatch, so it's ok to have them in this trait. Plus, they have
     // different behaviour for different types of Flow, so they can't go into
     // the Immutable / Mutable Flow Utils traits without additional casts.
-
-    /// Return true if store overflow is delayed for this flow.
-    ///
-    /// Currently happens only for absolutely positioned flows.
-    fn is_store_overflow_delayed(&mut self) -> bool {
-        false
-    }
 
     fn is_root(&self) -> bool {
         false
@@ -459,6 +456,11 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is an inline flow.
     fn is_inline_flow(self) -> bool;
 
+    /// Returns true if this flow can have its overflow area calculated early (during its
+    /// block-size assignment) or false if it must have its overflow area calculated late (during
+    /// its parent's block-size assignment).
+    fn can_calculate_overflow_area_early(self) -> bool;
+
     /// Dumps the flow tree for debugging.
     fn dump(self);
 
@@ -495,6 +497,12 @@ pub trait MutableFlowUtils {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>);
+
+    /// Calls `store_overflow()` if the overflow can be calculated early.
+    fn early_store_overflow(self, layout_context: &LayoutContext);
+
+    /// Calls `store_overflow()` if the overflow cannot be calculated early.
+    fn late_store_overflow(self, layout_context: &LayoutContext);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -780,15 +788,30 @@ impl<'a> Iterator for AbsoluteDescendantIter<'a> {
 pub type AbsoluteDescendantOffsetIter<'a> = Zip<AbsoluteDescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
-/// confused with absolutely-positioned flows).
-#[derive(RustcEncodable, Copy, Clone)]
-pub struct AbsolutePositionInfo {
+/// confused with absolutely-positioned flows) that is computed during block-size assignment.
+pub struct EarlyAbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
 
     /// The writing mode for `relative_containing_block_size`.
     pub relative_containing_block_mode: WritingMode,
+}
 
+impl EarlyAbsolutePositionInfo {
+    pub fn new(writing_mode: WritingMode) -> EarlyAbsolutePositionInfo {
+        // FIXME(pcwalton): The initial relative containing block-size should be equal to the size
+        // of the root layer.
+        EarlyAbsolutePositionInfo {
+            relative_containing_block_size: LogicalSize::zero(writing_mode),
+            relative_containing_block_mode: writing_mode,
+        }
+    }
+}
+
+/// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
+/// confused with absolutely-positioned flows) that is computed during final position assignment.
+#[derive(RustcEncodable, Copy, Clone)]
+pub struct LateAbsolutePositionInfo {
     /// The position of the absolute containing block relative to the nearest ancestor stacking
     /// context. If the absolute containing block establishes the stacking context for this flow,
     /// and this flow is not itself absolutely-positioned, then this is (0, 0).
@@ -800,13 +823,9 @@ pub struct AbsolutePositionInfo {
     pub layers_needed_for_positioned_flows: bool,
 }
 
-impl AbsolutePositionInfo {
-    pub fn new(writing_mode: WritingMode) -> AbsolutePositionInfo {
-        // FIXME(pcwalton): The initial relative containing block-size should be equal to the size
-        // of the root layer.
-        AbsolutePositionInfo {
-            relative_containing_block_size: LogicalSize::zero(writing_mode),
-            relative_containing_block_mode: writing_mode,
+impl LateAbsolutePositionInfo {
+    pub fn new() -> LateAbsolutePositionInfo {
+        LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
             layers_needed_for_positioned_flows: false,
         }
@@ -875,8 +894,13 @@ pub struct BaseFlow {
     pub absolute_cb: ContainingBlockLink,
 
     /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
-    /// confused with absolutely-positioned flows).
-    pub absolute_position_info: AbsolutePositionInfo,
+    /// confused with absolutely-positioned flows) that is computed during block-size assignment.
+    pub early_absolute_position_info: EarlyAbsolutePositionInfo,
+
+    /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
+    /// confused with absolutely-positioned flows) that is computed during final position
+    /// assignment.
+    pub late_absolute_position_info: LateAbsolutePositionInfo,
 
     /// The clipping region for this flow and its descendants, in layer coordinates.
     pub clip: ClippingRegion,
@@ -1038,7 +1062,8 @@ impl BaseFlow {
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
-            absolute_position_info: AbsolutePositionInfo::new(writing_mode),
+            early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
+            late_absolute_position_info: LateAbsolutePositionInfo::new(),
             clip: ClippingRegion::max(),
             stacking_relative_position_of_display_port: Rect::zero(),
             flags: flags,
@@ -1276,6 +1301,13 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
     }
 
+    /// Returns true if this flow can have its overflow area calculated early (during its
+    /// block-size assignment) or false if it must have its overflow area calculated late (during
+    /// its parent's block-size assignment).
+    fn can_calculate_overflow_area_early(self) -> bool {
+        !self.contains_relatively_positioned_fragments()
+    }
+
     /// Dumps the flow tree for debugging.
     fn dump(self) {
         self.dump_with_level(0)
@@ -1353,6 +1385,20 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
 
         traversal.process(*self)
+    }
+
+    /// Calls `store_overflow()` if the overflow can be calculated early.
+    fn early_store_overflow(self, layout_context: &LayoutContext) {
+        if self.can_calculate_overflow_area_early() {
+            self.store_overflow(layout_context)
+        }
+    }
+
+    /// Calls `store_overflow()` if the overflow cannot be calculated early.
+    fn late_store_overflow(self, layout_context: &LayoutContext) {
+        if !self.can_calculate_overflow_area_early() {
+            self.store_overflow(layout_context)
+        }
     }
 }
 

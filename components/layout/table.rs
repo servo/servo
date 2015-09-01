@@ -10,8 +10,8 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use flow::{ImmutableFlowUtils, OpaqueFlow};
-use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, MutableFlowUtils, OpaqueFlow};
+use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -761,7 +761,7 @@ pub trait TableLikeFlow {
 
 impl TableLikeFlow for BlockFlow {
     fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 _: &'a LayoutContext<'a>,
+                                                 layout_context: &'a LayoutContext<'a>,
                                                  block_direction_spacing: Au) {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::separate || block_direction_spacing == Au(0));
@@ -838,6 +838,16 @@ impl TableLikeFlow for BlockFlow {
             self.fragment.border_box.size.block = current_block_offset;
             self.fragment.border_box.start.b = Au(0);
             self.base.position.size.block = current_block_offset;
+
+            // Write in the size of the relative containing block for children. (This information
+            // is also needed to handle RTL.)
+            for kid in self.base.child_iter() {
+                flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    relative_containing_block_size: self.fragment.content_box().size,
+                    relative_containing_block_mode: self.fragment.style().writing_mode,
+                };
+                kid.late_store_overflow(layout_context)
+            }
         }
 
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
