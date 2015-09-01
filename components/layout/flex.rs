@@ -312,6 +312,10 @@ impl Flow for FlexFlow {
         &mut self.block_flow
     }
 
+    fn mark_as_root(&mut self) {
+        self.block_flow.mark_as_root();
+    }
+
     fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("flex::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
