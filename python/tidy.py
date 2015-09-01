@@ -220,8 +220,6 @@ def check_rust(file_name, contents):
         if match and not is_associated_type(match, line, 0):
             yield (idx + 1, "missing space after %s" % match.group(0)[0])
 
-        # is attribute
-
         match = re.search(r"\)->", line)
         if match:
             yield (idx + 1, "missing space before ->")
