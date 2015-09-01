@@ -132,3 +132,20 @@ class MachCommands(CommandBase):
         return subprocess.call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
             env=self.build_env())
+
+    @Command('wpt-upgrade',
+             description='upgrade wptrunner.',
+             category='devenv')
+    def upgrade_wpt_runner(self):
+        with cd(path.join(self.context.topdir, 'tests', 'wpt', 'harness')):
+            code = subprocess.call(["git", "init"], env=self.build_env())
+            if code:
+                return code
+            subprocess.call(
+                ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=self.build_env())
+            code = subprocess.call(["git", "fetch", "upstream"], env=self.build_env())
+            if code:
+                return code
+            code = subprocess.call(["git", "reset", '--', "hard", "remotes/upstream/master"], env=self.build_env())
+            if code:
+                return code
