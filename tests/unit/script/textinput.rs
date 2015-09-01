@@ -21,6 +21,16 @@ fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
 }
 
 #[test]
+fn test_set_content_ignores_max_length() {
+    let mut textinput = TextInput::new(
+        Lines::Single, "".to_owned(), DummyClipboardContext::new(""), Some(1)
+    );
+
+    textinput.set_content("mozilla rocks".to_owned());
+    assert_eq!(textinput.get_content(), "mozilla rocks".to_owned());
+}
+
+#[test]
 fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_length() {
     let mut textinput = TextInput::new(
         Lines::Multiple,
