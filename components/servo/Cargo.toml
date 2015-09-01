@@ -41,9 +41,10 @@ git = "https://github.com/servo/rust-png"
 features = [ "serde-serialization" ]
 
 [features]
-default = ["glutin_app", "window"]
+default = ["glutin_app", "window", "webdriver"]
 window = ["glutin_app/window"]
 headless = ["glutin_app/headless"]
+webdriver = ["webdriver_server"]
 
 # Uncomment to profile on Linux:
 #
@@ -77,17 +78,30 @@ path = "../util"
 [dependencies.script]
 path = "../script"
 
+[dependencies.script_traits]
+path = "../script_traits"
+
 [dependencies.layout]
 path = "../layout"
 
 [dependencies.gfx]
 path = "../gfx"
 
+[dependencies.style]
+path = "../style"
+
+[dependencies.canvas]
+path = "../canvas"
+
+[dependencies.canvas_traits]
+path = "../canvas_traits"
+
 [dependencies.devtools]
 path = "../devtools"
 
 [dependencies.webdriver_server]
-path = "../webdriver_server"
+path     = "../webdriver_server"
+optional = true
 
 [dependencies.devtools_traits]
 path = "../devtools_traits"
@@ -103,6 +117,15 @@ optional = true
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
+
+[dependencies.euclid]
+version = "0.1"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.gleam]
+version = "0.1"
 
 [dependencies]
 env_logger = "0.3"
