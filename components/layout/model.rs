@@ -8,12 +8,12 @@
 
 use fragment::Fragment;
 
-use euclid::{Matrix4, SideOffsets2D};
+use euclid::{Matrix4, SideOffsets2D, Size2D};
 use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::properties::ComputedValues;
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use util::geometry::Au;
 use util::logical_geometry::LogicalMargin;
@@ -418,6 +418,13 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
         LengthOrPercentage::Length(length) => length,
         LengthOrPercentage::Percentage(p) => containing_length.scale_by(p)
     }
+}
+
+pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
+    let BorderRadiusSize(size) = radius;
+    let w = specified(size.width, containing_length);
+    let h = specified(size.height, containing_length);
+    Size2D::new(w, h)
 }
 
 #[inline]
