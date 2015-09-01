@@ -183,10 +183,10 @@ mod android {
         use self::libc::funcs::c95::stdio::fgets;
         use self::libc::funcs::posix88::stdio::fdopen;
         use self::libc::funcs::posix88::unistd::{pipe, dup2};
+        use servo::util::task::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;
         use std::str::from_utf8;
-        use util::task::spawn_named;
 
         unsafe {
             let mut pipes: [c_int; 2] = [ 0, 0 ];

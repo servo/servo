@@ -242,9 +242,6 @@ class MachCommands(CommandBase):
         notify_build_done(elapsed)
 
         print("Build completed in %0.2fs" % elapsed)
-        # XXX(#7339) Android build is broken
-        if android:
-            return 0
         return status
 
     @Command('build-cef',
