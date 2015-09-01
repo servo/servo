@@ -26,7 +26,7 @@ pub enum OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
 }
 
 impl<T> OptionalIpcSender<T> where T: Deserialize + Serialize + Send + Any {
-    pub fn send(&self, value: T) -> Result<(),()> {
+    pub fn send(&self, value: T) -> Result<(), ()> {
         match *self {
             OptionalIpcSender::OutOfProcess(ref ipc_sender) => ipc_sender.send(value),
             OptionalIpcSender::InProcess(ref sender) => sender.send(value).map_err(|_| ()),
