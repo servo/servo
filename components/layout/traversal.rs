@@ -7,8 +7,8 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
-use flow::{self, Flow};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use flow::{self, Flow};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
