@@ -9,13 +9,14 @@
 extern crate hyper;
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
 use rustc_serialize::json;
 use std::net::TcpStream;
-use url::Url;
 
 struct HttpRequest {
     url: String,
@@ -125,18 +126,18 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn add_request(&mut self, url: Url, method: Method, headers: Headers, body: Option<Vec<u8>>) {
-        self.request.url = url.serialize();
-        self.request.method = method.clone();
-        self.request.headers = headers.clone();
-        self.request.body = body;
+    pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
+        self.request.url = request.url.serialize();
+        self.request.method = request.method.clone();
+        self.request.headers = request.headers.clone();
+        self.request.body = request.body;
     }
 
-    pub fn add_response(&mut self, headers: Option<Headers>, status: Option<RawStatus>, body: Option<Vec<u8>>) {
-        self.response.headers = headers.clone();
-        self.response.status = status.clone();
-        self.response.body = body.clone();
-    }
+    pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
+        self.response.headers = response.headers.clone();
+        self.response.status = response.status.clone();
+        self.response.body = response.body.clone();
+     }
 
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private

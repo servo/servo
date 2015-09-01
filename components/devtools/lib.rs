@@ -335,9 +335,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
         match network_event {
-            NetworkEvent::HttpRequest(url, method, headers, body) => {
+            NetworkEvent::HttpRequest(httprequest) => {
                 //Store the request information in the actor
-                actor.add_request(url, method, headers, body);
+                actor.add_request(httprequest);
 
                 //Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
@@ -349,9 +349,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     stream.write_json_packet(&msg);
                 }
             }
-            NetworkEvent::HttpResponse(headers, status, body) => {
+            NetworkEvent::HttpResponse(httpresponse) => {
                 //Store the response information in the actor
-                actor.add_response(headers, status, body);
+                actor.add_response(httpresponse);
 
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = NetworkEventUpdateMsg {

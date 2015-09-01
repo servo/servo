@@ -1130,6 +1130,7 @@ name = "net_tests"
 version = "0.0.1"
 dependencies = [
  "cookie 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
+ "devtools_traits 0.0.1",
  "flate2 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",

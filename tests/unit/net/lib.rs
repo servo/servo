@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate cookie as cookie_rs;
+extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate ipc_channel;
