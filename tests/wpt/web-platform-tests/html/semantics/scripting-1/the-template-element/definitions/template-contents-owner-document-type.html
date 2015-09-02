@@ -17,9 +17,12 @@
 testInIFrame('../resources/template-contents.html', function(context) {
     var doc = context.iframes[0].contentDocument;
     var template = doc.querySelector('template');
+    var content_owner = template.content.ownerDocument;
 
-    assert_class_string(template.content.ownerDocument, 'HTMLDocument',
-            'Template content owner should be a HTML document');
+    assert_class_string(content_owner, 'Document',
+            'Template content owner should be a document');
+    assert_equals(content_owner.createElement('DIV').localName, 'div',
+            'Template content owner should be an HTML document');
 
 }, 'The template contents owner document type is HTML document ' +
     '(case when document has browsing context and the template ' +
@@ -29,13 +32,16 @@ testInIFrame('../resources/template-contents.html', function(context) {
 testInIFrame('../resources/template-contents.html', function(context) {
     var doc = context.iframes[0].contentDocument;
     var template = doc.createElement('template');
-    var div = doc.createElement('div');
+    var content_owner = template.content.ownerDocument;
+    var div = doc.createElement('DIV');
     template.appendChild(div);
 
     doc.body.appendChild(template);
 
-    assert_class_string(template.content.ownerDocument, 'HTMLDocument',
-            'Template content owner should be a HTML document');
+    assert_class_string(content_owner, 'Document',
+            'Template content owner should be a document');
+    assert_equals(div.localName, 'div',
+            'Template content owner should be an HTML document');
 
 }, 'The template contents owner document type is HTML document ' +
     '(case when document has browsing context and the template ' +
@@ -45,13 +51,16 @@ testInIFrame('../resources/template-contents.html', function(context) {
 test(function() {
     var doc = newHTMLDocument();
     var template = doc.createElement('template');
-    var div = doc.createElement('div');
+    var content_owner = template.content.ownerDocument;
+    var div = doc.createElement('DIV');
     template.appendChild(div);
 
     doc.body.appendChild(template);
 
-    assert_class_string(template.content.ownerDocument, 'HTMLDocument',
-            'Template content owner should be a HTML document');
+    assert_class_string(content_owner, 'Document',
+            'Template content owner should be a document');
+    assert_equals(div.localName, 'div',
+            'Template content owner should be an HTML document');
 
 }, 'The template contents owner document type is HTML document ' +
     '(case when document has no browsing context and the template is created ' +
@@ -61,9 +70,12 @@ test(function() {
     var doc = newHTMLDocument();
     doc.body.innerHTML = '<template><div>Hello!</div></template>';
     var template = doc.querySelector('template');
+    var content_owner = template.content.ownerDocument;
 
-    assert_class_string(template.content.ownerDocument, 'HTMLDocument',
-            'Template content owner should be a HTML document');
+    assert_class_string(content_owner, 'Document',
+            'Template content owner should be a document');
+    assert_equals(content_owner.createElement('DIV').localName, 'div',
+            'Template content owner should be an HTML document');
 
 }, 'The template contents owner document type is HTML document ' +
     '(case when document has no browsing context and the template is created via innerHTML)');
