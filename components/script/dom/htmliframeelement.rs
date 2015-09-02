@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::LoadType;
+use document_loader::{LoadType, LoadBlocker};
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
@@ -61,6 +62,7 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
+    load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLIFrameElement {
@@ -100,11 +102,19 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let document = document.r();
+
+        let mut load_blocker = self.load_blocker.borrow_mut();
+        if let Some(ref mut load_blocker) = load_blocker.as_mut() {
+            // Any oustanding load is finished from the point of view of the blocked
+            // document; the new navigation will continue blocking it.
+            load_blocker.terminate();
+        }
+
         //TODO: Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
         //      document URL through the browsing context.
         if let Some(ref url) = url {
-            document.add_blocking_load(LoadType::Subframe(url.clone()));
+            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(url.clone())));
         }
 
         let window = window_from_node(self);
@@ -179,6 +189,7 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
+            load_blocker: DOMRefCell::new(None),
         }
     }
 
@@ -210,7 +221,11 @@ impl HTMLIFrameElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
-    pub fn iframe_load_event_steps(&self) {
+    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
+        // TODO: assert that the load blocker is present at all times when we
+        //       can guarantee that it's created for the case of iframe.reload().
+        assert_eq!(loaded_pipeline, self.pipeline().unwrap());
+
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
         //      steps 2, 3, and 5 efficiently in this case.
@@ -220,6 +235,13 @@ impl HTMLIFrameElement {
         // Step 4
         let window = window_from_node(self);
         self.upcast::<EventTarget>().fire_simple_event("load", GlobalRef::Window(window.r()));
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        if let Some(ref mut blocker) = *blocker {
+            blocker.terminate();
+        }
+        *blocker = None;
+
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
 }
@@ -495,6 +517,12 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        if let Some(blocker) = blocker.as_mut() {
+            blocker.terminate();
+        }
+        *blocker = None;
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {

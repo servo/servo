@@ -2515,10 +2515,7 @@ impl DocumentProgressHandler {
         event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
-        let ConstellationChan(ref chan) = window.constellation_chan();
-        chan.send(ConstellationMsg::SubframeLoaded(window.pipeline())).unwrap();
-
-        document.notify_constellation_load();
+        document.r().notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
         document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);

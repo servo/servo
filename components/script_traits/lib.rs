@@ -142,8 +142,6 @@ pub enum ConstellationControlMsg {
         target: PipelineId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
-        /// Url of loaded frame.
-        url: Url,
     },
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, u32, u32, String),
