@@ -28,7 +28,9 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
+
 use std::sync::{Arc, Mutex};
+
 use std::sync::mpsc::{channel, Sender};
 
 pub enum ProgressSender {
