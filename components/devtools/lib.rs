@@ -11,6 +11,7 @@
 #![crate_type = "rlib"]
 
 #![feature(box_syntax)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(serde_macros)]
@@ -25,6 +26,7 @@ extern crate devtools_traits;
 extern crate rustc_serialize;
 extern crate ipc_channel;
 extern crate serde;
+extern crate serde_json;
 extern crate msg;
 extern crate time;
 extern crate util;
