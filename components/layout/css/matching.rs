@@ -448,7 +448,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 let this_opaque = self.opaque();
                 if let Some(ref animations) = layout_context.running_animations.get(&this_opaque) {
                     for animation in *animations {
-                        animation.property_animation.update(&mut *Arc::make_unique(style), 1.0);
+                        animation.property_animation.update(&mut *Arc::make_mut(style), 1.0);
                     }
                 }
             }

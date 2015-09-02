@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::lint::{Context, LintPass, LintArray};
+use rustc::middle::def_id::DefId;
+use syntax::ast;
 use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
-use syntax::{ast, ast_util};
 
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions");
@@ -27,7 +28,7 @@ impl LintPass for PrivatizePass {
                         _i: ast::Ident,
                         _gen: &ast::Generics,
                         id: ast::NodeId) {
-        if cx.tcx.has_attr(ast_util::local_def(id), "privatize") {
+        if cx.tcx.has_attr(DefId::local(id), "privatize") {
             for field in &def.fields {
                 match field.node {
                     ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {

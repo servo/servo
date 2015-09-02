@@ -1119,9 +1119,9 @@ impl InlineFlow {
             // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
             // to get rid of it without regressing the performance of the non-justified case,
             // though.
-            let run = Arc::make_unique(&mut scanned_text_fragment_info.run);
+            let run = Arc::make_mut(&mut scanned_text_fragment_info.run);
             {
-                let glyph_runs = Arc::make_unique(&mut run.glyphs);
+                let glyph_runs = Arc::make_mut(&mut run.glyphs);
                 for mut glyph_run in &mut *glyph_runs {
                     let mut range = glyph_run.range.intersect(&fragment_range);
                     if range.is_empty() {
@@ -1129,7 +1129,7 @@ impl InlineFlow {
                     }
                     range.shift_by(-glyph_run.range.begin());
 
-                    let glyph_store = Arc::make_unique(&mut glyph_run.glyph_store);
+                    let glyph_store = Arc::make_mut(&mut glyph_run.glyph_store);
                     glyph_store.distribute_extra_space_in_range(&range,
                                                                 space_per_expansion_opportunity);
                 }

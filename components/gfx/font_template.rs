@@ -70,7 +70,7 @@ impl FontTemplate {
         };
 
         let maybe_weak_ref = match maybe_strong_ref {
-            Some(ref strong_ref) => Some(strong_ref.downgrade()),
+            Some(ref strong_ref) => Some(Arc::downgrade(strong_ref)),
             None => None,
         };
 
@@ -159,7 +159,7 @@ impl FontTemplate {
 
         assert!(self.strong_ref.is_none());
         let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None));
-        self.weak_ref = Some(template_data.downgrade());
+        self.weak_ref = Some(Arc::downgrade(&template_data));
         template_data
     }
 }

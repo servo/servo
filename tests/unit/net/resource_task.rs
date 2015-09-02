@@ -155,8 +155,6 @@ fn test_parse_hostsfile_with_end_of_line_whitespace()
 
 #[test]
 fn test_replace_hosts() {
-    use std::net::TcpListener;
-
     let mut host_table_box = Box::new(HashMap::new());
     host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
     host_table_box.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());

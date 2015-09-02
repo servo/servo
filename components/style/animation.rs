@@ -367,7 +367,7 @@ impl AnimatedProperty {
     }
 }
 
-trait Interpolate {
+trait Interpolate: Sized {
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self>;
 }
 

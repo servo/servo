@@ -5,6 +5,7 @@
 use rustc::ast_map;
 use rustc::lint::Context;
 use rustc::middle::def;
+use rustc::middle::def_id::DefId;
 
 use syntax::ast;
 use syntax::ast::{TyPath, Path, AngleBracketedParameters, PathSegment, Ty};
@@ -52,7 +53,7 @@ pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
     match_lang_did(cx, def_id, value)
 }
 
-pub fn match_lang_did(cx: &Context, did: ast::DefId, value: &str) -> bool {
+pub fn match_lang_did(cx: &Context, did: DefId, value: &str) -> bool {
     cx.tcx.get_attrs(did).iter().any(|attr| {
         match attr.node.value.node {
             ast::MetaNameValue(ref name, ref val) if &**name == "servo_lang" => {
@@ -96,7 +97,7 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
-pub fn match_def_path(cx: &Context, def_id: ast::DefId, path: &[&str]) -> bool {
+pub fn match_def_path(cx: &Context, def_id: DefId, path: &[&str]) -> bool {
     cx.tcx.with_path(def_id, |iter| iter.map(|elem| elem.name())
         .zip(path.iter()).all(|(nm, p)| &nm.as_str() == p))
 }

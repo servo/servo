@@ -15,6 +15,7 @@
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
+#![feature(decode_utf16)]
 #![feature(drain)]
 #![feature(fnbox)]
 #![feature(hashmap_hasher)]

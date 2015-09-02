@@ -169,7 +169,7 @@ pub mod longhands {
                                            .clone()
                         }
                     };
-                    Arc::make_unique(&mut style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
+                    Arc::make_mut(&mut style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
                         computed_value;
 
                     % if custom_cascade:
@@ -504,11 +504,11 @@ pub mod longhands {
                                    context: &computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool) {
-            Arc::make_unique(&mut style.box_)._servo_display_for_hypothetical_box =
+            Arc::make_mut(&mut style.box_)._servo_display_for_hypothetical_box =
                 longhands::_servo_display_for_hypothetical_box::derive_from_display(
                     *computed_value,
                     &context);
-            Arc::make_unique(&mut style.inheritedtext)._servo_text_decorations_in_effect =
+            Arc::make_mut(&mut style.inheritedtext)._servo_text_decorations_in_effect =
                 longhands::_servo_text_decorations_in_effect::derive_from_display(*computed_value,
                                                                                   &context);
         }
@@ -2218,7 +2218,7 @@ pub mod longhands {
                                    context: &computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool) {
-            Arc::make_unique(&mut style.inheritedtext)._servo_text_decorations_in_effect =
+            Arc::make_mut(&mut style.inheritedtext)._servo_text_decorations_in_effect =
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(
                     *computed_value,
                     &context);
@@ -5979,7 +5979,7 @@ impl ComputedValues {
     #[inline]
     pub fn mutate_${style_struct.name.lower()}
             <'a>(&'a mut self) -> &'a mut style_structs::${style_struct.name} {
-        &mut *Arc::make_unique(&mut self.${style_struct.ident})
+        &mut *Arc::make_mut(&mut self.${style_struct.ident})
     }
     % endfor
 
@@ -6101,7 +6101,7 @@ fn cascade_with_cached_declarations(
                                                         .clone()
                                         }
                                     };
-                                    Arc::make_unique(&mut style_${style_struct.ident})
+                                    Arc::make_mut(&mut style_${style_struct.ident})
                                         .${property.ident} = computed_value;
                                 % endif
 
@@ -6112,7 +6112,7 @@ fn cascade_with_cached_declarations(
                                             .${property.ident}.clone();
                                     % endif
                                     % for derived in DERIVED_LONGHANDS[property.name]:
-                                        Arc::make_unique(&mut style_${derived.style_struct.ident})
+                                        Arc::make_mut(&mut style_${derived.style_struct.ident})
                                              .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
@@ -6134,7 +6134,7 @@ fn cascade_with_cached_declarations(
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
             seen.get_font_family() {
-        compute_font_hash(&mut *Arc::make_unique(&mut style_font))
+        compute_font_hash(&mut *Arc::make_mut(&mut style_font))
     }
 
     ComputedValues {
@@ -6373,7 +6373,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     // The initial value of border-*-width may be changed at computed value time.
     {
-        let border = Arc::make_unique(&mut style.border);
+        let border = Arc::make_mut(&mut style.border);
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             if !context.border_${side}_present {
@@ -6384,13 +6384,13 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
-        let box_ = Arc::make_unique(&mut style.box_);
+        let box_ = Arc::make_mut(&mut style.box_);
         box_.display = box_.display.to_computed_value(&context);
     }
 
     // The initial value of outline width may be changed at computed value time.
     if !context.outline_style_present {
-        let outline = Arc::make_unique(&mut style.outline);
+        let outline = Arc::make_mut(&mut style.outline);
         outline.outline_width = Au(0);
     }
 
@@ -6400,7 +6400,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
             seen.get_font_family() {
-        compute_font_hash(&mut *Arc::make_unique(&mut style.font))
+        compute_font_hash(&mut *Arc::make_mut(&mut style.font))
     }
 
     (ComputedValues {
@@ -6423,16 +6423,16 @@ pub fn cascade(viewport_size: Size2D<Au>,
 pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
     // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
     if style.box_.display != longhands::display::computed_value::T::inline {
-        let mut style = Arc::make_unique(style);
-        Arc::make_unique(&mut style.box_).display = longhands::display::computed_value::T::inline;
-        Arc::make_unique(&mut style.box_).position =
+        let mut style = Arc::make_mut(style);
+        Arc::make_mut(&mut style.box_).display = longhands::display::computed_value::T::inline;
+        Arc::make_mut(&mut style.box_).position =
             longhands::position::computed_value::T::static_;
     }
 
     // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
     if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
-        let mut style = Arc::make_unique(style);
-        Arc::make_unique(&mut style.box_).vertical_align =
+        let mut style = Arc::make_mut(style);
+        Arc::make_mut(&mut style.box_).vertical_align =
             longhands::vertical_align::computed_value::T::baseline
     }
 
@@ -6441,8 +6441,8 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
             style.margin.margin_left != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
             style.margin.margin_bottom != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
             style.margin.margin_right != computed::LengthOrPercentageOrAuto::Length(Au(0)) {
-        let mut style = Arc::make_unique(style);
-        let margin = Arc::make_unique(&mut style.margin);
+        let mut style = Arc::make_mut(style);
+        let margin = Arc::make_mut(&mut style.margin);
         margin.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
         margin.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
         margin.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
@@ -6460,39 +6460,39 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                                      is_first_fragment_of_element: bool,
                                      is_last_fragment_of_element: bool) {
     fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
-        let mut style = Arc::make_unique(style);
-        let border = Arc::make_unique(&mut style.border);
+        let mut style = Arc::make_mut(style);
+        let border = Arc::make_mut(&mut style.border);
         match side {
             PhysicalSide::Left => {
                 border.border_left_width = Au(0);
                 border.border_left_style = BorderStyle::none;
-                Arc::make_unique(&mut style.padding).padding_left =
+                Arc::make_mut(&mut style.padding).padding_left =
                     computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_unique(&mut style.margin).margin_left =
+                Arc::make_mut(&mut style.margin).margin_left =
                     computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Right => {
                 border.border_right_width = Au(0);
                 border.border_right_style = BorderStyle::none;
-                Arc::make_unique(&mut style.padding).padding_right =
+                Arc::make_mut(&mut style.padding).padding_right =
                     computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_unique(&mut style.margin).margin_right =
+                Arc::make_mut(&mut style.margin).margin_right =
                     computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Bottom => {
                 border.border_bottom_width = Au(0);
                 border.border_bottom_style = BorderStyle::none;
-                Arc::make_unique(&mut style.padding).padding_bottom =
+                Arc::make_mut(&mut style.padding).padding_bottom =
                     computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_unique(&mut style.margin).margin_bottom =
+                Arc::make_mut(&mut style.margin).margin_bottom =
                     computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Top => {
                 border.border_top_width = Au(0);
                 border.border_top_style = BorderStyle::none;
-                Arc::make_unique(&mut style.padding).padding_top =
+                Arc::make_mut(&mut style.padding).padding_top =
                     computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_unique(&mut style.margin).margin_top =
+                Arc::make_mut(&mut style.margin).margin_top =
                     computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
         }
@@ -6514,8 +6514,8 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 pub fn modify_style_for_anonymous_table_object(
         style: &mut Arc<ComputedValues>,
         new_display_value: longhands::display::computed_value::T) {
-    let mut style = Arc::make_unique(style);
-    let box_style = Arc::make_unique(&mut style.box_);
+    let mut style = Arc::make_mut(style);
+    let box_style = Arc::make_mut(&mut style.box_);
     box_style.display = new_display_value;
     box_style.position = longhands::position::computed_value::T::static_;
 }
@@ -6523,8 +6523,8 @@ pub fn modify_style_for_anonymous_table_object(
 /// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.
 #[inline]
 pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_unique(style);
-    let box_style = Arc::make_unique(&mut style.box_);
+    let mut style = Arc::make_mut(style);
+    let box_style = Arc::make_mut(&mut style.box_);
     box_style.position = longhands::position::computed_value::T::static_
 }
 
@@ -6537,8 +6537,8 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     if style.box_.position == longhands::position::computed_value::T::relative {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
-        let mut style = Arc::make_unique(style);
-        let mut position_offsets = Arc::make_unique(&mut style.positionoffsets);
+        let mut style = Arc::make_mut(style);
+        let mut position_offsets = Arc::make_mut(&mut style.positionoffsets);
         position_offsets.top = computed::LengthOrPercentageOrAuto::Auto;
         position_offsets.right = computed::LengthOrPercentageOrAuto::Auto;
         position_offsets.bottom = computed::LengthOrPercentageOrAuto::Auto;
@@ -6551,8 +6551,8 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
 /// Margins apply to the `input` element itself, so including them in the text will cause them to
 /// be double-counted.
 pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
-    let mut style = Arc::make_unique(style);
-    let margin_style = Arc::make_unique(&mut style.margin);
+    let mut style = Arc::make_mut(style);
+    let margin_style = Arc::make_mut(&mut style.margin);
     margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
@@ -6563,8 +6563,8 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
 /// children.
 pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
     if style.get_effects().clip.0.is_some() {
-        let mut style = Arc::make_unique(style);
-        let effects_style = Arc::make_unique(&mut style.effects);
+        let mut style = Arc::make_mut(style);
+        let effects_style = Arc::make_mut(&mut style.effects);
         effects_style.clip.0 = None
     }
 }

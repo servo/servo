@@ -282,7 +282,7 @@ no_jsmanaged_fields!(Size2D<T>);
 no_jsmanaged_fields!(Arc<T>);
 no_jsmanaged_fields!(Image, ImageCacheChan, ImageCacheTask);
 no_jsmanaged_fields!(Atom, Namespace);
-no_jsmanaged_fields!(Trusted<T>);
+no_jsmanaged_fields!(Trusted<T: Reflectable>);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
