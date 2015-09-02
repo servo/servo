@@ -45,6 +45,7 @@ use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::cmp;
 use std::fmt;
+use std::str::FromStr;
 use std::sync::mpsc::channel;
 
 use url::Url;
@@ -568,7 +569,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
-        if let Some(op) = CompositionOrBlending::from_str(&op_str) {
+        if let Ok(op) = CompositionOrBlending::from_str(&op_str) {
             self.state.borrow_mut().global_composition = op;
             self.ipc_renderer
                 .send(CanvasMsg::Canvas2d(Canvas2dMsg::SetGlobalComposition(op)))
@@ -1006,7 +1007,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             },
         };
 
-        if let Some(rep) = RepetitionStyle::from_str(&repetition) {
+        if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
             return Ok(CanvasPattern::new(self.global.root().r(),
                                          image_data,
                                          Size2D::new(image_size.width as i32, image_size.height as i32),
@@ -1045,7 +1046,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn SetLineCap(&self, cap_str: DOMString) {
-        if let Some(cap) = LineCapStyle::from_str(&cap_str) {
+        if let Ok(cap) = LineCapStyle::from_str(&cap_str) {
             self.state.borrow_mut().line_cap = cap;
             self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineCap(cap))).unwrap()
         }
@@ -1063,7 +1064,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn SetLineJoin(&self, join_str: DOMString) {
-        if let Some(join) = LineJoinStyle::from_str(&join_str) {
+        if let Ok(join) = LineJoinStyle::from_str(&join_str) {
             self.state.borrow_mut().line_join = join;
             self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetLineJoin(join))).unwrap()
         }

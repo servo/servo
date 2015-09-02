@@ -37,6 +37,8 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::GLContextAttributes;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::default::Default;
+use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
 
@@ -345,21 +347,25 @@ pub enum LineCapStyle {
     Square = 2,
 }
 
+impl FromStr for LineCapStyle {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<LineCapStyle, ()> {
+        match string {
+            "butt" => Ok(LineCapStyle::Butt),
+            "round" => Ok(LineCapStyle::Round),
+            "square" => Ok(LineCapStyle::Square),
+            _ => Err(()),
+        }
+    }
+}
+
 impl LineCapStyle {
     pub fn to_azure_style(&self) -> CapStyle {
         match *self {
             LineCapStyle::Butt => CapStyle::Butt,
             LineCapStyle::Round => CapStyle::Round,
             LineCapStyle::Square => CapStyle::Square,
-        }
-    }
-
-    pub fn from_str(string: &str) -> Option<LineCapStyle> {
-        match string {
-            "butt" => Some(LineCapStyle::Butt),
-            "round" => Some(LineCapStyle::Round),
-            "square" => Some(LineCapStyle::Square),
-            _ => None
         }
     }
 }
@@ -371,21 +377,25 @@ pub enum LineJoinStyle {
     Miter = 2,
 }
 
+impl FromStr for LineJoinStyle {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<LineJoinStyle, ()> {
+        match string {
+            "round" => Ok(LineJoinStyle::Round),
+            "bevel" => Ok(LineJoinStyle::Bevel),
+            "miter" => Ok(LineJoinStyle::Miter),
+            _ => Err(()),
+        }
+    }
+}
+
 impl LineJoinStyle {
     pub fn to_azure_style(&self) -> JoinStyle {
         match *self {
             LineJoinStyle::Round => JoinStyle::Round,
             LineJoinStyle::Bevel => JoinStyle::Bevel,
             LineJoinStyle::Miter => JoinStyle::Miter,
-        }
-    }
-
-    pub fn from_str(string: &str) -> Option<LineJoinStyle> {
-        match string {
-            "round" => Some(LineJoinStyle::Round),
-            "bevel" => Some(LineJoinStyle::Bevel),
-            "miter" => Some(LineJoinStyle::Miter),
-            _ => None
         }
     }
 }
@@ -398,14 +408,16 @@ pub enum RepetitionStyle {
     NoRepeat,
 }
 
-impl RepetitionStyle {
-    pub fn from_str(string: &str) -> Option<RepetitionStyle> {
+impl FromStr for RepetitionStyle {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<RepetitionStyle, ()> {
         match string {
-            "repeat" => Some(RepetitionStyle::Repeat),
-            "repeat-x" => Some(RepetitionStyle::RepeatX),
-            "repeat-y" => Some(RepetitionStyle::RepeatY),
-            "no-repeat" => Some(RepetitionStyle::NoRepeat),
-            _ => None
+            "repeat" => Ok(RepetitionStyle::Repeat),
+            "repeat-x" => Ok(RepetitionStyle::RepeatX),
+            "repeat-y" => Ok(RepetitionStyle::RepeatY),
+            "no-repeat" => Ok(RepetitionStyle::NoRepeat),
+            _ => Err(()),
         }
     }
 }
@@ -425,6 +437,27 @@ pub enum CompositionStyle {
     Xor,
 }
 
+impl FromStr for CompositionStyle {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<CompositionStyle, ()> {
+        match string {
+            "source-in"        => Ok(CompositionStyle::SrcIn),
+            "source-out"       => Ok(CompositionStyle::SrcOut),
+            "source-over"      => Ok(CompositionStyle::SrcOver),
+            "source-atop"      => Ok(CompositionStyle::SrcAtop),
+            "destination-in"   => Ok(CompositionStyle::DestIn),
+            "destination-out"  => Ok(CompositionStyle::DestOut),
+            "destination-over" => Ok(CompositionStyle::DestOver),
+            "destination-atop" => Ok(CompositionStyle::DestAtop),
+            "copy"             => Ok(CompositionStyle::Copy),
+            "lighter"          => Ok(CompositionStyle::Lighter),
+            "xor"              => Ok(CompositionStyle::Xor),
+            _ => Err(())
+        }
+    }
+}
+
 impl CompositionStyle {
     pub fn to_azure_style(&self) -> CompositionOp {
         match *self {
@@ -439,23 +472,6 @@ impl CompositionStyle {
             CompositionStyle::Copy     => CompositionOp::Source,
             CompositionStyle::Lighter  => CompositionOp::Add,
             CompositionStyle::Xor      => CompositionOp::Xor,
-        }
-    }
-
-    pub fn from_str(string: &str) -> Option<CompositionStyle> {
-        match string {
-            "source-in"        => Some(CompositionStyle::SrcIn),
-            "source-out"       => Some(CompositionStyle::SrcOut),
-            "source-over"      => Some(CompositionStyle::SrcOver),
-            "source-atop"      => Some(CompositionStyle::SrcAtop),
-            "destination-in"   => Some(CompositionStyle::DestIn),
-            "destination-out"  => Some(CompositionStyle::DestOut),
-            "destination-over" => Some(CompositionStyle::DestOver),
-            "destination-atop" => Some(CompositionStyle::DestAtop),
-            "copy"             => Some(CompositionStyle::Copy),
-            "lighter"          => Some(CompositionStyle::Lighter),
-            "xor"              => Some(CompositionStyle::Xor),
-            _ => None
         }
     }
 
@@ -495,6 +511,31 @@ pub enum BlendingStyle {
     Luminosity,
 }
 
+impl FromStr for BlendingStyle {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<BlendingStyle, ()> {
+        match string {
+            "multiply"    => Ok(BlendingStyle::Multiply),
+            "screen"      => Ok(BlendingStyle::Screen),
+            "overlay"     => Ok(BlendingStyle::Overlay),
+            "darken"      => Ok(BlendingStyle::Darken),
+            "lighten"     => Ok(BlendingStyle::Lighten),
+            "color-dodge" => Ok(BlendingStyle::ColorDodge),
+            "color-burn"  => Ok(BlendingStyle::ColorBurn),
+            "hard-light"  => Ok(BlendingStyle::HardLight),
+            "soft-light"  => Ok(BlendingStyle::SoftLight),
+            "difference"  => Ok(BlendingStyle::Difference),
+            "exclusion"   => Ok(BlendingStyle::Exclusion),
+            "hue"         => Ok(BlendingStyle::Hue),
+            "saturation"  => Ok(BlendingStyle::Saturation),
+            "color"       => Ok(BlendingStyle::Color),
+            "luminosity"  => Ok(BlendingStyle::Luminosity),
+            _ => Err(())
+        }
+    }
+}
+
 impl BlendingStyle {
     pub fn to_azure_style(&self) -> CompositionOp {
         match *self {
@@ -513,27 +554,6 @@ impl BlendingStyle {
             BlendingStyle::Saturation => CompositionOp::Saturation,
             BlendingStyle::Color      => CompositionOp::Color,
             BlendingStyle::Luminosity => CompositionOp::Luminosity,
-        }
-    }
-
-    pub fn from_str(string: &str) -> Option<BlendingStyle> {
-        match string {
-            "multiply"    => Some(BlendingStyle::Multiply),
-            "screen"      => Some(BlendingStyle::Screen),
-            "overlay"     => Some(BlendingStyle::Overlay),
-            "darken"      => Some(BlendingStyle::Darken),
-            "lighten"     => Some(BlendingStyle::Lighten),
-            "color-dodge" => Some(BlendingStyle::ColorDodge),
-            "color-burn"  => Some(BlendingStyle::ColorBurn),
-            "hard-light"  => Some(BlendingStyle::HardLight),
-            "soft-light"  => Some(BlendingStyle::SoftLight),
-            "difference"  => Some(BlendingStyle::Difference),
-            "exclusion"   => Some(BlendingStyle::Exclusion),
-            "hue"         => Some(BlendingStyle::Hue),
-            "saturation"  => Some(BlendingStyle::Saturation),
-            "color"       => Some(BlendingStyle::Color),
-            "luminosity"  => Some(BlendingStyle::Luminosity),
-            _ => None
         }
     }
 
@@ -564,28 +584,34 @@ pub enum CompositionOrBlending {
     Blending(BlendingStyle),
 }
 
+impl Default for CompositionOrBlending {
+    fn default() -> CompositionOrBlending {
+        CompositionOrBlending::Composition(CompositionStyle::SrcOver)
+    }
+}
+
+impl FromStr for CompositionOrBlending {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<CompositionOrBlending, ()> {
+        if let Ok(op) = CompositionStyle::from_str(string) {
+            return Ok(CompositionOrBlending::Composition(op));
+        }
+
+        if let Ok(op) = BlendingStyle::from_str(string) {
+            return Ok(CompositionOrBlending::Blending(op));
+        }
+
+        Err(())
+    }
+}
+
 impl CompositionOrBlending {
     pub fn to_azure_style(&self) -> CompositionOp {
         match *self {
             CompositionOrBlending::Composition(op) => op.to_azure_style(),
             CompositionOrBlending::Blending(op) => op.to_azure_style(),
         }
-    }
-
-    pub fn default() -> CompositionOrBlending {
-        CompositionOrBlending::Composition(CompositionStyle::SrcOver)
-    }
-
-    pub fn from_str(string: &str) -> Option<CompositionOrBlending> {
-        if let Some(op) = CompositionStyle::from_str(string) {
-            return Some(CompositionOrBlending::Composition(op));
-        }
-
-        if let Some(op) = BlendingStyle::from_str(string) {
-            return Some(CompositionOrBlending::Blending(op));
-        }
-
-        None
     }
 }
 
