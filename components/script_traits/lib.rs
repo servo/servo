@@ -142,8 +142,6 @@ pub enum ConstellationControlMsg {
         target: PipelineId,
         /// The pipeline that contains a frame loading the target pipeline.
         parent: PipelineId,
-        /// Url of loaded frame.
-        url: Url,
     },
     /// Notifies a parent frame that one of its child frames is now active.
     FramedContentChanged(PipelineId, SubpageId),
