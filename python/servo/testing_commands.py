@@ -315,7 +315,6 @@ class MachCommands(CommandBase):
              parser=updatecommandline.create_parser())
     def update_css(self, **kwargs):
         self.ensure_bootstrapped()
-        self.ensure_wpt_virtualenv()
         run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
