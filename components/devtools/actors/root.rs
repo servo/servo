@@ -48,7 +48,7 @@ pub struct RootActor {
 
 impl Actor for RootActor {
     fn name(&self) -> String {
-        "root".to_string()
+        "root".to_owned()
     }
 
     fn handle_message(&self,
@@ -59,9 +59,9 @@ impl Actor for RootActor {
         Ok(match msg_type {
             "listAddons" => {
                 let actor = ErrorReply {
-                    from: "root".to_string(),
-                    error: "noAddons".to_string(),
-                    message: "This root actor has no browser addons.".to_string(),
+                    from: "root".to_owned(),
+                    error: "noAddons".to_owned(),
+                    message: "This root actor has no browser addons.".to_owned(),
                 };
                 stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
@@ -70,7 +70,7 @@ impl Actor for RootActor {
             //https://wiki.mozilla.org/Remote_Debugging_Protocol#Listing_Browser_Tabs
             "listTabs" => {
                 let actor = ListTabsReply {
-                    from: "root".to_string(),
+                    from: "root".to_owned(),
                     selected: 0,
                     tabs: self.tabs.iter().map(|tab| {
                         registry.find::<TabActor>(tab).encodable()
@@ -88,12 +88,12 @@ impl Actor for RootActor {
 impl RootActor {
     pub fn encodable(&self) -> RootActorMsg {
         RootActorMsg {
-            from: "root".to_string(),
-            applicationType: "browser".to_string(),
+            from: "root".to_owned(),
+            applicationType: "browser".to_owned(),
             traits: ActorTraits {
                 sources: true,
                 highlightable: true,
-                customHighlighters: vec!("BoxModelHighlighter".to_string()),
+                customHighlighters: vec!("BoxModelHighlighter".to_owned()),
             },
         }
     }

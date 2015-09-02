@@ -35,17 +35,17 @@ impl JsonPacketStream for TcpStream {
                 Ok(0) => return Ok(None),  // EOF
                 Ok(1) => buf[0],
                 Ok(_) => unreachable!(),
-                Err(e) => return Err(e.description().to_string()),
+                Err(e) => return Err(e.description().to_owned()),
             };
             match byte {
                 b':' => {
                     let packet_len_str = match String::from_utf8(buffer) {
                         Ok(packet_len) => packet_len,
-                        Err(_) => return Err("nonvalid UTF8 in packet length".to_string()),
+                        Err(_) => return Err("nonvalid UTF8 in packet length".to_owned()),
                     };
                     let packet_len = match u64::from_str_radix(&packet_len_str, 10) {
                         Ok(packet_len) => packet_len,
-                        Err(_) => return Err("packet length missing / not parsable".to_string()),
+                        Err(_) => return Err("packet length missing / not parsable".to_owned()),
                     };
                     let mut packet = String::new();
                     self.take(packet_len).read_to_string(&mut packet).unwrap();
@@ -53,7 +53,7 @@ impl JsonPacketStream for TcpStream {
                     return match Json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),
                         Err(err) => match err {
-                            IoError(ioerr) => return Err(ioerr.description().to_string()),
+                            IoError(ioerr) => return Err(ioerr.description().to_owned()),
                             SyntaxError(_, l, c) => return Err(format!("syntax at {}:{}", l, c)),
                         },
                     };

@@ -133,7 +133,7 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     nativeConsoleAPI: true,
                     startedListeners:
-                        vec!("PageError".to_string(), "ConsoleAPI".to_string()),
+                        vec!("PageError".to_owned(), "ConsoleAPI".to_owned()),
                     traits: StartedListenersTraits {
                         customNetworkRequest: true,
                     }
@@ -146,12 +146,12 @@ impl Actor for ConsoleActor {
                 //TODO: actually implement listener filters that support starting/stopping
                 let msg = StopListenersReply {
                     from: self.name(),
-                    stoppedListeners: msg.get(&"listeners".to_string())
+                    stoppedListeners: msg.get("listeners")
                                          .unwrap()
                                          .as_array()
                                          .unwrap_or(&vec!())
                                          .iter()
-                                         .map(|listener| listener.as_string().unwrap().to_string())
+                                         .map(|listener| listener.as_string().unwrap().to_owned())
                                          .collect(),
                 };
                 stream.write_json_packet(&msg);
@@ -164,14 +164,14 @@ impl Actor for ConsoleActor {
                 let msg = AutocompleteReply {
                     from: self.name(),
                     matches: vec!(),
-                    matchProp: "".to_string(),
+                    matchProp: "".to_owned(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             }
 
             "evaluateJS" => {
-                let input = msg.get(&"text".to_string()).unwrap().as_string().unwrap().to_string();
+                let input = msg.get("text").unwrap().as_string().unwrap().to_owned();
                 let (chan, port) = ipc::channel().unwrap();
                 self.script_chan.send(DevtoolScriptControlMsg::EvaluateJS(
                     self.pipeline, input.clone(), chan)).unwrap();
@@ -180,31 +180,31 @@ impl Actor for ConsoleActor {
                 let result = match try!(port.recv().map_err(|_| ())) {
                     VoidValue => {
                         let mut m = BTreeMap::new();
-                        m.insert("type".to_string(), "undefined".to_string().to_json());
+                        m.insert("type".to_owned(), "undefined".to_owned().to_json());
                         Json::Object(m)
                     }
                     NullValue => {
                         let mut m = BTreeMap::new();
-                        m.insert("type".to_string(), "null".to_string().to_json());
+                        m.insert("type".to_owned(), "null".to_owned().to_json());
                         Json::Object(m)
                     }
                     BooleanValue(val) => val.to_json(),
                     NumberValue(val) => {
                         if val.is_nan() {
                             let mut m = BTreeMap::new();
-                            m.insert("type".to_string(), "NaN".to_string().to_json());
+                            m.insert("type".to_owned(), "NaN".to_owned().to_json());
                             Json::Object(m)
                         } else if val.is_infinite() {
                             let mut m = BTreeMap::new();
                             if val < 0. {
-                                m.insert("type".to_string(), "-Infinity".to_string().to_json());
+                                m.insert("type".to_owned(), "-Infinity".to_owned().to_json());
                             } else {
-                                m.insert("type".to_string(), "Infinity".to_string().to_json());
+                                m.insert("type".to_owned(), "Infinity".to_owned().to_json());
                             }
                             Json::Object(m)
                         } else if val == 0. && val.is_sign_negative() {
                             let mut m = BTreeMap::new();
-                            m.insert("type".to_string(), "-0".to_string().to_json());
+                            m.insert("type".to_owned(), "-0".to_owned().to_json());
                             Json::Object(m)
                         } else {
                             val.to_json()
@@ -216,12 +216,12 @@ impl Actor for ConsoleActor {
                         let mut m = BTreeMap::new();
                         let actor = ObjectActor::new(registry, uuid);
 
-                        m.insert("type".to_string(), "object".to_string().to_json());
-                        m.insert("class".to_string(), class.to_json());
-                        m.insert("actor".to_string(), actor.to_json());
-                        m.insert("extensible".to_string(), true.to_json());
-                        m.insert("frozen".to_string(), false.to_json());
-                        m.insert("sealed".to_string(), false.to_json());
+                        m.insert("type".to_owned(), "object".to_owned().to_json());
+                        m.insert("class".to_owned(), class.to_json());
+                        m.insert("actor".to_owned(), actor.to_json());
+                        m.insert("extensible".to_owned(), true.to_json());
+                        m.insert("frozen".to_owned(), false.to_json());
+                        m.insert("sealed".to_owned(), false.to_json());
                         Json::Object(m)
                     }
                 };
@@ -233,7 +233,7 @@ impl Actor for ConsoleActor {
                     result: result,
                     timestamp: 0,
                     exception: Json::Object(BTreeMap::new()),
-                    exceptionMessage: "".to_string(),
+                    exceptionMessage: "".to_owned(),
                     helperResult: Json::Object(BTreeMap::new()),
                 };
                 stream.write_json_packet(&msg);

@@ -98,7 +98,7 @@ impl Actor for TabActor {
             "attach" => {
                 let msg = TabAttachedReply {
                     from: self.name(),
-                    __type__: "tabAttached".to_string(),
+                    __type__: "tabAttached".to_owned(),
                     threadActor: self.name(),
                     cacheDisabled: false,
                     javascriptEnabled: true,
@@ -117,7 +117,7 @@ impl Actor for TabActor {
             "detach" => {
                 let msg = TabDetachedReply {
                     from: self.name(),
-                    __type__: "detached".to_string(),
+                    __type__: "detached".to_owned(),
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor.streams.borrow_mut().pop();

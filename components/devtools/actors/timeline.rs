@@ -147,7 +147,7 @@ impl TimelineActor {
             return;
         }
 
-        task::spawn_named("PullTimelineMarkers".to_string(), move || {
+        task::spawn_named("PullTimelineMarkers".to_owned(), move || {
             loop {
                 if !*is_recording.lock().unwrap() {
                     break;
@@ -291,7 +291,7 @@ impl Emitter {
     fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> () {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
-            __type__: "markers".to_string(),
+            __type__: "markers".to_owned(),
             markers: markers,
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
@@ -303,7 +303,7 @@ impl Emitter {
             let registry = lock.as_mut().unwrap();
             let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
             let framerateReply = FramerateEmitterReply {
-                __type__: "framerate".to_string(),
+                __type__: "framerate".to_owned(),
                 from: framerate_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 timestamps: framerate_actor.take_pending_ticks(),
@@ -315,7 +315,7 @@ impl Emitter {
             let registry = self.registry.lock().unwrap();
             let memory_actor = registry.find::<MemoryActor>(actor_name);
             let memoryReply = MemoryEmitterReply {
-                __type__: "memory".to_string(),
+                __type__: "memory".to_owned(),
                 from: memory_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 measurement: memory_actor.measure(),

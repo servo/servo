@@ -109,14 +109,14 @@ impl Actor for NodeActor {
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
-                let mods = msg.get(&"modifications".to_string()).unwrap().as_array().unwrap();
+                let target = msg.get("to").unwrap().as_string().unwrap();
+                let mods = msg.get("modifications").unwrap().as_array().unwrap();
                 let modifications = mods.iter().map(|json_mod| {
                     json::decode(&json_mod.to_string()).unwrap()
                 }).collect();
 
                 self.script_chan.send(ModifyAttribute(self.pipeline,
-                                                      registry.actor_to_script(target.to_string()),
+                                                      registry.actor_to_script(target.to_owned()),
                                                       modifications))
                                 .unwrap();
                 let reply = ModifyAttributeReply {
@@ -313,10 +313,10 @@ impl Actor for WalkerActor {
             }
 
             "children" => {
-                let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
+                let target = msg.get("node").unwrap().as_string().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetChildren(self.pipeline,
-                                                  registry.actor_to_script(target.to_string()),
+                                                  registry.actor_to_script(target.to_owned()),
                                                   tx))
                                 .unwrap();
                 let children = rx.recv().unwrap();
@@ -452,15 +452,15 @@ impl Actor for PageStyleActor {
 
             //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
-                let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
+                let target = msg.get("node").unwrap().as_string().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetLayout(self.pipeline,
-                                      registry.actor_to_script(target.to_string()),
+                                      registry.actor_to_script(target.to_owned()),
                                       tx))
                                 .unwrap();
                 let ComputedNodeLayout { width, height } = rx.recv().unwrap();
 
-                let auto_margins = msg.get(&"autoMargins".to_string())
+                let auto_margins = msg.get("autoMargins")
                     .and_then(&Json::as_boolean).unwrap_or(false);
 
                 //TODO: the remaining layout properties (margin, border, padding, position)
@@ -473,10 +473,10 @@ impl Actor for PageStyleActor {
                         //TODO: real values like processMargins in
                         //  http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                         let mut m = BTreeMap::new();
-                        m.insert("top".to_string(), "auto".to_string().to_json());
-                        m.insert("bottom".to_string(), "auto".to_string().to_json());
-                        m.insert("left".to_string(), "auto".to_string().to_json());
-                        m.insert("right".to_string(), "auto".to_string().to_json());
+                        m.insert("top".to_owned(), "auto".to_owned().to_json());
+                        m.insert("bottom".to_owned(), "auto".to_owned().to_json());
+                        m.insert("left".to_owned(), "auto".to_owned().to_json());
+                        m.insert("right".to_owned(), "auto".to_owned().to_json());
                         Json::Object(m)
                     } else {
                         Json::Null
