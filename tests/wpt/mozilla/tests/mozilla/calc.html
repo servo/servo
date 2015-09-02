@@ -1,0 +1,153 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#outer {
+    width: 1000px;
+}
+</style>
+</head>
+<body>
+<div id="outer">FOO<div id="inner"></div></div>
+<script>
+
+var div = document.getElementById('inner');
+
+var widthTests = [
+    ['calc(10px)', '10px', '10px'],
+
+    // Basic Arithmetic
+    ['calc(10px + 10px)', '20px', '20px'],
+    ['calc(10px - 5px)', '5px', '5px'],
+    ['calc(2 * 10px)', '20px', '20px'],
+    ['calc(10px / 2)', '5px', '5px'],
+
+    // Parse ok
+    ['calc(20px/2)', '10px', '10px'],
+    ['calc(10px*2)', '20px', '20px'],
+
+    // Parse errors - value left over from previous test
+    ['calc(10px-10px)', '20px', '20px'],
+    ['calc(5px+5px)', '20px', '20px'],
+
+    // Combining units
+    ['calc(10px + 10em)', 'calc(10em + 10px)', '170px'],
+    ['calc(10px + 10em - 10px)', 'calc(10em + 0px)', '160px'],
+
+    // Fold absolute units
+    ['calc(1px + 1pt + 1pc + 1in + 1cm + 1mm)', '155.88333333333333px', '155.88333333333333px'],
+
+    // Alphabetical order
+    ['calc(0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
+     'calc(0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0%)',
+     '0px'],
+
+    // Simplification
+    ['calc((2 - 1) * 10px)', '10px', '10px'],
+    ['calc(((3 - 1) * (8 + 4)) * 10px)', '240px', '240px'],
+    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 155px + 420rem)', '8555px'],
+
+];
+
+widthTests.forEach(function(item) {
+    test(function() {
+        div.style.setProperty('width', item[0]);
+        assert_equals(div.style.getPropertyValue('width'), item[1]);
+        assert_equals(window.getComputedStyle(div).getPropertyValue('width'), item[2]);
+    }, item[0]);
+});
+
+var lengthProperties = [
+  'border-width',
+  'border-top-width',
+  'border-left-width',
+  'border-right-width',
+  'border-bottom-width',
+  'outline-width',
+  'outline-offset',
+  'letter-spacing',
+  'word-spacing',
+  'border-spacing',
+  'column-width',
+  'column-gap',
+  'perspective',
+];
+
+lengthProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px)');
+        assert_equals(div.style.getPropertyValue(prop), '1px');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
+    }, 'calc for ' + prop);
+});
+
+var lengthOrPercentageProperties = [
+  'border-top-left-radius',
+  'border-bottom-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'top',
+  'left',
+  'bottom',
+  'right',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'line-height',
+  'vertical-align',
+  'background-position',
+  'background-size',
+  'font-size',
+  'text-indent',
+  'transform-origin',
+  'perspective-origin',
+];
+
+lengthOrPercentageProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1px + 0%)');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1px + 0%)');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
+    }, 'calc for ' + prop);
+});
+
+var timeProperties = [
+  'transition-delay',
+];
+
+timeProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1s)');
+        assert_equals(div.style.getPropertyValue(prop), '1s');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1s');
+    }, 'calc for ' + prop);
+});
+
+var numberProperties = [
+  'z-index',
+  'column-count',
+  'opacity',
+  'transition-duration',
+];
+
+numberProperties.forEach(function(prop) {
+    test(function() {
+        div.style.setProperty(prop, 'calc(1)');
+        assert_equals(div.style.getPropertyValue(prop), '1');
+        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1');
+    }, 'calc for ' + prop);
+});
+
+
+/* TODO: test these: 
+  counter-increment, counter-reset,
+  color, box-shadow, clip, text-shadow, transform
+  transition-timing-function
+  */
+</script>
+</head>
+</html>

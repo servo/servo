@@ -9,7 +9,8 @@ use parser::{ParserContext, log_css_error};
 use properties::longhands;
 use stylesheets::Origin;
 use util::geometry::{Au, PagePx, ViewportPx};
-use values::specified::{AllowedNumericType, Length, LengthOrPercentageOrAuto};
+use values::computed::{Context, ToComputedValue};
+use values::specified::{AllowedNumericType, LengthOrPercentageOrAuto};
 
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
@@ -420,23 +421,42 @@ impl ViewportConstraints {
         let initial_viewport = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                            Au::from_f32_px(initial_viewport.height.get()));
 
+
+        let context = Context {
+            is_root_element: false,
+            viewport_size: initial_viewport,
+            inherited_font_weight: longhands::font_weight::get_initial_value(),
+            inherited_font_size: longhands::font_size::get_initial_value(),
+            inherited_text_decorations_in_effect: longhands::_servo_text_decorations_in_effect::get_initial_value(),
+            font_size: longhands::font_size::get_initial_value(),
+            root_font_size: longhands::font_size::get_initial_value(),
+            display: longhands::display::get_initial_value(),
+            color: longhands::color::get_initial_value(),
+            text_decoration: longhands::text_decoration::get_initial_value(),
+            overflow_x: longhands::overflow_x::get_initial_value(),
+            overflow_y: longhands::overflow_y::get_initial_value(),
+            positioned: false,
+            floated: false,
+            border_top_present: false,
+            border_right_present: false,
+            border_bottom_present: false,
+            border_left_present: false,
+            outline_style_present: false,
+        };
+
         macro_rules! to_pixel_length {
             ($value:ident, $dimension:ident) => {
                 if let Some($value) = $value {
                     match $value {
-                        LengthOrPercentageOrAuto::Length(ref value) => Some(match value {
-                            &Length::Absolute(length) => length,
-                            &Length::FontRelative(length) => {
-                                let initial_font_size = longhands::font_size::get_initial_value();
-                                length.to_computed_value(initial_font_size, initial_font_size)
-                            }
-                            &Length::ViewportPercentage(length) =>
-                                length.to_computed_value(initial_viewport),
-                            _ => unreachable!()
-                        }),
+                        LengthOrPercentageOrAuto::Length(value) =>
+                            Some(value.to_computed_value(&context)),
                         LengthOrPercentageOrAuto::Percentage(value) =>
-                            Some(initial_viewport.$dimension.scale_by(value)),
+                            Some(initial_viewport.$dimension.scale_by(value.0)),
                         LengthOrPercentageOrAuto::Auto => None,
+                        LengthOrPercentageOrAuto::Calc(calc) => {
+                            let calc = calc.to_computed_value(&context);
+                            Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
+                        }
                     }
                 } else {
                     None
