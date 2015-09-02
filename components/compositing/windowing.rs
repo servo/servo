@@ -9,6 +9,7 @@ use compositor_task::{CompositorProxy, CompositorReceiver};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+use euclid::{Size2D, Point2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
@@ -102,6 +103,13 @@ pub trait WindowMethods {
     fn size(&self) -> TypedSize2D<ScreenPx, f32>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
+
+    /// Return the size of the window with head and borders and position of the window values
+    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>);
+    /// Set the size inside of borders and head
+    fn set_inner_size(&self, size: Size2D<u32>);
+    /// Set the window position
+    fn set_position(&self, point: Point2D<i32>);
 
     /// Sets the page title for the current page.
     fn set_page_title(&self, title: Option<String>);

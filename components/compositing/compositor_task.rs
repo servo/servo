@@ -11,8 +11,7 @@ use compositor;
 use headless;
 use windowing::{WindowEvent, WindowMethods};
 
-use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::{Size2D, Point2D, Rect};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -66,8 +65,20 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                                   receiver: IpcReceiver<ScriptToCompositorMsg>) {
     while let Ok(msg) = receiver.recv() {
         match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point) => {
-                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
+            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
+                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth));
+            }
+
+            ScriptToCompositorMsg::GetClientWindow(send) => {
+                compositor_proxy.send(Msg::GetClientWindow(send));
+            }
+
+            ScriptToCompositorMsg::MoveTo(point) => {
+                compositor_proxy.send(Msg::MoveTo(point));
+            }
+
+            ScriptToCompositorMsg::ResizeTo(size) => {
+                compositor_proxy.send(Msg::ResizeTo(size));
             }
 
             ScriptToCompositorMsg::Exit => {
@@ -159,7 +170,7 @@ pub enum Msg {
     /// Alerts the compositor that the specified layer's rect has changed.
     SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
     /// Requests that the compositor assign the painted buffers to the given layers.
     AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>, FrameTreeId),
     /// Alerts the compositor that the current page has changed its title.
@@ -201,6 +212,12 @@ pub enum Msg {
     CollectMemoryReports(mem::ReportsChan),
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
+    /// Get Window Informations size and position
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Move the window to a point
+    MoveTo(Point2D<i32>),
+    /// Resize the window to size
+    ResizeTo(Size2D<u32>),
 }
 
 impl Debug for Msg {
@@ -232,6 +249,9 @@ impl Debug for Msg {
             Msg::ReturnUnusedNativeSurfaces(..) => write!(f, "ReturnUnusedNativeSurfaces"),
             Msg::CollectMemoryReports(..) => write!(f, "CollectMemoryReports"),
             Msg::Status(..) => write!(f, "Status"),
+            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            Msg::MoveTo(..) => write!(f, "MoveTo"),
+            Msg::ResizeTo(..) => write!(f, "ResizeTo"),
         }
     }
 }

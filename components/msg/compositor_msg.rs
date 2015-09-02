@@ -5,8 +5,8 @@
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyState, KeyModifiers};
 use euclid::Matrix4;
-use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::{Size2D, Point2D, Rect};
+use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
 use std::fmt;
@@ -119,9 +119,11 @@ pub trait PaintListener {
 
 #[derive(Deserialize, Serialize)]
 pub enum ScriptToCompositorMsg {
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
     SetTitle(PipelineId, Option<String>),
     SendKeyEvent(Key, KeyState, KeyModifiers),
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    MoveTo(Point2D<i32>),
+    ResizeTo(Size2D<u32>),
     Exit,
 }
-

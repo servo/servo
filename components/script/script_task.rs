@@ -1722,7 +1722,7 @@ impl ScriptTask {
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
         self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                 pipeline_id, LayerId::null(), point)).unwrap();
+                                                 pipeline_id, LayerId::null(), point, false)).unwrap();
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.

@@ -7,7 +7,8 @@
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
+use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
 use layers::geometry::DevicePixel;
@@ -24,8 +25,6 @@ use NestedEventLoopListener;
 
 #[cfg(feature = "window")]
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
-#[cfg(feature = "window")]
-use euclid::point::Point2D;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 #[cfg(feature = "window")]
@@ -521,6 +520,22 @@ impl WindowMethods for Window {
         Size2D::typed(width as f32, height as f32)
     }
 
+    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
+        let (width, height) = self.window.get_outer_size().unwrap();
+        let size = Size2D::new(width, height);
+        let (x, y) = self.window.get_position().unwrap();
+        let origin = Point2D::new(x as i32, y as i32);
+        (size, origin)
+    }
+
+    fn set_inner_size(&self, size: Size2D<u32>) {
+        self.window.set_inner_size(size.width as u32, size.height as u32)
+    }
+
+    fn set_position(&self, point: Point2D<i32>) {
+        self.window.set_position(point.x, point.y)
+    }
+
     fn present(&self) {
         self.window.swap_buffers().unwrap();
     }
@@ -746,6 +761,20 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
+    }
+
+    fn set_inner_size(&self, _: Size2D<u32>) {
+
+    }
+
+    fn set_position(&self, _: Point2D<i32>) {
+
+    }
+
+    fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
+        let width = self.width;
+        let height = self.height;
+        (Size2D::new(width, height), Point2D::zero())
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)
