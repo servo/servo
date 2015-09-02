@@ -125,6 +125,7 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == hide_after_create.html hide_after_create_ref.html
 
 == iframe/bg_color.html iframe/bg_color_ref.html
+== iframe/hide_after_load.html iframe/hide_after_load_ref.html
 == iframe/hide_and_show.html iframe/hide_and_show_ref.html
 == iframe/hide_layers1.html iframe/hide_layers_ref.html
 == iframe/hide_layers2.html iframe/hide_layers_ref.html
