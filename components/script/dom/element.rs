@@ -6,7 +6,7 @@
 
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
-use dom::attr::{Attr, AttrSettingType, AttrHelpersForLayout};
+use dom::attr::{Attr, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
@@ -32,7 +32,6 @@ use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
 use dom::create::create_element;
@@ -580,12 +579,11 @@ impl Element {
         &self.local_name
     }
 
-    pub fn parsed_name(&self, name: DOMString) -> Atom {
+    pub fn parsed_name(&self, mut name: DOMString) -> Atom {
         if self.html_element_in_html_document() {
-            Atom::from_slice(&name.to_ascii_lowercase())
-        } else {
-            Atom::from_slice(&name)
+            name.make_ascii_lowercase();
         }
+        Atom::from_slice(&name)
     }
 
     pub fn namespace(&self) -> &Namespace {
@@ -829,37 +827,41 @@ impl Element {
 
 
 impl Element {
+    pub fn push_new_attribute(&self,
+                              local_name: Atom,
+                              value: AttrValue,
+                              name: Atom,
+                              namespace: Namespace,
+                              prefix: Option<Atom>) {
+        let window = window_from_node(self);
+        let in_empty_ns = namespace == ns!("");
+        let attr = Attr::new(&window, local_name, value, name, namespace, prefix, Some(self));
+        self.attrs.borrow_mut().push(JS::from_rooted(&attr));
+        if in_empty_ns {
+            vtable_for(NodeCast::from_ref(self)).attribute_mutated(
+                &attr, AttributeMutation::Set(None));
+        }
+    }
+
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
-        let mut attributes = RootedVec::new();
-        self.get_attributes(local_name, &mut attributes);
-        attributes.r().iter()
-                  .find(|attr| attr.namespace() == namespace)
-                  .map(|attr| Root::from_ref(*attr))
+        self.attrs.borrow().iter().map(JS::root).find(|attr| {
+            attr.local_name() == local_name && attr.namespace() == namespace
+        })
     }
 
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     pub fn get_attribute_by_name(&self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
-        self.attrs.borrow().iter().map(|attr| attr.root())
+        self.attrs.borrow().iter().map(JS::root)
              .find(|a| a.r().name() == name)
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    pub fn get_attributes(&self, local_name: &Atom, attributes: &mut RootedVec<JS<Attr>>) {
-        for ref attr in self.attrs.borrow().iter() {
-            let attr = attr.root();
-            if attr.r().local_name() == local_name {
-                attributes.push(JS::from_rooted(&attr));
-            }
-        }
-    }
-
     pub fn set_attribute_from_parser(&self,
-                                 qname: QualName,
-                                 value: DOMString,
-                                 prefix: Option<Atom>) {
+                                     qname: QualName,
+                                     value: DOMString,
+                                     prefix: Option<Atom>) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
-        if self.attrs.borrow().iter().map(|attr| attr.root())
+        if self.attrs.borrow().iter().map(JS::root)
                 .any(|a| *a.r().local_name() == qname.local && *a.r().namespace() == qname.ns) {
             return;
         }
@@ -872,15 +874,16 @@ impl Element {
             },
         };
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
-        self.do_set_attribute(qname.local, value, name, qname.ns, prefix, |_| false)
+        self.push_new_attribute(qname.local, value, name, qname.ns, prefix);
     }
 
     pub fn set_attribute(&self, name: &Atom, value: AttrValue) {
         assert!(&**name == name.to_ascii_lowercase());
         assert!(!name.contains(":"));
 
-        self.do_set_attribute(name.clone(), value, name.clone(),
-            ns!(""), None, |attr| attr.local_name() == name);
+        self.set_first_matching_attribute(
+            name.clone(), value, name.clone(), ns!(""), None,
+            |attr| attr.local_name() == name);
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-data-*
@@ -894,36 +897,27 @@ impl Element {
         // Steps 2-5.
         let name = Atom::from_slice(&name);
         let value = self.parse_attribute(&ns!(""), &name, value);
-        self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            *attr.name() == name && *attr.namespace() == ns!("")
-        });
+        self.set_first_matching_attribute(
+            name.clone(), value, name.clone(), ns!(""), None,
+            |attr| *attr.name() == name && *attr.namespace() == ns!(""));
         Ok(())
     }
 
-    pub fn do_set_attribute<F>(&self,
-                           local_name: Atom,
-                           value: AttrValue,
-                           name: Atom,
-                           namespace: Namespace,
-                           prefix: Option<Atom>,
-                           cb: F)
-        where F: Fn(&Attr) -> bool
-    {
-        let idx = self.attrs.borrow().iter()
-                                     .map(|attr| attr.root())
-                                     .position(|attr| cb(attr.r()));
-        let (idx, set_type) = match idx {
-            Some(idx) => (idx, AttrSettingType::ReplacedAttr),
-            None => {
-                let window = window_from_node(self);
-                let attr = Attr::new(window.r(), local_name, value.clone(),
-                                     name, namespace.clone(), prefix, Some(self));
-                self.attrs.borrow_mut().push(JS::from_rooted(&attr));
-                (self.attrs.borrow().len() - 1, AttrSettingType::FirstSetAttr)
-            }
+    fn set_first_matching_attribute<F>(&self,
+                                       local_name: Atom,
+                                       value: AttrValue,
+                                       name: Atom,
+                                       namespace: Namespace,
+                                       prefix: Option<Atom>,
+                                       find: F)
+                                       where F: Fn(&Attr)
+                                       -> bool {
+        let attr = self.attrs.borrow().iter().map(JS::root).find(|attr| find(&attr));
+        if let Some(attr) = attr {
+            attr.set_value(value, self);
+        } else {
+            self.push_new_attribute(local_name, value, name, namespace, prefix);
         };
-
-        (*self.attrs.borrow())[idx].root().r().set_value(set_type, value, self);
     }
 
     pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
@@ -938,43 +932,27 @@ impl Element {
 
     pub fn remove_attribute(&self, namespace: &Namespace, local_name: &Atom)
                         -> Option<Root<Attr>> {
-        self.do_remove_attribute(|attr| {
+        self.remove_first_matching_attribute(|attr| {
             attr.namespace() == namespace && attr.local_name() == local_name
         })
     }
 
     pub fn remove_attribute_by_name(&self, name: &Atom) -> Option<Root<Attr>> {
-        self.do_remove_attribute(|attr| attr.name() == name)
+        self.remove_first_matching_attribute(|attr| attr.name() == name)
     }
 
-    pub fn do_remove_attribute<F>(&self, find: F) -> Option<Root<Attr>>
+    fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
         where F: Fn(&Attr) -> bool
     {
-        let idx = self.attrs.borrow().iter()
-                                     .map(|attr| attr.root())
-                                     .position(|attr| find(attr.r()));
+        let idx = self.attrs.borrow().iter().map(JS::root).position(|attr| find(&attr));
 
         idx.map(|idx| {
             let attr = (*self.attrs.borrow())[idx].root();
-            if attr.r().namespace() == &ns!("") {
-                vtable_for(&NodeCast::from_ref(self)).before_remove_attr(attr.r());
-            }
-
             self.attrs.borrow_mut().remove(idx);
-            attr.r().set_owner(None);
-            if attr.r().namespace() == &ns!("") {
-                vtable_for(&NodeCast::from_ref(self)).after_remove_attr(attr.r().name());
-            }
-
+            attr.set_owner(None);
             let node = NodeCast::from_ref(self);
-            if node.is_in_doc() {
-                let document = document_from_node(self);
-                let damage = if attr.r().local_name() == &atom!("style") {
-                    NodeDamage::NodeStyleDamaged
-                } else {
-                    NodeDamage::OtherNodeDamage
-                };
-                document.r().content_changed(node, damage);
+            if attr.namespace() == &ns!("") {
+                vtable_for(node).attribute_mutated(&attr, AttributeMutation::Removed);
             }
             attr
         })
@@ -1005,7 +983,7 @@ impl Element {
 
     pub fn has_attribute(&self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
-        self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
+        self.attrs.borrow().iter().map(JS::root).any(|attr| {
             attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
@@ -1188,9 +1166,9 @@ impl ElementMethods for Element {
 
         // Step 3-5.
         let value = self.parse_attribute(&ns!(""), &name, value);
-        self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            *attr.name() == name
-        });
+        self.set_first_matching_attribute(
+            name.clone(), value, name.clone(), ns!(""), None,
+            |attr| *attr.name() == name);
         Ok(())
     }
 
@@ -1203,11 +1181,9 @@ impl ElementMethods for Element {
             try!(validate_and_extract(namespace, &qualified_name));
         let qualified_name = Atom::from_slice(&qualified_name);
         let value = self.parse_attribute(&namespace, &local_name, value);
-        self.do_set_attribute(local_name.clone(), value, qualified_name,
-                              namespace.clone(), prefix, |attr| {
-            *attr.local_name() == local_name &&
-            *attr.namespace() == namespace
-        });
+        self.set_first_matching_attribute(
+            local_name.clone(), value, qualified_name, namespace.clone(), prefix,
+            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace);
         Ok(())
     }
 
@@ -1474,96 +1450,52 @@ impl VirtualMethods for Element {
         Some(node as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         let node = NodeCast::from_ref(self);
-        match attr.local_name() {
-            &atom!("style") => {
+        let doc = node.owner_doc();
+        let damage = match attr.local_name() {
+            &atom!(style) => {
                 // Modifying the `style` attribute might change style.
-                let doc = document_from_node(self);
-                let base_url = doc.r().base_url();
-                let value = attr.value();
-                let style = Some(parse_style_attribute(&value, &base_url));
-                *self.style_attribute.borrow_mut() = style;
-
-                if node.is_in_doc() {
-                    doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                }
-            }
-            &atom!("class") => {
+                *self.style_attribute.borrow_mut() =
+                    mutation.new_value(attr).map(|value| {
+                        parse_style_attribute(&value, &doc.base_url())
+                    });
+                NodeDamage::NodeStyleDamaged
+            },
+            &atom!(class) => {
                 // Modifying a class can change style.
+                NodeDamage::NodeStyleDamaged
+            },
+            &atom!(id) => {
                 if node.is_in_doc() {
-                    let document = document_from_node(self);
-                    document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                }
-            }
-            &atom!("id") => {
-                // Modifying an ID might change style.
-                let value = attr.value();
-                if node.is_in_doc() {
-                    let doc = document_from_node(self);
-                    if !value.is_empty() {
-                        let value = value.atom().unwrap().clone();
-                        doc.r().register_named_element(self, value);
+                    let value = attr.value().atom().unwrap().clone();
+                    match mutation {
+                        AttributeMutation::Set(old_value) => {
+                            if let Some(old_value) = old_value {
+                                let old_value = old_value.atom().unwrap().clone();
+                                doc.unregister_named_element(self, old_value);
+                            }
+                            if value != atom!("") {
+                                doc.register_named_element(self, value);
+                            }
+                        },
+                        AttributeMutation::Removed => {
+                            if value != atom!("") {
+                                doc.unregister_named_element(self, value);
+                            }
+                        }
                     }
-                    doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
                 }
-            }
+                NodeDamage::NodeStyleDamaged
+            },
             _ => {
                 // Modifying any other attribute might change arbitrary things.
-                if node.is_in_doc() {
-                    let document = document_from_node(self);
-                    document.r().content_changed(node, NodeDamage::OtherNodeDamage);
-                }
-            }
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        let node = NodeCast::from_ref(self);
-        match attr.local_name() {
-            &atom!("style") => {
-                // Modifying the `style` attribute might change style.
-                *self.style_attribute.borrow_mut() = None;
-
-                if node.is_in_doc() {
-                    let doc = document_from_node(self);
-                    doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                }
-            }
-            &atom!("id") => {
-                // Modifying an ID can change style.
-                let value = attr.value();
-                if node.is_in_doc() {
-                    let doc = document_from_node(self);
-                    if !value.is_empty() {
-                        let value = value.atom().unwrap().clone();
-                        doc.r().unregister_named_element(self, value);
-                    }
-                    doc.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                }
-            }
-            &atom!("class") => {
-                // Modifying a class can change style.
-                if node.is_in_doc() {
-                    let document = document_from_node(self);
-                    document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
-                }
-            }
-            _ => {
-                // Modifying any other attribute might change arbitrary things.
-                if node.is_in_doc() {
-                    let doc = document_from_node(self);
-                    doc.r().content_changed(node, NodeDamage::OtherNodeDamage);
-                }
-            }
+                NodeDamage::OtherNodeDamage
+            },
+        };
+        if node.is_in_doc() {
+            doc.content_changed(node, damage);
         }
     }
 
@@ -1583,11 +1515,11 @@ impl VirtualMethods for Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(self);
-            let value = attr.r().Value();
+            let value = attr.value();
             if !value.is_empty() {
+                let doc = document_from_node(self);
                 let value = Atom::from_slice(&value);
-                doc.r().register_named_element(self, value);
+                doc.register_named_element(self, value.to_owned());
             }
         }
     }
@@ -1600,11 +1532,11 @@ impl VirtualMethods for Element {
         if !tree_in_doc { return; }
 
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let doc = document_from_node(self);
-            let value = attr.r().Value();
+            let value = attr.value();
             if !value.is_empty() {
+                let doc = document_from_node(self);
                 let value = Atom::from_slice(&value);
-                doc.r().unregister_named_element(self, value);
+                doc.unregister_named_element(self, value.to_owned());
             }
         }
     }
@@ -1765,14 +1697,9 @@ impl<'a> ::selectors::Element for Root<Element> {
                     })
             },
             NamespaceConstraint::Any => {
-                let mut attributes: RootedVec<JS<Attr>> = RootedVec::new();
-                self.get_attributes(local_name, &mut attributes);
-                attributes.iter().any(|attr| {
-                        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-                        let attr = attr.root();
-                        let value = attr.r().value();
-                        test(&value)
-                    })
+                self.attrs.borrow().iter().map(JS::root).any(|attr| {
+                     attr.local_name() == local_name && test(&attr.value())
+                })
             }
         }
     }
@@ -1876,5 +1803,25 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum AttributeMutation<'a> {
+    /// The attribute is set, keep track of old value.
+    /// https://dom.spec.whatwg.org/#attribute-is-set
+    Set(Option<&'a AttrValue>),
+
+    /// The attribute is removed.
+    /// https://dom.spec.whatwg.org/#attribute-is-removed
+    Removed
+}
+
+impl<'a> AttributeMutation<'a> {
+    pub fn new_value<'b>(&self, attr: &'b Attr) -> Option<Ref<'b, AttrValue>> {
+        match *self {
+            AttributeMutation::Set(_) => Some(attr.value()),
+            AttributeMutation::Removed => None,
+        }
     }
 }

@@ -316,7 +316,7 @@ impl HTMLFormElement {
                         _ => Some(FormDatum {
                             ty: ty,
                             name: name,
-                            value: input.Value()
+                            value: value
                         })
                     }
                 }

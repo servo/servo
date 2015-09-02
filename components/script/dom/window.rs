@@ -599,7 +599,7 @@ impl WindowMethods for Window {
                         element: &Element,
                         pseudo: Option<DOMString>) -> Root<CSSStyleDeclaration> {
         // Steps 1-4.
-        let pseudo = match pseudo.map(|s| s.to_ascii_lowercase()) {
+        let pseudo = match pseudo.map(|mut s| { s.make_ascii_lowercase(); s }) {
             Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" =>
                 Some(PseudoElement::Before),
             Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" =>

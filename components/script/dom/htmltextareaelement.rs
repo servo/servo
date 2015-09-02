@@ -15,7 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -246,52 +246,36 @@ impl VirtualMethods for HTMLTextAreaElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-            },
-            &atom!("cols") => {
-                match *attr.value() {
-                    AttrValue::UInt(_, value) => self.cols.set(value),
-                    _ => panic!("Expected an AttrValue::UInt"),
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        node.set_disabled_state(true);
+                        node.set_enabled_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        node.set_disabled_state(false);
+                        node.set_enabled_state(true);
+                        node.check_ancestors_disabled_state_for_form_control();
+                    }
                 }
             },
-            &atom!("rows") => {
-                match *attr.value() {
-                    AttrValue::UInt(_, value) => self.rows.set(value),
-                    _ => panic!("Expected an AttrValue::UInt"),
-                }
+            &atom!(cols) => {
+                let cols = mutation.new_value(attr).map(|value| {
+                    value.uint().expect("Expected an AttrValue::UInt")
+                });
+                self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                node.check_ancestors_disabled_state_for_form_control();
+            &atom!(rows) => {
+                let rows = mutation.new_value(attr).map(|value| {
+                    value.uint().expect("Expected an AttrValue::UInt")
+                });
+                self.rows.set(rows.unwrap_or(DEFAULT_ROWS));
             },
-            &atom!("cols") => {
-                self.cols.set(DEFAULT_COLS);
-            },
-            &atom!("rows") => {
-                self.rows.set(DEFAULT_ROWS);
-            },
-            _ => ()
+            _ => {},
         }
     }
 

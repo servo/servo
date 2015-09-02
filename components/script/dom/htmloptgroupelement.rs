@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
@@ -63,44 +63,36 @@ impl VirtualMethods for HTMLOptGroupElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
+                let disabled_state = match mutation {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
+                        // Option group was already disabled.
+                        return;
+                    },
+                    AttributeMutation::Removed => false,
+                };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-                for child in node.children() {
-                    if child.r().is_htmloptionelement() {
-                        child.r().set_disabled_state(true);
-                        child.r().set_enabled_state(false);
+                node.set_disabled_state(disabled_state);
+                node.set_enabled_state(!disabled_state);
+                let options = node.children().filter(|child| {
+                    child.is_htmloptionelement()
+                });
+                if disabled_state {
+                    for option in options {
+                        option.set_disabled_state(true);
+                        option.set_enabled_state(false);
+                    }
+                } else {
+                    for option in options {
+                        option.check_disabled_attribute();
                     }
                 }
             },
-            _ => (),
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                for child in node.children() {
-                    if child.r().is_htmloptionelement() {
-                        child.r().check_disabled_attribute();
-                    }
-                }
-            },
-            _ => ()
+            _ => {},
         }
     }
 }

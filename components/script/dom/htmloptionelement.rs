@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
@@ -131,34 +131,24 @@ impl VirtualMethods for HTMLOptionElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        node.set_disabled_state(true);
+                        node.set_enabled_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        node.set_disabled_state(false);
+                        node.set_enabled_state(true);
+                        node.check_parent_disabled_state_for_option();
+                    }
+                }
             },
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                node.check_parent_disabled_state_for_option();
-            },
-            _ => ()
+            _ => {},
         }
     }
 

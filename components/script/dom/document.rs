@@ -297,6 +297,7 @@ impl Document {
     }
 
     /// Refresh the cached first base element in the DOM.
+    /// https://github.com/w3c/web-platform-tests/issues/2122
     pub fn refresh_base_element(&self) {
         let base = NodeCast::from_ref(self)
             .traverse_preorder()
@@ -1243,7 +1244,7 @@ impl DocumentMethods for Document {
             return Err(InvalidCharacter);
         }
         if self.is_html_document {
-            local_name = local_name.to_ascii_lowercase()
+            local_name.make_ascii_lowercase();
         }
         let name = QualName::new(ns!(HTML), Atom::from_slice(&local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
@@ -1350,10 +1351,11 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createevent
-    fn CreateEvent(&self, interface: DOMString) -> Fallible<Root<Event>> {
+    fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
         let window = self.window.root();
 
-        match &*interface.to_ascii_lowercase() {
+        interface.make_ascii_lowercase();
+        match &*interface {
             "uievents" | "uievent" => Ok(EventCast::from_root(
                 UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_root(

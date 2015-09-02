@@ -19,7 +19,7 @@ use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
@@ -319,37 +319,23 @@ impl VirtualMethods for HTMLElement {
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match (attr.local_name(), mutation) {
+            (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
+                let window = window_from_node(self);
+                let (cx, url, reflector) = (window.r().get_cx(),
+                                            window.r().get_url(),
+                                            window.r().reflector().get_jsobject());
+                let evtarget = EventTargetCast::from_ref(self);
+                evtarget.set_event_handler_uncompiled(cx, url, reflector,
+                                                      &name[2..],
+                                                      (**attr.value()).to_owned());
+            },
+            _ => {}
         }
     }
 
-    fn after_remove_attr(&self, name: &Atom) {
-        if let Some(ref s) = self.super_type() {
-            s.after_remove_attr(name);
-        }
-        self.update_sequentially_focusable_status();
-    }
-
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
-        let name = attr.local_name();
-        if name.starts_with("on") {
-            let window = window_from_node(self);
-            let (cx, url, reflector) = (window.r().get_cx(),
-                                        window.r().get_url(),
-                                        window.r().reflector().get_jsobject());
-            let evtarget = EventTargetCast::from_ref(self);
-            evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                  &name[2..],
-                                                  (**attr.value()).to_owned());
-        }
-        self.update_sequentially_focusable_status();
-    }
     fn bind_to_tree(&self, tree_in_doc: bool) {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(tree_in_doc);

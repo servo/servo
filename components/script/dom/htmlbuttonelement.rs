@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLBut
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -56,7 +56,7 @@ impl HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
-            //TODO: implement button_type in after_set_attr
+            //TODO: implement button_type in attribute_mutated
             button_type: Cell::new(ButtonType::ButtonSubmit)
         }
     }
@@ -142,34 +142,25 @@ impl VirtualMethods for HTMLButtonElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
+                match mutation {
+                    AttributeMutation::Set(Some(_)) => {}
+                    AttributeMutation::Set(None) => {
+                        node.set_disabled_state(true);
+                        node.set_enabled_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        node.set_disabled_state(false);
+                        node.set_enabled_state(true);
+                        node.check_ancestors_disabled_state_for_form_control();
+                    }
+                }
             },
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                node.check_ancestors_disabled_state_for_form_control();
-            },
-            _ => ()
+            _ => {},
         }
     }
 

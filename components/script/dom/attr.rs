@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference, LayoutJS};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 
@@ -22,12 +22,6 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use std::ops::Deref;
-
-#[derive(HeapSizeOf)]
-pub enum AttrSettingType {
-    FirstSetAttr,
-    ReplacedAttr,
-}
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {
@@ -92,6 +86,17 @@ impl AttrValue {
         match *self {
             AttrValue::Atom(ref value) => Some(value),
             _ => None
+        }
+    }
+
+    /// Return the AttrValue as its integer representation, if any.
+    /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
+    /// by `VirtualMethods::parse_plain_attribute()`.
+    pub fn uint(&self) -> Option<u32> {
+        if let AttrValue::UInt(_, value) = *self {
+            Some(value)
+        } else {
+            None
         }
     }
 }
@@ -179,7 +184,7 @@ impl AttrMethods for Attr {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
                 let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(AttrSettingType::ReplacedAttr, value, owner.r());
+                self.set_value(value, owner.r());
             }
         }
     }
@@ -236,22 +241,12 @@ impl AttrMethods for Attr {
 
 
 impl Attr {
-    pub fn set_value(&self, set_type: AttrSettingType, value: AttrValue, owner: &Element) {
+    pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
-
-        let node = NodeCast::from_ref(owner);
-        let namespace_is_null = self.namespace == ns!("");
-
-        match set_type {
-            AttrSettingType::ReplacedAttr if namespace_is_null =>
-                vtable_for(&node).before_remove_attr(self),
-            _ => ()
-        }
-
-        *self.value.borrow_mut() = value;
-
-        if namespace_is_null {
-            vtable_for(&node).after_set_attr(self)
+        mem::swap(&mut *self.value.borrow_mut(), &mut value);
+        if self.namespace == ns!("") {
+            vtable_for(NodeCast::from_ref(owner)).attribute_mutated(
+                self, AttributeMutation::Set(Some(&value)));
         }
     }
 

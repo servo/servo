@@ -21,7 +21,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
-use dom::element::{ElementCreator, ElementTypeId};
+use dom::element::{AttributeMutation, ElementCreator, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -236,14 +236,13 @@ impl HTMLScriptElement {
         let event_attribute = element.get_attribute(&ns!(""), &Atom::from_slice("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
-                let for_value = for_attribute.Value()
-                                             .to_ascii_lowercase();
+                let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
                     return NextParserState::Continue;
                 }
 
-                let event_value = event_attribute.Value().to_ascii_lowercase();
+                let event_value = event_attribute.value().to_ascii_lowercase();
                 let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if event_value != "onload" && event_value != "onload()" {
                     return NextParserState::Continue;
@@ -268,7 +267,7 @@ impl HTMLScriptElement {
             // Step 14.
             Some(ref src) => {
                 // Step 14.1
-                let src = src.r().Value();
+                let src = src.value();
 
                 // Step 14.2
                 if src.is_empty() {
@@ -277,10 +276,10 @@ impl HTMLScriptElement {
                 }
 
                 // Step 14.3
-                match UrlParser::new().base_url(&base_url).parse(&*src) {
+                match UrlParser::new().base_url(&base_url).parse(&src) {
                     Err(_) => {
                         // Step 14.4
-                        error!("error parsing URL for script {}", src);
+                        error!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
                     }
@@ -469,35 +468,42 @@ impl HTMLScriptElement {
 
     pub fn is_javascript(&self) -> bool {
         let element = ElementCast::from_ref(self);
-        match element.get_attribute(&ns!(""), &atom!("type")).map(|s| s.r().Value()) {
+        let type_attr = element.get_attribute(&ns!(""), &atom!("type"));
+        let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
                 true
             },
-            Some(ref s) => {
-                debug!("script type={}", *s);
+            Some(s) => {
+                debug!("script type={}", &**s);
                 SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
-                match element.get_attribute(&ns!(""), &atom!("language"))
-                             .map(|s| s.r().Value()) {
+                let language_attr = element.get_attribute(&ns!(""), &atom!("language"));
+                let is_js = match language_attr.as_ref().map(|s| s.value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
                         true
                     },
-                    Some(ref s) => {
-                        debug!("script language={}", *s);
-                        SCRIPT_JS_MIMES.contains(&&*format!("text/{}", s).to_ascii_lowercase())
+                    Some(s) => {
+                        debug!("script language={}", &**s);
+                        let mut language = format!("text/{}", &**s);
+                        language.make_ascii_lowercase();
+                        SCRIPT_JS_MIMES.contains(&&*language)
                     },
                     None => {
                         debug!("no script type or language, inferring js");
                         true
                     }
-                }
+                };
+                // https://github.com/rust-lang/rust/issues/21114
+                is_js
             }
-        }
+        };
+        // https://github.com/rust-lang/rust/issues/21114
+        is_js
     }
 
     pub fn mark_already_started(&self) {
@@ -526,13 +532,17 @@ impl VirtualMethods for HTMLScriptElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-        let node = NodeCast::from_ref(self);
-        if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
-            self.prepare();
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &atom!("src") => {
+                if let AttributeMutation::Set(_) = mutation {
+                    if !self.parser_inserted.get() && NodeCast::from_ref(self).is_in_doc() {
+                        self.prepare();
+                    }
+                }
+            },
+            _ => {},
         }
     }
 

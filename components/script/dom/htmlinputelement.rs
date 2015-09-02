@@ -16,7 +16,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSet
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, RawLayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, ElementTypeId, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -449,113 +449,87 @@ impl VirtualMethods for HTMLInputElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
+                let disabled_state = match mutation {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
+                       // Input was already disabled before.
+                       return;
+                    },
+                    AttributeMutation::Removed => false,
+                };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-            }
-            &atom!("checked") => {
-                // https://html.spec.whatwg.org/multipage/#the-input-element:concept-input-checked-dirty
-                if !self.checked_changed.get() {
-                    self.update_checked_state(true, false);
-                }
-            }
-            &atom!("size") => {
-                match *attr.value() {
-                    AttrValue::UInt(_, value) => self.size.set(value),
-                    _ => panic!("Expected an AttrValue::UInt"),
-                }
-            }
-            &atom!("type") => {
-                let value = attr.value();
-                self.input_type.set(match &**value {
-                    "button" => InputType::InputButton,
-                    "submit" => InputType::InputSubmit,
-                    "reset" => InputType::InputReset,
-                    "file" => InputType::InputFile,
-                    "radio" => InputType::InputRadio,
-                    "checkbox" => InputType::InputCheckbox,
-                    "password" => InputType::InputPassword,
-                    _ => InputType::InputText,
-                });
-                if self.input_type.get() == InputType::InputRadio {
-                    self.radio_group_updated(self.get_radio_group_name()
-                                                 .as_ref()
-                                                 .map(|group| &**group));
-                }
-            }
-            &atom!("value") => {
-                if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content((**attr.value()).to_owned());
-                }
-            }
-            &atom!("name") => {
-                if self.input_type.get() == InputType::InputRadio {
-                    let value = attr.value();
-                    self.radio_group_updated(Some(&value));
-                }
-            }
-            _ if attr.local_name() == &Atom::from_slice("placeholder") => {
-                let value = attr.value();
-                let stripped = value.chars()
-                    .filter(|&c| c != '\n' && c != '\r')
-                    .collect::<String>();
-                *self.placeholder.borrow_mut() = stripped;
-            }
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
+                node.set_disabled_state(disabled_state);
+                node.set_enabled_state(!disabled_state);
                 node.check_ancestors_disabled_state_for_form_control();
+            },
+            &atom!(checked) if !self.checked_changed.get() => {
+                let checked_state = match mutation {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
+                       // Input was already checked before.
+                       return;
+                    },
+                    AttributeMutation::Removed => false,
+                };
+                self.update_checked_state(checked_state, false);
+            },
+            &atom!(size) => {
+                let size = mutation.new_value(attr).map(|value| {
+                    value.uint().expect("Expected an AttrValue::UInt")
+                });
+                self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             }
-            &atom!("checked") => {
-                // https://html.spec.whatwg.org/multipage/#the-input-element:concept-input-checked-dirty
-                if !self.checked_changed.get() {
-                    self.update_checked_state(false, false);
+            &atom!(type) => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        let value = match &**attr.value() {
+                            "button" => InputType::InputButton,
+                            "submit" => InputType::InputSubmit,
+                            "reset" => InputType::InputReset,
+                            "file" => InputType::InputFile,
+                            "radio" => InputType::InputRadio,
+                            "checkbox" => InputType::InputCheckbox,
+                            "password" => InputType::InputPassword,
+                            _ => InputType::InputText,
+                        };
+                        self.input_type.set(value);
+                        if value == InputType::InputRadio {
+                            self.radio_group_updated(
+                                self.get_radio_group_name().as_ref().map(|group| &**group));
+                        }
+                    },
+                    AttributeMutation::Removed => {
+                        if self.input_type.get() == InputType::InputRadio {
+                            broadcast_radio_checked(
+                                self,
+                                self.get_radio_group_name().as_ref().map(|group| &**group));
+                        }
+                        self.input_type.set(InputType::InputText);
+                    }
                 }
-            }
-            &atom!("size") => {
-                self.size.set(DEFAULT_INPUT_SIZE);
-            }
-            &atom!("type") => {
-                if self.input_type.get() == InputType::InputRadio {
-                    broadcast_radio_checked(self,
-                                            self.get_radio_group_name()
-                                                .as_ref()
-                                                .map(|group| &**group));
+            },
+            &atom!(value) if !self.value_changed.get() => {
+                let value = mutation.new_value(attr).map(|value| (**value).to_owned());
+                self.textinput.borrow_mut().set_content(
+                    value.unwrap_or_else(|| "".to_owned()));
+            },
+            &atom!(name) if self.input_type.get() == InputType::InputRadio => {
+                self.radio_group_updated(
+                    mutation.new_value(attr).as_ref().map(|value| &***value));
+            },
+            name if name == &Atom::from_slice("placeholder") => {
+                let mut placeholder = self.placeholder.borrow_mut();
+                placeholder.clear();
+                if let AttributeMutation::Set(_) = mutation {
+                    placeholder.extend(
+                        attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                 }
-                self.input_type.set(InputType::InputText);
-            }
-            &atom!("value") => {
-                if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content("".to_owned());
-                }
-            }
-            &atom!("name") => {
-                if self.input_type.get() == InputType::InputRadio {
-                    self.radio_group_updated(None);
-                }
-            }
-            _ if attr.local_name() == &Atom::from_slice("placeholder") => {
-                self.placeholder.borrow_mut().clear();
-            }
-            _ => ()
+            },
+            _ => {},
         }
     }
 

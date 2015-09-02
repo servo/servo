@@ -33,7 +33,7 @@ use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::node::NodeTypeId;
@@ -50,27 +50,12 @@ pub trait VirtualMethods {
     /// if any.
     fn super_type(&self) -> Option<&VirtualMethods>;
 
-    /// Called when changing or adding attributes, after the attribute's value
-    /// has been updated.
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-    }
-
-    /// Called when changing or removing attributes, before any modification
-    /// has taken place.
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-    }
-
-    /// Called when changing or removing attributes, after all modification
-    /// has taken place.
-    fn after_remove_attr(&self, name: &Atom) {
-        if let Some(ref s) = self.super_type() {
-            s.after_remove_attr(name);
+    /// Called when attributes of a node are mutated.
+    /// https://dom.spec.whatwg.org/#attribute-is-set
+    /// https://dom.spec.whatwg.org/#attribute-is-removed
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        if let Some(s) = self.super_type() {
+            s.attribute_mutated(attr, mutation);
         }
     }
 

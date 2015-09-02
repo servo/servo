@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDer
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -88,83 +88,66 @@ impl VirtualMethods for HTMLFieldSetElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("disabled") => {
+            &atom!(disabled) => {
+                let disabled_state = match mutation {
+                    AttributeMutation::Set(None) => true,
+                    AttributeMutation::Set(Some(_)) => {
+                        // Fieldset was already disabled before.
+                        return;
+                    },
+                    AttributeMutation::Removed => false,
+                };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-                let maybe_legend = node.children()
-                                       .find(|node| node.r().is_htmllegendelement());
-
-                for child in node.children() {
-                    if Some(child.r()) == maybe_legend.r() {
-                        continue;
+                node.set_disabled_state(disabled_state);
+                node.set_enabled_state(!disabled_state);
+                let mut found_legend = false;
+                let children = node.children().filter(|node| {
+                    if found_legend {
+                        true
+                    } else if node.is_htmllegendelement() {
+                        found_legend = true;
+                        false
+                    } else {
+                        true
                     }
-
-                    for descendant in child.r().traverse_preorder() {
+                });
+                let fields = children.flat_map(|child| {
+                    child.traverse_preorder().filter(|descendant| {
                         match descendant.r().type_id() {
                             NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                                    ElementTypeId::HTMLElement(
+                                        HTMLElementTypeId::HTMLButtonElement)) |
                             NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+                                    ElementTypeId::HTMLElement(
+                                        HTMLElementTypeId::HTMLInputElement)) |
                             NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                                    ElementTypeId::HTMLElement(
+                                        HTMLElementTypeId::HTMLSelectElement)) |
                             NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                                descendant.r().set_disabled_state(true);
-                                descendant.r().set_enabled_state(false);
+                                    ElementTypeId::HTMLElement(
+                                        HTMLElementTypeId::HTMLTextAreaElement)) => {
+                                true
                             },
-                            _ => ()
+                            _ => false,
                         }
+                    })
+                });
+                if disabled_state {
+                    for field in fields {
+                        field.set_disabled_state(true);
+                        field.set_enabled_state(false);
+                    }
+                } else {
+                    for field in fields {
+                        field.check_disabled_attribute();
+                        field.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                let maybe_legend = node.children()
-                                       .find(|node| node.r().is_htmllegendelement());
-
-                for child in node.children() {
-                    if Some(child.r()) == maybe_legend.r() {
-                        continue;
-                    }
-
-                    for descendant in child.r().traverse_preorder() {
-                        match descendant.r().type_id() {
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-                            NodeTypeId::Element(
-                                    ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                                descendant.r().check_disabled_attribute();
-                                descendant.r().check_ancestors_disabled_state_for_form_control();
-                            },
-                            _ => ()
-                        }
-                    }
-                }
-            },
-            _ => ()
+            _ => {},
         }
     }
 }

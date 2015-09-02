@@ -6,7 +6,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
@@ -103,38 +103,26 @@ impl VirtualMethods for HTMLTableCellElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(&attr.value()).ok())
-            }
-            &atom!("colspan") => {
-                match *attr.value() {
-                    AttrValue::UInt(_, colspan) => {
-                        self.colspan.set(Some(max(DEFAULT_COLSPAN, colspan)))
-                    },
-                    _ => unreachable!(),
-                }
+            &atom!(bgcolor) => {
+                self.background_color.set(mutation.new_value(attr).and_then(|value| {
+                    str::parse_legacy_color(&value).ok()
+                }));
             },
-            &atom!("width") => self.width.set(str::parse_length(&attr.value())),
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("bgcolor") => self.background_color.set(None),
-            &atom!("colspan") => self.colspan.set(None),
-            &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
-            _ => ()
+            &atom!(colspan) => {
+                self.colspan.set(mutation.new_value(attr).map(|value| {
+                    max(DEFAULT_COLSPAN, value.uint().unwrap())
+                }));
+            },
+            &atom!(width) => {
+                let width = mutation.new_value(attr).map(|value| {
+                    str::parse_length(&value)
+                });
+                self.width.set(width.unwrap_or(LengthOrPercentageOrAuto::Auto));
+            },
+            _ => {},
         }
     }
 

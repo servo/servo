@@ -15,7 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -108,7 +108,7 @@ impl Runnable for ImageResponseHandlerRunnable {
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
-    fn update_image(&self, value: Option<(DOMString, &Url)>) {
+    fn update_image(&self, value: Option<(DOMString, Url)>) {
         let node = NodeCast::from_ref(self);
         let document = node.owner_doc();
         let window = document.r().window();
@@ -120,7 +120,7 @@ impl HTMLImageElement {
                 *self.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
-                let img_url = UrlParser::new().base_url(base_url).parse(&src);
+                let img_url = UrlParser::new().base_url(&base_url).parse(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
                 *self.url.borrow_mut() = Some(img_url.clone());
@@ -316,29 +316,15 @@ impl VirtualMethods for HTMLImageElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("src") => {
-                let window = window_from_node(self);
-                let url = window.r().get_url();
-                self.update_image(Some(((**attr.value()).to_owned(), &url)));
+            &atom!(src) => {
+                self.update_image(mutation.new_value(attr).map(|value| {
+                    ((**value).to_owned(), window_from_node(self).get_url())
+                }));
             },
-            _ => ()
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("src") => self.update_image(None),
-            _ => ()
+            _ => {},
         }
     }
 

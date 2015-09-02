@@ -122,11 +122,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
-    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
+    fn GetPropertyValue(&self, mut property: DOMString) -> DOMString {
         let owner = self.owner.root();
 
         // Step 1
-        let property = Atom::from_slice(&property.to_ascii_lowercase());
+        property.make_ascii_lowercase();
+        let property = Atom::from_slice(&property);
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
@@ -165,9 +166,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
-    fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+    fn GetPropertyPriority(&self, mut property: DOMString) -> DOMString {
         // Step 1
-        let property = Atom::from_slice(&property.to_ascii_lowercase());
+        property.make_ascii_lowercase();
+        let property = Atom::from_slice(&property);
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(&property);
@@ -193,7 +195,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
-    fn SetProperty(&self, property: DOMString, value: DOMString,
+    fn SetProperty(&self, mut property: DOMString, value: DOMString,
                    priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
@@ -201,7 +203,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2
-        let property = property.to_ascii_lowercase();
+        property.make_ascii_lowercase();
 
         // Step 3
         if !is_supported_property(&property) {
@@ -287,14 +289,14 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
-    fn RemoveProperty(&self, property: DOMString) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, mut property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
         }
 
         // Step 2
-        let property = property.to_ascii_lowercase();
+        property.make_ascii_lowercase();
 
         // Step 3
         let value = self.GetPropertyValue(property.clone());

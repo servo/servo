@@ -14,7 +14,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, HeapGCValue, Root};
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
@@ -256,46 +256,25 @@ impl VirtualMethods for HTMLCanvasElement {
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.before_remove_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         let recreate = match attr.local_name() {
-            &atom!("width") => {
-                self.width.set(DEFAULT_WIDTH);
+            &atom!(width) => {
+                let width = mutation.new_value(attr).and_then(|value| {
+                    parse_unsigned_integer(value.chars())
+                });
+                self.width.set(width.unwrap_or(DEFAULT_WIDTH));
                 true
-            }
-            &atom!("height") => {
-                self.height.set(DEFAULT_HEIGHT);
+            },
+            &atom!(height) => {
+                let height = mutation.new_value(attr).and_then(|value| {
+                    parse_unsigned_integer(value.chars())
+                });
+                self.height.set(height.unwrap_or(DEFAULT_HEIGHT));
                 true
-            }
+            },
             _ => false,
         };
-
-        if recreate {
-           self.recreate_contexts();
-        }
-    }
-
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
-        let value = attr.value();
-        let recreate = match attr.local_name() {
-            &atom!("width") => {
-                self.width.set(parse_unsigned_integer(value.chars()).unwrap_or(DEFAULT_WIDTH));
-                true
-            }
-            &atom!("height") => {
-                self.height.set(parse_unsigned_integer(value.chars()).unwrap_or(DEFAULT_HEIGHT));
-                true
-            }
-            _ => false,
-        };
-
         if recreate {
             self.recreate_contexts();
         }

@@ -68,7 +68,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box filter)
     }
 
-    pub fn by_tag_name(window: &Window, root: &Node, tag: DOMString)
+    pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
         if tag == "*" {
             return HTMLCollection::all_elements(window, root, None);
@@ -88,9 +88,12 @@ impl HTMLCollection {
                 }
             }
         }
+        let tag_atom = Atom::from_slice(&tag);
+        tag.make_ascii_lowercase();
+        let ascii_lower_tag = Atom::from_slice(&tag);
         let filter = TagNameFilter {
-            tag: Atom::from_slice(&tag),
-            ascii_lower_tag: Atom::from_slice(&tag.to_ascii_lowercase()),
+            tag: tag_atom,
+            ascii_lower_tag: ascii_lower_tag,
         };
         HTMLCollection::create(window, root, box filter)
     }

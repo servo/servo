@@ -17,7 +17,7 @@ use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{ElementTypeId, self};
+use dom::element::{AttributeMutation, ElementTypeId, self};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
@@ -356,16 +356,13 @@ impl VirtualMethods for HTMLIFrameElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-            s.after_set_attr(attr);
-        }
-
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &atom!("sandbox") => {
-                let mut modes = SandboxAllowance::AllowNothing as u8;
-                if let Some(ref tokens) = attr.value().tokens() {
-                    for token in *tokens {
+            &atom!(sandbox) => {
+                self.sandbox.set(mutation.new_value(attr).map(|value| {
+                    let mut modes = SandboxAllowance::AllowNothing as u8;
+                    for token in value.tokens().unwrap() {
                         modes |= match &*token.to_ascii_lowercase() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,
@@ -376,16 +373,17 @@ impl VirtualMethods for HTMLIFrameElement {
                             _ => SandboxAllowance::AllowNothing
                         } as u8;
                     }
-                }
-                self.sandbox.set(Some(modes));
-            }
-            &atom!("src") => {
-                let node = NodeCast::from_ref(self);
-                if node.is_in_doc() {
-                    self.process_the_iframe_attributes()
+                    modes
+                }));
+            },
+            &atom!(src) => {
+                if let AttributeMutation::Set(_) = mutation {
+                    if NodeCast::from_ref(self).is_in_doc() {
+                        self.process_the_iframe_attributes();
+                    }
                 }
             },
-            _ => ()
+            _ => {},
         }
     }
 
@@ -393,17 +391,6 @@ impl VirtualMethods for HTMLIFrameElement {
         match name {
             &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
-        }
-    }
-
-    fn before_remove_attr(&self, attr: &Attr) {
-        if let Some(ref s) = self.super_type() {
-           s.before_remove_attr(attr);
-        }
-
-        match attr.local_name() {
-            &atom!("sandbox") => self.sandbox.set(None),
-            _ => ()
         }
     }
 
