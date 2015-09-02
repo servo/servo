@@ -1215,7 +1215,7 @@ impl DocumentMethods for Document {
         let window = self.window.root();
         HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), tag_name)
     }
-
+  
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
