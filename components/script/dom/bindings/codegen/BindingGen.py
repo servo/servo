@@ -26,20 +26,22 @@ def generate_binding_rs(config, outputprefix, webidlfile):
 def main():
     # Parse arguments.
     from optparse import OptionParser
-    usagestring = "usage: %prog configFile outputPrefix webIDLFile"
+    usagestring = "usage: %prog configFile outputdir outputPrefix webIDLFile"
     o = OptionParser(usage=usagestring)
     o.add_option("--verbose-errors", action='store_true', default=False,
                  help="When an error happens, display the Python traceback.")
     (options, args) = o.parse_args()
 
-    if len(args) != 3:
+    if len(args) != 4:
         o.error(usagestring)
     configFile = os.path.normpath(args[0])
-    outputPrefix = args[1]
-    webIDLFile = os.path.normpath(args[2])
+    outputdir = args[1]
+    outputPrefix = args[2]
+    webIDLFile = os.path.normpath(args[3])
 
     # Load the parsing results
-    with open('ParserResults.pkl', 'rb') as f:
+    resultsPath = os.path.join(outputdir, 'ParserResults.pkl')
+    with open(resultsPath, 'rb') as f:
         parserData = cPickle.load(f)
 
     # Create the configuration data.

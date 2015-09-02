@@ -43,6 +43,7 @@ $(AUTOGEN_SRC): $(OUT_DIR)/Bindings/%Binding.rs: $(bindinggen_dependencies) \
 	$(PYTHON) \
 	  $(BINDINGS_SRC)/BindingGen.py \
 	    $(BINDINGS_SRC)/Bindings.conf \
+	    $(OUT_DIR) \
 	    $(OUT_DIR)/Bindings/$*Binding \
 	    $(addprefix $(WEBIDLS_SRC)/,$*.webidl)
 	touch $@
