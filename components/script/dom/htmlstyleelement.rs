@@ -16,7 +16,8 @@ use dom::node::{ChildrenMutation, Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
 use style::media_queries::parse_media_query_list;
-use style::stylesheets::{Origin, Stylesheet};
+use style::stylesheets::Stylesheet;
+use style_traits::Origin;
 use util::str::DOMString;
 
 #[dom_struct]

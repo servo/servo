@@ -31,7 +31,7 @@ use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
 use style::properties::ComputedValues;
-use style::values::CSSFloat;
+use style_traits::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;

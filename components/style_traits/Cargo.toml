@@ -1,0 +1,35 @@
+[package]
+name = "style_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "style_traits"
+path = "lib.rs"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.cssparser]
+version = "0.3"
+features = [ "serde-serialization" ]
+
+[dependencies.plugins]
+path = "../plugins"
+
+[dependencies.selectors]
+git = "https://github.com/servo/rust-selectors"
+features = ["unstable"]
+
+[dependencies.url]
+version = "0.2"
+features = [ "serde_serialization" ]
+
+[dependencies]
+euclid = "0.1"
+log = "0.3"
+lazy_static = "0.1.10"
+num = "0.1.24"
+rustc-serialize = "0.3"
+serde = "0.5"
+serde_macros = "0.5"

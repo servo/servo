@@ -73,6 +73,7 @@ extern crate util;
 extern crate websocket;
 #[macro_use]
 extern crate style;
+extern crate style_traits;
 extern crate unicase;
 extern crate url;
 extern crate uuid;

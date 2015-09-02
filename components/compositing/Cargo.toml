@@ -28,8 +28,8 @@ path = "../profile_traits"
 [dependencies.net_traits]
 path = "../net_traits"
 
-[dependencies.style]
-path = "../style"
+[dependencies.style_traits]
+path = "../style_traits"
 
 [dependencies.util]
 path = "../util"
@@ -79,4 +79,3 @@ core-graphics = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
-

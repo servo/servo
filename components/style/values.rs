@@ -6,38 +6,6 @@
 
 pub use cssparser::RGBA;
 
-macro_rules! define_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+);
-    };
-    ($name: ident: $( $css: expr => $variant: ident ),+) => {
-        #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
-        #[derive(Deserialize, Serialize)]
-        pub enum $name {
-            $( $variant ),+
-        }
-
-        impl $name {
-            pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
-                    $( $css => Ok($name::$variant) ),+
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl ::cssparser::ToCss for $name {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write {
-                match self {
-                    $( &$name::$variant => dest.write_str($css) ),+
-                }
-            }
-        }
-    }
-}
-
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -70,38 +38,17 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-pub type CSSFloat = f32;
-
 
 pub mod specified {
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
-    use euclid::size::Size2D;
-    use parser::ParserContext;
     use std::ascii::AsciiExt;
-    use std::cmp;
     use std::f32::consts::PI;
     use std::fmt;
     use std::fmt::Write;
-    use std::ops::Mul;
-    use super::CSSFloat;
+    use style_traits::{CSSFloat, Length, LengthOrPercentage,
+                       AllowedNumericType, ParserContext};
     use url::Url;
     use util::geometry::Au;
-
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    pub enum AllowedNumericType {
-        All,
-        NonNegative
-    }
-
-    impl AllowedNumericType {
-        #[inline]
-        pub fn is_ok(&self, value: f32) -> bool {
-            match self {
-                &AllowedNumericType::All => true,
-                &AllowedNumericType::NonNegative => value >= 0.,
-            }
-        }
-    }
 
     #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct CSSColor {
@@ -144,306 +91,6 @@ pub mod specified {
                 Some(ref s) => dest.write_str(s),
                 None => self.parsed.to_css(dest),
             }
-        }
-    }
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub enum FontRelativeLength {
-        Em(CSSFloat),
-        Ex(CSSFloat),
-        Ch(CSSFloat),
-        Rem(CSSFloat)
-    }
-
-    impl ToCss for FontRelativeLength {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self {
-                &FontRelativeLength::Em(length) => write!(dest, "{}em", length),
-                &FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
-                &FontRelativeLength::Ch(length) => write!(dest, "{}ch", length),
-                &FontRelativeLength::Rem(length) => write!(dest, "{}rem", length)
-            }
-        }
-    }
-
-    impl FontRelativeLength {
-        pub fn to_computed_value(&self,
-                                 reference_font_size: Au,
-                                 root_font_size: Au)
-                                 -> Au
-        {
-            match self {
-                &FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
-                &FontRelativeLength::Ex(length) | &FontRelativeLength::Ch(length) => {
-                    // https://github.com/servo/servo/issues/7462
-                    let em_factor = 0.5;
-                    reference_font_size.scale_by(length * em_factor)
-                },
-                &FontRelativeLength::Rem(length) => root_font_size.scale_by(length)
-            }
-        }
-    }
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub enum ViewportPercentageLength {
-        Vw(CSSFloat),
-        Vh(CSSFloat),
-        Vmin(CSSFloat),
-        Vmax(CSSFloat)
-    }
-
-    impl ToCss for ViewportPercentageLength {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self {
-                &ViewportPercentageLength::Vw(length) => write!(dest, "{}vw", length),
-                &ViewportPercentageLength::Vh(length) => write!(dest, "{}vh", length),
-                &ViewportPercentageLength::Vmin(length) => write!(dest, "{}vmin", length),
-                &ViewportPercentageLength::Vmax(length) => write!(dest, "{}vmax", length)
-            }
-        }
-    }
-
-    impl ViewportPercentageLength {
-        pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
-            macro_rules! to_unit {
-                ($viewport_dimension:expr) => {
-                    $viewport_dimension.to_f32_px() / 100.0
-                }
-            }
-
-            let value = match self {
-                &ViewportPercentageLength::Vw(length) =>
-                    length * to_unit!(viewport_size.width),
-                &ViewportPercentageLength::Vh(length) =>
-                    length * to_unit!(viewport_size.height),
-                &ViewportPercentageLength::Vmin(length) =>
-                    length * to_unit!(cmp::min(viewport_size.width, viewport_size.height)),
-                &ViewportPercentageLength::Vmax(length) =>
-                    length * to_unit!(cmp::max(viewport_size.width, viewport_size.height)),
-            };
-            Au::from_f32_px(value)
-        }
-    }
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub struct CharacterWidth(pub i32);
-
-    impl CharacterWidth {
-        pub fn to_computed_value(&self, reference_font_size: Au) -> Au {
-            // This applies the *converting a character width to pixels* algorithm as specified
-            // in HTML5 § 14.5.4.
-            //
-            // TODO(pcwalton): Find these from the font.
-            let average_advance = reference_font_size.scale_by(0.5);
-            let max_advance = reference_font_size;
-            average_advance.scale_by(self.0 as CSSFloat - 1.0) + max_advance
-        }
-    }
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub enum Length {
-        Absolute(Au),  // application units
-        FontRelative(FontRelativeLength),
-        ViewportPercentage(ViewportPercentageLength),
-
-        /// HTML5 "character width", as defined in HTML5 § 14.5.4.
-        ///
-        /// This cannot be specified by the user directly and is only generated by
-        /// `Stylist::synthesize_rules_for_legacy_attributes()`.
-        ServoCharacterWidth(CharacterWidth),
-    }
-
-    impl ToCss for Length {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self {
-                &Length::Absolute(length) => write!(dest, "{}px", length.to_f32_px()),
-                &Length::FontRelative(length) => length.to_css(dest),
-                &Length::ViewportPercentage(length) => length.to_css(dest),
-                &Length::ServoCharacterWidth(_)
-                => panic!("internal CSS values should never be serialized"),
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for Length {
-        type Output = Length;
-
-        #[inline]
-        fn mul(self, scalar: CSSFloat) -> Length {
-            match self {
-                Length::Absolute(Au(v)) => Length::Absolute(Au(((v as f32) * scalar) as i32)),
-                Length::FontRelative(v) => Length::FontRelative(v * scalar),
-                Length::ViewportPercentage(v) => Length::ViewportPercentage(v * scalar),
-                Length::ServoCharacterWidth(_) => panic!("Can't multiply ServoCharacterWidth!"),
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for FontRelativeLength {
-        type Output = FontRelativeLength;
-
-        #[inline]
-        fn mul(self, scalar: CSSFloat) -> FontRelativeLength {
-            match self {
-                FontRelativeLength::Em(v) => FontRelativeLength::Em(v * scalar),
-                FontRelativeLength::Ex(v) => FontRelativeLength::Ex(v * scalar),
-                FontRelativeLength::Ch(v) => FontRelativeLength::Ch(v * scalar),
-                FontRelativeLength::Rem(v) => FontRelativeLength::Rem(v * scalar),
-            }
-        }
-    }
-
-    impl Mul<CSSFloat> for ViewportPercentageLength {
-        type Output = ViewportPercentageLength;
-
-        #[inline]
-        fn mul(self, scalar: CSSFloat) -> ViewportPercentageLength {
-            match self {
-                ViewportPercentageLength::Vw(v) => ViewportPercentageLength::Vw(v * scalar),
-                ViewportPercentageLength::Vh(v) => ViewportPercentageLength::Vh(v * scalar),
-                ViewportPercentageLength::Vmin(v) => ViewportPercentageLength::Vmin(v * scalar),
-                ViewportPercentageLength::Vmax(v) => ViewportPercentageLength::Vmax(v * scalar),
-            }
-        }
-    }
-
-    const AU_PER_PX: CSSFloat = 60.;
-    const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
-    const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
-    const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
-    const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
-    const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
-    impl Length {
-        #[inline]
-        fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
-            match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                    Length::parse_dimension(value.value, unit),
-                Token::Number(ref value) if value.value == 0. =>
-                    Ok(Length::Absolute(Au(0))),
-                _ => Err(())
-            }
-        }
-        #[allow(dead_code)]
-        pub fn parse(input: &mut Parser) -> Result<Length, ()> {
-            Length::parse_internal(input, &AllowedNumericType::All)
-        }
-        pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
-            Length::parse_internal(input, &AllowedNumericType::NonNegative)
-        }
-        pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
-            match_ignore_ascii_case! { unit,
-                "px" => Ok(Length::from_px(value)),
-                "in" => Ok(Length::Absolute(Au((value * AU_PER_IN) as i32))),
-                "cm" => Ok(Length::Absolute(Au((value * AU_PER_CM) as i32))),
-                "mm" => Ok(Length::Absolute(Au((value * AU_PER_MM) as i32))),
-                "pt" => Ok(Length::Absolute(Au((value * AU_PER_PT) as i32))),
-                "pc" => Ok(Length::Absolute(Au((value * AU_PER_PC) as i32))),
-                // font-relative
-                "em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
-                "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
-                "ch" => Ok(Length::FontRelative(FontRelativeLength::Ch(value))),
-                "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
-                // viewport percentages
-                "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-                "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-                "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-                "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
-                _ => Err(())
-            }
-        }
-        #[inline]
-        pub fn from_px(px_value: CSSFloat) -> Length {
-            Length::Absolute(Au((px_value * AU_PER_PX) as i32))
-        }
-    }
-
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub enum LengthOrPercentage {
-        Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
-    }
-
-    impl ToCss for LengthOrPercentage {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self {
-                &LengthOrPercentage::Length(length) => length.to_css(dest),
-                &LengthOrPercentage::Percentage(percentage)
-                => write!(dest, "{}%", percentage * 100.),
-            }
-        }
-    }
-    impl LengthOrPercentage {
-        pub fn zero() -> LengthOrPercentage {
-            LengthOrPercentage::Length(Length::Absolute(Au(0)))
-        }
-
-        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
-                          -> Result<LengthOrPercentage, ()>
-        {
-            match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                    Length::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
-                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                    Ok(LengthOrPercentage::Percentage(value.unit_value)),
-                Token::Number(ref value) if value.value == 0. =>
-                    Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
-                _ => Err(())
-            }
-        }
-        #[allow(dead_code)]
-        #[inline]
-        pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-            LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
-        }
-        #[inline]
-        pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-            LengthOrPercentage::parse_internal(input, &AllowedNumericType::NonNegative)
-        }
-    }
-
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub enum LengthOrPercentageOrAuto {
-        Length(Length),
-        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
-        Auto,
-    }
-
-    impl ToCss for LengthOrPercentageOrAuto {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match self {
-                &LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
-                &LengthOrPercentageOrAuto::Percentage(percentage)
-                => write!(dest, "{}%", percentage * 100.),
-                &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
-            }
-        }
-    }
-
-    impl LengthOrPercentageOrAuto {
-        fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
-                          -> Result<LengthOrPercentageOrAuto, ()>
-        {
-            match try!(input.next()) {
-                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                    Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
-                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
-                    Ok(LengthOrPercentageOrAuto::Percentage(value.unit_value)),
-                Token::Number(ref value) if value.value == 0. =>
-                    Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
-                    Ok(LengthOrPercentageOrAuto::Auto),
-                _ => Err(())
-            }
-        }
-        #[inline]
-        pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-            LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::All)
-        }
-        #[inline]
-        pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-            LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::NonNegative)
         }
     }
 
@@ -865,11 +512,13 @@ pub mod specified {
 pub mod computed {
     pub use super::specified::{Angle, BorderStyle, Time};
     use super::specified::AngleOrCorner;
-    use super::{specified, CSSFloat};
+    use super::specified;
     pub use cssparser::Color as CSSColor;
     use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
+    use style_traits;
+    use style_traits::CSSFloat;
     use url::Url;
     use util::geometry::Au;
 
@@ -926,18 +575,18 @@ pub mod computed {
 
     impl ComputedValueAsSpecified for specified::BorderStyle {}
 
-    impl ToComputedValue for specified::Length {
+    impl ToComputedValue for style_traits::Length {
         type ComputedValue = Au;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> Au {
             match self {
-                &specified::Length::Absolute(length) => length,
-                &specified::Length::FontRelative(length) =>
+                &style_traits::Length::Absolute(length) => length,
+                &style_traits::Length::FontRelative(length) =>
                     length.to_computed_value(context.font_size, context.root_font_size),
-                &specified::Length::ViewportPercentage(length) =>
+                &style_traits::Length::ViewportPercentage(length) =>
                     length.to_computed_value(context.viewport_size),
-                &specified::Length::ServoCharacterWidth(length) =>
+                &style_traits::Length::ServoCharacterWidth(length) =>
                     length.to_computed_value(context.font_size)
             }
         }
@@ -964,15 +613,15 @@ pub mod computed {
         }
     }
 
-    impl ToComputedValue for specified::LengthOrPercentage {
+    impl ToComputedValue for style_traits::LengthOrPercentage {
         type ComputedValue = LengthOrPercentage;
 
         fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
             match *self {
-                specified::LengthOrPercentage::Length(value) => {
+                style_traits::LengthOrPercentage::Length(value) => {
                     LengthOrPercentage::Length(value.to_computed_value(context))
                 }
-                specified::LengthOrPercentage::Percentage(value) => {
+                style_traits::LengthOrPercentage::Percentage(value) => {
                     LengthOrPercentage::Percentage(value)
                 }
             }
@@ -1005,19 +654,19 @@ pub mod computed {
         }
     }
 
-    impl ToComputedValue for specified::LengthOrPercentageOrAuto {
+    impl ToComputedValue for style_traits::LengthOrPercentageOrAuto {
         type ComputedValue = LengthOrPercentageOrAuto;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
             match *self {
-                specified::LengthOrPercentageOrAuto::Length(value) => {
+                style_traits::LengthOrPercentageOrAuto::Length(value) => {
                     LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
                 }
-                specified::LengthOrPercentageOrAuto::Percentage(value) => {
+                style_traits::LengthOrPercentageOrAuto::Percentage(value) => {
                     LengthOrPercentageOrAuto::Percentage(value)
                 }
-                specified::LengthOrPercentageOrAuto::Auto => {
+                style_traits::LengthOrPercentageOrAuto::Auto => {
                     LengthOrPercentageOrAuto::Auto
                 }
             }

@@ -8,7 +8,7 @@ use std::ascii::AsciiExt;
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use util::geometry::{Au, ViewportPx};
-use values::specified;
+use style_traits::Length;
 
 
 #[derive(Debug, PartialEq)]
@@ -23,18 +23,18 @@ pub enum Range<T> {
     //Eq(T),    // FIXME: Implement parsing support for equality then re-enable this.
 }
 
-impl Range<specified::Length> {
+impl Range<Length> {
     fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
         let compute_width = |width| {
             match width {
-                &specified::Length::Absolute(value) => value,
-                &specified::Length::FontRelative(value) => {
+                &Length::Absolute(value) => value,
+                &Length::FontRelative(value) => {
                     // http://dev.w3.org/csswg/mediaqueries3/#units
                     // em units are relative to the initial font-size.
                     let initial_font_size = longhands::font_size::get_initial_value();
                     value.to_computed_value(initial_font_size, initial_font_size)
                 }
-                &specified::Length::ViewportPercentage(value) =>
+                &Length::ViewportPercentage(value) =>
                     value.to_computed_value(viewport_size),
                 _ => unreachable!()
             }
@@ -62,7 +62,7 @@ impl<T: Ord> Range<T> {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum Expression {
     /// http://dev.w3.org/csswg/mediaqueries-3/#width
-    Width(Range<specified::Length>),
+    Width(Range<Length>),
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
@@ -128,10 +128,10 @@ impl Expression {
             // TODO: Handle other media features
             match_ignore_ascii_case! { name,
                 "min-width" => {
-                    Ok(Expression::Width(Range::Min(try!(specified::Length::parse_non_negative(input)))))
+                    Ok(Expression::Width(Range::Min(try!(Length::parse_non_negative(input)))))
                 },
                 "max-width" => {
-                    Ok(Expression::Width(Range::Max(try!(specified::Length::parse_non_negative(input)))))
+                    Ok(Expression::Width(Range::Max(try!(Length::parse_non_negative(input)))))
                 }
                 _ => Err(())
             }

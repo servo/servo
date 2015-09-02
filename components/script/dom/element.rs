@@ -66,7 +66,8 @@ use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::DeclaredValue::SpecifiedValue;
 use style::properties::longhands::{self, background_image, border_spacing};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
-use style::values::CSSFloat;
+use style_traits::CSSFloat;
+use style_traits;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use util::geometry::Au;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -312,7 +313,7 @@ impl RawLayoutElementHelpers for Element {
         };
 
         if let Some(cellspacing) = cellspacing {
-            let width_value = specified::Length::Absolute(Au::from_px(cellspacing as i32));
+            let width_value = style_traits::Length::Absolute(Au::from_px(cellspacing as i32));
             hints.push(from_declaration(
                 PropertyDeclaration::BorderSpacing(SpecifiedValue(
                     border_spacing::SpecifiedValue {
@@ -341,11 +342,11 @@ impl RawLayoutElementHelpers for Element {
         };
 
         if let Some(size) = size {
-            let value = specified::Length::ServoCharacterWidth(
-                specified::CharacterWidth(size));
+            let value = style_traits::Length::ServoCharacterWidth(
+                style_traits::CharacterWidth(size));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(SpecifiedValue(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                    style_traits::LengthOrPercentageOrAuto::Length(value)))));
         }
 
 
@@ -365,13 +366,13 @@ impl RawLayoutElementHelpers for Element {
         match width {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                let width_value = style_traits::LengthOrPercentageOrAuto::Percentage(percentage);
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
-                let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                let width_value = style_traits::LengthOrPercentageOrAuto::Length(
+                    style_traits::Length::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(SpecifiedValue(width_value))));
             }
@@ -388,13 +389,13 @@ impl RawLayoutElementHelpers for Element {
         match height {
             LengthOrPercentageOrAuto::Auto => {}
             LengthOrPercentageOrAuto::Percentage(percentage) => {
-                let height_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
+                let height_value = style_traits::LengthOrPercentageOrAuto::Percentage(percentage);
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
             LengthOrPercentageOrAuto::Length(length) => {
-                let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                let height_value = style_traits::LengthOrPercentageOrAuto::Length(
+                    style_traits::Length::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(SpecifiedValue(height_value))));
             }
@@ -417,10 +418,10 @@ impl RawLayoutElementHelpers for Element {
             // scrollbar size into consideration (but we don't have a scrollbar yet!)
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(cols));
+            let value = style_traits::Length::ServoCharacterWidth(style_traits::CharacterWidth(cols));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(SpecifiedValue(
-                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                    style_traits::LengthOrPercentageOrAuto::Length(value)))));
         }
 
 
@@ -438,10 +439,10 @@ impl RawLayoutElementHelpers for Element {
             // TODO(mttr) This should take scrollbar size into consideration.
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
+            let value = style_traits::Length::FontRelative(style_traits::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(SpecifiedValue(
-                        specified::LengthOrPercentageOrAuto::Length(value)))));
+                        style_traits::LengthOrPercentageOrAuto::Length(value)))));
         }
 
 
@@ -453,7 +454,7 @@ impl RawLayoutElementHelpers for Element {
         };
 
         if let Some(border) = border {
-            let width_value = specified::Length::Absolute(Au::from_px(border as i32));
+            let width_value = style_traits::Length::Absolute(Au::from_px(border as i32));
             hints.push(from_declaration(
                 PropertyDeclaration::BorderTopWidth(SpecifiedValue(
                     longhands::border_top_width::SpecifiedValue(width_value)))));

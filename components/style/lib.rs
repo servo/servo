@@ -12,7 +12,6 @@
 
 #![plugin(serde_macros)]
 #![plugin(string_cache_plugin)]
-#![plugin(serde_macros)]
 #![plugin(plugins)]
 
 #[macro_use] extern crate log;
@@ -34,6 +33,7 @@ extern crate encoding;
 extern crate rustc_serialize;
 extern crate string_cache;
 extern crate selectors;
+#[macro_use] extern crate style_traits;
 
 #[macro_use]
 extern crate lazy_static;
@@ -43,7 +43,6 @@ extern crate util;
 
 
 pub mod stylesheets;
-pub mod parser;
 pub mod selector_matching;
 #[macro_use] pub mod values;
 

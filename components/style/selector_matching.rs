@@ -18,8 +18,9 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use stylesheets::{Stylesheet, CSSRuleIteratorExt, Origin};
-use viewport::{ViewportConstraints, ViewportRuleCascade};
+use stylesheets::{Stylesheet, CSSRuleIteratorExt};
+use viewport::MaybeNew;
+use style_traits::{Origin, ViewportConstraints, ViewportRuleCascade};
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;

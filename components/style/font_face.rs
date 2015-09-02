@@ -4,7 +4,7 @@
 
 use computed_values::font_family::FontFamily;
 use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationParser};
-use parser::{ParserContext, log_css_error};
+use style_traits::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
 use string_cache::Atom;

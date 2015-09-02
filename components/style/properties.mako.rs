@@ -24,11 +24,10 @@ use euclid::size::Size2D;
 use fnv::FnvHasher;
 
 use computed_values;
-use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
-use stylesheets::Origin;
+use style_traits::{Origin, Length, ParserContext, log_css_error};
 use values::computed::{self, ToComputedValue};
-use values::specified::{Length, BorderStyle};
+use values::specified::BorderStyle;
 
 use self::property_bit_field::PropertyBitField;
 
@@ -101,8 +100,8 @@ def switch_to_style_struct(name):
 
 pub mod longhands {
     use cssparser::Parser;
-    use parser::ParserContext;
-    use values::specified;
+    use style_traits;
+    use style_traits::{Length, ParserContext};
 
     <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False)">
     <%
@@ -125,7 +124,7 @@ pub mod longhands {
             #![allow(unused_imports)]
             % if derived_from is None:
                 use cssparser::Parser;
-                use parser::ParserContext;
+                use style_traits::ParserContext;
                 use properties::{CSSWideKeyword, DeclaredValue};
             % endif
             use properties::longhands;
@@ -248,14 +247,17 @@ pub mod longhands {
         <%self:longhand name="${name}">
             #[allow(unused_imports)]
             use util::geometry::Au;
-            pub type SpecifiedValue = specified::${type};
+            use style_traits::{Length, LengthOrPercentageOrAuto, LengthOrPercentage};
+            use values::specified::{LengthOrPercentageOrNone, BorderStyle, CSSColor, LengthOrNone};
+
+            pub type SpecifiedValue = ${type};
             pub mod computed_value {
                 pub use values::computed::${type} as T;
             }
             #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
             #[inline] pub fn parse(_context: &ParserContext, input: &mut Parser)
                                    -> Result<SpecifiedValue, ()> {
-                specified::${type}::${parse_method}(input)
+                ${type}::${parse_method}(input)
             }
         </%self:longhand>
     </%def>
@@ -294,6 +296,7 @@ pub mod longhands {
             use std::fmt;
             use util::geometry::Au;
             use values::computed::Context;
+            use style_traits;
 
             impl ToCss for SpecifiedValue {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -307,7 +310,7 @@ pub mod longhands {
                 specified::parse_border_width(input).map(SpecifiedValue)
             }
             #[derive(Clone, PartialEq)]
-            pub struct SpecifiedValue(pub specified::Length);
+            pub struct SpecifiedValue(pub style_traits::Length);
             pub mod computed_value {
                 use util::geometry::Au;
                 pub type T = Au;
@@ -362,6 +365,7 @@ pub mod longhands {
         use std::fmt;
         use util::geometry::Au;
         use values::computed::Context;
+        use style_traits;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -373,7 +377,7 @@ pub mod longhands {
             specified::parse_border_width(input).map(SpecifiedValue)
         }
         #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::Length);
+        pub struct SpecifiedValue(pub style_traits::Length);
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Au;
@@ -616,13 +620,14 @@ pub mod longhands {
     <%self:longhand name="line-height">
         use cssparser::ToCss;
         use std::fmt;
-        use values::CSSFloat;
+        use style_traits;
+        use style_traits::CSSFloat;
         use values::computed::Context;
 
         #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
-            Length(specified::Length),
+            Length(style_traits::Length),
             Number(CSSFloat),
             Percentage(CSSFloat),
         }
@@ -649,7 +654,7 @@ pub mod longhands {
                     Ok(SpecifiedValue::Percentage(value.unit_value))
                 }
                 Token::Dimension(ref value, ref unit) if value.value >= 0. => {
-                    specified::Length::parse_dimension(value.value, unit)
+                    style_traits::Length::parse_dimension(value.value, unit)
                     .map(SpecifiedValue::Length)
                 }
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
@@ -661,7 +666,7 @@ pub mod longhands {
         pub mod computed_value {
             use std::fmt;
             use util::geometry::Au;
-            use values::CSSFloat;
+            use style_traits::CSSFloat;
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
                 Normal,
@@ -702,7 +707,7 @@ pub mod longhands {
                     }
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
                     SpecifiedValue::Percentage(value) => {
-                        let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                        let fr = style_traits::Length::FontRelative(style_traits::FontRelativeLength::Em(value));
                         computed_value::T::Length(fr.to_computed_value(context))
                     }
                 }
@@ -716,6 +721,7 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
@@ -725,7 +731,7 @@ pub mod longhands {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
             % endfor
-            LengthOrPercentage(specified::LengthOrPercentage),
+            LengthOrPercentage(style_traits::LengthOrPercentage),
         }
 
         impl ToCss for SpecifiedValue {
@@ -741,7 +747,7 @@ pub mod longhands {
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.try(specified::LengthOrPercentage::parse)
+            input.try(style_traits::LengthOrPercentage::parse)
             .map(SpecifiedValue::LengthOrPercentage)
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -760,7 +766,7 @@ pub mod longhands {
         pub mod computed_value {
             use std::fmt;
             use util::geometry::Au;
-            use values::CSSFloat;
+            use style_traits::CSSFloat;
             #[allow(non_camel_case_types)]
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
@@ -1362,6 +1368,7 @@ pub mod longhands {
             use cssparser::ToCss;
             use std::fmt;
             use values::computed::Context;
+            use style_traits;
 
             pub mod computed_value {
                 use values::computed::LengthOrPercentage;
@@ -1375,8 +1382,8 @@ pub mod longhands {
 
             #[derive(Clone, PartialEq, Copy)]
             pub struct SpecifiedValue {
-                pub horizontal: specified::LengthOrPercentage,
-                pub vertical: specified::LengthOrPercentage,
+                pub horizontal: style_traits::LengthOrPercentage,
+                pub vertical: style_traits::LengthOrPercentage,
             }
 
             impl ToCss for SpecifiedValue {
@@ -1485,6 +1492,7 @@ pub mod longhands {
         use std::ascii::AsciiExt;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         pub mod computed_value {
             use values::computed::LengthOrPercentageOrAuto;
@@ -1515,8 +1523,8 @@ pub mod longhands {
 
         #[derive(Clone, PartialEq, Debug)]
         pub struct SpecifiedExplicitSize {
-            pub width: specified::LengthOrPercentageOrAuto,
-            pub height: specified::LengthOrPercentageOrAuto,
+            pub width: style_traits::LengthOrPercentageOrAuto,
+            pub height: style_traits::LengthOrPercentageOrAuto,
         }
 
         impl ToCss for SpecifiedExplicitSize {
@@ -1595,19 +1603,19 @@ pub mod longhands {
             }) {
                 return Ok(value)
             } else {
-                width = try!(specified::LengthOrPercentageOrAuto::parse(input))
+                width = try!(style_traits::LengthOrPercentageOrAuto::parse(input))
             }
 
             let height;
             if let Ok(value) = input.try(|input| {
                 match input.next() {
-                    Err(_) => Ok(specified::LengthOrPercentageOrAuto::Auto),
+                    Err(_) => Ok(style_traits::LengthOrPercentageOrAuto::Auto),
                     Ok(_) => Err(()),
                 }
             }) {
                 height = value
             } else {
-                height = try!(specified::LengthOrPercentageOrAuto::parse(input));
+                height = try!(style_traits::LengthOrPercentageOrAuto::parse(input));
             }
 
             Ok(SpecifiedValue::Explicit(SpecifiedExplicitSize {
@@ -1880,6 +1888,7 @@ pub mod longhands {
         use std::fmt;
         use util::geometry::Au;
         use values::computed::Context;
+        use style_traits;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1888,7 +1897,7 @@ pub mod longhands {
         }
 
         #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
+        pub struct SpecifiedValue(pub style_traits::Length);  // Percentages are the same as em.
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Au;
@@ -1909,25 +1918,25 @@ pub mod longhands {
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.try(specified::LengthOrPercentage::parse_non_negative)
+            input.try(style_traits::LengthOrPercentage::parse_non_negative)
             .map(|value| match value {
-                specified::LengthOrPercentage::Length(value) => value,
-                specified::LengthOrPercentage::Percentage(value) =>
-                    specified::Length::FontRelative(specified::FontRelativeLength::Em(value))
+                style_traits::LengthOrPercentage::Length(value) => value,
+                style_traits::LengthOrPercentage::Percentage(value) =>
+                    style_traits::Length::FontRelative(style_traits::FontRelativeLength::Em(value))
             })
             .or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                    "xx-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
-                    "x-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4)),
-                    "small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9)),
-                    "medium" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX))),
-                    "large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5)),
-                    "x-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2)),
-                    "xx-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 2)),
+                    "xx-small" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
+                    "x-small" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4)),
+                    "small" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9)),
+                    "medium" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX))),
+                    "large" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5)),
+                    "x-large" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2)),
+                    "xx-large" => Ok(style_traits::Length::Absolute(Au::from_px(MEDIUM_PX) * 2)),
 
                     // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-                    "smaller" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(0.85))),
-                    "larger" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(1.2)))
+                    "smaller" => Ok(style_traits::Length::FontRelative(style_traits::FontRelativeLength::Em(0.85))),
+                    "larger" => Ok(style_traits::Length::FontRelative(style_traits::FontRelativeLength::Em(1.2)))
 
                     _ => Err(())
                 }
@@ -1998,11 +2007,12 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
-            Specified(specified::Length),
+            Specified(style_traits::Length),
         }
 
         impl ToCss for SpecifiedValue {
@@ -2051,7 +2061,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
                 Ok(SpecifiedValue::Normal)
             } else {
-                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+                style_traits::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
@@ -2060,11 +2070,12 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
-            Specified(specified::Length),  // FIXME(SimonSapin) support percentages
+            Specified(style_traits::Length),  // FIXME(SimonSapin) support percentages
         }
 
         impl ToCss for SpecifiedValue {
@@ -2113,7 +2124,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
                 Ok(SpecifiedValue::Normal)
             } else {
-                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+                style_traits::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
@@ -2340,6 +2351,7 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use util::geometry::Au;
+        use style_traits;
 
         pub mod computed_value {
             use util::geometry::Au;
@@ -2353,8 +2365,8 @@ pub mod longhands {
 
         #[derive(Clone, Debug, PartialEq)]
         pub struct SpecifiedValue {
-            pub horizontal: specified::Length,
-            pub vertical: specified::Length,
+            pub horizontal: style_traits::Length,
+            pub vertical: style_traits::Length,
         }
 
         #[inline]
@@ -2396,7 +2408,7 @@ pub mod longhands {
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             let mut lengths = [ None, None ];
             for i in 0..2 {
-                match specified::Length::parse_non_negative(input) {
+                match style_traits::Length::parse_non_negative(input) {
                     Err(()) => break,
                     Ok(length) => lengths[i] = Some(length),
                 }
@@ -2500,11 +2512,12 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Auto,
-            Specified(specified::Length),
+            Specified(style_traits::Length),
         }
 
         impl ToCss for SpecifiedValue {
@@ -2553,7 +2566,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(SpecifiedValue::Auto)
             } else {
-                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+                style_traits::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
@@ -2628,11 +2641,12 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         #[derive(Clone, Copy, PartialEq)]
         pub enum SpecifiedValue {
             Normal,
-            Specified(specified::Length),
+            Specified(style_traits::Length),
         }
 
         impl ToCss for SpecifiedValue {
@@ -2681,7 +2695,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
                 Ok(SpecifiedValue::Normal)
             } else {
-                specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+                style_traits::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
     </%self:longhand>
@@ -2692,7 +2706,7 @@ pub mod longhands {
     <%self:longhand name="opacity">
         use cssparser::ToCss;
         use std::fmt;
-        use values::CSSFloat;
+        use style_traits::CSSFloat;
         use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
@@ -2704,7 +2718,7 @@ pub mod longhands {
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(pub CSSFloat);
         pub mod computed_value {
-            use values::CSSFloat;
+            use style_traits::CSSFloat;
             pub type T = CSSFloat;
         }
         #[inline]
@@ -2735,16 +2749,17 @@ pub mod longhands {
         use cssparser::{self, ToCss};
         use std::fmt;
         use values::computed::Context;
+        use style_traits;
 
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
 
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedBoxShadow {
-            pub offset_x: specified::Length,
-            pub offset_y: specified::Length,
-            pub blur_radius: specified::Length,
-            pub spread_radius: specified::Length,
+            pub offset_x: style_traits::Length,
+            pub offset_y: style_traits::Length,
+            pub blur_radius: style_traits::Length,
+            pub spread_radius: style_traits::Length,
             pub color: Option<specified::CSSColor>,
             pub inset: bool,
         }
@@ -2891,7 +2906,7 @@ pub mod longhands {
 
         pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
             use util::geometry::Au;
-            let mut lengths = [specified::Length::Absolute(Au(0)); 4];
+            let mut lengths = [style_traits::Length::Absolute(Au(0)); 4];
             let mut lengths_parsed = false;
             let mut color = None;
             let mut inset = false;
@@ -2904,11 +2919,11 @@ pub mod longhands {
                     }
                 }
                 if !lengths_parsed {
-                    if let Ok(value) = input.try(specified::Length::parse) {
+                    if let Ok(value) = input.try(style_traits::Length::parse) {
                         lengths[0] = value;
                         let mut length_parsed_count = 1;
                         while length_parsed_count < 4 {
-                            if let Ok(value) = input.try(specified::Length::parse) {
+                            if let Ok(value) = input.try(style_traits::Length::parse) {
                                 lengths[length_parsed_count] = value
                             } else {
                                 break
@@ -2953,7 +2968,7 @@ pub mod longhands {
     <%self:longhand name="clip">
         use cssparser::ToCss;
         use std::fmt;
-
+        use style_traits;
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
         use values::computed::Context;
@@ -3005,10 +3020,10 @@ pub mod longhands {
 
         #[derive(Clone, Debug, PartialEq, Copy)]
         pub struct SpecifiedClipRect {
-            pub top: specified::Length,
-            pub right: Option<specified::Length>,
-            pub bottom: Option<specified::Length>,
-            pub left: specified::Length,
+            pub top: style_traits::Length,
+            pub right: Option<style_traits::Length>,
+            pub bottom: Option<style_traits::Length>,
+            pub left: style_traits::Length,
         }
 
         #[derive(Clone, Debug, PartialEq, Copy)]
@@ -3074,7 +3089,7 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use std::ascii::AsciiExt;
             use util::geometry::Au;
-            use values::specified::Length;
+            use style_traits::Length;
 
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SpecifiedValue(None))
@@ -3107,6 +3122,7 @@ pub mod longhands {
     <%self:longhand name="text-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
+        use style_traits;
 
         use values::computed::Context;
 
@@ -3115,9 +3131,9 @@ pub mod longhands {
 
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedTextShadow {
-            pub offset_x: specified::Length,
-            pub offset_y: specified::Length,
-            pub blur_radius: specified::Length,
+            pub offset_x: style_traits::Length,
+            pub offset_y: style_traits::Length,
+            pub blur_radius: style_traits::Length,
             pub color: Option<specified::CSSColor>,
         }
 
@@ -3231,17 +3247,17 @@ pub mod longhands {
 
         fn parse_one_text_shadow(input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
             use util::geometry::Au;
-            let mut lengths = [specified::Length::Absolute(Au(0)); 3];
+            let mut lengths = [style_traits::Length::Absolute(Au(0)); 3];
             let mut lengths_parsed = false;
             let mut color = None;
 
             loop {
                 if !lengths_parsed {
-                    if let Ok(value) = input.try(specified::Length::parse) {
+                    if let Ok(value) = input.try(style_traits::Length::parse) {
                         lengths[0] = value;
                         let mut length_parsed_count = 1;
                         while length_parsed_count < 3 {
-                            if let Ok(value) = input.try(specified::Length::parse) {
+                            if let Ok(value) = input.try(style_traits::Length::parse) {
                                 lengths[length_parsed_count] = value
                             } else {
                                 break
@@ -3303,8 +3319,9 @@ pub mod longhands {
         //pub use self::computed_value::T as SpecifiedValue;
         use cssparser::ToCss;
         use std::fmt;
-        use values::CSSFloat;
-        use values::specified::{Angle, Length};
+        use style_traits::{CSSFloat, Length};
+        use style_traits;
+        use values::specified::Angle;
 
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(Vec<SpecifiedFilter>);
@@ -3325,7 +3342,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use util::geometry::Au;
-            use values::CSSFloat;
+            use style_traits::CSSFloat;
             use values::specified::{Angle};
 
             #[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
@@ -3479,7 +3496,7 @@ pub mod longhands {
                 if let Ok(function_name) = input.try(|input| input.expect_function()) {
                     filters.push(try!(input.parse_nested_block(|input| {
                         match_ignore_ascii_case! { function_name,
-                            "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
+                            "blur" => style_traits::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
                             "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                             "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
                             "grayscale" => parse_factor(input).map(SpecifiedFilter::Grayscale),
@@ -3499,7 +3516,7 @@ pub mod longhands {
             }
         }
 
-        fn parse_factor(input: &mut Parser) -> Result<::values::CSSFloat, ()> {
+        fn parse_factor(input: &mut Parser) -> Result<CSSFloat, ()> {
             use cssparser::Token;
             match input.next() {
                 Ok(Token::Number(value)) => Ok(value.value),
@@ -3531,7 +3548,8 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="transform">
-        use values::CSSFloat;
+        use style_traits;
+        use style_traits::CSSFloat;
         use values::computed::Context;
 
         use cssparser::ToCss;
@@ -3539,7 +3557,7 @@ pub mod longhands {
         use util::geometry::Au;
 
         pub mod computed_value {
-            use values::CSSFloat;
+            use style_traits::CSSFloat;
             use values::computed;
 
             #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
@@ -3580,13 +3598,13 @@ pub mod longhands {
         pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
 
         fn parse_two_lengths_or_percentages(input: &mut Parser)
-                                            -> Result<(specified::LengthOrPercentage,
-                                                       specified::LengthOrPercentage),()> {
-            let first = try!(specified::LengthOrPercentage::parse(input));
+                                            -> Result<(style_traits::LengthOrPercentage,
+                                                       style_traits::LengthOrPercentage),()> {
+            let first = try!(style_traits::LengthOrPercentage::parse(input));
             let second = input.try(|input| {
                 try!(input.expect_comma());
-                specified::LengthOrPercentage::parse(input)
-            }).unwrap_or(specified::LengthOrPercentage::zero());
+                style_traits::LengthOrPercentage::parse(input)
+            }).unwrap_or(style_traits::LengthOrPercentage::zero());
             Ok((first, second))
         }
 
@@ -3613,12 +3631,12 @@ pub mod longhands {
             Matrix(SpecifiedMatrix),
             Skew(CSSFloat, CSSFloat),
             Translate(TranslateKind,
-                      specified::LengthOrPercentage,
-                      specified::LengthOrPercentage,
-                      specified::Length),
+                      style_traits::LengthOrPercentage,
+                      style_traits::LengthOrPercentage,
+                      style_traits::Length),
             Scale(CSSFloat, CSSFloat, CSSFloat),
             Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
-            Perspective(specified::Length),
+            Perspective(style_traits::Length),
         }
 
         impl ToCss for computed_value::T {
@@ -3764,50 +3782,50 @@ pub mod longhands {
                             result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
                                                                       tx,
                                                                       ty,
-                                                                      specified::Length::Absolute(Au(0))));
+                                                                      style_traits::Length::Absolute(Au(0))));
                             Ok(())
                         }))
                     },
                     "translatex" => {
                         try!(input.parse_nested_block(|input| {
-                            let tx = try!(specified::LengthOrPercentage::parse(input));
+                            let tx = try!(style_traits::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
                                 TranslateKind::TranslateX,
                                 tx,
-                                specified::LengthOrPercentage::zero(),
-                                specified::Length::Absolute(Au(0))));
+                                style_traits::LengthOrPercentage::zero(),
+                                style_traits::Length::Absolute(Au(0))));
                             Ok(())
                         }))
                     },
                     "translatey" => {
                         try!(input.parse_nested_block(|input| {
-                            let ty = try!(specified::LengthOrPercentage::parse(input));
+                            let ty = try!(style_traits::LengthOrPercentage::parse(input));
                             result.push(SpecifiedOperation::Translate(
                                 TranslateKind::TranslateY,
-                                specified::LengthOrPercentage::zero(),
+                                style_traits::LengthOrPercentage::zero(),
                                 ty,
-                                specified::Length::Absolute(Au(0))));
+                                style_traits::Length::Absolute(Au(0))));
                             Ok(())
                         }))
                     },
                     "translatez" => {
                         try!(input.parse_nested_block(|input| {
-                            let tz = try!(specified::Length::parse(input));
+                            let tz = try!(style_traits::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
                                 TranslateKind::TranslateZ,
-                                specified::LengthOrPercentage::zero(),
-                                specified::LengthOrPercentage::zero(),
+                                style_traits::LengthOrPercentage::zero(),
+                                style_traits::LengthOrPercentage::zero(),
                                 tz));
                             Ok(())
                         }))
                     },
                     "translate3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let tx = try!(specified::LengthOrPercentage::parse(input));
+                            let tx = try!(style_traits::LengthOrPercentage::parse(input));
                             try!(input.expect_comma());
-                            let ty = try!(specified::LengthOrPercentage::parse(input));
+                            let ty = try!(style_traits::LengthOrPercentage::parse(input));
                             try!(input.expect_comma());
-                            let tz = try!(specified::Length::parse(input));
+                            let tz = try!(style_traits::Length::parse(input));
                             result.push(SpecifiedOperation::Translate(
                                 TranslateKind::Translate3D,
                                 tx,
@@ -3921,7 +3939,7 @@ pub mod longhands {
                     },
                     "perspective" => {
                         try!(input.parse_nested_block(|input| {
-                            let d = try!(specified::Length::parse(input));
+                            let d = try!(style_traits::Length::parse(input));
                             result.push(SpecifiedOperation::Perspective(d));
                             Ok(())
                         }))
@@ -3978,9 +3996,9 @@ pub mod longhands {
     </%self:longhand>
 
     pub struct OriginParseResult {
-        horizontal: Option<specified::LengthOrPercentage>,
-        vertical: Option<specified::LengthOrPercentage>,
-        depth: Option<specified::Length>
+        horizontal: Option<style_traits::LengthOrPercentage>,
+        vertical: Option<style_traits::LengthOrPercentage>,
+        depth: Option<style_traits::Length>
     }
 
     pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParseResult,()> {
@@ -3992,37 +4010,37 @@ pub mod longhands {
                     token,
                     "left" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            horizontal = Some(style_traits::LengthOrPercentage::Percentage(0.0))
                         } else {
                             return Err(())
                         }
                     },
                     "center" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            horizontal = Some(style_traits::LengthOrPercentage::Percentage(0.5))
                         } else if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.5))
+                            vertical = Some(style_traits::LengthOrPercentage::Percentage(0.5))
                         } else {
                             return Err(())
                         }
                     },
                     "right" => {
                         if horizontal.is_none() {
-                            horizontal = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            horizontal = Some(style_traits::LengthOrPercentage::Percentage(1.0))
                         } else {
                             return Err(())
                         }
                     },
                     "top" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(0.0))
+                            vertical = Some(style_traits::LengthOrPercentage::Percentage(0.0))
                         } else {
                             return Err(())
                         }
                     },
                     "bottom" => {
                         if vertical.is_none() {
-                            vertical = Some(specified::LengthOrPercentage::Percentage(1.0))
+                            vertical = Some(style_traits::LengthOrPercentage::Percentage(1.0))
                         } else {
                             return Err(())
                         }
@@ -4031,13 +4049,13 @@ pub mod longhands {
                 }
                 Ok(())
             }) {
-                match specified::LengthOrPercentage::parse(input) {
+                match style_traits::LengthOrPercentage::parse(input) {
                     Ok(value) => {
                         if horizontal.is_none() {
                             horizontal = Some(value);
                         } else if vertical.is_none() {
                             vertical = Some(value);
-                        } else if let specified::LengthOrPercentage::Length(length) = value {
+                        } else if let style_traits::LengthOrPercentage::Length(length) = value {
                             depth = Some(length);
                         } else {
                             break;
@@ -4065,7 +4083,7 @@ pub mod longhands {
 
     <%self:longhand name="transform-origin">
         use values::computed::Context;
-        use values::specified::{Length, LengthOrPercentage};
+        use style_traits::{Length, LengthOrPercentage};
 
         use cssparser::ToCss;
         use std::fmt;
@@ -4147,7 +4165,7 @@ pub mod longhands {
 
     <%self:longhand name="perspective-origin">
         use values::computed::Context;
-        use values::specified::LengthOrPercentage;
+        use style_traits::LengthOrPercentage;
 
         use cssparser::ToCss;
         use std::fmt;
@@ -4814,8 +4832,9 @@ pub mod longhands {
 
 pub mod shorthands {
     use cssparser::Parser;
-    use parser::ParserContext;
+    use style_traits::ParserContext;
     use values::specified;
+    use style_traits;
 
     <%def name="shorthand(name, sub_properties, experimental=False)">
     <%
@@ -4824,7 +4843,7 @@ pub mod shorthands {
     %>
         pub mod ${shorthand.ident} {
             use cssparser::Parser;
-            use parser::ParserContext;
+            use style_traits::ParserContext;
             use properties::longhands;
 
             pub struct Longhands {
@@ -4890,6 +4909,7 @@ pub mod shorthands {
                          for side in ['top', 'right', 'bottom', 'left'])}">
             use super::parse_four_sides;
             use values::specified;
+            use style_traits;
             let _unused = context;
             let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
             Ok(Longhands {
@@ -4993,8 +5013,8 @@ pub mod shorthands {
         }
     </%self:shorthand>
 
-    ${four_sides_shorthand("margin", "margin-%s", "specified::LengthOrPercentageOrAuto::parse")}
-    ${four_sides_shorthand("padding", "padding-%s", "specified::LengthOrPercentage::parse")}
+    ${four_sides_shorthand("margin", "margin-%s", "style_traits::LengthOrPercentageOrAuto::parse")}
+    ${four_sides_shorthand("padding", "padding-%s", "style_traits::LengthOrPercentage::parse")}
 
     ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
     ${four_sides_shorthand("border-style", "border-%s-style",
@@ -5014,12 +5034,10 @@ pub mod shorthands {
         })
     </%self:shorthand>
 
-
     pub fn parse_border(context: &ParserContext, input: &mut Parser)
                      -> Result<(Option<specified::CSSColor>,
                                 Option<specified::BorderStyle>,
-                                Option<specified::Length>), ()> {
-        use values::specified;
+                                Option<style_traits::Length>), ()> {
         let _unused = context;
         let mut color = None;
         let mut style = None;
@@ -5089,7 +5107,8 @@ pub mod shorthands {
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
         use util::geometry::Au;
-        use values::specified::{Length, LengthOrPercentage};
+        use style_traits::{Length, LengthOrPercentage};
+
         let _ignored = context;
 
         fn parse_one_set_of_border_radii(mut input: &mut Parser)

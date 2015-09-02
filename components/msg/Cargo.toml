@@ -7,8 +7,8 @@ authors = ["The Servo Project Developers"]
 name = "msg"
 path = "lib.rs"
 
-[dependencies.style]
-path = "../style"
+[dependencies.style_traits]
+path = "../style_traits"
 
 [dependencies.util]
 path = "../util"
@@ -56,4 +56,3 @@ core-foundation = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.io-surface]
 git = "https://github.com/servo/io-surface-rs"
-

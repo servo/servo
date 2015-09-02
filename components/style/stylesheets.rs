@@ -14,28 +14,11 @@ use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRulePars
 use cssparser::{RuleListParser, AtRuleType};
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
-use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selectors::parser::{Selector, parse_selector_list};
 use smallvec::SmallVec;
 use string_cache::{Atom, Namespace};
-use viewport::ViewportRule;
-
-
-/// Each style rule has an origin, which determines where it enters the cascade.
-///
-/// http://dev.w3.org/csswg/css-cascade/#cascading-origins
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
-pub enum Origin {
-    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-ua
-    UserAgent,
-
-    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-author
-    Author,
-
-    /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-user
-    User,
-}
+use style_traits::{ViewportRule, Origin, ParserContext, log_css_error};
 
 
 #[derive(Debug, PartialEq)]
@@ -217,7 +200,7 @@ pub mod rule_filter {
 
     use std::marker::PhantomData;
     use super::super::font_face::FontFaceRule;
-    use super::super::viewport::ViewportRule;
+    use style_traits::ViewportRule;
     use super::{CSSRule, MediaRule, StyleRule};
 
     macro_rules! rule_filter {

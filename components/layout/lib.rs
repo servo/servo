@@ -60,6 +60,7 @@ extern crate serde_json;
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
+extern crate style_traits;
 extern crate unicode_bidi;
 extern crate url;
 
