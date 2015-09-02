@@ -4228,6 +4228,46 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/tables/table-border-1.html",
         "references": [
           [
@@ -13184,6 +13224,10 @@
         "url": "/dom/nodes/CharacterData-substringData.html"
       },
       {
+        "path": "dom/nodes/CharacterData-surrogates.html",
+        "url": "/dom/nodes/CharacterData-surrogates.html"
+      },
+      {
         "path": "dom/nodes/ChildNode-after.html",
         "url": "/dom/nodes/ChildNode-after.html"
       },
@@ -14756,8 +14800,8 @@
         "url": "/html/browsers/windows/nested-browsing-contexts/frameElement.sub.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.html",
-        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.html"
+        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html",
+        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/Document.getElementsByClassName-null-undef.html",
@@ -18066,6 +18110,10 @@
       {
         "path": "infrastructure/failing-test.html",
         "url": "/infrastructure/failing-test.html"
+      },
+      {
+        "path": "js/behaviours/SetPrototypeOf-window.html",
+        "url": "/js/behaviours/SetPrototypeOf-window.html"
       },
       {
         "path": "js/builtins/Array.DefineOwnProperty.html",
@@ -24984,10 +25032,6 @@
         "url": "/selection/Document-open.html"
       },
       {
-        "path": "selection/addRange.html",
-        "url": "/selection/addRange.html"
-      },
-      {
         "path": "selection/collapse.html",
         "url": "/selection/collapse.html"
       },
@@ -28840,6 +28884,11 @@
         "url": "/quirks-mode/hashless-hex-color.html"
       },
       {
+        "path": "selection/addRange.html",
+        "timeout": "long",
+        "url": "/selection/addRange.html"
+      },
+      {
         "path": "service-workers/cache-storage/common.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/common.https.html"
@@ -29105,24 +29154,8 @@
     ]
   },
   "local_changes": {
-    "deleted": [
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-      "2dcontext/transformations/canvas_transformations_reset_001.htm",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-    ],
-    "items": {
-      "testharness": {
-        "dom/nodes/CharacterData-surrogates.html": [
-          {
-            "path": "dom/nodes/CharacterData-surrogates.html",
-            "url": "/dom/nodes/CharacterData-surrogates.html"
-          }
-        ]
-      }
-    },
+    "deleted": [],
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -30876,6 +30909,54 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml"
       }
     ],
     "html/rendering/non-replaced-elements/tables/table-border-1.html": [
@@ -34599,7 +34680,7 @@
       }
     ]
   },
-  "rev": "acd60f9e55532f03fc905e61591b7fd7db2f08d1",
+  "rev": "cf8340b5fae7b820788ffc31f8cc6b6b04978002",
   "url_base": "/",
   "version": 2
 }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test for [[SetPrototypeOf]] with Windows</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  assert_throws(new TypeError, function() {
+    Object.setPrototypeOf(window, window);
+  }, "Setting the prototype should throw");
+}, "Setting the prototype of a window to itself via setPrototypeOf");
+
+test(function() {
+  assert_throws(new TypeError, function() {
+    window.__proto__ = window;
+  }, "Setting the prototype should throw");
+}, "Setting the prototype of a window to itself via __proto__");
+
+test(function() {
+  assert_throws(new TypeError, function() {
+    Object.setPrototypeOf(window, Object.create(window));
+  }, "Setting the prototype should throw");
+}, "Setting the prototype of a window to something that has the window on " +
+   "its proto chain via setPrototypeOf");
+
+test(function() {
+  assert_throws(new TypeError, function() {
+    window.__proto__ = Object.create(window);
+  }, "Setting the prototype should throw");
+}, "Setting the prototype of a window to something that has the window on " +
+   "its proto chain via __proto__");
+</script>
