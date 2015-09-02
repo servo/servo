@@ -14,6 +14,7 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(serde_macros)]
+#![plugin(plugins)]
 
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
@@ -276,7 +277,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let msg = ConsoleAPICall {
             from: console_actor.name.clone(),
-            __type__: "consoleAPICall".to_string(),
+            __type__: "consoleAPICall".to_owned(),
             message: ConsoleMsg {
                 level: match console_message.logLevel {
                     LogLevel::Debug => "debug",
@@ -284,7 +285,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
                     _ => "log"
-                }.to_string(),
+                }.to_owned(),
                 timeStamp: precise_time_ns(),
                 arguments: vec!(console_message.message),
                 filename: console_message.filename,
@@ -344,7 +345,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
-                    __type__: "networkEvent".to_string(),
+                    __type__: "networkEvent".to_owned(),
                     eventActor: actor.event_actor(),
                 };
                 for stream in &mut connections {
@@ -358,8 +359,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name,
-                    __type__: "networkEventUpdate".to_string(),
-                    updateType: "responseStart".to_string(),
+                    __type__: "networkEventUpdate".to_owned(),
+                    updateType: "responseStart".to_owned(),
                     response: actor.response_start()
                 };
 

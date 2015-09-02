@@ -99,9 +99,9 @@ impl ActorRegistry {
 
     pub fn script_to_actor(&self, script_id: String) -> String {
         if script_id.is_empty() {
-            return "".to_string();
+            return "".to_owned();
         }
-        self.script_actors.borrow().get(&script_id).unwrap().to_string()
+        self.script_actors.borrow().get(&script_id).unwrap().clone()
     }
 
     pub fn script_actor_registered(&self, script_id: String) -> bool {
@@ -112,7 +112,7 @@ impl ActorRegistry {
         for (key, value) in &*self.script_actors.borrow() {
             println!("checking {}", value);
             if *value == actor {
-                return key.to_string();
+                return key.to_owned();
             }
         }
         panic!("couldn't find actor named {}", actor)
@@ -127,7 +127,7 @@ impl ActorRegistry {
 
     /// Add an actor to the registry of known actors that can receive messages.
     pub fn register(&mut self, actor: Box<Actor + Send>) {
-        self.actors.insert(actor.name().to_string(), actor);
+        self.actors.insert(actor.name(), actor);
     }
 
     pub fn register_later(&self, actor: Box<Actor + Send>) {
@@ -137,13 +137,13 @@ impl ActorRegistry {
 
     /// Find an actor by registered name
     pub fn find<'a, T: Any>(&'a self, name: &str) -> &'a T {
-        let actor = self.actors.get(&name.to_string()).unwrap();
+        let actor = self.actors.get(name).unwrap();
         actor.actor_as_any().downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
     pub fn find_mut<'a, T: Any>(&'a mut self, name: &str) -> &'a mut T {
-        let actor = self.actors.get_mut(&name.to_string()).unwrap();
+        let actor = self.actors.get_mut(name).unwrap();
         actor.actor_as_any_mut().downcast_mut::<T>().unwrap()
     }
 
@@ -155,11 +155,11 @@ impl ActorRegistry {
                           -> Result<(), ()> {
         let to = msg.get("to").unwrap().as_string().unwrap();
 
-        match self.actors.get(&to.to_string()) {
+        match self.actors.get(to) {
             None => println!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_string().unwrap();
-                if try!(actor.handle_message(self, &msg_type.to_string(), msg, stream))
+                if try!(actor.handle_message(self, msg_type, msg, stream))
                         != ActorMessageStatus::Processed {
                     println!("unexpected message type \"{}\" found for actor \"{}\"",
                              msg_type, to);
@@ -168,7 +168,7 @@ impl ActorRegistry {
         }
         let new_actors = replace(&mut *self.new_actors.borrow_mut(), vec!());
         for actor in new_actors.into_iter() {
-            self.actors.insert(actor.name().to_string(), actor);
+            self.actors.insert(actor.name().to_owned(), actor);
         }
 
         let old_actors = replace(&mut *self.old_actors.borrow_mut(), vec!());

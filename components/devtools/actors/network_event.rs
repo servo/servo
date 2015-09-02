@@ -82,7 +82,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     headers: Vec::new(),
                     headerSize: 10,
-                    rawHeaders: "Raw headers".to_string(),
+                    rawHeaders: "Raw headers".to_owned(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -144,7 +144,7 @@ impl NetworkEventActor {
             actor: self.name(),
             url: self.request.url.clone(),
             method: format!("{}", self.request.method),
-            startedDateTime: "2015-04-22T20:47:08.545Z".to_string(),
+            startedDateTime: "2015-04-22T20:47:08.545Z".to_owned(),
             isXHR: false,
             private: false,
         }
@@ -154,11 +154,11 @@ impl NetworkEventActor {
         // TODO: Send the correct values for all these fields.
         //       This is a fake message.
         ResponseStartMsg {
-            httpVersion: "HTTP/1.1".to_string(),
-            remoteAddress: "63.245.217.43".to_string(),
+            httpVersion: "HTTP/1.1".to_owned(),
+            remoteAddress: "63.245.217.43".to_owned(),
             remotePort: 443,
-            status: "200".to_string(),
-            statusText: "OK".to_string(),
+            status: "200".to_owned(),
+            statusText: "OK".to_owned(),
             headersSize: 337,
             discardResponseBody: true
         }
