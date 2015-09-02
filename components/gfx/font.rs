@@ -30,7 +30,7 @@ use util::geometry::Au;
 
 pub trait FontHandleMethods: Sized {
     fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
-                    -> Result<Self,()>;
+                    -> Result<Self, ()>;
     fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> String;
     fn face_name(&self) -> String;

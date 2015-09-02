@@ -1174,7 +1174,7 @@ pub mod specified {
         }
 
         /// Parses a time according to CSS-VALUES § 6.2.
-        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time,()> {
+        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Time, ()> {
             if unit.eq_ignore_ascii_case("s") {
                 Ok(Time(value))
             } else if unit.eq_ignore_ascii_case("ms") {
@@ -1184,7 +1184,7 @@ pub mod specified {
             }
         }
 
-        pub fn parse(input: &mut Parser) -> Result<Time,()> {
+        pub fn parse(input: &mut Parser) -> Result<Time, ()> {
             match input.next() {
                 Ok(Token::Dimension(ref value, ref unit)) => {
                     Time::parse_dimension(value.value, &unit)

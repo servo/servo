@@ -41,7 +41,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
         is_unsafe: false,
         span: span,
         attributes: Vec::new(),
-        path: ty::Path::new(vec!("dom","bindings","trace","JSTraceable")),
+        path: ty::Path::new(vec!("dom", "bindings", "trace", "JSTraceable")),
         additional_bounds: Vec::new(),
         generics: ty::LifetimeBounds::empty(),
         methods: vec![
@@ -49,7 +49,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 name: "trace",
                 generics: ty::LifetimeBounds::empty(),
                 explicit_self: ty::borrowed_explicit_self(),
-                args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))),
+                args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js", "jsapi", "JSTracer"))),
                                    ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
                 attributes: vec![quote_attr!(cx, #[inline])],

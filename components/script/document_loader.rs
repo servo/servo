@@ -60,7 +60,7 @@ impl DocumentLoader {
     /// are lots of iframes.
     pub fn new_with_task(resource_task: Arc<ResourceTask>,
                          data: Option<NotifierData>,
-                         initial_load: Option<Url>,)
+                         initial_load: Option<Url>)
                          -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
