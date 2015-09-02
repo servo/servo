@@ -30,6 +30,7 @@ use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTemplateElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
 use dom::document::Document;
@@ -222,6 +223,9 @@ pub fn vtable_for<'a>(node: &'a Node) -> &'a (VirtualMethods + 'a) {
             let element =
                 HTMLTableSectionElementCast::to_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
+            HTMLTemplateElementCast::to_ref(node).unwrap() as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
             let element = HTMLTextAreaElementCast::to_ref(node).unwrap();
