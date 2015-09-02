@@ -6,11 +6,12 @@
 
 use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::ProcessingInstructionCast;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLScriptElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFormElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, HTMLTemplateElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, ProcessingInstructionCast};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
 use dom::characterdata::CharacterDataTypeId;
@@ -43,10 +44,18 @@ use util::str::DOMString;
 
 impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
+
     fn get_document(&mut self) -> JS<Node> {
         let doc = self.document.root();
         let node = NodeCast::from_ref(doc.r());
         JS::from_ref(node)
+    }
+
+    fn get_template_contents(&self, target: JS<Node>) -> JS<Node> {
+        let target = target.root();
+        let template = HTMLTemplateElementCast::to_ref(&*target)
+            .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
+        JS::from_ref(NodeCast::from_ref(&*template.Content()))
     }
 
     fn same_node(&self, x: JS<Node>, y: JS<Node>) -> bool {

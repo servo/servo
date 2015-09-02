@@ -155,6 +155,9 @@ pub struct Document {
     reflow_timeout: Cell<Option<u64>>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableHeap<JS<HTMLBaseElement>>,
+    /// This field is set to the document itself for inert documents.
+    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
 }
 
 impl PartialEq for Document {
@@ -1058,6 +1061,7 @@ impl Document {
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
+            appropriate_template_contents_owner_document: Default::default(),
         }
     }
 
@@ -1105,6 +1109,23 @@ impl Document {
             .r()
             .and_then(HTMLHtmlElementCast::to_ref)
             .map(Root::from_ref)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
+    pub fn appropriate_template_contents_owner_document(&self) -> Root<Document> {
+        self.appropriate_template_contents_owner_document.or_init(|| {
+            let doctype = if self.is_html_document {
+                IsHTMLDocument::HTMLDocument
+            } else {
+                IsHTMLDocument::NonHTMLDocument
+            };
+            let new_doc = Document::new(
+                &*self.window(), None, doctype, None, None,
+                DocumentSource::NotFromParser, DocumentLoader::new(&self.loader()));
+            new_doc.appropriate_template_contents_owner_document.set(
+                Some(JS::from_ref(&*new_doc)));
+            new_doc
+        })
     }
 }
 
