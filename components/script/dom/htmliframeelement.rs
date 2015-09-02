@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::LoadType;
+use document_loader::{LoadType, LoadBlocker};
 use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -17,6 +18,7 @@ use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeMutation};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
@@ -60,6 +62,7 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
+    load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLIFrameElement {
@@ -99,8 +102,8 @@ impl HTMLIFrameElement {
         };
 
         let document = document_from_node(self);
-        let document = document.r();
-        document.add_blocking_load(LoadType::Subframe(url.clone()));
+        *self.load_blocker.borrow_mut() =
+            Some(LoadBlocker::new(&*document, LoadType::Subframe(url.clone())));
 
         let window = window_from_node(self);
         let window = window.r();
@@ -194,6 +197,7 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
+            load_blocker: DOMRefCell::new(None),
         }
     }
 
@@ -213,6 +217,29 @@ impl HTMLIFrameElement {
     #[inline]
     pub fn subpage_id(&self) -> Option<SubpageId> {
         self.subpage_id.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
+    pub fn dispatch_load_event(&self, url: Url) {
+        assert_eq!(Some(&url), self.load_blocker.borrow().as_ref().unwrap().url());
+
+        // TODO Step 2 - check child document `mute iframe load` flag
+        // TODO Step 3 - set child document  `mut iframe load` flag
+
+        // Step 4
+        let window = window_from_node(self);
+        let event = Event::new(GlobalRef::Window(window.r()),
+                               "load".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        let target = EventTargetCast::from_ref(self);
+        event.fire(target);
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        blocker.as_mut().unwrap().terminate();
+        *blocker = None;
+
+        // TODO Step 5 - unset child document `mut iframe load` flag
     }
 }
 
@@ -421,6 +448,12 @@ impl VirtualMethods for HTMLIFrameElement {
         if let Some(ref s) = self.super_type() {
             s.unbind_from_tree(tree_in_doc);
         }
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        if let &mut Some(ref mut blocker) = &mut *blocker {
+            blocker.terminate();
+        }
+        *blocker = None;
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {

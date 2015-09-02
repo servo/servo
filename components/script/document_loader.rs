@@ -5,12 +5,15 @@
 //! Tracking of pending loads in a document.
 //! https://html.spec.whatwg.org/multipage/#the-end
 
+use dom::bindings::js::JS;
+use dom::document::Document;
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
 use net_traits::{Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
 use script_task::MainThreadScriptMsg;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::thread;
 use url::Url;
 
 #[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
@@ -30,6 +33,44 @@ impl LoadType {
             LoadType::Subframe(ref url) |
             LoadType::Stylesheet(ref url) |
             LoadType::PageSource(ref url) => url,
+        }
+    }
+}
+
+/// Helpful destructor bomb to ensure that manual blocking loads are always dealt with
+/// by the time that the owner is destroyed.
+#[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
+pub struct LoadBlocker {
+    /// The document whose load event is blocked by this object existing.
+    doc: JS<Document>,
+    /// The load that is blocking the document's load event.
+    load: Option<LoadType>,
+}
+
+impl LoadBlocker {
+    pub fn new(doc: &Document, load: LoadType) -> LoadBlocker {
+        doc.add_blocking_load(load.clone());
+        LoadBlocker {
+            doc: JS::from_ref(doc),
+            load: Some(load),
+        }
+    }
+
+    pub fn terminate(&mut self) {
+        assert!(self.load.is_some());
+        self.doc.root().finish_load(self.load.take().unwrap());
+    }
+
+    pub fn url(&self) -> Option<&Url> {
+        self.load.as_ref().map(LoadType::url)
+    }
+}
+
+impl Drop for LoadBlocker {
+    fn drop(&mut self) {
+        if !thread::panicking() {
+            assert!(self.load.is_none());
         }
     }
 }

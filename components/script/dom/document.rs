@@ -56,7 +56,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -965,21 +965,7 @@ impl Document {
             None => return,
         };
 
-        // TODO Step 2 - check child iframe mute event
-        // TODO Step 3 - set child iframe mute event
-
-        // Step 4
-        let window = window_from_node(child.r());
-        let event = Event::new(GlobalRef::Window(window.r()),
-                               "load".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(child.r());
-        event.r().fire(target);
-
-        self.finish_load(LoadType::Subframe(url));
-
-        // TODO Step 5 - unset child iframe mute event
+        child.dispatch_load_event(url);
     }
 }
 
