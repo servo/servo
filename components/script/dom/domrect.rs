@@ -2,74 +2,75 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::window::Window;
+use dom::bindings::utils::reflect_dom_object;
+use dom::domrectreadonly::DOMRectReadOnly;
 
 #[dom_struct]
 pub struct DOMRect {
-    reflector_: Reflector,
-    top: f32,
-    bottom: f32,
-    left: f32,
-    right: f32,
+    rect: DOMRectReadOnly,
 }
 
 impl DOMRect {
-    fn new_inherited(top: Au, bottom: Au,
-                         left: Au, right: Au) -> DOMRect {
+    fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRect {
         DOMRect {
-            top: top.to_nearest_px() as f32,
-            bottom: bottom.to_nearest_px() as f32,
-            left: left.to_nearest_px() as f32,
-            right: right.to_nearest_px() as f32,
-            reflector_: Reflector::new(),
+            rect: DOMRectReadOnly::new_inherited(x, y, width, height),
         }
     }
 
-    pub fn new(window: &Window,
-               top: Au, bottom: Au,
-               left: Au, right: Au) -> Root<DOMRect> {
-        reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
-                           GlobalRef::Window(window), DOMRectBinding::Wrap)
+    pub fn new(global: GlobalRef, x: f64, y: f64, width: f64, height: f64) -> Root<DOMRect> {
+        reflect_dom_object(box DOMRect::new_inherited(x, y, width, height), global, DOMRectBinding::Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef,
+                        x: f64, y: f64, width: f64, height: f64) -> Fallible<Root<DOMRect>> {
+        Ok(DOMRect::new(global, x, y, width, height))
     }
 }
 
 impl DOMRectMethods for DOMRect {
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-top
-    fn Top(&self) -> Finite<f32> {
-        Finite::wrap(self.top)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-x
+    fn X(&self) -> f64 {
+        self.rect.X()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-bottom
-    fn Bottom(&self) -> Finite<f32> {
-        Finite::wrap(self.bottom)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-x
+    fn SetX(&self, value: f64) {
+        self.rect.set_x(value);
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-left
-    fn Left(&self) -> Finite<f32> {
-        Finite::wrap(self.left)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-y
+    fn Y(&self) -> f64 {
+        self.rect.Y()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-right
-    fn Right(&self) -> Finite<f32> {
-        Finite::wrap(self.right)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-y
+    fn SetY(&self, value: f64) {
+        self.rect.set_y(value);
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-width
-    fn Width(&self) -> Finite<f32> {
-        let result = (self.right - self.left).abs();
-        Finite::wrap(result)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-width
+    fn Width(&self) -> f64 {
+        self.rect.Width()
     }
 
-    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-height
-    fn Height(&self) -> Finite<f32> {
-        let result = (self.bottom - self.top).abs();
-        Finite::wrap(result)
+    // https://drafts.fxtf.org/geometry/#dom-domrect-width
+    fn SetWidth(&self, value: f64) {
+        self.rect.set_width(value);
+    }
+
+    // https://drafts.fxtf.org/geometry/#dom-domrect-height
+    fn Height(&self) -> f64 {
+        self.rect.Height()
+    }
+
+    // https://drafts.fxtf.org/geometry/#dom-domrect-height
+    fn SetHeight(&self, value: f64) {
+        self.rect.set_height(value);
     }
 }
