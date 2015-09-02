@@ -98,7 +98,14 @@ pub trait VirtualMethods {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#concept-node-clone (step 5)
+    /// https://dom.spec.whatwg.org/#concept-node-adopt-ext
+    fn adopting_steps(&self, old_doc: &Document) {
+        if let Some(ref s) = self.super_type() {
+            s.adopting_steps(old_doc);
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#concept-node-clone-ext
     fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
