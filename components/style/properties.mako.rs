@@ -477,9 +477,9 @@ pub mod longhands {
             impl ::cssparser::ToCss for T {
                 fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
                 where W: ::std::fmt::Write {
-                    match self {
+                    match *self {
                         % for value in values:
-                            &T::${to_rust_ident(value)} => dest.write_str("${value}"),
+                            T::${to_rust_ident(value)} => dest.write_str("${value}"),
                         % endfor
                     }
                 }
@@ -596,9 +596,9 @@ pub mod longhands {
 
             impl ToCss for T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match self {
-                        &T::Auto => dest.write_str("auto"),
-                        &T::Number(number) => write!(dest, "{}", number),
+                    match *self {
+                        T::Auto => dest.write_str("auto"),
+                        T::Number(number) => write!(dest, "{}", number),
                     }
                 }
             }
@@ -673,11 +673,11 @@ pub mod longhands {
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match self {
-                    &SpecifiedValue::Normal => dest.write_str("normal"),
-                    &SpecifiedValue::Length(length) => length.to_css(dest),
-                    &SpecifiedValue::Number(number) => write!(dest, "{}", number),
-                    &SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
+                match *self {
+                    SpecifiedValue::Normal => dest.write_str("normal"),
+                    SpecifiedValue::Length(length) => length.to_css(dest),
+                    SpecifiedValue::Number(number) => write!(dest, "{}", number),
+                    SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
                 }
             }
         }
@@ -714,10 +714,10 @@ pub mod longhands {
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match self {
-                        &T::Normal => write!(f, "normal"),
-                        &T::Length(length) => write!(f, "{:?}%", length),
-                        &T::Number(number) => write!(f, "{}", number),
+                    match *self {
+                        T::Normal => write!(f, "normal"),
+                        T::Length(length) => write!(f, "{:?}%", length),
+                        T::Number(number) => write!(f, "{}", number),
                     }
                 }
             }
@@ -774,11 +774,11 @@ pub mod longhands {
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match self {
+                match *self {
                     % for keyword in vertical_align_keywords:
-                        &SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
+                        SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                     % endfor
-                    &SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
+                    SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                 }
             }
         }
@@ -817,13 +817,13 @@ pub mod longhands {
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match self {
+                    match *self {
                         % for keyword in vertical_align_keywords:
-                            &T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
+                            T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                         % endfor
-                        &T::Length(length) => write!(f, "{:?}", length),
-                        &T::Percentage(number) => write!(f, "{}%", number),
-                        &T::Calc(calc) => write!(f, "{:?}", calc)
+                        T::Length(length) => write!(f, "{:?}", length),
+                        T::Percentage(number) => write!(f, "{}%", number),
+                        T::Calc(calc) => write!(f, "{:?}", calc)
                     }
                 }
             }
@@ -938,7 +938,7 @@ pub mod longhands {
         }
 
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-            overflow_x::parse(context, input).map(|value| SpecifiedValue(value))
+            overflow_x::parse(context, input).map(SpecifiedValue)
         }
     </%self:longhand>
 
@@ -990,18 +990,18 @@ pub mod longhands {
 
             impl ToCss for ContentItem {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match self {
-                        &ContentItem::String(ref s) => {
+                    match *self {
+                        ContentItem::String(ref s) => {
                             cssparser::serialize_string(&**s, dest)
                         }
-                        &ContentItem::Counter(ref s, ref list_style_type) => {
+                        ContentItem::Counter(ref s, ref list_style_type) => {
                             try!(dest.write_str("counter("));
                             try!(cssparser::serialize_identifier(&**s, dest));
                             try!(dest.write_str(", "));
                             try!(list_style_type.to_css(dest));
                             dest.write_str(")")
                         }
-                        &ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
+                        ContentItem::Counters(ref s, ref separator, ref list_style_type) => {
                             try!(dest.write_str("counter("));
                             try!(cssparser::serialize_identifier(&**s, dest));
                             try!(dest.write_str(", "));
@@ -1010,10 +1010,10 @@ pub mod longhands {
                             try!(list_style_type.to_css(dest));
                             dest.write_str(")")
                         }
-                        &ContentItem::OpenQuote => dest.write_str("open-quote"),
-                        &ContentItem::CloseQuote => dest.write_str("close-quote"),
-                        &ContentItem::NoOpenQuote => dest.write_str("no-open-quote"),
-                        &ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
+                        ContentItem::OpenQuote => dest.write_str("open-quote"),
+                        ContentItem::CloseQuote => dest.write_str("close-quote"),
+                        ContentItem::NoOpenQuote => dest.write_str("no-open-quote"),
+                        ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
                     }
                 }
             }
@@ -1028,10 +1028,10 @@ pub mod longhands {
 
             impl ToCss for T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match self {
-                        &T::normal => dest.write_str("normal"),
-                        &T::none => dest.write_str("none"),
-                        &T::Content(ref content) => {
+                    match *self {
+                        T::normal => dest.write_str("normal"),
+                        T::none => dest.write_str("none"),
+                        T::Content(ref content) => {
                             let mut iter = content.iter();
                             try!(iter.next().unwrap().to_css(dest));
                             for c in iter {
@@ -1737,8 +1737,8 @@ pub mod longhands {
             }
             impl ToCss for FontFamily {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match self {
-                        &FontFamily::FamilyName(ref name) => dest.write_str(name.as_slice()),
+                    match *self {
+                        FontFamily::FamilyName(ref name) => dest.write_str(name.as_slice()),
                     }
                 }
             }
@@ -1809,11 +1809,11 @@ pub mod longhands {
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match self {
-                    &SpecifiedValue::Bolder => dest.write_str("bolder"),
-                    &SpecifiedValue::Lighter => dest.write_str("lighter"),
+                match *self {
+                    SpecifiedValue::Bolder => dest.write_str("bolder"),
+                    SpecifiedValue::Lighter => dest.write_str("lighter"),
                     % for weight in range(100, 901, 100):
-                        &SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
+                        SpecifiedValue::Weight${weight} => dest.write_str("${weight}"),
                     % endfor
                 }
             }
@@ -1853,9 +1853,9 @@ pub mod longhands {
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    match self {
+                    match *self {
                         % for weight in range(100, 901, 100):
-                            &T::Weight${weight} => write!(f, "{}", ${weight}),
+                            T::Weight${weight} => write!(f, "{}", ${weight}),
                         % endfor
                     }
                 }
@@ -3271,9 +3271,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 Ok(SpecifiedValue(Vec::new()))
             } else {
-                input.parse_comma_separated(parse_one_text_shadow).map(|shadows| {
-                    SpecifiedValue(shadows)
-                })
+                input.parse_comma_separated(parse_one_text_shadow).map(SpecifiedValue)
             }
         }
 
@@ -3561,17 +3559,17 @@ pub mod longhands {
 
             fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
                 computed_value::T{ filters: self.0.iter().map(|value| {
-                    match value {
-                        &SpecifiedFilter::Blur(factor) =>
+                    match *value {
+                        SpecifiedFilter::Blur(factor) =>
                             computed_value::Filter::Blur(factor.to_computed_value(context)),
-                        &SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
-                        &SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
-                        &SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
-                        &SpecifiedFilter::HueRotate(factor) => computed_value::Filter::HueRotate(factor),
-                        &SpecifiedFilter::Invert(factor) => computed_value::Filter::Invert(factor),
-                        &SpecifiedFilter::Opacity(factor) => computed_value::Filter::Opacity(factor),
-                        &SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
-                        &SpecifiedFilter::Sepia(factor) => computed_value::Filter::Sepia(factor),
+                        SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
+                        SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
+                        SpecifiedFilter::Grayscale(factor) => computed_value::Filter::Grayscale(factor),
+                        SpecifiedFilter::HueRotate(factor) => computed_value::Filter::HueRotate(factor),
+                        SpecifiedFilter::Invert(factor) => computed_value::Filter::Invert(factor),
+                        SpecifiedFilter::Opacity(factor) => computed_value::Filter::Opacity(factor),
+                        SpecifiedFilter::Saturate(factor) => computed_value::Filter::Saturate(factor),
+                        SpecifiedFilter::Sepia(factor) => computed_value::Filter::Sepia(factor),
                     }
                 }).collect() }
             }
@@ -5713,11 +5711,11 @@ pub enum DeclaredValue<T> {
 
 impl<T: ToCss> DeclaredValue<T> {
     pub fn specified_value(&self) -> String {
-        match self {
-            &DeclaredValue::Value(ref inner) => inner.to_css_string(),
-            &DeclaredValue::WithVariables { ref css, .. } => css.clone(),
-            &DeclaredValue::Initial => "initial".to_owned(),
-            &DeclaredValue::Inherit => "inherit".to_owned(),
+        match *self {
+            DeclaredValue::Value(ref inner) => inner.to_css_string(),
+            DeclaredValue::WithVariables { ref css, .. } => css.clone(),
+            DeclaredValue::Initial => "initial".to_owned(),
+            DeclaredValue::Inherit => "inherit".to_owned(),
         }
     }
 }
@@ -5741,10 +5739,10 @@ pub enum PropertyDeclarationParseResult {
 
 impl PropertyDeclaration {
     pub fn name(&self) -> &'static str {
-        match self {
+        match *self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}(..) => "${property.name}",
+                    PropertyDeclaration::${property.camel_case}(..) => "${property.name}",
                 % endif
             % endfor
             _ => "",
@@ -5752,14 +5750,14 @@ impl PropertyDeclaration {
     }
 
     pub fn value(&self) -> String {
-        match self {
+        match *self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}(ref value) =>
+                    PropertyDeclaration::${property.camel_case}(ref value) =>
                         value.specified_value(),
                 % endif
             % endfor
-            decl => panic!("unsupported property declaration: {:?}", decl.name()),
+            ref decl => panic!("unsupported property declaration: {:?}", decl.name()),
         }
     }
 
