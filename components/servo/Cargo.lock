@@ -860,7 +860,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#c4fa565228a9741a1c138a96421fcbd156ad1e45"
+source = "git+https://github.com/servo/rust-layers#a8400005fd3ee37ced92865184974c9a93201bc0"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
