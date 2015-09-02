@@ -209,16 +209,3 @@ impl Profiler {
         println!("");
     }
 }
-
-pub fn time<T, F>(msg: &str, callback: F) -> T
-    where F: Fn() -> T
-{
-    let start_time = precise_time_ns();
-    let val = callback();
-    let end_time = precise_time_ns();
-    let ms = (end_time - start_time) as f64 / 1000000f64;
-    if ms >= 5f64 {
-        debug!("{} took {} ms", msg, ms);
-    }
-    return val;
-}
