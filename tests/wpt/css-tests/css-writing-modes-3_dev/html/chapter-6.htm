@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Abstract Box Terminology (22 tests)</h2>
+  <h2>Abstract Box Terminology (34 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -115,7 +115,139 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#logical-directions">6.2 Flow-relative Directions</a></th></tr>
-      <!-- 4 tests -->
+      <!-- 16 tests -->
+      <tr id="border-conflict-element-vlr-003-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-003.htm">border-conflict-element-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: ltr' (basic)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vlr-005-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-005.htm">border-conflict-element-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: ltr' (basic)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vlr-007-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-007.htm">border-conflict-element-vlr-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: ltr' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vlr-009-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-009.htm">border-conflict-element-vlr-009</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: ltr' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vlr-011-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-011.htm">border-conflict-element-vlr-011</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-lr' table with 'direction: rtl' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vlr-013-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vlr-013.htm">border-conflict-element-vlr-013</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - cell wins over row, cell wins over rowgroup and cell wins over table (compound)
+          <ul class="assert">
+            <li>This test checks that, in border-collapsing model, when 'border-style' values and 'border-width' values are identical, then the 'border-color' set on a cell wins over the 'border-color' set on a row (5th table), the 'border-color' set on a cell wins over the 'border-color' set on a row group (tfoot in 4th table, thead in 3rd table, tbody in 2nd table) and the 'border-color' set on a cell wins over the 'border-color' set on a table element (1st table).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-002-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-002.htm">border-conflict-element-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-rl' table with 'direction: ltr' (basic)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-004-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-004.htm">border-conflict-element-vrl-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-rl' table with 'direction: ltr' (basic)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-006-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-006.htm">border-conflict-element-vrl-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-rl' table with 'direction: ltr' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-008-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-008.htm">border-conflict-element-vrl-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-rl' table with 'direction: ltr' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-010-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-010.htm">border-conflict-element-vrl-010</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - adjacent cells with same border styles in a 'vertical-rl' table with 'direction: rtl' (complex)
+          <ul class="assert">
+            <li>When two adjacent cells have the same 'border-width' value and the same 'border-style' value in a 'border-collapse: collapse' table, then the color of the border of the cell closest to line-left side wins (if the table's 'direction' is 'ltr'; line-right side, if it is 'rtl') and the color of the border of the cell closest to block-start side wins.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="border-conflict-element-vrl-012-6.2" class="primary">
+        <td><strong>
+            <a href="border-conflict-element-vrl-012.htm">border-conflict-element-vrl-012</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td></td>
+        <td>Border conflict resolution - cell wins over row, cell wins over rowgroup and cell wins over table (compound)
+          <ul class="assert">
+            <li>This test checks that, in border-collapsing model, when 'border-style' values and 'border-width' values are identical, then the 'border-color' set on a cell wins over the 'border-color' set on a row (5th table), the 'border-color' set on a cell wins over the 'border-color' set on a row group (tfoot in 4th table, thead in 3rd table, tbody in 2nd table) and the 'border-color' set on a cell wins over the 'border-color' set on a table element (1st table).</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="direction-vlr-003-6.2" class="primary ahem image">
         <td><strong>
             <a href="direction-vlr-003.htm">direction-vlr-003</a></strong></td>

@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import argparse
 import json
 import os
@@ -10,13 +10,14 @@ import time
 import traceback
 import urllib2
 import uuid
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from multiprocessing import Process, Event
 
 from .. import localpaths
 
 import sslutils
 from wptserve import server as wptserve, handlers
+from wptserve import stash
 from wptserve.logger import set_logger
 from mod_pywebsocket import standalone as pywebsocket
 
@@ -49,17 +50,55 @@ subdomains = [u"www",
               u"天気の良い日",
               u"élève"]
 
+class RoutesBuilder(object):
+    def __init__(self):
+        self.forbidden_override = [("GET", "/tools/runner/*", handlers.file_handler),
+                                   ("POST", "/tools/runner/update_manifest.py",
+                                    handlers.python_script_handler)]
+
+        self.forbidden = [("*", "/_certs/*", handlers.ErrorHandler(404)),
+                          ("*", "/tools/*", handlers.ErrorHandler(404)),
+                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
+                          ("*", "/serve.py", handlers.ErrorHandler(404))]
+
+        self.static = [("GET", "*.worker", WorkersHandler())]
+
+        self.mountpoint_routes = OrderedDict()
+
+        self.add_mount_point("/", None)
+
+    def get_routes(self):
+        routes = self.forbidden_override + self.forbidden + self.static
+        # Using reversed here means that mount points that are added later
+        # get higher priority. This makes sense since / is typically added
+        # first.
+        for item in reversed(self.mountpoint_routes.values()):
+            routes.extend(item)
+        return routes
+
+    def add_static(self, path, format_args, content_type, route):
+        handler = handlers.StaticHandler(path, format_args, content_type)
+        self.static.append((b"GET", str(route), handler))
+
+    def add_mount_point(self, url_base, path):
+        url_base = "/%s/" % url_base.strip("/") if url_base != "/" else "/"
+
+        self.mountpoint_routes[url_base] = []
+
+        routes = [("GET", "*.asis", handlers.AsIsHandler),
+                  ("*", "*.py", handlers.PythonScriptHandler),
+                  ("GET", "*", handlers.FileHandler)]
+
+        for (method, suffix, handler_cls) in routes:
+            self.mountpoint_routes[url_base].append(
+                (method,
+                 b"%s%s" % (str(url_base) if url_base != "/" else "", str(suffix)),
+                 handler_cls(base_path=path, url_base=url_base)))
+
+
 def default_routes():
-    return [("GET", "/tools/runner/*", handlers.file_handler),
-            ("POST", "/tools/runner/update_manifest.py", handlers.python_script_handler),
-            ("*", "/_certs/*", handlers.ErrorHandler(404)),
-            ("*", "/tools/*", handlers.ErrorHandler(404)),
-            ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
-            ("*", "/serve.py", handlers.ErrorHandler(404)),
-            ("*", "*.py", handlers.python_script_handler),
-            ("GET", "*.asis", handlers.as_is_handler),
-            ("GET", "*.worker", WorkersHandler()),
-            ("GET", "*", handlers.file_handler),]
+    return RoutesBuilder().get_routes()
+
 
 def setup_logger(level):
     import logging
@@ -180,7 +219,7 @@ def start_servers(host, ports, paths, routes, bind_hostname, external_config, ss
     for scheme, ports in ports.iteritems():
         assert len(ports) == {"http":2}.get(scheme, 1)
 
-        for port  in ports:
+        for port in ports:
             if port is None:
                 continue
             init_func = {"http":start_http_server,
@@ -235,6 +274,24 @@ class WebSocketDaemon(object):
                     "-d", doc_root,
                     "-w", handlers_root,
                     "--log-level", log_level]
+
+        if ssl_config is not None:
+            # This is usually done through pywebsocket.main, however we're
+            # working around that to get the server instance and manually
+            # setup the wss server.
+            if pywebsocket._import_ssl():
+                tls_module = pywebsocket._TLS_BY_STANDARD_MODULE
+            elif pywebsocket._import_pyopenssl():
+                tls_module = pywebsocket._TLS_BY_PYOPENSSL
+            else:
+                print "No SSL module available"
+                sys.exit(1)
+
+            cmd_args += ["--tls",
+                         "--private-key", ssl_config["key_path"],
+                         "--certificate", ssl_config["cert_path"],
+                         "--tls-module", tls_module]
+
         if (bind_hostname):
             cmd_args = ["-H", host] + cmd_args
         opts, args = pywebsocket._parse_args_and_config(cmd_args)
@@ -282,19 +339,25 @@ def start_ws_server(host, port, paths, routes, bind_hostname, external_config, s
                            paths["ws_doc_root"],
                            "debug",
                            bind_hostname,
+                           ssl_config = None)
+
+
+def start_wss_server(host, port, paths, routes, bind_hostname, external_config, ssl_config,
+                     **kwargs):
+    return WebSocketDaemon(host,
+                           str(port),
+                           repo_root,
+                           paths["ws_doc_root"],
+                           "debug",
+                           bind_hostname,
                            ssl_config)
 
 
-def start_wss_server(host, port, path, routes, bind_hostname, external_config, ssl_config,
-                     **kwargs):
-    return
-
-
-def get_ports(config, ssl_enabled):
+def get_ports(config, ssl_environment):
     rv = defaultdict(list)
     for scheme, ports in config["ports"].iteritems():
         for i, port in enumerate(ports):
-            if scheme in ["http", "https"] and not ssl_enabled:
+            if scheme in ["wss", "https"] and not ssl_environment.ssl_enabled:
                 port = None
             if port == "auto":
                 port = get_port()
@@ -332,7 +395,6 @@ def get_ssl_config(config, external_domains, ssl_environment):
             "cert_path": cert_path,
             "encrypt_after_connect": config["ssl"]["encrypt_after_connect"]}
 
-
 def start(config, ssl_environment, routes, **kwargs):
     host = config["host"]
     domains = get_subdomains(host)
@@ -365,16 +427,17 @@ def value_set(config, key):
     return key in config and config[key] is not None
 
 
-def set_computed_defaults(config):
-    if not value_set(config, "ws_doc_root"):
-        if value_set(config, "doc_root"):
-            root = config["doc_root"]
-        else:
-            root = repo_root
-        config["ws_doc_root"] = os.path.join(repo_root, "websockets", "handlers")
+def get_value_or_default(config, key, default=None):
+    return config[key] if value_set(config, key) else default
 
+
+def set_computed_defaults(config):
     if not value_set(config, "doc_root"):
         config["doc_root"] = repo_root
+
+    if not value_set(config, "ws_doc_root"):
+        root = get_value_or_default(config, "doc_root", default=repo_root)
+        config["ws_doc_root"] = os.path.join(root, "websockets", "handlers")
 
 
 def merge_json(base_obj, override_obj):
@@ -424,6 +487,17 @@ def load_config(default_path, override_path=None, **kwargs):
         else:
             raise ValueError("Config path %s does not exist" % other_path)
 
+    overriding_path_args = [("doc_root", "Document root"),
+                            ("ws_doc_root", "WebSockets document root")]
+    for key, title in overriding_path_args:
+        value = kwargs.get(key)
+        if value is None:
+            continue
+        value = os.path.abspath(os.path.expanduser(value))
+        if not os.path.exists(value):
+            raise ValueError("%s path %s does not exist" % (title, value))
+        rv[key] = value
+
     set_computed_defaults(rv)
     return rv
 
@@ -434,6 +508,10 @@ def get_parser():
                         help="Artificial latency to add before sending http responses, in ms")
     parser.add_argument("--config", action="store", dest="config_path",
                         help="Path to external config file")
+    parser.add_argument("--doc_root", action="store", dest="doc_root",
+                        help="Path to document root. Overrides config.")
+    parser.add_argument("--ws_doc_root", action="store", dest="ws_doc_root",
+                        help="Path to WebSockets document root. Overrides config.")
     return parser
 
 
@@ -445,12 +523,13 @@ def main():
 
     setup_logger(config["log_level"])
 
-    with get_ssl_environment(config) as ssl_env:
-        config_, servers = start(config, ssl_env, default_routes(), **kwargs)
+    with stash.StashServer((config["host"], get_port()), authkey=str(uuid.uuid4())):
+        with get_ssl_environment(config) as ssl_env:
+            config_, servers = start(config, ssl_env, default_routes(), **kwargs)
 
-        try:
-            while any(item.is_alive() for item in iter_procs(servers)):
-                for item in iter_procs(servers):
-                    item.join(1)
-        except KeyboardInterrupt:
-            logger.info("Shutting down")
+            try:
+                while any(item.is_alive() for item in iter_procs(servers)):
+                    for item in iter_procs(servers):
+                        item.join(1)
+            except KeyboardInterrupt:
+                logger.info("Shutting down")
