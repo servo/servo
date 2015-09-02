@@ -1415,24 +1415,19 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-adopt
     pub fn adopt(node: &Node, document: &Document) {
         // Step 1.
-        let parent_node = node.GetParentNode();
-        match parent_node {
-            Some(ref parent) => {
-                Node::remove(node, parent, SuppressObserver::Unsuppressed);
-            }
-            None => (),
-        }
-
+        let old_doc = node.owner_doc();
         // Step 2.
-        let node_doc = document_from_node(node);
-        if node_doc.r() != document {
+        node.remove_self();
+        if &*old_doc != document {
+            // Step 3.
             for descendant in node.traverse_preorder() {
-                descendant.r().set_owner_doc(document);
+                descendant.set_owner_doc(document);
+            }
+            // Step 4.
+            for descendant in node.traverse_preorder() {
+                vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
-
-        // Step 3.
-        // If node is an element, it is _affected by a base URL change_.
     }
 
     // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
