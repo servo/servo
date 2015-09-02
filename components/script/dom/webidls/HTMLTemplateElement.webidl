@@ -5,5 +5,5 @@
 
 // https://www.whatwg.org/html/#htmltemplateelement
 interface HTMLTemplateElement : HTMLElement {
-  //readonly attribute DocumentFragment content;
+  readonly attribute DocumentFragment content;
 };
