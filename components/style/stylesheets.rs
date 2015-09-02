@@ -102,7 +102,7 @@ impl Stylesheet {
         Stylesheet::from_str(&string, base_url, origin)
     }
 
-    pub fn from_str<'i>(css: &'i str, base_url: Url, origin: Origin) -> Stylesheet {
+    pub fn from_str(css: &str, base_url: Url, origin: Origin) -> Stylesheet {
         let rule_parser = TopLevelRuleParser {
             context: ParserContext::new(origin, &base_url),
             state: Cell::new(State::Start),
@@ -139,7 +139,7 @@ impl Stylesheet {
 
     /// Return an iterator over all the rules within the style-sheet.
     #[inline]
-    pub fn rules<'a>(&'a self) -> Rules<'a> {
+    pub fn rules(&self) -> Rules {
         Rules::new(self.rules.iter(), None)
     }
 
@@ -243,8 +243,8 @@ pub mod rule_filter {
 
                 fn next(&mut self) -> Option<&'a $value> {
                     while let Some(rule) = self.iter.next() {
-                        match rule {
-                            &CSSRule::$variant(ref value) => return Some(value),
+                        match *rule {
+                            CSSRule::$variant(ref value) => return Some(value),
                             _ => continue
                         }
                     }
