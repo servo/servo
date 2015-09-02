@@ -167,6 +167,7 @@ impl FlexFlow {
             }
             (LengthOrPercentageOrAuto::Percentage(_), None) |
             (LengthOrPercentageOrAuto::Auto, _) => None,
+            (LengthOrPercentageOrAuto::Calc(_), _) => None,
             (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
         };
 

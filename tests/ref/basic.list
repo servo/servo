@@ -82,6 +82,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
 == box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == br.html br-ref.html
+== calc-basic.html calc-basic-ref.html
 == canvas_as_block_element_a.html canvas_as_block_element_ref.html
 == canvas_linear_gradient_a.html canvas_linear_gradient_ref.html
 == canvas_radial_gradient_a.html canvas_radial_gradient_ref.html

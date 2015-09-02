@@ -463,6 +463,10 @@ impl ReplacedImageFragmentInfo {
                 MaybeAuto::Specified(container_size.scale_by(pc))
             }
             (LengthOrPercentageOrAuto::Percentage(_), _, None) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Calc(calc), _, Some(container_size)) => {
+                MaybeAuto::Specified(calc.length() + container_size.scale_by(calc.percentage()))
+            }
+            (LengthOrPercentageOrAuto::Calc(_), _, None) => MaybeAuto::Auto,
             (LengthOrPercentageOrAuto::Auto, Some(dom_length), _) => MaybeAuto::Specified(dom_length),
             (LengthOrPercentageOrAuto::Auto, None, _) => MaybeAuto::Auto,
         }
@@ -616,6 +620,10 @@ impl IframeFragmentInfo {
         let computed_size = match (content_size, containing_size) {
             (LengthOrPercentageOrAuto::Length(length), _) => length,
             (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => container_size.scale_by(pc),
+            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
+                container_size.scale_by(calc.percentage()) + calc.length()
+            },
+            (LengthOrPercentageOrAuto::Calc(calc), None) => calc.length(),
             (LengthOrPercentageOrAuto::Percentage(_), None) => default_size,
             (LengthOrPercentageOrAuto::Auto, _) => default_size,
         };
@@ -1285,6 +1293,7 @@ impl Fragment {
                     }
                     (Some(dom_inline_size), _) => dom_inline_size,
                     (None, LengthOrPercentageOrAuto::Length(length)) => length,
+                    (None, LengthOrPercentageOrAuto::Calc(calc)) => calc.length(),
                 };
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,

@@ -988,6 +988,11 @@ impl InlineFlow {
                     let percent_offset = line_height.scale_by(p);
                     offset_from_baseline = offset_from_baseline - percent_offset
                 }
+                vertical_align::T::Calc(calc) => {
+                    let line_height = fragment.calculate_line_height(layout_context);
+                    let percent_offset = line_height.scale_by(calc.percentage());
+                    offset_from_baseline = offset_from_baseline - percent_offset - calc.length()
+                }
             }
         }
         (offset_from_baseline - ascent, largest_size_updated)

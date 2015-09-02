@@ -280,6 +280,7 @@ impl Flow for TableRowFlow {
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
                     minimum_length: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |
+                        LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Percentage(_) => {
                             child_base.intrinsic_inline_sizes.minimum_inline_size
                         }
@@ -287,6 +288,7 @@ impl Flow for TableRowFlow {
                     },
                     percentage: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Auto |
+                        LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Length(_) => 0.0,
                         LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
                     },
@@ -294,6 +296,7 @@ impl Flow for TableRowFlow {
                     constrained: match child_specified_inline_size {
                         LengthOrPercentageOrAuto::Length(_) => true,
                         LengthOrPercentageOrAuto::Auto |
+                        LengthOrPercentageOrAuto::Calc(_) |
                         LengthOrPercentageOrAuto::Percentage(_) => false,
                     },
                 };
