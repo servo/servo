@@ -400,7 +400,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
             string_before =
                 unscanned_text_fragment_info.text[..(position + 1)].to_owned();
             unscanned_text_fragment_info.text =
-                unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_slice();
+                unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_str();
         }
         first_fragment.transform(first_fragment.border_box.size,
                                  SpecificFragmentInfo::UnscannedText(

@@ -24,6 +24,7 @@ use syntax::ptr::P;
 pub fn expand_heap_size(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem,
                         item: &Annotatable, push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
+        is_unsafe: false,
         span: span,
         attributes: Vec::new(),
         path: ty::Path::new(vec!("util", "mem", "HeapSizeOf")),

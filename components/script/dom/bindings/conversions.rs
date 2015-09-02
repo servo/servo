@@ -60,6 +60,7 @@ use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
 use std::borrow::ToOwned;
+use std::char;
 use std::ptr;
 use std::rc::Rc;
 use std::slice;
@@ -122,7 +123,7 @@ pub trait ToJSValConvertible {
 }
 
 /// A trait to convert `JSVal`s to Rust types.
-pub trait FromJSValConvertible {
+pub trait FromJSValConvertible: Sized {
     /// Optional configurable behaviour switch; use () for no configuration.
     type Config;
     /// Convert `val` to type `Self`.
@@ -452,11 +453,10 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
             slice::from_raw_parts(chars as *const u16, length as usize)
         };
         let mut s = String::with_capacity(length as usize);
-        for item in ::rustc_unicode::str::utf16_items(potentially_ill_formed_utf16) {
-            use ::rustc_unicode::str::Utf16Item::*;
+        for item in char::decode_utf16(potentially_ill_formed_utf16.iter().cloned()) {
             match item {
-                ScalarValue(c) => s.push(c),
-                LoneSurrogate(_) => {
+                Ok(c) => s.push(c),
+                Err(_) => {
                     // FIXME: Add more info like document URL in the message?
                     macro_rules! message {
                         () => {

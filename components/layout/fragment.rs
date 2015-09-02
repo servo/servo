@@ -724,7 +724,7 @@ impl UnscannedTextFragmentInfo {
     #[inline]
     pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
-            text: text.into_boxed_slice(),
+            text: text.into_boxed_str(),
         }
     }
 }
@@ -2160,7 +2160,7 @@ impl Fragment {
                     break
                 }
                 if modified {
-                    unscanned_text_fragment_info.text = new_text_string.into_boxed_slice();
+                    unscanned_text_fragment_info.text = new_text_string.into_boxed_str();
                 }
 
                 WhitespaceStrippingResult::from_unscanned_text_fragment_info(
@@ -2238,7 +2238,7 @@ impl Fragment {
                     for character in trailing_bidi_control_characters_to_retain.iter().rev() {
                         text.push(*character);
                     }
-                    unscanned_text_fragment_info.text = text.into_boxed_slice();
+                    unscanned_text_fragment_info.text = text.into_boxed_str();
                 }
 
                 WhitespaceStrippingResult::from_unscanned_text_fragment_info(

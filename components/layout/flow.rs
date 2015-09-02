@@ -1493,7 +1493,7 @@ impl ContainingBlockLink {
     }
 
     fn set(&mut self, link: FlowRef) {
-        self.link = Some(link.downgrade())
+        self.link = Some(Arc::downgrade(&link))
     }
 
     #[allow(unsafe_code)]

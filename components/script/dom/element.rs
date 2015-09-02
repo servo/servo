@@ -637,7 +637,7 @@ impl Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::make_unique(&mut declarations.normal).remove(index);
+                Arc::make_mut(&mut declarations.normal).remove(index);
                 return;
             }
 
@@ -645,7 +645,7 @@ impl Element {
                                     .iter()
                                     .position(|decl| decl.name() == property);
             if let Some(index) = index {
-                Arc::make_unique(&mut declarations.important).remove(index);
+                Arc::make_mut(&mut declarations.important).remove(index);
                 return;
             }
         }
@@ -662,7 +662,7 @@ impl Element {
 
             // Usually, the reference count will be 1 here. But transitions could make it greater
             // than that.
-            let existing_declarations = Arc::make_unique(existing_declarations);
+            let existing_declarations = Arc::make_mut(existing_declarations);
             for declaration in &mut *existing_declarations {
                 if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
@@ -696,8 +696,8 @@ impl Element {
 
             // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
             // could make them greater than that.
-            let from = Arc::make_unique(from);
-            let to = Arc::make_unique(to);
+            let from = Arc::make_mut(from);
+            let to = Arc::make_mut(to);
             let mut new_from = Vec::new();
             for declaration in from.drain(..) {
                 if properties.contains(&declaration.name()) {

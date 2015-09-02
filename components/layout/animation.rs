@@ -108,7 +108,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
                 }
 
                 let mut new_style = fragment.style.clone();
-                animation.property_animation.update(&mut *Arc::make_unique(&mut new_style),
+                animation.property_animation.update(&mut *Arc::make_mut(&mut new_style),
                                                     progress);
                 damage.insert(incremental::compute_damage(&Some(fragment.style.clone()),
                                                           &new_style));

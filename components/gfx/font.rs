@@ -28,7 +28,7 @@ use util::geometry::Au;
 // needed by the text shaper as well as access to the underlying font
 // resources needed by the graphics layer to draw glyphs.
 
-pub trait FontHandleMethods {
+pub trait FontHandleMethods: Sized {
     fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
                     -> Result<Self,()>;
     fn template(&self) -> Arc<FontTemplateData>;

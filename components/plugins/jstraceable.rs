@@ -38,6 +38,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
 pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Annotatable,
                           push: &mut FnMut(Annotatable)) {
     let trait_def = TraitDef {
+        is_unsafe: false,
         span: span,
         attributes: Vec::new(),
         path: ty::Path::new(vec!("dom","bindings","trace","JSTraceable")),

@@ -266,7 +266,7 @@ pub mod rule_filter {
 }
 
 /// Extension methods for `CSSRule` iterators.
-pub trait CSSRuleIteratorExt<'a>: Iterator<Item=&'a CSSRule> {
+pub trait CSSRuleIteratorExt<'a>: Iterator<Item=&'a CSSRule> + Sized {
     /// Yield only @font-face rules.
     fn font_face(self) -> rule_filter::FontFace<'a, Self>;
 
