@@ -8,9 +8,9 @@ import threading
 import time
 from StringIO import StringIO
 
-from mozlog.structured import structuredlog, reader
-from mozlog.structured.handlers import BaseHandler, StreamHandler, StatusHandler
-from mozlog.structured.formatters import MachFormatter
+from mozlog import structuredlog, reader
+from mozlog.handlers import BaseHandler, StreamHandler, StatusHandler
+from mozlog.formatters import MachFormatter
 from wptrunner import wptcommandline, wptrunner
 
 here = os.path.abspath(os.path.dirname(__file__))

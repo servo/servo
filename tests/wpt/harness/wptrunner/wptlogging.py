@@ -8,7 +8,7 @@ import threading
 from StringIO import StringIO
 from multiprocessing import Queue
 
-from mozlog.structured import commandline, stdadapter
+from mozlog import commandline, stdadapter
 
 def setup(args, defaults):
     logger = commandline.setup_logging("web-platform-tests", args, defaults)

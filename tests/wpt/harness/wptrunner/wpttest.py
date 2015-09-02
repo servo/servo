@@ -57,7 +57,7 @@ def get_run_info(metadata_root, product, **kwargs):
 
 
 class RunInfo(dict):
-    def __init__(self, metadata_root, product, debug):
+    def __init__(self, metadata_root, product, debug, extras=None):
         self._update_mozinfo(metadata_root)
         self.update(mozinfo.info)
         self["product"] = product
@@ -66,6 +66,8 @@ class RunInfo(dict):
         elif "debug" not in self:
             # Default to release
             self["debug"] = False
+        if extras is not None:
+            self.update(extras)
 
     def _update_mozinfo(self, metadata_root):
         """Add extra build information from a mozinfo.json file in a parent

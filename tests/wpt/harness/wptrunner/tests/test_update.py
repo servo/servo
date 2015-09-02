@@ -6,7 +6,7 @@ import unittest
 import StringIO
 
 from .. import metadata, manifestupdate
-from mozlog.structured import structuredlog, handlers, formatters
+from mozlog import structuredlog, handlers, formatters
 
 
 class TestExpectedUpdater(unittest.TestCase):

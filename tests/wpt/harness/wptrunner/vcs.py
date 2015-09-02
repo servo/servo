@@ -5,7 +5,7 @@
 import subprocess
 from functools import partial
 
-from mozlog.structured import get_default_logger
+from mozlog import get_default_logger
 
 logger = None
 

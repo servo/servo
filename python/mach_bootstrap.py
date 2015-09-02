@@ -6,14 +6,12 @@ from __future__ import print_function, unicode_literals
 
 import os
 import platform
+import subprocess
 import sys
+from distutils.spawn import find_executable
 
 SEARCH_PATHS = [
     "python/mach",
-    "python/toml",
-    "python/mozlog",
-    "python/mozinfo",
-    "python/mozdebug",
     "tests/wpt",
     "tests/wpt/harness",
 ]
@@ -73,6 +71,39 @@ CATEGORIES = {
 }
 
 
+def _get_exec(name, default=None):
+    path = find_executable(name)
+    if not path:
+        return default
+    return path
+
+
+def _activate_virtualenv(topdir):
+    virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
+    python = _get_exec("python2", "python")
+
+    if not os.path.exists(virtualenv_path):
+        virtualenv = _get_exec("virtualenv2", "virtualenv")
+        subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+
+    activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
+    execfile(activate_path, dict(__file__=activate_path))
+
+    # TODO: Right now, we iteratively install all the requirements by invoking
+    # `pip install` each time. If it were the case that there were conflicting
+    # requirements, we wouldn't know about them. Once
+    # https://github.com/pypa/pip/issues/988 is addressed, then we can just
+    # chain each of the requirements files into the same `pip install` call
+    # and it will check for conflicts.
+    requirements_paths = [
+        os.path.join(topdir, "python", "requirements.txt"),
+        os.path.join(topdir, "tests", "wpt", "harness", "requirements.txt"),
+        os.path.join(topdir, "tests", "wpt", "harness", "requirements_servo.txt"),
+    ]
+    for path in requirements_paths:
+        subprocess.check_call(["pip", "install", "-q", "-r", path])
+
+
 def bootstrap(topdir):
     topdir = os.path.abspath(topdir)
 
@@ -83,6 +114,8 @@ def bootstrap(topdir):
         print('Python 2.7 or above (but not Python 3) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
+
+    _activate_virtualenv(topdir)
 
     def populate_context(context, key=None):
         if key is None:
