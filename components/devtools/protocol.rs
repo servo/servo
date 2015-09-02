@@ -22,9 +22,7 @@ impl JsonPacketStream for TcpStream {
     fn write_json_packet<'a, T: Encodable>(&mut self, obj: &T) {
         let s = json::encode(obj).unwrap().replace("__type__", "type");
         println!("<- {}", s);
-        self.write_all(s.len().to_string().as_bytes()).unwrap();
-        self.write_all(&[':' as u8]).unwrap();
-        self.write_all(s.as_bytes()).unwrap();
+        write!(self, "{}:{}", s.len(), s).unwrap();
     }
 
     fn read_json_packet<'a>(&mut self) -> Result<Option<Json>, String> {
