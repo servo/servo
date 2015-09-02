@@ -510,31 +510,17 @@ impl<'a> PaintContext<'a> {
     }
 
     #[allow(non_snake_case)]
-    fn border_bounds(bounds: &Rect<f32>,
-                     border: &SideOffsets2D<f32>) -> ((Point2D<f32>, Point2D<f32>),
-                                                      (Point2D<f32>, Point2D<f32>),
-                                                      (Point2D<f32>, Point2D<f32>),
-                                                      (Point2D<f32>, Point2D<f32>)) {
+    fn inner_border_bounds(bounds: &Rect<f32>, border: &SideOffsets2D<f32>) -> Rect<f32> {
         // T = top, B = bottom, L = left, R = right
-        let box_TL = bounds.origin;
-        let box_TR = box_TL + Point2D::new(bounds.size.width, 0.0);
-        let box_BL = box_TL + Point2D::new(0.0, bounds.size.height);
-        let box_BR = box_TL + Point2D::new(bounds.size.width, bounds.size.height);
-
-        let inner_TL = box_TL + Point2D::new(border.left, border.top);
-        let inner_TR = box_TR + Point2D::new(-border.right, border.top);
-        let inner_BR = box_BR + Point2D::new(-border.right, -border.bottom);
-        let inner_BL = box_BL + Point2D::new(border.left, -border.bottom);
-        ((box_TL, inner_TL), (box_TR, inner_TR), (box_BR, inner_BR), (box_BL, inner_BL))
+        let inner_TL = bounds.origin + Point2D::new(border.left, border.top);
+        let inner_BR = bounds.bottom_right() + Point2D::new(-border.right, -border.bottom);
+        Rect::new(inner_TL, Size2D::new(inner_BR.x - inner_TL.x, inner_BR.y - inner_TL.y))
     }
 
     #[allow(non_snake_case)]
     fn corner_bounds(bounds: &Rect<f32>,
                      border: &SideOffsets2D<f32>,
-                     radii: &BorderRadii<AzFloat>) -> ((Point2D<f32>, Size2D<f32>),
-                                                       (Point2D<f32>, Size2D<f32>),
-                                                       (Point2D<f32>, Size2D<f32>),
-                                                       (Point2D<f32>, Size2D<f32>)) {
+                     radii: &BorderRadii<AzFloat>) -> (Rect<f32>, SideOffsets2D<Size2D<f32>>) {
 
         fn distance_to_elbow(radius: &Size2D<AzFloat>,
                              corner_width: f32,
@@ -547,25 +533,16 @@ impl<'a> PaintContext<'a> {
         }
 
         // T = top, B = bottom, L = left, R = right
-        let ((box_TL, _),
-             (box_TR, _),
-             (box_BR, _),
-             (box_BL, _)) = PaintContext::border_bounds(bounds, border);
-
-        let origin_TL = box_TL + Point2D::new(radii.top_left.width, radii.top_left.height);
-        let origin_TR = box_TR + Point2D::new(-radii.top_right.width, radii.top_right.height);
-        let origin_BR = box_BR + Point2D::new(-radii.bottom_right.width, -radii.bottom_right.height);
-        let origin_BL = box_BL + Point2D::new(radii.bottom_left.width, -radii.bottom_left.height);
+        let origin_TL = bounds.origin + Point2D::new(radii.top_left.width,radii.top_left.height);
+        let origin_BR = bounds.bottom_right() + Point2D::new(-radii.bottom_right.width,
+                                                             -radii.bottom_right.height);
 
         let dist_to_elbow_TL = distance_to_elbow(&radii.top_left, border.left, border.top);
         let dist_to_elbow_TR = distance_to_elbow(&radii.top_right, border.right, border.top);
         let dist_to_elbow_BR = distance_to_elbow(&radii.bottom_right, border.right, border.bottom);
         let dist_to_elbow_BL = distance_to_elbow(&radii.bottom_left, border.left, border.bottom);
-
-        ((origin_TL, dist_to_elbow_TL),
-         (origin_TR, dist_to_elbow_TR),
-         (origin_BR, dist_to_elbow_BR),
-         (origin_BL, dist_to_elbow_BL))
+        (Rect::new(origin_TL, Size2D::new(origin_BR.x - origin_TL.x, origin_BR.y - origin_TL.y)),
+         SideOffsets2D::new(dist_to_elbow_TL, dist_to_elbow_TR, dist_to_elbow_BR, dist_to_elbow_BL))
     }
 
     #[allow(non_snake_case)]
@@ -598,14 +575,18 @@ impl<'a> PaintContext<'a> {
         let simple_border = compatible_borders_corner(&radius,
                                                       (outer_border.x - inner_border.x).abs(),
                                                       (outer_border.y - inner_border.y).abs());
-        let corner_angle = match (simple_border, inner_border.x >= outer_border.x) {
-            (true, _) => f32::consts::FRAC_PI_4,
-            (_, true) => PaintContext::ellipse_leftmost_intersection(ellipse,
-                                                                     Line { start: *outer_border,
-                                                                            end: *inner_border }).unwrap(),
-            (_, false) => PaintContext::ellipse_rightmost_intersection(ellipse,
-                                                                       Line { start: *inner_border,
-                                                                              end: *outer_border }).unwrap(),
+        let corner_angle = if simple_border {
+            f32::consts::FRAC_PI_4
+        } else {
+            if inner_border.x >= outer_border.x {
+                PaintContext::ellipse_leftmost_intersection(ellipse,
+                                                            Line { start: *outer_border,
+                                                                   end: *inner_border }).unwrap()
+            } else {
+                PaintContext::ellipse_rightmost_intersection(ellipse,
+                                                             Line { start: *inner_border,
+                                                                    end: *outer_border }).unwrap()
+            }
         };
         let (start_angle, end_angle) = match (inner_border.x <= outer_border.x,
                                               inner_border.y >= outer_border.y) {
@@ -716,10 +697,14 @@ impl<'a> PaintContext<'a> {
                                   radii: &BorderRadii<AzFloat>,
                                   mode: BorderPathDrawingMode) {
         // T = top, B = bottom, L = left, R = right
-        let ((box_TL, inner_TL),
-             (box_TR, inner_TR),
-             (box_BR, inner_BR),
-             (box_BL, inner_BL)) = PaintContext::border_bounds(bounds, border);
+        let inner = PaintContext::inner_border_bounds(bounds, &border);
+        let (box_TL, inner_TL,
+             box_TR, inner_TR,
+             box_BR, inner_BR,
+             box_BL, inner_BL) = (bounds.origin, inner.origin,
+                                  bounds.top_right(), inner.top_right(),
+                                  bounds.bottom_right(), inner.bottom_right(),
+                                  bounds.bottom_left(), inner.bottom_left());
 
         fn dx(x: AzFloat) -> Point2D<AzFloat> {
             Point2D::new(x, 0.)
@@ -737,17 +722,16 @@ impl<'a> PaintContext<'a> {
             Point2D::new(0., if cond { dy } else { 0. })
         }
 
-        let ((origin_TL, dist_to_elbow_TL),
-             (origin_TR, dist_to_elbow_TR),
-             (origin_BR, dist_to_elbow_BR),
-             (origin_BL, dist_to_elbow_BL)) = PaintContext::corner_bounds(bounds, border, radii);
+        let (corner_origin, elbow) = PaintContext::corner_bounds(bounds, border, radii);
+        let (elbow_TL, elbow_TR, elbow_BR, elbow_BL) =
+            (elbow.top, elbow.right, elbow.bottom, elbow.left);
 
         match direction {
             Direction::Top => {
                 let edge_TL = box_TL + dx(radii.top_left.width.max(border.left));
                 let edge_TR = box_TR + dx(-radii.top_right.width.max(border.right));
-                let edge_BR = box_TR + dx(-border.right - dist_to_elbow_TR.width) + dy(border.top);
-                let edge_BL = box_TL + dx(border.left + dist_to_elbow_TL.width) + dy(border.top);
+                let edge_BR = box_TR + dx(-border.right - elbow_TR.width) + dy(border.top);
+                let edge_BL = box_TL + dx(border.left + elbow_TL.width) + dy(border.top);
 
                 let corner_TL = edge_TL + dx_if(PaintContext::is_zero_radius(&radii.top_left),
                                                 -border.left);
@@ -762,11 +746,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_TR,
+                                          &corner_origin.top_right(),
                                           &radii.top_right,
                                           &inner_TR,
                                           &box_TR,
-                                          &dist_to_elbow_TR,
+                                          &elbow_TR,
                                           true);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -776,19 +760,19 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_TL,
+                                          &corner_origin.origin,
                                           &radii.top_left,
                                           &inner_TL,
                                           &box_TL,
-                                          &dist_to_elbow_TL,
+                                          &elbow_TL,
                                           false);
             }
             Direction::Left => {
                 let edge_TL = box_TL + dy(radii.top_left.height.max(border.top));
                 let edge_BL = box_BL + dy(-radii.bottom_left.height.max(border.bottom));
-                let edge_TR = box_TL + dx(border.left) + dy(border.top + dist_to_elbow_TL.height);
+                let edge_TR = box_TL + dx(border.left) + dy(border.top + elbow_TL.height);
                 let edge_BR = box_BL + dx(border.left) + dy(-border.bottom -
-                                                            dist_to_elbow_BL.height);
+                                                            elbow_BL.height);
 
                 let corner_TL = edge_TL + dy_if(PaintContext::is_zero_radius(&radii.top_left),
                                                 -border.top);
@@ -803,11 +787,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_TL,
+                                          &corner_origin.origin,
                                           &radii.top_left,
                                           &inner_TL,
                                           &box_TL,
-                                          &dist_to_elbow_TL,
+                                          &elbow_TL,
                                           true);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -817,19 +801,19 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_BL,
+                                          &corner_origin.bottom_left(),
                                           &radii.bottom_left,
                                           &inner_BL,
                                           &box_BL,
-                                          &dist_to_elbow_BL,
+                                          &elbow_BL,
                                           false);
             }
             Direction::Right => {
                 let edge_TR = box_TR + dy(radii.top_right.height.max(border.top));
                 let edge_BR = box_BR + dy(-radii.bottom_right.height.max(border.bottom));
-                let edge_TL = box_TR + dx(-border.right) + dy(border.top + dist_to_elbow_TR.height);
+                let edge_TL = box_TR + dx(-border.right) + dy(border.top + elbow_TR.height);
                 let edge_BL = box_BR + dx(-border.right) + dy(-border.bottom -
-                                                              dist_to_elbow_BR.height);
+                                                              elbow_BR.height);
 
                 let corner_TR = edge_TR + dy_if(PaintContext::is_zero_radius(&radii.top_right),
                                                 -border.top);
@@ -844,11 +828,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_TR,
+                                          &corner_origin.top_right(),
                                           &radii.top_right,
                                           &inner_TR,
                                           &box_TR,
-                                          &dist_to_elbow_TR,
+                                          &elbow_TR,
                                           false);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -858,11 +842,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_BR,
+                                          &corner_origin.bottom_right(),
                                           &radii.bottom_right,
                                           &inner_BR,
                                           &box_BR,
-                                          &dist_to_elbow_BR,
+                                          &elbow_BR,
                                           true);
 
             }
@@ -870,9 +854,9 @@ impl<'a> PaintContext<'a> {
                 let edge_BL = box_BL + dx(radii.bottom_left.width.max(border.left));
                 let edge_BR = box_BR + dx(-radii.bottom_right.width.max(border.right));
                 let edge_TL = box_BL + dy(-border.bottom) + dx(border.left +
-                                                               dist_to_elbow_BL.width);
+                                                               elbow_BL.width);
                 let edge_TR = box_BR + dy(-border.bottom) + dx(-border.right -
-                                                               dist_to_elbow_BR.width);
+                                                               elbow_BR.width);
 
                 let corner_BR = edge_BR + dx_if(PaintContext::is_zero_radius(&radii.bottom_right),
                                                 border.right);
@@ -887,11 +871,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_BR,
+                                          &corner_origin.bottom_right(),
                                           &radii.bottom_right,
                                           &inner_BR,
                                           &box_BR,
-                                          &dist_to_elbow_BR,
+                                          &elbow_BR,
                                           false);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -901,11 +885,11 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          &origin_BL,
+                                          &corner_origin.bottom_left(),
                                           &radii.bottom_left,
                                           &inner_BL,
                                           &box_BL,
-                                          &dist_to_elbow_BL,
+                                          &elbow_BL,
                                           true);
             }
         }
@@ -935,15 +919,22 @@ impl<'a> PaintContext<'a> {
                                         radii.bottom_right.width.max(radii.top_right.width),
                                         radii.bottom_right.height.max(radii.bottom_left.height),
                                         radii.top_left.height.max(radii.bottom_left.height));
+
         // T = top, B = bottom, L = left, R = right
-        let ((box_TL, inner_TL),
-             (box_TR, inner_TR),
-             (box_BR, inner_BR),
-             (box_BL, inner_BL)) = PaintContext::border_bounds(bounds, &border);
-        let ((origin_TL, _),
-             (origin_TR, _),
-             (origin_BR, _),
-             (origin_BL, _)) = PaintContext::corner_bounds(bounds, &border, radii);
+        let inner = PaintContext::inner_border_bounds(bounds, &border);
+        let (outer_TL, inner_TL,
+             outer_TR, inner_TR,
+             outer_BR, inner_BR,
+             outer_BL, inner_BL) = (bounds.origin, inner.origin,
+                                    bounds.top_right(), inner.top_right(),
+                                    bounds.bottom_right(), inner.bottom_right(),
+                                    bounds.bottom_left(), inner.bottom_left());
+
+        let (corner_origin, _) = PaintContext::corner_bounds(bounds, &border, radii);
+        let (origin_TL, origin_TR, origin_BR, origin_BL) = (corner_origin.origin,
+                                                            corner_origin.top_right(),
+                                                            corner_origin.bottom_right(),
+                                                            corner_origin.bottom_left());
         let zero_elbow = Size2D::new(0., 0.);
 
         path_builder.move_to(Point2D::new(origin_TL.x - radii.top_left.width, origin_TL.y));
@@ -953,14 +944,14 @@ impl<'a> PaintContext<'a> {
                                   &origin_TR,
                                   &radii.top_right,
                                   &inner_TR,
-                                  &box_TR,
+                                  &outer_TR,
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 3
                                   &origin_TR,
                                   &radii.top_right,
                                   &inner_TR,
-                                  &box_TR,
+                                  &outer_TR,
                                   &zero_elbow,
                                   false);
         path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right.width)); // 4
@@ -968,14 +959,14 @@ impl<'a> PaintContext<'a> {
                                   &origin_BR,
                                   &radii.bottom_right,
                                   &inner_BR,
-                                  &box_BR,
+                                  &outer_BR,
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 5
                                   &origin_BR,
                                   &radii.bottom_right,
                                   &inner_BR,
-                                  &box_BR,
+                                  &outer_BR,
                                   &zero_elbow,
                                   false);
         path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left.width,
@@ -984,14 +975,14 @@ impl<'a> PaintContext<'a> {
                                   &origin_BL,
                                   &radii.bottom_left,
                                   &inner_BL,
-                                  &box_BL,
+                                  &outer_BL,
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 7
                                   &origin_BL,
                                   &radii.bottom_left,
                                   &inner_BL,
-                                  &box_BL,
+                                  &outer_BL,
                                   &zero_elbow,
                                   false);
         path_builder.line_to(Point2D::new(bounds.origin.x,
@@ -1000,14 +991,14 @@ impl<'a> PaintContext<'a> {
                                   &origin_TL,
                                   &radii.top_left,
                                   &inner_TL,
-                                  &box_TL,
+                                  &outer_TL,
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                         // 9
                                   &origin_TL,
                                   &radii.top_left,
                                   &inner_TL,
-                                  &box_TL,
+                                  &outer_TL,
                                   &zero_elbow,
                                   false);
     }
