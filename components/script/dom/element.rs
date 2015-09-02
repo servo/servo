@@ -969,9 +969,7 @@ impl Element {
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
-            attr.r().value().tokens().map(|tokens| {
-                tokens.iter().any(|atom| is_equal(name, atom))
-            }).unwrap_or(false)
+            attr.r().value().tokens().iter().any(|atom| is_equal(name, atom))
         }).unwrap_or(false)
     }
 
@@ -1032,7 +1030,6 @@ impl Element {
             attr.r()
                 .value()
                 .tokens()
-                .expect("Expected a TokenListAttrValue")
                 .to_vec()
         }).unwrap_or(vec!())
     }
@@ -1469,11 +1466,11 @@ impl VirtualMethods for Element {
             },
             &atom!(id) => {
                 if node.is_in_doc() {
-                    let value = attr.value().atom().unwrap().clone();
+                    let value = attr.value().as_atom().clone();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
                             if let Some(old_value) = old_value {
-                                let old_value = old_value.atom().unwrap().clone();
+                                let old_value = old_value.as_atom().clone();
                                 doc.unregister_named_element(self, old_value);
                             }
                             if value != atom!("") {
@@ -1659,10 +1656,10 @@ impl<'a> ::selectors::Element for Root<Element> {
         where F: FnMut(&Atom)
     {
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")) {
-            if let Some(tokens) = attr.r().value().tokens() {
-                for token in tokens {
-                    callback(token)
-                }
+            let tokens = attr.r().value();
+            let tokens = tokens.tokens();
+            for token in tokens {
+                callback(token);
             }
         }
     }
