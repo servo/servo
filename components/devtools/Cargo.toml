@@ -20,6 +20,9 @@ path = "../msg"
 [dependencies.util]
 path = "../util"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 

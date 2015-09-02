@@ -14,6 +14,7 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(serde_macros)]
+#![plugin(plugins)]
 
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
