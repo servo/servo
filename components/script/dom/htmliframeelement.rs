@@ -362,7 +362,7 @@ impl VirtualMethods for HTMLIFrameElement {
             &atom!(sandbox) => {
                 self.sandbox.set(mutation.new_value(attr).map(|value| {
                     let mut modes = SandboxAllowance::AllowNothing as u8;
-                    for token in value.tokens().unwrap() {
+                    for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,

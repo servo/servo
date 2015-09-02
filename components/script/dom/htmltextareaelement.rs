@@ -265,13 +265,13 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             &atom!(cols) => {
                 let cols = mutation.new_value(attr).map(|value| {
-                    value.uint().expect("Expected an AttrValue::UInt")
+                    value.as_uint()
                 });
                 self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
             &atom!(rows) => {
                 let rows = mutation.new_value(attr).map(|value| {
-                    value.uint().expect("Expected an AttrValue::UInt")
+                    value.as_uint()
                 });
                 self.rows.set(rows.unwrap_or(DEFAULT_ROWS));
             },

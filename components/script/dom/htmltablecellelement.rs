@@ -113,7 +113,7 @@ impl VirtualMethods for HTMLTableCellElement {
             },
             &atom!(colspan) => {
                 self.colspan.set(mutation.new_value(attr).map(|value| {
-                    max(DEFAULT_COLSPAN, value.uint().unwrap())
+                    max(DEFAULT_COLSPAN, value.as_uint())
                 }));
             },
             &atom!(width) => {

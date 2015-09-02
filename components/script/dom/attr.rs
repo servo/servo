@@ -75,28 +75,28 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn tokens<'a>(&'a self) -> Option<&'a [Atom]> {
+    pub fn as_tokens<'a>(&'a self) -> &'a [Atom] {
         match *self {
-            AttrValue::TokenList(_, ref tokens) => Some(tokens),
-            _ => None
+            AttrValue::TokenList(_, ref tokens) => tokens,
+            _ => panic!("Tokens not found"),
         }
     }
 
-    pub fn atom<'a>(&'a self) -> Option<&'a Atom> {
+    pub fn as_atom<'a>(&'a self) -> &'a Atom {
         match *self {
-            AttrValue::Atom(ref value) => Some(value),
-            _ => None
+            AttrValue::Atom(ref value) => value,
+            _ => panic!("Atom not found"),
         }
     }
 
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
-    pub fn uint(&self) -> Option<u32> {
+    pub fn as_uint(&self) -> u32 {
         if let AttrValue::UInt(_, value) = *self {
-            Some(value)
+            value
         } else {
-            None
+            panic!("Uint not found");
         }
     }
 }

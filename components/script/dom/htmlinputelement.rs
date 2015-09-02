@@ -479,7 +479,7 @@ impl VirtualMethods for HTMLInputElement {
             },
             &atom!(size) => {
                 let size = mutation.new_value(attr).map(|value| {
-                    value.uint().expect("Expected an AttrValue::UInt")
+                    value.as_uint()
                 });
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             }
