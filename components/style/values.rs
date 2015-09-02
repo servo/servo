@@ -631,7 +631,7 @@ pub mod specified {
                 vmin: vmin.map(ViewportPercentageLength::Vmin),
                 em: em.map(FontRelativeLength::Em),
                 ex: ex.map(FontRelativeLength::Ex),
-                ch: ex.map(FontRelativeLength::Ch),
+                ch: ch.map(FontRelativeLength::Ch),
                 rem: rem.map(FontRelativeLength::Rem),
                 percentage: percentage.map(Percentage),
             })
@@ -673,14 +673,14 @@ pub mod specified {
                 };
             }
 
-            let count = count!(em, ex, ch, absolute, rem, vh, vmax, vmin, vw, percentage);
+            let count = count!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
             assert!(count > 0);
 
             if count > 1 {
                try!(write!(dest, "calc("));
             }
 
-            serialize!(em, ex, ch, absolute, rem, vh, vmax, vmin, vw, percentage);
+            serialize!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
 
             if count > 1 {
                try!(write!(dest, ")"));
@@ -1334,7 +1334,7 @@ pub mod computed {
                         val.to_computed_value(context.viewport_size));
                 }
             }
-            for val in &[self.em, self.ex, self.ch, self.rem] {
+            for val in &[self.ch, self.em, self.ex, self.rem] {
                 if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) +
                         val.to_computed_value(context.font_size, context.root_font_size));
