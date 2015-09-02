@@ -34,9 +34,14 @@ test(function() {
   assert_equals(document.forms.item(1).id, "form2");
   assert_equals(document.forms.namedItem("form1").id, "form1");
   assert_equals(document.forms.namedItem("form2").id, "form2");
-  assert_equals(document.forms.item("form1").id, "form1");
-  assert_equals(document.forms.item("form2").id, "form2");
 }, "document.forms")
+
+test(function() {
+  // The `item` method takes one *numeric* argument. Passing a string to `item`
+  // results in that string getting converted to 0
+  assert_equals(document.forms.item("form1").id, "form1");
+  assert_equals(document.forms.item("form2").id, "form1");
+}, "document.forms.item with string arg")
 
 test(function() {
   assert_equals(document.forms[""], undefined);

@@ -21,7 +21,11 @@ var data = {
   "xhr-test" : [],
   "script-svg" : [],
   "script-async" : [],
-  "script-defer" : []
+  "script-defer" : [],
+  "script-async-false" : [],
+  "iframe-src" : [],
+  "cross-origin" : [null],
+  "document-write" : []
 };
 
 var expected = {};
@@ -189,3 +193,38 @@ function testLoadFail() {
 <script id='script-async' async src='data:text/plain,verify("script-async"),finish("script-async")'></script>
 
 <script id='script-defer' defer src='data:text/plain,verify("script-defer"),finish("script-defer")'></script>
+
+<!-- Test async = false dynamic script loading -->
+<script>
+  var s = document.createElement("script");
+  s.id = "script-async-false";
+  s.src = "data:text/plain,verify('script-async-false');"
+  s.onload = function() {
+    finish('script-async-false');
+  }
+  s.async = false;
+  document.body.appendChild(s);
+</script>
+
+<!-- Verify in iframe javascript uri scheme -->
+<iframe src="javascript:parent.verify('iframe-src'),parent.finish('iframe-src')"
+        style="visibility:hidden;display:none">
+</iframe>
+
+<!-- Testing cross origin script -->
+<script>
+var s = document.createElement("script");
+s.id = "cross-origin";
+s.src = "http://{{domains[www1]}}:{{ports[http][1]}}/html/dom/documents/dom-tree-accessors/cross-domain.js"
+s.onload = function() {
+  verify('cross-origin')
+  finish('cross-origin');
+}
+document.body.appendChild(s);
+
+</script>
+
+<!-- Testing document.write -->
+<script>
+document.write('<script id="document-write">verify("document-write"); finish("document-write");</' + 'script>');
+</script>

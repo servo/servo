@@ -8,6 +8,15 @@ somewhat describes the test, `###` is a zero-filled number used to
 keep the file names unique, and `ext` is typically either
 `html` or `xht`.
 
+Test filenames must also be globally unique. There cannot be multiple
+tests with the same filename, even if they are in different parent
+directories. For example, having both
+`/css-values-3/foo-001.html` and `/css-variables-1/foo-001.html`
+would not be allowed. This restriction is in place because some tools
+that use the CSS tests dump all of the test files into a single
+directory, which would cause all but one of the tests with the same
+filename to be clobbered and accidentally skipped.
+
 ### test-topic
 
 `test-topic` is a short identifier that describes the test. The

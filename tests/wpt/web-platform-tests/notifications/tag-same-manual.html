@@ -17,9 +17,9 @@ if (hasNotificationPermission()) {
                 notifications = [],
                 text1 = "This is the body: Room 101",
                 text2 = "This is the body: Room 202"
-            createPassFail("If two notifications appear: First one with the"
-                + " text \"" + text1 + "\", followed by one with the text \""
-                + text2 + "\"",
+            createPassFail("If a notification with the text \""
+                + text2 + "\", replaces the notification with the text \""
+                + text1 + "\" in the same position",
                 t, closeNotifications, notifications)
             notification1 = new Notification("New Email Received", {
                 body: text1,
