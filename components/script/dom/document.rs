@@ -1762,10 +1762,10 @@ impl DocumentMethods for Document {
             match html_elem_type {
                 HTMLElementTypeId::HTMLAppletElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) if attr.r().value().atom() == Some(name) => true,
+                        Some(ref attr) if attr.r().value().as_atom() == name => true,
                         _ => {
                             match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                Some(ref attr) => attr.r().value().atom() == Some(name),
+                                Some(ref attr) => attr.r().value().as_atom() == name,
                                 None => false,
                             }
                         },
@@ -1773,18 +1773,18 @@ impl DocumentMethods for Document {
                 },
                 HTMLElementTypeId::HTMLFormElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) => attr.r().value().atom() == Some(name),
+                        Some(ref attr) => attr.r().value().as_atom() == name,
                         None => false,
                     }
                 },
                 HTMLElementTypeId::HTMLImageElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
                         Some(ref attr) => {
-                            if attr.r().value().atom() == Some(name) {
+                            if attr.r().value().as_atom() == name {
                                 true
                             } else {
                                 match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                    Some(ref attr) => attr.r().value().atom() == Some(name),
+                                    Some(ref attr) => attr.r().value().as_atom() == name,
                                     None => false,
                                 }
                             }
