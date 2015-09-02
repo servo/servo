@@ -46,10 +46,10 @@ impl ToCss for Zoom {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        match self {
-            &Zoom::Number(number) => write!(dest, "{}", number),
-            &Zoom::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-            &Zoom::Auto => write!(dest, "auto")
+        match *self {
+            Zoom::Number(number) => write!(dest, "{}", number),
+            Zoom::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
+            Zoom::Auto => write!(dest, "auto")
         }
     }
 }
@@ -71,10 +71,10 @@ impl Zoom {
 
     #[inline]
     pub fn to_f32(&self) -> Option<f32> {
-        match self {
-            &Zoom::Number(number) => Some(number as f32),
-            &Zoom::Percentage(percentage) => Some(percentage as f32),
-            &Zoom::Auto => None
+        match *self {
+            Zoom::Number(number) => Some(number as f32),
+            Zoom::Percentage(percentage) => Some(percentage as f32),
+            Zoom::Auto => None
         }
     }
 }
@@ -193,7 +193,7 @@ pub struct ViewportRule {
 }
 
 impl ViewportRule {
-    pub fn parse<'a>(input: &mut Parser, context: &'a ParserContext)
+    pub fn parse(input: &mut Parser, context: &ParserContext)
                      -> Result<ViewportRule, ()>
     {
         let parser = ViewportRuleParser { context: context };
