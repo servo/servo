@@ -9,8 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast}; use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -265,13 +264,13 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             &atom!(cols) => {
                 let cols = mutation.new_value(attr).map(|value| {
-                    value.uint().expect("Expected an AttrValue::UInt")
+                    value.as_uint().expect("Expected an AttrValue::UInt")
                 });
                 self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
             &atom!(rows) => {
                 let rows = mutation.new_value(attr).map(|value| {
-                    value.uint().expect("Expected an AttrValue::UInt")
+                    value.as_uint().expect("Expected an AttrValue::UInt")
                 });
                 self.rows.set(rows.unwrap_or(DEFAULT_ROWS));
             },
