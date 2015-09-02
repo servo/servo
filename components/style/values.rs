@@ -424,6 +424,7 @@ pub mod specified {
         pub vmax: Option<ViewportPercentageLength>,
         pub em: Option<FontRelativeLength>,
         pub ex: Option<FontRelativeLength>,
+        pub ch: Option<FontRelativeLength>,
         pub rem: Option<FontRelativeLength>,
         pub percentage: Option<Percentage>,
     }
@@ -584,6 +585,7 @@ pub mod specified {
             let mut vmin = None;
             let mut em = None;
             let mut ex = None;
+            let mut ch = None;
             let mut rem = None;
             let mut percentage = None;
             let mut number = None;
@@ -611,6 +613,8 @@ pub mod specified {
                                 em = Some(em.unwrap_or(0.) + val),
                             FontRelativeLength::Ex(val) =>
                                 ex = Some(ex.unwrap_or(0.) + val),
+                            FontRelativeLength::Ch(val) =>
+                                ch = Some(ch.unwrap_or(0.) + val),
                             FontRelativeLength::Rem(val) =>
                                 rem = Some(rem.unwrap_or(0.) + val),
                         },
@@ -626,6 +630,7 @@ pub mod specified {
                 vmax: vmax.map(ViewportPercentageLength::Vmax),
                 vmin: vmin.map(ViewportPercentageLength::Vmin),
                 em: em.map(FontRelativeLength::Em),
+                ch: ch.map(FontRelativeLength::Ch),
                 ex: ex.map(FontRelativeLength::Ex),
                 rem: rem.map(FontRelativeLength::Rem),
                 percentage: percentage.map(Percentage),
@@ -668,14 +673,14 @@ pub mod specified {
                 };
             }
 
-            let count = count!(em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+            let count = count!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
             assert!(count > 0);
 
             if count > 1 {
                try!(write!(dest, "calc("));
             }
 
-            serialize!(em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+            serialize!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
 
             if count > 1 {
                try!(write!(dest, ")"));
@@ -1329,7 +1334,7 @@ pub mod computed {
                         val.to_computed_value(context.viewport_size));
                 }
             }
-            for val in &[self.em, self.ex, self.rem] {
+            for val in &[self.em, self.ch, self.ex, self.rem] {
                 if let Some(val) = *val {
                     length = Some(length.unwrap_or(Au(0)) +
                         val.to_computed_value(context.font_size, context.root_font_size));
