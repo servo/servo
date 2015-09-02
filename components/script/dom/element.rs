@@ -97,6 +97,7 @@ pub struct Element {
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
+    id_attribute: DOMRefCell<Option<Atom>>,
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
@@ -151,6 +152,7 @@ impl Element {
             attrs: DOMRefCell::new(vec!()),
             attr_list: Default::default(),
             class_list: Default::default(),
+            id_attribute: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
         }
     }
@@ -494,6 +496,7 @@ pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn id_attribute(&self) -> *const Option<Atom>;
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
@@ -515,6 +518,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
+    }
+
+    #[allow(unsafe_code)]
+    fn id_attribute(&self) -> *const Option<Atom> {
+        unsafe {
+            (*self.unsafe_get()).id_attribute.borrow_for_layout()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -1503,6 +1513,8 @@ impl VirtualMethods for Element {
             &atom!("id") => {
                 // Modifying an ID might change style.
                 let value = attr.value();
+                *self.id_attribute.borrow_mut() = value.atom().map(|id| id.clone());
+
                 if node.is_in_doc() {
                     let doc = document_from_node(self);
                     if !value.is_empty() {
@@ -1541,6 +1553,8 @@ impl VirtualMethods for Element {
             &atom!("id") => {
                 // Modifying an ID can change style.
                 let value = attr.value();
+                *self.id_attribute.borrow_mut() = None;
+
                 if node.is_in_doc() {
                     let doc = document_from_node(self);
                     if !value.is_empty() {
@@ -1691,12 +1705,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         node.get_focus_state()
     }
     fn get_id(&self) -> Option<Atom> {
-        self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
-            match *attr.r().value() {
-                AttrValue::Atom(ref val) => val.clone(),
-                _ => panic!("`id` attribute should be AttrValue::Atom"),
-            }
-        })
+        self.id_attribute.borrow().clone()
     }
     fn get_disabled_state(&self) -> bool {
         let node = NodeCast::from_ref(&**self);
