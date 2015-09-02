@@ -533,7 +533,7 @@ impl<'a> PaintContext<'a> {
         }
 
         // T = top, B = bottom, L = left, R = right
-        let origin_TL = bounds.origin + Point2D::new(radii.top_left.width,radii.top_left.height);
+        let origin_TL = bounds.origin + Point2D::new(radii.top_left.width, radii.top_left.height);
         let origin_BR = bounds.bottom_right() + Point2D::new(-radii.bottom_right.width,
                                                              -radii.bottom_right.height);
 
