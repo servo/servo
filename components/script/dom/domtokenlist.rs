@@ -61,7 +61,7 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Length(&self) -> u32 {
         self.attribute().map(|attr| {
             let attr = attr.r();
-            attr.value().tokens().len()
+            attr.value().as_tokens().len()
         }).unwrap_or(0) as u32
     }
 
@@ -69,7 +69,7 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
             let attr = attr.r();
-            Some(attr.value().tokens()).and_then(|tokens| {
+            Some(attr.value().as_tokens()).and_then(|tokens| {
                 tokens.get(index as usize).map(|token| (**token).to_owned())
             })
         })
@@ -81,7 +81,7 @@ impl DOMTokenListMethods for DOMTokenList {
             self.attribute().map(|attr| {
                 let attr = attr.r();
                 attr.value()
-                    .tokens()
+                    .as_tokens()
                     .iter()
                     .any(|atom: &Atom| *atom == token)
             }).unwrap_or(false)

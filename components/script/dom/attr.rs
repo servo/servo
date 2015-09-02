@@ -75,14 +75,14 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn tokens<'a>(&'a self) -> &'a [Atom] {
+    pub fn as_tokens<'a>(&'a self) -> &'a [Atom] {
         match *self {
             AttrValue::TokenList(_, ref tokens) => tokens,
             _ => panic!("Tokens not found"),
         }
     }
 
-    pub fn atom<'a>(&'a self) -> &'a Atom {
+    pub fn as_atom<'a>(&'a self) -> &'a Atom {
         match *self {
             AttrValue::Atom(ref value) => value,
             _ => panic!("Atom not found"),

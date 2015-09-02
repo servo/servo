@@ -969,7 +969,7 @@ impl Element {
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
-            attr.r().value().tokens().iter().any(|atom| is_equal(name, atom))
+            attr.r().value().as_tokens().iter().any(|atom| is_equal(name, atom))
         }).unwrap_or(false)
     }
 
@@ -1029,7 +1029,7 @@ impl Element {
         self.get_attribute(&ns!(""), local_name).map(|attr| {
             attr.r()
                 .value()
-                .tokens()
+                .as_tokens()
                 .to_vec()
         }).unwrap_or(vec!())
     }
@@ -1657,7 +1657,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     {
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")) {
             let tokens = attr.r().value();
-            let tokens = tokens.tokens();
+            let tokens = tokens.as_tokens();
             for token in tokens {
                 callback(token);
             }
