@@ -3528,16 +3528,6 @@
         "url": "/2dcontext/the-canvas-state/canvas_state_restore_001.htm"
       },
       {
-        "path": "2dcontext/transformations/canvas_transformations_reset_001.htm",
-        "references": [
-          [
-            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
-            "=="
-          ]
-        ],
-        "url": "/2dcontext/transformations/canvas_transformations_reset_001.htm"
-      },
-      {
         "path": "2dcontext/transformations/canvas_transformations_reset_001.html",
         "references": [
           [
@@ -4228,6 +4218,46 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html"
+      },
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/tables/table-border-1.html",
         "references": [
           [
@@ -4836,96 +4866,6 @@
           ]
         ],
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
-      },
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-a.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-a.html"
-      },
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-q.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-q.html"
-      },
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-s.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-s.html"
-      },
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-x.xhtml",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-x.xhtml"
-      },
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html"
-      },
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html"
-      },
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html"
-      },
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-      },
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html"
       },
       {
         "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html",
@@ -13184,6 +13124,10 @@
         "url": "/dom/nodes/CharacterData-substringData.html"
       },
       {
+        "path": "dom/nodes/CharacterData-surrogates.html",
+        "url": "/dom/nodes/CharacterData-surrogates.html"
+      },
+      {
         "path": "dom/nodes/ChildNode-after.html",
         "url": "/dom/nodes/ChildNode-after.html"
       },
@@ -14756,8 +14700,8 @@
         "url": "/html/browsers/windows/nested-browsing-contexts/frameElement.sub.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.html",
-        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.html"
+        "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html",
+        "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/Document.getElementsByClassName-null-undef.html",
@@ -18066,6 +18010,10 @@
       {
         "path": "infrastructure/failing-test.html",
         "url": "/infrastructure/failing-test.html"
+      },
+      {
+        "path": "js/behaviours/SetPrototypeOf-window.html",
+        "url": "/js/behaviours/SetPrototypeOf-window.html"
       },
       {
         "path": "js/builtins/Array.DefineOwnProperty.html",
@@ -24984,10 +24932,6 @@
         "url": "/selection/Document-open.html"
       },
       {
-        "path": "selection/addRange.html",
-        "url": "/selection/addRange.html"
-      },
-      {
         "path": "selection/collapse.html",
         "url": "/selection/collapse.html"
       },
@@ -28840,6 +28784,11 @@
         "url": "/quirks-mode/hashless-hex-color.html"
       },
       {
+        "path": "selection/addRange.html",
+        "timeout": "long",
+        "url": "/selection/addRange.html"
+      },
+      {
         "path": "service-workers/cache-storage/common.https.html",
         "timeout": "long",
         "url": "/service-workers/cache-storage/common.https.html"
@@ -29105,24 +29054,8 @@
     ]
   },
   "local_changes": {
-    "deleted": [
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-      "2dcontext/transformations/canvas_transformations_reset_001.htm",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-    ],
-    "items": {
-      "testharness": {
-        "dom/nodes/CharacterData-surrogates.html": [
-          {
-            "path": "dom/nodes/CharacterData-surrogates.html",
-            "url": "/dom/nodes/CharacterData-surrogates.html"
-          }
-        ]
-      }
-    },
+    "deleted": [],
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -29520,18 +29453,6 @@
           ]
         ],
         "url": "/2dcontext/the-canvas-state/canvas_state_restore_001.htm"
-      }
-    ],
-    "2dcontext/transformations/canvas_transformations_reset_001.htm": [
-      {
-        "path": "2dcontext/transformations/canvas_transformations_reset_001.htm",
-        "references": [
-          [
-            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
-            "=="
-          ]
-        ],
-        "url": "/2dcontext/transformations/canvas_transformations_reset_001.htm"
       }
     ],
     "2dcontext/transformations/canvas_transformations_reset_001.html": [
@@ -30878,6 +30799,54 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       }
     ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-q.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-s.html"
+      }
+    ],
+    "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-x.xhtml"
+      }
+    ],
     "html/rendering/non-replaced-elements/tables/table-border-1.html": [
       {
         "path": "html/rendering/non-replaced-elements/tables/table-border-1.html",
@@ -31728,114 +31697,6 @@
           ]
         ],
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
-      }
-    ],
-    "quirks-mode/font-element-text-decoration-color/001-a.html": [
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-a.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-a.html"
-      }
-    ],
-    "quirks-mode/font-element-text-decoration-color/001-q.html": [
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-q.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-q.html"
-      }
-    ],
-    "quirks-mode/font-element-text-decoration-color/001-s.html": [
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-s.html",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-s.html"
-      }
-    ],
-    "quirks-mode/font-element-text-decoration-color/001-x.xhtml": [
-      {
-        "path": "quirks-mode/font-element-text-decoration-color/001-x.xhtml",
-        "references": [
-          [
-            "/quirks-mode/font-element-text-decoration-color/001-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/quirks-mode/font-element-text-decoration-color/001-x.xhtml"
-      }
-    ],
-    "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html": [
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html"
-      }
-    ],
-    "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html": [
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html"
-      }
-    ],
-    "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html": [
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html"
-      }
-    ],
-    "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html": [
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-      }
-    ],
-    "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html": [
-      {
-        "path": "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-        "references": [
-          [
-            "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html"
       }
     ],
     "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html": [
@@ -34599,7 +34460,7 @@
       }
     ]
   },
-  "rev": "acd60f9e55532f03fc905e61591b7fd7db2f08d1",
+  "rev": "cf8340b5fae7b820788ffc31f8cc6b6b04978002",
   "url_base": "/",
   "version": 2
 }

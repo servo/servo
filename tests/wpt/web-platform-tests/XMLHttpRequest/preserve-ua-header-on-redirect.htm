@@ -22,6 +22,22 @@
         client.open("POST", "resources/redirect.py?location="+encodeURIComponent("inspect-headers.py?filter_name=user-agent"))
         client.send(null)
       })
+
+      var test2 = async_test()
+      test2.step(function() {
+        var client = new XMLHttpRequest()
+          client.onreadystatechange = function() {
+            test2.step(function() {
+              if(client.readyState == 4) {
+                assert_equals(client.responseText, 'user-agent: TEST\n')
+                test2.done()
+              }
+            })
+          }
+        client.open("POST", "resources/redirect.py?location="+encodeURIComponent("inspect-headers.py?filter_name=user-agent"))
+        client.setRequestHeader("User-Agent", "TEST")
+        client.send(null)
+      })
     </script>
   </body>
 </html>

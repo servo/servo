@@ -1,1 +1,0 @@
-alert_assert('FAIL');
