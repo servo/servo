@@ -92,11 +92,11 @@ impl AttrValue {
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
-    pub fn as_uint(&self) -> Option<u32> {
+    pub fn as_uint(&self) -> u32 {
         if let AttrValue::UInt(_, value) = *self {
-            Some(value)
+            value
         } else {
-            None
+            panic!("Uint not found");
         }
     }
 }
