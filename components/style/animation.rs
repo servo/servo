@@ -798,26 +798,26 @@ fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<Transfor
     let mut result = vec!();
 
     for operation in list {
-        match operation {
-            &TransformOperation::Matrix(..) => {
+        match *operation {
+            TransformOperation::Matrix(..) => {
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
             }
-            &TransformOperation::Skew(..) => {
+            TransformOperation::Skew(..) => {
                 result.push(TransformOperation::Skew(0.0, 0.0));
             }
-            &TransformOperation::Translate(..) => {
+            TransformOperation::Translate(..) => {
                 result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
                                                           LengthOrPercentage::zero(),
                                                           Au(0)));
             }
-            &TransformOperation::Scale(..) => {
+            TransformOperation::Scale(..) => {
                 result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
             }
-            &TransformOperation::Rotate(..) => {
+            TransformOperation::Rotate(..) => {
                 result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
             }
-            &TransformOperation::Perspective(..) => {
+            TransformOperation::Perspective(..) => {
                 // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
                 let identity = ComputedMatrix::identity();
                 result.push(TransformOperation::Matrix(identity));
