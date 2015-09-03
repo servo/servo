@@ -114,7 +114,7 @@ pub struct LayoutTaskData {
     pub stacking_context: Option<Arc<StackingContext>>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    pub parallel_traversal: Option<WorkQueue>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -809,7 +809,7 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
-                                  traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+                                  traversal: &mut WorkQueue,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
