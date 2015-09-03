@@ -139,7 +139,7 @@ impl Window {
 
     #[cfg(not(target_os = "android"))]
     fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGl, (3, 0))
+        GlRequest::Specific(Api::OpenGl, (2, 1))
     }
 
     #[cfg(target_os = "android")]
