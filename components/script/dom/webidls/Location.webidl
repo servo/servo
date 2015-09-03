@@ -7,6 +7,6 @@
 /*[Unforgeable]*/ interface Location {
   void assign(DOMString url);
   //void replace(DOMString url);
-  //void reload();
+  void reload();
 };
 Location implements URLUtils;
