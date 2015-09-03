@@ -8,18 +8,30 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use string_cache::Atom;
 
+// Does not include the `--` prefix
+pub type Name = Atom;
+
+// https://drafts.csswg.org/css-variables/#typedef-custom-property-name
+pub fn parse_name(s: &str) -> Result<Name, ()> {
+    if s.starts_with("--") {
+        Ok(Atom::from_slice(&s[2..]))
+    } else {
+        Err(())
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Value {
     /// In CSS syntax
     value: String,
 
-    /// Custom property names in var() functions. Do not include the `--` prefix.
-    references: HashSet<Atom>,
+    /// Custom property names in var() functions.
+    references: HashSet<Name>,
 }
 
 pub struct BorrowedValue<'a> {
     value: &'a str,
-    references: Option<&'a HashSet<Atom>>,
+    references: Option<&'a HashSet<Name>>,
 }
 
 pub fn parse(input: &mut Parser) -> Result<Value, ()> {
@@ -35,7 +47,7 @@ pub fn parse(input: &mut Parser) -> Result<Value, ()> {
 }
 
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
-pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Atom>>)
+pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
                                -> Result<(), ()> {
     if input.is_exhausted() {
         // Need at least one token
@@ -77,7 +89,7 @@ pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashS
 
 /// Like parse_declaration_value,
 /// but accept `!` and `;` since they are only invalid at the top level
-fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<HashSet<Atom>>)
+fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<HashSet<Name>>)
                                  -> Result<(), ()> {
     while let Ok(token) = input.next() {
         match token {
@@ -111,30 +123,25 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
 }
 
 // If the var function is valid, return Ok((custom_property_name, fallback))
-fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Option<HashSet<Atom>>)
+fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Option<HashSet<Name>>)
                               -> Result<(), ()> {
-    // https://drafts.csswg.org/css-variables/#typedef-custom-property-name
     let name = try!(input.expect_ident());
-    let name = if name.starts_with("--") {
-        &name[2..]
-    } else {
-        return Err(())
-    };
+    let name = try!(parse_name(&name));
     if input.expect_comma().is_ok() {
         try!(parse_declaration_value(input, references));
     }
     if let Some(ref mut refs) = *references {
-        refs.insert(Atom::from_slice(name));
+        refs.insert(name);
     }
     Ok(())
 }
 
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
-pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValue<'a>>>,
-                   inherited: &'a Option<Arc<HashMap<Atom, String>>>,
-                   seen: &mut HashSet<&'a Atom>,
-                   name: &'a Atom,
+pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedValue<'a>>>,
+                   inherited: &'a Option<Arc<HashMap<Name, String>>>,
+                   seen: &mut HashSet<&'a Name>,
+                   name: &'a Name,
                    value: &'a DeclaredValue<Value>) {
     let was_not_already_present = seen.insert(name);
     if was_not_already_present {
@@ -166,9 +173,9 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Atom, BorrowedValu
     }
 }
 
-pub fn finish_cascade(custom_properties: Option<HashMap<&Atom, BorrowedValue>>,
-                      inherited: &Option<Arc<HashMap<Atom, String>>>)
-                      -> Option<Arc<HashMap<Atom, String>>> {
+pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedValue>>,
+                      inherited: &Option<Arc<HashMap<Name, String>>>)
+                      -> Option<Arc<HashMap<Name, String>>> {
     if let Some(mut map) = custom_properties {
         remove_cycles(&mut map);
         Some(Arc::new(substitute_all(map, inherited)))
@@ -179,7 +186,7 @@ pub fn finish_cascade(custom_properties: Option<HashMap<&Atom, BorrowedValue>>,
 
 /// https://drafts.csswg.org/css-variables/#cycles
 /// The initial value of a custom property is represented by this property not being in the map.
-fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
+fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
     let mut to_remove = HashSet::new();
     {
         let mut visited = HashSet::new();
@@ -187,11 +194,11 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
         for name in map.keys() {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
-            fn walk<'a>(map: &HashMap<&'a Atom, BorrowedValue<'a>>,
-                        name: &'a Atom,
-                        stack: &mut Vec<&'a Atom>,
-                        visited: &mut HashSet<&'a Atom>,
-                        to_remove: &mut HashSet<Atom>) {
+            fn walk<'a>(map: &HashMap<&'a Name, BorrowedValue<'a>>,
+                        name: &'a Name,
+                        stack: &mut Vec<&'a Name>,
+                        visited: &mut HashSet<&'a Name>,
+                        to_remove: &mut HashSet<Name>) {
                 let already_visited_before = !visited.insert(name);
                 if already_visited_before {
                     return
@@ -221,9 +228,9 @@ fn remove_cycles(map: &mut HashMap<&Atom, BorrowedValue>) {
 }
 
 /// Replace `var()` functions for all custom properties.
-fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Atom, String>>>)
-                  -> HashMap<Atom, String> {
+fn substitute_all(custom_properties: HashMap<&Name, BorrowedValue>,
+                  inherited: &Option<Arc<HashMap<Name, String>>>)
+                  -> HashMap<Name, String> {
     let mut substituted_map = HashMap::new();
     let mut invalid = HashSet::new();
     for (&name, value) in &custom_properties {
@@ -238,13 +245,13 @@ fn substitute_all(custom_properties: HashMap<&Atom, BorrowedValue>,
 /// Replace `var()` functions for one custom property.
 /// Also recursively record results for other custom properties referenced by `var()` functions.
 /// Return `Err(())` for invalid at computed time.
-fn substitute_one(name: &Atom,
+fn substitute_one(name: &Name,
                   value: &BorrowedValue,
-                  custom_properties: &HashMap<&Atom, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Atom, String>>>,
+                  custom_properties: &HashMap<&Name, BorrowedValue>,
+                  inherited: &Option<Arc<HashMap<Name, String>>>,
                   substituted: Option<&mut String>,
-                  substituted_map: &mut HashMap<Atom, String>,
-                  invalid: &mut HashSet<Atom>)
+                  substituted_map: &mut HashMap<Name, String>,
+                  invalid: &mut HashSet<Name>)
                   -> Result<(), ()> {
     if let Some(value) = substituted_map.get(name) {
         if let Some(substituted) = substituted {
@@ -305,7 +312,7 @@ fn substitute_block<F>(input: &mut Parser,
                        substituted: &mut String,
                        substitute_one: &mut F)
                        -> Result<(), ()>
-                       where F: FnMut(&Atom, &mut String) -> Result<(), ()> {
+                       where F: FnMut(&Name, &mut String) -> Result<(), ()> {
     loop {
         let input_slice = input.slice_from(*start);
         let token = if let Ok(token) = input.next() { token } else { break };
@@ -313,9 +320,9 @@ fn substitute_block<F>(input: &mut Parser,
             Token::Function(ref name) if name == "var" => {
                 substituted.push_str(input_slice);
                 try!(input.parse_nested_block(|input| {
+                    // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
-                    debug_assert!(name.starts_with("--"));  // Ensured by parse_var_function()
-                    let name = Atom::from_slice(&name[2..]);
+                    let name = parse_name(&name).unwrap();
 
                     if substitute_one(&name, substituted).is_ok() {
                         // Skip over the fallback, as `parse_nested_block` would return `Err`
@@ -356,7 +363,7 @@ fn substitute_block<F>(input: &mut Parser,
 
 /// Replace `var()` functions for a non-custom property.
 /// Return `Err(())` for invalid at computed time.
-pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Atom, String>>>)
+pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Name, String>>>)
                   -> Result<String, ()> {
     let empty_map;
     let custom_properties = if let &Some(ref arc) = custom_properties {

@@ -5727,8 +5727,7 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
-    /// Name (atom) does not include the `--` prefix.
-    Custom(Atom, DeclaredValue<::custom_properties::Value>),
+    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::Value>),
 }
 
 
@@ -5779,7 +5778,7 @@ impl PropertyDeclaration {
 
     pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>) -> PropertyDeclarationParseResult {
-        if name.starts_with("--") {
+        if let Ok(name) = ::custom_properties::parse_name(name) {
             let value = match input.try(CSSWideKeyword::parse) {
                 Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
                 Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
@@ -5789,7 +5788,6 @@ impl PropertyDeclaration {
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
-            let name = Atom::from_slice(&name[2..]);
             result_list.push(PropertyDeclaration::Custom(name, value));
             return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
@@ -5900,8 +5898,7 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    /// Names (atoms) do not include the `--` prefix.
-    custom_properties: Option<Arc<HashMap<Atom, String>>>,
+    custom_properties: Option<Arc<HashMap<::custom_properties::Name, String>>>,
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
