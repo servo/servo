@@ -16,7 +16,7 @@ use util::str::c_str_to_string;
 
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
-use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table};
+use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
 use freetype::freetype::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
@@ -38,11 +38,13 @@ fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
-pub struct FontTable;
+pub struct FontTable {
+    buffer: Vec<u8>,
+}
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, usize) {
-        panic!()
+    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, usize) {
+        blk(self.buffer.as_ptr(), self.buffer.len())
     }
 }
 
@@ -261,8 +263,22 @@ impl FontHandleMethods for FontHandle {
         return metrics;
     }
 
-    fn get_table_for_tag(&self, _: FontTableTag) -> Option<FontTable> {
-        None
+    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
+        let tag = tag as FT_ULong;
+
+        unsafe {
+            // Get the length
+            let mut len = 0;
+            if !FT_Load_Sfnt_Table(self.face, tag, 0, ptr::null_mut(), &mut len).succeeded() {
+                return None
+            }
+            // Get the bytes
+            let mut buf = vec![0u8; len as usize];
+            if !FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len).succeeded() {
+                return None
+            }
+            Some(box FontTable { buffer: buf })
+        }
     }
 }
 

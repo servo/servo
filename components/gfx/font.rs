@@ -42,7 +42,7 @@ pub trait FontHandleMethods: Sized {
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn glyph_h_kerning(&self, GlyphId, GlyphId) -> FractionalPixel;
     fn metrics(&self) -> FontMetrics;
-    fn get_table_for_tag(&self, FontTableTag) -> Option<FontTable>;
+    fn get_table_for_tag(&self, FontTableTag) -> Option<Box<FontTable>>;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -170,7 +170,7 @@ impl Font {
         self.shaper.as_ref().unwrap()
     }
 
-    pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+    pub fn get_table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 

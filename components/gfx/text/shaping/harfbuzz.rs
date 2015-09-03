@@ -41,7 +41,6 @@ use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_uint, c_int, c_void, c_char};
 use std::char;
 use std::cmp;
-use std::mem;
 use std::ptr;
 use util::geometry::Au;
 use util::range::Range;
@@ -616,16 +615,19 @@ extern fn get_font_table_func(_: *mut hb_face_t,
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*(*font_and_shaping_options).font).get_table_for_tag(tag as FontTableTag) {
             None => ptr::null_mut(),
-            Some(ref font_table) => {
-                let skinny_font_table_ptr: *const FontTable = font_table;   // private context
+            Some(font_table) => {
+                // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
+                // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
+                // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
+                let font_table_ptr = Box::into_raw(font_table);
 
                 let mut blob: *mut hb_blob_t = ptr::null_mut();
-                (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
+                (*font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
                     blob = RUST_hb_blob_create(buf as *const c_char,
                                                len as c_uint,
                                                HB_MEMORY_MODE_READONLY,
-                                               mem::transmute(skinny_font_table_ptr),
+                                               font_table_ptr as *mut c_void,
                                                destroy_blob_func);
                 });
 
@@ -636,10 +638,8 @@ extern fn get_font_table_func(_: *mut hb_face_t,
     }
 }
 
-// TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-// In particular, we'll need to cast to a boxed, rather than owned, FontTable.
-
-// even better, should cache the harfbuzz blobs directly instead of recreating a lot.
-extern fn destroy_blob_func(_: *mut c_void) {
-    // TODO: Previous code here was broken. Rewrite.
+extern fn destroy_blob_func(font_table_ptr: *mut c_void) {
+    unsafe {
+        drop(Box::from_raw(font_table_ptr as *mut FontTable));
+    }
 }

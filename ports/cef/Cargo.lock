@@ -489,7 +489,7 @@ dependencies = [
 [[package]]
 name = "freetype"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-freetype#507cee774458dc704c902d405bb869fb286f7a64"
+source = "git+https://github.com/servo/rust-freetype#d564ff90a3c69d987f5c015d7ec034cfaee21aff"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
