@@ -8,7 +8,7 @@ use clock_ticks;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
-use layout_task::{LayoutTask, LayoutTaskData};
+use layout_task::{LayoutTask, LayoutTaskData, LayoutTaskUnfrozen};
 use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::ConstellationControlMsg;
@@ -49,7 +49,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 }
 
 /// Processes any new animations that were discovered after style recalculation.
-pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
+pub fn process_new_animations(rw_data: &mut LayoutTaskUnfrozen, pipeline_id: PipelineId) {
     let mut new_running_animations = Vec::new();
     while let Ok(animation) = rw_data.new_animations_receiver.try_recv() {
         new_running_animations.push(animation)

@@ -43,7 +43,7 @@ use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, Pipel
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
 use net_traits::{load_bytes_iter, PendingAsyncLoad};
 use opaque_node::OpaqueNodeMethods;
-use parallel::{self, WorkQueueData};
+use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, ProfilerMetadata, profile};
@@ -98,26 +98,34 @@ const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutTaskData {
+    pub frozen: LayoutTaskFrozen,
+    pub unfrozen: LayoutTaskUnfrozen,
+}
+
+pub struct LayoutTaskFrozen {
+    /// The size of the viewport.
+    pub screen_size: Size2D<Au>,
+
+    /// Performs CSS selector matching and style resolution.
+    pub stylist: Stylist,
+
+    /// The position and size of the visible rect for each layer. We do not build display lists
+    /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
+    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
+}
+
+pub struct LayoutTaskUnfrozen {
     /// The root of the flow tree.
     pub root_flow: Option<FlowRef>,
-
-    /// The image cache.
-    pub image_cache_task: ImageCacheTask,
 
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// The size of the viewport.
-    pub screen_size: Size2D<Au>,
-
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
 
-    /// Performs CSS selector matching and style resolution.
-    pub stylist: Box<Stylist>,
-
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    pub parallel_traversal: Option<WorkQueue>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -150,17 +158,11 @@ pub struct LayoutTaskData {
 
     /// A counter for epoch messages
     epoch: Epoch,
-
-    /// The position and size of the visible rect for each layer. We do not build display lists
-    /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
-    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 }
 
-impl LayoutTaskData {
+impl LayoutTaskUnfrozen {
     pub fn layout_root(&self) -> Option<FlowRef> {
-        self.root_flow.as_ref().map(|root_flow| {
-            root_flow.clone()
-        })
+        self.root_flow.clone()
     }
 }
 
@@ -351,7 +353,7 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
-        let stylist = box Stylist::new(device);
+        let stylist = Stylist::new(device);
         for user_or_user_agent_stylesheet in stylist.stylesheets() {
             add_font_face_rules(user_or_user_agent_stylesheet, &stylist.device, &font_cache_task);
         }
@@ -368,7 +370,7 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            image_cache_task: image_cache_task.clone(),
+            image_cache_task: image_cache_task,
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
@@ -377,24 +379,27 @@ impl LayoutTask {
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
-                    root_flow: None,
-                    image_cache_task: image_cache_task,
-                    constellation_chan: constellation_chan,
-                    screen_size: screen_size,
-                    stacking_context: None,
-                    stylist: stylist,
-                    parallel_traversal: parallel_traversal,
-                    generation: 0,
-                    content_box_response: Rect::zero(),
-                    content_boxes_response: Vec::new(),
-                    client_rect_response: Rect::zero(),
-                    resolved_style_response: None,
-                    running_animations: Arc::new(HashMap::new()),
-                    offset_parent_response: OffsetParentResponse::empty(),
-                    visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
-                    new_animations_receiver: new_animations_receiver,
-                    new_animations_sender: new_animations_sender,
-                    epoch: Epoch(0),
+                    frozen: LayoutTaskFrozen {
+                        screen_size: screen_size,
+                        stylist: stylist,
+                        visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
+                    },
+                    unfrozen: LayoutTaskUnfrozen {
+                        root_flow: None,
+                        constellation_chan: constellation_chan,
+                        stacking_context: None,
+                        parallel_traversal: parallel_traversal,
+                        generation: 0,
+                        content_box_response: Rect::zero(),
+                        content_boxes_response: Vec::new(),
+                        client_rect_response: Rect::zero(),
+                        resolved_style_response: None,
+                        running_animations: Arc::new(HashMap::new()),
+                        offset_parent_response: OffsetParentResponse::empty(),
+                        new_animations_receiver: new_animations_receiver,
+                        new_animations_sender: new_animations_sender,
+                        epoch: Epoch(0),
+                    }
               })),
         }
     }
@@ -407,31 +412,34 @@ impl LayoutTask {
         }
     }
 
-    // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_shared_layout_context(&self,
-                                   rw_data: &LayoutTaskData,
-                                   screen_size_changed: bool,
-                                   reflow_root: Option<&LayoutNode>,
-                                   url: &Url,
-                                   goal: ReflowGoal)
-                                   -> SharedLayoutContext {
+    /// Create a layout context for use in building display lists, hit testing, &c.
+    fn build_shared_layout_context<'a>(&self,
+                                       rw_unfrozen: &LayoutTaskUnfrozen,
+                                       rw_frozen: &'a LayoutTaskFrozen,
+                                       screen_size_changed: bool,
+                                       reflow_root: Option<&LayoutNode>,
+                                       url: &Url,
+                                       goal: ReflowGoal)
+                                       -> SharedLayoutContext<'a> {
+        // FIXME: Building a shared layout context currently involves accessing
+        // LayoutTaskUnfrozen, which means the data could become outdated.
         SharedLayoutContext {
-            image_cache_task: rw_data.image_cache_task.clone(),
+            image_cache_task: self.image_cache_task.clone(),
+            screen_size: rw_frozen.screen_size.clone(),
             image_cache_sender: self.image_cache_sender.clone(),
-            screen_size: rw_data.screen_size.clone(),
             screen_size_changed: screen_size_changed,
-            constellation_chan: rw_data.constellation_chan.clone(),
+            constellation_chan: rw_unfrozen.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
             canvas_layers_sender: self.canvas_layers_sender.clone(),
-            stylist: &*rw_data.stylist,
+            stylist: &rw_frozen.stylist,
             url: (*url).clone(),
             reflow_root: reflow_root.map(|node| node.opaque()),
-            visible_rects: rw_data.visible_rects.clone(),
-            generation: rw_data.generation,
-            new_animations_sender: rw_data.new_animations_sender.clone(),
+            visible_rects: rw_frozen.visible_rects.clone(),
+            generation: rw_unfrozen.generation,
+            new_animations_sender: rw_unfrozen.new_animations_sender.clone(),
             goal: goal,
-            running_animations: rw_data.running_animations.clone(),
+            running_animations: rw_unfrozen.running_animations.clone(),
         }
     }
 
@@ -538,14 +546,16 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+        let mut rw_data = &mut *rw_data;
+        let mut layout_context = self.build_shared_layout_context(&rw_data.unfrozen,
+                                                                  &rw_data.frozen,
                                                                   false,
                                                                   None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     &mut *rw_data,
+                                                     &mut rw_data.unfrozen,
                                                      &mut layout_context);
 
 
@@ -594,7 +604,7 @@ impl LayoutTask {
             },
             Msg::GetCurrentEpoch(sender) => {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
-                sender.send(rw_data.epoch).unwrap();
+                sender.send(rw_data.unfrozen.epoch).unwrap();
             },
             Msg::CreateLayoutTask(info) => {
                 self.create_layout_task(info)
@@ -620,7 +630,7 @@ impl LayoutTask {
 
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        let stacking_context = rw_data.stacking_context.as_ref();
+        let stacking_context = rw_data.unfrozen.stacking_context.as_ref();
         reports.push(Report {
             path: path![format!("url({})", self.url), "layout-task", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -635,7 +645,7 @@ impl LayoutTask {
         });
 
         // ... as do each of the LayoutWorkers, if present.
-        if let Some(ref traversal) = rw_data.parallel_traversal {
+        if let Some(ref traversal) = rw_data.unfrozen.parallel_traversal {
             let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
             for (i, size) in sizes.iter().enumerate() {
                 reports.push(Report {
@@ -708,7 +718,7 @@ impl LayoutTask {
 
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-            if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
+            if let Some(ref mut traversal) = (&mut *rw_data).unfrozen.parallel_traversal {
                 traversal.shutdown()
             }
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
@@ -756,10 +766,9 @@ impl LayoutTask {
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-
-        if mq.evaluate(&rw_data.stylist.device) {
-            add_font_face_rules(&sheet, &rw_data.stylist.device, &self.font_cache_task);
-            rw_data.stylist.add_stylesheet(sheet);
+        if mq.evaluate(&rw_data.frozen.stylist.device) {
+            add_font_face_rules(&sheet, &rw_data.frozen.stylist.device, &self.font_cache_task);
+            rw_data.frozen.stylist.add_stylesheet(sheet);
         }
 
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
@@ -770,7 +779,7 @@ impl LayoutTask {
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_quirks_mode_stylesheet();
+        rw_data.frozen.stylist.add_quirks_mode_stylesheet();
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -820,7 +829,7 @@ impl LayoutTask {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(&self,
-                                  traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+                                  traversal: &mut WorkQueue,
                                   layout_root: &mut FlowRef,
                                   shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
@@ -854,7 +863,7 @@ impl LayoutTask {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.client_rect_response = iterator.client_rect;
+        rw_data.unfrozen.client_rect_response = iterator.client_rect;
     }
 
     // Compute the resolved value of property for a given (pseudo)element.
@@ -888,7 +897,7 @@ impl LayoutTask {
                 // The pseudo doesn't exist, return nothing.  Chrome seems to query
                 // the element itself in this case, Firefox uses the resolved value.
                 // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
-                rw_data.resolved_style_response = None;
+                rw_data.unfrozen.resolved_style_response = None;
                 return;
             }
             Some(layout_node) => layout_node
@@ -940,7 +949,7 @@ impl LayoutTask {
                                                                    style.writing_mode);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                rw_data.unfrozen.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
@@ -973,11 +982,11 @@ impl LayoutTask {
                                                                      position);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                rw_data.unfrozen.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
             // FIXME: implement used value computation for line-height
             property => {
-                rw_data.resolved_style_response =
+                rw_data.unfrozen.resolved_style_response =
                     style.computed_value_to_string(property.as_slice()).ok();
             }
         };
@@ -996,13 +1005,13 @@ impl LayoutTask {
                 let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
                 let origin = iterator.node_border_box.origin - parent.border_box.origin;
                 let size = iterator.node_border_box.size;
-                rw_data.offset_parent_response = OffsetParentResponse {
+                rw_data.unfrozen.offset_parent_response = OffsetParentResponse {
                     node_address: Some(parent.node_address.to_untrusted_node_address()),
                     rect: Rect::new(origin, size),
                 };
             }
             None => {
-                rw_data.offset_parent_response = OffsetParentResponse::empty();
+                rw_data.unfrozen.offset_parent_response = OffsetParentResponse::empty();
             }
         }
     }
@@ -1011,7 +1020,7 @@ impl LayoutTask {
                                                   data: &Reflow,
                                                   layout_root: &mut FlowRef,
                                                   shared_layout_context: &mut SharedLayoutContext,
-                                                  rw_data: &mut LayoutTaskData) {
+                                                  rw_data: &mut LayoutTaskUnfrozen) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(),
@@ -1019,7 +1028,7 @@ impl LayoutTask {
                 || {
             flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             rw_data.screen_size);
+                                                             shared_layout_context.screen_size);
 
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
@@ -1045,7 +1054,7 @@ impl LayoutTask {
                     flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
-                    if rw_data.stylist.constrain_viewport().is_some() {
+                    if shared_layout_context.stylist.constrain_viewport().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
                         root_flow.overflow.size
@@ -1114,36 +1123,36 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         let initial_viewport = data.window_size.initial_viewport;
-        let old_screen_size = rw_data.screen_size;
+        let old_screen_size = rw_data.frozen.screen_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                               Au::from_f32_px(initial_viewport.height.get()));
-        rw_data.screen_size = current_screen_size;
+        rw_data.frozen.screen_size = current_screen_size;
 
         // Handle conditions where the entire flow tree is invalid.
         let screen_size_changed = current_screen_size != old_screen_size;
         if screen_size_changed {
             // Calculate the actual viewport as per DEVICE-ADAPT § 6
             let device = Device::new(MediaType::Screen, initial_viewport);
-            rw_data.stylist.set_device(device);
+            rw_data.frozen.stylist.set_device(device);
 
-            if let Some(constraints) = rw_data.stylist.constrain_viewport() {
+            if let Some(constraints) = rw_data.frozen.stylist.constrain_viewport() {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
-                                                  Au::from_f32_px(constraints.size.height.get()));
+                rw_data.frozen.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
+                                                           Au::from_f32_px(constraints.size.height.get()));
                 let device = Device::new(MediaType::Screen, constraints.size);
-                rw_data.stylist.set_device(device);
+                rw_data.frozen.stylist.set_device(device);
 
                 // let the constellation know about the viewport constraints
-                let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+                let ConstellationChan(ref constellation_chan) = rw_data.unfrozen.constellation_chan;
                 constellation_chan.send(ConstellationMsg::ViewportConstrained(
                         self.id, constraints)).unwrap();
             }
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update();
+        let needs_dirtying = rw_data.frozen.stylist.update();
         let needs_reflow = screen_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
@@ -1156,50 +1165,54 @@ impl LayoutTask {
             }
         }
 
-        // Create a layout context for use throughout the following passes.
-        let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                         screen_size_changed,
-                                                                         Some(&node),
-                                                                         &self.url,
-                                                                         data.reflow_info.goal);
+        {
+            let mut rw_data = &mut *rw_data;
+            let mut rw_data_unfrozen = &mut rw_data.unfrozen;
+            // Create a layout context for use throughout the following passes.
+            let mut shared_layout_context = self.build_shared_layout_context(rw_data_unfrozen,
+                                                                             &rw_data.frozen,
+                                                                             screen_size_changed,
+                                                                             Some(&node),
+                                                                             &self.url,
+                                                                             data.reflow_info.goal);
 
-        if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
-            // Recalculate CSS styles and rebuild flows and fragments.
-            profile(time::ProfilerCategory::LayoutStyleRecalc,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                // Perform CSS selector matching and flow construction.
-                let rw_data = &mut *rw_data;
-                match rw_data.parallel_traversal {
-                    None => {
-                        sequential::traverse_dom_preorder(*node, &shared_layout_context);
+            if node.is_dirty() || node.has_dirty_descendants() || rw_data.frozen.stylist.is_dirty() {
+                // Recalculate CSS styles and rebuild flows and fragments.
+                profile(time::ProfilerCategory::LayoutStyleRecalc,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                    // Perform CSS selector matching and flow construction.
+                    match rw_data_unfrozen.parallel_traversal {
+                        None => {
+                            sequential::traverse_dom_preorder(*node, &shared_layout_context);
+                        }
+                        Some(ref mut traversal) => {
+                            parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
+                        }
                     }
-                    Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
-                    }
-                }
-            });
+                });
 
-            // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = self.try_get_layout_root((*node).clone());
+                // Retrieve the (possibly rebuilt) root flow.
+                rw_data_unfrozen.root_flow = self.try_get_layout_root((*node).clone());
 
-            // Kick off animations if any were triggered.
-            animation::process_new_animations(&mut *rw_data, self.id);
+                // Kick off animations if any were triggered.
+                animation::process_new_animations(rw_data_unfrozen, self.id);
+            }
+
+            // Send new canvas renderers to the paint task
+            while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
+                // Just send if there's an actual renderer
+                self.paint_chan.send(LayoutToPaintMsg::CanvasLayer(layer_id, renderer)).unwrap();
+            }
+
+            // Perform post-style recalculation layout passes.
+            self.perform_post_style_recalc_layout_passes(&data.reflow_info,
+                                                         &mut rw_data_unfrozen,
+                                                         &mut shared_layout_context);
         }
 
-        // Send new canvas renderers to the paint task
-        while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
-            // Just send if there's an actual renderer
-            self.paint_chan.send(LayoutToPaintMsg::CanvasLayer(layer_id, renderer)).unwrap();
-        }
-
-        // Perform post-style recalculation layout passes.
-        self.perform_post_style_recalc_layout_passes(&data.reflow_info,
-                                                     &mut rw_data,
-                                                     &mut shared_layout_context);
-
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = rw_data.unfrozen.layout_root() {
             match data.query_type {
                 ReflowQueryType::ContentBoxQuery(node) =>
                     process_content_box_request(node, &mut root_flow, &mut rw_data),
@@ -1233,6 +1246,7 @@ impl LayoutTask {
                              possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
                              -> bool {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let mut rw_data = &mut *rw_data;
 
         // First, determine if we need to regenerate the display lists. This will happen if the
         // layers have moved more than `DISPLAY_PORT_THRESHOLD_SIZE_FACTOR` away from their last
@@ -1240,10 +1254,10 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                        rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(rw_data.frozen.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        rw_data.frozen.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
-            match rw_data.visible_rects.get(layer_id) {
+            match rw_data.frozen.visible_rects.get(layer_id) {
                 None => {
                     old_visible_rects.insert(*layer_id, *new_visible_rect);
                 }
@@ -1260,7 +1274,7 @@ impl LayoutTask {
 
         if !must_regenerate_display_lists {
             // Update `visible_rects` in case there are new layers that were discovered.
-            rw_data.visible_rects = Arc::new(old_visible_rects);
+            rw_data.frozen.visible_rects = Arc::new(old_visible_rects);
             return true
         }
 
@@ -1268,7 +1282,7 @@ impl LayoutTask {
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             old_visible_rects.insert(*layer_id, *new_visible_rect);
         }
-        rw_data.visible_rects = Arc::new(old_visible_rects);
+        rw_data.frozen.visible_rects = Arc::new(old_visible_rects);
 
         // Regenerate the display lists.
         let reflow_info = Reflow {
@@ -1276,13 +1290,14 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+        let mut layout_context = self.build_shared_layout_context(&rw_data.unfrozen,
+                                                                  &rw_data.frozen,
                                                                   false,
                                                                   None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
+        self.perform_post_main_layout_passes(&reflow_info, &mut rw_data.unfrozen, &mut layout_context);
         true
     }
 
@@ -1299,15 +1314,16 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+        let mut layout_context = self.build_shared_layout_context(&rw_data.unfrozen,
+                                                                  &rw_data.frozen,
                                                                   false,
                                                                   None,
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = rw_data.unfrozen.layout_root() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = &*rw_data.running_animations;
+            let animations = &*rw_data.unfrozen.running_animations;
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1318,13 +1334,13 @@ impl LayoutTask {
         }
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     &mut *rw_data,
+                                                     &mut rw_data.unfrozen,
                                                      &mut layout_context);
     }
 
     fn perform_post_style_recalc_layout_passes<'a>(&'a self,
                                                    data: &Reflow,
-                                                   rw_data: &mut LayoutTaskData,
+                                                   rw_data: &mut LayoutTaskUnfrozen,
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = rw_data.layout_root() {
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
@@ -1379,7 +1395,7 @@ impl LayoutTask {
 
     fn perform_post_main_layout_passes<'a>(&'a self,
                                            data: &Reflow,
-                                           rw_data: &mut LayoutTaskData,
+                                           rw_data: &mut LayoutTaskUnfrozen,
                                            layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = rw_data.layout_root() {

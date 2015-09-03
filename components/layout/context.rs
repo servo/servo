@@ -75,7 +75,7 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
 }
 
 /// Layout information shared among all workers. This must be thread-safe.
-pub struct SharedLayoutContext {
+pub struct SharedLayoutContext<'a> {
     /// The shared image cache task.
     pub image_cache_task: ImageCacheTask,
 
@@ -98,9 +98,7 @@ pub struct SharedLayoutContext {
     pub font_cache_task: FontCacheTask,
 
     /// The CSS selector stylist.
-    ///
-    /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: *const Stylist,
+    pub stylist: &'a Stylist,
 
     /// The root node at which we're starting the layout.
     pub reflow_root: Option<OpaqueNode>,
@@ -129,20 +127,8 @@ pub struct SharedLayoutContext {
     pub goal: ReflowGoal,
 }
 
-// FIXME(#6569) This implementations is unsound:
-// XXX UNSOUND!!! for image_cache_task
-// XXX UNSOUND!!! for image_cache_sender
-// XXX UNSOUND!!! for constellation_chan
-// XXX UNSOUND!!! for layout_chan
-// XXX UNSOUND!!! for font_cache_task
-// XXX UNSOUND!!! for stylist
-// XXX UNSOUND!!! for new_animations_sender
-// XXX UNSOUND!!! for canvas_layers_sender
-#[allow(unsafe_code)]
-unsafe impl Sync for SharedLayoutContext {}
-
 pub struct LayoutContext<'a> {
-    pub shared: &'a SharedLayoutContext,
+    pub shared: &'a SharedLayoutContext<'a>,
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
