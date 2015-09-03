@@ -91,7 +91,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "block"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -975,7 +975,7 @@ name = "objc-foundation"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "block 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "block 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc_id 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
