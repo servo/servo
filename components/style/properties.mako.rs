@@ -6456,15 +6456,15 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
     }
 }
 
-/// Adjusts borders, padding, and margins as appropriate to account for a fragment's status as the
-/// first or last fragment within the range of an element.
+/// Adjusts borders as appropriate to account for a fragment's status as the first or last fragment
+/// within the range of an element.
 ///
-/// Specifically, this function sets border/padding/margin widths to zero on the sides for which
-/// the fragment is not outermost.
+/// Specifically, this function sets border widths to zero on the sides for which the fragment is
+/// not outermost.
 #[inline]
-pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
-                                     is_first_fragment_of_element: bool,
-                                     is_last_fragment_of_element: bool) {
+pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
+                                            is_first_fragment_of_element: bool,
+                                            is_last_fragment_of_element: bool) {
     fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
         let mut style = Arc::make_mut(style);
         let border = Arc::make_mut(&mut style.border);
@@ -6472,34 +6472,18 @@ pub fn modify_style_for_inline_sides(style: &mut Arc<ComputedValues>,
             PhysicalSide::Left => {
                 border.border_left_width = Au(0);
                 border.border_left_style = BorderStyle::none;
-                Arc::make_mut(&mut style.padding).padding_left =
-                    computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_mut(&mut style.margin).margin_left =
-                    computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Right => {
                 border.border_right_width = Au(0);
                 border.border_right_style = BorderStyle::none;
-                Arc::make_mut(&mut style.padding).padding_right =
-                    computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_mut(&mut style.margin).margin_right =
-                    computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Bottom => {
                 border.border_bottom_width = Au(0);
                 border.border_bottom_style = BorderStyle::none;
-                Arc::make_mut(&mut style.padding).padding_bottom =
-                    computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_mut(&mut style.margin).margin_bottom =
-                    computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
             PhysicalSide::Top => {
                 border.border_top_width = Au(0);
                 border.border_top_style = BorderStyle::none;
-                Arc::make_mut(&mut style.padding).padding_top =
-                    computed::LengthOrPercentage::Length(Au(0));
-                Arc::make_mut(&mut style.margin).margin_top =
-                    computed::LengthOrPercentageOrAuto::Length(Au(0))
             }
         }
     }
@@ -6534,7 +6518,7 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValu
     box_style.position = longhands::position::computed_value::T::static_
 }
 
-/// Adjusts the `position` property as necessary to account for text.
+/// Adjusts the `position` and `padding` properties as necessary to account for text.
 ///
 /// Text is never directly relatively positioned; it's always contained within an element that is
 /// itself relatively positioned.
@@ -6549,6 +6533,18 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
         position_offsets.right = computed::LengthOrPercentageOrAuto::Auto;
         position_offsets.bottom = computed::LengthOrPercentageOrAuto::Auto;
         position_offsets.left = computed::LengthOrPercentageOrAuto::Auto;
+    }
+
+    if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||
+            style.padding.padding_right != computed::LengthOrPercentage::Length(Au(0)) ||
+            style.padding.padding_bottom != computed::LengthOrPercentage::Length(Au(0)) ||
+            style.padding.padding_left != computed::LengthOrPercentage::Length(Au(0)) {
+        let mut style = Arc::make_unique(style);
+        let mut padding = Arc::make_unique(&mut style.padding);
+        padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
+        padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
+        padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
+        padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
     }
 }
 

@@ -184,7 +184,6 @@ impl TextRunScanner {
                 };
 
                 let (mut start_position, mut end_position) = (0, 0);
-
                 for character in text.chars() {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
@@ -286,10 +285,15 @@ impl TextRunScanner {
         for (logical_offset, old_fragment) in
                 mem::replace(&mut self.clump, LinkedList::new()).into_iter().enumerate() {
              loop {
-                 match mappings.peek() {
-                     Some(mapping) if mapping.old_fragment_index == logical_offset => {}
-                     Some(_) | None => break,
-                 };
+                match mappings.peek() {
+                    Some(mapping) if mapping.old_fragment_index == logical_offset => {}
+                    Some(_) | None => {
+                        if let Some(ref mut last_fragment) = out_fragments.last_mut() {
+                            last_fragment.meld_with_next_inline_fragment(&old_fragment);
+                        }
+                        break;
+                    }
+                };
 
                 let mut mapping = mappings.next().unwrap();
                 let run = runs[mapping.text_run_index].clone();
