@@ -279,8 +279,6 @@ fn substitute_one(name: &Name,
             substituted
         } else {
             // Invalid at computed-value time. Use the inherited value.
-            // FIXME: Should it be the inital value instead?
-            // See https://lists.w3.org/Archives/Public/www-style/2015Jul/0354.html
             if let Some(value) = inherited.as_ref().and_then(|i| i.get(name)) {
                 value.clone()
             } else {
