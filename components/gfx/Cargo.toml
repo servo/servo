@@ -103,3 +103,18 @@ git = "https://github.com/servo/rust-freetype"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
+
+[target.x86_64-unknown-linux-gnu.dependencies.simd]
+git = "https://github.com/huonw/simd"
+
+[target.x86_64-apple-darwin.dependencies.simd]
+git = "https://github.com/huonw/simd"
+
+[target.aarch64-unknown-linux-gnu.dependencies.simd]
+git = "https://github.com/huonw/simd"
+
+[target.x86_64-pc-windows-gnu.dependencies.simd]
+git = "https://github.com/huonw/simd"
+
+[target.x86_64-pc-windows-msvc.dependencies.simd]
+git = "https://github.com/huonw/simd"
