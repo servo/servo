@@ -738,13 +738,17 @@ impl LineBreaker {
                                                     layout_context: &LayoutContext) {
         let indentation = self.indentation_for_pending_fragment();
         self.pending_line.range.extend_by(FragmentIndex(1));
-        self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
-            fragment.margin_box_inline_size() +
-            indentation;
-        self.pending_line.inline_metrics =
-            self.new_inline_metrics_for_line(&fragment, layout_context);
-        self.pending_line.bounds.size.block =
-            self.new_block_size_for_line(&fragment, layout_context);
+
+        if !fragment.is_inline_absolute() {
+            self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
+                fragment.margin_box_inline_size() +
+                indentation;
+            self.pending_line.inline_metrics =
+                self.new_inline_metrics_for_line(&fragment, layout_context);
+            self.pending_line.bounds.size.block =
+                self.new_block_size_for_line(&fragment, layout_context);
+        }
+
         self.new_fragments.push(fragment);
     }
 
@@ -1079,8 +1083,11 @@ impl InlineFlow {
                                                        fragment.border_box.size.inline,
                                                        fragment.border_box.size.block);
                 fragment.update_late_computed_inline_position_if_necessary();
-                inline_start_position_for_fragment = inline_start_position_for_fragment +
-                    fragment.border_box.size.inline + fragment.margin.inline_end;
+
+                if !fragment.is_inline_absolute() {
+                    inline_start_position_for_fragment = inline_start_position_for_fragment +
+                        fragment.border_box.size.inline + fragment.margin.inline_end;
+                }
             }
         }
     }
