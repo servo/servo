@@ -15,6 +15,9 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
+[dependencies.style_traits]
+path = "../style_traits"
+
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 features = ["unstable"]
@@ -42,4 +45,3 @@ string_cache_plugin = "0.1"
 euclid = "0.1"
 serde = "0.5"
 serde_macros = "0.5"
-

@@ -25,7 +25,7 @@ use profile_traits::time;
 use std::fmt::{Error, Formatter, Debug};
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender, Receiver};
-use style::viewport::ViewportConstraints;
+use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 

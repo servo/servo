@@ -18,7 +18,7 @@ extern crate rustc_serialize;
 extern crate serde;
 extern crate util;
 extern crate url;
-extern crate style;
+extern crate style_traits;
 
 #[cfg(target_os = "macos")]
 extern crate core_foundation;

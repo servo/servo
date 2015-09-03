@@ -46,7 +46,7 @@ use std::mem as std_mem;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::Sender;
-use style::viewport::ViewportConstraints;
+use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
 use util::geometry::{Au, PagePx, ScreenPx, ViewportPx};

@@ -10,6 +10,7 @@ extern crate euclid;
 extern crate selectors;
 extern crate string_cache;
 extern crate style;
+extern crate style_traits;
 extern crate url;
 extern crate util;
 

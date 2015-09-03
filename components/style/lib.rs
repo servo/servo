@@ -42,6 +42,8 @@ extern crate lazy_static;
 extern crate num;
 extern crate util;
 
+#[macro_use]
+extern crate style_traits;
 
 mod custom_properties;
 pub mod stylesheets;
