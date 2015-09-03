@@ -292,6 +292,7 @@ impl<'a> FlowConstructor<'a> {
             layout_data.remove_compositor_layers(self.layout_context
                                                      .shared
                                                      .constellation_chan
+                                                     .lock().unwrap()
                                                      .clone());
         }
 
