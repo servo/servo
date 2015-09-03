@@ -185,8 +185,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
                     if node.as_element().is_some() {
                         // Perform the CSS selector matching.
-                        let stylist = unsafe { &*self.layout_context.shared.stylist };
-                        node.match_node(stylist,
+                        let stylist = self.layout_context.shared.stylist.read().unwrap();
+                        node.match_node(&stylist,
                                         Some(&*bf),
                                         &mut applicable_declarations,
                                         &mut shareable);
@@ -201,7 +201,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                           parent_opt,
                                           &applicable_declarations,
                                           &mut self.layout_context.applicable_declarations_cache(),
-                                          &self.layout_context.shared.new_animations_sender);
+                                          &self.layout_context.shared.new_animations_sender.lock().unwrap());
                     }
 
                     // Add ourselves to the LRU cache.
