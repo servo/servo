@@ -1,0 +1,18 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<iframe src="resources/iframe_contentDocument_inner.html?pipe=trickle(d20)"></iframe>
+<script>
+  async_test(function(t) {
+    window.addEventListener('load', t.step_func(function() {
+      t.done();
+    }, false));
+
+    document.querySelector('iframe').remove();
+  }, "Document load is unblocked by iframe removal");
+</script>
+</body>
+</html>

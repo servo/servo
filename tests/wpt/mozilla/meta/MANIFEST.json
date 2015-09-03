@@ -5790,6 +5790,12 @@
             "url": "/_mozilla/mozilla/htmlspacechars.html"
           }
         ],
+        "mozilla/iframe-unblock-onload.html": [
+          {
+            "path": "mozilla/iframe-unblock-onload.html",
+            "url": "/_mozilla/mozilla/iframe-unblock-onload.html"
+          }
+        ],
         "mozilla/iframe_contentDocument.html": [
           {
             "path": "mozilla/iframe_contentDocument.html",
