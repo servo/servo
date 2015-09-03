@@ -52,7 +52,7 @@ fn test_parse_stylesheet() {
                 declarations: PropertyDeclarationBlock {
                     normal: Arc::new(vec![]),
                     important: Arc::new(vec![
-                        PropertyDeclaration::Display(DeclaredValue::SpecifiedValue(
+                        PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
                     ]),
                 },
@@ -90,7 +90,7 @@ fn test_parse_stylesheet() {
                 ],
                 declarations: PropertyDeclarationBlock {
                     normal: Arc::new(vec![
-                        PropertyDeclaration::Display(DeclaredValue::SpecifiedValue(
+                        PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                     ]),
                     important: Arc::new(vec![]),
@@ -123,7 +123,7 @@ fn test_parse_stylesheet() {
                         PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundColor(DeclaredValue::SpecifiedValue(
+                        PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
                                 authored: Some("blue".to_owned()),
                                 parsed: cssparser::Color::RGBA(cssparser::RGBA {

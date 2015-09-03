@@ -43,6 +43,7 @@ extern crate num;
 extern crate util;
 
 
+mod custom_properties;
 pub mod stylesheets;
 pub mod parser;
 pub mod selector_matching;

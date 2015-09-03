@@ -6,6 +6,7 @@
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::collections::{HashSet, HashMap};
 use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
@@ -22,6 +23,7 @@ use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
+use string_cache::Atom;
 
 use computed_values;
 use parser::{ParserContext, log_css_error};
@@ -131,9 +133,11 @@ pub mod longhands {
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, PropertyDeclaration};
+            use std::collections::HashMap;
             use std::sync::Arc;
             use values::computed::ToComputedValue;
             use values::{computed, specified};
+            use string_cache::Atom;
             ${caller.body()}
             #[allow(unused_variables)]
             pub fn cascade_property(declaration: &PropertyDeclaration,
@@ -153,22 +157,25 @@ pub mod longhands {
                         return
                     }
                     seen.set_${property.ident}();
-                    let computed_value = match *declared_value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
-                            specified_value.to_computed_value(&context)
+                    let computed_value = substitute_variables(
+                        declared_value, &style.custom_properties, |value| match *value {
+                            DeclaredValue::Value(ref specified_value) => {
+                                specified_value.to_computed_value(&context)
+                            }
+                            DeclaredValue::WithVariables { .. } => unreachable!(),
+                            DeclaredValue::Initial => get_initial_value(),
+                            DeclaredValue::Inherit => {
+                                // This is a bit slow, but this is rare so it shouldn't
+                                // matter.
+                                //
+                                // FIXME: is it still?
+                                *cacheable = false;
+                                inherited_style.${THIS_STYLE_STRUCT.ident}
+                                               .${property.ident}
+                                               .clone()
+                            }
                         }
-                        DeclaredValue::Initial => get_initial_value(),
-                        DeclaredValue::Inherit => {
-                            // This is a bit slow, but this is rare so it shouldn't
-                            // matter.
-                            //
-                            // FIXME: is it still?
-                            *cacheable = false;
-                            inherited_style.${THIS_STYLE_STRUCT.ident}
-                                           .${property.ident}
-                                           .clone()
-                        }
-                    };
+                    );
                     Arc::make_mut(&mut style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
                         computed_value;
 
@@ -186,6 +193,29 @@ pub mod longhands {
                 % endif
             }
             % if derived_from is None:
+                pub fn substitute_variables<F, R>(value: &DeclaredValue<SpecifiedValue>,
+                                                  custom_properties: &Option<Arc<HashMap<Atom, String>>>,
+                                                  f: F)
+                                                  -> R
+                                                  where F: FnOnce(&DeclaredValue<SpecifiedValue>) -> R {
+                    if let DeclaredValue::WithVariables { ref css, ref base_url } = *value {
+                        f(&
+                            ::custom_properties::substitute(css, custom_properties)
+                            .and_then(|css| {
+                                // As of this writing, only the base URL is used for property values:
+                                let context = ParserContext::new(
+                                    ::stylesheets::Origin::Author, base_url);
+                                parse_specified(&context, &mut Parser::new(&css))
+                            })
+                            .unwrap_or(
+                                // Invalid at computed-value time.
+                                DeclaredValue::${"Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}
+                            )
+                        )
+                    } else {
+                        f(value)
+                    }
+                }
                 pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match input.try(CSSWideKeyword::parse) {
@@ -193,7 +223,21 @@ pub mod longhands {
                         Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
                         Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::${
                             "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}),
-                        Err(()) => parse_specified(context, input),
+                        Err(()) => {
+                            input.look_for_var_functions();
+                            let start = input.position();
+                            let specified = parse_specified(context, input);
+                            let var = input.seen_var_functions();
+                            if specified.is_err() && var {
+                                input.reset(start);
+                                try!(::custom_properties::parse_declaration_value(input, &mut None));
+                                return Ok(DeclaredValue::WithVariables {
+                                    css: input.slice_from(start).to_owned(),
+                                    base_url: context.base_url.clone(),
+                                })
+                            }
+                            specified
+                        }
                     }
                 }
             % endif
@@ -207,7 +251,7 @@ pub mod longhands {
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(context, input).map(DeclaredValue::SpecifiedValue)
+                    parse(context, input).map(DeclaredValue::Value)
                 }
             % endif
         </%self:raw_longhand>
@@ -1651,7 +1695,7 @@ pub mod longhands {
                 Color::RGBA(rgba) => rgba,
                 Color::CurrentColor => return Ok(DeclaredValue::Inherit)
             };
-            Ok(DeclaredValue::SpecifiedValue(CSSRGBA {
+            Ok(DeclaredValue::Value(CSSRGBA {
                 parsed: rgba,
                 authored: value.authored,
             }))
@@ -1664,7 +1708,6 @@ pub mod longhands {
 
     <%self:longhand name="font-family">
         use self::computed_value::FontFamily;
-        use string_cache::Atom;
         use values::computed::ComputedValueAsSpecified;
         pub use self::computed_value::T as SpecifiedValue;
 
@@ -5610,6 +5653,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
                                      -> Vec<PropertyDeclaration> {
     let mut deduplicated = vec![];
     let mut seen = PropertyBitField::new();
+    let mut seen_custom = Vec::new();
     for declaration in declarations.into_iter().rev() {
         match declaration {
             % for property in LONGHANDS:
@@ -5624,6 +5668,12 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
                     % endif
                 },
             % endfor
+            PropertyDeclaration::Custom(ref name, _) => {
+                if seen_custom.contains(name) {
+                    continue
+                }
+                seen_custom.push(name.clone())
+            }
         }
         deduplicated.push(declaration)
     }
@@ -5650,9 +5700,10 @@ impl CSSWideKeyword {
 }
 
 
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
-    SpecifiedValue(T),
+    Value(T),
+    WithVariables { css: String, base_url: Url },
     Initial,
     Inherit,
     // There is no Unset variant here.
@@ -5663,7 +5714,8 @@ pub enum DeclaredValue<T> {
 impl<T: ToCss> DeclaredValue<T> {
     pub fn specified_value(&self) -> String {
         match self {
-            &DeclaredValue::SpecifiedValue(ref inner) => inner.to_css_string(),
+            &DeclaredValue::Value(ref inner) => inner.to_css_string(),
+            &DeclaredValue::WithVariables { ref css, .. } => css.clone(),
             &DeclaredValue::Initial => "initial".to_owned(),
             &DeclaredValue::Inherit => "inherit".to_owned(),
         }
@@ -5675,6 +5727,7 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
+    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::Value>),
 }
 
 
@@ -5725,6 +5778,19 @@ impl PropertyDeclaration {
 
     pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>) -> PropertyDeclarationParseResult {
+        if let Ok(name) = ::custom_properties::parse_name(name) {
+            let value = match input.try(CSSWideKeyword::parse) {
+                Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
+                Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
+                Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
+                Err(()) => match ::custom_properties::parse(input) {
+                    Ok(value) => DeclaredValue::Value(value),
+                    Err(()) => return PropertyDeclarationParseResult::InvalidValue,
+                }
+            };
+            result_list.push(PropertyDeclaration::Custom(name, value));
+            return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
+        }
         match_ignore_ascii_case! { name,
             % for property in LONGHANDS:
                 % if property.derived_from is None:
@@ -5783,7 +5849,7 @@ impl PropertyDeclaration {
                                 % for sub_property in shorthand.sub_properties:
                                     result_list.push(PropertyDeclaration::${sub_property.camel_case}(
                                         match result.${sub_property.ident} {
-                                            Some(value) => DeclaredValue::SpecifiedValue(value),
+                                            Some(value) => DeclaredValue::Value(value),
                                             None => DeclaredValue::Initial,
                                         }
                                     ));
@@ -5832,6 +5898,7 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
+    custom_properties: Option<Arc<HashMap<::custom_properties::Name, String>>>,
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
@@ -6050,6 +6117,7 @@ lazy_static! {
                 % endif
             }),
         % endfor
+        custom_properties: None,
         shareable: true,
         writing_mode: WritingMode::empty(),
         root_font_size: longhands::font_size::get_initial_value(),
@@ -6064,6 +6132,7 @@ fn cascade_with_cached_declarations(
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
+        custom_properties: Option<Arc<HashMap<Atom, String>>>,
         context: &computed::Context)
         -> ComputedValues {
     % for style_struct in STYLE_STRUCTS:
@@ -6073,7 +6142,6 @@ fn cascade_with_cached_declarations(
             let mut style_${style_struct.ident} = cached_style.${style_struct.ident}.clone();
         % endif
     % endfor
-
     let mut seen = PropertyBitField::new();
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
@@ -6092,21 +6160,25 @@ fn cascade_with_cached_declarations(
                                         continue
                                     }
                                     seen.set_${property.ident}();
-                                    let computed_value = match *declared_value {
-                                        DeclaredValue::SpecifiedValue(ref specified_value)
-                                        => specified_value.to_computed_value(context),
-                                        DeclaredValue::Initial
-                                        => longhands::${property.ident}::get_initial_value(),
-                                        DeclaredValue::Inherit => {
-                                            // This is a bit slow, but this is rare so it shouldn't
-                                            // matter.
-                                            //
-                                            // FIXME: is it still?
-                                            parent_style.${style_struct.ident}
-                                                        .${property.ident}
-                                                        .clone()
+                                    let computed_value =
+                                    longhands::${property.ident}::substitute_variables(
+                                        declared_value, &custom_properties, |value| match *value {
+                                            DeclaredValue::Value(ref specified_value)
+                                            => specified_value.to_computed_value(context),
+                                            DeclaredValue::Initial
+                                            => longhands::${property.ident}::get_initial_value(),
+                                            DeclaredValue::Inherit => {
+                                                // This is a bit slow, but this is rare so it shouldn't
+                                                // matter.
+                                                //
+                                                // FIXME: is it still?
+                                                parent_style.${style_struct.ident}
+                                                            .${property.ident}
+                                                            .clone()
+                                            }
+                                            DeclaredValue::WithVariables { .. } => unreachable!()
                                         }
-                                    };
+                                    );
                                     Arc::make_mut(&mut style_${style_struct.ident})
                                         .${property.ident} = computed_value;
                                 % endif
@@ -6134,6 +6206,7 @@ fn cascade_with_cached_declarations(
                         % endif
                     % endfor
                 % endfor
+                PropertyDeclaration::Custom(..) => {}
             }
         }
     }
@@ -6148,6 +6221,7 @@ fn cascade_with_cached_declarations(
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
+        custom_properties: custom_properties,
         shareable: shareable,
         root_font_size: parent_style.root_font_size,
     }
@@ -6211,6 +6285,24 @@ pub fn cascade(viewport_size: Size2D<Au>,
         None => (true, initial_values),
     };
 
+    let mut custom_properties = None;
+    let mut seen_custom = HashSet::new();
+    for sub_list in applicable_declarations.iter().rev() {
+        // Declarations are already stored in reverse order.
+        for declaration in sub_list.declarations.iter() {
+            match *declaration {
+                PropertyDeclaration::Custom(ref name, ref value) => {
+                    ::custom_properties::cascade(
+                        &mut custom_properties, &inherited_style.custom_properties,
+                        &mut seen_custom, name, value)
+                }
+                _ => {}
+            }
+        }
+    }
+    let custom_properties = ::custom_properties::finish_cascade(
+            custom_properties, &inherited_style.custom_properties);
+
     let mut context = {
         let inherited_font_style = inherited_style.get_font();
         computed::Context {
@@ -6241,11 +6333,16 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // This assumes that the computed and specified values have the same Rust type.
     macro_rules! get_specified(
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
-            match *$declared_value {
-                DeclaredValue::SpecifiedValue(specified_value) => specified_value,
-                DeclaredValue::Initial => longhands::$property::get_initial_value(),
-                DeclaredValue::Inherit => inherited_style.$style_struct_getter().$property.clone(),
-            }
+            longhands::$property::substitute_variables(
+                $declared_value, &custom_properties, |value| match *value {
+                    DeclaredValue::Value(specified_value) => specified_value,
+                    DeclaredValue::Initial => longhands::$property::get_initial_value(),
+                    DeclaredValue::Inherit => {
+                        inherited_style.$style_struct_getter().$property.clone()
+                    }
+                    DeclaredValue::WithVariables { .. } => unreachable!()
+                }
+            )
         };
     );
 
@@ -6256,31 +6353,37 @@ pub fn cascade(viewport_size: Size2D<Au>,
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
-                    context.font_size = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
-                            match specified_value.0 {
-                                Length::FontRelative(value) => {
-                                    value.to_computed_value(context.inherited_font_size,
-                                                            context.root_font_size)
+                    context.font_size = longhands::font_size::substitute_variables(
+                        value, &custom_properties, |value| match *value {
+                            DeclaredValue::Value(ref specified_value) => {
+                                match specified_value.0 {
+                                    Length::FontRelative(value) => {
+                                        value.to_computed_value(context.inherited_font_size,
+                                                                context.root_font_size)
+                                    }
+                                    Length::ServoCharacterWidth(value) => {
+                                        value.to_computed_value(context.inherited_font_size)
+                                    }
+                                    _ => specified_value.0.to_computed_value(&context)
                                 }
-                                Length::ServoCharacterWidth(value) => {
-                                    value.to_computed_value(context.inherited_font_size)
-                                }
-                                _ => specified_value.0.to_computed_value(&context)
                             }
+                            DeclaredValue::Initial => longhands::font_size::get_initial_value(),
+                            DeclaredValue::Inherit => context.inherited_font_size,
+                            DeclaredValue::WithVariables { .. } => unreachable!(),
                         }
-                        DeclaredValue::Initial => longhands::font_size::get_initial_value(),
-                        DeclaredValue::Inherit => context.inherited_font_size,
-                    }
+                    );
                 }
                 PropertyDeclaration::Color(ref value) => {
-                    context.color = match *value {
-                        DeclaredValue::SpecifiedValue(ref specified_value) => {
-                            specified_value.parsed
+                    context.color = longhands::color::substitute_variables(
+                        value, &custom_properties, |value| match *value {
+                            DeclaredValue::Value(ref specified_value) => {
+                                specified_value.parsed
+                            }
+                            DeclaredValue::Initial => longhands::color::get_initial_value(),
+                            DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
+                            DeclaredValue::WithVariables { .. } => unreachable!(),
                         }
-                        DeclaredValue::Initial => longhands::color::get_initial_value(),
-                        DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
-                    };
+                    );
                 }
                 PropertyDeclaration::Display(ref value) => {
                     context.display = get_specified!(get_box, display, value);
@@ -6332,6 +6435,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                                                      shareable,
                                                      parent_style,
                                                      cached_style,
+                                                     custom_properties,
                                                      &context), false)
         }
         (_, _) => {}
@@ -6348,7 +6452,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
                 % endif
                 .${style_struct.ident}.clone(),
         % endfor
-        shareable: false,
+        custom_properties: custom_properties,
+        shareable: shareable,
         writing_mode: WritingMode::empty(),
         root_font_size: context.root_font_size,
     };
@@ -6364,6 +6469,9 @@ pub fn cascade(viewport_size: Size2D<Au>,
         for sub_list in applicable_declarations.iter().rev() {
             // Declarations are already stored in reverse order.
             for declaration in sub_list.declarations.iter() {
+                if let PropertyDeclaration::Custom(..) = *declaration {
+                    continue
+                }
                 let discriminant = unsafe {
                     intrinsics::discriminant_value(declaration) as usize
                 };
@@ -6409,14 +6517,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
         compute_font_hash(&mut *Arc::make_mut(&mut style.font))
     }
 
-    (ComputedValues {
-        writing_mode: get_writing_mode(&*style.inheritedbox),
-        % for style_struct in STYLE_STRUCTS:
-            ${style_struct.ident}: style.${style_struct.ident},
-        % endfor
-        shareable: shareable,
-        root_font_size: context.root_font_size,
-    }, cacheable)
+    style.writing_mode = get_writing_mode(&*style.inheritedbox);
+    (style, cacheable)
 }
 
 /// Alters the given style to accommodate replaced content. This is called in flow construction. It

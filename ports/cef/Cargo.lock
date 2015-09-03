@@ -127,7 +127,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -144,7 +144,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
@@ -280,7 +280,7 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -872,7 +872,7 @@ dependencies = [
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "clock_ticks 0.0.6 (git+https://github.com/tomaka/clock_ticks)",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1340,7 +1340,7 @@ dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1398,7 +1398,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-selectors#572353b3209af040cd3e6261978b09c7f8122844"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1568,7 +1568,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1696,7 +1696,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
