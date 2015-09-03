@@ -5,6 +5,7 @@
 #![feature(arc_weak)]
 #![cfg_attr(any(target_os = "linux", target_os = "android"), feature(box_raw))]
 #![feature(box_syntax)]
+#![feature(convert)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]
@@ -40,6 +41,7 @@ extern crate net_traits;
 extern crate util;
 extern crate msg;
 extern crate rand;
+extern crate simd;
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
