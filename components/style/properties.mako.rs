@@ -115,6 +115,7 @@ pub mod longhands {
                             derived_from=derived_from,
                             custom_cascade=custom_cascade,
                             experimental=experimental)
+        property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
@@ -128,7 +129,7 @@ pub mod longhands {
             % if derived_from is None:
                 use cssparser::Parser;
                 use parser::ParserContext;
-                use properties::{CSSWideKeyword, DeclaredValue};
+                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
             % endif
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
@@ -157,7 +158,7 @@ pub mod longhands {
                         return
                     }
                     seen.set_${property.ident}();
-                    let computed_value = substitute_variables(
+                    let computed_value = ::properties::substitute_variables_${property.ident}(
                         declared_value, &style.custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 specified_value.to_computed_value(&context)
@@ -193,29 +194,6 @@ pub mod longhands {
                 % endif
             }
             % if derived_from is None:
-                pub fn substitute_variables<F, R>(value: &DeclaredValue<SpecifiedValue>,
-                                                  custom_properties: &Option<Arc<HashMap<Atom, String>>>,
-                                                  f: F)
-                                                  -> R
-                                                  where F: FnOnce(&DeclaredValue<SpecifiedValue>) -> R {
-                    if let DeclaredValue::WithVariables { ref css, ref base_url } = *value {
-                        f(&
-                            ::custom_properties::substitute(css, custom_properties)
-                            .and_then(|css| {
-                                // As of this writing, only the base URL is used for property values:
-                                let context = ParserContext::new(
-                                    ::stylesheets::Origin::Author, base_url);
-                                parse_specified(&context, &mut Parser::new(&css))
-                            })
-                            .unwrap_or(
-                                // Invalid at computed-value time.
-                                DeclaredValue::${"Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}
-                            )
-                        )
-                    } else {
-                        f(value)
-                    }
-                }
                 pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match input.try(CSSWideKeyword::parse) {
@@ -234,6 +212,7 @@ pub mod longhands {
                                 return Ok(DeclaredValue::WithVariables {
                                     css: input.slice_from(start).to_owned(),
                                     base_url: context.base_url.clone(),
+                                    from_shorthand: Shorthand::None,
                                 })
                             }
                             specified
@@ -4881,7 +4860,7 @@ pub mod shorthands {
         pub mod ${shorthand.ident} {
             use cssparser::Parser;
             use parser::ParserContext;
-            use properties::longhands;
+            use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
 
             pub struct Longhands {
                 % for sub_property in shorthand.sub_properties:
@@ -4890,8 +4869,44 @@ pub mod shorthands {
                 % endfor
             }
 
+            pub fn parse(context: &ParserContext, input: &mut Parser,
+                         declarations: &mut Vec<PropertyDeclaration>)
+                         -> Result<(), ()> {
+                input.look_for_var_functions();
+                let start = input.position();
+                let value = parse_value(context, input);
+                let var = input.seen_var_functions();
+                if let Ok(value) = value {
+                    % for sub_property in shorthand.sub_properties:
+                        declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                            match value.${sub_property.ident} {
+                                Some(value) => DeclaredValue::Value(value),
+                                None => DeclaredValue::Initial,
+                            }
+                        ));
+                    % endfor
+                    Ok(())
+                } else if var {
+                    input.reset(start);
+                    try!(::custom_properties::parse_declaration_value(input, &mut None));
+                    let css = input.slice_from(start);
+                    % for sub_property in shorthand.sub_properties:
+                        declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                            DeclaredValue::WithVariables {
+                                css: css.to_owned(),
+                                base_url: context.base_url.clone(),
+                                from_shorthand: Shorthand::${shorthand.camel_case},
+                            }
+                        ));
+                    % endfor
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
             #[allow(unused_variables)]
-            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
                 ${caller.body()}
             }
         }
@@ -5582,6 +5597,54 @@ mod property_bit_field {
     }
 }
 
+% for property in LONGHANDS:
+    % if property.derived_from is None:
+        fn substitute_variables_${property.ident}<F, R>(
+            value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            custom_properties: &Option<Arc<HashMap<Atom, String>>>,
+            f: F)
+            -> R
+            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
+        {
+            if let DeclaredValue::WithVariables {
+                ref css, ref base_url, from_shorthand
+            } = *value {
+                f(&
+                    ::custom_properties::substitute(css, custom_properties)
+                    .and_then(|css| {
+                        // As of this writing, only the base URL is used for property values:
+                        let context = ParserContext::new(
+                            ::stylesheets::Origin::Author, base_url);
+                        let mut input = Parser::new(&css);
+                        match from_shorthand {
+                            Shorthand::None => {
+                                longhands::${property.ident}::parse_specified(&context, &mut input)
+                            }
+                            % for shorthand in SHORTHANDS:
+                                % if property in shorthand.sub_properties:
+                                    Shorthand::${shorthand.camel_case} => {
+                                        shorthands::${shorthand.ident}::parse_value(&context, &mut input)
+                                        .map(|result| match result.${property.ident} {
+                                            Some(value) => DeclaredValue::Value(value),
+                                            None => DeclaredValue::Initial,
+                                        })
+                                    }
+                                % endif
+                            % endfor
+                            _ => unreachable!()
+                        }
+                    })
+                    .unwrap_or(
+                        // Invalid at computed-value time.
+                        DeclaredValue::${"Inherit" if property.style_struct.inherited else "Initial"}
+                    )
+                )
+            } else {
+                f(value)
+            }
+        }
+    % endif
+% endfor
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
@@ -5720,11 +5783,19 @@ impl CSSWideKeyword {
     }
 }
 
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+pub enum Shorthand {
+    None,
+    % for property in SHORTHANDS:
+        ${property.camel_case},
+    % endfor
+}
+
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
     Value(T),
-    WithVariables { css: String, base_url: Url },
+    WithVariables { css: String, base_url: Url, from_shorthand: Shorthand },
     Initial,
     Inherit,
     // There is no Unset variant here.
@@ -5736,7 +5807,11 @@ impl<T: ToCss> DeclaredValue<T> {
     pub fn specified_value(&self) -> String {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css_string(),
-            DeclaredValue::WithVariables { ref css, .. } => css.clone(),
+            DeclaredValue::WithVariables { ref css, from_shorthand: Shorthand::None, .. } => {
+                css.clone()
+            }
+            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+            DeclaredValue::WithVariables { .. } => String::new(),
             DeclaredValue::Initial => "initial".to_owned(),
             DeclaredValue::Inherit => "inherit".to_owned(),
         }
@@ -5865,18 +5940,8 @@ impl PropertyDeclaration {
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
-                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input) {
-                            Ok(result) => {
-                                % for sub_property in shorthand.sub_properties:
-                                    result_list.push(PropertyDeclaration::${sub_property.camel_case}(
-                                        match result.${sub_property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
-                                            None => DeclaredValue::Initial,
-                                        }
-                                    ));
-                                % endfor
-                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                            },
+                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
+                            Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }
@@ -6182,7 +6247,7 @@ fn cascade_with_cached_declarations(
                                     }
                                     seen.set_${property.ident}();
                                     let computed_value =
-                                    longhands::${property.ident}::substitute_variables(
+                                    substitute_variables_${property.ident}(
                                         declared_value, &custom_properties, |value| match *value {
                                             DeclaredValue::Value(ref specified_value)
                                             => specified_value.to_computed_value(context),
@@ -6354,7 +6419,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // This assumes that the computed and specified values have the same Rust type.
     macro_rules! get_specified(
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
-            longhands::$property::substitute_variables(
+            concat_idents!(substitute_variables_, $property)(
                 $declared_value, &custom_properties, |value| match *value {
                     DeclaredValue::Value(specified_value) => specified_value,
                     DeclaredValue::Initial => longhands::$property::get_initial_value(),
@@ -6374,7 +6439,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
-                    context.font_size = longhands::font_size::substitute_variables(
+                    context.font_size = substitute_variables_font_size(
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 match specified_value.0 {
@@ -6395,7 +6460,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                     );
                 }
                 PropertyDeclaration::Color(ref value) => {
-                    context.color = longhands::color::substitute_variables(
+                    context.color = substitute_variables_color(
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 specified_value.parsed
