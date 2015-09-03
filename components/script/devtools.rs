@@ -117,7 +117,7 @@ pub fn handle_get_layout(page: &Rc<Page>,
         position: computed_style.Position(),
         zIndex: computed_style.ZIndex(),
         boxSizing: computed_style.BoxSizing(),
-        autoMargins: determine_auto_margins(&node),
+        autoMargins: determine_auto_margins(node.r()),
         marginTop: computed_style.MarginTop(),
         marginRight: computed_style.MarginRight(),
         marginBottom: computed_style.MarginBottom(),
@@ -135,8 +135,8 @@ pub fn handle_get_layout(page: &Rc<Page>,
     }).unwrap();
 }
 
-fn determine_auto_margins(node: &Root<Node>) -> AutoMargins {
-    node.r().query_style(|style| {
+fn determine_auto_margins(node: &Node) -> AutoMargins {
+    node.query_style(|style| {
         let margin = style.get_margin();
 
         AutoMargins {

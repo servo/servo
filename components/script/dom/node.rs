@@ -58,7 +58,6 @@ use util::str::DOMString;
 use util::task_state;
 
 use core::nonzero::NonZero;
-use core::ops::Deref;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use libc;
 use libc::{uintptr_t, c_void};
@@ -967,7 +966,6 @@ impl Node {
             .expect("Layout data not yet computed.");
 
         let style = layout_data.shared_data.style.as_ref().unwrap();
-        let style = style.deref();
 
         query(style)
     }
