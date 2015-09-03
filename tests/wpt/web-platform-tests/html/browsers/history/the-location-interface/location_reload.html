@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_reload</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <iframe></iframe>
+
+    <script>
+
+    setup({explicit_done:true});
+
+    var url = new URL("./location_reload-iframe.html", window.location).href;
+
+    var iframe = document.querySelector("iframe");
+
+    var pingCount = 0;
+
+    // called from location_reload-iframe.html
+    window._ping = function(innerURL) {
+
+      pingCount++;
+
+      test(function() {
+        assert_equals(url, innerURL, "iframe url");
+      }, "iframe url should not change");
+
+      if (pingCount == 5) {
+        done();
+      }
+    }
+
+    iframe.src = url;
+
+    </script>
+
+  </body>
+</html>
