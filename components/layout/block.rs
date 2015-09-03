@@ -505,6 +505,8 @@ pub enum BlockType {
     AbsoluteNonReplaced,
     FloatReplaced,
     FloatNonReplaced,
+    InlineBlockReplaced,
+    InlineBlockNonReplaced,
 }
 
 #[derive(Clone, PartialEq)]
@@ -614,6 +616,12 @@ impl BlockFlow {
             } else {
                 BlockType::FloatNonReplaced
             }
+        } else if self.is_inline_block() {
+            if self.is_replaced_content() {
+                BlockType::InlineBlockReplaced
+            } else {
+                BlockType::InlineBlockNonReplaced
+            }
         } else {
             if self.is_replaced_content() {
                 BlockType::Replaced
@@ -676,6 +684,18 @@ impl BlockFlow {
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
+            }
+            BlockType::InlineBlockReplaced => {
+                let inline_size_computer = InlineBlockReplaced;
+                inline_size_computer.compute_used_inline_size(self,
+                                                              layout_context,
+                                                              containing_block_inline_size);
+            }
+            BlockType::InlineBlockNonReplaced => {
+                let inline_size_computer = InlineBlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
                                                               layout_context,
                                                               containing_block_inline_size);
@@ -2481,12 +2501,6 @@ pub trait ISizeAndMarginsComputer {
                 }
             };
 
-        // If inline-size is set to 'auto', and this is an inline block, use the
-        // shrink to fit algorithm (see CSS 2.1 § 10.3.9)
-        if computed_inline_size == MaybeAuto::Auto && block.is_inline_block() {
-            inline_size = block.get_shrink_to_fit_inline_size(inline_size);
-        }
-
         ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
     }
 }
@@ -2501,6 +2515,8 @@ pub struct BlockNonReplaced;
 pub struct BlockReplaced;
 pub struct FloatNonReplaced;
 pub struct FloatReplaced;
+pub struct InlineBlockNonReplaced;
+pub struct InlineBlockReplaced;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
@@ -2899,3 +2915,91 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
+
+impl ISizeAndMarginsComputer for InlineBlockNonReplaced {
+    /// Compute inline-start and inline-end margins and inline-size.
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        let (mut computed_inline_size,
+             inline_start_margin,
+             inline_end_margin,
+             available_inline_size) =
+            (input.computed_inline_size,
+             input.inline_start_margin,
+             input.inline_end_margin,
+             input.available_inline_size);
+
+        // For inline-blocks, `auto` margins compute to 0.
+        let inline_start_margin = inline_start_margin.specified_or_zero();
+        let inline_end_margin = inline_end_margin.specified_or_zero();
+
+        // If inline-size is set to 'auto', and this is an inline block, use the
+        // shrink to fit algorithm (see CSS 2.1 § 10.3.9)
+        let inline_size = match computed_inline_size {
+            MaybeAuto::Auto => {
+                block.get_shrink_to_fit_inline_size(available_inline_size - (inline_start_margin +
+                                                                             inline_end_margin))
+            }
+            MaybeAuto::Specified(inline_size) => inline_size,
+        };
+
+        ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
+    }
+}
+
+impl ISizeAndMarginsComputer for InlineBlockReplaced {
+    /// Compute inline-start and inline-end margins and inline-size.
+    ///
+    /// ISize has already been calculated. We now calculate the margins just
+    /// like for non-replaced blocks.
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        debug_assert!(match input.computed_inline_size {
+            MaybeAuto::Specified(_) => true,
+            MaybeAuto::Auto => false,
+        });
+
+        let (mut computed_inline_size,
+             inline_start_margin,
+             inline_end_margin,
+             available_inline_size) =
+            (input.computed_inline_size,
+             input.inline_start_margin,
+             input.inline_end_margin,
+             input.available_inline_size);
+
+        // For inline-blocks, `auto` margins compute to 0.
+        let inline_start_margin = inline_start_margin.specified_or_zero();
+        let inline_end_margin = inline_end_margin.specified_or_zero();
+
+        // If inline-size is set to 'auto', and this is an inline block, use the
+        // shrink to fit algorithm (see CSS 2.1 § 10.3.9)
+        let inline_size = match computed_inline_size {
+            MaybeAuto::Auto => {
+                block.get_shrink_to_fit_inline_size(available_inline_size - (inline_start_margin +
+                                                                             inline_end_margin))
+            }
+            MaybeAuto::Specified(inline_size) => inline_size,
+        };
+
+        ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
+    }
+
+    /// Calculate used value of inline-size just like we do for inline replaced elements.
+    fn initial_computed_inline_size(&self,
+                                    block: &mut BlockFlow,
+                                    parent_flow_inline_size: Au,
+                                    _: &LayoutContext)
+                                    -> MaybeAuto {
+        let fragment = block.fragment();
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
+        // For replaced block flow, the rest of the constraint solving will
+        // take inline-size to be specified as the value computed here.
+        MaybeAuto::Specified(fragment.content_inline_size())
+    }
+}
+
