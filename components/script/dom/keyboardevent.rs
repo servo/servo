@@ -155,7 +155,7 @@ impl KeyboardEvent {
         if self.meta.get() {
             result = result | constellation_msg::SUPER;
         }
-        return result;
+        result
     }
 }
 

@@ -87,12 +87,10 @@ impl FlexFlow {
             flex_direction::T::column         => Mode::Block
         };
 
-        let this = FlexFlow {
+        FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
             main_mode: main_mode
-        };
-
-        this
+        }
     }
 
     // TODO(zentner): This function should use flex-basis.
@@ -309,7 +307,7 @@ impl Flow for FlexFlow {
         FlowClass::Flex
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 

@@ -632,12 +632,10 @@ impl IframeFragmentInfo {
         };
 
         let containing_size = containing_size.unwrap_or(Au(0));
-        let size = clamp_size(computed_size,
-                              style_min_size,
-                              style_max_size,
-                              containing_size);
-
-        size
+        clamp_size(computed_size,
+                   style_min_size,
+                   style_max_size,
+                   containing_size)
     }
 }
 
@@ -1224,7 +1222,7 @@ impl Fragment {
     }
 
     #[inline(always)]
-    pub fn style<'a>(&'a self) -> &'a ComputedValues {
+    pub fn style(&self) -> &ComputedValues {
         &*self.style
     }
 

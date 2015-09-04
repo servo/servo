@@ -177,7 +177,7 @@ unsafe extern fn hasOwn(cx: *mut JSContext, proxy: HandleObject, id: HandleId, b
     }
 
     *bp = (found != 0) as u8;
-    return JSTrue;
+    JSTrue
 }
 
 #[allow(unsafe_code)]

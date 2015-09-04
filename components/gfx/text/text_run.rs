@@ -156,15 +156,14 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 impl<'a> TextRun {
     pub fn new(font: &mut Font, text: String, options: &ShapingOptions, bidi_level: u8) -> TextRun {
         let glyphs = TextRun::break_and_shape(font, &text, options);
-        let run = TextRun {
+        TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
             font_template: font.handle.template(),
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
             bidi_level: bidi_level,
-        };
-        return run;
+        }
     }
 
     pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)

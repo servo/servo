@@ -96,7 +96,7 @@ impl TableRowFlow {
         }
     }
 
-    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+    pub fn fragment(&mut self) -> &Fragment {
         &self.block_flow.fragment
     }
 
@@ -107,7 +107,7 @@ impl TableRowFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods
     #[inline(always)]
-    fn assign_block_size_table_row_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
         // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of all
         // cells).
         let mut max_block_size = Au(0);
@@ -202,15 +202,15 @@ impl Flow for TableRowFlow {
         FlowClass::TableRow
     }
 
-    fn as_mut_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+    fn as_mut_table_row(&mut self) -> &mut TableRowFlow {
         self
     }
 
-    fn as_table_row<'a>(&'a self) -> &'a TableRowFlow {
+    fn as_table_row(&self) -> &TableRowFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 
@@ -218,11 +218,11 @@ impl Flow for TableRowFlow {
         &self.block_flow
     }
 
-    fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
+    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
         panic!("can't call column_intrinsic_inline_sizes() on table row")
     }
 
-    fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
+    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
         &mut self.column_computed_inline_sizes
     }
 
@@ -407,7 +407,7 @@ impl Flow for TableRowFlow {
         })
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_row");
         self.assign_block_size_table_row_base(layout_context);
     }

@@ -627,11 +627,11 @@ impl BlockFlow {
         // Check if the transform matrix is 2D or 3D
         if let Some(ref transform_list) = self.fragment.style().get_effects().transform.0 {
             for transform in transform_list {
-                match transform {
-                    &transform::ComputedOperation::Perspective(..) => {
+                match *transform {
+                    transform::ComputedOperation::Perspective(..) => {
                         return true;
                     }
-                    &transform::ComputedOperation::Matrix(m) => {
+                    transform::ComputedOperation::Matrix(m) => {
                         // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
                         if m.m31 != 0.0 || m.m32 != 0.0 ||
                            m.m13 != 0.0 || m.m23 != 0.0 ||
@@ -696,7 +696,7 @@ impl BlockFlow {
     }
 
     /// Return this flow's fragment.
-    pub fn fragment<'a>(&'a mut self) -> &'a mut Fragment {
+    pub fn fragment(&mut self) -> &mut Fragment {
         &mut self.fragment
     }
 
@@ -1624,11 +1624,11 @@ impl Flow for BlockFlow {
         FlowClass::Block
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         self
     }
 
-    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         self
     }
 

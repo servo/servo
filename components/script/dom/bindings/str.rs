@@ -25,7 +25,7 @@ impl ByteString {
 
     /// Returns `self` as a string, if it encodes valid UTF-8, and `None`
     /// otherwise.
-    pub fn as_str<'a>(&'a self) -> Option<&'a str> {
+    pub fn as_str(&self) -> Option<&str> {
         let ByteString(ref vec) = *self;
         str::from_utf8(&vec).ok()
     }

@@ -217,8 +217,8 @@ impl MediaQueryList {
 
             // Check if all conditions match (AND condition)
             let query_match = media_match && mq.expressions.iter().all(|expression| {
-                match expression {
-                    &Expression::Width(value) =>
+                match *expression {
+                    Expression::Width(ref value) =>
                         value.to_computed_range(viewport_size).evaluate(viewport_size.width),
                 }
             });

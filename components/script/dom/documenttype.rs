@@ -58,17 +58,17 @@ impl DocumentType {
     }
 
     #[inline]
-    pub fn name<'a>(&'a self) -> &'a DOMString {
+    pub fn name(&self) -> &DOMString {
         &self.name
     }
 
     #[inline]
-    pub fn public_id<'a>(&'a self) -> &'a DOMString {
+    pub fn public_id(&self) -> &DOMString {
         &self.public_id
     }
 
     #[inline]
-    pub fn system_id<'a>(&'a self) -> &'a DOMString {
+    pub fn system_id(&self) -> &DOMString {
         &self.system_id
     }
 }

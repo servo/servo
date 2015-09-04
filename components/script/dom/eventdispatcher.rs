@@ -13,9 +13,8 @@ use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 
 // See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event<'a, 'b>(target: &'a EventTarget,
-                              pseudo_target: Option<&'b EventTarget>,
-                              event: &Event) -> bool {
+pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
+                      event: &Event) -> bool {
     assert!(!event.dispatching());
     assert!(event.initialized());
 

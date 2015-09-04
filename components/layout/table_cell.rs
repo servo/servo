@@ -59,11 +59,11 @@ impl TableCellFlow {
         }
     }
 
-    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+    pub fn fragment(&mut self) -> &Fragment {
         &self.block_flow.fragment
     }
 
-    pub fn mut_fragment<'a>(&'a mut self) -> &'a mut Fragment {
+    pub fn mut_fragment(&mut self) -> &mut Fragment {
         &mut self.block_flow.fragment
     }
 
@@ -84,15 +84,15 @@ impl Flow for TableCellFlow {
         FlowClass::TableCell
     }
 
-    fn as_mut_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+    fn as_mut_table_cell(&mut self) -> &mut TableCellFlow {
         self
     }
 
-    fn as_table_cell<'a>(&'a self) -> &'a TableCellFlow {
+    fn as_table_cell(&self) -> &TableCellFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 

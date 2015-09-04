@@ -29,7 +29,7 @@ impl<T> DOMRefCell<T> {
     ///
     /// For use in the layout task only.
     #[allow(unsafe_code)]
-    pub unsafe fn borrow_for_layout<'a>(&'a self) -> &'a T {
+    pub unsafe fn borrow_for_layout(&self) -> &T {
         debug_assert!(task_state::get().is_layout());
         &*self.value.as_unsafe_cell().get()
     }
@@ -39,7 +39,7 @@ impl<T> DOMRefCell<T> {
     /// This succeeds even if the object is mutably borrowed,
     /// so you have to be careful in trace code!
     #[allow(unsafe_code)]
-    pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
+    pub unsafe fn borrow_for_gc_trace(&self) -> &T {
         // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
         // https://github.com/servo/servo/issues/6389
         //debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
@@ -49,7 +49,7 @@ impl<T> DOMRefCell<T> {
     /// Borrow the contents for the purpose of script deallocation.
     ///
     #[allow(unsafe_code)]
-    pub unsafe fn borrow_for_script_deallocation<'a>(&'a self) -> &'a mut T {
+    pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         debug_assert!(task_state::get().contains(SCRIPT));
         &mut *self.value.as_unsafe_cell().get()
     }
@@ -71,7 +71,7 @@ impl<T> DOMRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {
+    pub fn try_borrow(&self) -> Option<Ref<T>> {
         debug_assert!(task_state::get().is_script());
         match self.value.borrow_state() {
             BorrowState::Writing => None,
@@ -89,7 +89,7 @@ impl<T> DOMRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow_mut<'a>(&'a self) -> Option<RefMut<'a, T>> {
+    pub fn try_borrow_mut(&self) -> Option<RefMut<T>> {
         debug_assert!(task_state::get().is_script());
         match self.value.borrow_state() {
             BorrowState::Unused => Some(self.value.borrow_mut()),
@@ -127,7 +127,7 @@ impl<T> DOMRefCell<T> {
     /// Panics if this is called off the script thread.
     ///
     /// Panics if the value is currently mutably borrowed.
-    pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
+    pub fn borrow(&self) -> Ref<T> {
         self.try_borrow().expect("DOMRefCell<T> already mutably borrowed")
     }
 
@@ -141,7 +141,7 @@ impl<T> DOMRefCell<T> {
     /// Panics if this is called off the script thread.
     ///
     /// Panics if the value is currently borrowed.
-    pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, T> {
+    pub fn borrow_mut(&self) -> RefMut<T> {
         self.try_borrow_mut().expect("DOMRefCell<T> already borrowed")
     }
 }

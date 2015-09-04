@@ -37,7 +37,7 @@ pub struct Blob {
 fn is_ascii_printable(string: &DOMString) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
-    return string.chars().all(|c| { c >= '\x20' && c <= '\x7E' })
+    string.chars().all(|c| { c >= '\x20' && c <= '\x7E' })
 }
 
 impl Blob {

@@ -113,7 +113,7 @@ impl<'a> PartialEq for ApplicableDeclarationsCacheQuery<'a> {
                 return false
             }
         }
-        return true
+        true
     }
 }
 impl<'a> Eq for ApplicableDeclarationsCacheQuery<'a> {}
@@ -348,7 +348,7 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, (StyleSharingCandidate, ())> {
+    pub fn iter(&self) -> Iter<(StyleSharingCandidate, ())> {
         self.cache.iter()
     }
 
@@ -522,8 +522,8 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         let parent_layout_data: &Option<LayoutDataWrapper> = unsafe {
             &*parent_node.borrow_layout_data_unchecked()
         };
-        match parent_layout_data {
-            &Some(ref parent_layout_data_ref) => {
+        match *parent_layout_data {
+            Some(ref parent_layout_data_ref) => {
                 // Check parent style.
                 let parent_style = parent_layout_data_ref.shared_data.style.as_ref().unwrap();
                 if !arc_ptr_eq(parent_style, &candidate.parent_style) {
@@ -678,9 +678,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         };
 
         let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &mut None => panic!("no layout data"),
-            &mut Some(ref mut layout_data) => {
+        match *layout_data_ref {
+            None => panic!("no layout data"),
+            Some(ref mut layout_data) => {
                 match self.type_id() {
                     NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                         // Text nodes get a copy of the parent style. This ensures

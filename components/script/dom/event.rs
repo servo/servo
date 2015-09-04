@@ -117,7 +117,7 @@ impl Event {
     }
 
     #[inline]
-    pub fn type_id<'a>(&'a self) -> &'a EventTypeId {
+    pub fn type_id(&self) -> &EventTypeId {
         &self.type_id
     }
 

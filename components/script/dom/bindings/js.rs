@@ -149,7 +149,7 @@ impl LayoutJS<Node> {
 }
 
 impl<T: Reflectable> Reflectable for JS<T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
+    fn reflector(&self) -> &Reflector {
         unsafe {
             (**self.ptr).reflector()
         }
@@ -310,11 +310,11 @@ impl<T: Reflectable> LayoutJS<T> {
 pub trait RootedReference<T> {
     /// Obtain a safe optional reference to the wrapped JS owned-value that
     /// cannot outlive the lifetime of this root.
-    fn r<'a>(&'a self) -> Option<&'a T>;
+    fn r(&self) -> Option<&T>;
 }
 
 impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
-    fn r<'a>(&'a self) -> Option<&'a T> {
+    fn r(&self) -> Option<&T> {
         self.as_ref().map(|root| root.r())
     }
 }
@@ -323,11 +323,11 @@ impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
 pub trait OptionalRootedReference<T> {
     /// Obtain a safe optional optional reference to the wrapped JS owned-value
     /// that cannot outlive the lifetime of this root.
-    fn r<'a>(&'a self) -> Option<Option<&'a T>>;
+    fn r(&self) -> Option<Option<&T>>;
 }
 
 impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
-    fn r<'a>(&'a self) -> Option<Option<&'a T>> {
+    fn r(&self) -> Option<Option<&T>> {
         self.as_ref().map(|inner| inner.r())
     }
 }
@@ -430,7 +430,7 @@ impl<T: Reflectable> Root<T> {
 
     /// Obtain a safe reference to the wrapped JS owned-value that cannot
     /// outlive the lifetime of this root.
-    pub fn r<'a>(&'a self) -> &'a T {
+    pub fn r(&self) -> &T {
         &**self
     }
 
@@ -443,7 +443,7 @@ impl<T: Reflectable> Root<T> {
 
 impl<T: Reflectable> Deref for Root<T> {
     type Target = T;
-    fn deref<'a>(&'a self) -> &'a T {
+    fn deref(&self) -> &T {
         unsafe { &**self.ptr.deref() }
     }
 }

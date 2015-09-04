@@ -87,14 +87,14 @@ pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
                                         _proxy: HandleObject,
                                         result: *mut ObjectOpResult) -> u8 {
     (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as u32;
-    return JSTrue;
+    JSTrue
 }
 
 /// Reports whether the object is Extensible
 pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
                                    succeeded: *mut u8) -> u8 {
     *succeeded = JSTrue;
-    return JSTrue;
+    JSTrue
 }
 
 /// Get the expando object, or null if there is none.
@@ -123,7 +123,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject)
 
             SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
         }
-        return expando;
+        expando
     }
 }
 

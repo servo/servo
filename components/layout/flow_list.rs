@@ -80,7 +80,7 @@ impl FlowList {
 
     /// Provide a forward iterator
     #[inline]
-    pub fn iter<'a>(&'a self) -> FlowListIterator<'a> {
+    pub fn iter(&self) -> FlowListIterator {
         FlowListIterator {
             it: self.flows.iter(),
         }
@@ -88,7 +88,7 @@ impl FlowList {
 
     /// Provide a forward iterator with mutable references
     #[inline]
-    pub fn iter_mut<'a>(&'a mut self) -> MutFlowListIterator<'a> {
+    pub fn iter_mut(&mut self) -> MutFlowListIterator {
         MutFlowListIterator {
             it: self.flows.iter_mut(),
         }

@@ -285,19 +285,19 @@ impl Flow for TableWrapperFlow {
         FlowClass::TableWrapper
     }
 
-    fn as_mut_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+    fn as_mut_table_wrapper(&mut self) -> &mut TableWrapperFlow {
         self
     }
 
-    fn as_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
+    fn as_table_wrapper(&self) -> &TableWrapperFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 
-    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         &self.block_flow
     }
 

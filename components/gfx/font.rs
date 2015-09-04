@@ -178,7 +178,7 @@ impl Font {
                status, tag.tag_to_str(),
                self.handle.family_name(), self.handle.face_name());
 
-        return result;
+        result
     }
 
     #[inline]

@@ -381,7 +381,7 @@ fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
 pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
                                           _vp: *mut JSVal) -> u8 {
     throw_type_error(cx, "Illegal constructor.");
-    return 0;
+    0
 }
 
 /// An array of *mut JSObject of size PrototypeList::ID::Count
@@ -404,7 +404,7 @@ pub fn initialize_global(global: *mut JSObject) {
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait Reflectable {
     /// Returns the receiver's reflector.
-    fn reflector<'a>(&'a self) -> &'a Reflector;
+    fn reflector(&self) -> &Reflector;
     /// Initializes the Reflector
     fn init_reflector(&mut self, _obj: *mut JSObject) {
         panic!("Cannot call init on this Reflectable");
@@ -507,7 +507,7 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
         if RUST_JSID_IS_INT(id) != 0 {
             return Some(RUST_JSID_TO_INT(id) as u32);
         }
-        return None;
+        None
     }
     // if id is length atom, -1, otherwise
     /*return if JSID_IS_ATOM(id) {
@@ -559,7 +559,7 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
             clasp = js::jsapi::JS_GetClass(obj);
         }
         // TODO also check if JS_IsArrayBufferObject
-        return is_dom_class(&*clasp);
+        is_dom_class(&*clasp)
     }
 }
 
@@ -631,8 +631,8 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: HandleObject,
                                  id: HandleId) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
-    return !get_property_on_prototype(cx, proxy, id, &mut found,
-                                      MutableHandleValue { ptr: ptr::null_mut() }) || found;
+    !get_property_on_prototype(cx, proxy, id, &mut found,
+                               MutableHandleValue { ptr: ptr::null_mut() }) || found
 }
 
 /// Create a DOM global object with the given class.
@@ -812,11 +812,11 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
     match xml_name_type(qualified_name) {
         XMLName::InvalidXMLName => {
             // Step 1.
-            return Err(Error::InvalidCharacter);
+            Err(Error::InvalidCharacter)
         },
         XMLName::Name => {
             // Step 2.
-            return Err(Error::Namespace);
+            Err(Error::Namespace)
         },
         XMLName::QName => Ok(())
     }
