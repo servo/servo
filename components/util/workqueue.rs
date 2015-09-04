@@ -11,16 +11,18 @@ use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use task::spawn_named;
 use task_state;
 
+use libc::c_void;
 use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, weak_rng, XorShiftRng};
 use std::boxed::FnBox;
+use std::mem::transmute;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 /// Messages from the supervisor to the worker.
 enum WorkerMsg {
     /// Tells the worker to start work.
-    Start(Worker<Box<FnBox(&mut WorkerProxy) + Send>>, *mut AtomicUsize),
+    Start(Worker<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>, *mut AtomicUsize, *const c_void),
     /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
     Stop,
     /// Tells the worker to measure the heap size of its TLS using the supplied function.
@@ -35,7 +37,7 @@ unsafe impl Send for WorkerMsg {}
 enum SupervisorMsg {
     Finished,
     HeapSizeOfTLS(usize),
-    ReturnDeque(usize, Worker<Box<FnBox(&mut WorkerProxy) + Send>>),
+    ReturnDeque(usize, Worker<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>),
 }
 
 unsafe impl Send for SupervisorMsg {}
@@ -45,9 +47,9 @@ struct WorkerInfo {
     /// The communication channel to the workers.
     chan: Sender<WorkerMsg>,
     /// The worker end of the deque, if we have it.
-    deque: Option<Worker<Box<FnBox(&mut WorkerProxy) + Send>>>,
+    deque: Option<Worker<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>>,
     /// The thief end of the work-stealing deque.
-    thief: Stealer<Box<FnBox(&mut WorkerProxy) + Send>>,
+    thief: Stealer<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>,
 }
 
 /// Information specific to each worker thread that the thread keeps.
@@ -59,7 +61,7 @@ struct WorkerThread {
     /// The communication channel on which messages are sent to the supervisor.
     chan: Sender<SupervisorMsg>,
     /// The thief end of the work-stealing deque for all other workers.
-    other_deques: Vec<Stealer<Box<FnBox(&mut WorkerProxy) + Send>>>,
+    other_deques: Vec<Stealer<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>>,
     /// The random number generator for this worker.
     rng: XorShiftRng,
 }
@@ -88,8 +90,8 @@ impl WorkerThread {
         let deque_index_mask = next_power_of_two(self.other_deques.len() as u32) - 1;
         loop {
             // Wait for a start message.
-            let (mut deque, ref_count) = match self.port.recv().unwrap() {
-                WorkerMsg::Start(deque, ref_count) => (deque, ref_count),
+            let (mut deque, ref_count, queue_data) = match self.port.recv().unwrap() {
+                WorkerMsg::Start(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
                 WorkerMsg::Stop => panic!("unexpected stop message"),
                 WorkerMsg::Exit => return,
                 WorkerMsg::HeapSizeOfTLS(f) => {
@@ -156,6 +158,7 @@ impl WorkerThread {
                 let mut proxy = WorkerProxy {
                     worker: &mut deque,
                     ref_count: ref_count,
+                    queue_data: unsafe { &*queue_data },
                     worker_index: self.index as u8,
                 };
                 work_unit.call_box((&mut proxy,));
@@ -175,21 +178,37 @@ impl WorkerThread {
     }
 }
 
+/// Erase the user's data type from the WorkerProxy; we don't actually
+/// care what type it is because all we do with the pointer is pass it
+/// back to the user.
+#[inline]
+unsafe fn erase_proxy_type<QueueData>(t: Box<FnBox(&mut WorkerProxy<QueueData>) + Send>)
+                                     -> Box<FnBox(&mut WorkerProxy<c_void>) + Send> {
+    transmute(t)
+}
+
 /// A handle to the work queue that individual work units have.
-pub struct WorkerProxy<'a> {
-    worker: &'a mut Worker<Box<FnBox(&mut WorkerProxy) + Send>>,
+pub struct WorkerProxy<'a, QueueData: 'a> {
+    worker: &'a mut Worker<Box<FnBox(&mut WorkerProxy<c_void>) + Send>>,
     ref_count: *mut AtomicUsize,
+    queue_data: &'a QueueData,
     worker_index: u8,
 }
 
-impl<'a> WorkerProxy<'a> {
+impl<'a, QueueData> WorkerProxy<'a, QueueData> {
     /// Enqueues a block into the work queue.
     #[inline]
-    pub fn push(&mut self, work_unit: Box<FnBox(&mut WorkerProxy) + Send>) {
+    pub fn push(&mut self, work_unit: Box<FnBox(&mut WorkerProxy<QueueData>) + Send>) {
         unsafe {
             drop((*self.ref_count).fetch_add(1, Ordering::Relaxed));
+            self.worker.push(erase_proxy_type(work_unit));
         }
-        self.worker.push(work_unit);
+    }
+
+    /// Retrieves the queue user data.
+    #[inline]
+    pub fn user_data(&self) -> &'a QueueData {
+        self.queue_data
     }
 
     /// Retrieves the index of the worker.
@@ -265,26 +284,31 @@ impl WorkQueue {
         }
     }
 
-    /// Enqueues a block into the work queue.
-    #[inline]
-    pub fn push(&mut self, work_unit: Box<FnBox(&mut WorkerProxy) + Send>) {
-        let deque = &mut self.workers[0].deque;
-        match *deque {
-            None => {
-                panic!("tried to push a block but we don't have the deque?!")
-            }
-            Some(ref mut deque) => deque.push(work_unit),
-        }
-        self.work_count += 1
+    /// Synchronously runs all the enqueued tasks and waits for them to complete.
+    pub fn run<QueueData>(&mut self, data: &QueueData, work_unit: Box<FnBox(&mut WorkerProxy<QueueData>) + Send>) {
+        self.run_internal(data as *const QueueData as *const c_void,
+                          unsafe { erase_proxy_type(work_unit) });
     }
 
-    /// Synchronously runs all the enqueued tasks and waits for them to complete.
-    pub fn run(&mut self) {
+    fn run_internal(&mut self, data: *const c_void, work_unit: Box<FnBox(&mut WorkerProxy<c_void>) + Send>) {
+        // Enqueue a block into the work queue.
+        {
+            let deque = &mut self.workers[0].deque;
+            match *deque {
+                None => {
+                    panic!("tried to push a block but we don't have the deque?!")
+                }
+                Some(ref mut deque) =>deque.push(work_unit),
+            }
+            self.work_count += 1;
+        }
+
         // Tell the workers to start.
         let mut work_count = AtomicUsize::new(self.work_count);
         for worker in &mut self.workers {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
-                                              &mut work_count)).unwrap()
+                                              &mut work_count,
+                                              data)).unwrap()
         }
 
         // Wait for the work to finish.

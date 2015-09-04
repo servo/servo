@@ -19,7 +19,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
-use parallel::{self, WorkQueueData};
+use parallel;
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request, MarginPadding, Side};
 use query::{MarginRetrievingFragmentBorderBoxIterator, PositionProperty, PositionRetrievingFragmentBorderBoxIterator};
 use sequential;

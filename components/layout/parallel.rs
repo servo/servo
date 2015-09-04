@@ -21,6 +21,7 @@ use wrapper::UnsafeLayoutNode;
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
+use std::boxed::FnBox;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use util::opts;
@@ -89,14 +90,14 @@ pub type UnsafeFlowList = (Box<Vec<UnsafeLayoutNode>>, usize);
 
 pub type ChunkedDomTraversalFunction =
     extern "Rust" fn(UnsafeLayoutNodeList,
-                     &mut WorkerProxy);
+                     &mut WorkerProxy<SharedLayoutContext>);
 
 pub type DomTraversalFunction =
     extern "Rust" fn(UnsafeLayoutNode,
-                     &mut WorkerProxy);
+                     &mut WorkerProxy<SharedLayoutContext>);
 
 pub type ChunkedFlowTraversalFunction =
-    extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy);
+    extern "Rust" fn(UnsafeFlowList, &mut WorkerProxy<SharedLayoutContext>);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
 
@@ -104,13 +105,13 @@ pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutConte
 pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
     fn run_parallel(&self,
                     nodes: UnsafeLayoutNodeList,
-                    proxy: &mut WorkerProxy);
+                    proxy: &mut WorkerProxy<SharedLayoutContext>);
 
     #[inline(always)]
     fn run_parallel_helper(
             &self,
             unsafe_nodes: UnsafeLayoutNodeList,
-            proxy: &mut WorkerProxy,
+            proxy: &mut WorkerProxy<SharedLayoutContext>,
             top_down_func: ChunkedDomTraversalFunction,
             bottom_up_func: DomTraversalFunction) {
         let mut discovered_child_nodes = Vec::new();
@@ -146,7 +147,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
 
         for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
             let data = (box chunk.iter().cloned().collect(), 0);
-            proxy.push(box move |proxy: &mut WorkerProxy| top_down_func(data, proxy));
+            proxy.push(box move |proxy: &mut WorkerProxy<_>| top_down_func(data, proxy));
         }
     }
 }
@@ -166,7 +167,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&self,
                     mut unsafe_node: UnsafeLayoutNode,
-                    proxy: &mut WorkerProxy) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext>) {
         loop {
             // Get a real layout node.
             let node: LayoutNode = unsafe {
@@ -282,14 +283,14 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy);
+                    proxy: &mut WorkerProxy<SharedLayoutContext>);
 
     fn should_record_thread_ids(&self) -> bool;
 
     #[inline(always)]
     fn run_parallel_helper(&self,
                            unsafe_flows: UnsafeFlowList,
-                           proxy: &mut WorkerProxy,
+                           proxy: &mut WorkerProxy<SharedLayoutContext>,
                            top_down_func: ChunkedFlowTraversalFunction,
                            bottom_up_func: FlowTraversalFunction) {
         let mut discovered_child_flows = Vec::new();
@@ -323,7 +324,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
         for chunk in discovered_child_flows.chunks(CHUNK_SIZE) {
             let data = (box chunk.iter().cloned().collect(), 0);
-            proxy.push(box move |proxy: &mut WorkerProxy| top_down_func(data, proxy));
+            proxy.push(box move |proxy: &mut WorkerProxy<_>| top_down_func(data, proxy));
         }
     }
 }
@@ -331,7 +332,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext>) {
         self.run_parallel_helper(unsafe_flows,
                                  proxy,
                                  assign_inline_sizes,
@@ -348,7 +349,7 @@ impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {}
 impl<'a> ParallelPreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     fn run_parallel(&self,
                     unsafe_flows: UnsafeFlowList,
-                    proxy: &mut WorkerProxy) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext>) {
         self.run_parallel_helper(unsafe_flows,
                                  proxy,
                                  compute_absolute_positions,
@@ -367,13 +368,13 @@ impl<'a> ParallelPostorderDomTraversal for ConstructFlows<'a> {}
 impl <'a> ParallelPreorderDomTraversal for RecalcStyleForNode<'a> {
     fn run_parallel(&self,
                     unsafe_nodes: UnsafeLayoutNodeList,
-                    proxy: &mut WorkerProxy) {
+                    proxy: &mut WorkerProxy<SharedLayoutContext>) {
         self.run_parallel_helper(unsafe_nodes, proxy, recalc_style, construct_flows)
     }
 }
 
 fn recalc_style(unsafe_nodes: UnsafeLayoutNodeList,
-                proxy: &mut WorkerProxy) {
+                proxy: &mut WorkerProxy<SharedLayoutContext>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let recalc_style_for_node_traversal = RecalcStyleForNode {
@@ -383,7 +384,7 @@ fn recalc_style(unsafe_nodes: UnsafeLayoutNodeList,
 }
 
 fn construct_flows(unsafe_node: UnsafeLayoutNode,
-                   proxy: &mut WorkerProxy) {
+                   proxy: &mut WorkerProxy<SharedLayoutContext>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let construct_flows_traversal = ConstructFlows {
@@ -393,7 +394,7 @@ fn construct_flows(unsafe_node: UnsafeLayoutNode,
 }
 
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
-                       proxy: &mut WorkerProxy) {
+                       proxy: &mut WorkerProxy<SharedLayoutContext>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let assign_inline_sizes_traversal = AssignISizes {
@@ -414,7 +415,7 @@ fn assign_block_sizes_and_store_overflow(
 
 fn compute_absolute_positions(
         unsafe_flows: UnsafeFlowList,
-        proxy: &mut WorkerProxy) {
+        proxy: &mut WorkerProxy<SharedLayoutContext>) {
     let shared_layout_context = proxy.user_data();
     let layout_context = LayoutContext::new(shared_layout_context);
     let compute_absolute_positions_traversal = ComputeAbsolutePositions {
@@ -438,17 +439,16 @@ fn run_queue_with_custom_work_data_type<F>(
         queue: &mut WorkQueue,
         callback: F,
         shared_layout_context: &SharedLayoutContext)
-        where F: FnOnce(&mut WorkQueue) {
-    callback(queue);
-    queue.run();
+        where F: FnOnce() -> Box<FnBox(&mut WorkerProxy<SharedLayoutContext>) + Send> {
+    queue.run(shared_layout_context, callback());
 }
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext,
                              queue: &mut WorkQueue) {
-    run_queue_with_custom_work_data_type(queue, |queue| {
+    run_queue_with_custom_work_data_type(queue, || {
         let data = (box vec![layout_node_to_unsafe_layout_node(&root)], 0);
-        queue.push(box move |proxy: &mut WorkerProxy| recalc_style(data, proxy));
+        box move |proxy: &mut WorkerProxy<_>| recalc_style(data, proxy)
     }, shared_layout_context);
 }
 
@@ -464,12 +464,12 @@ pub fn traverse_flow_tree_preorder(
         flow_ref::deref_mut(root).traverse_postorder(&bubble_inline_sizes);
     }
 
-    run_queue_with_custom_work_data_type(queue, |queue| {
+    run_queue_with_custom_work_data_type(queue, || {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
                 time_profiler_chan, || {
             let data = (box vec![mut_owned_flow_to_unsafe_flow(root)], 0);
-            queue.push(box move |proxy: &mut WorkerProxy| assign_inline_sizes(data, proxy));
-        });
+            box move |proxy: &mut WorkerProxy<_>| assign_inline_sizes(data, proxy)
+        })
     }, shared_layout_context);
 }
 
@@ -479,11 +479,11 @@ pub fn build_display_list_for_subtree(
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
         queue: &mut WorkQueue) {
-    run_queue_with_custom_work_data_type(queue, |queue| {
+    run_queue_with_custom_work_data_type(queue, || {
         profile(time::ProfilerCategory::LayoutParallelWarmup, profiler_metadata,
                 time_profiler_chan, || {
             let data = (box vec![mut_owned_flow_to_unsafe_flow(root)], 0);
-            queue.push(box move |proxy: &mut WorkerProxy| compute_absolute_positions(data, proxy));
-        });
+            box move |proxy: &mut WorkerProxy<_>| compute_absolute_positions(data, proxy)
+        })
     }, shared_layout_context);
 }
