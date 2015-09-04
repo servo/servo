@@ -4,6 +4,7 @@
         <title>CSS Test: @import following garbage</title>
         <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
         <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#at-rules">
+        <link rel="match" href="reference/ref-this-text-should-be-green.htm">
         <meta name="flags" content="invalid">
         <meta name="assert" content="@import is parsed as part of invalid ruleset           after garbage.">
         <style type="text/css">
@@ -14,6 +15,6 @@
         </style>
     </head>
     <body>
-        <p class="import">This sentence must be green.</p>
+        <p class="import">This text should be green.</p>
     </body>
 </html>

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Abstract Box Layout (489 tests)</h2>
+  <h2>Abstract Box Layout (495 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -4637,7 +4637,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings">7.5 Line-Relative Mappings</a></th></tr>
-      <!-- 26 tests -->
+      <!-- 32 tests -->
       <tr id="text-decoration-sidewaysleft-vlr-003-7.5" class="primary">
         <td><strong>
             <a href="text-decoration-sidewaysleft-vlr-003.xht">text-decoration-sidewaysleft-vlr-003</a></strong></td>
@@ -4836,10 +4836,76 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-002-7.5" class="primary ahem">
+      <tr id="underline-font-size-vlr-003-7.5" class="primary">
         <td><strong>
-            <a href="vertical-alignment-new-002.xht">vertical-alignment-new-002</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-002-ref.xht">=</a> </td>
+            <a href="underline-font-size-vlr-003.xht">underline-font-size-vlr-003</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' with various font sizes
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text or even if font size of text is larger.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="underline-font-size-vlr-005-7.5" class="primary">
+        <td><strong>
+            <a href="underline-font-size-vlr-005.xht">underline-font-size-vlr-005</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' with various font sizes and mixed text
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text or even if font size of text is larger.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="underline-font-size-vrl-002-7.5" class="primary">
+        <td><strong>
+            <a href="underline-font-size-vrl-002.xht">underline-font-size-vrl-002</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' with various font sizes
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text or even if font size of text is larger.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="underline-font-size-vrl-004-7.5" class="primary">
+        <td><strong>
+            <a href="underline-font-size-vrl-004.xht">underline-font-size-vrl-004</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' with various font sizes and mixed text
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text or even if font size of text is larger.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="underline-mixed-vlr-003-7.5" class="primary">
+        <td><strong>
+            <a href="underline-mixed-vlr-003.xht">underline-mixed-vlr-003</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and mixed text
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="underline-mixed-vrl-002-7.5" class="primary">
+        <td><strong>
+            <a href="underline-mixed-vrl-002.xht">underline-mixed-vrl-002</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>'text-decoration: underline' and mixed text
+          <ul class="assert">
+            <li>This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="vertical-alignment-002-7.5" class="primary ahem">
+        <td><strong>
+            <a href="vertical-alignment-002.xht">vertical-alignment-002</a></strong></td>
+        <td><a href="reference/vertical-alignment-002-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'top' and vertical-rl writing-mode
           <ul class="assert">
@@ -4847,10 +4913,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-003-7.5" class="primary ahem">
+      <tr id="vertical-alignment-003-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-003.xht">vertical-alignment-new-003</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-002-ref.xht">=</a> </td>
+            <a href="vertical-alignment-003.xht">vertical-alignment-003</a></strong></td>
+        <td><a href="reference/vertical-alignment-002-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'top' and vertical-lr writing-mode
           <ul class="assert">
@@ -4858,10 +4924,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-004-7.5" class="primary ahem">
+      <tr id="vertical-alignment-004-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-004.xht">vertical-alignment-new-004</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-004-ref.xht">=</a> </td>
+            <a href="vertical-alignment-004.xht">vertical-alignment-004</a></strong></td>
+        <td><a href="reference/vertical-alignment-004-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'text-top' and vertical-rl writing-mode
           <ul class="assert">
@@ -4869,10 +4935,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-005-7.5" class="primary ahem">
+      <tr id="vertical-alignment-005-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-005.xht">vertical-alignment-new-005</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-004-ref.xht">=</a> </td>
+            <a href="vertical-alignment-005.xht">vertical-alignment-005</a></strong></td>
+        <td><a href="reference/vertical-alignment-004-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'text-top' and vertical-lr writing-mode
           <ul class="assert">
@@ -4880,10 +4946,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-006-7.5" class="primary ahem">
+      <tr id="vertical-alignment-006-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-006.xht">vertical-alignment-new-006</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-006-ref.xht">=</a> </td>
+            <a href="vertical-alignment-006.xht">vertical-alignment-006</a></strong></td>
+        <td><a href="reference/vertical-alignment-006-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'text-bottom' and vertical-rl writing-mode
           <ul class="assert">
@@ -4891,10 +4957,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-007-7.5" class="primary ahem">
+      <tr id="vertical-alignment-007-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-007.xht">vertical-alignment-new-007</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-006-ref.xht">=</a> </td>
+            <a href="vertical-alignment-007.xht">vertical-alignment-007</a></strong></td>
+        <td><a href="reference/vertical-alignment-006-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'text-bottom' and vertical-lr writing-mode
           <ul class="assert">
@@ -4902,10 +4968,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-008-7.5" class="primary ahem">
+      <tr id="vertical-alignment-008-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-008.xht">vertical-alignment-new-008</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-008-ref.xht">=</a> </td>
+            <a href="vertical-alignment-008.xht">vertical-alignment-008</a></strong></td>
+        <td><a href="reference/vertical-alignment-008-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'bottom' and vertical-rl writing-mode
           <ul class="assert">
@@ -4913,10 +4979,10 @@
           </ul>
         </td>
       </tr>
-      <tr id="vertical-alignment-new-009-7.5" class="primary ahem">
+      <tr id="vertical-alignment-009-7.5" class="primary ahem">
         <td><strong>
-            <a href="vertical-alignment-new-009.xht">vertical-alignment-new-009</a></strong></td>
-        <td><a href="reference/vertical-alignment-new-008-ref.xht">=</a> </td>
+            <a href="vertical-alignment-009.xht">vertical-alignment-009</a></strong></td>
+        <td><a href="reference/vertical-alignment-008-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>vertical-align - 'bottom' and vertical-lr writing-mode
           <ul class="assert">

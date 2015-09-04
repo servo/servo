@@ -39,6 +39,10 @@ font-family-applies-to-016.xht == reference/ref-if-there-is-no-red.xht
 font-family-applies-to-017.xht == reference/font-family-applies-to-001-ref.xht
 font-family-invalid-characters-001.xht == reference/font-family-invalid-characters-001-ref.xht
 font-family-invalid-characters-002.xht == reference/font-family-invalid-characters-002-ref.xht
+font-family-invalid-characters-003.xht == reference/font-family-invalid-characters-002-ref.xht
+font-family-invalid-characters-004.xht == reference/font-family-invalid-characters-002-ref.xht
+font-family-invalid-characters-005.xht == reference/font-family-invalid-characters-005-ref.xht
+font-family-invalid-characters-006.xht == reference/font-family-invalid-characters-006-ref.xht
 font-family-name-001.xht == reference/font-family-name-ref.xht
 font-family-name-002.xht == reference/font-family-name-ref.xht
 font-family-name-003.xht == reference/font-family-name-ref.xht

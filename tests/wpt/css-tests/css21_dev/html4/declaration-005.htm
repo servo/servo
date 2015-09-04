@@ -4,12 +4,13 @@
   <title>CSS Test: malformed declaration: unexpected tokens { }, part 1</title>
   <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu">
   <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#parsing-errors">
+  <link rel="match" href="reference/ref-this-text-should-be-green.htm">
   <meta name="flags" content="invalid">
   <style type="text/css">
     p { color:green; color{;color:maroon} } 
   </style>
  </head>
  <body>
-   <p>This text should be green</p>
+   <p>This text should be green.</p>
  </body>
 </html>
