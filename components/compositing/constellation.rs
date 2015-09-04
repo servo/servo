@@ -891,7 +891,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                    containing_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
                                    event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled", false));
+        assert!(prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false));
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script task.
@@ -1373,7 +1373,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
-        if prefs::get_pref("dom.mozbrowser.enabled", false) {
+        if prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false) {
             // Work around borrow checker
             let event_info = {
                 let pipeline = self.pipeline(pipeline_id);

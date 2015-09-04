@@ -494,7 +494,7 @@ pub mod longhands {
                 % for value in values[:-1]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                            if !::util::prefs::get_pref("layout.${value}.enabled").unwrap_or(false) {
                                 return Err(())
                             }
                         % endif
@@ -504,7 +504,7 @@ pub mod longhands {
                 % for value in values[-1:]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled", false) {
+                            if !::util::prefs::get_pref("layout.${value}.enabled".unwrap_or(false) {
                                 return Err(())
                             }
                         % endif
@@ -5794,7 +5794,7 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     "${property.name}" => {
                         % if property.experimental:
-                            if !::util::prefs::get_pref("${property.experimental}", false) {
+                            if !::util::prefs::get_pref("${property.experimental}").unwrap_or(false) {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
@@ -5813,7 +5813,7 @@ impl PropertyDeclaration {
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
                     % if shorthand.experimental:
-                        if !::util::prefs::get_pref("${shorthand.experimental}", false) {
+                        if !::util::prefs::get_pref("${shorthand.experimental}").unwrap_or(false) {
                             return PropertyDeclarationParseResult::ExperimentalProperty
                         }
                     % endif

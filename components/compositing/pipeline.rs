@@ -269,7 +269,7 @@ impl Pipeline {
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled", false));
+        assert!(prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false));
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,
