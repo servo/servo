@@ -1224,7 +1224,7 @@ impl Fragment {
     }
 
     #[inline(always)]
-    pub fn style<'a>(&'a self) -> &'a ComputedValues {
+    pub fn style(&self) -> &ComputedValues {
         &*self.style
     }
 

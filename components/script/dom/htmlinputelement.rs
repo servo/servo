@@ -356,8 +356,8 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) 
     do_broadcast(doc_node, broadcaster, owner.r(), group)
 }
 
-fn in_same_group<'b>(other: &HTMLInputElement,
-                        owner: Option<&'b HTMLFormElement>,
+fn in_same_group(other: &HTMLInputElement,
+                        owner: Option<&HTMLFormElement>,
                         group: Option<&str>) -> bool {
     let other_owner = other.form_owner();
     let other_owner = other_owner.r();

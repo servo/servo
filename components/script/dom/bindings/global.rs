@@ -204,7 +204,7 @@ impl<'a> Reflectable for GlobalRef<'a> {
 impl GlobalRoot {
     /// Obtain a safe reference to the global object that cannot outlive the
     /// lifetime of this root.
-    pub fn r<'c>(&'c self) -> GlobalRef<'c> {
+    pub fn r(&self) -> GlobalRef {
         match *self {
             GlobalRoot::Window(ref window) => GlobalRef::Window(window.r()),
             GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.r()),
