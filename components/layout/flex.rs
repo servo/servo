@@ -309,7 +309,7 @@ impl Flow for FlexFlow {
         FlowClass::Flex
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 

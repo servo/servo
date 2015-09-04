@@ -191,15 +191,15 @@ impl Flow for TableFlow {
         FlowClass::Table
     }
 
-    fn as_mut_table<'a>(&'a mut self) -> &'a mut TableFlow {
+    fn as_mut_table(&mut self) -> &mut TableFlow {
         self
     }
 
-    fn as_table<'a>(&'a self) -> &'a TableFlow {
+    fn as_table(&self) -> &TableFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 
@@ -211,11 +211,11 @@ impl Flow for TableFlow {
         self.block_flow.mark_as_root();
     }
 
-    fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
+    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
         &mut self.column_intrinsic_inline_sizes
     }
 
-    fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
+    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
         &mut self.column_computed_inline_sizes
     }
 

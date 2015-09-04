@@ -75,14 +75,14 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
-    pub fn as_tokens<'a>(&'a self) -> &'a [Atom] {
+    pub fn as_tokens(&self) -> &[Atom] {
         match *self {
             AttrValue::TokenList(_, ref tokens) => tokens,
             _ => panic!("Tokens not found"),
         }
     }
 
-    pub fn as_atom<'a>(&'a self) -> &'a Atom {
+    pub fn as_atom(&self) -> &Atom {
         match *self {
             AttrValue::Atom(ref value) => value,
             _ => panic!("Atom not found"),
@@ -104,7 +104,7 @@ impl AttrValue {
 impl Deref for AttrValue {
     type Target = str;
 
-    fn deref<'a>(&'a self) -> &'a str {
+    fn deref(&self) -> &str {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
@@ -152,17 +152,17 @@ impl Attr {
     }
 
     #[inline]
-    pub fn name<'a>(&'a self) -> &'a Atom {
+    pub fn name(&self) -> &Atom {
         &self.name
     }
 
     #[inline]
-    pub fn namespace<'a>(&'a self) -> &'a Namespace {
+    pub fn namespace(&self) -> &Namespace {
         &self.namespace
     }
 
     #[inline]
-    pub fn prefix<'a>(&'a self) -> &'a Option<Atom> {
+    pub fn prefix(&self) -> &Option<Atom> {
         &self.prefix
     }
 }

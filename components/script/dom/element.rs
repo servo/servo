@@ -494,8 +494,8 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
-    fn local_name<'a>(&'a self) -> &'a Atom;
-    fn namespace<'a>(&'a self) -> &'a Namespace;
+    fn local_name(&self) -> &Atom;
+    fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
 }
@@ -524,14 +524,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn local_name<'a>(&'a self) -> &'a Atom {
+    fn local_name(&self) -> &Atom {
         unsafe {
             &(*self.unsafe_get()).local_name
         }
     }
 
     #[allow(unsafe_code)]
-    fn namespace<'a>(&'a self) -> &'a Namespace {
+    fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
         }

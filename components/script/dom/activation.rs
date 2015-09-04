@@ -14,7 +14,7 @@ use std::borrow::ToOwned;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
-    fn as_element<'a>(&'a self) -> &'a Element;
+    fn as_element(&self) -> &Element;
 
     // Is this particular instance of the element activatable?
     fn is_instance_activatable(&self) -> bool;

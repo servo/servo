@@ -1115,7 +1115,7 @@ impl DisplayItem {
         }
     }
 
-    pub fn base<'a>(&'a self) -> &'a BaseDisplayItem {
+    pub fn base(&self) -> &BaseDisplayItem {
         match *self {
             DisplayItem::SolidColorClass(ref solid_color) => &solid_color.base,
             DisplayItem::TextClass(ref text) => &text.base,
@@ -1127,7 +1127,7 @@ impl DisplayItem {
         }
     }
 
-    pub fn mut_base<'a>(&'a mut self) -> &'a mut BaseDisplayItem {
+    pub fn mut_base(&mut self) -> &mut BaseDisplayItem {
         match *self {
             DisplayItem::SolidColorClass(ref mut solid_color) => &mut solid_color.base,
             DisplayItem::TextClass(ref mut text) => &mut text.base,

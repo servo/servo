@@ -404,7 +404,7 @@ pub fn initialize_global(global: *mut JSObject) {
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait Reflectable {
     /// Returns the receiver's reflector.
-    fn reflector<'a>(&'a self) -> &'a Reflector;
+    fn reflector(&self) -> &Reflector;
     /// Initializes the Reflector
     fn init_reflector(&mut self, _obj: *mut JSObject) {
         panic!("Cannot call init on this Reflectable");

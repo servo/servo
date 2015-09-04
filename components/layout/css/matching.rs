@@ -348,7 +348,7 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Iter<'a, (StyleSharingCandidate, ())> {
+    pub fn iter(&self) -> Iter<(StyleSharingCandidate, ())> {
         self.cache.iter()
     }
 

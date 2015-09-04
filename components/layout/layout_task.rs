@@ -1266,7 +1266,7 @@ impl LayoutTask {
         animation::tick_all_animations(self, &mut rw_data)
     }
 
-    pub fn tick_animations<'a>(&'a self, rw_data: &mut LayoutTaskData) {
+    pub fn tick_animations(&self, rw_data: &mut LayoutTaskData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,

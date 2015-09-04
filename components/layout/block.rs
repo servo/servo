@@ -696,7 +696,7 @@ impl BlockFlow {
     }
 
     /// Return this flow's fragment.
-    pub fn fragment<'a>(&'a mut self) -> &'a mut Fragment {
+    pub fn fragment(&mut self) -> &mut Fragment {
         &mut self.fragment
     }
 
@@ -1624,11 +1624,11 @@ impl Flow for BlockFlow {
         FlowClass::Block
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         self
     }
 
-    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         self
     }
 

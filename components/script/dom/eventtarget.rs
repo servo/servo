@@ -160,7 +160,7 @@ impl EventTarget {
     }
 
     #[inline]
-    pub fn type_id<'a>(&'a self) -> &'a EventTargetTypeId {
+    pub fn type_id(&self) -> &EventTargetTypeId {
         &self.type_id
     }
 

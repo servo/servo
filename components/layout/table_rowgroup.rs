@@ -79,7 +79,7 @@ impl TableRowGroupFlow {
         }
     }
 
-    pub fn fragment<'a>(&'a mut self) -> &'a Fragment {
+    pub fn fragment(&mut self) -> &Fragment {
         &self.block_flow.fragment
     }
 
@@ -112,15 +112,15 @@ impl Flow for TableRowGroupFlow {
         FlowClass::TableRowGroup
     }
 
-    fn as_mut_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+    fn as_mut_table_rowgroup(&mut self) -> &mut TableRowGroupFlow {
         self
     }
 
-    fn as_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
+    fn as_table_rowgroup(&self) -> &TableRowGroupFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 
@@ -128,11 +128,11 @@ impl Flow for TableRowGroupFlow {
         &self.block_flow
     }
 
-    fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
+    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
         &mut self.column_intrinsic_inline_sizes
     }
 
-    fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
+    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
         &mut self.column_computed_inline_sizes
     }
 

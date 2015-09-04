@@ -841,12 +841,12 @@ impl InlineFragments {
     }
 
     /// A convenience function to return the fragment at a given index.
-    pub fn get<'a>(&'a self, index: usize) -> &'a Fragment {
+    pub fn get(&self, index: usize) -> &Fragment {
         &self.fragments[index]
     }
 
     /// A convenience function to return a mutable reference to the fragment at a given index.
-    pub fn get_mut<'a>(&'a mut self, index: usize) -> &'a mut Fragment {
+    pub fn get_mut(&mut self, index: usize) -> &mut Fragment {
         &mut self.fragments[index]
     }
 }
@@ -1314,11 +1314,11 @@ impl Flow for InlineFlow {
         FlowClass::Inline
     }
 
-    fn as_inline<'a>(&'a self) -> &'a InlineFlow {
+    fn as_inline(&self) -> &InlineFlow {
         self
     }
 
-    fn as_mut_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+    fn as_mut_inline(&mut self) -> &mut InlineFlow {
         self
     }
 

@@ -36,11 +36,11 @@ impl Flow for TableCaptionFlow {
         FlowClass::TableCaption
     }
 
-    fn as_mut_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+    fn as_mut_table_caption(&mut self) -> &mut TableCaptionFlow {
         self
     }
 
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
 

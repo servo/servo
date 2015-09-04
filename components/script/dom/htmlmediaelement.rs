@@ -36,7 +36,7 @@ impl HTMLMediaElement {
     }
 
     #[inline]
-    pub fn htmlelement<'a>(&'a self) -> &'a HTMLElement {
+    pub fn htmlelement(&self) -> &HTMLElement {
         &self.htmlelement
     }
 }

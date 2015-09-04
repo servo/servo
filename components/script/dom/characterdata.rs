@@ -179,13 +179,13 @@ impl CharacterData {
 
 #[allow(unsafe_code)]
 pub trait LayoutCharacterDataHelpers {
-    unsafe fn data_for_layout<'a>(&'a self) -> &'a str;
+    unsafe fn data_for_layout(&self) -> &str;
 }
 
 #[allow(unsafe_code)]
 impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
     #[inline]
-    unsafe fn data_for_layout<'a>(&'a self) -> &'a str {
+    unsafe fn data_for_layout(&self) -> &str {
         &(*self.unsafe_get()).data.borrow_for_layout()
     }
 }

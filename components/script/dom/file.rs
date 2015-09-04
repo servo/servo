@@ -34,7 +34,7 @@ impl File {
                            FileBinding::Wrap)
     }
 
-    pub fn name<'a>(&'a self) -> &'a DOMString {
+    pub fn name(&self) -> &DOMString {
         &self.name
     }
 }

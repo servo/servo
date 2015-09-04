@@ -77,108 +77,108 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn class(&self) -> FlowClass;
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
-    fn as_block<'a>(&'a self) -> &'a BlockFlow {
+    fn as_block(&self) -> &BlockFlow {
         panic!("called as_block() on a non-block flow")
     }
 
     /// If this is a block flow, returns the underlying object, borrowed mutably. Fails otherwise.
-    fn as_mut_block<'a>(&'a mut self) -> &'a mut BlockFlow {
+    fn as_mut_block(&mut self) -> &mut BlockFlow {
         debug!("called as_mut_block() on a flow of type {:?}", self.class());
         panic!("called as_mut_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
-    fn as_inline<'a>(&'a self) -> &'a InlineFlow {
+    fn as_inline(&self) -> &InlineFlow {
         panic!("called as_inline() on a non-inline flow")
     }
 
     /// If this is an inline flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
+    fn as_mut_inline(&mut self) -> &mut InlineFlow {
         panic!("called as_mut_inline() on a non-inline flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
+    fn as_mut_table_wrapper(&mut self) -> &mut TableWrapperFlow {
         panic!("called as_mut_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
-    fn as_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
+    fn as_table_wrapper(&self) -> &TableWrapperFlow {
         panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table flow, returns the underlying object, borrowed mutably. Fails otherwise.
-    fn as_mut_table<'a>(&'a mut self) -> &'a mut TableFlow {
+    fn as_mut_table(&mut self) -> &mut TableFlow {
         panic!("called as_mut_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
-    fn as_table<'a>(&'a self) -> &'a TableFlow {
+    fn as_table(&self) -> &TableFlow {
         panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table colgroup flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
+    fn as_mut_table_colgroup(&mut self) -> &mut TableColGroupFlow {
         panic!("called as_mut_table_colgroup() on a non-tablecolgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
+    fn as_mut_table_rowgroup(&mut self) -> &mut TableRowGroupFlow {
         panic!("called as_mut_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
-    fn as_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
+    fn as_table_rowgroup(&self) -> &TableRowGroupFlow {
         panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table row flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
+    fn as_mut_table_row(&mut self) -> &mut TableRowFlow {
         panic!("called as_mut_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
-    fn as_table_row<'a>(&'a self) -> &'a TableRowFlow {
+    fn as_table_row(&self) -> &TableRowFlow {
         panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
+    fn as_mut_table_caption(&mut self) -> &mut TableCaptionFlow {
         panic!("called as_mut_table_caption() on a non-tablecaption flow")
     }
 
     /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
+    fn as_mut_table_cell(&mut self) -> &mut TableCellFlow {
         panic!("called as_mut_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a multicol flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
-    fn as_mut_multicol<'a>(&'a mut self) -> &'a mut MulticolFlow {
+    fn as_mut_multicol(&mut self) -> &mut MulticolFlow {
         panic!("called as_mut_multicol() on a non-multicol flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
-    fn as_table_cell<'a>(&'a self) -> &'a TableCellFlow {
+    fn as_table_cell(&self) -> &TableCellFlow {
         panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table row, table rowgroup, or table flow, returns column intrinsic
     /// inline-sizes. Fails otherwise.
-    fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
+    fn column_intrinsic_inline_sizes(&mut self) -> &mut Vec<ColumnIntrinsicInlineSize> {
         panic!("called column_intrinsic_inline_sizes() on non-table flow")
     }
 
     /// If this is a table row, table rowgroup, or table flow, returns column computed
     /// inline-sizes. Fails otherwise.
-    fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
+    fn column_computed_inline_sizes(&mut self) -> &mut Vec<ColumnComputedInlineSize> {
         panic!("called column_intrinsic_inline_sizes() on non-table flow")
     }
 
@@ -756,7 +756,7 @@ impl AbsoluteDescendants {
     }
 
     /// Return an iterator over the descendant flows.
-    pub fn iter<'a>(&'a mut self) -> AbsoluteDescendantIter<'a> {
+    pub fn iter(&mut self) -> AbsoluteDescendantIter {
         AbsoluteDescendantIter {
             iter: self.descendant_links.iter_mut(),
         }
@@ -1093,7 +1093,7 @@ impl BaseFlow {
         }
     }
 
-    pub fn child_iter<'a>(&'a mut self) -> MutFlowListIterator<'a> {
+    pub fn child_iter(&mut self) -> MutFlowListIterator {
         self.children.iter_mut()
     }
 
@@ -1497,7 +1497,7 @@ impl ContainingBlockLink {
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn get<'a>(&'a mut self) -> &'a mut Option<WeakFlowRef> {
+    pub unsafe fn get(&mut self) -> &mut Option<WeakFlowRef> {
         &mut self.link
     }
 
