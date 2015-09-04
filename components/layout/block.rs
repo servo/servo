@@ -2058,7 +2058,7 @@ impl Flow for BlockFlow {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id() as usize, fragment_index)
+        LayerId(self.fragment.node.id() as usize, fragment_index, 0)
     }
 
     fn is_absolute_containing_block(&self) -> bool {
