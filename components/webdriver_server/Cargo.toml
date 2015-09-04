@@ -29,5 +29,7 @@ features = [ "serde_serialization" ]
 
 [dependencies]
 log = "0.3"
+hyper = "0.6"
 rustc-serialize = "0.3.4"
+regex = "0.1.33"
 uuid = "0.1"
