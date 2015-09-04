@@ -298,6 +298,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_relative_inline_block_a.html position_relative_inline_block_ref.html
 == position_relative_painting_order_a.html position_relative_painting_order_ref.html
 == position_relative_stacking_context_a.html position_relative_stacking_context_ref.html
+== position_relative_stacking_context_contents_a.html position_relative_stacking_context_contents_ref.html
 == position_relative_top_percentage_a.html position_relative_top_percentage_b.html
 == position_relative_vertical_percentage_overflow_a.html position_relative_vertical_percentage_overflow_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html

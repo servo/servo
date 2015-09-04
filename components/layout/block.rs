@@ -1913,7 +1913,6 @@ impl Flow for BlockFlow {
             self.base.position.size.to_physical(self.base.writing_mode);
 
         // Compute the origin and clipping rectangle for children.
-        let relative_offset = relative_offset.to_physical(self.base.writing_mode);
         let origin_for_children;
         let clip_in_child_coordinate_system;
         let is_stacking_context = self.fragment.establishes_stacking_context();
@@ -1925,10 +1924,11 @@ impl Flow for BlockFlow {
             //
             // FIXME(pcwalton): Is this vertical-writing-direction-safe?
             let margin = self.fragment.margin.to_physical(self.base.writing_mode);
-            origin_for_children = Point2D::new(-margin.left, Au(0)) + relative_offset;
+            origin_for_children = Point2D::new(-margin.left, Au(0));
             clip_in_child_coordinate_system =
                 self.base.clip.translate(&-self.base.stacking_relative_position);
         } else {
+            let relative_offset = relative_offset.to_physical(self.base.writing_mode);
             origin_for_children = self.base.stacking_relative_position + relative_offset;
             clip_in_child_coordinate_system = self.base.clip.clone();
         }
