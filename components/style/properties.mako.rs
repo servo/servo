@@ -6641,8 +6641,8 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
             style.padding.padding_right != computed::LengthOrPercentage::Length(Au(0)) ||
             style.padding.padding_bottom != computed::LengthOrPercentage::Length(Au(0)) ||
             style.padding.padding_left != computed::LengthOrPercentage::Length(Au(0)) {
-        let mut style = Arc::make_unique(style);
-        let mut padding = Arc::make_unique(&mut style.padding);
+        let mut style = Arc::make_mut(style);
+        let mut padding = Arc::make_mut(&mut style.padding);
         padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
         padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
         padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
