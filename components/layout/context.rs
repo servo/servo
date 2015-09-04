@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::geometry::Au;

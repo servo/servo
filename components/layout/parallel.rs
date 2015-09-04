@@ -21,7 +21,6 @@ use wrapper::UnsafeLayoutNode;
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 
 use profile_traits::time::{self, ProfilerMetadata, profile};
-use std::boxed::FnBox;
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use util::opts;
@@ -433,22 +432,12 @@ fn build_display_list(unsafe_flow: UnsafeFlow,
     build_display_list_traversal.run_parallel(unsafe_flow);
 }
 
-fn run_queue_with_custom_work_data_type<'a, T: 'a>(
-        queue: &mut WorkQueue,
-        callback: T,
-        shared_layout_context: &SharedLayoutContext)
-        where T: FnBox(&mut WorkerProxy<SharedLayoutContext>) + 'a + Send {
-    queue.run(shared_layout_context, box callback);
-}
-
 pub fn traverse_dom_preorder<'a>(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext<'a>,
                              queue: &mut WorkQueue) {
     let data = (box vec![layout_node_to_unsafe_layout_node(&root)], 0);
     let item = move |proxy: &mut WorkerProxy<SharedLayoutContext>| recalc_style(data, proxy);
-    //fn item(x:&mut WorkerProxy<SharedLayoutContext>) {}
-    //queue.run(shared_layout_context, box item);
-    run_queue_with_custom_work_data_type(queue, item, shared_layout_context);
+    queue.run(shared_layout_context, box item);
 }
 
 pub fn traverse_flow_tree_preorder(
