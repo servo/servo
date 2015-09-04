@@ -77,7 +77,7 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
 }
 
 /// Layout information shared among all workers. This must be thread-safe.
-pub struct SharedLayoutContext {
+pub struct SharedLayoutContext<'a> {
     /// The shared image cache task.
     pub image_cache_task: ImageCacheTask,
 
@@ -100,7 +100,7 @@ pub struct SharedLayoutContext {
     pub font_cache_task: Mutex<FontCacheTask>,
 
     /// The CSS selector stylist.
-    pub stylist: Arc<RwLock<Stylist>>,
+    pub stylist: &'a Stylist,
 
     /// The root node at which we're starting the layout.
     pub reflow_root: Option<OpaqueNode>,
@@ -130,7 +130,7 @@ pub struct SharedLayoutContext {
 }
 
 pub struct LayoutContext<'a> {
-    pub shared: &'a SharedLayoutContext,
+    pub shared: &'a SharedLayoutContext<'a>,
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 

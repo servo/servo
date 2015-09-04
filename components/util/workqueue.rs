@@ -182,7 +182,7 @@ impl WorkerThread {
 /// care what type it is because all we do with the pointer is pass it
 /// back to the user.
 #[inline]
-unsafe fn erase_proxy_type<QueueData>(t: Box<FnBox(&mut WorkerProxy<QueueData>) + Send>)
+unsafe fn erase_proxy_type<'a, QueueData>(t: Box<FnBox(&mut WorkerProxy<QueueData>) + Send + 'a>)
                                      -> Box<FnBox(&mut WorkerProxy<c_void>) + Send> {
     transmute(t)
 }
@@ -285,7 +285,7 @@ impl WorkQueue {
     }
 
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
-    pub fn run<QueueData>(&mut self, data: &QueueData, work_unit: Box<FnBox(&mut WorkerProxy<QueueData>) + Send>) {
+    pub fn run<'a, QueueData>(&mut self, data: &QueueData, work_unit: Box<FnBox(&mut WorkerProxy<QueueData>) + Send + 'a>) {
         self.run_internal(data as *const QueueData as *const c_void,
                           unsafe { erase_proxy_type(work_unit) });
     }

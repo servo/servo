@@ -185,7 +185,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
                     if node.as_element().is_some() {
                         // Perform the CSS selector matching.
-                        let stylist = self.layout_context.shared.stylist.read().unwrap();
+                        let stylist = self.layout_context.shared.stylist;
                         node.match_node(&stylist,
                                         Some(&*bf),
                                         &mut applicable_declarations,
