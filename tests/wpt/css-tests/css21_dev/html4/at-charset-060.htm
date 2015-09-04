@@ -4,6 +4,7 @@
         <title>CSS Test: @charset with bogus name</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
         <link rel="help" href="http://www.w3.org/TR/CSS21/syndata.html#charset">
+        <link rel="match" href="at-charset-001.htm">
         <meta name="flags" content="">
         <meta name="assert" content="The stylesheet is interpreted as UTF-16LE based on BOM.">
         <style type="text/css">
@@ -15,7 +16,7 @@
         </style>
     </head>
     <body>
-        <p>Test passes if the "Filler Text" below is green.</p>
+        <p>Test passes if both lines of "Filler Text" below are green.</p>
         <div class="平和">Filler Text</div>
         <div id="div1">Filler Text</div>
     </body>

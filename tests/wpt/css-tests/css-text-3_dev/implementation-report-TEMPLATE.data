@@ -3,6 +3,8 @@
 # http://test.csswg.org/suites/css-text-3_dev/DATESTAMP/
 # See http://wiki.csswg.org/test/implementation-report for instructions
 testname	revision	result	comment
+html/bidi-004.htm	e49d44d9a5a48b452d89967dd44efdb7e4c713c0	?
+xhtml1/bidi-004.xht	e49d44d9a5a48b452d89967dd44efdb7e4c713c0	?
 html/bidi-005.htm	9a94108988b0d806f23f5d63aec2a5b34d6aea05	?
 xhtml1/bidi-005.xht	9a94108988b0d806f23f5d63aec2a5b34d6aea05	?
 html/bidi-006.htm	a699b5134869e68b68c5399f9be53865f6bb90cd	?
