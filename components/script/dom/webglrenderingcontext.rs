@@ -881,7 +881,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 }
             },
 
-            _ => return self.webgl_error(InvalidEnum),
+            _ => self.webgl_error(InvalidEnum),
         }
     }
 
@@ -899,7 +899,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 }
             },
 
-            _ => return self.webgl_error(InvalidEnum),
+            _ => self.webgl_error(InvalidEnum),
         }
     }
 }

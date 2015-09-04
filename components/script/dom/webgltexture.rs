@@ -107,10 +107,10 @@ impl WebGLTexture {
                         self.renderer
                             .send(CanvasMsg::WebGL(CanvasWebGLMsg::TexParameteri(target, name, int_value)))
                             .unwrap();
-                        return Ok(());
+                        Ok(())
                     },
 
-                    _ => return Err(WebGLError::InvalidEnum),
+                    _ => Err(WebGLError::InvalidEnum),
                 }
             },
             constants::TEXTURE_MAG_FILTER => {
@@ -120,10 +120,10 @@ impl WebGLTexture {
                         self.renderer
                             .send(CanvasMsg::WebGL(CanvasWebGLMsg::TexParameteri(target, name, int_value)))
                             .unwrap();
-                        return Ok(());
+                        Ok(())
                     },
 
-                    _ => return Err(WebGLError::InvalidEnum),
+                    _ => Err(WebGLError::InvalidEnum),
                 }
             },
             constants::TEXTURE_WRAP_S |
@@ -135,14 +135,14 @@ impl WebGLTexture {
                         self.renderer
                             .send(CanvasMsg::WebGL(CanvasWebGLMsg::TexParameteri(target, name, int_value)))
                             .unwrap();
-                        return Ok(());
+                        Ok(())
                     },
 
-                    _ => return Err(WebGLError::InvalidEnum),
+                    _ => Err(WebGLError::InvalidEnum),
                 }
             },
 
-            _ => return Err(WebGLError::InvalidEnum),
+            _ => Err(WebGLError::InvalidEnum),
         }
     }
 }

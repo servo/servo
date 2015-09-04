@@ -318,7 +318,7 @@ pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
 impl ScriptChan for MainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         let MainThreadScriptChan(ref chan) = *self;
-        return chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ());
+        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

@@ -661,7 +661,7 @@ unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
         return Ok(*dom_class);
     }
     debug!("not a dom object");
-    return Err(());
+    Err(())
 }
 
 /// Get a `*const libc::c_void` for the given DOM object, unwrapping any

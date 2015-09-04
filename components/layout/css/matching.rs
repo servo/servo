@@ -113,7 +113,7 @@ impl<'a> PartialEq for ApplicableDeclarationsCacheQuery<'a> {
                 return false
             }
         }
-        return true
+        true
     }
 }
 impl<'a> Eq for ApplicableDeclarationsCacheQuery<'a> {}

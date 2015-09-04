@@ -164,7 +164,7 @@ impl<'a> TextRun {
             glyphs: Arc::new(glyphs),
             bidi_level: bidi_level,
         };
-        return run;
+        run
     }
 
     pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)

@@ -378,7 +378,7 @@ impl<'a> PaintContext<'a> {
         if discriminant == 0. {
             return (Some(x1), None);
         }
-        return (Some(x1), Some(x2));
+        (Some(x1), Some(x2))
     }
 
     fn intersect_ellipse_line(e: Ellipse, l: Line) -> (Option<Point2D<f32>>, Option<Point2D<f32>>) {
@@ -1013,16 +1013,16 @@ impl<'a> PaintContext<'a> {
         let left_top        = Point2D::new(rect.origin.x, rect.origin.y);
         let scaled_left_top = left_top + Point2D::new(scaled_border.left,
                                                       scaled_border.top);
-        return Rect::new(scaled_left_top,
-                         Size2D::new(rect.size.width - 2.0 * scaled_border.right,
-                                     rect.size.height - 2.0 * scaled_border.bottom));
+        Rect::new(scaled_left_top,
+                  Size2D::new(rect.size.width - 2.0 * scaled_border.right,
+                              rect.size.height - 2.0 * scaled_border.bottom))
     }
 
     fn scale_color(&self, color: Color, scale_factor: f32) -> Color {
-        return color::new(color.r * scale_factor,
-                          color.g * scale_factor,
-                          color.b * scale_factor,
-                          color.a);
+        color::new(color.r * scale_factor,
+                   color.g * scale_factor,
+                   color.b * scale_factor,
+                   color.a)
     }
 
     fn draw_double_border_segment(&self,

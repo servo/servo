@@ -62,7 +62,7 @@ pub struct SendableWorkerScriptChan {
 
 impl ScriptChan for SendableWorkerScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        return self.sender.send((self.worker.clone(), msg)).map_err(|_| ());
+        self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -84,9 +84,9 @@ pub struct WorkerThreadWorkerChan {
 
 impl ScriptChan for WorkerThreadWorkerChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        return self.sender
+        self.sender
             .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
-            .map_err(|_| ());
+            .map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
