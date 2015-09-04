@@ -41,8 +41,8 @@ fn read_prefs() -> Result<HashMap<String, bool>, ()> {
     Ok(prefs)
 }
 
-pub fn get_pref(name: &str, default: bool) -> bool {
-    *PREFS.lock().unwrap().get(name).unwrap_or(&default)
+pub fn get_pref(name: &str) -> Option<bool> {
+    PREFS.lock().unwrap().get(name).cloned()
 }
 
 pub fn set_pref(name: &str, value: bool) {

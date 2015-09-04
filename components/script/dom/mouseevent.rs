@@ -171,7 +171,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if prefs::get_pref("dom.mouseevent.which.enabled", false) {
+        if prefs::get_pref("dom.mouseevent.which.enabled").unwrap_or(false) {
             (self.button.get() + 1) as i32
         } else {
             0
