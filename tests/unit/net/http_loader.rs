@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
+use devtools_traits::HttpRequest as devHttpRequest;
+use devtools_traits::HttpResponse as devHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
@@ -213,6 +215,39 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
+fn expect_devtools_http_request(devtools_port: Option<Receiver<DevtoolsControlMsg>>) -> Option<devHttpRequest> {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+        ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)) => {
+            match net_event {
+                NetworkEvent::HttpRequest(httprequest) => {
+                    httprequest
+                },
+
+                _ => (),
+            }
+        },
+        _ => (),
+    }
+}
+
+fn expect_devtools_http_response(devtools_port: Option<Receiver<DevtoolsControlMsg>>) -> Option<devHttpResponse> {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response)) => {
+            match net_event_response {
+                NetworkEvent::HttpResponse(httpresponse) => {
+                    //assert_eq!(headers, Headers::new());
+                    httpresponse
+                },
+
+                _ => (),
+            }
+        },
+        _ => (),
+    }
+}
+
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
     let url = Url::parse("http://mozilla.com").unwrap();
@@ -252,38 +287,18 @@ fn test_request_and_response_data_with_network_messages() {
     }
 
     let url = Url::parse("https://mozilla.com").unwrap();
-    let (setup_chan, setup_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), Some(setup_chan.clone()));
+    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
+    let resource_mgr = new_resource_task("Test-agent".to_string(), Some(devtools_chan.clone()));
     let mut load_data = LoadData::new(url.clone(), None);
-    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), Some(setup_chan), &Factory).unwrap();
+    let mut response = load::<MockRequest>(load_data, resource_mgr, Some(devtools_chan), &Factory).unwrap();
 
-    match setup_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(
-        ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)) => {
-            match net_event {
-                NetworkEvent::HttpRequest(url_req, method, headers, body) => {
-                    assert_eq!(url, url_req);
-                },
+    // notification obtained from devtools
+    let devhttprequest = expect_devtools_http_request(devtools_port).unwrap();
+    let devhttpresponse = expect_devtools_http_response(devtools_port).unwrap();
 
-                _ => (),
-            }
-        },
-        _ => (),
-    }
-
-    match setup_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(
-            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response)) => {
-            match net_event_response {
-                NetworkEvent::HttpResponse(headers, status, _) => {
-                    //assert_eq!(headers, Headers::new());
-                },
-
-                _ => (),
-            }
-        },
-        _ => (),
-    }
+    // Compare httprequest obtained from devtools messages with the mockrequest used to create this scenario
+    // incomplete
+    assert_eq(httprequest, );
 }
 
 #[test]
