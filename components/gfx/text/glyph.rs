@@ -407,7 +407,9 @@ pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
     /// A buffer of glyphs within the text run, in the order in which they
-    /// appear in the input text
+    /// appear in the input text.
+    /// Any changes will also need to be reflected in
+    /// transmute_entry_buffer_to_u32_buffer().
     entry_buffer: Vec<GlyphEntry>,
     /// A store of the detailed glyph data. Detailed glyphs contained in the
     /// `entry_buffer` point to locations in this data structure.
@@ -563,7 +565,7 @@ impl<'a> GlyphStore {
         let len = rang.length().to_usize();
         let num_simd_iterations = len / 4;
         let leftover_entries = rang.end().to_usize() - (len - num_simd_iterations * 4);
-        let buf: &[u32] = unsafe { mem::transmute(self.entry_buffer.as_slice()) };
+        let buf = self.transmute_entry_buffer_to_u32_buffer();
 
         for i in 0..num_simd_iterations {
             let mut v = u32x4::load(buf, begin + i * 4);
@@ -582,6 +584,11 @@ impl<'a> GlyphStore {
             leftover = leftover + self.entry_buffer[i].advance();
         }
         Au(advance) + leftover
+    }
+
+    #[inline]
+    fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
+        unsafe { mem::transmute(self.entry_buffer.as_slice()) }
     }
 
     pub fn char_is_space(&self, i: CharIndex) -> bool {
