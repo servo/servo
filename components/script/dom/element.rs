@@ -13,19 +13,18 @@ use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::CharacterDataCast;
-use dom::bindings::codegen::InheritTypes::DocumentDerived;
-use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
-use dom::bindings::codegen::InheritTypes::TextCast;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTableSectionElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
@@ -1280,19 +1279,25 @@ impl ElementMethods for Element {
         node.get_client_rect().size.height
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
+    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         //XXX TODO: XML case
         self.serialize(ChildrenOnly)
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-innerHTML
+    /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn SetInnerHTML(&self, value: DOMString) -> Fallible<()> {
         let context_node = NodeCast::from_ref(self);
         // Step 1.
         let frag = try!(context_node.parse_fragment(value));
         // Step 2.
-        Node::replace_all(Some(NodeCast::from_ref(frag.r())), context_node);
+        // https://github.com/w3c/DOM-Parsing/issues/1
+        let target = if let Some(template) = HTMLTemplateElementCast::to_ref(self) {
+            NodeCast::from_root(template.Content())
+        } else {
+            Root::from_ref(context_node)
+        };
+        Node::replace_all(Some(NodeCast::from_ref(&*frag)), &target);
         Ok(())
     }
 
