@@ -30,7 +30,7 @@ extern crate num;
 extern crate profile_traits;
 extern crate net_traits;
 extern crate gfx_traits;
-extern crate style;
+extern crate style_traits;
 #[macro_use]
 extern crate util;
 extern crate gleam;
@@ -58,4 +58,3 @@ mod scrolling;
 pub mod pipeline;
 pub mod constellation;
 pub mod windowing;
-

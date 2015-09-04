@@ -18,7 +18,7 @@ use offscreen_gl_context::GLContextAttributes;
 use png::Image;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver};
-use style::viewport::ViewportConstraints;
+use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};

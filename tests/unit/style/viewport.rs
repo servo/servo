@@ -10,6 +10,7 @@ use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified::{Length, LengthOrPercentageOrAuto};
 use style::viewport::*;
+use style_traits::viewport::*;
 use url::Url;
 
 macro_rules! stylesheet {

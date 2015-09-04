@@ -11,6 +11,9 @@ doctest = false
 [dependencies.style]
 path = "../../../components/style"
 
+[dependencies.style_traits]
+path = "../../../components/style_traits"
+
 [dependencies.util]
 path = "../../../components/util"
 

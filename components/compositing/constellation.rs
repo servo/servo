@@ -50,7 +50,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::sync::mpsc::{Receiver, Sender, channel};
-use style::viewport::ViewportConstraints;
+use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;

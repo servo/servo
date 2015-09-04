@@ -19,6 +19,9 @@ path = "../layout_traits"
 [dependencies.script_traits]
 path = "../script_traits"
 
+[dependencies.style_traits]
+path = "../style_traits"
+
 [dependencies.msg]
 path = "../msg"
 
@@ -27,9 +30,6 @@ path = "../profile_traits"
 
 [dependencies.net_traits]
 path = "../net_traits"
-
-[dependencies.style]
-path = "../style"
 
 [dependencies.util]
 path = "../util"
@@ -79,4 +79,3 @@ core-graphics = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.core-text]
 git = "https://github.com/servo/core-text-rs"
-

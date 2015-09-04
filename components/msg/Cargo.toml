@@ -7,14 +7,14 @@ authors = ["The Servo Project Developers"]
 name = "msg"
 path = "lib.rs"
 
-[dependencies.style]
-path = "../style"
-
 [dependencies.util]
 path = "../util"
 
 [dependencies.canvas_traits]
 path = "../canvas_traits"
+
+[dependencies.style_traits]
+path = "../style_traits"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
@@ -56,4 +56,3 @@ core-foundation = "0.1"
 
 [target.x86_64-apple-darwin.dependencies.io-surface]
 git = "https://github.com/servo/io-surface-rs"
-
