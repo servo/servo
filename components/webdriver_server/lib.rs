@@ -18,37 +18,45 @@ extern crate util;
 extern crate rustc_serialize;
 extern crate uuid;
 extern crate ipc_channel;
+extern crate regex;
+extern crate hyper;
 
+use hyper::method::Method::{self, Post};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
 use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
-
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
-use url::Url;
-use util::task::spawn_named;
-use uuid::Uuid;
-use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
-use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters};
-use webdriver::command::{WebDriverMessage, WebDriverCommand};
-use webdriver::common::{LocatorStrategy, WebElement};
-use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
-use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
-use webdriver::server::{self, WebDriverHandler, Session};
-
+use regex::Captures;
 use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
-
 use std::thread::{self, sleep_ms};
+use url::Url;
+use util::prefs::{get_pref, set_pref};
+use util::task::spawn_named;
+use uuid::Uuid;
+use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
+use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters, Parameters};
+use webdriver::command::{WebDriverMessage, WebDriverCommand, WebDriverExtensionCommand};
+use webdriver::common::{LocatorStrategy, WebElement};
+use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
+use webdriver::httpapi::{WebDriverExtensionRoute};
+use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
+use webdriver::server::{self, WebDriverHandler, Session};
+
+fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
+    return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
+                (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs)]
+}
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
     let handler = Handler::new(constellation_chan);
-
     spawn_named("WebdriverHttpServer".to_owned(), move || {
-        server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler);
+        server::start(SocketAddr::new("0.0.0.0".parse().unwrap(), port), handler,
+                      extension_routes());
     });
 }
 
@@ -63,6 +71,119 @@ struct Handler {
     script_timeout: u32,
     load_timeout: u32,
     implicit_wait_timeout: u32
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum ServoExtensionRoute {
+    GetPrefs,
+    SetPrefs,
+}
+
+impl WebDriverExtensionRoute for ServoExtensionRoute {
+    type Command = ServoExtensionCommand;
+
+    fn command(&self,
+               _captures: &Captures,
+               body_data: &Json) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
+        let command = match self {
+            &ServoExtensionRoute::GetPrefs => {
+                let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
+                ServoExtensionCommand::GetPrefs(parameters)
+            }
+            &ServoExtensionRoute::SetPrefs => {
+                let parameters: SetPrefsParameters = try!(Parameters::from_json(&body_data));
+                ServoExtensionCommand::SetPrefs(parameters)
+            }
+        };
+        Ok(WebDriverCommand::Extension(command))
+    }
+}
+
+#[derive(Clone, PartialEq)]
+enum ServoExtensionCommand {
+    GetPrefs(GetPrefsParameters),
+    SetPrefs(SetPrefsParameters)
+}
+
+impl WebDriverExtensionCommand for ServoExtensionCommand {
+    fn parameters_json(&self) -> Option<Json> {
+        match self {
+            &ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
+            &ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json())
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct GetPrefsParameters {
+    prefs: Vec<String>
+}
+
+impl Parameters for GetPrefsParameters {
+    fn from_json(body: &Json) -> WebDriverResult<GetPrefsParameters> {
+        let data = try!(body.as_object().ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Message body was not an object")));
+        let prefs_value = try!(data.get("prefs").ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Missing prefs key")));
+        let items = try!(prefs_value.as_array().ok_or(
+            WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "prefs was not an array")));
+        let params = try!(items.iter().map(|x| x.as_string().map(|y| y.to_owned()).ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Pref is not a string"))).collect::<Result<Vec<_>, _>>());
+        Ok(GetPrefsParameters {
+            prefs: params
+        })
+    }
+}
+
+impl ToJson for GetPrefsParameters {
+    fn to_json(&self) -> Json {
+        let mut data = BTreeMap::new();
+        data.insert("prefs".to_owned(), self.prefs.to_json());
+        Json::Object(data)
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct SetPrefsParameters {
+    prefs: Vec<(String, bool)>
+}
+
+impl Parameters for SetPrefsParameters {
+    fn from_json(body: &Json) -> WebDriverResult<SetPrefsParameters> {
+        let data = try!(body.as_object().ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Message body was not an object")));
+        let items = try!(try!(data.get("prefs").ok_or(
+            WebDriverError::new(ErrorStatus::InvalidArgument,
+                                "Missing prefs key"))).as_object().ok_or(
+            WebDriverError::new(
+                ErrorStatus::InvalidArgument,
+                "prefs was not an array")));
+        let mut params = Vec::with_capacity(items.len());
+        for (name, val) in items.iter() {
+            let value = try!(val.as_boolean().ok_or(
+                WebDriverError::new(ErrorStatus::InvalidArgument,
+                                    "Pref is not a bool")));
+            let key = name.to_owned();
+            params.push((key, value));
+        }
+        Ok(SetPrefsParameters {
+            prefs: params
+        })
+    }
+}
+
+impl ToJson for SetPrefsParameters {
+    fn to_json(&self) -> Json {
+        let mut data = BTreeMap::new();
+        data.insert("prefs".to_owned(), self.prefs.to_json());
+        Json::Object(data)
+    }
 }
 
 impl WebDriverSession {
@@ -505,12 +626,29 @@ impl Handler {
         let encoded = img_vec.to_base64(config);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
     }
+
+    fn handle_get_prefs(&self,
+                        parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
+        let prefs = parameters.prefs
+            .iter()
+            .map(|item| (item.clone(), get_pref(item).to_json()))
+            .collect::<BTreeMap<_, _>>();
+        Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
+    }
+
+    fn handle_set_prefs(&self,
+                        parameters: &SetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
+        for &(ref key, ref value) in parameters.prefs.iter() {
+            set_pref(key, *value);
+        }
+        Ok(WebDriverResponse::Void)
+    }
 }
 
-impl WebDriverHandler for Handler {
+impl WebDriverHandler<ServoExtensionRoute> for Handler {
     fn handle_command(&mut self,
                       _session: &Option<Session>,
-                      msg: &WebDriverMessage) -> WebDriverResult<WebDriverResponse> {
+                      msg: &WebDriverMessage<ServoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
 
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
@@ -542,6 +680,12 @@ impl WebDriverHandler for Handler {
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
+            WebDriverCommand::Extension(ref extension) => {
+                match extension {
+                    &ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
+                    &ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                }
+            }
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                          "Command not implemented"))
         }
