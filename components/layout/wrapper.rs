@@ -857,8 +857,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Set the restyle damage field.
     pub fn set_restyle_damage(self, damage: RestyleDamage) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &mut Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
+        match *layout_data_ref {
+            Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
             _ => panic!("no layout data for this node"),
         }
     }
@@ -876,8 +876,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Adds the given flags to this node.
     pub fn insert_flags(self, new_flags: LayoutDataFlags) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &mut Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
+        match *layout_data_ref {
+            Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
             _ => panic!("no layout data for this node"),
         }
     }
@@ -885,8 +885,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// Removes the given flags from this node.
     pub fn remove_flags(self, flags: LayoutDataFlags) {
         let mut layout_data_ref = self.mutate_layout_data();
-        match &mut *layout_data_ref {
-            &mut Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
+        match *layout_data_ref {
+            Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
             _ => panic!("no layout data for this node"),
         }
     }

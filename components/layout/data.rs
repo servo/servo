@@ -72,14 +72,14 @@ impl LayoutDataWrapper {
                 flow_ref.remove_compositor_layers(constellation_chan);
             }
             ConstructionResult::ConstructionItem(ref construction_item) => {
-                match construction_item {
-                    &ConstructionItem::InlineFragments(ref inline_fragments) => {
+                match *construction_item {
+                    ConstructionItem::InlineFragments(ref inline_fragments) => {
                         for fragment in &inline_fragments.fragments.fragments {
                             fragment.remove_compositor_layers(constellation_chan.clone());
                         }
                     }
-                    &ConstructionItem::Whitespace(..) => {}
-                    &ConstructionItem::TableColumnFragment(ref fragment) => {
+                    ConstructionItem::Whitespace(..) => {}
+                    ConstructionItem::TableColumnFragment(ref fragment) => {
                         fragment.remove_compositor_layers(constellation_chan.clone());
                     }
                 }

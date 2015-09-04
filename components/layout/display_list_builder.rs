@@ -1202,27 +1202,27 @@ impl FragmentDisplayListBuilding for Fragment {
                                                              -transform_origin.z);
 
             for operation in operations {
-                let matrix = match operation {
-                    &transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
+                let matrix = match *operation {
+                    transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
                         let theta = 2.0f32 * f32::consts::PI - theta.radians();
                         Matrix4::create_rotation(ax, ay, az, theta)
                     }
-                    &transform::ComputedOperation::Perspective(d) => {
+                    transform::ComputedOperation::Perspective(d) => {
                         Matrix4::create_perspective(d.to_f32_px())
                     }
-                    &transform::ComputedOperation::Scale(sx, sy, sz) => {
+                    transform::ComputedOperation::Scale(sx, sy, sz) => {
                         Matrix4::create_scale(sx, sy, sz)
                     }
-                    &transform::ComputedOperation::Translate(tx, ty, tz) => {
+                    transform::ComputedOperation::Translate(tx, ty, tz) => {
                         let tx = model::specified(tx, border_box.size.width).to_f32_px();
                         let ty = model::specified(ty, border_box.size.height).to_f32_px();
                         let tz = tz.to_f32_px();
                         Matrix4::create_translation(tx, ty, tz)
                     }
-                    &transform::ComputedOperation::Matrix(m) => {
+                    transform::ComputedOperation::Matrix(m) => {
                         m.to_gfx_matrix()
                     }
-                    &transform::ComputedOperation::Skew(sx, sy) => {
+                    transform::ComputedOperation::Skew(sx, sy) => {
                         Matrix4::create_skew(sx, sy)
                     }
                 };

@@ -632,12 +632,10 @@ impl IframeFragmentInfo {
         };
 
         let containing_size = containing_size.unwrap_or(Au(0));
-        let size = clamp_size(computed_size,
-                              style_min_size,
-                              style_max_size,
-                              containing_size);
-
-        size
+        clamp_size(computed_size,
+                   style_min_size,
+                   style_max_size,
+                   containing_size)
     }
 }
 
