@@ -56,8 +56,8 @@
   //void print();
   //any showModalDialog(DOMString url, optional any argument);
 
-  long requestAnimationFrame(FrameRequestCallback callback);
-  void cancelAnimationFrame(long handle);
+  unsigned long requestAnimationFrame(FrameRequestCallback callback);
+  void cancelAnimationFrame(unsigned long handle);
 
   //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
 
