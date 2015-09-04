@@ -57,7 +57,8 @@ use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
-use profile_traits::mem::ProfilerChan;
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
+use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_traits::UntrustedNodeAddress;
 use selectors::parser::PseudoElement;
 use serde::{Serialize, Deserialize};
@@ -304,7 +305,8 @@ no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyl
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
 no_jsmanaged_fields!(RepetitionStyle);
 no_jsmanaged_fields!(WebGLError);
-no_jsmanaged_fields!(ProfilerChan);
+no_jsmanaged_fields!(TimeProfilerChan);
+no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 
 impl JSTraceable for Box<ScriptChan + Send> {

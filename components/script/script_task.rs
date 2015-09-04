@@ -64,6 +64,7 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheRes
 use net_traits::storage_task::StorageTask;
 use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan, OpaqueSender};
+use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
@@ -93,12 +94,11 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use url::{Url, UrlParser};
 
-use core::ops::Deref;
 use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::io::{stdout, Write};
 use std::mem as std_mem;
 use std::option::Option;
@@ -107,7 +107,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex};
-use time::{self, Tm};
+use time::{now, Tm};
 
 use hyper::header::{ContentType, HttpDate};
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -396,6 +396,9 @@ pub struct ScriptTask {
     /// The channel on which the image cache can send messages to ourself.
     image_cache_channel: ImageCacheChan,
 
+    /// For providing contact with the time profiler.
+    time_profiler_chan: time::ProfilerChan,
+
     /// For providing contact with the memory profiler.
     mem_profiler_chan: mem::ProfilerChan,
 
@@ -417,11 +420,6 @@ pub struct ScriptTask {
 
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: RefCell<HashSet<PipelineId>>,
-
-    /// When profiling data should be written out to stdout.
-    perf_profiler_next_report: Cell<Option<u64>>,
-    /// How much time was spent on what since the last report.
-    perf_profiler_times: RefCell<HashMap<ScriptTaskEventCategory, u64>>,
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -484,6 +482,7 @@ impl ScriptTaskFactory for ScriptTask {
               resource_task: ResourceTask,
               storage_task: StorageTask,
               image_cache_task: ImageCacheTask,
+              time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
               window_size: Option<WindowSizeData>,
@@ -505,6 +504,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               Arc::new(resource_task),
                                               storage_task,
                                               image_cache_task,
+                                              time_profiler_chan.clone(),
                                               mem_profiler_chan.clone(),
                                               devtools_chan);
 
@@ -536,26 +536,26 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
     match progress {
         GCProgress::GC_CYCLE_BEGIN => {
             GC_CYCLE_START.with(|start| {
-                start.set(Some(time::now()));
+                start.set(Some(now()));
                 println!("GC cycle began");
             })
         },
         GCProgress::GC_SLICE_BEGIN => {
             GC_SLICE_START.with(|start| {
-                start.set(Some(time::now()));
+                start.set(Some(now()));
                 println!("GC slice began");
             })
         },
         GCProgress::GC_SLICE_END => {
             GC_SLICE_START.with(|start| {
-                let dur = time::now() - start.get().unwrap();
+                let dur = now() - start.get().unwrap();
                 start.set(None);
                 println!("GC slice ended: duration={}", dur);
             })
         },
         GCProgress::GC_CYCLE_END => {
             GC_CYCLE_START.with(|start| {
-                let dur = time::now() - start.get().unwrap();
+                let dur = now() - start.get().unwrap();
                 start.set(None);
                 println!("GC cycle ended: duration={}", dur);
             })
@@ -620,6 +620,7 @@ impl ScriptTask {
                resource_task: Arc<ResourceTask>,
                storage_task: StorageTask,
                image_cache_task: ImageCacheTask,
+               time_profiler_chan: time::ProfilerChan,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>)
                -> ScriptTask {
@@ -656,6 +657,7 @@ impl ScriptTask {
             control_port: control_port,
             constellation_chan: constellation_chan,
             compositor: DOMRefCell::new(compositor),
+            time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
 
             devtools_chan: devtools_chan,
@@ -667,9 +669,6 @@ impl ScriptTask {
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
             closed_pipelines: RefCell::new(HashSet::new()),
-
-            perf_profiler_next_report: Cell::new(None),
-            perf_profiler_times: RefCell::new(HashMap::new()),
         }
     }
 
@@ -916,46 +915,25 @@ impl ScriptTask {
         where F: FnOnce() -> R {
 
         if opts::get().profile_script_events {
-            let start = time::precise_time_ns();
-            let result = f();
-            let end = time::precise_time_ns();
-
-            let duration = end - start;
-
-            let aggregate = {
-                let zero = 0;
-                let perf_profiler_times = self.perf_profiler_times.borrow();
-                let so_far = perf_profiler_times.get(&category).unwrap_or(&zero);
-
-                so_far + duration
+            let profiler_cat = match category {
+                ScriptTaskEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
+                ScriptTaskEventCategory::ConstellationMsg => ProfilerCategory::ScriptConstellationMsg,
+                ScriptTaskEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
+                ScriptTaskEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
+                ScriptTaskEventCategory::DomEvent => ProfilerCategory::ScriptDomEvent,
+                ScriptTaskEventCategory::FileRead => ProfilerCategory::ScriptFileRead,
+                ScriptTaskEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
+                ScriptTaskEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
+                ScriptTaskEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptTaskEventCategory::Resize => ProfilerCategory::ScriptResize,
+                ScriptTaskEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+                ScriptTaskEventCategory::UpdateReplacedElement => ProfilerCategory::ScriptUpdateReplacedElement,
+                ScriptTaskEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
+                ScriptTaskEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
+                ScriptTaskEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
+                ScriptTaskEventCategory::XhrEvent => ProfilerCategory::ScriptXhrEvent,
             };
-
-            self.perf_profiler_times.borrow_mut().insert(category, aggregate);
-
-            const NANO: u64 = 1000 * 1000 * 1000;
-            const REPORT_INTERVAL: u64 = 10 * NANO;
-
-            match self.perf_profiler_next_report.get() {
-                None => self.perf_profiler_next_report.set(Some(start + REPORT_INTERVAL)),
-                Some(time) if time <= end => {
-                    self.perf_profiler_next_report.set(Some(end + REPORT_INTERVAL));
-
-                    let stdout = stdout();
-                    let mut stdout = stdout.lock();
-                    writeln!(&mut stdout, "Script task time distribution:").unwrap();
-                    for (c, t) in self.perf_profiler_times.borrow().deref() {
-                        let secs = t / NANO;
-                        let nanos = t % NANO;
-                        writeln!(&mut stdout, "  {:?}: {}.{}s", c, secs, nanos).unwrap();
-                    }
-                    stdout.flush().unwrap();
-
-                    self.perf_profiler_times.borrow_mut().clear();
-                },
-                Some(_) => {}
-            }
-
-            result
+            profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
             f()
         }

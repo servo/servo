@@ -56,6 +56,22 @@ pub enum ProfilerCategory {
     PaintingPrepBuff,
     Painting,
     ImageDecoding,
+    ScriptAttachLayout,
+    ScriptConstellationMsg,
+    ScriptDevtoolsMsg,
+    ScriptDocumentEvent,
+    ScriptDomEvent,
+    ScriptFileRead,
+    ScriptImageCacheMsg,
+    ScriptInputEvent,
+    ScriptNetworkEvent,
+    ScriptResize,
+    ScriptEvent,
+    ScriptUpdateReplacedElement,
+    ScriptSetViewport,
+    ScriptWebSocketEvent,
+    ScriptWorkerEvent,
+    ScriptXhrEvent,
 }
 
 #[derive(Eq, PartialEq)]
