@@ -639,6 +639,7 @@ pub mod specified {
     }
 
     impl ToCss for Calc {
+        #[allow(unused_assignments)]
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
             macro_rules! count {
