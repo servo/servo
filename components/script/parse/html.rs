@@ -203,7 +203,14 @@ impl<'a> Serializable for &'a Node {
                     try!(serializer.start_elem(name.clone(), attr_refs));
                 }
 
-                for handle in node.children() {
+                let children = if let Some(tpl) = HTMLTemplateElementCast::to_ref(node) {
+                    // https://github.com/w3c/DOM-Parsing/issues/1
+                    NodeCast::from_ref(&*tpl.Content()).children()
+                } else {
+                    node.children()
+                };
+
+                for handle in children {
                     try!(handle.r().serialize(serializer, IncludeNode));
                 }
 
