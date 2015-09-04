@@ -535,7 +535,7 @@ impl WindowMethods for Window {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> i32 {
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
         let doc = self.Document();
 
         let callback  = move |now: f64| {
@@ -548,7 +548,7 @@ impl WindowMethods for Window {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
-    fn CancelAnimationFrame(&self, ident: i32) {
+    fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
         doc.r().cancel_animation_frame(ident);
     }
