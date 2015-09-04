@@ -11,7 +11,7 @@ use hyper::Error as HttpError;
 use hyper::client::{Request, Response, Pool};
 use hyper::error::Result as HttpResult;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
-use hyper::header::{Location, qitem, StrictTransportSecurity};
+use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent};
 use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
 use hyper::http::RawStatus;
 use hyper::method::Method;
@@ -77,10 +77,10 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data: LoadData, senders, classifier| {
+               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
+    box move |load_data: LoadData, senders, classifier, user_agent| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
-            load_for_consumer(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan)
+            load_for_consumer(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan, user_agent)
         })
     }
 }
@@ -123,12 +123,13 @@ fn load_for_consumer(load_data: LoadData,
                      classifier: Arc<MIMEClassifier>,
                      connector: Arc<Pool<Connector>>,
                      resource_mgr_chan: IpcSender<ControlMsg>,
-                     devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+                     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                     user_agent: String) {
 
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
-    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &factory) {
+    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &factory, user_agent) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -477,7 +478,8 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 pub fn load<A>(load_data: LoadData,
                resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               request_factory: &HttpRequestFactory<R=A>)
+               request_factory: &HttpRequestFactory<R=A>,
+               user_agent: String)
                -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
@@ -540,6 +542,8 @@ pub fn load<A>(load_data: LoadData,
         };
 
         request_headers.set(host);
+
+        request_headers.set(UserAgent(user_agent.clone()));
 
         set_default_accept(&mut request_headers);
         set_default_accept_encoding(&mut request_headers);
