@@ -1,7 +1,7 @@
-ifeq (androideabi,$(findstring androideabi,$(TARGET)))
+ifeq (eabi,$(findstring eabi,$(TARGET)))
 
-CXX := $(TARGET)-g++
-AR := $(TARGET)-ar
+CXX ?= $(TARGET)-g++
+AR ?= $(TARGET)-ar
 CFLAGS := -fPIC -O2
 
 else
