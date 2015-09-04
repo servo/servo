@@ -627,11 +627,11 @@ impl BlockFlow {
         // Check if the transform matrix is 2D or 3D
         if let Some(ref transform_list) = self.fragment.style().get_effects().transform.0 {
             for transform in transform_list {
-                match transform {
-                    &transform::ComputedOperation::Perspective(..) => {
+                match *transform {
+                    transform::ComputedOperation::Perspective(..) => {
                         return true;
                     }
-                    &transform::ComputedOperation::Matrix(m) => {
+                    transform::ComputedOperation::Matrix(m) => {
                         // See http://dev.w3.org/csswg/css-transforms/#2d-matrix
                         if m.m31 != 0.0 || m.m32 != 0.0 ||
                            m.m13 != 0.0 || m.m23 != 0.0 ||
