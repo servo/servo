@@ -17,6 +17,8 @@ use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use url::Url;
 
+const DEFAULT_USER_AGENT: &'static str = "Test-agent";
+
 fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
     respond_with_headers(body, &mut headers)
@@ -211,7 +213,7 @@ impl HttpRequest for AssertMustHaveBodyRequest {
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
 
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = None;
@@ -225,7 +227,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
-        });
+        }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -247,11 +249,11 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.method = Method::Post;
 
-    let _ = load::<MockRequest>(load_data, resource_mgr, None, &Factory);
+    let _ = load::<MockRequest>(load_data, resource_mgr, None, &Factory, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -273,9 +275,13 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
-    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
+    let mut response = load::<MockRequest>(
+        load_data, resource_mgr.clone(), None,
+        &Factory,
+        DEFAULT_USER_AGENT.to_string())
+        .unwrap();
 
     assert_eq!(read_response(&mut response), "Yay!");
 }
@@ -299,9 +305,14 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
-    let mut response = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory).unwrap();
+    let mut response = load::<MockRequest>(
+        load_data,
+        resource_mgr.clone(),
+        None, &Factory,
+        DEFAULT_USER_AGENT.to_string())
+        .unwrap();
 
     assert_eq!(read_response(&mut response), "Yay!");
 }
@@ -333,12 +344,12 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
 
-    let _ = load::<AssertMustHaveBodyRequest>(load_data, resource_mgr, None, &Factory);
+    let _ = load::<AssertMustHaveBodyRequest>(load_data, resource_mgr, None, &Factory, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -357,11 +368,11 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
 
     let load_data = LoadData::new(url.clone(), None);
 
-    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory, DEFAULT_USER_AGENT.to_string());
 
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr.send(ControlMsg::GetHostMustBeSecured("mozilla.com".to_string(), tx)).unwrap();
@@ -385,11 +396,11 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     }
 
     let url = Url::parse("https://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
 
     let load_data = LoadData::new(url.clone(), None);
 
-    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory, DEFAULT_USER_AGENT.to_string());
 
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr.send(ControlMsg::GetHostMustBeSecured("mozilla.com".to_string(), tx)).unwrap();
@@ -413,12 +424,12 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "");
 
     let load_data = LoadData::new(url.clone(), None);
 
-    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory);
+    let _ = load::<MockRequest>(load_data, resource_mgr.clone(), None, &Factory, DEFAULT_USER_AGENT.to_string());
 
     assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "mozillaIs=theBest");
 }
@@ -426,7 +437,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("http://mozilla.com").unwrap(),
                                                    "mozillaIs=theBest".to_string(),
                                                    CookieSource::HTTP)).unwrap();
@@ -442,7 +453,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: cookie,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        });
+        }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -450,7 +461,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
@@ -465,7 +476,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: content_len_headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        });
+        }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -474,7 +485,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     accept_headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
@@ -482,7 +493,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
-    });
+    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -493,14 +504,14 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     );
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
-    });
+    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -509,7 +520,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
@@ -517,7 +528,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_encoding_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
-    });
+    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -526,14 +537,14 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let _ = load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &AssertMustHaveHeadersRequestFactory {
         expected_headers: accept_encoding_headers,
         body: <[_]>::to_vec("Yay!".as_bytes())
-    });
+    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -555,10 +566,10 @@ fn test_load_errors_when_there_a_redirect_loop() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
-    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory, DEFAULT_USER_AGENT.to_string()) {
         Err(LoadError::InvalidRedirect(_, msg)) => {
             assert_eq!(msg, "redirect loop");
         },
@@ -583,10 +594,10 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
-    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory, DEFAULT_USER_AGENT.to_string()) {
         Err(LoadError::MaxRedirects(url)) => {
             assert_eq!(url.domain().unwrap(), "mozilla.com")
         },
@@ -619,10 +630,10 @@ fn test_load_follows_a_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
-    match load::<MockRequest>(load_data, resource_mgr, None, &Factory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &Factory, DEFAULT_USER_AGENT.to_string()) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
@@ -644,10 +655,10 @@ impl HttpRequestFactory for DontConnectFactory {
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
     let url = Url::parse("ftp://not-supported").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
-    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory, DEFAULT_USER_AGENT.to_string()) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }
@@ -656,10 +667,10 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
     let url = Url::parse("view-source:ftp://not-supported").unwrap();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
     let load_data = LoadData::new(url.clone(), None);
 
-    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory) {
+    match load::<MockRequest>(load_data, resource_mgr, None, &DontConnectFactory, DEFAULT_USER_AGENT.to_string()) {
         Err(LoadError::UnsupportedScheme(_)) => {}
         _ => panic!("expected ftp scheme to be unsupported")
     }
