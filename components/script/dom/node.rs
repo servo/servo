@@ -267,7 +267,7 @@ impl LayoutDataRef {
     /// Borrows the layout data immutably. This function is *not* thread-safe.
     #[inline]
     pub fn borrow(&self) -> Ref<Option<LayoutData>> {
-        debug_assert!(task_state::get().is_layout() || task_state::get().is_script());
+        debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow()
     }
 
@@ -280,6 +280,19 @@ impl LayoutDataRef {
     pub fn borrow_mut(&self) -> RefMut<Option<LayoutData>> {
         debug_assert!(task_state::get().is_layout());
         self.data_cell.borrow_mut()
+    }
+
+    /// Returns a clone of the associated node's ComputedValues.
+    ///
+    /// This clone is necessary to make sure that modifications by a concurrent
+    /// animation follow copy-on-write semantics rather than updating in place.
+    pub fn style_for_script(&self) -> Arc<ComputedValues> {
+        debug_assert!(task_state::get().is_script());
+
+        let layout_data = self.data_cell.borrow();
+        let layout_data = layout_data.as_ref().expect("Layout data not yet computed.");
+
+        layout_data.shared_data.style.as_ref().unwrap().clone()
     }
 }
 
@@ -961,13 +974,7 @@ impl Node {
     pub fn query_style<F, R>(&self, query: F) -> R
         where F: Fn(&ComputedValues) -> R {
 
-        let layout_data = self.layout_data.borrow();
-        let layout_data = layout_data.as_ref()
-            .expect("Layout data not yet computed.");
-
-        let style = layout_data.shared_data.style.as_ref().unwrap();
-
-        query(style)
+        query(&self.layout_data.style_for_script())
     }
 }
 
