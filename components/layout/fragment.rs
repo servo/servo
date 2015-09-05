@@ -2376,6 +2376,13 @@ impl Fragment {
         self.style.get_box().position == position::T::absolute
     }
 
+    pub fn is_inline_absolute(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::InlineAbsolute(..) => true,
+            _ => false,
+        }
+    }
+
     pub fn meld_with_next_inline_fragment(&mut self, next_fragment: &Fragment) {
         if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
             if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
