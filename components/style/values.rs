@@ -834,6 +834,46 @@ pub mod specified {
         }
     }
 
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+
+    impl BorderRadiusSize {
+        pub fn zero() -> BorderRadiusSize {
+            let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
+                BorderRadiusSize(Size2D::new(zero, zero))
+        }
+    }
+
+    impl ToCss for BorderRadiusSize {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let BorderRadiusSize(size) = *self;
+            try!(size.width.to_css(dest));
+            try!(dest.write_str(" "));
+            size.height.to_css(dest)
+        }
+    }
+    impl BorderRadiusSize {
+        pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
+            BorderRadiusSize(Size2D::new(radius, radius))
+        }
+
+        pub fn parse_one_radii(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+            if let Ok(first) = LengthOrPercentage::parse_non_negative(input) {
+                Ok(BorderRadiusSize(Size2D::new(first, first)))
+            } else {
+                Err(())
+            }
+        }
+
+        #[allow(dead_code)]
+        #[inline]
+        pub fn parse(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+            let first = try!(LengthOrPercentage::parse_non_negative(input));
+            let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
+            Ok(BorderRadiusSize(Size2D::new(first, second)))
+        }
+    }
+
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
     #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
@@ -1091,6 +1131,22 @@ pub mod specified {
         }
     }
 
+    pub fn parse_border_radius(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+        input.try(BorderRadiusSize::parse).or_else(|()| {
+                match_ignore_ascii_case! { try!(input.expect_ident()),
+                                           "thin" =>
+                                           Ok(BorderRadiusSize::circle(
+                                               LengthOrPercentage::Length(Length::from_px(1.)))),
+                                           "medium" =>
+                                           Ok(BorderRadiusSize::circle(
+                                               LengthOrPercentage::Length(Length::from_px(3.)))),
+                                           "thick" =>
+                                           Ok(BorderRadiusSize::circle(
+                                               LengthOrPercentage::Length(Length::from_px(5.))))
+                                           _ => Err(())
+                }
+            })
+    }
 
     pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
         input.try(Length::parse_non_negative).or_else(|()| {
@@ -1301,6 +1357,36 @@ pub mod computed {
         }
     }
 
+
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
+    pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+
+    impl BorderRadiusSize {
+        pub fn zero() -> BorderRadiusSize {
+            BorderRadiusSize(Size2D::new(LengthOrPercentage::Length(Au(0)), LengthOrPercentage::Length(Au(0))))
+        }
+    }
+
+    impl ToComputedValue for specified::BorderRadiusSize {
+        type ComputedValue = BorderRadiusSize;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> BorderRadiusSize {
+            let specified::BorderRadiusSize(s) = *self;
+            let w = s.width.to_computed_value(context);
+            let h = s.height.to_computed_value(context);
+            BorderRadiusSize(Size2D::new(w, h))
+        }
+    }
+
+    impl ::cssparser::ToCss for BorderRadiusSize {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let BorderRadiusSize(s) = *self;
+            try!(s.width.to_css(dest));
+            try!(dest.write_str("/"));
+            s.height.to_css(dest)
+        }
+    }
 
     #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
     pub enum LengthOrPercentage {

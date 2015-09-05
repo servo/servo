@@ -280,18 +280,13 @@ fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> Borde
         }
     }
 
-    let top_factor = scale_factor(radii.top_left, radii.top_right, size.width);
-    let bottom_factor = scale_factor(radii.bottom_left, radii.bottom_right, size.width);
-    let left_factor = scale_factor(radii.top_left, radii.bottom_left, size.height);
-    let right_factor = scale_factor(radii.top_right, radii.bottom_right, size.height);
+    let top_factor = scale_factor(radii.top_left.width, radii.top_right.width, size.width);
+    let bottom_factor = scale_factor(radii.bottom_left.width, radii.bottom_right.width, size.width);
+    let left_factor = scale_factor(radii.top_left.height, radii.bottom_left.height, size.height);
+    let right_factor = scale_factor(radii.top_right.height, radii.bottom_right.height, size.height);
     let min_factor = top_factor.min(bottom_factor).min(left_factor).min(right_factor);
     if min_factor < 1.0 {
-        BorderRadii {
-            top_left:     radii.top_left    .scale_by(min_factor),
-            top_right:    radii.top_right   .scale_by(min_factor),
-            bottom_left:  radii.bottom_left .scale_by(min_factor),
-            bottom_right: radii.bottom_right.scale_by(min_factor),
-        }
+        radii.scale_by(min_factor)
     } else {
         *radii
     }
@@ -303,14 +298,14 @@ fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRa
     // radii will be relative to the width.
 
     handle_overlapping_radii(&abs_bounds.size, &BorderRadii {
-        top_left:     model::specified(border_style.border_top_left_radius,
-                                       abs_bounds.size.width),
-        top_right:    model::specified(border_style.border_top_right_radius,
-                                       abs_bounds.size.width),
-        bottom_right: model::specified(border_style.border_bottom_right_radius,
-                                       abs_bounds.size.width),
-        bottom_left:  model::specified(border_style.border_bottom_left_radius,
-                                       abs_bounds.size.width),
+        top_left:     model::specified_border_radius(border_style.border_top_left_radius,
+                                                     abs_bounds.size.width),
+        top_right:    model::specified_border_radius(border_style.border_top_right_radius,
+                                                     abs_bounds.size.width),
+        bottom_right: model::specified_border_radius(border_style.border_bottom_right_radius,
+                                                     abs_bounds.size.width),
+        bottom_left:  model::specified_border_radius(border_style.border_bottom_left_radius,
+                                                     abs_bounds.size.width),
     })
 }
 

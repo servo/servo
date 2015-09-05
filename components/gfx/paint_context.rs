@@ -85,6 +85,13 @@ struct Line {
     end: Point2D<f32>,
 }
 
+struct CornerOrigin {
+        top_left: Point2D<f32>,
+        top_right: Point2D<f32>,
+        bottom_right: Point2D<f32>,
+        bottom_left: Point2D<f32>,
+}
+
 impl<'a> PaintContext<'a> {
     pub fn draw_target(&self) -> &DrawTarget {
         &self.draw_target
@@ -448,7 +455,7 @@ impl<'a> PaintContext<'a> {
         }
     }
 
-    fn ellipse_rightmost_line_intersection_angle(e: Ellipse, l: Line) -> Option<f32> {
+    fn ellipse_rightmost_intersection(e: Ellipse, l: Line) -> Option<f32> {
         match PaintContext::ellipse_line_intersection_angles(e, l) {
             (Some((p0, angle0)), Some((p1, _))) if p0.x > p1.x => Some(angle0),
             (_, Some((_, angle1))) => Some(angle1),
@@ -457,12 +464,161 @@ impl<'a> PaintContext<'a> {
         }
     }
 
-    fn ellipse_leftmost_line_intersection_angle(e: Ellipse, l: Line) -> Option<f32> {
+    fn ellipse_leftmost_intersection(e: Ellipse, l: Line) -> Option<f32> {
         match PaintContext::ellipse_line_intersection_angles(e, l) {
             (Some((p0, angle0)), Some((p1, _))) if p0.x < p1.x => Some(angle0),
             (_, Some((_, angle1))) => Some(angle1),
             (Some((_, angle0)), None) => Some(angle0),
             (None, None) => None,
+        }
+    }
+
+    fn is_zero_radius(radius: &Size2D<AzFloat>) -> bool {
+        radius.width <= 0. || radius.height <= 0.
+    }
+
+    // Adapted from gecko:gfx/2d/PathHelpers.h:EllipseToBezier
+    fn ellipse_to_bezier(path_builder: &mut PathBuilder,
+                         origin: Point2D<AzFloat>,
+                         radius: Size2D<AzFloat>,
+                         start_angle: f32,
+                         end_angle: f32) {
+        if PaintContext::is_zero_radius(&radius) {
+            return;
+        }
+
+        // Calculate kappa constant for partial curve. The sign of angle in the
+        // tangent will actually ensure this is negative for a counter clockwise
+        // sweep, so changing signs later isn't needed.
+        let kappa_factor: f32 = (4.0f32 / 3.0f32) * ((end_angle - start_angle) / 4.).tan();
+        let kappa_x: f32 = kappa_factor * radius.width;
+        let kappa_y: f32 = kappa_factor * radius.height;
+
+        // We guarantee here the current point is the start point of the next
+        // curve segment.
+        let start_point = Point2D::new(origin.x + start_angle.cos() * radius.width,
+                                       origin.y + start_angle.sin() * radius.height);
+
+        path_builder.line_to(start_point);
+        let end_point = Point2D::new(origin.x + end_angle.cos() * radius.width,
+                                     origin.y + end_angle.sin() * radius.height);
+
+        let tangent_start = Point2D::new(-start_angle.sin(), start_angle.cos());
+
+        let cp1 = Point2D::new(start_point.x + tangent_start.x * kappa_x,
+                               start_point.y + tangent_start.y * kappa_y);
+
+        let rev_tangent_end = Point2D::new(end_angle.sin(), -end_angle.cos());
+
+        let cp2 = Point2D::new(end_point.x + rev_tangent_end.x * kappa_x,
+                               end_point.y + rev_tangent_end.y * kappa_y);
+
+        path_builder.bezier_curve_to(&cp1, &cp2, &end_point);
+    }
+
+    #[allow(non_snake_case)]
+    fn inner_border_bounds(bounds: &Rect<f32>, border: &SideOffsets2D<f32>) -> Rect<f32> {
+        // T = top, B = bottom, L = left, R = right
+        let inner_TL = bounds.origin + Point2D::new(border.left, border.top);
+        let inner_BR = bounds.bottom_right() + Point2D::new(-border.right, -border.bottom);
+        Rect::new(inner_TL, Size2D::new(inner_BR.x - inner_TL.x, inner_BR.y - inner_TL.y))
+    }
+
+    #[allow(non_snake_case)]
+    fn corner_bounds(bounds: &Rect<f32>,
+                     border: &SideOffsets2D<f32>,
+                     radii: &BorderRadii<AzFloat>) -> (CornerOrigin, SideOffsets2D<Size2D<f32>>) {
+
+        fn distance_to_elbow(radius: &Size2D<AzFloat>,
+                             corner_width: f32,
+                             corner_height: f32) -> Size2D<f32> {
+            if corner_width >= radius.width || corner_height >= radius.height {
+                Size2D::zero()
+            } else {
+                Size2D::new(radius.width - corner_width, radius.height - corner_height)
+            }
+        }
+
+        // T = top, B = bottom, L = left, R = right
+        let origin_TL = bounds.origin + Point2D::new(radii.top_left.width, radii.top_left.height);
+        let origin_TR = bounds.top_right() + Point2D::new(-radii.top_right.width,
+                                                          radii.top_right.height);
+        let origin_BR = bounds.bottom_right() + Point2D::new(-radii.bottom_right.width,
+                                                             -radii.bottom_right.height);
+        let origin_BL = bounds.bottom_left() + Point2D::new(radii.bottom_left.width,
+                                                            -radii.bottom_left.height);
+
+        let elbow_TL = distance_to_elbow(&radii.top_left, border.left, border.top);
+        let elbow_TR = distance_to_elbow(&radii.top_right, border.right, border.top);
+        let elbow_BR = distance_to_elbow(&radii.bottom_right, border.right, border.bottom);
+        let elbow_BL = distance_to_elbow(&radii.bottom_left, border.left, border.bottom);
+        (CornerOrigin { top_left: origin_TL,
+                        top_right: origin_TR,
+                        bottom_right: origin_BR,
+                        bottom_left: origin_BL },
+         SideOffsets2D::new(elbow_TL, elbow_TR, elbow_BR, elbow_BL))
+    }
+
+    #[allow(non_snake_case)]
+    fn draw_corner(path_builder: &mut PathBuilder,
+                   origin: &Point2D<AzFloat>,
+                   radius: &Size2D<AzFloat>,
+                   inner_border: &Point2D<AzFloat>,
+                   outer_border: &Point2D<AzFloat>,
+                   dist_elbow: &Size2D<AzFloat>,
+                   clockwise: bool) {
+        let rad_R: AzFloat = 0.;
+        let rad_BR = rad_R  + f32::consts::FRAC_PI_4;
+        let rad_B  = rad_BR + f32::consts::FRAC_PI_4;
+        let rad_BL = rad_B  + f32::consts::FRAC_PI_4;
+        let rad_L  = rad_BL + f32::consts::FRAC_PI_4;
+        let rad_TL = rad_L  + f32::consts::FRAC_PI_4;
+        let rad_T  = rad_TL + f32::consts::FRAC_PI_4;
+
+        fn compatible_borders_corner(border_corner_radius: &Size2D<f32>,
+                                     border1_width: f32,
+                                     border2_width: f32) -> bool {
+            (border_corner_radius.width - border_corner_radius.height).abs() <= f32::EPSILON &&
+                (border1_width - border2_width).abs() <= f32::EPSILON
+        }
+
+        if PaintContext::is_zero_radius(radius) {
+            return;
+        }
+        let ellipse = Ellipse { origin: *origin, width: radius.width, height: radius.height };
+        let simple_border = compatible_borders_corner(&radius,
+                                                      (outer_border.x - inner_border.x).abs(),
+                                                      (outer_border.y - inner_border.y).abs());
+        let corner_angle = if simple_border {
+            f32::consts::FRAC_PI_4
+        } else {
+            if inner_border.x >= outer_border.x {
+                PaintContext::ellipse_leftmost_intersection(ellipse,
+                                                            Line { start: *outer_border,
+                                                                   end: *inner_border }).unwrap()
+            } else {
+                PaintContext::ellipse_rightmost_intersection(ellipse,
+                                                             Line { start: *inner_border,
+                                                                    end: *outer_border }).unwrap()
+            }
+        };
+        let (start_angle, end_angle) = match (inner_border.x <= outer_border.x,
+                                              inner_border.y >= outer_border.y) {
+            // TR corner - top border & right border
+            (true, true) => if clockwise { (-rad_B, rad_R - corner_angle) } else { (rad_R - corner_angle, rad_R) },
+            // BR corner - right border & bottom border
+            (true, false) => if clockwise { (rad_R, rad_R + corner_angle) } else { (rad_R + corner_angle, rad_B) },
+            // TL corner - left border & top border
+            (false, true) => if clockwise { (rad_L, rad_L + corner_angle) } else { (rad_L + corner_angle, rad_T) },
+            // BL corner - bottom border & left border
+            (false, false) => if clockwise { (rad_B, rad_L - corner_angle) } else { (rad_L - corner_angle, rad_L) },
+        };
+        if clockwise {
+            PaintContext::ellipse_to_bezier(path_builder, *origin, *radius, start_angle, end_angle);
+            PaintContext::ellipse_to_bezier(path_builder, *origin, *dist_elbow, end_angle, start_angle);
+        } else {
+            PaintContext::ellipse_to_bezier(path_builder, *origin, *dist_elbow, end_angle, start_angle);
+            PaintContext::ellipse_to_bezier(path_builder, *origin, *radius, start_angle, end_angle);
         }
     }
 
@@ -552,27 +708,17 @@ impl<'a> PaintContext<'a> {
                                   bounds: &Rect<f32>,
                                   direction: Direction,
                                   border: &SideOffsets2D<f32>,
-                                  radius: &BorderRadii<AzFloat>,
+                                  radii: &BorderRadii<AzFloat>,
                                   mode: BorderPathDrawingMode) {
         // T = top, B = bottom, L = left, R = right
-
-        let box_TL = bounds.origin;
-        let box_TR = box_TL + Point2D::new(bounds.size.width, 0.0);
-        let box_BL = box_TL + Point2D::new(0.0, bounds.size.height);
-        let box_BR = box_TL + Point2D::new(bounds.size.width, bounds.size.height);
-
-        let inner_TL = box_TL + Point2D::new(border.left, border.top);
-        let inner_TR = box_TR + Point2D::new(-border.right, border.top);
-        let inner_BR = box_BR + Point2D::new(-border.right, -border.bottom);
-        let inner_BL = box_BL + Point2D::new(border.left, -border.bottom);
-
-        let rad_R: AzFloat = 0.;
-        let rad_BR = rad_R  + f32::consts::FRAC_PI_4;
-        let rad_B  = rad_BR + f32::consts::FRAC_PI_4;
-        let rad_BL = rad_B  + f32::consts::FRAC_PI_4;
-        let rad_L  = rad_BL + f32::consts::FRAC_PI_4;
-        let rad_TL = rad_L  + f32::consts::FRAC_PI_4;
-        let rad_T  = rad_TL + f32::consts::FRAC_PI_4;
+        let inner = PaintContext::inner_border_bounds(bounds, &border);
+        let (box_TL, inner_TL,
+             box_TR, inner_TR,
+             box_BR, inner_BR,
+             box_BL, inner_BL) = (bounds.origin, inner.origin,
+                                  bounds.top_right(), inner.top_right(),
+                                  bounds.bottom_right(), inner.bottom_right(),
+                                  bounds.bottom_left(), inner.bottom_left());
 
         fn dx(x: AzFloat) -> Point2D<AzFloat> {
             Point2D::new(x, 0.)
@@ -590,44 +736,23 @@ impl<'a> PaintContext<'a> {
             Point2D::new(0., if cond { dy } else { 0. })
         }
 
-        fn compatible_borders_corner(border1_width: f32, border2_width: f32) -> bool {
-            (border1_width - border2_width).abs() <= f32::EPSILON
-        }
+        let (corner_origin, elbow) =
+            PaintContext::corner_bounds(bounds, border, radii);
 
-        let distance_to_elbow_TL =
-            if border.top == border.left {
-                (radius.top_left - border.top).max(0.)
-            } else {
-                0.
-            };
-        let distance_to_elbow_TR =
-            if border.top == border.right {
-                (radius.top_right - border.top).max(0.)
-            } else {
-                0.
-            };
-        let distance_to_elbow_BR =
-            if border.right == border.bottom {
-                (radius.bottom_right - border.bottom).max(0.)
-            } else {
-                0.
-            };
-        let distance_to_elbow_BL =
-            if border.left == border.bottom {
-                (radius.bottom_left - border.bottom).max(0.)
-            } else {
-                0.
-            };
+        let (elbow_TL, elbow_TR, elbow_BR, elbow_BL) =
+            (elbow.top, elbow.right, elbow.bottom, elbow.left);
 
         match direction {
             Direction::Top => {
-                let edge_TL = box_TL + dx(radius.top_left.max(border.left));
-                let edge_TR = box_TR + dx(-radius.top_right.max(border.right));
-                let edge_BR = box_TR + dx(-border.right - distance_to_elbow_TR) + dy(border.top);
-                let edge_BL = box_TL + dx(border.left + distance_to_elbow_TL) + dy(border.top);
+                let edge_TL = box_TL + dx(radii.top_left.width.max(border.left));
+                let edge_TR = box_TR + dx(-radii.top_right.width.max(border.right));
+                let edge_BR = box_TR + dx(-border.right - elbow_TR.width) + dy(border.top);
+                let edge_BL = box_TL + dx(border.left + elbow_TL.width) + dy(border.top);
 
-                let corner_TL = edge_TL + dx_if(radius.top_left == 0., -border.left);
-                let corner_TR = edge_TR + dx_if(radius.top_right == 0., border.right);
+                let corner_TL = edge_TL + dx_if(PaintContext::is_zero_radius(&radii.top_left),
+                                                -border.left);
+                let corner_TR = edge_TR + dx_if(PaintContext::is_zero_radius(&radii.top_right),
+                                                border.right);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -636,25 +761,13 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TR),
                 }
-
-                if radius.top_right != 0. {
-                    // the origin is the center of the arcs we're about to draw.
-                    let origin = edge_TR + Point2D::new((border.right - radius.top_right).max(0.),
-                                                        radius.top_right);
-                    let angle = if compatible_borders_corner(border.top, border.right) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: inner_TR, end: box_TR };
-                        let ellipse = Ellipse { origin: origin, width: radius.top_right, height: radius.top_right };
-                        PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    path_builder.arc(origin, radius.top_right, rad_T, rad_R - angle, false);
-                    if distance_to_elbow_TR != 0. {
-                        path_builder.arc(origin, distance_to_elbow_TR, rad_R - angle, rad_T, true);
-                    }
-                }
-
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.top_right,
+                                          &radii.top_right,
+                                          &inner_TR,
+                                          &box_TR,
+                                          &elbow_TR,
+                                          true);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
                         path_builder.line_to(edge_BR);
@@ -662,32 +775,25 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BL),
                 }
-
-                if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D::new(-(border.left - radius.top_left).max(0.),
-                                                        radius.top_left);
-                    let angle = if compatible_borders_corner(border.top, border.left) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: box_TL, end: inner_TL };
-                        let ellipse = Ellipse { origin: origin, width: radius.top_left, height: radius.top_left };
-                        PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    if distance_to_elbow_TL != 0. {
-                        path_builder.arc(origin, distance_to_elbow_TL, rad_T, rad_L + angle, true);
-                    }
-                    path_builder.arc(origin, radius.top_left, rad_L + angle, rad_T, false);
-                }
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.top_left,
+                                          &radii.top_left,
+                                          &inner_TL,
+                                          &box_TL,
+                                          &elbow_TL,
+                                          false);
             }
             Direction::Left => {
-                let edge_TL = box_TL + dy(radius.top_left.max(border.top));
-                let edge_BL = box_BL + dy(-radius.bottom_left.max(border.bottom));
-                let edge_TR = box_TL + dx(border.left) + dy(border.top + distance_to_elbow_TL);
-                let edge_BR = box_BL + dx(border.left) + dy(-border.bottom - distance_to_elbow_BL);
+                let edge_TL = box_TL + dy(radii.top_left.height.max(border.top));
+                let edge_BL = box_BL + dy(-radii.bottom_left.height.max(border.bottom));
+                let edge_TR = box_TL + dx(border.left) + dy(border.top + elbow_TL.height);
+                let edge_BR = box_BL + dx(border.left) + dy(-border.bottom -
+                                                            elbow_BL.height);
 
-                let corner_TL = edge_TL + dy_if(radius.top_left == 0., -border.top);
-                let corner_BL = edge_BL + dy_if(radius.bottom_left == 0., border.bottom);
+                let corner_TL = edge_TL + dy_if(PaintContext::is_zero_radius(&radii.top_left),
+                                                -border.top);
+                let corner_BL = edge_BL + dy_if(PaintContext::is_zero_radius(&radii.bottom_left),
+                                                border.bottom);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -696,25 +802,13 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TL),
                 }
-
-                if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D::new(radius.top_left,
-                                                        -(border.top - radius.top_left).max(0.));
-
-                    let angle = if compatible_borders_corner(border.top, border.left) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: box_TL, end: inner_TL };
-                        let ellipse = Ellipse { origin: origin, width: radius.top_left, height: radius.top_left };
-                        PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    path_builder.arc(origin, radius.top_left, rad_L, rad_L + angle, false);
-                    if distance_to_elbow_TL != 0. {
-                        path_builder.arc(origin, distance_to_elbow_TL, rad_L + angle, rad_L, true);
-                    }
-                }
-
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.top_left,
+                                          &radii.top_left,
+                                          &inner_TL,
+                                          &box_TL,
+                                          &elbow_TL,
+                                          true);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
                         path_builder.line_to(edge_TR);
@@ -722,35 +816,25 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BR),
                 }
-
-                if radius.bottom_left != 0. {
-                    let origin = edge_BL +
-                        Point2D::new(radius.bottom_left,
-                                     (border.bottom - radius.bottom_left).max(0.));
-                    let angle = if compatible_borders_corner(border.bottom, border.left) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: box_BL, end: inner_BL };
-                        let ellipse = Ellipse { origin: origin,
-                                                width: radius.bottom_left,
-                                                height: radius.bottom_left };
-                        PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    if distance_to_elbow_BL != 0. {
-                        path_builder.arc(origin, distance_to_elbow_BL,  rad_L, rad_L - angle, true);
-                    }
-                    path_builder.arc(origin, radius.bottom_left, rad_L - angle, rad_L, false);
-                }
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.bottom_left,
+                                          &radii.bottom_left,
+                                          &inner_BL,
+                                          &box_BL,
+                                          &elbow_BL,
+                                          false);
             }
             Direction::Right => {
-                let edge_TR = box_TR + dy(radius.top_right.max(border.top));
-                let edge_BR = box_BR + dy(-radius.bottom_right.max(border.bottom));
-                let edge_TL = box_TR + dx(-border.right) + dy(border.top + distance_to_elbow_TR);
-                let edge_BL = box_BR + dx(-border.right) + dy(-border.bottom - distance_to_elbow_BR);
+                let edge_TR = box_TR + dy(radii.top_right.height.max(border.top));
+                let edge_BR = box_BR + dy(-radii.bottom_right.height.max(border.bottom));
+                let edge_TL = box_TR + dx(-border.right) + dy(border.top + elbow_TR.height);
+                let edge_BL = box_BR + dx(-border.right) + dy(-border.bottom -
+                                                              elbow_BR.height);
 
-                let corner_TR = edge_TR + dy_if(radius.top_right == 0., -border.top);
-                let corner_BR = edge_BR + dy_if(radius.bottom_right == 0., border.bottom);
+                let corner_TR = edge_TR + dy_if(PaintContext::is_zero_radius(&radii.top_right),
+                                                -border.top);
+                let corner_BR = edge_BR + dy_if(PaintContext::is_zero_radius(&radii.bottom_right),
+                                                border.bottom);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -759,24 +843,13 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TL),
                 }
-
-                if radius.top_right != 0. {
-                    let origin = edge_TR + Point2D::new(-radius.top_right,
-                                                        -(border.top - radius.top_right).max(0.));
-                    let angle = if compatible_borders_corner(border.top, border.right) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: inner_TR, end: box_TR };
-                        let ellipse = Ellipse { origin: origin, width: radius.top_right, height: radius.top_right };
-                        PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    if distance_to_elbow_TR != 0. {
-                        path_builder.arc(origin, distance_to_elbow_TR, rad_R, rad_R - angle, true);
-                    }
-                    path_builder.arc(origin, radius.top_right,  rad_R - angle, rad_R, false);
-                }
-
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.top_right,
+                                          &radii.top_right,
+                                          &inner_TR,
+                                          &box_TR,
+                                          &elbow_TR,
+                                          false);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
                         path_builder.line_to(corner_TR);
@@ -784,35 +857,27 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BR),
                 }
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.bottom_right,
+                                          &radii.bottom_right,
+                                          &inner_BR,
+                                          &box_BR,
+                                          &elbow_BR,
+                                          true);
 
-                if radius.bottom_right != 0. {
-                    let origin = edge_BR +
-                        Point2D::new(-radius.bottom_right,
-                                     (border.bottom - radius.bottom_right).max(0.));
-                    let angle = if compatible_borders_corner(border.bottom, border.right) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: inner_BR, end: box_BR };
-                        let ellipse = Ellipse { origin: origin,
-                                                width: radius.bottom_right,
-                                                height: radius.bottom_right };
-                        PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    path_builder.arc(origin, radius.bottom_right, rad_R, rad_R + angle, false);
-                    if distance_to_elbow_BR != 0. {
-                        path_builder.arc(origin, distance_to_elbow_BR, rad_R + angle, rad_R, true);
-                    }
-                }
             }
             Direction::Bottom => {
-                let edge_BL = box_BL + dx(radius.bottom_left.max(border.left));
-                let edge_BR = box_BR + dx(-radius.bottom_right.max(border.right));
-                let edge_TL = box_BL + dy(-border.bottom) + dx(border.left + distance_to_elbow_BL);
-                let edge_TR = box_BR + dy(-border.bottom) + dx(-border.right - distance_to_elbow_BR);
+                let edge_BL = box_BL + dx(radii.bottom_left.width.max(border.left));
+                let edge_BR = box_BR + dx(-radii.bottom_right.width.max(border.right));
+                let edge_TL = box_BL + dy(-border.bottom) + dx(border.left +
+                                                               elbow_BL.width);
+                let edge_TR = box_BR + dy(-border.bottom) + dx(-border.right -
+                                                               elbow_BR.width);
 
-                let corner_BR = edge_BR + dx_if(radius.bottom_right == 0., border.right);
-                let corner_BL = edge_BL + dx_if(radius.bottom_left == 0., -border.left);
+                let corner_BR = edge_BR + dx_if(PaintContext::is_zero_radius(&radii.bottom_right),
+                                                border.right);
+                let corner_BL = edge_BL + dx_if(PaintContext::is_zero_radius(&radii.bottom_left),
+                                                -border.left);
 
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
@@ -821,26 +886,13 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TR),
                 }
-
-                if radius.bottom_right != 0. {
-                    let origin = edge_BR + Point2D::new((border.right - radius.bottom_right).max(0.),
-                                                        -radius.bottom_right);
-                    let angle = if compatible_borders_corner(border.bottom, border.right) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: inner_BR, end: box_BR };
-                        let ellipse = Ellipse { origin: origin,
-                                                width: radius.bottom_right,
-                                                height: radius.bottom_right };
-                        PaintContext::ellipse_rightmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    if distance_to_elbow_BR != 0. {
-                        path_builder.arc(origin, distance_to_elbow_BR,   rad_B, rad_R + angle, true);
-                    }
-                    path_builder.arc(origin, radius.bottom_right, rad_R + angle, rad_B, false);
-                }
-
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.bottom_right,
+                                          &radii.bottom_right,
+                                          &inner_BR,
+                                          &box_BR,
+                                          &elbow_BR,
+                                          false);
                 match mode {
                     BorderPathDrawingMode::EntireBorder => {
                         path_builder.line_to(corner_BR);
@@ -848,25 +900,13 @@ impl<'a> PaintContext<'a> {
                     }
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BL),
                 }
-
-                if radius.bottom_left != 0. {
-                    let origin = edge_BL - Point2D::new((border.left - radius.bottom_left).max(0.),
-                                                        radius.bottom_left);
-                    let angle = if compatible_borders_corner(border.bottom, border.left) {
-                        f32::consts::FRAC_PI_4
-                    } else {
-                        let line = Line { start: box_BL, end: inner_BL };
-                        let ellipse = Ellipse { origin: origin,
-                                                width: radius.bottom_left,
-                                                height: radius.bottom_left };
-                        PaintContext::ellipse_leftmost_line_intersection_angle(ellipse, line).unwrap()
-                    };
-
-                    path_builder.arc(origin, radius.bottom_left, rad_B, rad_L - angle, false);
-                    if distance_to_elbow_BL != 0. {
-                        path_builder.arc(origin, distance_to_elbow_BL,  rad_L - angle, rad_B, true);
-                    }
-                }
+                PaintContext::draw_corner(path_builder,
+                                          &corner_origin.bottom_left,
+                                          &radii.bottom_left,
+                                          &inner_BL,
+                                          &box_BL,
+                                          &elbow_BL,
+                                          true);
             }
         }
     }
@@ -879,6 +919,7 @@ impl<'a> PaintContext<'a> {
     /// slice through the rounded corners. My first attempt to unify with the above code resulted
     /// in making a mess of it, and the simplicity of this code path is appealing, so it may not
     /// be worth it… In any case, revisit this decision when we support elliptical radii.
+    #[allow(non_snake_case)]
     fn create_rounded_rect_path(&self,
                                 path_builder: &mut PathBuilder,
                                 bounds: &Rect<f32>,
@@ -890,36 +931,93 @@ impl<'a> PaintContext<'a> {
         //  + 7          4 +
         //   \ 6        5 /
         //    +----------+
+        let border = SideOffsets2D::new(radii.top_left.height.max(radii.top_right.height),
+                                        radii.bottom_right.width.max(radii.top_right.width),
+                                        radii.bottom_right.height.max(radii.bottom_left.height),
+                                        radii.top_left.height.max(radii.bottom_left.height));
 
-        path_builder.move_to(Point2D::new(bounds.origin.x + radii.top_left, bounds.origin.y));   // 1
-        path_builder.line_to(Point2D::new(bounds.max_x() - radii.top_right, bounds.origin.y));   // 2
-        path_builder.arc(Point2D::new(bounds.max_x() - radii.top_right,
-                                      bounds.origin.y + radii.top_right),
-                         radii.top_right,
-                         1.5f32 * f32::consts::FRAC_PI_2,
-                         2.0f32 * f32::consts::PI,
-                         false);                                                                 // 3
-        path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
-        path_builder.arc(Point2D::new(bounds.max_x() - radii.bottom_right,
-                                      bounds.max_y() - radii.bottom_right),
-                         radii.bottom_right,
-                         0.0,
-                         f32::consts::FRAC_PI_2,
-                         false);                                                                 // 5
-        path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
-        path_builder.arc(Point2D::new(bounds.origin.x + radii.bottom_left,
-                                 bounds.max_y() - radii.bottom_left),
-                         radii.bottom_left,
-                         f32::consts::FRAC_PI_2,
-                         f32::consts::PI,
-                         false);                                                                 // 7
-        path_builder.line_to(Point2D::new(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
-        path_builder.arc(Point2D::new(bounds.origin.x + radii.top_left,
-                                      bounds.origin.y + radii.top_left),
-                         radii.top_left,
-                         f32::consts::PI,
-                         1.5f32 * f32::consts::FRAC_PI_2,
-                         false);                                                                 // 1
+        // T = top, B = bottom, L = left, R = right
+        let inner = PaintContext::inner_border_bounds(bounds, &border);
+        let (outer_TL, inner_TL,
+             outer_TR, inner_TR,
+             outer_BR, inner_BR,
+             outer_BL, inner_BL) = (bounds.origin, inner.origin,
+                                    bounds.top_right(), inner.top_right(),
+                                    bounds.bottom_right(), inner.bottom_right(),
+                                    bounds.bottom_left(), inner.bottom_left());
+
+        let (corner_origin, _) =
+            PaintContext::corner_bounds(bounds, &border, radii);
+        let (origin_TL, origin_TR, origin_BR, origin_BL) = (corner_origin.top_left,
+                                                            corner_origin.top_right,
+                                                            corner_origin.bottom_right,
+                                                            corner_origin.bottom_left);
+        let zero_elbow = Size2D::new(0., 0.);
+
+        path_builder.move_to(Point2D::new(origin_TL.x - radii.top_left.width, origin_TL.y));
+        path_builder.move_to(Point2D::new(bounds.origin.x + radii.top_left.width, bounds.origin.y));   // 1
+        path_builder.line_to(Point2D::new(bounds.max_x() - radii.top_right.width, bounds.origin.y));   // 2
+        PaintContext::draw_corner(path_builder,                                                        // 3
+                                  &origin_TR,
+                                  &radii.top_right,
+                                  &inner_TR,
+                                  &outer_TR,
+                                  &zero_elbow,
+                                  true);
+        PaintContext::draw_corner(path_builder,                                                        // 3
+                                  &origin_TR,
+                                  &radii.top_right,
+                                  &inner_TR,
+                                  &outer_TR,
+                                  &zero_elbow,
+                                  false);
+        path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right.width)); // 4
+        PaintContext::draw_corner(path_builder,                                                        // 5
+                                  &origin_BR,
+                                  &radii.bottom_right,
+                                  &inner_BR,
+                                  &outer_BR,
+                                  &zero_elbow,
+                                  true);
+        PaintContext::draw_corner(path_builder,                                                        // 5
+                                  &origin_BR,
+                                  &radii.bottom_right,
+                                  &inner_BR,
+                                  &outer_BR,
+                                  &zero_elbow,
+                                  false);
+        path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left.width,
+                                          bounds.max_y()));                                            // 6
+        PaintContext::draw_corner(path_builder,                                                        // 7
+                                  &origin_BL,
+                                  &radii.bottom_left,
+                                  &inner_BL,
+                                  &outer_BL,
+                                  &zero_elbow,
+                                  true);
+        PaintContext::draw_corner(path_builder,                                                        // 7
+                                  &origin_BL,
+                                  &radii.bottom_left,
+                                  &inner_BL,
+                                  &outer_BL,
+                                  &zero_elbow,
+                                  false);
+        path_builder.line_to(Point2D::new(bounds.origin.x,
+                                          bounds.origin.y + radii.top_left.height));                    // 8
+        PaintContext::draw_corner(path_builder,                                                         // 9
+                                  &origin_TL,
+                                  &radii.top_left,
+                                  &inner_TL,
+                                  &outer_TL,
+                                  &zero_elbow,
+                                  true);
+        PaintContext::draw_corner(path_builder,                                                         // 9
+                                  &origin_TL,
+                                  &radii.top_left,
+                                  &inner_TL,
+                                  &outer_TL,
+                                  &zero_elbow,
+                                  false);
     }
 
     fn draw_dashed_border_segment(&self,
@@ -947,26 +1045,26 @@ impl<'a> PaintContext<'a> {
         let (start, end)  = match direction {
             Direction::Top => {
                 let y = rect.origin.y + border.top * 0.5;
-                let start = Point2D::new(rect.origin.x + radius.top_left, y);
-                let end = Point2D::new(rect.origin.x + rect.size.width - radius.top_right, y);
+                let start = Point2D::new(rect.origin.x + radius.top_left.width, y);
+                let end = Point2D::new(rect.origin.x + rect.size.width - radius.top_right.width, y);
                 (start, end)
             }
             Direction::Left => {
                 let x = rect.origin.x + border.left * 0.5;
-                let start = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_left);
-                let end = Point2D::new(x, rect.origin.y + border.top.max(radius.top_left));
+                let start = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_left.height);
+                let end = Point2D::new(x, rect.origin.y + border.top.max(radius.top_left.height));
                 (start, end)
             }
             Direction::Right => {
                 let x = rect.origin.x + rect.size.width - border.right * 0.5;
-                let start = Point2D::new(x, rect.origin.y + radius.top_right);
-                let end = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_right);
+                let start = Point2D::new(x, rect.origin.y + radius.top_right.height);
+                let end = Point2D::new(x, rect.origin.y + rect.size.height - radius.bottom_right.height);
                 (start, end)
             }
             Direction::Bottom => {
                 let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
-                let start = Point2D::new(rect.origin.x + rect.size.width - radius.bottom_right, y);
-                let end = Point2D::new(rect.origin.x + border.left.max(radius.bottom_left), y);
+                let start = Point2D::new(rect.origin.x + rect.size.width - radius.bottom_right.width, y);
+                let end = Point2D::new(rect.origin.x + border.left.max(radius.bottom_left.width), y);
                 (start, end)
             }
         };
@@ -1532,11 +1630,15 @@ impl ToRadiiPx for BorderRadii<Au> {
         }
 
         BorderRadii {
-            top_left: to_nearest_px(self.top_left),
-            top_right: to_nearest_px(self.top_right),
-            bottom_left: to_nearest_px(self.bottom_left),
-            bottom_right: to_nearest_px(self.bottom_right),
-        }
+            top_left: Size2D { width: to_nearest_px(self.top_left.width),
+                               height: to_nearest_px(self.top_left.height) },
+            top_right: Size2D { width: to_nearest_px(self.top_right.width),
+                                height: to_nearest_px(self.top_right.height) },
+            bottom_left: Size2D { width: to_nearest_px(self.bottom_left.width),
+                                  height: to_nearest_px(self.bottom_left.height) },
+            bottom_right: Size2D { width: to_nearest_px(self.bottom_right.width),
+                                   height: to_nearest_px(self.bottom_right.height) },
+       }
     }
 }
 
@@ -1769,11 +1871,14 @@ enum BorderPathDrawingMode {
 }
 
 fn radii_apply_to_border_direction(direction: Direction, radius: &BorderRadii<AzFloat>) -> bool {
-    match (direction, radius.top_left, radius.top_right, radius.bottom_left, radius.bottom_right) {
+    match (direction,
+           radius.top_left.width,
+           radius.top_right.width,
+           radius.bottom_left.width,
+           radius.bottom_right.width) {
         (Direction::Top, a, b, _, _) |
         (Direction::Right, _, a, _, b) |
         (Direction::Bottom, _, _, a, b) |
         (Direction::Left, a, _, b, _) => a != 0.0 || b != 0.0,
     }
 }
-

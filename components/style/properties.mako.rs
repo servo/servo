@@ -377,9 +377,9 @@ pub mod longhands {
 
     // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
     % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
-        ${predefined_type("border-" + corner + "-radius", "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative")}
+        ${predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
+                          "computed::BorderRadiusSize::zero()",
+                          "parse")}
     % endfor
 
     ${new_style_struct("Outline", is_inherited=False)}
@@ -5135,16 +5135,16 @@ pub mod shorthands {
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
-        use util::geometry::Au;
-        use values::specified::{Length, LengthOrPercentage};
+        use values::specified::BorderRadiusSize;
+
         let _ignored = context;
 
         fn parse_one_set_of_border_radii(mut input: &mut Parser)
-                                         -> Result<[LengthOrPercentage; 4], ()> {
+                                         -> Result<[BorderRadiusSize; 4], ()> {
             let mut count = 0;
-            let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
+            let mut values = [BorderRadiusSize::zero(); 4];
             while count < 4 {
-                if let Ok(value) = input.try(LengthOrPercentage::parse) {
+                if let Ok(value) = input.try(BorderRadiusSize::parse_one_radii) {
                     values[count] = value;
                     count += 1;
                 } else {
@@ -5162,7 +5162,7 @@ pub mod shorthands {
         }
 
         let radii = try!(parse_one_set_of_border_radii(input));
-        // TODO(pcwalton): Elliptical borders.
+        // TODO(bjwbell): Finish parsing code for elliptical borders.
 
         Ok(Longhands {
             border_top_left_radius: Some(radii[0]),
