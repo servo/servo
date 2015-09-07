@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, Token, SourcePosition};
+use cssparser::{Parser, Token, SourcePosition, Delimiter};
 use properties::DeclaredValue;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -37,8 +37,6 @@ pub struct BorrowedValue<'a> {
 pub fn parse(input: &mut Parser) -> Result<Value, ()> {
     let start = input.position();
     let mut references = Some(HashSet::new());
-    // FIXME: don’t consume a top-level `!` as that would prevent parsing `!important`.
-    // Maybe using Parser::parse_until_before?
     try!(parse_declaration_value(input, &mut references));
     Ok(Value {
         value: input.slice_from(start).to_owned(),
@@ -49,42 +47,13 @@ pub fn parse(input: &mut Parser) -> Result<Value, ()> {
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
                                -> Result<(), ()> {
-    if input.is_exhausted() {
-        // Need at least one token
-        return Err(())
-    }
-    while let Ok(token) = input.next() {
-        match token {
-            Token::BadUrl |
-            Token::BadString |
-            Token::CloseParenthesis |
-            Token::CloseSquareBracket |
-            Token::CloseCurlyBracket |
-
-            Token::Semicolon |
-            Token::Delim('!') => {
-                return Err(())
-            }
-
-            Token::Function(ref name) if name == "var" => {
-                try!(input.parse_nested_block(|input| {
-                    parse_var_function(input, references)
-                }));
-            }
-
-            Token::Function(_) |
-            Token::ParenthesisBlock |
-            Token::CurlyBracketBlock |
-            Token::SquareBracketBlock => {
-                try!(input.parse_nested_block(|input| {
-                    parse_declaration_value_block(input, references)
-                }));
-            }
-
-            _ => {}
+    input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
+        if input.is_exhausted() {
+            // Need at least one token
+            return Err(())
         }
-    }
-    Ok(())
+        parse_declaration_value_block(input, references)
+    })
 }
 
 /// Like parse_declaration_value,
@@ -312,11 +281,11 @@ fn substitute_block<F>(input: &mut Parser,
                        -> Result<(), ()>
                        where F: FnMut(&Name, &mut String) -> Result<(), ()> {
     loop {
-        let input_slice = input.slice_from(*start);
+        let before_this_token = input.position();
         let token = if let Ok(token) = input.next() { token } else { break };
         match token {
             Token::Function(ref name) if name == "var" => {
-                substituted.push_str(input_slice);
+                substituted.push_str(input.slice(*start..before_this_token));
                 try!(input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
