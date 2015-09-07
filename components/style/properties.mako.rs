@@ -205,6 +205,9 @@ pub mod longhands {
                             input.look_for_var_functions();
                             let start = input.position();
                             let specified = parse_specified(context, input);
+                            if specified.is_err() {
+                                while let Ok(_) = input.next() {}  // Look for var() after the error.
+                            }
                             let var = input.seen_var_functions();
                             if specified.is_err() && var {
                                 input.reset(start);
