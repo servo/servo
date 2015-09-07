@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, Token, SourcePosition, Delimiter};
 use properties::DeclaredValue;
+use std::ascii::AsciiExt;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use string_cache::Atom;
@@ -73,7 +74,7 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
                 return Err(())
             }
 
-            Token::Function(ref name) if name == "var" => {
+            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 try!(input.parse_nested_block(|input| {
                     parse_var_function(input, references)
                 }));
@@ -287,7 +288,7 @@ fn substitute_block<F>(input: &mut Parser,
         let before_this_token = input.position();
         let token = if let Ok(token) = input.next() { token } else { break };
         match token {
-            Token::Function(ref name) if name == "var" => {
+            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 substituted.push_str(input.slice(*start..before_this_token));
                 try!(input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
