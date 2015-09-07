@@ -5601,24 +5601,25 @@ mod property_bit_field {
                         // As of this writing, only the base URL is used for property values:
                         let context = ParserContext::new(
                             ::stylesheets::Origin::Author, base_url);
-                        let mut input = Parser::new(&css);
-                        match from_shorthand {
-                            Shorthand::None => {
-                                longhands::${property.ident}::parse_specified(&context, &mut input)
+                        Parser::new(&css).parse_entirely(|input| {
+                            match from_shorthand {
+                                Shorthand::None => {
+                                    longhands::${property.ident}::parse_specified(&context, input)
+                                }
+                                % for shorthand in SHORTHANDS:
+                                    % if property in shorthand.sub_properties:
+                                        Shorthand::${shorthand.camel_case} => {
+                                            shorthands::${shorthand.ident}::parse_value(&context, input)
+                                            .map(|result| match result.${property.ident} {
+                                                Some(value) => DeclaredValue::Value(value),
+                                                None => DeclaredValue::Initial,
+                                            })
+                                        }
+                                    % endif
+                                % endfor
+                                _ => unreachable!()
                             }
-                            % for shorthand in SHORTHANDS:
-                                % if property in shorthand.sub_properties:
-                                    Shorthand::${shorthand.camel_case} => {
-                                        shorthands::${shorthand.ident}::parse_value(&context, &mut input)
-                                        .map(|result| match result.${property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
-                                            None => DeclaredValue::Initial,
-                                        })
-                                    }
-                                % endif
-                            % endfor
-                            _ => unreachable!()
-                        }
+                        })
                     })
                     .unwrap_or(
                         // Invalid at computed-value time.
