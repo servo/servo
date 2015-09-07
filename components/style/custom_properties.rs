@@ -48,10 +48,13 @@ pub fn parse(input: &mut Parser) -> Result<Value, ()> {
 pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
                                -> Result<(), ()> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
-        if input.is_exhausted() {
-            // Need at least one token
+        // Need at least one token
+        let start_position = input.position();
+        if input.next_including_whitespace().is_err() {
             return Err(())
         }
+        input.reset(start_position);
+
         parse_declaration_value_block(input, references)
     })
 }
