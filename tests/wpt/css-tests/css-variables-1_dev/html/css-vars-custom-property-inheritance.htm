@@ -9,14 +9,14 @@
     <style type="text/css">
 
         /* test cascade importance */
-        :root { var-color: #1c1 !important; }
-        :root { var-color: red; }
+        :root { --color: #1c1 !important; }
+        :root { --color: red; }
 
         /* test cascade order */
         * { color: red; }
 
         /* test cascade order */
-        * { color: var(color); }
+        * { color: var(--color); }
 
     </style>
 </head>
@@ -25,5 +25,6 @@
     <p>Green</p>
     <p>Green</p>
     <p>The test passes if everything is green. Any red means the test failed.</p>
+
 
 </body></html>

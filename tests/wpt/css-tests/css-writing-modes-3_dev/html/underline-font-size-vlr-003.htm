@@ -11,7 +11,7 @@
   <link rel="bookmark" href="http://www.w3.org/TR/css-text-decor-3/leftline-cross.png" title="">
 
   <meta content="" name="flags">
-  <meta content="This test checks that when latin and east-asian glyphs are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box even if that cuts through glyphs of descendant text or through em box of descendant text or even if font size of text is larger." name="assert">
+  <meta content="This test checks that when mongolian glyphs of varying font sizes are used in mixed text-orientation (therefore with text centrally baseline-aligned), then the text-decoration of the parent box is used across the parent box." name="assert">
 
   <style type="text/css">
   div#vrl
@@ -21,12 +21,12 @@
       writing-mode: vertical-lr;
     }
 
-  span#outer
+  span#parent
     {
       text-decoration: underline;
     }
 
-  span#inner
+  span#child
     {
       color: transparent;
     }
@@ -43,7 +43,7 @@
 
   <p>Test passes if there is <strong>one and only one vertical straight and unbroken line</strong>. Such line should have the same thickness over its entire length.</p>
 
-  <div id="vrl"><span id="outer"><span id="inner" lang="mn">ᠨ<span id="larger">ᠨᠨ</span>ᠨ</span></span></div>
+  <div id="vrl"><span id="parent"><span id="child" lang="mn">ᠨ<span id="larger">ᠨᠨ</span>ᠨ</span></span></div>
 
  </body>
 </html>

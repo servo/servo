@@ -5442,6 +5442,8 @@ run-in-text-between-002.xht == reference/run-in-text-ref.xht
 run-in-text-between-003.xht == reference/run-in-text-ref.xht
 run-in-text-between-004.xht == reference/run-in-basic-ref.xht
 run-in-text-between-005.xht == reference/run-in-basic-ref.xht
+selectors-001.xht == reference/selectors-001-ref.xht
+selectors-002.xht == reference/selectors-002-ref.xht
 selectors-parsing-001.xht == reference/selectors-parsing-001-ref.xht
 separated-border-model-003a.xht == reference/ref-filled-green-100px-square.xht
 separated-border-model-003b.xht == reference/separated-border-model-003b-ref.xht

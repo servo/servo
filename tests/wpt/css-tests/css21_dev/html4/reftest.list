@@ -5442,6 +5442,8 @@ run-in-text-between-002.htm == reference/run-in-text-ref.htm
 run-in-text-between-003.htm == reference/run-in-text-ref.htm
 run-in-text-between-004.htm == reference/run-in-basic-ref.htm
 run-in-text-between-005.htm == reference/run-in-basic-ref.htm
+selectors-001.htm == reference/selectors-001-ref.htm
+selectors-002.htm == reference/selectors-002-ref.htm
 selectors-parsing-001.htm == reference/selectors-parsing-001-ref.htm
 separated-border-model-003a.htm == reference/ref-filled-green-100px-square.htm
 separated-border-model-003b.htm == reference/separated-border-model-003b-ref.htm
