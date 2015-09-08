@@ -152,5 +152,5 @@ impl CompositorEventListener for NullCompositor {
         1.0
     }
 
-    fn get_title_for_main_frame(&self) {}
+    fn title_for_main_frame(&self) {}
 }

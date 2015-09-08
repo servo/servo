@@ -263,7 +263,7 @@ impl FontHandleMethods for FontHandle {
         return metrics;
     }
 
-    fn get_table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
+    fn table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
         let tag = tag as FT_ULong;
 
         unsafe {
