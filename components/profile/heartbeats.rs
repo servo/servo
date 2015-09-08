@@ -35,6 +35,22 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::PaintingPrepBuff);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::Painting);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ImageDecoding);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptAttachLayout);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptConstellationMsg);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptDevtoolsMsg);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptDocumentEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptDomEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptFileRead);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptImageCacheMsg);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptInputEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptNetworkEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptResize);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptUpdateReplacedElement);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptSetViewport);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWebSocketEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWorkerEvent);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptXhrEvent);
     unsafe {
         HBS = Some(mem::transmute(Box::new(hbs)));
     }
