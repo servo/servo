@@ -156,6 +156,14 @@ pub struct LayoutTaskData {
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 }
 
+impl LayoutTaskData {
+    pub fn layout_root(&self) -> Option<FlowRef> {
+        self.root_flow.as_ref().map(|root_flow| {
+            root_flow.clone()
+        })
+    }
+}
+
 /// Information needed by the layout task.
 pub struct LayoutTask {
     /// The ID of the pipeline that we belong to.
@@ -786,10 +794,6 @@ impl LayoutTask {
         Some(flow)
     }
 
-    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
-        self.try_get_layout_root(node).expect("no layout root")
-    }
-
     /// Performs layout constraint solving.
     ///
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
@@ -1161,7 +1165,7 @@ impl LayoutTask {
             });
 
             // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = Some(self.get_layout_root((*node).clone()));
+            rw_data.root_flow = self.try_get_layout_root((*node).clone());
 
             // Kick off animations if any were triggered.
             animation::process_new_animations(&mut *rw_data, self.id);
@@ -1178,21 +1182,21 @@ impl LayoutTask {
                                                      &mut rw_data,
                                                      &mut shared_layout_context);
 
-        let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-        match data.query_type {
-            ReflowQueryType::ContentBoxQuery(node) =>
-                process_content_box_request(node, &mut root_flow, &mut rw_data),
-            ReflowQueryType::ContentBoxesQuery(node) =>
-                process_content_boxes_request(node, &mut root_flow, &mut rw_data),
-            ReflowQueryType::NodeGeometryQuery(node) =>
-                self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
-            ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
-                self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
-            ReflowQueryType::OffsetParentQuery(node) =>
-                self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
-            ReflowQueryType::NoQuery => {}
+        if let Some(mut root_flow) = rw_data.layout_root() {
+            match data.query_type {
+                ReflowQueryType::ContentBoxQuery(node) =>
+                    process_content_box_request(node, &mut root_flow, &mut rw_data),
+                ReflowQueryType::ContentBoxesQuery(node) =>
+                    process_content_boxes_request(node, &mut root_flow, &mut rw_data),
+                ReflowQueryType::NodeGeometryQuery(node) =>
+                    self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
+                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
+                    self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
+                ReflowQueryType::OffsetParentQuery(node) =>
+                    self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
+                ReflowQueryType::NoQuery => {}
+            }
         }
-
 
         // Tell script that we're done.
         //
@@ -1279,23 +1283,16 @@ impl LayoutTask {
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        match rw_data.root_flow.as_ref() {
-            None => {
-                // We haven't performed a single layout yet! Do nothing.
-                return
-            }
-            Some(ref root_flow) => {
-                // Perform an abbreviated style recalc that operates without access to the DOM.
-                let mut root_flow = (*root_flow).clone();
-                let animations = &*rw_data.running_animations;
-                profile(time::ProfilerCategory::LayoutStyleRecalc,
-                        self.profiler_metadata(),
-                        self.time_profiler_chan.clone(),
-                        || {
-                            animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
-                                                                   animations)
-                        });
-            }
+        if let Some(mut root_flow) = rw_data.layout_root() {
+            // Perform an abbreviated style recalc that operates without access to the DOM.
+            let animations = &*rw_data.running_animations;
+            profile(time::ProfilerCategory::LayoutStyleRecalc,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || {
+                        animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
+                                                               animations)
+                    });
         }
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -1307,54 +1304,55 @@ impl LayoutTask {
                                                    data: &Reflow,
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
-        let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-        profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || {
-            if opts::get().nonincremental_layout || flow_ref::deref_mut(&mut root_flow)
-                                                             .compute_layout_damage()
-                                                             .contains(REFLOW_ENTIRE_DOCUMENT) {
-                flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
+        if let Some(mut root_flow) = rw_data.layout_root() {
+            profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || {
+                if opts::get().nonincremental_layout || flow_ref::deref_mut(&mut root_flow)
+                                                                 .compute_layout_damage()
+                                                                 .contains(REFLOW_ENTIRE_DOCUMENT) {
+                    flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
+                }
+            });
+
+            // Verification of the flow tree, which ensures that all nodes were either marked as leaves
+            // or as non-leaves. This becomes a no-op in release builds. (It is inconsequential to
+            // memory safety but is a useful debugging tool.)
+            self.verify_flow_tree(&mut root_flow);
+
+            if opts::get().trace_layout {
+                layout_debug::begin_trace(root_flow.clone());
             }
-        });
 
-        // Verification of the flow tree, which ensures that all nodes were either marked as leaves
-        // or as non-leaves. This becomes a no-op in release builds. (It is inconsequential to
-        // memory safety but is a useful debugging tool.)
-        self.verify_flow_tree(&mut root_flow);
+            // Resolve generated content.
+            profile(time::ProfilerCategory::LayoutGeneratedContent,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || sequential::resolve_generated_content(&mut root_flow, &layout_context));
 
-        if opts::get().trace_layout {
-            layout_debug::begin_trace(root_flow.clone());
+            // Perform the primary layout passes over the flow tree to compute the locations of all
+            // the boxes.
+            profile(time::ProfilerCategory::LayoutMain,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || {
+                match rw_data.parallel_traversal {
+                    None => {
+                        // Sequential mode.
+                        self.solve_constraints(&mut root_flow, &layout_context)
+                    }
+                    Some(ref mut parallel) => {
+                        // Parallel mode.
+                        self.solve_constraints_parallel(parallel,
+                                                        &mut root_flow,
+                                                        &mut *layout_context);
+                    }
+                }
+            });
+
+            self.perform_post_main_layout_passes(data, rw_data, layout_context);
         }
-
-        // Resolve generated content.
-        profile(time::ProfilerCategory::LayoutGeneratedContent,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || sequential::resolve_generated_content(&mut root_flow, &layout_context));
-
-        // Perform the primary layout passes over the flow tree to compute the locations of all
-        // the boxes.
-        profile(time::ProfilerCategory::LayoutMain,
-                self.profiler_metadata(),
-                self.time_profiler_chan.clone(),
-                || {
-            match rw_data.parallel_traversal {
-                None => {
-                    // Sequential mode.
-                    self.solve_constraints(&mut root_flow, &layout_context)
-                }
-                Some(ref mut parallel) => {
-                    // Parallel mode.
-                    self.solve_constraints_parallel(parallel,
-                                                    &mut root_flow,
-                                                    &mut *layout_context);
-                }
-            }
-        });
-
-        self.perform_post_main_layout_passes(data, rw_data, layout_context);
     }
 
     fn perform_post_main_layout_passes<'a>(&'a self,
@@ -1362,22 +1360,23 @@ impl LayoutTask {
                                            rw_data: &mut LayoutTaskData,
                                            layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
-        let mut root_flow = (*rw_data.root_flow.as_ref().unwrap()).clone();
-        self.compute_abs_pos_and_build_display_list(data,
-                                                    &mut root_flow,
-                                                    &mut *layout_context,
-                                                    rw_data);
-        self.first_reflow.set(false);
+        if let Some(mut root_flow) = rw_data.layout_root() {
+            self.compute_abs_pos_and_build_display_list(data,
+                                                        &mut root_flow,
+                                                        &mut *layout_context,
+                                                        rw_data);
+            self.first_reflow.set(false);
 
-        if opts::get().trace_layout {
-            layout_debug::end_trace();
+            if opts::get().trace_layout {
+                layout_debug::end_trace();
+            }
+
+            if opts::get().dump_flow_tree {
+                root_flow.dump();
+            }
+
+            rw_data.generation += 1;
         }
-
-        if opts::get().dump_flow_tree {
-            root_flow.dump();
-        }
-
-        rw_data.generation += 1;
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {

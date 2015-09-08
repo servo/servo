@@ -2436,7 +2436,7 @@ pub trait ISizeAndMarginsComputer {
 
         // Invariant: inline-start_margin + inline-size + inline-end_margin ==
         // available_inline-size
-        let (inline_start_margin, mut inline_size, inline_end_margin) =
+        let (inline_start_margin, inline_size, inline_end_margin) =
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is over-constrained.
                 (MaybeAuto::Specified(margin_start),
@@ -2922,7 +2922,7 @@ impl ISizeAndMarginsComputer for InlineBlockNonReplaced {
                                      block: &mut BlockFlow,
                                      input: &ISizeConstraintInput)
                                      -> ISizeConstraintSolution {
-        let (mut computed_inline_size,
+        let (computed_inline_size,
              inline_start_margin,
              inline_end_margin,
              available_inline_size) =
@@ -2963,7 +2963,7 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
             MaybeAuto::Auto => false,
         });
 
-        let (mut computed_inline_size,
+        let (computed_inline_size,
              inline_start_margin,
              inline_end_margin,
              available_inline_size) =
