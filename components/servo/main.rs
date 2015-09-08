@@ -42,7 +42,7 @@ fn main() {
     env_logger::init().unwrap();
 
     // Parse the command line options and store them globally
-    opts::from_cmdline_args(&*get_args());
+    opts::from_cmdline_args(&*args());
 
     setup_logging();
 
@@ -138,7 +138,7 @@ fn setup_logging() {
 }
 
 #[cfg(target_os = "android")]
-fn get_args() -> Vec<String> {
+fn args() -> Vec<String> {
     vec![
         "servo".to_owned(),
         "http://en.wikipedia.org/wiki/Rust".to_owned()
@@ -146,7 +146,7 @@ fn get_args() -> Vec<String> {
 }
 
 #[cfg(not(target_os = "android"))]
-fn get_args() -> Vec<String> {
+fn args() -> Vec<String> {
     use std::env;
     env::args().collect()
 }

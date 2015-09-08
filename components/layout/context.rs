@@ -176,8 +176,8 @@ impl<'a> LayoutContext<'a> {
     pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<Arc<Image>> {
         // See if the image is already available
-        let result = self.shared.image_cache_task.get_image_if_available(url.clone(),
-                                                                         use_placeholder);
+        let result = self.shared.image_cache_task.find_image(url.clone(),
+                                                             use_placeholder);
 
         match result {
             Ok(image) => Some(image),

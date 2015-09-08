@@ -170,7 +170,7 @@ impl<'a> CanvasPaintTask<'a> {
                             Canvas2dMsg::SetGlobalAlpha(alpha) => painter.set_global_alpha(alpha),
                             Canvas2dMsg::SetGlobalComposition(op) => painter.set_global_composition(op),
                             Canvas2dMsg::GetImageData(dest_rect, canvas_size, chan)
-                                => painter.get_image_data(dest_rect, canvas_size, chan),
+                                => painter.image_data(dest_rect, canvas_size, chan),
                             Canvas2dMsg::PutImageData(imagedata, offset, image_data_size, dirty_rect)
                                 => painter.put_image_data(imagedata, offset, image_data_size, dirty_rect),
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
@@ -516,7 +516,7 @@ impl<'a> CanvasPaintTask<'a> {
         unimplemented!()
     }
 
-    fn get_image_data(&self,
+    fn image_data(&self,
                       dest_rect: Rect<i32>,
                       canvas_size: Size2D<f64>,
                       chan: IpcSender<Vec<u8>>) {

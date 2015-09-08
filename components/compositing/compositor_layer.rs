@@ -404,7 +404,7 @@ impl CompositorLayer for Layer<CompositorData> {
                 MouseUpEvent(button, event_point),
         };
 
-        let pipeline = compositor.get_pipeline(self.pipeline_id());
+        let pipeline = compositor.pipeline(self.pipeline_id());
         let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
@@ -413,7 +413,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
-        let pipeline = compositor.get_pipeline(self.pipeline_id());
+        let pipeline = compositor.pipeline(self.pipeline_id());
         let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 

@@ -386,33 +386,33 @@ mod system_reporter {
             };
 
             // Virtual and physical memory usage, as reported by the OS.
-            report(path!["vsize"], get_vsize());
-            report(path!["resident"], get_resident());
+            report(path!["vsize"], vsize());
+            report(path!["resident"], resident());
 
             // Memory segments, as reported by the OS.
-            for seg in get_resident_segments() {
+            for seg in resident_segments() {
                 report(path!["resident-according-to-smaps", seg.0], Some(seg.1));
             }
 
             // Total number of bytes allocated by the application on the system
             // heap.
-            report(path![SYSTEM_HEAP_ALLOCATED_STR], get_system_heap_allocated());
+            report(path![SYSTEM_HEAP_ALLOCATED_STR], system_heap_allocated());
 
             // The descriptions of the following jemalloc measurements are taken
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report(path![JEMALLOC_HEAP_ALLOCATED_STR], get_jemalloc_stat("stats.allocated"));
+            report(path![JEMALLOC_HEAP_ALLOCATED_STR], jemalloc_stat("stats.allocated"));
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
             // |stats.allocated|."
-            report(path!["jemalloc-heap-active"], get_jemalloc_stat("stats.active"));
+            report(path!["jemalloc-heap-active"], jemalloc_stat("stats.active"));
 
             // "Total number of bytes in chunks mapped on behalf of the application.
             // This is a multiple of the chunk size, and is at least as large as
             // |stats.active|. This does not include inactive chunks."
-            report(path!["jemalloc-heap-mapped"], get_jemalloc_stat("stats.mapped"));
+            report(path!["jemalloc-heap-mapped"], jemalloc_stat("stats.mapped"));
         }
 
         request.reports_channel.send(reports);
@@ -439,7 +439,7 @@ mod system_reporter {
     }
 
     #[cfg(target_os = "linux")]
-    fn get_system_heap_allocated() -> Option<usize> {
+    fn system_heap_allocated() -> Option<usize> {
         let info: struct_mallinfo = unsafe { mallinfo() };
 
         // The documentation in the glibc man page makes it sound like |uordblks| would suffice,
@@ -458,7 +458,7 @@ mod system_reporter {
     }
 
     #[cfg(not(target_os = "linux"))]
-    fn get_system_heap_allocated() -> Option<usize> {
+    fn system_heap_allocated() -> Option<usize> {
         None
     }
 
@@ -467,7 +467,7 @@ mod system_reporter {
                       newp: *mut c_void, newlen: size_t) -> c_int;
     }
 
-    fn get_jemalloc_stat(value_name: &str) -> Option<usize> {
+    fn jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
         // highly inaccurate.
@@ -515,7 +515,7 @@ mod system_reporter {
     }
 
     #[cfg(target_os = "linux")]
-    fn get_proc_self_statm_field(field: usize) -> Option<usize> {
+    fn proc_self_statm_field(field: usize) -> Option<usize> {
         use std::fs::File;
         use std::io::Read;
 
@@ -528,37 +528,37 @@ mod system_reporter {
     }
 
     #[cfg(target_os = "linux")]
-    fn get_vsize() -> Option<usize> {
-        get_proc_self_statm_field(0)
+    fn vsize() -> Option<usize> {
+        proc_self_statm_field(0)
     }
 
     #[cfg(target_os = "linux")]
-    fn get_resident() -> Option<usize> {
-        get_proc_self_statm_field(1)
+    fn resident() -> Option<usize> {
+        proc_self_statm_field(1)
     }
 
     #[cfg(target_os = "macos")]
-    fn get_vsize() -> Option<usize> {
+    fn vsize() -> Option<usize> {
         virtual_size()
     }
 
     #[cfg(target_os = "macos")]
-    fn get_resident() -> Option<usize> {
+    fn resident() -> Option<usize> {
         resident_size()
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn get_vsize() -> Option<usize> {
+    fn vsize() -> Option<usize> {
         None
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn get_resident() -> Option<usize> {
+    fn resident() -> Option<usize> {
         None
     }
 
     #[cfg(target_os = "linux")]
-    fn get_resident_segments() -> Vec<(String, usize)> {
+    fn resident_segments() -> Vec<(String, usize)> {
         use regex::Regex;
         use std::collections::HashMap;
         use std::collections::hash_map::Entry;
@@ -652,14 +652,14 @@ mod system_reporter {
         }
 
         // Note that the sum of all these segments' RSS values differs from the "resident"
-        // measurement obtained via /proc/<pid>/statm in get_resident(). It's unclear why this
+        // measurement obtained via /proc/<pid>/statm in resident(). It's unclear why this
         // difference occurs; for some processes the measurements match, but for Servo they do not.
         let segs: Vec<(String, usize)> = seg_map.into_iter().collect();
         segs
     }
 
     #[cfg(not(target_os = "linux"))]
-    fn get_resident_segments() -> Vec<(String, usize)> {
+    fn resident_segments() -> Vec<(String, usize)> {
         vec![]
     }
 }

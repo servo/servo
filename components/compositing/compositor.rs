@@ -373,12 +373,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree, response_chan, new_constellation_chan);
                 self.send_viewport_rects_for_all_layers();
-                self.get_title_for_main_frame();
+                self.title_for_main_frame();
             }
 
             (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
              ShutdownState::NotShuttingDown) => {
-                self.get_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
+                self.pipeline_details(pipeline_id).current_epoch = epoch;
                 self.collect_old_layers(pipeline_id, &properties);
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
@@ -553,28 +553,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        animation_state: AnimationState) {
         match animation_state {
             AnimationState::AnimationsPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animations_running = true;
+                self.pipeline_details(pipeline_id).animations_running = true;
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                if self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running {
+                if self.pipeline_details(pipeline_id).animation_callbacks_running {
                     return
                 }
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                self.pipeline_details(pipeline_id).animation_callbacks_running =
                     true;
                 self.tick_animations_for_pipeline(pipeline_id);
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animations_running = false;
+                self.pipeline_details(pipeline_id).animations_running = false;
             }
             AnimationState::NoAnimationCallbacksPresent => {
-                self.get_or_create_pipeline_details(pipeline_id).animation_callbacks_running = false;
+                self.pipeline_details(pipeline_id).animation_callbacks_running = false;
             }
         }
     }
 
-    pub fn get_or_create_pipeline_details<'a>(&'a mut self,
+    pub fn pipeline_details<'a>(&'a mut self,
                                               pipeline_id: PipelineId)
                                               -> &'a mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
@@ -583,7 +583,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return self.pipeline_details.get_mut(&pipeline_id).unwrap();
     }
 
-    pub fn get_pipeline<'a>(&'a self, pipeline_id: PipelineId) -> &'a CompositionPipeline {
+    pub fn pipeline<'a>(&'a self, pipeline_id: PipelineId) -> &'a CompositionPipeline {
         match self.pipeline_details.get(&pipeline_id) {
             Some(ref details) => {
                 match details.pipeline {
@@ -656,7 +656,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    WantsScrollEventsFlag::WantsScrollEvents,
                                                    opts::get().tile_size);
 
-        self.get_or_create_pipeline_details(pipeline.id).pipeline = Some(pipeline.clone());
+        self.pipeline_details(pipeline.id).pipeline = Some(pipeline.clone());
 
         // All root layers mask to bounds.
         *root_layer.masks_to_bounds.borrow_mut() = true;
@@ -1306,7 +1306,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if layer.extra_data.borrow().id == LayerId::null() {
             let layer_rect = Rect::new(-layer.extra_data.borrow().scroll_offset.to_untyped(),
                                        layer.bounds.borrow().size.to_untyped());
-            let pipeline = self.get_pipeline(layer.pipeline_id());
+            let pipeline = self.pipeline(layer.pipeline_id());
             pipeline.script_chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
         }
 
@@ -1348,7 +1348,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         for (pipeline_id, requests) in pipeline_requests {
             let msg = ChromeToPaintMsg::Paint(requests, self.frame_tree_id);
-            let _ = self.get_pipeline(pipeline_id).chrome_to_paint_chan.send(msg);
+            let _ = self.pipeline(pipeline_id).chrome_to_paint_chan.send(msg);
         }
 
         true
@@ -1790,7 +1790,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         self.viewport_zoom.get() as f32
     }
 
-    fn get_title_for_main_frame(&self) {
+    fn title_for_main_frame(&self) {
         let root_pipeline_id = match self.root_pipeline {
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,

@@ -103,7 +103,7 @@ impl ShapedGlyphData {
     }
 
     /// Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    pub fn get_entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
+    pub fn entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert!(i < self.count);
 
         unsafe {
@@ -170,7 +170,7 @@ impl Shaper {
                 options: *options,
             };
             let hb_face: *mut hb_face_t =
-                RUST_hb_face_create_for_tables(get_font_table_func,
+                RUST_hb_face_create_for_tables(font_table_func,
                                           (&mut *font_and_shaping_options)
                                             as *mut FontAndShapingOptions
                                             as *mut c_void,
@@ -448,7 +448,7 @@ impl Shaper {
                 if is_bidi_control(character) {
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 } else {
-                    let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
+                    let shape = glyph_data.entry_for_glyph(glyph_span.begin(), &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
                     let data = GlyphData::new(shape.codepoint,
                                               advance,
@@ -463,7 +463,7 @@ impl Shaper {
                 let mut datas = vec!();
 
                 for glyph_i in glyph_span.each_index() {
-                    let shape = glyph_data.get_entry_for_glyph(glyph_i, &mut y_pos);
+                    let shape = glyph_data.entry_for_glyph(glyph_i, &mut y_pos);
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,
                                               shape.offset,
@@ -601,7 +601,7 @@ extern fn glyph_h_kerning_func(_: *mut hb_font_t,
 }
 
 // Callback to get a font table out of a font.
-extern fn get_font_table_func(_: *mut hb_face_t,
+extern fn font_table_func(_: *mut hb_face_t,
                               tag: hb_tag_t,
                               user_data: *mut c_void)
                               -> *mut hb_blob_t {
@@ -613,7 +613,7 @@ extern fn get_font_table_func(_: *mut hb_face_t,
         assert!(!(*font_and_shaping_options).font.is_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-        match (*(*font_and_shaping_options).font).get_table_for_tag(tag as FontTableTag) {
+        match (*(*font_and_shaping_options).font).table_for_tag(tag as FontTableTag) {
             None => ptr::null_mut(),
             Some(font_table) => {
                 // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
