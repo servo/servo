@@ -32,7 +32,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
-use profile_traits::mem;
+use profile_traits::{mem, time};
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
@@ -187,6 +187,7 @@ pub trait ScriptTaskFactory {
               resource_task: ResourceTask,
               storage_task: StorageTask,
               image_cache_task: ImageCacheTask,
+              time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
               window_size: Option<WindowSizeData>,

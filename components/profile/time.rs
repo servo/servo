@@ -77,6 +77,22 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::PaintingPrepBuff => "Buffer Prep",
             ProfilerCategory::Painting => "Painting",
             ProfilerCategory::ImageDecoding => "Image Decoding",
+            ProfilerCategory::ScriptAttachLayout => "Script Attach Layout",
+            ProfilerCategory::ScriptConstellationMsg => "Script Constellation Msg",
+            ProfilerCategory::ScriptDevtoolsMsg => "Script Devtools Msg",
+            ProfilerCategory::ScriptDocumentEvent => "Script Document Event",
+            ProfilerCategory::ScriptDomEvent => "Script Dom Event",
+            ProfilerCategory::ScriptFileRead => "Script File Read",
+            ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
+            ProfilerCategory::ScriptInputEvent => "Script Input Event",
+            ProfilerCategory::ScriptNetworkEvent => "Script Network Event",
+            ProfilerCategory::ScriptResize => "Script Resize",
+            ProfilerCategory::ScriptEvent => "Script Event",
+            ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
+            ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
+            ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
+            ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
+            ProfilerCategory::ScriptXhrEvent => "Script Xhr Event",
         };
         format!("{}{}", padding, name)
     }

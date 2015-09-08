@@ -331,6 +331,7 @@ impl PipelineContent {
                                   self.resource_task,
                                   self.storage_task.clone(),
                                   self.image_cache_task.clone(),
+                                  self.time_profiler_chan.clone(),
                                   self.mem_profiler_chan.clone(),
                                   self.devtools_chan,
                                   self.window_size,
