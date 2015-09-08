@@ -294,5 +294,5 @@ pub trait CompositorEventListener {
     fn shutdown(&mut self);
     fn pinch_zoom_level(&self) -> f32;
     /// Requests that the compositor send the title for the main frame as soon as possible.
-    fn get_title_for_main_frame(&self);
+    fn title_for_main_frame(&self);
 }

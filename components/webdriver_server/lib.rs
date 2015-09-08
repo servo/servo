@@ -85,12 +85,12 @@ impl Handler {
         }
     }
 
-    fn get_root_pipeline(&self) -> WebDriverResult<PipelineId> {
+    fn root_pipeline(&self) -> WebDriverResult<PipelineId> {
         let interval = 20;
         let iterations = 30_000 / interval;
 
         for _ in 0..iterations {
-            if let Some(x) = self.get_pipeline(None) {
+            if let Some(x) = self.pipeline(None) {
                 return Ok(x)
             };
 
@@ -101,9 +101,9 @@ impl Handler {
                                 "Failed to get root window handle"))
     }
 
-    fn get_frame_pipeline(&self) -> WebDriverResult<PipelineId> {
+    fn frame_pipeline(&self) -> WebDriverResult<PipelineId> {
         if let Some(ref session) = self.session {
-            match self.get_pipeline(session.frame_id) {
+            match self.pipeline(session.frame_id) {
                 Some(x) => Ok(x),
                 None => Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
                                                 "Frame got closed"))
@@ -113,7 +113,7 @@ impl Handler {
         }
     }
 
-    fn get_session(&self) -> WebDriverResult<&WebDriverSession> {
+    fn session(&self) -> WebDriverResult<&WebDriverSession> {
         match self.session {
             Some(ref x) => Ok(x),
             None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
@@ -132,7 +132,7 @@ impl Handler {
         }
     }
 
-    fn get_pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
+    fn pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
         let (sender, receiver) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         const_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
@@ -169,7 +169,7 @@ impl Handler {
                                                "Invalid URL"))
         };
 
-        let pipeline_id = try!(self.get_root_pipeline());
+        let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -199,8 +199,8 @@ impl Handler {
         }
     }
 
-    fn handle_get_current_url(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_root_pipeline());
+    fn handle_current_url(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -227,7 +227,7 @@ impl Handler {
     }
 
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_root_pipeline());
+        let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
 
@@ -238,8 +238,8 @@ impl Handler {
         self.wait_for_load(sender, receiver)
     }
 
-    fn handle_get_title(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_root_pipeline());
+    fn handle_title(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.root_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -250,14 +250,14 @@ impl Handler {
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
 
-    fn handle_get_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
         // For now we assume there's only one window so just use the session
         // id as the window id
         let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::Generic(ValueResponse::new(handle.to_json())))
     }
 
-    fn handle_get_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_window_handles(&self) -> WebDriverResult<WebDriverResponse> {
         // For now we assume there's only one window so just use the session
         // id as the window id
         let handles = vec![self.session.as_ref().unwrap().id.to_string().to_json()];
@@ -265,7 +265,7 @@ impl Handler {
     }
 
     fn handle_find_element(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+        let pipeline_id = try!(self.frame_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -311,7 +311,7 @@ impl Handler {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
                                            "Selecting frame by id not supported"));
         }
-        let pipeline_id = try!(self.get_frame_pipeline());
+        let pipeline_id = try!(self.frame_pipeline());
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetFrameId(frame_id, sender);
         {
@@ -340,7 +340,7 @@ impl Handler {
 
 
     fn handle_find_elements(&self, parameters: &LocatorParameters) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+        let pipeline_id = try!(self.frame_pipeline());
 
         if parameters.using != LocatorStrategy::CSSSelector {
             return Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
@@ -363,8 +363,8 @@ impl Handler {
         }
     }
 
-    fn handle_get_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+    fn handle_element_text(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -378,8 +378,8 @@ impl Handler {
         }
     }
 
-    fn handle_get_active_element(&self) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+    fn handle_active_element(&self) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -390,8 +390,8 @@ impl Handler {
         Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json())))
     }
 
-    fn handle_get_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+    fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
 
         let (sender, receiver) = ipc::channel().unwrap();
         let ConstellationChan(ref const_chan) = self.constellation_chan;
@@ -451,7 +451,7 @@ impl Handler {
                       command: WebDriverScriptCommand,
                       receiver: IpcReceiver<WebDriverJSResult>)
                       -> WebDriverResult<WebDriverResponse> {
-        let pipeline_id = try!(self.get_frame_pipeline());
+        let pipeline_id = try!(self.frame_pipeline());
 
         let ConstellationChan(ref const_chan) = self.constellation_chan;
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, command);
@@ -467,7 +467,7 @@ impl Handler {
 
     fn handle_take_screenshot(&self) -> WebDriverResult<WebDriverResponse> {
         let mut img = None;
-        let pipeline_id = try!(self.get_root_pipeline());
+        let pipeline_id = try!(self.root_pipeline());
 
         let interval = 20;
         let iterations = 30_000 / interval;
@@ -517,27 +517,27 @@ impl WebDriverHandler for Handler {
         match msg.command {
             WebDriverCommand::NewSession => {},
             _ => {
-                try!(self.get_session());
+                try!(self.session());
             }
         }
 
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
-            WebDriverCommand::GetCurrentUrl => self.handle_get_current_url(),
+            WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GoBack => self.handle_go_back(),
             WebDriverCommand::GoForward => self.handle_go_forward(),
             WebDriverCommand::Refresh => self.handle_refresh(),
-            WebDriverCommand::GetTitle => self.handle_get_title(),
-            WebDriverCommand::GetWindowHandle => self.handle_get_window_handle(),
-            WebDriverCommand::GetWindowHandles => self.handle_get_window_handles(),
+            WebDriverCommand::GetTitle => self.handle_title(),
+            WebDriverCommand::GetWindowHandle => self.handle_window_handle(),
+            WebDriverCommand::GetWindowHandles => self.handle_window_handles(),
             WebDriverCommand::SwitchToFrame(ref parameters) => self.handle_switch_to_frame(parameters),
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
-            WebDriverCommand::GetActiveElement => self.handle_get_active_element(),
-            WebDriverCommand::GetElementText(ref element) => self.handle_get_element_text(element),
-            WebDriverCommand::GetElementTagName(ref element) => self.handle_get_element_tag_name(element),
+            WebDriverCommand::GetActiveElement => self.handle_active_element(),
+            WebDriverCommand::GetElementText(ref element) => self.handle_element_text(element),
+            WebDriverCommand::GetElementTagName(ref element) => self.handle_element_tag_name(element),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),

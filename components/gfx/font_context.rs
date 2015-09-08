@@ -134,7 +134,7 @@ impl FontContext {
     /// Create a group of fonts for use in layout calculations. May return
     /// a cached font if this font instance has already been used by
     /// this context.
-    pub fn get_layout_font_group_for_style(&mut self, style: Arc<SpecifiedFontStyle>)
+    pub fn layout_font_group_for_style(&mut self, style: Arc<SpecifiedFontStyle>)
                                             -> Rc<FontGroup> {
         let address = &*style as *const SpecifiedFontStyle as usize;
         if let Some(ref cached_font_group) = self.layout_font_group_cache.get(&address) {
@@ -186,9 +186,9 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.get_font_template(family.name()
-                                                                                 .to_owned(),
-                                                                           desc.clone());
+                let font_template = self.font_cache_task.find_font_template(family.name()
+                                                                            .to_owned(),
+                                                                            desc.clone());
                 match font_template {
                     Some(font_template) => {
                         let layout_font = self.create_layout_font(font_template,
@@ -236,7 +236,7 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.get_last_resort_font_template(desc.clone());
+                let font_template = self.font_cache_task.last_resort_font_template(desc.clone());
                 let layout_font = self.create_layout_font(font_template,
                                                           desc.clone(),
                                                           style.font_size,
@@ -261,7 +261,7 @@ impl FontContext {
 
     /// Create a paint font for use with azure. May return a cached
     /// reference if already used by this font context.
-    pub fn get_paint_font_from_template(&mut self,
+    pub fn paint_font_from_template(&mut self,
                                         template: &Arc<FontTemplateData>,
                                         pt_size: Au)
                                         -> Rc<RefCell<ScaledFont>> {

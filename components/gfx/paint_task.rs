@@ -320,7 +320,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             }
             let new_buffers = (0..tile_count).map(|i| {
                 let thread_id = i % self.worker_threads.len();
-                self.worker_threads[thread_id].get_painted_tile_buffer()
+                self.worker_threads[thread_id].painted_tile_buffer()
             }).collect();
 
             let layer_buffer_set = box LayerBufferSet {
@@ -483,7 +483,7 @@ impl WorkerThreadProxy {
         self.sender.send(msg).unwrap()
     }
 
-    fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
+    fn painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
         match self.receiver.recv().unwrap() {
             MsgFromWorkerThread::PaintedTile(layer_buffer) => layer_buffer,
         }

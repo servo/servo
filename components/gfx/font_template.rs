@@ -88,7 +88,7 @@ impl FontTemplate {
     }
 
     /// Get the data for creating a font if it matches a given descriptor.
-    pub fn get_if_matches(&mut self,
+    pub fn data_for_descriptor(&mut self,
                           fctx: &FontContextHandle,
                           requested_desc: &FontTemplateDescriptor)
                           -> Option<Arc<FontTemplateData>> {
@@ -100,13 +100,13 @@ impl FontTemplate {
         match self.descriptor {
             Some(actual_desc) => {
                 if *requested_desc == actual_desc {
-                    Some(self.get_data())
+                    Some(self.data())
                 } else {
                     None
                 }
             },
             None if self.is_valid => {
-                let data = self.get_data();
+                let data = self.data();
                 let handle: Result<FontHandle, ()> =
                     FontHandleMethods::new_from_template(fctx, data.clone(), None);
                 match handle {
@@ -138,7 +138,7 @@ impl FontTemplate {
     /// Get the data for creating a font.
     pub fn get(&mut self) -> Option<Arc<FontTemplateData>> {
         if self.is_valid {
-            Some(self.get_data())
+            Some(self.data())
         } else {
             None
         }
@@ -147,7 +147,7 @@ impl FontTemplate {
     /// Get the font template data. If any strong references still
     /// exist, it will return a clone, otherwise it will load the
     /// font data and store a weak reference to it internally.
-    pub fn get_data(&mut self) -> Arc<FontTemplateData> {
+    pub fn data(&mut self) -> Arc<FontTemplateData> {
         let maybe_data = match self.weak_ref {
             Some(ref data) => data.upgrade(),
             None => None,
