@@ -159,7 +159,7 @@ impl TextRunScanner {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
-                fontgroup = font_context.get_layout_font_group_for_style(font_style);
+                fontgroup = font_context.layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
                     white_space::T::normal | white_space::T::nowrap => {
                         CompressionMode::CompressWhitespaceNewline
@@ -358,7 +358,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 #[inline]
 pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<FontStyle>)
                               -> FontMetrics {
-    let fontgroup = font_context.get_layout_font_group_for_style(font_style);
+    let fontgroup = font_context.layout_font_group_for_style(font_style);
     // FIXME(https://github.com/rust-lang/rust/issues/23338)
     let font = fontgroup.fonts[0].borrow();
     font.metrics.clone()
