@@ -30,6 +30,7 @@ use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableRowElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTemplateElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
 use dom::document::Document;
@@ -98,7 +99,14 @@ pub trait VirtualMethods {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#concept-node-clone (step 5)
+    /// https://dom.spec.whatwg.org/#concept-node-adopt-ext
+    fn adopting_steps(&self, old_doc: &Document) {
+        if let Some(ref s) = self.super_type() {
+            s.adopting_steps(old_doc);
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#concept-node-clone-ext
     fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
@@ -215,6 +223,9 @@ pub fn vtable_for<'a>(node: &'a Node) -> &'a (VirtualMethods + 'a) {
             let element =
                 HTMLTableSectionElementCast::to_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
+            HTMLTemplateElementCast::to_ref(node).unwrap() as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
             let element = HTMLTextAreaElementCast::to_ref(node).unwrap();
