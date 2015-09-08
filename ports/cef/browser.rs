@@ -40,10 +40,10 @@ impl ServoBrowser {
         }
     }
 
-    pub fn get_title_for_main_frame(&self) {
+    pub fn request_title_for_main_frame(&self) {
         match *self {
-            ServoBrowser::OnScreen(ref browser) => browser.get_title_for_main_frame(),
-            ServoBrowser::OffScreen(ref browser) => browser.get_title_for_main_frame(),
+            ServoBrowser::OnScreen(ref browser) => browser.request_title_for_main_frame(),
+            ServoBrowser::OffScreen(ref browser) => browser.request_title_for_main_frame(),
             ServoBrowser::Invalid => {}
         }
     }
@@ -165,7 +165,7 @@ impl ServoCefBrowser {
 pub trait ServoCefBrowserExtensions {
     fn init(&self, window_info: &cef_window_info_t);
     fn send_window_event(&self, event: WindowEvent);
-    fn get_title_for_main_frame(&self);
+    fn request_title_for_main_frame(&self);
     fn pinch_zoom_level(&self) -> f32;
 }
 
@@ -207,8 +207,8 @@ impl ServoCefBrowserExtensions for CefBrowser {
         }
     }
 
-    fn get_title_for_main_frame(&self) {
-        self.downcast().servo_browser.borrow().get_title_for_main_frame()
+    fn request_title_for_main_frame(&self) {
+        self.downcast().servo_browser.borrow().request_title_for_main_frame()
     }
 
     fn pinch_zoom_level(&self) -> f32 {

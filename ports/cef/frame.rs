@@ -46,7 +46,7 @@ full_cef_class_impl! {
         fn get_text(&this, visitor: *mut cef_string_visitor_t [CefStringVisitor],) -> () {{
             let this = this.downcast();
             *this.title_visitor.borrow_mut() = Some(visitor);
-            this.browser.borrow().as_ref().unwrap().get_title_for_main_frame();
+            this.browser.borrow().as_ref().unwrap().request_title_for_main_frame();
         }}
     }
 }

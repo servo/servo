@@ -27,7 +27,7 @@ static FC_FILE: &'static [u8] = b"file\0";
 static FC_INDEX: &'static [u8] = b"index\0";
 static FC_FONTFORMAT: &'static [u8] = b"fontformat\0";
 
-pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
+pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
         let config = FcConfigGetCurrent();
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -57,7 +57,7 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     }
 }
 
-pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
+pub fn for_each_variation<F>(family_name: &str, mut callback: F)
     where F: FnMut(String)
 {
     debug!("getting variations for {}", family_name);
@@ -111,7 +111,7 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
     }
 }
 
-pub fn get_system_default_family(generic_name: &str) -> Option<String> {
+pub fn system_default_family(generic_name: &str) -> Option<String> {
     let generic_name_c = CString::new(generic_name).unwrap();
     let generic_name_ptr = generic_name_c.as_ptr();
 
@@ -140,7 +140,7 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 }
 
 #[cfg(target_os = "linux")]
-pub fn get_last_resort_font_families() -> Vec<String> {
+pub fn last_resort_font_families() -> Vec<String> {
     vec!(
         "Fira Sans".to_owned(),
         "DejaVu Sans".to_owned(),
@@ -149,6 +149,6 @@ pub fn get_last_resort_font_families() -> Vec<String> {
 }
 
 #[cfg(target_os = "android")]
-pub fn get_last_resort_font_families() -> Vec<String> {
+pub fn last_resort_font_families() -> Vec<String> {
     vec!("Roboto".to_owned())
 }

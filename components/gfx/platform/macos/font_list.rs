@@ -10,7 +10,7 @@ use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 use std::borrow::ToOwned;
 use std::mem;
 
-pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
+pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
     let family_names = core_text::font_collection::get_family_names();
     for strref in family_names.iter() {
         let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
@@ -20,7 +20,7 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     }
 }
 
-pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
+pub fn for_each_variation<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
     debug!("Looking for faces of family: {}", family_name);
 
     let family_collection = core_text::font_collection::create_for_family(family_name);
@@ -35,10 +35,10 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F:
     }
 }
 
-pub fn get_system_default_family(_generic_name: &str) -> Option<String> {
+pub fn system_default_family(_generic_name: &str) -> Option<String> {
     None
 }
 
-pub fn get_last_resort_font_families() -> Vec<String> {
+pub fn last_resort_font_families() -> Vec<String> {
     vec!("Arial Unicode MS".to_owned(), "Arial".to_owned())
 }
