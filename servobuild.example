@@ -23,6 +23,10 @@ system-rust = false
 system-cargo = false
 #cargo-root = "/path/to/cargo"
 
+# If rustc-with-gold is true, will try to find and use gold linker with rustc.
+# Defaults to true
+rustc-with-gold = true
+
 [build]
 # Set "mode = dev" or use `mach build --dev` to build the project with warning.
 # or Set "mode = release" or use `mach build --release` for optimized build.
