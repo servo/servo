@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Flexible Box Layout Module Level 1 CR Test Suite</h1>
-  <h2>Flex Items (58 tests)</h2>
+  <h2>Flex Items (74 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -451,7 +451,183 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.5">+</a>
         <a href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto">4.5 Implied Minimum Size of Flex Items</a></th></tr>
-      <!-- 16 tests -->
+      <!-- 32 tests -->
+      <tr id="flex-minimun-height-flex-items-001-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-001.xht">flex-minimun-height-flex-items-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the min-content size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-002-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-002.xht">flex-minimun-height-flex-items-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the specified size if it's smaller than the min-content size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-003-4.5" class="primary ahem">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-003.xht">flex-minimun-height-flex-items-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the min-content size if it's smaller than the specified size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-004-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-004.xht">flex-minimun-height-flex-items-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the min-content size (which corresponds to the image size).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-005-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-005.xht">flex-minimun-height-flex-items-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the specified size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-006-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-006.xht">flex-minimun-height-flex-items-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the specified size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-007-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-007.xht">flex-minimun-height-flex-items-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the transferred size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-height-flex-items-008-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-height-flex-items-008.xht">flex-minimun-height-flex-items-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun height of flex items
+          <ul class="assert">
+            <li>Checks that minimun height for flex items is the transferred size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-001-4.5" class="primary ahem">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-001.xht">flex-minimun-width-flex-items-001</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the min-content size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-002-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-002.xht">flex-minimun-width-flex-items-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the specified size if it's smaller than the min-content size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-003-4.5" class="primary ahem">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-003.xht">flex-minimun-width-flex-items-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the min-content size if it's smaller than the specified size.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-004-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-004.xht">flex-minimun-width-flex-items-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the min-content size (which corresponds to the image size).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-005-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-005.xht">flex-minimun-width-flex-items-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the specified size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-006-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-006.xht">flex-minimun-width-flex-items-006</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the specified size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-007-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-007.xht">flex-minimun-width-flex-items-007</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the transferred size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="flex-minimun-width-flex-items-008-4.5" class="primary">
+        <td><strong>
+            <a href="flex-minimun-width-flex-items-008.xht">flex-minimun-width-flex-items-008</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.xht">=</a> </td>
+        <td></td>
+        <td>Minimun width of flex items
+          <ul class="assert">
+            <li>Checks that minimun width for flex items is the transferred size, as the min-content size of the image corresponds to that.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="flexbox-min-height-auto-001-4.5" class="primary">
         <td><strong>
             <a href="flexbox-min-height-auto-001.xht">flexbox-min-height-auto-001</a></strong></td>

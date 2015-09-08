@@ -62,13 +62,13 @@ function run() {
   function assert_allowed_variable_value(value, description) {
     test(function() {
            styleText.data = "#test { \n" +
-                            "  var-test: red;\n" +
-                            "  var-test: " + value + ";\n" +
+                            "  --test: red;\n" +
+                            "  --test: " + value + ";\n" +
                             "  background-color: red;\n" +
-                            "  background-color: var(test);\n" +
+                            "  background-color: var(--test);\n" +
                             "}";
-           assert_true(initial_cs != red_cs &&
-                       initial_cs == test_cs.backgroundColor);
+           assert_not_equals(initial_cs, red_cs);
+           assert_equals(initial_cs, test_cs.backgroundColor);
          },
          description_to_name(description),
          { assert: "Value allowed within variable: " + description });
@@ -77,13 +77,13 @@ function run() {
   function assert_disallowed_balanced_variable_value(value, description) {
     test(function() {
            styleText.data = "#test { \n" +
-                            "  var-test: green;\n" +
-                            "  var-test: " + value + ";\n" +
+                            "  --test: green;\n" +
+                            "  --test: " + value + ";\n" +
                             "  background-color: red;\n" +
-                            "  background-color: var(test);\n" +
+                            "  background-color: var(--test);\n" +
                             "}";
-           assert_true(green_cs != red_cs &&
-                       green_cs == test_cs.backgroundColor);
+           assert_not_equals(green_cs, red_cs);
+           assert_equals(green_cs, test_cs.backgroundColor);
          },
          description_to_name(description),
          { assert: "Value not allowed within variable: " + description });
