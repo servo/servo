@@ -2175,6 +2175,19 @@ impl Fragment {
             overflow = overflow.union(&border_box.inflate(outline_width, outline_width))
         }
 
+        // Include the overflow of the block flow, if any.
+        match self.specific {
+            SpecificFragmentInfo::InlineBlock(ref info) => {
+                let block_flow = info.flow_ref.as_block();
+                overflow = overflow.union(&block_flow.compute_overflow());
+            }
+            SpecificFragmentInfo::InlineAbsolute(ref info) => {
+                let block_flow = info.flow_ref.as_block();
+                overflow = overflow.union(&block_flow.compute_overflow());
+            }
+            _ => (),
+        }
+
         // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
         // box too.
         overflow
