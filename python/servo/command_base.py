@@ -101,6 +101,7 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
+        self.config["tools"].setdefault("rustc-with-gold", True)
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -308,8 +309,9 @@ class CommandBase(object):
 
         env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
 
-        if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
-            env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
+        if self.config["tools"]["rustc-with-gold"]:
+            if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
+                env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
 
         return env
 
