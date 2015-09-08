@@ -281,6 +281,12 @@
         ]
       },
       "testharness": {
+        "css/test_variable_legal_values.html": [
+          {
+            "path": "css/test_variable_legal_values.html",
+            "url": "/_mozilla/css/test_variable_legal_values.html"
+          }
+        ],
         "mozilla/DOMParser.html": [
           {
             "path": "mozilla/DOMParser.html",
