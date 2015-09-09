@@ -312,6 +312,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_relative_vertical_percentage_overflow_a.html position_relative_vertical_percentage_overflow_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pre_with_tab.html pre_with_tab_ref.html
+== pseudo_content_with_layers.html pseudo_content_with_layers_ref.html
 == pseudo_element_a.html pseudo_element_b.html
 == pseudo_inherit.html pseudo_inherit_ref.html
 == quotes_none_a.html quotes_none_ref.html
