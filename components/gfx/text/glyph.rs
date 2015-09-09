@@ -3,7 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::point::Point2D;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 use simd::u32x4;
+
 use std::cmp::{Ordering, PartialOrd};
 use std::mem;
 use std::u16;
@@ -552,12 +555,19 @@ impl<'a> GlyphStore {
         if !self.has_detailed_glyphs {
             self.advance_for_char_range_simple_glyphs(rang)
         } else {
-            self.iter_glyphs_for_char_range(rang)
-                .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+            self.advance_for_char_range_general(rang)
         }
     }
 
     #[inline]
+    pub fn advance_for_char_range_general(&self, rang: &Range<CharIndex>) -> Au {
+        self.iter_glyphs_for_char_range(rang)
+            .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+    }
+
+
+    #[inline]
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
     fn advance_for_char_range_simple_glyphs(&self, rang: &Range<CharIndex>) -> Au {
         let mask = u32x4::splat(GLYPH_ADVANCE_MASK);
         let mut simd_advance = u32x4::splat(0);
@@ -584,6 +594,13 @@ impl<'a> GlyphStore {
             leftover = leftover + self.entry_buffer[i].advance();
         }
         Au(advance) + leftover
+    }
+
+    /// When SIMD isn't available (currently non-x86_x64/aarch64), fallback to the slow path.
+    #[inline]
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    fn advance_for_char_range_simple_glyphs(&self, rang: &Range<CharIndex>) -> Au {
+        self.advance_for_char_range_general(rang)
     }
 
     #[inline]

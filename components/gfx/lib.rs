@@ -41,7 +41,10 @@ extern crate net_traits;
 extern crate util;
 extern crate msg;
 extern crate rand;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 extern crate simd;
+
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
