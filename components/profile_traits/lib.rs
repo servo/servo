@@ -13,6 +13,7 @@
 extern crate ipc_channel;
 extern crate serde;
 
+pub mod energy;
 pub mod mem;
 pub mod time;
 
