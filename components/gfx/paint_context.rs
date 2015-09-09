@@ -1549,13 +1549,38 @@ impl ToAzurePoint for Point2D<Au> {
 
 pub trait ToAzureRect {
     fn to_nearest_azure_rect(&self) -> Rect<AzFloat>;
+    fn to_nearest_non_empty_azure_rect(&self) -> Rect<AzFloat>;
     fn to_azure_rect(&self) -> Rect<AzFloat>;
 }
 
 impl ToAzureRect for Rect<Au> {
+
+    /// Round rects to pixel coordinates, maintaining the invariant of non-overlap,
+    /// assuming that before rounding rects don't overlap.
     fn to_nearest_azure_rect(&self) -> Rect<AzFloat> {
+        // Rounding the top left corner to the nearest pixel with the size rounded
+        // to the nearest pixel multiple would violate the non-overlap condition,
+        // e.g.
+        // 10px×9.60px at (0px,6.6px) & 10px×9.60px at (0px,16.2px)
+        // would round to
+        // 10px×10.0px at (0px,7.0px) & 10px×10.0px at (0px,16.0px), which overlap.
+        //
+        // Instead round each corner to the nearest pixel.
+        let top_left = self.origin.to_nearest_azure_point();
+        let bottom_right = self.bottom_right().to_nearest_azure_point();
+        Rect::new(top_left, Size2D::new((bottom_right.x - top_left.x) as AzFloat,
+                                        (bottom_right.y - top_left.y) as AzFloat))
+    }
+
+    /// For rects of width or height between 0.5px and 1px, rounding each rect corner to the
+    /// nearest pixel can yield an empty rect e.g.
+    /// 10px×0.6px at 0px,28.56px -> 10px×0px at 0px,29px
+    /// Instead round the top left to the nearest pixel and the size to the nearest pixel
+    /// multiple. It's possible for non-overlapping rects after this rounding to overlap.
+    fn to_nearest_non_empty_azure_rect(&self) -> Rect<AzFloat> {
         Rect::new(self.origin.to_nearest_azure_point(), self.size.to_nearest_azure_size())
     }
+
     fn to_azure_rect(&self) -> Rect<AzFloat> {
         Rect::new(self.origin.to_azure_point(), self.size.to_azure_size())
     }
@@ -1763,7 +1788,11 @@ impl DrawTargetExtensions for DrawTarget {
     }
 
     fn create_rectangular_path(&self, rect: &Rect<Au>) -> Path {
-        let rect = rect.to_nearest_azure_rect();
+        // Explicitly round to the nearest non-empty rect because when drawing
+        // box-shadow the rect height can be between 0.5px & 1px and could
+        // otherwise round to an empty rect.
+        let rect = rect.to_nearest_non_empty_azure_rect();
+
         let path_builder = self.create_path_builder();
         path_builder.move_to(rect.origin);
         path_builder.line_to(Point2D::new(rect.max_x(), rect.origin.y));
