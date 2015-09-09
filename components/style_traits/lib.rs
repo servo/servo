@@ -11,7 +11,10 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(serde_macros)]
+#![plugin(plugins)]
 #![deny(unsafe_code)]
+
+
 
 extern crate euclid;
 extern crate rustc_serialize;
