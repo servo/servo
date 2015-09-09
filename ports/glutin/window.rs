@@ -724,7 +724,7 @@ impl Window {
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
         let headless_context = headless_builder.build().unwrap();
-        unsafe { headless_context.make_current() };
+        unsafe { headless_context.make_current().expect("Failed to make context current!") };
 
         gl::load_with(|s| headless_context.get_proc_address(s));
 
