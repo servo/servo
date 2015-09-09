@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, Token, SourcePosition, Delimiter};
+use cssparser::{Parser, Token, SourcePosition, Delimiter, TokenSerializationType};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use string_cache::Atom;
+use util::mem::HeapSizeOf;
 
 // Does not include the `--` prefix
 pub type Name = Atom;
@@ -22,38 +23,51 @@ pub fn parse_name(s: &str) -> Result<Name, ()> {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Value {
-    /// In CSS syntax
-    value: String,
+pub struct SpecifiedValue {
+    css: String,
+
+    first_token: TokenSerializationType,
+    last_token: TokenSerializationType,
 
     /// Custom property names in var() functions.
     references: HashSet<Name>,
 }
 
-pub struct BorrowedValue<'a> {
-    value: &'a str,
+pub struct BorrowedSpecifiedValue<'a> {
+    css: &'a str,
+    first_token: TokenSerializationType,
+    last_token: TokenSerializationType,
     references: Option<&'a HashSet<Name>>,
 }
 
-pub fn parse(input: &mut Parser) -> Result<Value, ()> {
+#[derive(Clone, HeapSizeOf)]
+pub struct ComputedValue {
+    css: String,
+    first_token: TokenSerializationType,
+    last_token: TokenSerializationType,
+}
+
+pub type ComputedValuesMap = HashMap<Name, ComputedValue>;
+
+pub fn parse(input: &mut Parser) -> Result<SpecifiedValue, ()> {
     let start = input.position();
     let mut references = Some(HashSet::new());
-    try!(parse_declaration_value(input, &mut references));
-    Ok(Value {
-        value: input.slice_from(start).to_owned(),
+    let (first_token, last_token) = try!(parse_declaration_value(input, &mut references));
+    Ok(SpecifiedValue {
+        css: input.slice_from(start).to_owned(),
+        first_token: first_token,
+        last_token: last_token,
         references: references.unwrap(),
     })
 }
 
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
-                               -> Result<(), ()> {
+                               -> Result<(TokenSerializationType, TokenSerializationType), ()> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
         let start_position = input.position();
-        if input.next_including_whitespace().is_err() {
-            return Err(())
-        }
+        try!(input.next_including_whitespace());
         input.reset(start_position);
 
         parse_declaration_value_block(input, references)
@@ -63,8 +77,16 @@ pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashS
 /// Like parse_declaration_value,
 /// but accept `!` and `;` since they are only invalid at the top level
 fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<HashSet<Name>>)
-                                 -> Result<(), ()> {
-    while let Ok(token) = input.next() {
+                                 -> Result<(TokenSerializationType, TokenSerializationType), ()> {
+    let mut first_token_type = TokenSerializationType::nothing();
+    let mut last_token_type = TokenSerializationType::nothing();
+    while let Ok(token) = input.next_including_whitespace_and_comments() {
+        first_token_type.set_if_nothing(token.serialization_type());
+        // This may be OpenParen when it should be Other (for the closing paren)
+        // but that doesn’t make a difference since OpenParen is only special
+        // when it comes *after* an identifier (it would turn into a function)
+        // but a "last" token will only be concantenated *before* another unrelated token.
+        last_token_type = token.serialization_type();
         match token {
             Token::BadUrl |
             Token::BadString |
@@ -92,7 +114,7 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
             _ => {}
         }
     }
-    Ok(())
+    Ok((first_token_type, last_token_type))
 }
 
 // If the var function is valid, return Ok((custom_property_name, fallback))
@@ -111,30 +133,37 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Optio
 
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
-pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedValue<'a>>>,
-                   inherited: &'a Option<Arc<HashMap<Name, String>>>,
+pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
+                   inherited: &'a Option<Arc<HashMap<Name, ComputedValue>>>,
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
-                   value: &'a DeclaredValue<Value>) {
+                   specified_value: &'a DeclaredValue<SpecifiedValue>) {
     let was_not_already_present = seen.insert(name);
     if was_not_already_present {
         let map = match *custom_properties {
             Some(ref mut map) => map,
             None => {
                 *custom_properties = Some(match *inherited {
-                    Some(ref inherited) => inherited.iter().map(|(key, value)| {
-                        (key, BorrowedValue { value: &value, references: None })
+                    Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
+                        (key, BorrowedSpecifiedValue {
+                            css: &inherited_value.css,
+                            first_token: inherited_value.first_token,
+                            last_token: inherited_value.last_token,
+                            references: None
+                        })
                     }).collect(),
                     None => HashMap::new(),
                 });
                 custom_properties.as_mut().unwrap()
             }
         };
-        match *value {
-            DeclaredValue::Value(ref value) => {
-                map.insert(name, BorrowedValue {
-                    value: &value.value,
-                    references: Some(&value.references),
+        match *specified_value {
+            DeclaredValue::Value(ref specified_value) => {
+                map.insert(name, BorrowedSpecifiedValue {
+                    css: &specified_value.css,
+                    first_token: specified_value.first_token,
+                    last_token: specified_value.last_token,
+                    references: Some(&specified_value.references),
                 });
             },
             DeclaredValue::WithVariables { .. } => unreachable!(),
@@ -146,9 +175,9 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedValu
     }
 }
 
-pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedValue>>,
-                      inherited: &Option<Arc<HashMap<Name, String>>>)
-                      -> Option<Arc<HashMap<Name, String>>> {
+pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedSpecifiedValue>>,
+                      inherited: &Option<Arc<HashMap<Name, ComputedValue>>>)
+                      -> Option<Arc<HashMap<Name, ComputedValue>>> {
     if let Some(mut map) = custom_properties {
         remove_cycles(&mut map);
         Some(Arc::new(substitute_all(map, inherited)))
@@ -159,7 +188,7 @@ pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedValue>>,
 
 /// https://drafts.csswg.org/css-variables/#cycles
 /// The initial value of a custom property is represented by this property not being in the map.
-fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
+fn remove_cycles(map: &mut HashMap<&Name, BorrowedSpecifiedValue>) {
     let mut to_remove = HashSet::new();
     {
         let mut visited = HashSet::new();
@@ -167,7 +196,7 @@ fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
         for name in map.keys() {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
-            fn walk<'a>(map: &HashMap<&'a Name, BorrowedValue<'a>>,
+            fn walk<'a>(map: &HashMap<&'a Name, BorrowedSpecifiedValue<'a>>,
                         name: &'a Name,
                         stack: &mut Vec<&'a Name>,
                         visited: &mut HashSet<&'a Name>,
@@ -201,9 +230,9 @@ fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
 }
 
 /// Replace `var()` functions for all custom properties.
-fn substitute_all(custom_properties: HashMap<&Name, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Name, String>>>)
-                  -> HashMap<Name, String> {
+fn substitute_all(custom_properties: HashMap<&Name, BorrowedSpecifiedValue>,
+                  inherited: &Option<Arc<HashMap<Name, ComputedValue>>>)
+                  -> HashMap<Name, ComputedValue> {
     let mut substituted_map = HashMap::new();
     let mut invalid = HashSet::new();
     for (&name, value) in &custom_properties {
@@ -219,16 +248,16 @@ fn substitute_all(custom_properties: HashMap<&Name, BorrowedValue>,
 /// Also recursively record results for other custom properties referenced by `var()` functions.
 /// Return `Err(())` for invalid at computed time.
 fn substitute_one(name: &Name,
-                  value: &BorrowedValue,
-                  custom_properties: &HashMap<&Name, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Name, String>>>,
+                  specified_value: &BorrowedSpecifiedValue,
+                  custom_properties: &HashMap<&Name, BorrowedSpecifiedValue>,
+                  inherited: &Option<Arc<HashMap<Name, ComputedValue>>>,
                   substituted: Option<&mut String>,
-                  substituted_map: &mut HashMap<Name, String>,
+                  substituted_map: &mut HashMap<Name, ComputedValue>,
                   invalid: &mut HashSet<Name>)
                   -> Result<(), ()> {
-    if let Some(value) = substituted_map.get(name) {
+    if let Some(computed_value) = substituted_map.get(name) {
         if let Some(substituted) = substituted {
-            substituted.push_str(value)
+            substituted.push_str(&computed_value.css)
         }
         return Ok(())
     }
@@ -236,36 +265,46 @@ fn substitute_one(name: &Name,
     if invalid.contains(name) {
         return Err(());
     }
-    let value = if value.references.map(|set| set.is_empty()) == Some(false) {
+    let computed_value = if specified_value.references.map(|set| set.is_empty()) == Some(false) {
         let mut substituted = String::new();
-        let mut input = Parser::new(&value.value);
+        let mut input = Parser::new(&specified_value.css);
         let mut start = input.position();
         if substitute_block(&mut input, &mut start, &mut substituted, &mut |name, substituted| {
-            if let Some(value) = custom_properties.get(name) {
-                substitute_one(name, value, custom_properties, inherited,
+            if let Some(other_specified_value) = custom_properties.get(name) {
+                substitute_one(name, other_specified_value, custom_properties, inherited,
                                Some(substituted), substituted_map, invalid)
             } else {
                 Err(())
             }
         }).is_ok() {
             substituted.push_str(input.slice_from(start));
-            substituted
+            ComputedValue {
+                css: substituted,
+                // FIXME: what if these are `var(` or the corresponding `)`?
+                first_token: specified_value.first_token,
+                last_token: specified_value.last_token,
+            }
         } else {
             // Invalid at computed-value time. Use the inherited value.
-            if let Some(value) = inherited.as_ref().and_then(|i| i.get(name)) {
-                value.clone()
+            if let Some(inherited_value) = inherited.as_ref().and_then(|i| i.get(name)) {
+                inherited_value.clone()
             } else {
                 invalid.insert(name.clone());
                 return Err(())
             }
         }
     } else {
-        value.value.to_owned()
+        // The specified value contains no var() reference
+        ComputedValue {
+            css: specified_value.css.to_owned(),
+            first_token: specified_value.first_token,
+            last_token: specified_value.last_token,
+        }
     };
     if let Some(substituted) = substituted {
-        substituted.push_str(&value)
+        substituted.push_str(&computed_value.css)
     }
-    substituted_map.insert(name.clone(), value);
+    substituted_map.insert(name.clone(), computed_value);
     Ok(())
 }
 
@@ -334,7 +373,7 @@ fn substitute_block<F>(input: &mut Parser,
 
 /// Replace `var()` functions for a non-custom property.
 /// Return `Err(())` for invalid at computed time.
-pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Name, String>>>)
+pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Name, ComputedValue>>>)
                   -> Result<String, ()> {
     let empty_map;
     let custom_properties = if let &Some(ref arc) = custom_properties {
@@ -348,7 +387,7 @@ pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Name, Stri
     let mut start = input.position();
     try!(substitute_block(&mut input, &mut start, &mut substituted, &mut |name, substituted| {
         if let Some(value) = custom_properties.get(name) {
-            substituted.push_str(value);
+            substituted.push_str(&value.css);
             Ok(())
         } else {
             Err(())
