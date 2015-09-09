@@ -81,14 +81,10 @@ pub enum Command {
     Exit(Sender<()>),
 }
 
-unsafe impl Send for Command {}
-
 /// Reply messages sent from the font cache task to the FontContext caller.
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
-
-unsafe impl Send for Reply {}
 
 /// The font cache task itself. It maintains a list of reference counted
 /// font templates that are currently in use.

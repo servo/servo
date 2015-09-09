@@ -105,7 +105,7 @@ fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
-            unsafe { buf.set_len(len); }
+            buf.truncate(len);
             Ok(ReadResult::Payload(buf))
         }
         Ok(_) => Ok(ReadResult::EOF),

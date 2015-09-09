@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 
-static mut next_tid: AtomicUsize = ATOMIC_USIZE_INIT;
+static NEXT_TID: AtomicUsize = ATOMIC_USIZE_INIT;
 
 thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<usize>>> = Rc::new(RefCell::new(None)));
 
@@ -15,7 +15,7 @@ pub fn tid() -> usize {
     TASK_LOCAL_TID.with(|ref k| {
         let ret =
             match *k.borrow() {
-                None => unsafe { next_tid.fetch_add(1, Ordering::SeqCst) },
+                None => NEXT_TID.fetch_add(1, Ordering::SeqCst),
                 Some(x) => x,
             };
 
