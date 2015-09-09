@@ -47,10 +47,11 @@ use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
+use wrapper::PseudoElementType;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
-use msg::compositor_msg::LayerId;
+use msg::compositor_msg::{FragmentPart, LayerId};
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::{max, min};
 use std::fmt;
@@ -1956,7 +1957,7 @@ impl Flow for BlockFlow {
         let stacking_relative_position_of_display_port_for_children =
             if is_stacking_context || self.is_root() {
                 let visible_rect =
-                    match layout_context.shared.visible_rects.get(&self.layer_id(0)) {
+                    match layout_context.shared.visible_rects.get(&self.layer_id()) {
                         Some(visible_rect) => *visible_rect,
                         None => Rect::new(Point2D::zero(), layout_context.shared.screen_size),
                     };
@@ -2054,11 +2055,17 @@ impl Flow for BlockFlow {
         (self.fragment.border_box - self.fragment.style().logical_border_width()).size
     }
 
-    fn layer_id(&self, fragment_index: u32) -> LayerId {
-        // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
-        // elements. But until we have incremental reflow we can't do better--we recreate the flow
-        // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id() as usize, fragment_index, 0)
+    fn layer_id(&self) -> LayerId {
+        let part = match self.fragment.pseudo {
+            PseudoElementType::Normal => FragmentPart::Main,
+            PseudoElementType::Before(_) => FragmentPart::Before,
+            PseudoElementType::After(_) => FragmentPart::After
+        };
+        LayerId::new_for_part(part, self.fragment.node.id() as usize)
+    }
+
+    fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        LayerId::new_for_part(FragmentPart::OverflowScroll, self.fragment.node.id() as usize)
     }
 
     fn is_absolute_containing_block(&self) -> bool {

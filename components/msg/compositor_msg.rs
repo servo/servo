@@ -36,35 +36,62 @@ impl FrameTreeId {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+pub enum FragmentPart {
+    /// A layer for the fragment body itself.
+    Main,
+    /// An extra layer created for a DOM fragments with overflow:scroll.
+    OverflowScroll,
+    /// A layer created to contain ::before pseudo-element content.
+    Before,
+    /// A layer created to contain ::after pseudo-element content.
+    After,
+}
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
 pub struct LayerId(
-    /// A base layer ID, currently derived from DOM element pointer address.
-    pub usize,
-
-    /// FIXME(#2010, pcwalton): A marker for overflow scroll layers.
-    pub u32,
-
-    /// A sub ID, which is used for synthesizing new layers for content that
-    /// belongs on top of this layer. This prevents accidentally making colliding
-    /// layer ids.
-    pub u32
+    /// The type of layer this is. This serves to differentiate layers from same fragment.
+    FragmentPart,
+    /// The identifier for this layer's fragment, derived from the fragment memory address.
+    usize,
+    /// Whether or not this layer is a companion layer, synthesized to ensure that
+    /// content on top of this layer's fragment has the proper rendering order.
+    bool
 );
 
 impl Debug for LayerId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let LayerId(a, b, c) = *self;
-        write!(f, "Layer({}, {}, {})", a, b, c)
+        let LayerId(part, id, companion) = *self;
+        let part_string = match part {
+            FragmentPart::Main => "-Main",
+            FragmentPart::OverflowScroll => "-OverflowScroll",
+            FragmentPart::Before => "-Before",
+            FragmentPart::After => "-After",
+        };
+
+        let companion_string = if companion {
+            "-companion"
+        } else {
+            ""
+        };
+
+        write!(f, "{}{}{}", id, part_string, companion_string)
     }
 }
 
 impl LayerId {
     /// FIXME(#2011, pcwalton): This is unfortunate. Maybe remove this in the future.
     pub fn null() -> LayerId {
-        LayerId(0, 0, 0)
+        LayerId(FragmentPart::Main, 0, false)
     }
 
-    pub fn next_layer_id(&self) -> LayerId {
-        let LayerId(a, b, sub_id) = *self;
-        LayerId(a, b, sub_id + 1)
+    pub fn new_for_part(part: FragmentPart, fragment_id: usize) -> LayerId {
+        LayerId(part, fragment_id, false)
+    }
+
+    pub fn companion_layer_id(&self) -> LayerId {
+        let LayerId(part, id, companion) = *self;
+        assert!(!companion);
+        LayerId(part, id, true)
     }
 }
 

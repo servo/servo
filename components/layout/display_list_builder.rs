@@ -64,11 +64,6 @@ use util::geometry::{Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 
-/// The fake fragment ID we use to indicate the inner display list for `overflow: scroll`.
-///
-/// FIXME(pcwalton): This is pretty ugly. Consider modifying `LayerId` somehow.
-const FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL: u32 = 1000000;
-
 /// Whether a stacking context needs a layer or not.
 pub enum StackingContextLayerNecessity {
     Always(LayerId, ScrollPolicy),
@@ -1577,7 +1572,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 display_list,
                 layout_context,
-                StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
+                StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
                 StackingContextCreationMode::Normal);
             DisplayListBuildingResult::StackingContext(stacking_context)
         } else if self.fragment.establishes_stacking_context() {
@@ -1586,7 +1581,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
@@ -1663,7 +1658,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                             &self.base,
                             display_list,
                             layout_context,
-                            StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                            StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                             StackingContextCreationMode::Normal));
             }
             return
@@ -1683,9 +1678,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let layer_id = if outer_display_list_for_overflow_scroll.is_some() {
-            self.layer_id(FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL)
+            self.layer_id_for_overflow_scroll()
         } else {
-            self.layer_id(0)
+            self.layer_id()
         };
         let stacking_context = self.fragment.create_stacking_context(
             &self.base,
@@ -1702,7 +1697,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     outer_display_list_for_overflow_scroll,
                     layout_context,
-                    StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
+                    StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
                     StackingContextCreationMode::OuterScrollWrapper)
             }
             None => stacking_context,
@@ -1728,7 +1723,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
@@ -1828,7 +1823,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
