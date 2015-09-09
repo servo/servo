@@ -17,6 +17,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::nodelist::NodeList;
+use string_cache::Atom;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documentfragment
@@ -56,6 +57,18 @@ impl DocumentFragmentMethods for DocumentFragment {
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
         HTMLCollection::children(window.r(), NodeCast::from_ref(self))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
+    fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
+        let node = NodeCast::from_ref(self);
+        let id = Atom::from_slice(&id);
+        node.traverse_preorder().filter_map(ElementCast::to_root).find(|descendant| {
+            match descendant.get_attribute(&ns!(""), &atom!(id)) {
+                None => false,
+                Some(attr) => *attr.value().as_atom() == id,
+            }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
