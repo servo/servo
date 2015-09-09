@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
-use cssparser::RGBA;
+use cssparser::{RGBA, TokenSerializationType};
 use cursor::Cursor;
 use euclid::length::Length;
 use euclid::scale_factor::ScaleFactor;
@@ -414,6 +414,7 @@ known_heap_size!(0, Rect<T>, Point2D<T>, Size2D<T>, Matrix2D<T>, SideOffsets2D<T
 known_heap_size!(0, Length<T, U>, ScaleFactor<T, U, V>);
 
 known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix4, Atom, Namespace);
-known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus, LengthOrPercentageOrAuto);
+known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus);
+known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
 known_heap_size!(0, PseudoElement, Combinator, str);
