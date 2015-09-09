@@ -36,6 +36,7 @@ use paint_task::PaintLayer;
 use smallvec::SmallVec;
 use std::collections::linked_list::{self, LinkedList};
 use std::fmt;
+use std::mem;
 use std::slice::Iter;
 use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
@@ -304,7 +305,7 @@ pub struct StackingContext {
 impl StackingContext {
     /// Creates a new stacking context.
     #[inline]
-    pub fn new(mut display_list: Box<DisplayList>,
+    pub fn new(display_list: Box<DisplayList>,
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
@@ -317,8 +318,7 @@ impl StackingContext {
                scroll_policy: ScrollPolicy,
                layer_id: Option<LayerId>)
                -> StackingContext {
-        display_list.sort_and_layerize_children();
-        StackingContext {
+        let mut stacking_context = StackingContext {
             display_list: display_list,
             bounds: *bounds,
             overflow: *overflow,
@@ -331,6 +331,27 @@ impl StackingContext {
             scrolls_overflow_area: scrolls_overflow_area,
             scroll_policy: scroll_policy,
             layer_id: layer_id,
+        };
+        StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
+        stacking_context
+    }
+
+    pub fn create_layered_child(&self,
+                                layer_id: LayerId,
+                                display_list: Box<DisplayList>) -> StackingContext {
+        StackingContext {
+            display_list: display_list,
+            bounds: self.bounds.clone(),
+            overflow: self.overflow.clone(),
+            z_index: self.z_index,
+            filters: self.filters.clone(),
+            blend_mode: self.blend_mode,
+            transform: Matrix4::identity(),
+            perspective: Matrix4::identity(),
+            establishes_3d_context: false,
+            scrolls_overflow_area: self.scrolls_overflow_area,
+            scroll_policy: self.scroll_policy,
+            layer_id: Some(layer_id),
         }
     }
 
@@ -643,6 +664,84 @@ impl StackingContext {
                  self.overflow);
 
         self.display_list.print_items(indentation);
+    }
+}
+
+struct StackingContextLayerCreator {
+    display_list_for_next_layer: Option<Box<DisplayList>>,
+    all_following_children_need_layers: bool,
+}
+
+impl StackingContextLayerCreator {
+    fn new() -> StackingContextLayerCreator {
+        StackingContextLayerCreator {
+            display_list_for_next_layer: None,
+            all_following_children_need_layers: false,
+        }
+    }
+
+    #[inline]
+    fn add_layers_to_preserve_drawing_order(stacking_context: &mut StackingContext) {
+        let mut state = StackingContextLayerCreator::new();
+
+        // First we need to sort child stacking contexts by z-index, so we can detect
+        // situations where unlayered ones should be on top of layered ones.
+        let existing_children = mem::replace(&mut stacking_context.display_list.children,
+                                             LinkedList::new());
+        let mut sorted_children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
+        sorted_children.extend(existing_children.into_iter());
+        sorted_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
+
+        // FIXME(#7566, mrobinson): This should properly handle unlayered children that are on
+        // top of unlayered children which have child stacking contexts with layers.
+        for child_stacking_context in sorted_children.into_iter() {
+            if state.stacking_context_needs_layer(&child_stacking_context) {
+                state.add_stacking_context(child_stacking_context, stacking_context);
+            } else {
+                stacking_context.display_list.children.push_back(child_stacking_context);
+            }
+        }
+        state.finish_building_current_layer(stacking_context);
+    }
+
+    #[inline]
+    fn stacking_context_needs_layer(&mut self, stacking_context: &Arc<StackingContext>) -> bool {
+        self.all_following_children_need_layers || stacking_context.layer_id.is_some()
+    }
+
+    #[inline]
+    fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
+        if let Some(display_list) = self.display_list_for_next_layer.take() {
+            let next_layer_id =
+                    stacking_context.display_list.layered_children.back().unwrap().id.next_layer_id();
+            let child_stacking_context =
+                Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
+            stacking_context.display_list.layered_children.push_back(
+                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context));
+            self.all_following_children_need_layers = true;
+        }
+    }
+
+    fn add_stacking_context(&mut self,
+                            stacking_context: Arc<StackingContext>,
+                            parent_stacking_context: &mut StackingContext) {
+        if let Some(layer_id) = stacking_context.layer_id {
+            self.finish_building_current_layer(parent_stacking_context);
+            parent_stacking_context.display_list.layered_children.push_back(
+                PaintLayer::new(layer_id, color::transparent(), stacking_context));
+
+            // We have started processing layered stacking contexts, so any stacking context that
+            // we process from now on needs its own layer to ensure proper rendering order.
+            self.all_following_children_need_layers = true;
+            return;
+        }
+
+        if self.display_list_for_next_layer.is_none() {
+            self.display_list_for_next_layer = Some(box DisplayList::new());
+        }
+        if let Some(ref mut display_list) = self.display_list_for_next_layer {
+            display_list.children.push_back(stacking_context);
+        }
     }
 }
 

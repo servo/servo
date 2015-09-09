@@ -323,6 +323,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == simple_inline_absolute_containing_block_a.html simple_inline_absolute_containing_block_ref.html
+== stacked_layers.html stacked_layers_ref.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == style_is_in_doc.html style_is_in_doc_ref.html
