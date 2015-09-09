@@ -234,7 +234,7 @@ dependencies = [
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
- "style 0.0.1",
+ "style_traits 0.0.1",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -815,7 +815,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#ff77d7152515b8dbfe29cb5f883e3a348673741c"
+source = "git+https://github.com/servo/rust-mozjs#2a970d9fc44137d6e99abc7a1ac7a23e7ad5a6ba"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1021,7 +1021,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
+ "style_traits 0.0.1",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1496,7 +1496,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#fce887de8bd7e3144226b3c48f088c1395a3b328"
+source = "git+https://github.com/servo/skia#3be758ea29cbd315febfda5a536ef9984a0ae862"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
@@ -1584,6 +1584,25 @@ dependencies = [
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "style_traits 0.0.1",
+ "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "style_traits"
+version = "0.0.1"
+dependencies = [
+ "cssparser 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plugins 0.0.1",
+ "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "serde 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]

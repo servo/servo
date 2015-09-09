@@ -830,7 +830,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#ff77d7152515b8dbfe29cb5f883e3a348673741c"
+source = "git+https://github.com/servo/rust-mozjs#2a970d9fc44137d6e99abc7a1ac7a23e7ad5a6ba"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1501,7 +1501,7 @@ dependencies = [
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#fce887de8bd7e3144226b3c48f088c1395a3b328"
+source = "git+https://github.com/servo/skia#3be758ea29cbd315febfda5a536ef9984a0ae862"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
