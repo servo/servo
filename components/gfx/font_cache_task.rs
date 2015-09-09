@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use platform::font_context::FontContextHandle;
-use platform::font_list::for_each_available_family;
-use platform::font_list::last_resort_font_families;
-use platform::font_list::system_default_family;
-use platform::font_list::for_each_variation;
-
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use net_traits::{ResourceTask, load_whole_resource};
+use platform::font_context::FontContextHandle;
+use platform::font_list::for_each_available_family;
+use platform::font_list::for_each_variation;
+use platform::font_list::last_resort_font_families;
+use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
