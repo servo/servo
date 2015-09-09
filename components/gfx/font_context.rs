@@ -186,9 +186,9 @@ impl FontContext {
             }
 
             if !cache_hit {
-                let font_template = self.font_cache_task.font_template(family.name()
-                                                                                 .to_owned(),
-                                                                           desc.clone());
+                let font_template = self.font_cache_task.find_font_template(family.name()
+                                                                            .to_owned(),
+                                                                            desc.clone());
                 match font_template {
                     Some(font_template) => {
                         let layout_font = self.create_layout_font(font_template,

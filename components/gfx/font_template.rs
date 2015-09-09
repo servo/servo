@@ -88,7 +88,7 @@ impl FontTemplate {
     }
 
     /// Get the data for creating a font if it matches a given descriptor.
-    pub fn data_if_matches(&mut self,
+    pub fn data_for_descriptor(&mut self,
                           fctx: &FontContextHandle,
                           requested_desc: &FontTemplateDescriptor)
                           -> Option<Arc<FontTemplateData>> {

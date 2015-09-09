@@ -187,7 +187,7 @@ impl Browser {
         self.compositor.pinch_zoom_level()
     }
 
-    pub fn title_for_main_frame(&self) {
+    pub fn send_get_title_for_main_frame(&self) {
         self.compositor.title_for_main_frame()
     }
 

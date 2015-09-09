@@ -378,7 +378,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
              ShutdownState::NotShuttingDown) => {
-                self.fetch_or_create_pipeline_details(pipeline_id).current_epoch = epoch;
+                self.pipeline_details(pipeline_id).current_epoch = epoch;
                 self.collect_old_layers(pipeline_id, &properties);
                 for (index, layer_properties) in properties.iter().enumerate() {
                     if index == 0 {
@@ -553,28 +553,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        animation_state: AnimationState) {
         match animation_state {
             AnimationState::AnimationsPresent => {
-                self.fetch_or_create_pipeline_details(pipeline_id).animations_running = true;
+                self.pipeline_details(pipeline_id).animations_running = true;
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
-                if self.fetch_or_create_pipeline_details(pipeline_id).animation_callbacks_running {
+                if self.pipeline_details(pipeline_id).animation_callbacks_running {
                     return
                 }
-                self.fetch_or_create_pipeline_details(pipeline_id).animation_callbacks_running =
+                self.pipeline_details(pipeline_id).animation_callbacks_running =
                     true;
                 self.tick_animations_for_pipeline(pipeline_id);
                 self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::NoAnimationsPresent => {
-                self.fetch_or_create_pipeline_details(pipeline_id).animations_running = false;
+                self.pipeline_details(pipeline_id).animations_running = false;
             }
             AnimationState::NoAnimationCallbacksPresent => {
-                self.fetch_or_create_pipeline_details(pipeline_id).animation_callbacks_running = false;
+                self.pipeline_details(pipeline_id).animation_callbacks_running = false;
             }
         }
     }
 
-    pub fn fetch_or_create_pipeline_details<'a>(&'a mut self,
+    pub fn pipeline_details<'a>(&'a mut self,
                                               pipeline_id: PipelineId)
                                               -> &'a mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
@@ -656,7 +656,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    WantsScrollEventsFlag::WantsScrollEvents,
                                                    opts::get().tile_size);
 
-        self.fetch_or_create_pipeline_details(pipeline.id).pipeline = Some(pipeline.clone());
+        self.pipeline_details(pipeline.id).pipeline = Some(pipeline.clone());
 
         // All root layers mask to bounds.
         *root_layer.masks_to_bounds.borrow_mut() = true;

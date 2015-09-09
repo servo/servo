@@ -27,7 +27,7 @@ static FC_FILE: &'static [u8] = b"file\0";
 static FC_INDEX: &'static [u8] = b"index\0";
 static FC_FONTFORMAT: &'static [u8] = b"fontformat\0";
 
-pub fn available_families<F>(mut callback: F) where F: FnMut(String) {
+pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
         let config = FcConfigGetCurrent();
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -57,7 +57,7 @@ pub fn available_families<F>(mut callback: F) where F: FnMut(String) {
     }
 }
 
-pub fn variations_for_family<F>(family_name: &str, mut callback: F)
+pub fn for_each_variation<F>(family_name: &str, mut callback: F)
     where F: FnMut(String)
 {
     debug!("getting variations for {}", family_name);
