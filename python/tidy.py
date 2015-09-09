@@ -103,12 +103,19 @@ def check_whitespace(idx, line):
 
 def check_by_line(file_name, contents):
     lines = contents.splitlines(True)
+    # import pdb; pdb.set_trace()
     for idx, line in enumerate(lines):
-        errors = itertools.chain(
-            check_length(idx, line),
-            check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
-        )
+        if file_name.endswith(".lock"):
+            errors = itertools.chain(
+                check_whitespace(idx, line),
+                check_whatwg_url(idx, line),
+            )
+        else:
+            errors = itertools.chain(
+                check_length(idx, line),
+                check_whitespace(idx, line),
+                check_whatwg_url(idx, line),
+            )
         for error in errors:
             yield error
 
@@ -147,7 +154,6 @@ def check_lock(file_name, contents):
     idx = 1
     packages = {}
     exceptions = ["glutin", "wayland-kbd"]      # package names to be neglected (as named by cargo)
-
     while idx < len(contents):
         content = contents[idx].strip()
         if 'name' in content:
