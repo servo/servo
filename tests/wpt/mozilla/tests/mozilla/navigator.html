@@ -15,9 +15,19 @@ test(function() {
   assert_equals(nav.taintEnabled(), false);
   assert_equals(nav.appName, "Netscape");
   assert_equals(nav.appCodeName, "Mozilla");
-  assert_equals(nav.platform, "");
   assert_equals(nav.appVersion, "4.0");
-});
+}, "navigator");
+
+
+test(function() {
+  assert_true(navigator.platform == "Linux i686" || navigator.platform == "linux x86_64");
+}, "navigator.platform linux");
+
+test(function() {
+  assert_true(navigator.platform == "MacIntel");
+}, "navigator.platform mac");
+
+
 </script>
 </body>
 </html>

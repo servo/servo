@@ -23,8 +23,35 @@ pub fn AppCodeName() -> DOMString {
     "Mozilla".to_owned()
 }
 
+#[cfg(target_os = "windows")]
 pub fn Platform() -> DOMString {
-    "".to_owned()
+    "Win32".to_owned()
+}
+
+#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "x86_64"))]
+pub fn Platform() -> DOMString {
+    "Linux x86_64".to_owned()
+}
+
+#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "i686"))]
+pub fn Platform() -> DOMString {
+    "Linux i686".to_owned()
+}
+
+#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "arm`"))]
+pub fn Platform() -> DOMString {
+    // Assuming v7
+    "Linux armv7l".to_owned()
+}
+
+#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "aarch64"))]
+pub fn Platform() -> DOMString {
+    "Linux aarch64".to_owned()
+}
+
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+pub fn Platform() -> DOMString {
+    "MacIntel".to_owned()
 }
 
 pub fn UserAgent() -> DOMString {
