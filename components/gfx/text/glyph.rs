@@ -555,12 +555,12 @@ impl<'a> GlyphStore {
         if !self.has_detailed_glyphs {
             self.advance_for_char_range_simple_glyphs(rang)
         } else {
-            self.advance_for_char_range_general(rang)
+            self.advance_for_char_range_slow_path(rang)
         }
     }
 
     #[inline]
-    pub fn advance_for_char_range_general(&self, rang: &Range<CharIndex>) -> Au {
+    pub fn advance_for_char_range_slow_path(&self, rang: &Range<CharIndex>) -> Au {
         self.iter_glyphs_for_char_range(rang)
             .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
     }
