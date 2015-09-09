@@ -953,10 +953,11 @@ unsafe impl Sync for BaseFlow {}
 impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "@ {:?}, CC {}, ADC {}",
+               "@ {:?}, CC {}, ADC {}, Ovr {:?}",
                self.position,
                self.parallel.children_count.load(Ordering::SeqCst),
-               self.abs_descendants.len())
+               self.abs_descendants.len(),
+               self.overflow)
     }
 }
 

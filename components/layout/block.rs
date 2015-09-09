@@ -40,6 +40,7 @@ use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, Opaqu
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, ForceNonfloatedFlag, FlowClass, Flow};
+use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -493,6 +494,20 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
                 return;
             }
         }
+
+        flow.mutate_fragments(&mut |f: &mut Fragment| {
+            match f.specific {
+                SpecificFragmentInfo::InlineBlock(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
+                }
+                _ => (),
+            }
+        });
 
         flow.early_store_overflow(self.layout_context);
     }
