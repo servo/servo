@@ -16,7 +16,7 @@ use std::mem;
 use std::sync::Arc;
 
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
-                DeclarationListParser, parse_important, ToCss};
+                DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use url::Url;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
@@ -210,9 +210,11 @@ pub mod longhands {
                             let var = input.seen_var_functions();
                             if specified.is_err() && var {
                                 input.reset(start);
-                                try!(::custom_properties::parse_declaration_value(input, &mut None));
+                                let (first_token_type, _) = try!(
+                                    ::custom_properties::parse_declaration_value(input, &mut None));
                                 return Ok(DeclaredValue::WithVariables {
                                     css: input.slice_from(start).to_owned(),
+                                    first_token_type: first_token_type,
                                     base_url: context.base_url.clone(),
                                     from_shorthand: Shorthand::None,
                                 })
@@ -4890,12 +4892,14 @@ pub mod shorthands {
                     Ok(())
                 } else if var {
                     input.reset(start);
-                    try!(::custom_properties::parse_declaration_value(input, &mut None));
+                    let (first_token_type, _) = try!(
+                        ::custom_properties::parse_declaration_value(input, &mut None));
                     let css = input.slice_from(start);
                     % for sub_property in shorthand.sub_properties:
                         declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                             DeclaredValue::WithVariables {
                                 css: css.to_owned(),
+                                first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
                                 from_shorthand: Shorthand::${shorthand.camel_case},
                             }
@@ -5609,10 +5613,10 @@ mod property_bit_field {
             where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
         {
             if let DeclaredValue::WithVariables {
-                ref css, ref base_url, from_shorthand
+                ref css, first_token_type, ref base_url, from_shorthand
             } = *value {
                 f(&
-                    ::custom_properties::substitute(css, custom_properties)
+                    ::custom_properties::substitute(css, first_token_type, custom_properties)
                     .and_then(|css| {
                         // As of this writing, only the base URL is used for property values:
                         let context = ParserContext::new(
@@ -5798,7 +5802,12 @@ pub enum Shorthand {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
     Value(T),
-    WithVariables { css: String, base_url: Url, from_shorthand: Shorthand },
+    WithVariables {
+        css: String,
+        first_token_type: TokenSerializationType,
+        base_url: Url,
+        from_shorthand: Shorthand
+    },
     Initial,
     Inherit,
     // There is no Unset variant here.
