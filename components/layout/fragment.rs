@@ -2179,11 +2179,11 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&block_flow.compute_overflow());
+                overflow = overflow.union(&flow::base(block_flow).overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&block_flow.compute_overflow());
+                overflow = overflow.union(&flow::base(block_flow).overflow);
             }
             _ => (),
         }
