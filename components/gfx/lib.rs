@@ -5,7 +5,10 @@
 #![feature(arc_weak)]
 #![cfg_attr(any(target_os = "linux", target_os = "android"), feature(box_raw))]
 #![feature(box_syntax)]
-#![feature(convert)]
+
+// For simd (currently x86_64/aarch64)
+#![cfg_attr(any(target_arch = "x86_64", target_arch = "aarch64"), feature(convert))]
+
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]

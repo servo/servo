@@ -596,14 +596,17 @@ impl<'a> GlyphStore {
         Au(advance) + leftover
     }
 
-    /// When SIMD isn't available (currently non-x86_x64/aarch64), fallback to the slow path.
+    /// When SIMD isn't available (non-x86_x64/aarch64), fallback to the slow path.
     #[inline]
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
     fn advance_for_char_range_simple_glyphs(&self, rang: &Range<CharIndex>) -> Au {
-        self.advance_for_char_range_general(rang)
+        self.advance_for_char_range_slow_path(rang)
     }
 
+
+    /// Used for SIMD.
     #[inline]
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
         unsafe { mem::transmute(self.entry_buffer.as_slice()) }
     }
