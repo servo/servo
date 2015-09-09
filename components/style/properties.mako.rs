@@ -6,7 +6,7 @@
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
@@ -23,7 +23,6 @@ use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use string_cache::Atom;
 
 use computed_values;
 use parser::{ParserContext, log_css_error};
@@ -5590,7 +5589,7 @@ mod property_bit_field {
     % if property.derived_from is None:
         fn substitute_variables_${property.ident}<F, R>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
-            custom_properties: &Option<Arc<HashMap<Atom, String>>>,
+            custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F)
             -> R
             where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
@@ -5813,7 +5812,7 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
-    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::Value>),
+    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
 }
 
 
@@ -5974,7 +5973,7 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<HashMap<::custom_properties::Name, String>>>,
+    custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
@@ -6208,7 +6207,7 @@ fn cascade_with_cached_declarations(
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
-        custom_properties: Option<Arc<HashMap<Atom, String>>>,
+        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         context: &computed::Context)
         -> ComputedValues {
     % for style_struct in STYLE_STRUCTS:
