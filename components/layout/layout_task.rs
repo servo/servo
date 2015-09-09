@@ -1057,7 +1057,7 @@ impl LayoutTask {
                     .display_list_building_result
                     .add_to(&mut *display_list);
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let layer_id = layout_root.layer_id(0);
+                let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
