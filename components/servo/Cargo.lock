@@ -605,6 +605,7 @@ dependencies = [
  "script_traits 0.0.1",
  "serde 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simd 0.1.0 (git+https://github.com/huonw/simd)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1533,6 +1534,11 @@ dependencies = [
  "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "simd"
+version = "0.1.0"
+source = "git+https://github.com/huonw/simd#d9ad79d86eab50a8f36d45fe17aa9e3a533389ee"
 
 [[package]]
 name = "skia"

@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::point::Point2D;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+use simd::u32x4;
+
 use std::cmp::{Ordering, PartialOrd};
 use std::mem;
 use std::u16;
@@ -406,12 +410,16 @@ pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
     /// A buffer of glyphs within the text run, in the order in which they
-    /// appear in the input text
+    /// appear in the input text.
+    /// Any changes will also need to be reflected in
+    /// transmute_entry_buffer_to_u32_buffer().
     entry_buffer: Vec<GlyphEntry>,
     /// A store of the detailed glyph data. Detailed glyphs contained in the
     /// `entry_buffer` point to locations in this data structure.
     detail_store: DetailedGlyphStore,
 
+    /// Used to check if fast path should be used in glyph iteration.
+    has_detailed_glyphs: bool,
     is_whitespace: bool,
     is_rtl: bool,
 }
@@ -434,6 +442,7 @@ impl<'a> GlyphStore {
         GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
+            has_detailed_glyphs: false,
             is_whitespace: is_whitespace,
             is_rtl: is_rtl,
         }
@@ -472,6 +481,7 @@ impl<'a> GlyphStore {
             (false, true) => GlyphEntry::simple(data.id, data.advance),
             (false, false) => {
                 let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
+                self.has_detailed_glyphs = true;
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
@@ -500,6 +510,7 @@ impl<'a> GlyphStore {
                                        data_for_glyphs[i].offset)
                 }).collect();
 
+                self.has_detailed_glyphs = true;
                 self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
                 GlyphEntry::complex(first_glyph_data.cluster_start,
                                     first_glyph_data.ligature_start,
@@ -541,8 +552,61 @@ impl<'a> GlyphStore {
 
     #[inline]
     pub fn advance_for_char_range(&self, rang: &Range<CharIndex>) -> Au {
+        if !self.has_detailed_glyphs {
+            self.advance_for_char_range_simple_glyphs(rang)
+        } else {
+            self.advance_for_char_range_slow_path(rang)
+        }
+    }
+
+    #[inline]
+    pub fn advance_for_char_range_slow_path(&self, rang: &Range<CharIndex>) -> Au {
         self.iter_glyphs_for_char_range(rang)
             .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+    }
+
+    #[inline]
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    fn advance_for_char_range_simple_glyphs(&self, rang: &Range<CharIndex>) -> Au {
+        let mask = u32x4::splat(GLYPH_ADVANCE_MASK);
+        let mut simd_advance = u32x4::splat(0);
+        let begin = rang.begin().to_usize();
+        let len = rang.length().to_usize();
+        let num_simd_iterations = len / 4;
+        let leftover_entries = rang.end().to_usize() - (len - num_simd_iterations * 4);
+        let buf = self.transmute_entry_buffer_to_u32_buffer();
+
+        for i in 0..num_simd_iterations {
+            let mut v = u32x4::load(buf, begin + i * 4);
+            v = v & mask;
+            v = v >> GLYPH_ADVANCE_SHIFT;
+            simd_advance = simd_advance + v;
+        }
+
+        let advance =
+            (simd_advance.extract(0) +
+             simd_advance.extract(1) +
+             simd_advance.extract(2) +
+             simd_advance.extract(3)) as i32;
+        let mut leftover = Au(0);
+        for i in leftover_entries..rang.end().to_usize() {
+            leftover = leftover + self.entry_buffer[i].advance();
+        }
+        Au(advance) + leftover
+    }
+
+    /// When SIMD isn't available (non-x86_x64/aarch64), fallback to the slow path.
+    #[inline]
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    fn advance_for_char_range_simple_glyphs(&self, rang: &Range<CharIndex>) -> Au {
+        self.advance_for_char_range_slow_path(rang)
+    }
+
+    /// Used for SIMD.
+    #[inline]
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
+        unsafe { mem::transmute(self.entry_buffer.as_slice()) }
     }
 
     pub fn char_is_space(&self, i: CharIndex) -> bool {

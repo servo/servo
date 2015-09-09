@@ -5,6 +5,10 @@
 #![feature(arc_weak)]
 #![feature(box_raw)]
 #![feature(box_syntax)]
+
+// For simd (currently x86_64/aarch64)
+#![cfg_attr(any(target_arch = "x86_64", target_arch = "aarch64"), feature(convert))]
+
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]
@@ -40,6 +44,10 @@ extern crate net_traits;
 extern crate util;
 extern crate msg;
 extern crate rand;
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+extern crate simd;
+
 extern crate smallvec;
 extern crate string_cache;
 extern crate style;
