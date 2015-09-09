@@ -6,9 +6,9 @@
 # and generate information for subsequent phases.
 
 import sys
-sys.path.append("./parser/")
-sys.path.append("./ply/")
 import os
+sys.path.append(os.path.join(".", "parser"))
+sys.path.append(os.path.join(".", "ply"))
 import WebIDL
 import cPickle
 from Configuration import Configuration
@@ -66,7 +66,7 @@ def main():
         ('RegisterBindings', 'RegisterBindings.rs'),
         ('InterfaceTypes', 'InterfaceTypes.rs'),
         ('InheritTypes', 'InheritTypes.rs'),
-        ('Bindings', 'Bindings/mod.rs'),
+        ('Bindings', os.path.join('Bindings', 'mod.rs')),
         ('UnionTypes', 'UnionTypes.rs'),
     ]
 

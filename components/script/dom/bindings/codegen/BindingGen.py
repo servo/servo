@@ -3,9 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import sys
-sys.path.append("./parser/")
-sys.path.append("./ply/")
 import os
+sys.path.append(os.path.join(".", "parser"))
+sys.path.append(os.path.join(".", "ply"))
 import cPickle
 from Configuration import Configuration
 from CodegenRust import CGBindingRoot, replaceFileIfChanged

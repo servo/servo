@@ -22,23 +22,23 @@ reftest_filetype = ".list"
 
 ignored_files = [
     # Upstream
-    "./support/*",
-    "./tests/wpt/*",
-    "./python/mach/*",
-    "./components/script/dom/bindings/codegen/parser/*",
-    "./components/script/dom/bindings/codegen/ply/*",
-    "./python/_virtualenv/*",
+    os.path.join(".", "support", "*"),
+    os.path.join(".", "tests", "wpt", "*"),
+    os.path.join(".", "python", "mach", "*"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser", "*"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply", "*"),
+    os.path.join(".", "python", "_virtualenv", "*"),
 
     # Generated and upstream code combined with our own. Could use cleanup
-    "./target/*",
-    "./ports/gonk/src/native_window_glue.cpp",
-    "./ports/cef/*",
+    os.path.join(".", "target", "*"),
+    os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
+    os.path.join(".", "ports", "cef", "*"),
 
     # MIT license
-    "./components/util/deque/mod.rs",
+    os.path.join(".", "components", "util", "deque", "mod.rs"),
 
     # Hidden files/directories
-    "./.*",
+    os.path.join(".", ".*"),
 ]
 
 
@@ -192,8 +192,8 @@ def check_toml(file_name, contents):
 def check_rust(file_name, contents):
     if not file_name.endswith(".rs") or \
        file_name.endswith("properties.mako.rs") or \
-       file_name.endswith("style/build.rs") or \
-       file_name.endswith("unit/style/stylesheets.rs"):
+       file_name.endswith(os.path.join("style", "build.rs")) or \
+       file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
     contents = contents.splitlines(True)
     comment_depth = 0

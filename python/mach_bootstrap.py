@@ -11,18 +11,18 @@ import sys
 from distutils.spawn import find_executable
 
 SEARCH_PATHS = [
-    "python/mach",
-    "tests/wpt",
-    "tests/wpt/harness",
+    os.path.join("python", "mach"),
+    os.path.join("tests", "wpt"),
+    os.path.join("tests", "wpt", "harness"),
 ]
 
 # Individual files providing mach commands.
 MACH_MODULES = [
-    'python/servo/bootstrap_commands.py',
-    'python/servo/build_commands.py',
-    'python/servo/testing_commands.py',
-    'python/servo/post_build_commands.py',
-    'python/servo/devenv_commands.py',
+    os.path.join('python', 'servo', 'bootstrap_commands.py'),
+    os.path.join('python', 'servo', 'build_commands.py'),
+    os.path.join('python', 'servo', 'testing_commands.py'),
+    os.path.join('python', 'servo', 'post_build_commands.py'),
+    os.path.join('python', 'servo', 'devenv_commands.py'),
 ]
 
 
