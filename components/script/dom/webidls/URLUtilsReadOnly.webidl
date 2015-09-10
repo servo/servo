@@ -19,7 +19,8 @@ interface URLUtilsReadOnly {
   readonly attribute USVString search;
   readonly attribute USVString hash;
 
-  // This is only doing as well as gecko right now, bug 824857 is on file for
+  // This is only doing as well as gecko right now.
+  // https://github.com/servo/servo/issues/7590 is on file for
   // adding attribute stringifier support.
   stringifier;
 };
