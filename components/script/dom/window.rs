@@ -103,6 +103,7 @@ pub enum ReflowReason {
     DocumentLoaded,
     ImageLoaded,
     RequestAnimationFrame,
+    WebFontLoaded,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -1381,6 +1382,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
         ReflowReason::ImageLoaded => "\tImageLoaded",
         ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
+        ReflowReason::WebFontLoaded => "\tWebFontLoaded",
     });
 
     println!("{}", debug_msg);
