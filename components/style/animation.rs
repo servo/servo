@@ -28,7 +28,7 @@ use util::bezier::Bezier;
 use util::geometry::Au;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthOrPercentage, Length, Time};
+use values::computed::{LengthOrPercentage, Length, Time, Calc};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
@@ -513,6 +513,17 @@ impl Interpolate for Color {
     }
 }
 
+impl Interpolate for Calc {
+    #[inline]
+    fn interpolate(&self, other: &Calc, time: f64)
+                   -> Option<Calc> {
+        Some(Calc {
+            length: self.length().interpolate(&other.length(), time),
+            percentage: self.percentage().interpolate(&other.percentage(), time),
+        })
+    }
+}
+
 impl Interpolate for LengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentage, time: f64)
@@ -530,7 +541,13 @@ impl Interpolate for LengthOrPercentage {
                     Some(LengthOrPercentage::Percentage(value))
                 })
             }
-            (_, _) => None,
+            (this, other) => {
+                let this: Calc = From::from(this);
+                let other: Calc = From::from(other);
+                this.interpolate(&other, time).and_then(|value| {
+                    Some(LengthOrPercentage::Calc(value))
+                })
+            }
         }
     }
 }
@@ -555,7 +572,13 @@ impl Interpolate for LengthOrPercentageOrAuto {
             (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
                 Some(LengthOrPercentageOrAuto::Auto)
             }
-            (_, _) => None,
+            (this, other) => {
+                let this: Option<Calc> = From::from(this);
+                let other: Option<Calc> = From::from(other);
+                this.interpolate(&other, time).unwrap_or(None).and_then(|value| {
+                    Some(LengthOrPercentageOrAuto::Calc(value))
+                })
+            }
         }
     }
 }
