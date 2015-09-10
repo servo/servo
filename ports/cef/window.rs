@@ -21,7 +21,6 @@ use wrappers::CefWrap;
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::point::Point2D;
-use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
@@ -233,11 +232,11 @@ impl WindowMethods for Window {
         (Size2D::new(width, height), Point2D::zero())
     }
 
-    fn set_inner_size(&self, size: Size2D<u32>) {
+    fn set_inner_size(&self, _size: Size2D<u32>) {
 
     }
 
-    fn set_position(&self, point: Point2D<i32>) {
+    fn set_position(&self, _point: Point2D<i32>) {
 
     }
 
