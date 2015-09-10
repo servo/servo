@@ -50,8 +50,8 @@ interface Range {
   DocumentFragment cloneContents();
   [Throws]
   void insertNode(Node node);
-  // [Throws]
-  // void surroundContents(Node newParent);
+  [Throws]
+  void surroundContents(Node newParent);
 
   [NewObject]
   Range cloneRange();
