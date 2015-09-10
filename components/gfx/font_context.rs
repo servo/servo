@@ -165,10 +165,10 @@ impl FontContext {
             size: style.font_size,
             address: address,
         };
-        if let Some(ref cached_font_group) =
-            self.layout_font_group_cache.get(&layout_font_group_cache_key) {
-                return (*cached_font_group).clone()
-            }
+        if let Some(ref cached_font_group) = self.layout_font_group_cache.get(
+                &layout_font_group_cache_key) {
+            return (*cached_font_group).clone()
+        }
 
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
