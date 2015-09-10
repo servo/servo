@@ -1219,6 +1219,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 return false;
             }
 
+            // Synchronously query the layout task for this pipeline
+            // to see if it is idle.
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = LayoutControlMsg::GetWebFontLoadState(sender);
+            pipeline.layout_chan.0.send(msg).unwrap();
+            if receiver.recv().unwrap() {
+                return false;
+            }
+
             // Check the visible rectangle for this pipeline. If the constellation
             // hasn't received a rectangle for this pipeline yet, then assume
             // that the output image isn't stable yet.

@@ -58,6 +58,9 @@ pub enum LayoutControlMsg {
     TickAnimations,
     /// Informs layout as to which regions of the page are visible.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+    /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
+    /// and `false` is returned if all fonts have loaded.
+    GetWebFontLoadState(IpcSender<bool>),
 }
 
 /// The initial data associated with a newly-created framed pipeline.
@@ -99,7 +102,7 @@ pub enum ScriptState {
     DocumentLoading,
 }
 
-/// Messages sent from the constellation to the script task
+/// Messages sent from the constellation or layout to the script task.
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
@@ -133,6 +136,9 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
+    /// Notifies the script task that a new Web font has been loaded, and thus the page should be
+    /// reflowed.
+    WebFontLoaded(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
     StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
