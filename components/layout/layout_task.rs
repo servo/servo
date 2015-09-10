@@ -29,6 +29,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::StackingContext;
 use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
 use gfx::font_cache_task::FontCacheTask;
+use gfx::font_context;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
 use gfx_traits::color;
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
@@ -67,7 +68,8 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
-use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
@@ -151,6 +153,9 @@ pub struct LayoutTaskData {
     /// A counter for epoch messages
     epoch: Epoch,
 
+    /// The number of Web fonts that have been requested but not yet loaded.
+    pub outstanding_web_fonts: Arc<AtomicUsize>,
+
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
@@ -186,6 +191,12 @@ pub struct LayoutTask {
 
     /// The channel on which the image cache can send messages to ourself.
     image_cache_sender: ImageCacheChan,
+
+    /// The port on which we receive messages from the font cache task.
+    font_cache_receiver: Receiver<()>,
+
+    /// The channel on which the font cache can send messages to us.
+    font_cache_sender: Sender<()>,
 
     /// The channel on which we or others can send messages to ourselves.
     pub chan: LayoutChan,
@@ -304,10 +315,18 @@ impl<'a> DerefMut for RWGuard<'a> {
     }
 }
 
-fn add_font_face_rules(stylesheet: &Stylesheet, device: &Device, font_cache_task: &FontCacheTask) {
+fn add_font_face_rules(stylesheet: &Stylesheet,
+                       device: &Device,
+                       font_cache_task: &FontCacheTask,
+                       font_cache_sender: &Sender<()>,
+                       outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
-            font_cache_task.add_web_font(font_face.family.clone(), source.clone());
+            let font_cache_task = (*font_cache_task).clone();
+            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+            font_cache_task.add_web_font(font_face.family.clone(),
+                                         (*source).clone(),
+                                         (*font_cache_sender).clone());
         }
     }
 }
@@ -351,9 +370,16 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
+        let (font_cache_sender, font_cache_receiver) = channel();
+
         let stylist = box Stylist::new(device);
+        let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         for user_or_user_agent_stylesheet in stylist.stylesheets() {
-            add_font_face_rules(user_or_user_agent_stylesheet, &stylist.device, &font_cache_task);
+            add_font_face_rules(user_or_user_agent_stylesheet,
+                                &stylist.device,
+                                &font_cache_task,
+                                &font_cache_sender,
+                                &outstanding_web_fonts_counter);
         }
 
         LayoutTask {
@@ -373,6 +399,8 @@ impl LayoutTask {
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
+            font_cache_receiver: font_cache_receiver,
+            font_cache_sender: font_cache_sender,
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
@@ -395,6 +423,7 @@ impl LayoutTask {
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
                     epoch: Epoch(0),
+                    outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
         }
     }
@@ -443,25 +472,30 @@ impl LayoutTask {
             Pipeline,
             Script,
             ImageCache,
+            FontCache,
         }
 
         let port_to_read = {
-            let sel = Select::new();
-            let mut port1 = sel.handle(&self.port);
-            let mut port2 = sel.handle(&self.pipeline_port);
-            let mut port3 = sel.handle(&self.image_cache_receiver);
+            let select = Select::new();
+            let mut port_from_script = select.handle(&self.port);
+            let mut port_from_pipeline = select.handle(&self.pipeline_port);
+            let mut port_from_image_cache = select.handle(&self.image_cache_receiver);
+            let mut port_from_font_cache = select.handle(&self.font_cache_receiver);
             unsafe {
-                port1.add();
-                port2.add();
-                port3.add();
+                port_from_script.add();
+                port_from_pipeline.add();
+                port_from_image_cache.add();
+                port_from_font_cache.add();
             }
-            let ret = sel.wait();
-            if ret == port1.id() {
+            let ret = select.wait();
+            if ret == port_from_script.id() {
                 PortToRead::Script
-            } else if ret == port2.id() {
+            } else if ret == port_from_pipeline.id() {
                 PortToRead::Pipeline
-            } else if ret == port3.id() {
+            } else if ret == port_from_image_cache.id() {
                 PortToRead::ImageCache
+            } else if ret == port_from_font_cache.id() {
+                PortToRead::FontCache
             } else {
                 panic!("invalid select result");
             }
@@ -481,6 +515,10 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetCurrentEpoch(sender),
                                                    possibly_locked_rw_data)
                     }
+                    LayoutControlMsg::GetWebFontLoadState(sender) => {
+                        self.handle_request_helper(Msg::GetWebFontLoadState(sender),
+                                                   possibly_locked_rw_data)
+                    }
                     LayoutControlMsg::ExitNow(exit_type) => {
                         self.handle_request_helper(Msg::ExitNow(exit_type),
                                                    possibly_locked_rw_data)
@@ -494,6 +532,14 @@ impl LayoutTask {
             PortToRead::ImageCache => {
                 let _ = self.image_cache_receiver.recv().unwrap();
                 self.repaint(possibly_locked_rw_data)
+            }
+            PortToRead::FontCache => {
+                let _ = self.font_cache_receiver.recv().unwrap();
+                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
+                font_context::invalidate_font_caches();
+                self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
+                true
             }
         }
     }
@@ -581,6 +627,9 @@ impl LayoutTask {
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::ReflowWithNewlyLoadedWebFont => {
+                self.reflow_with_newly_loaded_web_font(possibly_locked_rw_data)
+            }
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
             }
@@ -595,6 +644,11 @@ impl LayoutTask {
             Msg::GetCurrentEpoch(sender) => {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 sender.send(rw_data.epoch).unwrap();
+            },
+            Msg::GetWebFontLoadState(sender) => {
+                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                let outstanding_web_fonts = rw_data.outstanding_web_fonts.load(Ordering::SeqCst);
+                sender.send(outstanding_web_fonts != 0).unwrap();
             },
             Msg::CreateLayoutTask(info) => {
                 self.create_layout_task(info)
@@ -756,9 +810,12 @@ impl LayoutTask {
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-
         if mq.evaluate(&rw_data.stylist.device) {
-            add_font_face_rules(&sheet, &rw_data.stylist.device, &self.font_cache_task);
+            add_font_face_rules(&sheet,
+                                &rw_data.stylist.device,
+                                &self.font_cache_task,
+                                &self.font_cache_sender,
+                                &rw_data.outstanding_web_fonts);
             rw_data.stylist.add_stylesheet(sheet);
         }
 
@@ -1306,6 +1363,32 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
+    pub fn reflow_with_newly_loaded_web_font<'a>(
+            &'a self,
+            possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        font_context::invalidate_font_caches();
+
+        let reflow_info = Reflow {
+            goal: ReflowGoal::ForDisplay,
+            page_clip_rect: MAX_RECT,
+        };
+
+        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+                                                                  false,
+                                                                  None,
+                                                                  &self.url,
+                                                                  reflow_info.goal);
+
+        // No need to do a style recalc here.
+        if rw_data.root_flow.as_ref().is_none() {
+            return
+        }
+        self.perform_post_style_recalc_layout_passes(&reflow_info,
+                                                     &mut *rw_data,
+                                                     &mut layout_context);
+    }
+
     fn perform_post_style_recalc_layout_passes<'a>(&'a self,
                                                    data: &Reflow,
                                                    rw_data: &mut LayoutTaskData,
@@ -1571,3 +1654,4 @@ fn get_root_flow_background_color(flow: &mut Flow) -> AzColor {
                   .resolve_color(kid_block_flow.fragment.style.get_background().background_color)
                   .to_gfx_color()
 }
+
