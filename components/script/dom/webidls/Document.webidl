@@ -26,7 +26,6 @@ interface Document : Node {
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
-  Element? getElementById(DOMString elementId);
 
   [NewObject, Throws]
   Element createElement(DOMString localName);
@@ -65,6 +64,8 @@ interface Document : Node {
   TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF,
                               optional NodeFilter? filter = null);
 };
+
+Document implements NonElementParentNode;
 Document implements ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
