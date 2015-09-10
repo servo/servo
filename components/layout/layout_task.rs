@@ -1250,8 +1250,13 @@ impl LayoutTask {
                     process_content_boxes_request(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::NodeGeometryQuery(node) =>
                     self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
-                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
-                    self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
+                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
+                    self.process_resolved_style_request(node,
+                                                        pseudo,
+                                                        property,
+                                                        &mut root_flow,
+                                                        &mut rw_data)
+                }
                 ReflowQueryType::OffsetParentQuery(node) =>
                     self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::NoQuery => {}
