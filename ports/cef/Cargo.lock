@@ -563,6 +563,7 @@ dependencies = [
  "script_traits 0.0.1",
  "serde 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "simd 0.1.0 (git+https://github.com/huonw/simd)",
  "skia 0.0.20130412 (git+https://github.com/servo/skia)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -693,7 +694,7 @@ dependencies = [
 [[package]]
 name = "hbs-common-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#2b415b92cd955e63c4b939b91a3e7dbf5902c8af"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#548d28d71795ca81ad12ab61e6616835814981f3"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -710,7 +711,7 @@ dependencies = [
 [[package]]
 name = "hbs-pow-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#2b415b92cd955e63c4b939b91a3e7dbf5902c8af"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#548d28d71795ca81ad12ab61e6616835814981f3"
 dependencies = [
  "hbs-common-sys 0.1.0 (git+https://github.com/libheartbeats/heartbeats-simple-sys.git)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1492,6 +1493,11 @@ dependencies = [
  "winapi 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "simd"
+version = "0.1.0"
+source = "git+https://github.com/huonw/simd#be4242121e081206d8769cc60a7d2fa8e23cdc68"
 
 [[package]]
 name = "skia"
