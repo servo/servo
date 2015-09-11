@@ -1505,7 +1505,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let mut img = self.draw_png(framebuffer_ids, texture_ids, width, height);
                 let path = opts::get().output_file.as_ref().unwrap();
                 let res = png::store_png(&mut img, &path);
-                assert!(res.is_ok());
+                assert!(res.is_ok(), format!("Error writing png: {}", res.unwrap_err()));
                 None
             }
         };
