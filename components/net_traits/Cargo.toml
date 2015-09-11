@@ -36,7 +36,7 @@ path = "../plugins"
 
 [dependencies]
 log = "0.3"
-euclid = "0.1"
+euclid = "0.2"
 regex = "0.1.33"
 regex_macros = "0.1.19"
 serde = "0.5"

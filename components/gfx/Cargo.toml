@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.3"
-euclid = "0.1"
+euclid = "0.2"
 fnv = "1.0"
 harfbuzz = "0.1"
 lazy_static = "0.1"
