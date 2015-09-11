@@ -1347,10 +1347,16 @@ impl BlockFlow {
         let mut inline_size_of_preceding_left_floats = Au(0);
         let mut inline_size_of_preceding_right_floats = Au(0);
         if self.formatting_context_type() == FormattingContextType::None {
-            inline_size_of_preceding_left_floats =
-                max(self.inline_size_of_preceding_left_floats - inline_start_content_edge, Au(0));
-            inline_size_of_preceding_right_floats =
-                max(self.inline_size_of_preceding_right_floats - inline_end_content_edge, Au(0));
+            if inline_start_content_edge > Au(0) {
+                inline_size_of_preceding_left_floats =
+                    max(self.inline_size_of_preceding_left_floats - inline_start_content_edge,
+                        Au(0));
+            }
+            if inline_end_content_edge > Au(0) {
+                inline_size_of_preceding_right_floats =
+                    max(self.inline_size_of_preceding_right_floats - inline_end_content_edge,
+                        Au(0));
+            }
         }
 
         let opaque_self = OpaqueFlow::from_flow(self);
