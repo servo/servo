@@ -38,8 +38,6 @@ use std::sync::mpsc::Receiver;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
-    WorkerGlobalScope,
-
     DedicatedWorkerGlobalScope,
 }
 

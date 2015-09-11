@@ -9,9 +9,7 @@ use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlmediaelement::HTMLMediaElementTypeId::HTMLAudioElement;
-use dom::htmlmediaelement::HTMLMediaElementTypeId::HTMLMediaElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId::HTMLVideoElement;
-use dom::htmltablecellelement::HTMLTableCellElementTypeId::HTMLTableCellElement;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId::HTMLTableDataCellElement;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId::HTMLTableHeaderCellElement;
 use dom::node::NodeTypeId;
@@ -249,13 +247,5 @@ pub fn heap_size_of_eventtarget(target: &EventTarget) -> usize {
             heap_size_of_self_and_children(DocumentTypeCast::to_ref(target).unwrap()),
         &EventTargetTypeId::Node(NodeTypeId::DocumentFragment) =>
             heap_size_of_self_and_children(DocumentFragmentCast::to_ref(target).unwrap()),
-        &EventTargetTypeId::EventTarget |
-        &EventTargetTypeId::Node(NodeTypeId::Node) |
-        &EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLMediaElement(HTMLMediaElement)))) |
-        &EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTableCellElement(HTMLTableCellElement)))) => {
-            unreachable!()
-        },
     }
 }

@@ -48,8 +48,6 @@ pub enum ListenerPhase {
 
 #[derive(Copy, Clone)]
 pub enum EventTargetTypeId {
-    EventTarget,
-
     Node(NodeTypeId),
     WebSocket,
     Window,

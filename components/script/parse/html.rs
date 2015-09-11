@@ -184,8 +184,6 @@ impl<'a> Serializable for &'a Node {
                                  traversal_scope: TraversalScope) -> io::Result<()> {
         let node = *self;
         match (traversal_scope, node.type_id()) {
-            (_, NodeTypeId::Node) => unreachable!(),
-            (_, NodeTypeId::CharacterData(CharacterDataTypeId::CharacterData)) => unreachable!(),
             (_, NodeTypeId::Element(..)) => {
                 let elem = ElementCast::to_ref(node).unwrap();
                 let name = QualName::new(elem.namespace().clone(),

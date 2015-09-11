@@ -1724,7 +1724,7 @@ class CGNamespace(CGWrapper):
 
 def EventTargetEnum(desc):
     protochain = desc.prototypeChain
-    if protochain[0] != "EventTarget":
+    if protochain[0] != "EventTarget" or desc.interface.getExtendedAttribute("Abstract"):
         return "None"
 
     inner = ""

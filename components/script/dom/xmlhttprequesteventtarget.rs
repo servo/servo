@@ -10,8 +10,6 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum XMLHttpRequestEventTargetTypeId {
-    XMLHttpRequestEventTarget,
-
     XMLHttpRequest,
     XMLHttpRequestUpload,
 }

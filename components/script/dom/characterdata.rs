@@ -160,8 +160,6 @@ impl CharacterDataMethods for CharacterData {
 /// The different types of CharacterData.
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CharacterDataTypeId {
-    CharacterData,
-
     Comment,
     Text,
     ProcessingInstruction,
