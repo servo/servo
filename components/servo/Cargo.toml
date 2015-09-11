@@ -120,7 +120,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies.euclid]
-version = "0.1"
+version = "0.2"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"

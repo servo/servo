@@ -37,6 +37,6 @@ path = "../plugins"
 path = "../util"
 
 [dependencies]
-euclid = "0.1"
+euclid = "0.2"
 serde_macros = "0.5"
 
