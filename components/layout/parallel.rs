@@ -482,6 +482,9 @@ pub fn traverse_flow_tree_preorder(
             })
         });
     }, shared_layout_context);
+
+    let layout_context = LayoutContext::new(shared_layout_context);
+    flow_ref::deref_mut(root).late_store_overflow(&layout_context);
 }
 
 pub fn build_display_list_for_subtree(

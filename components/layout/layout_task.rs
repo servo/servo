@@ -1031,7 +1031,11 @@ impl LayoutTask {
                     flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
-                    root_flow.position.size.to_physical(root_flow.writing_mode)
+                    if rw_data.stylist.constrain_viewport().is_some() {
+                        root_flow.position.size.to_physical(root_flow.writing_mode)
+                    } else {
+                        root_flow.overflow.size
+                    }
                 };
                 let mut display_list = box DisplayList::new();
                 flow::mut_base(flow_ref::deref_mut(layout_root))
