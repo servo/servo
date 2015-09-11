@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, Token, SourcePosition, Delimiter, TokenSerializationType};
+use cssparser::{Parser, Token, SourcePosition, Delimiter, TokenSerializationType, ToCss};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::Arc;
 use string_cache::Atom;
 use util::mem::HeapSizeOf;
@@ -14,9 +15,9 @@ use util::mem::HeapSizeOf;
 pub type Name = Atom;
 
 // https://drafts.csswg.org/css-variables/#typedef-custom-property-name
-pub fn parse_name(s: &str) -> Result<Name, ()> {
+pub fn parse_name(s: &str) -> Result<&str, ()> {
     if s.starts_with("--") {
-        Ok(Atom::from_slice(&s[2..]))
+        Ok(&s[2..])
     } else {
         Err(())
     }
@@ -45,6 +46,18 @@ pub struct ComputedValue {
     css: String,
     first_token_type: TokenSerializationType,
     last_token_type: TokenSerializationType,
+}
+
+impl ToCss for SpecifiedValue {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(&self.css)
+    }
+}
+
+impl ToCss for ComputedValue {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(&self.css)
+    }
 }
 
 pub type ComputedValuesMap = HashMap<Name, ComputedValue>;
@@ -157,7 +170,7 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Optio
         try!(parse_declaration_value(input, references));
     }
     if let Some(ref mut refs) = *references {
-        refs.insert(name);
+        refs.insert(Atom::from_slice(name));
     }
     Ok(())
 }
@@ -381,7 +394,7 @@ fn substitute_block<F>(input: &mut Parser,
                 try!(input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
-                    let name = parse_name(&name).unwrap();
+                    let name = Atom::from_slice(parse_name(&name).unwrap());
 
                     if let Ok(last) = substitute_one(&name, partial_computed_value) {
                         last_token_type = last;
