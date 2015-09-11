@@ -261,20 +261,21 @@ pub enum CachedConsoleMessage {
     ConsoleAPI(ConsoleAPI),
 }
 
-struct HttpRequest {
-    url: Url,
-    method: Method,
-    headers: Headers,
-    s: Option<Vec<u8>>,
+#[derive(Debug)]
+pub struct HttpRequest {
+    pub url: Url,
+    pub method: Method,
+    pub headers: Headers,
+    pub s: Option<Vec<u8>>,
 }
 
-struct HttpResponse {
-    headers: Option<Headers>,
-    status: Option<RawStatus>,
-    s: Option<Vec<u8>>,
+#[derive(Debug)]
+pub struct HttpResponse {
+    pub headers: Option<Headers>,
+    pub status: Option<RawStatus>,
+    pub s: Option<Vec<u8>>,
 }
 
-#[derive(Clone)]
 pub enum NetworkEvent {
     HttpRequest(HttpRequest),
     HttpResponse(HttpResponse),

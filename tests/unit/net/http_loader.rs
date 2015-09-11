@@ -212,36 +212,36 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
-fn expect_devtools_http_request(devtools_port: Option<Receiver<DevtoolsControlMsg>>) -> Option<devHttpRequest> {
+fn expect_devtools_http_request(devtools_port: & mpsc::Receiver<DevtoolsControlMsg>) -> Option<devHttpRequest> {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
         ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)) => {
             match net_event {
                 NetworkEvent::HttpRequest(httprequest) => {
-                    httprequest
+                    Some(httprequest)
                 },
 
-                _ => (),
+                _ => None,
             }
         },
-        _ => (),
+        _ => None,
     }
 }
 
-fn expect_devtools_http_response(devtools_port: Option<Receiver<DevtoolsControlMsg>>) -> Option<devHttpResponse> {
+fn expect_devtools_http_response(devtools_port: & mpsc::Receiver<DevtoolsControlMsg>) -> Option<devHttpResponse> {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
             ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response)) => {
             match net_event_response {
                 NetworkEvent::HttpResponse(httpresponse) => {
                     //assert_eq!(headers, Headers::new());
-                    httpresponse
+                    Some(httpresponse)
                 },
 
-                _ => (),
+                _ => None,
             }
         },
-        _ => (),
+        _ => None,
     }
 }
 
@@ -277,7 +277,7 @@ fn test_request_and_response_data_with_network_messages() {
                         ResponseType::Text(
                             <[_]>::to_vec("Yay!".as_bytes())
                         )
-                    ))
+                    ) )
         }
     }
 
@@ -288,12 +288,24 @@ fn test_request_and_response_data_with_network_messages() {
     let mut response = load::<MockRequest>(load_data, resource_mgr, Some(devtools_chan), &Factory).unwrap();
 
     // notification obtained from devtools
-    let devhttprequest = expect_devtools_http_request(devtools_port).unwrap();
-    let devhttpresponse = expect_devtools_http_response(devtools_port).unwrap();
+    let devhttprequest = expect_devtools_http_request(& devtools_port).unwrap();
+    let devhttpresponse = expect_devtools_http_response(& devtools_port).unwrap();
 
-    // Compare httprequest obtained from devtools messages with the mockrequest used to create this scenario
-    // incomplete
-    assert_eq(httprequest, );
+    let httprequest = devHttpRequest {
+        url: url ,
+        method: Method::Get,
+        headers: Headers::new(),
+        s: None,
+    };
+
+    // [debug] Will remove after resolving issues
+    println!("{:?}", devhttprequest.url);
+    println!("{:?}", devhttprequest.method);
+    println!("{:?}", devhttprequest.headers);
+    println!("{:?}", devhttprequest.s);
+
+    // Err: binary operation '==' cannot be applied to HttpRequest
+    assert_eq!(devhttprequest, httprequest);
 }
 
 #[test]
