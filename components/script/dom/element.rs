@@ -650,7 +650,7 @@ impl Element {
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
                                     .iter()
-                                    .position(|decl| decl.name() == property);
+                                    .position(|decl| decl.matches(property));
             if let Some(index) = index {
                 Arc::make_mut(&mut declarations.normal).remove(index);
                 return;
@@ -658,7 +658,7 @@ impl Element {
 
             let index = declarations.important
                                     .iter()
-                                    .position(|decl| decl.name() == property);
+                                    .position(|decl| decl.matches(property));
             if let Some(index) = index {
                 Arc::make_mut(&mut declarations.important).remove(index);
                 return;
@@ -715,7 +715,8 @@ impl Element {
             let to = Arc::make_mut(to);
             let mut new_from = Vec::new();
             for declaration in from.drain(..) {
-                if properties.contains(&declaration.name()) {
+                let name = declaration.name();
+                if properties.iter().any(|p| name == **p) {
                     to.push(declaration)
                 } else {
                     new_from.push(declaration)

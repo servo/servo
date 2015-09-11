@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>Test serialization of specified CSS variable values</title>
+<!-- Adapted from https://dxr.mozilla.org/mozilla-central/source/layout/style/test/test_variable_serialization_specified.html -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=div1></div>
+
+<script>
+// Values that should be serialized back to the same string.
+var values_with_unchanged_specified_value_serialization = [
+  "var(--a)",
+  "var(--a)",
+  "var(--a) ",
+  "var( --a ) ",
+  "var(--a, )",
+  "var(--a,/**/a)",
+  "1px var(--a)",
+  "var(--a) 1px",
+  "something 3px url(whereever) calc(var(--a) + 1px)",
+  "var(--a)",
+  "var(--a)var(--b)",
+  "var(--a, var(--b, var(--c, black)))",
+  "var(--a) <!--",
+  "--> var(--a)",
+  "{ [ var(--a) ] }",
+  "[;] var(--a)",
+  "var(--a,(;))",
+  "VAR(--a)",
+  "var(--0)",
+  "var(--\\30)",
+  "var(--\\d800)",
+  "var(--\\ffffff)",
+];
+
+// Values that serialize differently, due to additional implied closing
+// characters at EOF.
+var values_with_changed_specified_value_serialization = [
+  ["var(--a",                       "var(--a)"],
+  ["var(--a , ",                    "var(--a , )"],
+  ["var(--a, ",                     "var(--a, )"],
+  ["var(--a, var(--b",              "var(--a, var(--b))"],
+  ["var(--a /* unclosed comment",   "var(--a /* unclosed comment*/)"],
+  ["var(--a /* unclosed comment *", "var(--a /* unclosed comment */)"],
+  ["[{(((var(--a",                  "[{(((var(--a))))}]"],
+  ["var(--a, \"unclosed string",    "var(--a, \"unclosed string\")"],
+  ["var(--a, 'unclosed string",     "var(--a, 'unclosed string')"],
+  ["var(--a) \"unclosed string\\",  "var(--a) \"unclosed string\""],
+  ["var(--a) 'unclosed string\\",   "var(--a) 'unclosed string'"],
+  ["var(--a) \\",                   "var(--a) \\\ufffd"],
+  ["var(--a) url(unclosedurl",      "var(--a) url(unclosedurl)"],
+  ["var(--a) url('unclosedurl",     "var(--a) url('unclosedurl')"],
+  ["var(--a) url(\"unclosedurl",    "var(--a) url(\"unclosedurl\")"],
+  ["var(--a) url(unclosedurl\\",    "var(--a) url(unclosedurl\\\ufffd)"],
+  ["var(--a) url('unclosedurl\\",   "var(--a) url('unclosedurl')"],
+  ["var(--a) url(\"unclosedurl\\",  "var(--a) url(\"unclosedurl\")"],
+];
+
+var div1 = document.getElementById("div1");
+
+function test_specified_value_serialization(value, expected) {
+  // Test setting value on a custom property with setProperty.
+  div1.style.setProperty("--test", value, "");
+  assert_equals(div1.style.getPropertyValue("--test"), expected,
+                "value with identical serialization set on custom property with setProperty");
+
+  // Test setting value on a custom property via style sheet parsing.
+  div1.setAttribute("style", "--test:" + value);
+  assert_equals(div1.style.getPropertyValue("--test"), expected,
+                "value with identical serialization set on custom property via parsing");
+
+  // Test setting value on a non-custom longhand property with setProperty.
+  div1.style.setProperty("color", value, "");
+  assert_equals(div1.style.getPropertyValue("color"), expected,
+                "value with identical serialization set on non-custom longhand property with setProperty");
+
+  // Test setting value on a non-custom longhand property via style sheet parsing.
+  div1.setAttribute("style", "color:" + value);
+  assert_equals(div1.style.getPropertyValue("color"), expected,
+                "value with identical serialization set on non-custom longhand property via parsing");
+
+  // Test setting value on a non-custom shorthand property with setProperty.
+  div1.style.setProperty("margin", value, "");
+  assert_equals(div1.style.getPropertyValue("margin"), expected,
+                "value with identical serialization set on non-custom shorthand property with setProperty");
+
+  // Test setting value on a non-custom shorthand property via style sheet parsing.
+  div1.setAttribute("style", "margin:" + value);
+  assert_equals(div1.style.getPropertyValue("margin"), expected,
+                "value with identical serialization set on non-custom shorthand property via parsing");
+
+  // Clean up.
+  div1.style.removeProperty("--test");
+  div1.style.removeProperty("color");
+  div1.style.removeProperty("margin");
+}
+
+/*
+function test(f) { f() }
+function assert_equals(a, b, m) { if (a == b) { console.log("`"+a+"`", "`"+b+"`", m) } }
+*/
+
+values_with_unchanged_specified_value_serialization.forEach(function(value) {
+  test(function() { test_specified_value_serialization(value, value) },
+       "`" + value + "` is unchanged by specified value serialization");
+});
+
+values_with_changed_specified_value_serialization.forEach(function(pair) {
+  test(function() { test_specified_value_serialization(pair[0], pair[1]) },
+       "`" + pair[0] + "` becomes `" + pair[1] + "` in specified value serialization");
+});
+</script>

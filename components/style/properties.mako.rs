@@ -5,7 +5,6 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
 use std::collections::HashSet;
 use std::default::Default;
 use std::fmt;
@@ -23,6 +22,7 @@ use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
+use string_cache::Atom;
 
 use computed_values;
 use parser::{ParserContext, log_css_error};
@@ -5801,17 +5801,17 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
-impl<T: ToCss> DeclaredValue<T> {
-    pub fn specified_value(&self) -> String {
+impl<T: ToCss> ToCss for DeclaredValue<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            DeclaredValue::Value(ref inner) => inner.to_css_string(),
+            DeclaredValue::Value(ref inner) => inner.to_css(dest),
             DeclaredValue::WithVariables { ref css, from_shorthand: Shorthand::None, .. } => {
-                css.clone()
+                dest.write_str(css)
             }
             // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-            DeclaredValue::WithVariables { .. } => String::new(),
-            DeclaredValue::Initial => "initial".to_owned(),
-            DeclaredValue::Inherit => "inherit".to_owned(),
+            DeclaredValue::WithVariables { .. } => Ok(()),
+            DeclaredValue::Initial => dest.write_str("initial"),
+            DeclaredValue::Inherit => dest.write_str("inherit"),
         }
     }
 }
@@ -5833,15 +5833,52 @@ pub enum PropertyDeclarationParseResult {
     ValidOrIgnoredDeclaration,
 }
 
+#[derive(Eq, PartialEq, Clone)]
+pub enum PropertyDeclarationName {
+    Longhand(&'static str),
+    Custom(::custom_properties::Name),
+    Internal
+}
+
+impl PartialEq<str> for PropertyDeclarationName {
+    fn eq(&self, other: &str) -> bool {
+        match *self {
+            PropertyDeclarationName::Longhand(n) => n == other,
+            PropertyDeclarationName::Custom(ref n) => {
+                ::custom_properties::parse_name(other) == Ok(&**n)
+            }
+            PropertyDeclarationName::Internal => false,
+        }
+    }
+}
+
+impl fmt::Display for PropertyDeclarationName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            PropertyDeclarationName::Longhand(n) => f.write_str(n),
+            PropertyDeclarationName::Custom(ref n) => {
+                try!(f.write_str("--"));
+                f.write_str(n)
+            }
+            PropertyDeclarationName::Internal => Ok(()),
+        }
+    }
+}
+
 impl PropertyDeclaration {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> PropertyDeclarationName {
         match *self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => "${property.name}",
+                    PropertyDeclaration::${property.camel_case}(..) => {
+                        PropertyDeclarationName::Longhand("${property.name}")
+                    }
                 % endif
             % endfor
-            _ => "",
+            PropertyDeclaration::Custom(ref name, _) => {
+                PropertyDeclarationName::Custom(name.clone())
+            }
+            _ => PropertyDeclarationName::Internal,
         }
     }
 
@@ -5850,10 +5887,11 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.specified_value(),
+                        value.to_css_string(),
                 % endif
             % endfor
-            ref decl => panic!("unsupported property declaration: {:?}", decl.name()),
+            PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
+            ref decl => panic!("unsupported property declaration: {}", decl.name()),
         }
     }
 
@@ -5866,6 +5904,9 @@ impl PropertyDeclaration {
                     }
                 % endif
             % endfor
+            PropertyDeclaration::Custom(ref declaration_name, _) => {
+                ::custom_properties::parse_name(name) == Ok(&**declaration_name)
+            }
             _ => false,
         }
     }
@@ -5882,7 +5923,7 @@ impl PropertyDeclaration {
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
-            result_list.push(PropertyDeclaration::Custom(name, value));
+            result_list.push(PropertyDeclaration::Custom(Atom::from_slice(name), value));
             return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
         match_ignore_ascii_case! { name,
@@ -6140,14 +6181,19 @@ impl ComputedValues {
     }
     % endfor
 
-    pub fn computed_value_to_string(&self, name: &str) -> Option<String> {
+    pub fn computed_value_to_string(&self, name: &str) -> Result<String, ()> {
         match name {
             % for style_struct in STYLE_STRUCTS:
                 % for longhand in style_struct.longhands:
-                "${longhand.name}" => Some(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
+                "${longhand.name}" => Ok(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
                 % endfor
             % endfor
-            _ => None
+            _ => {
+                let name = try!(::custom_properties::parse_name(name));
+                let map = try!(self.custom_properties.as_ref().ok_or(()));
+                let value = try!(map.get(&Atom::from_slice(name)).ok_or(()));
+                Ok(value.to_css_string())
+            }
         }
     }
 }
@@ -6763,7 +6809,7 @@ pub fn is_supported_property(property: &str) -> bool {
             "${property.name}" => true,
         % endfor
         "${LONGHANDS[-1].name}" => true
-        _ => false
+        _ => property.starts_with("--")
     }
 }
 
