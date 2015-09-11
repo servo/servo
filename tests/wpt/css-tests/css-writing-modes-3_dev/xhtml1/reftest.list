@@ -436,10 +436,10 @@ box-offsets-rel-pos-vlr-003.xht == reference/abs-pos-non-replaced-vlr-013-ref.xh
 box-offsets-rel-pos-vlr-005.xht == reference/box-offsets-rel-pos-vlr-005-ref.xht
 box-offsets-rel-pos-vrl-002.xht == reference/abs-pos-non-replaced-vrl-012-ref.xht
 box-offsets-rel-pos-vrl-004.xht == reference/box-offsets-rel-pos-vrl-004-ref.xht
-caption-side-vlr-007.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vlr-009.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vrl-006.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vrl-008.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vlr-003.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vlr-005.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vrl-002.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vrl-004.xht == reference/ref-filled-green-100px-square.xht
 central-baseline-alignment-002.xht == reference/central-baseline-alignment-002-ref.xht
 central-baseline-alignment-003.xht == reference/central-baseline-alignment-002-ref.xht
 clearance-calculations-vrl-002.xht == reference/clearance-calculations-vrl-002-ref.xht
