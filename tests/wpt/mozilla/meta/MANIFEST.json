@@ -287,6 +287,18 @@
             "url": "/_mozilla/css/test_variable_legal_values.html"
           }
         ],
+        "css/test_variable_serialization_computed.html": [
+          {
+            "path": "css/test_variable_serialization_computed.html",
+            "url": "/_mozilla/css/test_variable_serialization_computed.html"
+          }
+        ],
+        "css/test_variable_serialization_specified.html": [
+          {
+            "path": "css/test_variable_serialization_specified.html",
+            "url": "/_mozilla/css/test_variable_serialization_specified.html"
+          }
+        ],
         "mozilla/DOMParser.html": [
           {
             "path": "mozilla/DOMParser.html",
