@@ -1,0 +1,12 @@
+--- WebIDL.py
++++ WebIDL.py
+@@ -1357,7 +1357,8 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
+                   identifier == "ChromeOnly" or
+                   identifier == "Unforgeable" or
+                   identifier == "UnsafeInPrerendering" or
+-                  identifier == "LegacyEventInit"):
++                  identifier == "LegacyEventInit" or
++                  identifier == "Abstract"):
+                 # Known extended attributes that do not take values
+                 if not attr.noArguments():
+                     raise WebIDLError("[%s] must take no arguments" % identifier,

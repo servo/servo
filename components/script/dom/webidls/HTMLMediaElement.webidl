@@ -5,6 +5,7 @@
 
 // https://www.whatwg.org/html/#htmlmediaelement
 //enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
+[Abstract]
 interface HTMLMediaElement : HTMLElement {
 
   // error state
