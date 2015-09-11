@@ -94,6 +94,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
+use origin::Origin;
 use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
@@ -223,6 +224,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
+    /// The document's origin.
+    origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1544,14 +1547,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
     fn is_cookie_averse(&self) -> bool {
-        /// https://url.spec.whatwg.org/#network-scheme
-        fn url_has_network_scheme(url: &Url) -> bool {
-            match &*url.scheme {
-                "ftp" | "http" | "https" => true,
-                _ => false,
-            }
-        }
-
         self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
     }
 
@@ -1590,6 +1585,14 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+/// https://url.spec.whatwg.org/#network-scheme
+fn url_has_network_scheme(url: &Url) -> bool {
+    match &*url.scheme {
+        "ftp" | "http" | "https" => true,
+        _ => false,
+    }
+}
+
 impl Document {
     pub fn new_inherited(window: &Window,
                          browsing_context: Option<&BrowsingContext>,
@@ -1606,6 +1609,15 @@ impl Document {
             (DocumentReadyState::Loading, false)
         } else {
             (DocumentReadyState::Complete, true)
+        };
+
+        // Incomplete implementation of Document origin specification at
+        // https://html.spec.whatwg.org/multipage/#origin:document
+        let origin = if url_has_network_scheme(&url) {
+            Origin::new(&url)
+        } else {
+            // Default to DOM standard behaviour
+            Origin::opaque_identifier()
         };
 
         Document {
@@ -1673,6 +1685,7 @@ impl Document {
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
+            origin: origin,
         }
     }
 

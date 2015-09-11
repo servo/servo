@@ -1752,7 +1752,9 @@ name = "script_tests"
 version = "0.0.1"
 dependencies = [
  "msg 0.0.1",
+ "plugins 0.0.1",
  "script 0.0.1",
+ "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
