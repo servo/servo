@@ -28,10 +28,10 @@ interface Element : Node {
            attribute DOMString id;
   [Pure]
            attribute DOMString className;
-  [Constant]
+  [SameObject]
   readonly attribute DOMTokenList classList;
 
-  [Constant]
+  [SameObject]
   readonly attribute NamedNodeMap attributes;
   DOMString? getAttribute(DOMString name);
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
