@@ -11,8 +11,11 @@
  */
 
 interface DocumentType : Node {
+  [Constant]
   readonly attribute DOMString name;
+  [Constant]
   readonly attribute DOMString publicId;
+  [Constant]
   readonly attribute DOMString systemId;
 };
 

@@ -12,6 +12,7 @@
 
 [Constructor(DOMString type, optional EventInit eventInitDict)]
 interface Event {
+  [Pure]
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
   readonly attribute EventTarget? currentTarget;
@@ -25,12 +26,16 @@ interface Event {
   void stopPropagation();
   void stopImmediatePropagation();
 
+  [Pure]
   readonly attribute boolean bubbles;
+  [Pure]
   readonly attribute boolean cancelable;
   void preventDefault();
+  [Pure]
   readonly attribute boolean defaultPrevented;
 
   readonly attribute boolean isTrusted;
+  [Constant]
   readonly attribute DOMTimeStamp timeStamp;
 
   void initEvent(DOMString type, boolean bubbles, boolean cancelable);

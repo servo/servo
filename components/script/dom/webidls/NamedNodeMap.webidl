@@ -5,9 +5,13 @@
 // https://dom.spec.whatwg.org/#interface-namednodemap
 
 interface NamedNodeMap {
+  [Pure]
   readonly attribute unsigned long length;
+  [Pure]
   getter Attr? item(unsigned long index);
+  [Pure]
   getter Attr? getNamedItem(DOMString name);
+  [Pure]
   Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
   //[Throws]
   //Attr? setNamedItem(Attr attr);

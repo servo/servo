@@ -26,7 +26,7 @@ interface ParentNode {
   //Element? query(DOMString relativeSelectors);
   //[NewObject]
   //Elements queryAll(DOMString relativeSelectors);
-  [Throws]
+  [Pure, Throws]
   Element? querySelector(DOMString selectors);
   [NewObject, Throws]
   NodeList querySelectorAll(DOMString selectors);

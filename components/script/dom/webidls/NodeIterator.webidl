@@ -24,5 +24,6 @@ interface NodeIterator {
   [Throws]
   Node? previousNode();
 
+  [Pure]
   void detach();
 };
