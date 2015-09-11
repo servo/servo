@@ -72,7 +72,9 @@ def check_license(file_name, contents):
         yield (1, "incorrect license")
 
 
-def check_length(idx, line):
+def check_length(file_name, idx, line):
+    if file_name.endswith(".lock"):
+        raise StopIteration
     max_length = 120
     if len(line) >= max_length:
         yield (idx + 1, "Line is longer than %d characters" % max_length)
@@ -105,7 +107,7 @@ def check_by_line(file_name, contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
         errors = itertools.chain(
-            check_length(idx, line),
+            check_length(file_name, idx, line),
             check_whitespace(idx, line),
             check_whatwg_url(idx, line),
         )
