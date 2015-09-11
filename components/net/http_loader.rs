@@ -6,6 +6,8 @@
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::HttpRequest as devHttpRequest;
+use devtools_traits::HttpResponse as devHttpResponse;
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{secure_url, HSTSList, HSTSEntry};
@@ -447,7 +449,7 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             body: Option<Vec<u8>>) {
 
     if let Some(ref chan) = devtools_chan {
-        let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
+        let net_event = NetworkEvent::HttpRequest(devHttpRequest { url: url, method: method, headers: headers, s: body });
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -459,7 +461,7 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              headers: Option<Headers>,
                              status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
-        let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
+        let net_event_response = NetworkEvent::HttpResponse(devHttpResponse { headers: headers, status: status, s: None });
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
