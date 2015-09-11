@@ -87,6 +87,7 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
+use origin::Origin;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
@@ -207,6 +208,8 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// Whether this document has a browsing context or not.
     browsing_context: BrowsingContext,
+    /// The document's origin.
+    origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1437,6 +1440,10 @@ impl Document {
     }
 }
 
+fn url_uses_server_based_naming_authority(url: &Url) -> bool {
+    url.scheme == "http" || url.scheme == "https"
+}
+
 #[derive(PartialEq, HeapSizeOf)]
 pub enum DocumentSource {
     FromParser,
@@ -1487,6 +1494,22 @@ impl Document {
             (DocumentReadyState::Loading, false)
         } else {
             (DocumentReadyState::Complete, true)
+        };
+
+        // Incomplete implementation of Document origin specification at
+        // https://html.spec.whatwg.org/multipage/#origin:document
+        // using "has a browsing context" as a signifier for "served
+        // over the network".
+        let origin = if browsing_context == BrowsingContext::Window {
+            // Served over network, uses a URL scheme with server-based naming authority
+            if url_uses_server_based_naming_authority(&url) {
+                Origin::new(&url).alias()
+            } else {
+                Origin::opaque_identifier()
+            }
+        } else {
+            // Default to DOM standard behaviour
+            Origin::opaque_identifier()
         };
 
         Document {
@@ -1550,6 +1573,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
+            origin: origin,
         }
     }
 
