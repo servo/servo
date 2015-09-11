@@ -6,7 +6,10 @@
 // https://dom.spec.whatwg.org/#interface-htmlcollection
 
 interface HTMLCollection {
+  [Pure]
   readonly attribute unsigned long length;
+  [Pure]
   getter Element? item(unsigned long index);
+  [Pure]
   getter Element? namedItem(DOMString name);
 };

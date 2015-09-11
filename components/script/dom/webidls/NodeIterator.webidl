@@ -19,10 +19,11 @@ interface NodeIterator {
   [Constant]
   readonly attribute NodeFilter? filter;
 
-  [Throws]
+  [Pure, Throws]
   Node? nextNode();
-  [Throws]
+  [Pure, Throws]
   Node? previousNode();
 
+  [Pure]
   void detach();
 };

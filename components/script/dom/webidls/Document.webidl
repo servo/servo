@@ -13,15 +13,20 @@
 interface Document : Node {
   [SameObject]
   readonly attribute DOMImplementation implementation;
+  [Constant]
   readonly attribute DOMString URL;
   readonly attribute Element? activeElement;
+  [Constant]
   readonly attribute DOMString documentURI;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString inputEncoding; // legacy alias of .characterSet
+  [Constant]
   readonly attribute DOMString contentType;
 
+  [Pure]
   readonly attribute DocumentType? doctype;
+  [Pure]
   readonly attribute Element? documentElement;
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);

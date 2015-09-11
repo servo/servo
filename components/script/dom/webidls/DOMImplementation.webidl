@@ -23,5 +23,6 @@ interface DOMImplementation {
   [NewObject]
   Document createHTMLDocument(optional DOMString title);
 
+  [Pure]
   boolean hasFeature(); // useless, always return true
 };
