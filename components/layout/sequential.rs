@@ -92,6 +92,8 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     let assign_block_sizes  = AssignBSizesAndStoreOverflow { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
+
+    root.late_store_overflow(&layout_context);
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
