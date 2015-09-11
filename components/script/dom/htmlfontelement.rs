@@ -55,6 +55,14 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_setter!(SetColor, "color");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-face
+    make_getter!(Face, "face");
+    make_setter!(SetFace, "face");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    make_getter!(Size, "size");
+    make_setter!(SetSize, "size");
 }
 
 impl VirtualMethods for HTMLFontElement {
