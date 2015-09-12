@@ -494,7 +494,7 @@ fn test_sniff_utf_8_bom_with_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("text/plain/utf8bom.txt"),
                                   "text",
                                   "plain",
-                                  None,
+                                  Some(("dummy", "text")),
                                   NoSniffFlag::OFF,
                                   ApacheBugFlag::ON);
 }
@@ -504,7 +504,7 @@ fn test_sniff_utf_16be_bom_with_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("text/plain/utf16bebom.txt"),
                                   "text",
                                   "plain",
-                                  None,
+                                  Some(("dummy", "text")),
                                   NoSniffFlag::OFF,
                                   ApacheBugFlag::ON);
 }
@@ -514,7 +514,7 @@ fn test_sniff_utf_16le_bom_with_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("text/plain/utf16lebom.txt"),
                                   "text",
                                   "plain",
-                                  None,
+                                  Some(("dummy", "text")),
                                   NoSniffFlag::OFF,
                                   ApacheBugFlag::ON);
 }
@@ -524,7 +524,7 @@ fn test_sniff_octet_stream_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("unknown/binary_file"),
                                   "application",
                                   "octet-stream",
-                                  None,
+                                  Some(("dummy", "binary")),
                                   NoSniffFlag::OFF,
                                   ApacheBugFlag::ON);
 }
@@ -532,9 +532,9 @@ fn test_sniff_octet_stream_apache_flag_on() {
 #[test]
 fn test_sniff_mp4_video_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("video/mp4/test.mp4"),
-                          "video",
-                          "mp4",
-                          Some("video", "mp4"),
+                          "application",
+                          "octet-stream",
+                          Some(("video", "mp4")),
                           NoSniffFlag::OFF,
                           ApacheBugFlag::ON);
 }
