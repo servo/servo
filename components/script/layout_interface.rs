@@ -86,6 +86,9 @@ pub enum Msg {
     ///
     /// This basically exists to keep the script-layout dependency one-way.
     CreateLayoutTask(NewLayoutTaskInfo),
+
+    /// Set the final Url.
+    SetFinalUrl(Url),
 }
 
 /// Synchronous messages that script can send to layout.
