@@ -1768,15 +1768,12 @@ impl Node {
                 let node_elem = ElementCast::to_ref(node).unwrap();
                 let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
-                let window = document.r().window();
-                for ref attr in &*node_elem.attrs() {
-                    let attr = attr.root();
-                    let newattr =
-                        Attr::new(window.r(),
-                                  attr.r().local_name().clone(), attr.r().value().clone(),
-                                  attr.r().name().clone(), attr.r().namespace().clone(),
-                                  attr.r().prefix().clone(), Some(copy_elem));
-                    copy_elem.attrs_mut().push(JS::from_rooted(&newattr));
+                for attr in node_elem.attrs().iter().map(JS::root) {
+                    copy_elem.push_new_attribute(attr.local_name().clone(),
+                                                 attr.value().clone(),
+                                                 attr.name().clone(),
+                                                 attr.namespace().clone(),
+                                                 attr.prefix().clone());
                 }
             },
             _ => ()

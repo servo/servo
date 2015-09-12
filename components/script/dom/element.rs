@@ -83,7 +83,7 @@ use url::UrlParser;
 
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
-use std::cell::{Ref, RefMut};
+use std::cell::Ref;
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -595,10 +595,6 @@ impl Element {
 
     pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
         self.attrs.borrow()
-    }
-
-    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
-        self.attrs.borrow_mut()
     }
 
     pub fn style_attribute(&self) -> &DOMRefCell<Option<PropertyDeclarationBlock>> {
