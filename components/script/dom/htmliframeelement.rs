@@ -11,6 +11,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::NotSupported;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
@@ -399,9 +400,9 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("sandbox") => Ok(AttrValue::from_serialized_tokenlist(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

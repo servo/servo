@@ -17,6 +17,7 @@ use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
@@ -528,9 +529,9 @@ impl VirtualMethods for HTMLFormElement {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

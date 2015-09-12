@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLTextAreaElementDerived};
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -291,10 +292,10 @@ impl VirtualMethods for HTMLTextAreaElement {
         node.check_ancestors_disabled_state_for_form_control();
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            &atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+            &atom!("cols") => Ok(AttrValue::from_limited_u32(value, DEFAULT_COLS)),
+            &atom!("rows") => Ok(AttrValue::from_limited_u32(value, DEFAULT_ROWS)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

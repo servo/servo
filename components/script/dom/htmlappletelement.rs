@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLAppletElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
@@ -62,9 +63,9 @@ impl VirtualMethods for HTMLAppletElement {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

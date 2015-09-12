@@ -7,3 +7,4 @@ extern crate msg;
 
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
 #[cfg(test)] mod textinput;
+#[cfg(test)] mod attr;

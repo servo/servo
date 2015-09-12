@@ -8,6 +8,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFontElementDerived};
+use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId, RawLayoutElementHelpers};
@@ -100,13 +101,13 @@ impl VirtualMethods for HTMLFontElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("face") => AttrValue::from_atomic(value),
             &atom!("size") => {
                 let length = parse_length(&value);
-                AttrValue::Length(value, length)
+                Ok(AttrValue::Length(value, length))
             },
+            &atom!("face") => Ok(AttrValue::from_atomic(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

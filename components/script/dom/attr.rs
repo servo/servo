@@ -6,6 +6,7 @@ use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
@@ -48,9 +49,14 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
-    pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
+    pub fn from_limited_i32(string: DOMString, default: i32) -> Result<AttrValue, Error> {
         let result = parse_integer(string.chars()).unwrap_or(default);
-        AttrValue::Int(string, result)
+
+        if result < 0 {
+            Err(Error::IndexSize)
+        } else {
+            Ok(AttrValue::Int(string, result))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
@@ -216,8 +222,10 @@ impl AttrMethods for Attr {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
-                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(value, owner.r());
+                match owner.r().parse_attribute(&self.namespace, self.local_name(), value) {
+                    Ok(value) => self.set_value(value, owner.r()),
+                    _ => ()
+                }
             }
         }
     }

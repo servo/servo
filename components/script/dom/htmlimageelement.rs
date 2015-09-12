@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLImageElementDerived};
+use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
@@ -326,11 +327,11 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             &atom!("width") | &atom!("height") |
-            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
+            &atom!("hspace") | &atom!("vspace") => Ok(AttrValue::from_u32(value, 0)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
