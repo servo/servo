@@ -26,6 +26,7 @@ pub enum ApacheBugFlag {
     OFF
 }
 
+#[derive(PartialEq)]
 pub enum NoSniffFlag {
     ON,
     OFF
@@ -81,14 +82,18 @@ impl MIMEClassifier {
     //some sort of iterator over the classifiers might be better?
     fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) ->
       Option<(String, String)> {
-        match no_sniff_flag {
-            NoSniffFlag::OFF => self.scriptable_classifier.classify(data),
-            _ => None
-        }.or_else(|| self.plaintext_classifier.classify(data))
-         .or_else(|| self.image_classifier.classify(data))
-         .or_else(|| self.audio_video_classifier.classify(data))
-         .or_else(|| self.archive_classifier.classify(data))
-         .or_else(|| self.binary_or_plaintext.classify(data))
+        let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
+        let sniffed = if should_sniff_scriptable {
+            self.scriptable_classifier.classify(data)
+        } else {
+            None
+        };
+
+        sniffed.or_else(|| self.plaintext_classifier.classify(data))
+            .or_else(|| self.image_classifier.classify(data))
+            .or_else(|| self.audio_video_classifier.classify(data))
+            .or_else(|| self.archive_classifier.classify(data))
+            .or_else(|| self.binary_or_plaintext.classify(data))
     }
 
     fn sniff_text_or_data(&self, data: &[u8]) -> Option<(String, String)> {
