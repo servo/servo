@@ -534,7 +534,7 @@ fn test_sniff_mp4_video_apache_flag_on() {
     test_sniff_with_flags(&PathBuf::from("video/mp4/test.mp4"),
                           "video",
                           "mp4",
-                          None,
+                          Some("video", "mp4"),
                           NoSniffFlag::OFF,
                           ApacheBugFlag::ON);
 }
