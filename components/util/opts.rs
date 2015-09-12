@@ -14,7 +14,7 @@ use prefs;
 use std::cmp;
 use std::default::Default;
 use std::env;
-use std::fs::{File, PathExt};
+use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
@@ -485,18 +485,8 @@ pub fn from_cmdline_args(args: &[String]) {
         print_usage(app_name, &opts);
         args_fail("servo asks that you provide a URL")
     } else {
-        let ref url = opt_match.free[0];
-        match Url::parse(url) {
-            Ok(url) => url,
-            Err(url::ParseError::RelativeUrlWithoutBase) => {
-                if Path::new(url).exists() {
-                    Url::from_file_path(&*cwd.join(url)).unwrap()
-                } else {
-                    args_fail(&format!("File not found: {}", url))
-                }
-            }
-            Err(_) => panic!("URL parsing failed"),
-        }
+        parse_url_or_filename(&cwd, &opt_match.free[0])
+            .unwrap_or_else(|()| args_fail("URL parsing failed"))
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -662,4 +652,14 @@ pub fn set_defaults(opts: Opts) {
 #[inline]
 pub fn get() -> &'static Opts {
     &OPTIONS
+}
+
+pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<Url, ()> {
+    match Url::parse(input) {
+        Ok(url) => Ok(url),
+        Err(url::ParseError::RelativeUrlWithoutBase) => {
+            Ok(Url::from_file_path(&*cwd.join(input)).unwrap())
+        }
+        Err(_) => Err(()),
+    }
 }
