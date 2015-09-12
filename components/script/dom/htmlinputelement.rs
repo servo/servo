@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
@@ -27,16 +28,14 @@ use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing, RedrawSelection};
-use textinput::Lines::Single;
-use textinput::{TextInput, TextPoint};
-
-use string_cache::Atom;
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::i32;
+use string_cache::Atom;
+use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing, RedrawSelection};
+use textinput::Lines::Single;
+use textinput::{TextInput, TextPoint};
+use util::str::DOMString;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -114,7 +113,7 @@ impl HTMLInputElementDerived for EventTarget {
 }
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
-static DEFAULT_MAX_LENGTH : i32 = -1;
+static DEFAULT_MAX_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -334,15 +333,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
-    fn SetMaxLength(&self, val: i32) {
-        self.maxlength.set(val);
-
-        if val >= 0 {
-            self.textinput.borrow_mut().max_length = Some(val as usize)
-        } else {
-            self.textinput.borrow_mut().max_length = None
-        }
-    }
+    make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
@@ -571,10 +562,10 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
-            &atom!("maxlength") => AttrValue::from_i32(value, i32::MAX),
+            &atom!("size") => Ok(AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE)),
+            &atom!("maxlength") => AttrValue::from_limited_i32(value, i32::MAX),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

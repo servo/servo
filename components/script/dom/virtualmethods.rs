@@ -33,16 +33,15 @@ use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTemplateElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
+use dom::bindings::error::Error;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::node::NodeTypeId;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
-
-use util::str::DOMString;
-
 use string_cache::Atom;
+use util::str::DOMString;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
@@ -62,10 +61,10 @@ pub trait VirtualMethods {
 
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
-            _ => AttrValue::String(value),
+            _ => Ok(AttrValue::String(value)),
         }
     }
 

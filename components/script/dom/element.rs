@@ -26,6 +26,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTable
 use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::error::Error;
 use dom::bindings::error::Error::NoModificationAllowed;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -889,8 +890,11 @@ impl Element {
                 Atom::from_slice(&name)
             },
         };
-        let value = self.parse_attribute(&qname.ns, &qname.local, value);
-        self.push_new_attribute(qname.local, value, name, qname.ns, prefix);
+
+        match self.parse_attribute(&qname.ns, &qname.local, value) {
+            Ok(value) => self.push_new_attribute(qname.local, value, name, qname.ns, prefix),
+            _ => ()
+        }
     }
 
     pub fn set_attribute(&self, name: &Atom, value: AttrValue) {
@@ -912,11 +916,18 @@ impl Element {
 
         // Steps 2-5.
         let name = Atom::from_slice(&name);
-        let value = self.parse_attribute(&ns!(""), &name, value);
-        self.set_first_matching_attribute(
-            name.clone(), value, name.clone(), ns!(""), None,
-            |attr| *attr.name() == name && *attr.namespace() == ns!(""));
-        Ok(())
+        match self.parse_attribute(&ns!(""), &name, value) {
+            Ok(value) => {
+                self.set_first_matching_attribute(name.clone(),
+                                                  value,
+                                                  name.clone(),
+                                                  ns!(""),
+                                                  None,
+                                                  |attr| *attr.name() == name && *attr.namespace() == ns!(""));
+                Ok(())
+            },
+            Err(e) => Err(e)
+        }
     }
 
     fn set_first_matching_attribute<F>(&self,
@@ -937,12 +948,12 @@ impl Element {
     }
 
     pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
-                       value: DOMString) -> AttrValue {
+                       value: DOMString) -> Result<AttrValue, Error> {
         if *namespace == ns!("") {
             vtable_for(&NodeCast::from_ref(self))
                 .parse_plain_attribute(local_name, value)
         } else {
-            AttrValue::String(value)
+            Ok(AttrValue::String(value))
         }
     }
 
@@ -1060,27 +1071,6 @@ impl Element {
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
-    pub fn get_int_attribute(&self, local_name: &Atom, default: i32) -> i32 {
-        // TODO: Is this assert necessary?
-        assert!(local_name.chars().all(|ch| {
-            !ch.is_ascii() || ch.to_ascii_lowercase() == ch
-        }));
-        let attribute = self.get_attribute(&ns!(""), local_name);
-
-        match attribute {
-            Some(ref attribute) => {
-                match *attribute.r().value() {
-                    AttrValue::Int(_, value) => value,
-                    _ => panic!("Expected an AttrValue::Int: \
-                                 implement parse_plain_attribute"),
-                }
-            }
-            None => default,
-        }
-    }
-
-    // TODO: set_int_attribute(...)
-
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
         assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
@@ -1097,6 +1087,32 @@ impl Element {
             None => default,
         }
     }
+
+    pub fn get_int_attribute(&self, local_name: &Atom, default: i32) -> i32 {
+        // TODO: Is this assert necessary?
+        assert!(local_name.chars().all(|ch| {
+            !ch.is_ascii() || ch.to_ascii_lowercase() == ch
+        }));
+
+        let attribute = self.get_attribute(&ns!(""), local_name);
+
+        match attribute {
+            Some(ref attribute) => {
+                match *attribute.r().value() {
+                    AttrValue::Int(_, value) => value,
+                    _ => panic!("Expected an AttrValue::Int: \
+                                 implement parse_plain_attribute"),
+                }
+            }
+            None => default,
+        }
+    }
+
+    pub fn set_int_attribute(&self, local_name: &Atom, value: i32) {
+        assert!(&**local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name, AttrValue::Int(value.to_string(), value));
+    }
+
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
@@ -1199,11 +1215,15 @@ impl ElementMethods for Element {
         let name = self.parsed_name(name);
 
         // Step 3-5.
-        let value = self.parse_attribute(&ns!(""), &name, value);
-        self.set_first_matching_attribute(
-            name.clone(), value, name.clone(), ns!(""), None,
-            |attr| *attr.name() == name);
-        Ok(())
+        match self.parse_attribute(&ns!(""), &name, value) {
+            Ok(value) => {
+                self.set_first_matching_attribute(
+                    name.clone(), value, name.clone(), ns!(""), None,
+                    |attr| *attr.name() == name);
+                Ok(())
+            },
+            Err(e) => Err(e)
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributens
@@ -1214,11 +1234,15 @@ impl ElementMethods for Element {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
         let qualified_name = Atom::from_slice(&qualified_name);
-        let value = self.parse_attribute(&namespace, &local_name, value);
-        self.set_first_matching_attribute(
-            local_name.clone(), value, qualified_name, namespace.clone(), prefix,
-            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace);
-        Ok(())
+        match self.parse_attribute(&namespace, &local_name, value) {
+            Ok(value) => {
+                self.set_first_matching_attribute(
+                    local_name.clone(), value, qualified_name, namespace.clone(), prefix,
+                    |attr| *attr.local_name() == local_name && *attr.namespace() == namespace);
+                Ok(())
+            },
+            Err(e) => Err(e)
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
@@ -1539,10 +1563,10 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("id") => AttrValue::from_atomic(value),
-            &atom!("class") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("id") => Ok(AttrValue::from_atomic(value)),
+            &atom!("class") => Ok(AttrValue::from_serialized_tokenlist(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

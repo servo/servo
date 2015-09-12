@@ -9,6 +9,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLSelectElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
@@ -17,11 +18,9 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
+use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct HTMLSelectElement {
@@ -149,9 +148,9 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match local_name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
+            &atom!("size") => Ok(AttrValue::from_u32(value, DEFAULT_SELECT_SIZE)),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

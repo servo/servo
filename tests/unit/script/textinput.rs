@@ -367,7 +367,9 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
     assert_eq!(textinput.edit_point.index, 0);
 
 
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""), None);
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(),
+                                       DummyClipboardContext::new(""),
+                                       None);
 
     // Multiline - Forward
     textinput.adjust_horizontal(4, Selection::Selected);

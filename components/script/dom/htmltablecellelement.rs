@@ -2,23 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::error::Error;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::RGBA;
-use string_cache::Atom;
-
 use std::cell::Cell;
 use std::cmp::max;
+use string_cache::Atom;
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
 
@@ -126,9 +124,9 @@ impl VirtualMethods for HTMLTableCellElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match local_name {
-            &atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
+            &atom!("colspan") => Ok(AttrValue::from_u32(value, DEFAULT_COLSPAN)),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

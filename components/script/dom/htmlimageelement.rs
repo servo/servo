@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast};
+use dom::bindings::error::Error;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
@@ -21,19 +22,17 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
-use script_task::{Runnable, ScriptChan, CommonScriptMsg};
-use string_cache::Atom;
-use util::str::DOMString;
-
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
-use url::{Url, UrlParser};
-
+use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
+use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use std::borrow::ToOwned;
 use std::sync::Arc;
+use string_cache::Atom;
+use url::{Url, UrlParser};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -328,11 +327,11 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             &atom!("width") | &atom!("height") |
-            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
+            &atom!("hspace") | &atom!("vspace") => Ok(AttrValue::from_u32(value, 0)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

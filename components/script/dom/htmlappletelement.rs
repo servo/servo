@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElementMethods;
-
-use dom::attr::AttrValue;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::ElementTypeId;
@@ -15,7 +15,6 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -64,9 +63,9 @@ impl VirtualMethods for HTMLAppletElement {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

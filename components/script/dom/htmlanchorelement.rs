@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
+use dom::bindings::error::Error;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -22,14 +23,11 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::DOMString;
-
 use num::ToPrimitive;
+use std::default::Default;
 use string_cache::Atom;
 use url::UrlParser;
-
-use std::default::Default;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -71,9 +69,9 @@ impl VirtualMethods for HTMLAnchorElement {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("rel") => Ok(AttrValue::from_serialized_tokenlist(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

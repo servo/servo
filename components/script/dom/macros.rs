@@ -182,6 +182,25 @@ macro_rules! make_uint_setter(
 );
 
 #[macro_export]
+macro_rules! make_limited_int_setter(
+    ($attr:ident, $htmlname:expr, $default:expr) => (
+        fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let value = if value < 0 {
+                return Err($crate::dom::bindings::error::Error::IndexSize);
+            } else {
+                value
+            };
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_int_attribute(&Atom::from_slice($htmlname), value);
+            Ok(())
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {

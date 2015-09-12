@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -9,6 +10,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
+use dom::bindings::error::Error;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
@@ -18,13 +20,9 @@ use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::RGBA;
-use string_cache::Atom;
-
 use std::cell::Cell;
+use string_cache::Atom;
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {
@@ -186,9 +184,9 @@ impl VirtualMethods for HTMLTableElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match local_name {
-            &atom!("border") => AttrValue::from_u32(value, 1),
+            &atom!("border") => Ok(AttrValue::from_u32(value, 1)),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

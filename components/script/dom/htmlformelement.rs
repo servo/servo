@@ -16,6 +16,7 @@ use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
+use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::document::Document;
@@ -32,13 +33,12 @@ use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
 use script_task::{ScriptChan, MainThreadScriptMsg};
+use std::borrow::ToOwned;
+use std::cell::Cell;
 use string_cache::Atom;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLFormElement {
@@ -567,9 +567,9 @@ impl VirtualMethods for HTMLFormElement {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => Ok(AttrValue::from_atomic(value)),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
