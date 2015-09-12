@@ -20,7 +20,7 @@ interface HTMLLinkElement : HTMLElement {
 
 // https://www.whatwg.org/html/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {
-  //         attribute DOMString charset;
-  //         attribute DOMString rev;
-  //         attribute DOMString target;
+  attribute DOMString charset;
+  attribute DOMString rev;
+  attribute DOMString target;
 };
