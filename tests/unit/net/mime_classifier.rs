@@ -529,3 +529,13 @@ fn test_sniff_octet_stream_apache_flag_on() {
                                   ApacheBugFlag::ON);
 }
 
+#[test]
+fn test_sniff_mp4_video_apache_flag_on() {
+    test_sniff_with_flags(&PathBuf::from("video/mp4/test.mp4"),
+                          "video",
+                          "mp4",
+                          None,
+                          NoSniffFlag::OFF,
+                          ApacheBugFlag::ON);
+}
+
