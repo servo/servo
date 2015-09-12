@@ -53,7 +53,6 @@ use util::geometry::{self, Au, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use util::{breakpoint, opts};
 
-use euclid::scale_factor::ScaleFactor;
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
@@ -324,7 +323,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         HTML_SPACE_CHARACTERS.iter().any(|&m| m == c)
     }
     let without_spaces = input.chars()
-        .filter(|&c| ! is_html_space(c))
+        .filter(|&c| !is_html_space(c))
         .collect::<String>();
     let mut input = &*without_spaces;
 
@@ -538,7 +537,7 @@ impl WindowMethods for Window {
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
         let doc = self.Document();
 
-        let callback  = move |now: f64| {
+        let callback = move |now: f64| {
             // TODO: @jdm The spec says that any exceptions should be suppressed;
             // https://github.com/servo/servo/issues/6928
             let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
@@ -614,21 +613,17 @@ impl WindowMethods for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
-        let size = self.window_size.get();
-        match size {
-            Some(e) => e.visible_viewport.height.get().to_i32().unwrap_or(0),
-            None => 0
-        }
+        self.window_size.get()
+                        .and_then(|e| e.visible_viewport.height.get().to_i32())
+                        .unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
-        let size = self.window_size.get();
-        match size {
-            Some(e) => e.visible_viewport.width.get().to_i32().unwrap_or(0),
-            None => 0
-        }
+        self.window_size.get()
+                        .and_then(|e| e.visible_viewport.width.get().to_i32())
+                        .unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
@@ -680,7 +675,7 @@ impl WindowMethods for Window {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y, );
+        self.ScrollBy_(x, y);
         self.scroll(x, y, options.parent.behavior);
     }
 
@@ -752,7 +747,8 @@ impl WindowMethods for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
     fn DevicePixelRatio(&self) -> Finite<f64> {
         let dpr = self.window_size.get()
-         .map(|data| data.device_pixel_ratio).unwrap_or(ScaleFactor::new(1.0f32)).get();
+                                  .map(|data| data.device_pixel_ratio.get())
+                                  .unwrap_or(1.0f32);
         Finite::wrap(dpr as f64)
     }
 }
@@ -830,7 +826,7 @@ impl Window {
         //TODO remove scrollbar width
         let width = self.InnerWidth() as f64;
         // Step 6
-        //TODO remove scrollbar width
+        //TODO remove scrollbar height
         let height = self.InnerHeight() as f64;
 
         // Step 7 & 8
@@ -852,7 +848,7 @@ impl Window {
         };
 
         // Step 10
-        //TODO handling ongoing smoth scrolling
+        //TODO handling ongoing smooth scrolling
         if x == self.ScrollX() as f64 && y == self.ScrollY() as f64 {
             return;
         }
@@ -1056,17 +1052,10 @@ impl Window {
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
-        let element = match response.node_address {
-            Some(parent_node_address) => {
-                let node = from_untrusted_node_address(js_runtime.rt(),
-                                                       parent_node_address);
-                let element = ElementCast::to_ref(node.r());
-                element.map(Root::from_ref)
-            }
-            None => {
-                None
-            }
-        };
+        let element = response.node_address.and_then(|parent_node_address| {
+            let node = from_untrusted_node_address(js_runtime.rt(), parent_node_address);
+            ElementCast::to_root(node)
+        });
         (element, response.rect)
     }
 
