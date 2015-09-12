@@ -39,7 +39,6 @@ impl MIMEClassifier {
                     apache_bug_flag: ApacheBugFlag,
                     supplied_type: &Option<(String, String)>,
                     data: &[u8]) -> Option<(String, String)> {
-
         match *supplied_type {
             None => self.sniff_unknown_type(no_sniff_flag, data),
             Some((ref media_type, ref media_subtype)) => {
@@ -279,8 +278,8 @@ struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
     fn classify_impl(&self, data: &[u8]) -> (&'static str, &'static str) {
-        if data == &[0xFFu8, 0xFEu8] ||
-           data == &[0xFEu8, 0xFFu8] ||
+        if data.starts_with(&[0xFFu8, 0xFEu8]) ||
+           data.starts_with(&[0xFEu8, 0xFFu8]) ||
            data.starts_with(&[0xEFu8, 0xBBu8, 0xBFu8])
         {
             ("text", "plain")
