@@ -9,6 +9,7 @@ use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 use self::url::Url;
+use std::cell::RefCell;
 
 #[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
 pub struct TimerMetadata {
@@ -89,7 +90,7 @@ pub enum TimerMetadataReflowType {
 }
 
 pub type ProfilerMetadata<'a> =
-    Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
+    Option<(&'a RefCell<Option<Url>>, TimerMetadataFrameType, TimerMetadataReflowType)>;
 
 pub fn profile<T, F>(category: ProfilerCategory,
                      meta: ProfilerMetadata,
@@ -105,7 +106,7 @@ pub fn profile<T, F>(category: ProfilerCategory,
     let end_energy = read_energy_uj();
     let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
-            url: url.serialize(),
+            url: url.borrow().as_ref().map_or("None".to_owned(), |url| url.serialize()),
             iframe: iframe == TimerMetadataFrameType::IFrame,
             incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });
