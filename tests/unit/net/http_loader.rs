@@ -82,9 +82,21 @@ fn redirect_to(host: String) -> MockResponse {
     )
 }
 
+fn redirect_with_headers(host: String, initial_headers: Headers) -> MockResponse {
+    let mut new_headers = initial_headers.clone();
+    new_headers.set(Location(host.to_string()));
+
+    MockResponse::new(
+        new_headers,
+        StatusCode::MovedPermanently,
+        RawStatus(301, Cow::Borrowed("Moved Permanently")),
+        <[_]>::to_vec("".as_bytes())
+    )
+}
 
 enum ResponseType {
     Redirect(String),
+    RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers)
 }
@@ -105,6 +117,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
         },
+        ResponseType::RedirectWithHeaders(location, headers) => {
+            Ok(redirect_with_headers(location, headers))
+        }
         ResponseType::Text(b) => {
             Ok(respond_with(b))
         },
@@ -713,8 +728,6 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
         }
     }
 
-
-
     let load_data = LoadData::new(url_x, None);
 
     match load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &Factory) {
@@ -726,7 +739,57 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
     }
 }
 
-// #[test]
-// fn test_redirect_from_x_to_x_provides_x_with_cookie_from_x(){
-//
-// }
+#[test]
+fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response(){
+
+    struct Factory;
+
+    // let url_initial = Url::parse("http://mozilla.com/initial").unwrap();
+    // let url_subsequent = Url::parse("http://mozilla.org/subsequent").unwrap();
+
+    impl HttpRequestFactory for Factory {
+        type R = AssertRequestMustHaveHeaders;
+
+        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
+            if url.path().unwrap()[0] == "initial" {
+                let expected_initial_headers = Headers::new();
+                let mut initial_answer_headers = Headers::new();
+                initial_answer_headers.set_raw("set-cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+                Ok(
+                    AssertRequestMustHaveHeaders::new(
+                        ResponseType::RedirectWithHeaders(
+                            "http://mozilla.org/subsequent/".to_string(),
+                            initial_answer_headers),
+                        expected_initial_headers
+                        )
+                    )
+            } else if url.path().unwrap()[0] == "subsequent" {
+                let mut expected_subsequent_headers = Headers::new();
+                expected_subsequent_headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+                Ok(
+                    AssertRequestMustHaveHeaders::new(
+                        ResponseType::Text(
+                            <[_]>::to_vec("Yay!".as_bytes())
+                        ),
+                        expected_subsequent_headers
+                    )
+                )
+            } else {
+                panic!("unexpected host {:?}", url)
+            }
+        }
+    }
+
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let load_data = LoadData::new(Url::parse("http://mozilla.org/initial/").unwrap(), None);
+
+    match load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &Factory) {
+        Err(e) => panic!("expected to follow a redirect {:?}", e),
+        Ok(mut lr) => {
+            let response = read_response(&mut lr);
+            assert_eq!(response, "Yay!".to_string());
+        }
+    }
+}
