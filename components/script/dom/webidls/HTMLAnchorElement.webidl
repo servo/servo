@@ -30,9 +30,9 @@ interface HTMLAnchorElement : HTMLElement {
 
 // https://www.whatwg.org/html/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {
-  //         attribute DOMString coords;
+  attribute DOMString coords;
   //         attribute DOMString charset;
-  //         attribute DOMString name;
-  //         attribute DOMString rev;
-  //         attribute DOMString shape;
+  attribute DOMString name;
+  attribute DOMString rev;
+  attribute DOMString shape;
 };

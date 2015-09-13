@@ -238,6 +238,24 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-charset
+    make_getter!(Charset);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-charset
+    make_setter!(SetCharset, "charset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-rev
+    make_getter!(Rev);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-rev
+    make_setter!(SetRev, "rev");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-target
+    make_getter!(Target);
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-target
+    make_setter!(SetTarget, "target");
 }
 
 pub struct StylesheetLoadDispatcher {

@@ -98,6 +98,30 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
         })
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-coords
+    make_getter!(Coords);
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-coords
+    make_setter!(SetCoords, "coords");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-name
+    make_getter!(Name);
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-name
+    make_setter!(SetName, "name");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rev
+    make_getter!(Rev);
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rev
+    make_setter!(SetRev, "rev");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-shape
+    make_getter!(Shape);
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-shape
+    make_setter!(SetShape, "shape");
 }
 
 impl Activatable for HTMLAnchorElement {
