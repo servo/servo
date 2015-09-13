@@ -187,8 +187,8 @@ impl Browser {
         self.compositor.pinch_zoom_level()
     }
 
-    pub fn get_title_for_main_frame(&self) {
-        self.compositor.get_title_for_main_frame()
+    pub fn request_title_for_main_frame(&self) {
+        self.compositor.title_for_main_frame()
     }
 
     pub fn shutdown(mut self) {

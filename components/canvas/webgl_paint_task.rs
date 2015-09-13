@@ -57,7 +57,7 @@ impl WebGLPaintTask {
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
         match message {
             CanvasWebGLMsg::GetContextAttributes(sender) =>
-                self.get_context_attributes(sender),
+                self.context_attributes(sender),
             CanvasWebGLMsg::ActiveTexture(target) =>
                 gl::active_texture(target),
             CanvasWebGLMsg::BlendColor(r, g, b, a) =>
@@ -111,11 +111,11 @@ impl WebGLPaintTask {
             CanvasWebGLMsg::EnableVertexAttribArray(attrib_id) =>
                 gl::enable_vertex_attrib_array(attrib_id),
             CanvasWebGLMsg::GetAttribLocation(program_id, name, chan) =>
-                self.get_attrib_location(program_id, name, chan),
+                self.attrib_location(program_id, name, chan),
             CanvasWebGLMsg::GetShaderParameter(shader_id, param_id, chan) =>
-                self.get_shader_parameter(shader_id, param_id, chan),
+                self.shader_parameter(shader_id, param_id, chan),
             CanvasWebGLMsg::GetUniformLocation(program_id, name, chan) =>
-                self.get_uniform_location(program_id, name, chan),
+                self.uniform_location(program_id, name, chan),
             CanvasWebGLMsg::CompileShader(shader_id, source) =>
                 self.compile_shader(shader_id, source),
             CanvasWebGLMsg::CreateBuffer(chan) =>
@@ -214,7 +214,7 @@ impl WebGLPaintTask {
     }
 
     #[inline]
-    fn get_context_attributes(&self, sender: IpcSender<GLContextAttributes>) {
+    fn context_attributes(&self, sender: IpcSender<GLContextAttributes>) {
         sender.send(*self.gl_context.borrow_attributes()).unwrap()
     }
 
@@ -305,7 +305,7 @@ impl WebGLPaintTask {
         gl::compile_shader(shader_id);
     }
 
-    fn get_attrib_location(&self, program_id: u32, name: String, chan: IpcSender<Option<i32>> ) {
+    fn attrib_location(&self, program_id: u32, name: String, chan: IpcSender<Option<i32>> ) {
         let attrib_location = gl::get_attrib_location(program_id, &name);
 
         let attrib_location = if attrib_location == -1 {
@@ -317,7 +317,7 @@ impl WebGLPaintTask {
         chan.send(attrib_location).unwrap();
     }
 
-    fn get_shader_parameter(&self,
+    fn shader_parameter(&self,
                             shader_id: u32,
                             param_id: u32,
                             chan: IpcSender<WebGLShaderParameter>) {
@@ -332,7 +332,7 @@ impl WebGLPaintTask {
         chan.send(result).unwrap();
     }
 
-    fn get_uniform_location(&self, program_id: u32, name: String, chan: IpcSender<Option<i32>>) {
+    fn uniform_location(&self, program_id: u32, name: String, chan: IpcSender<Option<i32>>) {
         let location = gl::get_uniform_location(program_id, &name);
         let location = if location == -1 {
             None

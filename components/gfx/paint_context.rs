@@ -1272,7 +1272,7 @@ impl<'a> PaintContext<'a> {
             self.create_draw_target_for_blur_if_necessary(&text.base.bounds, text.blur_radius);
         {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let font = self.font_context.get_paint_font_from_template(
+            let font = self.font_context.paint_font_from_template(
                 &text.text_run.font_template, text.text_run.actual_pt_size);
             font.borrow()
                 .draw_text(&temporary_draw_target.draw_target,

@@ -242,7 +242,7 @@ impl<'a> DetailedGlyphStore {
         self.lookup_is_sorted = false;
     }
 
-    fn get_detailed_glyphs_for_entry(&'a self, entry_offset: CharIndex, count: u16)
+    fn detailed_glyphs_for_entry(&'a self, entry_offset: CharIndex, count: u16)
                                   -> &'a [DetailedGlyph] {
         debug!("Requesting detailed glyphs[n={}] for entry[off={:?}]", count, entry_offset);
 
@@ -268,7 +268,7 @@ impl<'a> DetailedGlyphStore {
         &self.detail_buffer[i .. i + count as usize]
     }
 
-    fn get_detailed_glyph_with_index(&'a self,
+    fn detailed_glyph_with_index(&'a self,
                                      entry_offset: CharIndex,
                                      detail_offset: u16)
             -> &'a DetailedGlyph {
@@ -361,7 +361,7 @@ impl<'a> GlyphInfo<'a> {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].id(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).id
+                store.detail_store.detailed_glyph_with_index(entry_i, detail_j).id
             }
         }
     }
@@ -372,7 +372,7 @@ impl<'a> GlyphInfo<'a> {
         match self {
             GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_usize()].advance(),
             GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
+                store.detail_store.detailed_glyph_with_index(entry_i, detail_j).advance
             }
         }
     }
@@ -381,7 +381,7 @@ impl<'a> GlyphInfo<'a> {
         match self {
             GlyphInfo::Simple(_, _) => None,
             GlyphInfo::Detail(store, entry_i, detail_j) => {
-                Some(store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).offset)
+                Some(store.detail_store.detailed_glyph_with_index(entry_i, detail_j).offset)
             }
         }
     }
@@ -672,7 +672,7 @@ impl<'a> GlyphIterator<'a> {
     #[inline(never)]
     fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex)
                           -> Option<(CharIndex, GlyphInfo<'a>)> {
-        let glyphs = self.store.detail_store.get_detailed_glyphs_for_entry(i, entry.glyph_count());
+        let glyphs = self.store.detail_store.detailed_glyphs_for_entry(i, entry.glyph_count());
         self.glyph_range = Some(range::each_index(CharIndex(0), CharIndex(glyphs.len() as isize)));
         self.next()
     }

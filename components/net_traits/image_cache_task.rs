@@ -111,7 +111,7 @@ impl ImageCacheTask {
     }
 
     /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
-    pub fn get_image_if_available(&self, url: Url, use_placeholder: UsePlaceholder)
+    pub fn find_image(&self, url: Url, use_placeholder: UsePlaceholder)
                                   -> Result<Arc<Image>, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);

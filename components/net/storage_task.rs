@@ -58,7 +58,7 @@ impl StorageManager {
                     self.set_item(sender, url, storage_type, name, value)
                 }
                 StorageTaskMsg::GetItem(sender, url, storage_type, name) => {
-                    self.get_item(sender, url, storage_type, name)
+                    self.request_item(sender, url, storage_type, name)
                 }
                 StorageTaskMsg::RemoveItem(sender, url, storage_type, name) => {
                     self.remove_item(sender, url, storage_type, name)
@@ -90,7 +90,7 @@ impl StorageManager {
     }
 
     fn length(&self, sender: IpcSender<usize>, url: Url, storage_type: StorageType) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin).map_or(0, |entry| entry.len())).unwrap();
     }
@@ -100,7 +100,7 @@ impl StorageManager {
            url: Url,
            storage_type: StorageType,
            index: u32) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
                     .and_then(|entry| entry.keys().nth(index as usize))
@@ -115,7 +115,7 @@ impl StorageManager {
                 storage_type: StorageType,
                 name: DOMString,
                 value: DOMString) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
             data.insert(origin.clone(), BTreeMap::new());
@@ -133,12 +133,12 @@ impl StorageManager {
         sender.send((changed, old_value)).unwrap();
     }
 
-    fn get_item(&self,
+    fn request_item(&self,
                 sender: IpcSender<Option<DOMString>>,
                 url: Url,
                 storage_type: StorageType,
                 name: DOMString) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
                     .and_then(|entry| entry.get(&name))
@@ -151,7 +151,7 @@ impl StorageManager {
                    url: Url,
                    storage_type: StorageType,
                    name: DOMString) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         let old_value = data.get_mut(&origin).and_then(|entry| {
             entry.remove(&name)
@@ -160,7 +160,7 @@ impl StorageManager {
     }
 
     fn clear(&mut self, sender: IpcSender<bool>, url: Url, storage_type: StorageType) {
-        let origin = self.get_origin_as_string(url);
+        let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         sender.send(data.get_mut(&origin)
                     .map_or(false, |entry| {
@@ -172,7 +172,7 @@ impl StorageManager {
                         }})).unwrap();
     }
 
-    fn get_origin_as_string(&self, url: Url) -> String {
+    fn origin_as_string(&self, url: Url) -> String {
         let mut origin = "".to_string();
         origin.push_str(&url.scheme);
         origin.push_str("://");

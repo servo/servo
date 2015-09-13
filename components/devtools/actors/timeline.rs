@@ -204,7 +204,7 @@ impl Actor for TimelineActor {
                     }
                 }
 
-                let emitter = Emitter::new(self.name(), registry.get_shareable(),
+                let emitter = Emitter::new(self.name(), registry.shareable(),
                                            registry.start_stamp(),
                                            stream.try_clone().unwrap(),
                                            self.memory_actor.borrow().clone(),
