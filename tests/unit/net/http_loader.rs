@@ -681,7 +681,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
 }
 
 #[test]
-fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
+fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let url_x = Url::parse("http://mozilla.com").unwrap();
     let url_y = Url::parse("http://mozilla.org").unwrap();
 
@@ -702,7 +702,10 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
         fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 let mut expected_headers_x = Headers::new();
-                expected_headers_x.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
+                expected_headers_x.set_raw(
+                    "Cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]
+                    );
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
@@ -712,7 +715,10 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
                     )
             } else if url.domain().unwrap() == "mozilla.org" {
                 let mut expected_headers_y = Headers::new();
-                expected_headers_y.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+                expected_headers_y.set_raw(
+                    "Cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
+                    );
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
@@ -740,7 +746,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
 }
 
 #[test]
-fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response(){
+fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     struct Factory;
 
@@ -754,7 +760,10 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response(){
             if url.path().unwrap()[0] == "initial" {
                 let expected_initial_headers = Headers::new();
                 let mut initial_answer_headers = Headers::new();
-                initial_answer_headers.set_raw("set-cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+                initial_answer_headers.set_raw(
+                    "set-cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
+                    );
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
@@ -766,7 +775,9 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response(){
                     )
             } else if url.path().unwrap()[0] == "subsequent" {
                 let mut expected_subsequent_headers = Headers::new();
-                expected_subsequent_headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+                expected_subsequent_headers.set_raw("Cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
+                    );
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
