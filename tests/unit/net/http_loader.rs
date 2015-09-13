@@ -968,11 +968,11 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
     let resource_mgr = new_resource_task("Test-agent".to_string(), None);
     resource_mgr.send(ControlMsg::SetCookiesForUrl(url_x.clone(),
-                                                   "mozillaIsNot=dotCom".to_string(),
-                                                   CookieSource::HTTP)).unwrap();
+        "mozillaIsNot=dotCom".to_string(),
+        CookieSource::HTTP)).unwrap();
     resource_mgr.send(ControlMsg::SetCookiesForUrl(url_y.clone(),
-                                                  "mozillaIs=theBest".to_string(),
-                                                  CookieSource::HTTP)).unwrap();
+        "mozillaIs=theBest".to_string(),
+        CookieSource::HTTP)).unwrap();
 
 
     impl HttpRequestFactory for Factory {
@@ -983,8 +983,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
                 let mut expected_headers_x = Headers::new();
                 expected_headers_x.set_raw(
                     "Cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]
-                    );
+                    vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
@@ -996,8 +995,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
                 let mut expected_headers_y = Headers::new();
                 expected_headers_y.set_raw(
                     "Cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
-                    );
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
                 Ok(
                     AssertRequestMustHaveHeaders::new(
@@ -1028,9 +1026,6 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     struct Factory;
-
-    // let url_initial = Url::parse("http://mozilla.com/initial").unwrap();
-    // let url_subsequent = Url::parse("http://mozilla.org/subsequent").unwrap();
 
     impl HttpRequestFactory for Factory {
         type R = AssertRequestMustHaveHeaders;
