@@ -565,7 +565,7 @@ impl VirtualMethods for HTMLInputElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> Result<AttrValue, Error> {
         match name {
             &atom!("size") => Ok(AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE)),
-            &atom!("maxlength") => AttrValue::from_limited_i32(value, i32::MAX),
+            &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
