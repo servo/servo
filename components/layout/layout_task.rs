@@ -120,7 +120,7 @@ pub struct LayoutTask {
     id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    url: RefCell<Option<Url>>,
+    url: RefCell<Url>,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -405,7 +405,7 @@ impl LayoutTask {
 
         LayoutTask {
             id: id,
-            url: RefCell::new(Some(url)),
+            url: RefCell::new(url),
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
@@ -568,7 +568,7 @@ impl LayoutTask {
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -628,7 +628,7 @@ impl LayoutTask {
             }
             Msg::SetFinalUrl(final_url) => {
                 let mut url_ref_cell = self.url.borrow_mut();
-                *url_ref_cell = Some(final_url);
+                *url_ref_cell = final_url;
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -652,8 +652,7 @@ impl LayoutTask {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
         let stacking_context = rw_data.stacking_context.as_ref();
-        let ref formatted_url = *self.url.borrow().as_ref().map_or("url(None)".to_owned(),
-            |url| format!("url({})", url));
+        let ref formatted_url = format!("url({})", *self.url.borrow());
         reports.push(Report {
             path: path![formatted_url, "layout-task", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -951,7 +950,7 @@ impl LayoutTask {
         };
 
         debug!("layout: received layout request for: {}",
-            self.url.borrow().as_ref().map_or("None".to_owned(), |url| url.serialize()));
+            self.url.borrow().serialize());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1014,10 +1013,9 @@ impl LayoutTask {
         }
 
         // Create a layout context for use throughout the following passes.
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
-                                                                         url_clone,
+                                                                         &self.url.borrow(),
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() {
@@ -1128,7 +1126,6 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   url_clone,
@@ -1153,10 +1150,9 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  url_clone,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
