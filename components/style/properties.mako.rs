@@ -1909,7 +1909,7 @@ pub mod longhands {
         }
 
         #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::LengthOrPercentage);  // Percentages are the same as em.
+        pub struct SpecifiedValue(pub specified::LengthOrPercentage);
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Au;
