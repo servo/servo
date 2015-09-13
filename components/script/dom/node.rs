@@ -812,18 +812,17 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self.clone());
-                Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
+                Ok(self.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
                     matches(selectors, element, None)
                 }))
             }
         }
     }
 
+    /// https://dom.spec.whatwg.org/#scope-match-a-selectors-string
     /// Get an iterator over all nodes which match a set of selectors
-    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
-    /// the iterator may be invalidated
+    /// Be careful not to do anything which may manipulate the DOM tree
+    /// whilst iterating, otherwise the iterator may be invalidated.
     #[allow(unsafe_code)]
     pub unsafe fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
@@ -833,9 +832,7 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self);
-                Ok(QuerySelectorIterator::new(root.traverse_preorder(), selectors))
+                Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
             }
         }
     }
