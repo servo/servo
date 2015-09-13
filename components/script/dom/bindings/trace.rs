@@ -88,12 +88,6 @@ pub trait JSTraceable {
     fn trace(&self, trc: *mut JSTracer);
 }
 
-impl<T: Reflectable> JSTraceable for JS<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        trace_reflector(trc, "", self.reflector());
-    }
-}
-
 no_jsmanaged_fields!(EncodingRef);
 
 no_jsmanaged_fields!(Reflector);
