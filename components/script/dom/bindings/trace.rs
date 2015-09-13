@@ -88,12 +88,6 @@ pub trait JSTraceable {
     fn trace(&self, trc: *mut JSTracer);
 }
 
-impl<T: Reflectable> JSTraceable for JS<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        trace_reflector(trc, "", self.reflector());
-    }
-}
-
 no_jsmanaged_fields!(EncodingRef);
 
 no_jsmanaged_fields!(Reflector);
@@ -455,19 +449,17 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
     }
 }
 
-/// A vector of items that are rooted for the lifetime
-/// of this struct.
-/// Must be a reflectable
+/// A vector of items that are rooted for the lifetime of this struct.
 #[allow(unrooted_must_root)]
 #[no_move]
 #[derive(JSTraceable)]
 #[allow_unrooted_interior]
-pub struct RootedVec<T: JSTraceable + Reflectable> {
+pub struct RootedVec<T: JSTraceable> {
     v: Vec<T>
 }
 
 
-impl<T: JSTraceable + Reflectable> RootedVec<T> {
+impl<T: JSTraceable> RootedVec<T> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
     pub fn new() -> RootedVec<T> {
@@ -495,20 +487,20 @@ impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
     }
 }
 
-impl<T: JSTraceable + Reflectable> Drop for RootedVec<T> {
+impl<T: JSTraceable> Drop for RootedVec<T> {
     fn drop(&mut self) {
         RootedTraceableSet::remove(self);
     }
 }
 
-impl<T: JSTraceable + Reflectable> Deref for RootedVec<T> {
+impl<T: JSTraceable> Deref for RootedVec<T> {
     type Target = Vec<T>;
     fn deref(&self) -> &Vec<T> {
         &self.v
     }
 }
 
-impl<T: JSTraceable + Reflectable> DerefMut for RootedVec<T> {
+impl<T: JSTraceable> DerefMut for RootedVec<T> {
     fn deref_mut(&mut self) -> &mut Vec<T> {
         &mut self.v
     }
