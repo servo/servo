@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::conversions::get_dom_class;
 use dom::bindings::error::Error::InvalidState;
 use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -45,8 +46,7 @@ pub enum ListenerPhase {
     Bubbling,
 }
 
-#[derive(JSTraceable, Copy, Clone)]
-#[derive(HeapSizeOf)]
+#[derive(Copy, Clone)]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
     WebSocket,
@@ -132,15 +132,13 @@ pub struct EventListenerEntry {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    type_id: EventTargetTypeId,
     handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
 }
 
 impl EventTarget {
-    pub fn new_inherited(type_id: EventTargetTypeId) -> EventTarget {
+    pub fn new_inherited() -> EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
-            type_id: type_id,
             handlers: DOMRefCell::new(Default::default()),
         }
     }
@@ -159,9 +157,12 @@ impl EventTarget {
         })
     }
 
-    #[inline]
+    #[allow(unsafe_code)]
     pub fn type_id(&self) -> &EventTargetTypeId {
-        &self.type_id
+        let domclass = unsafe {
+            get_dom_class(self.reflector_.get_jsobject().get()).unwrap()
+        };
+        domclass.type_id.as_ref().unwrap()
     }
 
     pub fn dispatch_event_with_target(&self,

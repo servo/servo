@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 
-#[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum XMLHttpRequestEventTargetTypeId {
     XMLHttpRequest,
     XMLHttpRequestUpload,
@@ -20,9 +20,9 @@ pub struct XMLHttpRequestEventTarget {
 }
 
 impl XMLHttpRequestEventTarget {
-    pub fn new_inherited(type_id: XMLHttpRequestEventTargetTypeId) -> XMLHttpRequestEventTarget {
+    pub fn new_inherited() -> XMLHttpRequestEventTarget {
         XMLHttpRequestEventTarget {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::XMLHttpRequestEventTarget(type_id))
+            eventtarget: EventTarget::new_inherited()
         }
     }
 }

@@ -1722,6 +1722,25 @@ class CGNamespace(CGWrapper):
         return CGNamespace(namespaces[0], inner, public=public)
 
 
+def EventTargetEnum(desc):
+    protochain = desc.prototypeChain
+    if protochain[0] != "EventTarget" or desc.interface.getExtendedAttribute("Abstract"):
+        return "None"
+
+    inner = ""
+    name = desc.interface.identifier.name
+    if desc.interface.getUserData("hasConcreteDescendant", False):
+        inner = "(::dom::%s::%sTypeId::%s)" % (name.lower(), name, name)
+    prev_proto = ""
+    for proto in reversed(protochain):
+        if prev_proto != "":
+            inner = "(::dom::%s::%sTypeId::%s%s)" % (proto.lower(), proto, prev_proto, inner)
+        prev_proto = proto
+    if inner == "":
+        return "None"
+    return "Some%s" % inner
+
+
 def DOMClass(descriptor):
         protoList = ['PrototypeList::ID::' + proto for proto in descriptor.prototypeChain]
         # Pad out the list to the right length with ID::Count so we
@@ -1734,7 +1753,8 @@ def DOMClass(descriptor):
 DOMClass {
     interface_chain: [ %s ],
     native_hooks: &sNativePropertyHooks,
-}""" % prototypeChainString
+    type_id: %s,
+}""" % (prototypeChainString, EventTargetEnum(descriptor))
 
 
 class CGDOMJSClass(CGThing):

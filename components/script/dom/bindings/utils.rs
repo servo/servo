@@ -15,6 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
+use dom::eventtarget::EventTargetTypeId;
 use dom::window;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
@@ -156,6 +157,9 @@ pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
     pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
+
+    /// The EventTarget type, if this is derived from an EventTarget.
+    pub type_id: Option<EventTargetTypeId>,
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,

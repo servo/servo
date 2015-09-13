@@ -12,7 +12,7 @@ use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
 use dom::crypto::Crypto;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -36,9 +36,9 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 
-#[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
-    DedicatedGlobalScope,
+    DedicatedWorkerGlobalScope,
 }
 
 pub struct WorkerGlobalScopeInit {
@@ -90,14 +90,13 @@ pub struct WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub fn new_inherited(type_id: WorkerGlobalScopeTypeId,
-                         init: WorkerGlobalScopeInit,
+    pub fn new_inherited(init: WorkerGlobalScopeInit,
                          worker_url: Url,
                          runtime: Rc<Runtime>,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
+            eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             worker_url: worker_url,

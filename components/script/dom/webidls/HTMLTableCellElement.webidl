@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.whatwg.org/html/#htmltablecellelement
+[Abstract]
 interface HTMLTableCellElement : HTMLElement {
              attribute unsigned long colSpan;
   //         attribute unsigned long rowSpan;

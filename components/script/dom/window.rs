@@ -1277,7 +1277,7 @@ impl Window {
         };
 
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
+            eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
             image_cache_chan: image_cache_chan,
             control_chan: control_chan,
