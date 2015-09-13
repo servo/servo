@@ -943,3 +943,69 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
         _ => panic!("expected ftp scheme to be unsupported")
     }
 }
+
+#[test]
+fn  test_redirect_from_x_to_y_provides_y_cookies_from_y(){
+    let url_x = Url::parse("http://mozilla.com").unwrap();
+    let url_y = Url::parse("http://mozilla.org").unwrap();
+
+    struct Factory;
+
+    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(url_x.clone(),
+                                                   "mozillaIsNot=dotCom".to_string(),
+                                                   CookieSource::HTTP)).unwrap();
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(url_y.clone(),
+                                                  "mozillaIs=theBest".to_string(),
+                                                  CookieSource::HTTP)).unwrap();
+
+
+    impl HttpRequestFactory for Factory {
+        type R = AssertRequestMustHaveHeaders;
+
+        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
+            if url.domain().unwrap() == "mozilla.com" {
+                let mut expected_headers_x = Headers::new();
+                expected_headers_x.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
+
+                Ok(
+                    AssertRequestMustHaveHeaders::new(
+                        ResponseType::Redirect("http://mozilla.org".to_string()),
+                        expected_headers_x
+                        )
+                    )
+            } else if url.domain().unwrap() == "mozilla.org" {
+                let mut expected_headers_y = Headers::new();
+                expected_headers_y.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+
+                Ok(
+                    AssertRequestMustHaveHeaders::new(
+                        ResponseType::Text(
+                            <[_]>::to_vec("Yay!".as_bytes())
+                        ),
+                        expected_headers_y
+                    )
+                )
+            } else {
+                panic!("unexpected host {:?}", url)
+            }
+        }
+    }
+
+
+
+    let load_data = LoadData::new(url_x, None);
+
+    match load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &Factory) {
+        Err(e) => panic!("expected to follow a redirect {:?}", e),
+        Ok(mut lr) => {
+            let response = read_response(&mut lr);
+            assert_eq!(response, "Yay!".to_string());
+        }
+    }
+}
+
+// #[test]
+// fn test_redirect_from_x_to_x_provides_x_with_cookie_from_x(){
+//
+// }
