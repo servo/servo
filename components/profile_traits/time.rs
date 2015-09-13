@@ -90,7 +90,7 @@ pub enum TimerMetadataReflowType {
 }
 
 pub type ProfilerMetadata<'a> =
-    Option<(&'a RefCell<Option<Url>>, TimerMetadataFrameType, TimerMetadataReflowType)>;
+    Option<(&'a RefCell<Url>, TimerMetadataFrameType, TimerMetadataReflowType)>;
 
 pub fn profile<T, F>(category: ProfilerCategory,
                      meta: ProfilerMetadata,
@@ -106,7 +106,7 @@ pub fn profile<T, F>(category: ProfilerCategory,
     let end_energy = read_energy_uj();
     let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
-            url: url.borrow().as_ref().map_or("None".to_owned(), |url| url.serialize()),
+            url: url.borrow().serialize(),
             iframe: iframe == TimerMetadataFrameType::IFrame,
             incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });

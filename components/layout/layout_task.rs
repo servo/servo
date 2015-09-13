@@ -170,7 +170,7 @@ pub struct LayoutTask {
     pub id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    pub url: RefCell<Option<Url>>,
+    pub url: RefCell<Url>,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     pub is_iframe: bool,
@@ -356,7 +356,7 @@ impl LayoutTask {
 
         LayoutTask {
             id: id,
-            url: RefCell::new(Some(url)),
+            url: RefCell::new(url),
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
@@ -536,11 +536,11 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
+        //let url_clone = &self.url.borrow();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  url_clone,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -596,7 +596,7 @@ impl LayoutTask {
             }
             Msg::SetFinalUrl(final_url) => {
                 let mut url_ref_cell = self.url.borrow_mut();
-                *url_ref_cell = Some(final_url);
+                *url_ref_cell = final_url;
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
@@ -620,8 +620,7 @@ impl LayoutTask {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
-        let ref formatted_url = *self.url.borrow().as_ref().map_or("url(None)".to_owned(),
-            |url| format!("url({})", url));
+        let ref formatted_url = format!("url({})", *self.url.borrow());
         reports.push(Report {
             path: path![formatted_url, "layout-task", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -1101,7 +1100,7 @@ impl LayoutTask {
         };
 
         debug!("layout: received layout request for: {}",
-            self.url.borrow().as_ref().map_or("None".to_owned(), |url| url.serialize()));
+            self.url.borrow().serialize());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1152,11 +1151,10 @@ impl LayoutTask {
         }
 
         // Create a layout context for use throughout the following passes.
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
                                                                          Some(&node),
-                                                                         url_clone,
+                                                                         &self.url.borrow(),
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
@@ -1267,11 +1265,10 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  url_clone,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
@@ -1291,11 +1288,10 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
-        let url_clone = &self.url.borrow().as_ref().unwrap().clone();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  url_clone,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = rw_data.layout_root() {
