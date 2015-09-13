@@ -233,7 +233,7 @@ pub mod specified {
         /// `Stylist::synthesize_rules_for_legacy_attributes()`.
         ServoCharacterWidth(CharacterWidth),
 
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
     }
 
     impl ToCss for Length {
@@ -326,7 +326,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(Length::Absolute(Au(0))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                    input.parse_nested_block(Calc::parse_length),
+                    input.parse_nested_block(CalcLengthOrPercentage::parse_length),
                 _ => Err(())
             }
         }
@@ -431,12 +431,12 @@ pub mod specified {
         match try!(input.next()) {
             Token::Number(ref value) => value.int_value.ok_or(()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let ast = try!(input.parse_nested_block(|i| Calc::parse_sum(i, CalcUnit::Number)));
+                let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Integer)));
 
                 let mut result = None;
 
                 for ref node in ast.products {
-                    match try!(Calc::simplify_product(node)) {
+                    match try!(CalcLengthOrPercentage::simplify_product(node)) {
                         SimplifiedValueNode::Number(val) =>
                             result = Some(result.unwrap_or(0) + val as i32),
                         _ => unreachable!()
@@ -456,12 +456,12 @@ pub mod specified {
         match try!(input.next()) {
             Token::Number(ref value) => Ok(value.value),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let ast = try!(input.parse_nested_block(|i| Calc::parse_sum(i, CalcUnit::Number)));
+                let ast = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, CalcUnit::Number)));
 
                 let mut result = None;
 
                 for ref node in ast.products {
-                    match try!(Calc::simplify_product(node)) {
+                    match try!(CalcLengthOrPercentage::simplify_product(node)) {
                         SimplifiedValueNode::Number(val) =>
                             result = Some(result.unwrap_or(0.) + val),
                         _ => unreachable!()
@@ -477,9 +477,10 @@ pub mod specified {
         }
     }
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq)]
     enum CalcUnit {
         Number,
+        Integer,
         Length,
         LengthOrPercentage,
         Angle,
@@ -487,7 +488,7 @@ pub mod specified {
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub struct Calc {
+    pub struct CalcLengthOrPercentage {
         pub absolute: Option<Au>,
         pub vw: Option<ViewportPercentageLength>,
         pub vh: Option<ViewportPercentageLength>,
@@ -499,18 +500,18 @@ pub mod specified {
         pub rem: Option<FontRelativeLength>,
         pub percentage: Option<Percentage>,
     }
-    impl Calc {
+    impl CalcLengthOrPercentage {
         fn parse_sum(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
             let mut products = Vec::new();
-            products.push(try!(Calc::parse_product(input, expected_unit)));
+            products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
 
             loop {
                 match input.next() {
                     Ok(Token::Delim('+')) => {
-                        products.push(try!(Calc::parse_product(input, expected_unit)));
+                        products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
                     }
                     Ok(Token::Delim('-')) => {
-                        let mut right = try!(Calc::parse_product(input, expected_unit));
+                        let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
                         right.values.push(CalcValueNode::Number(-1.));
                         products.push(right);
                     }
@@ -524,15 +525,15 @@ pub mod specified {
 
         fn parse_product(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcProductNode, ()> {
             let mut values = Vec::new();
-            values.push(try!(Calc::parse_value(input, expected_unit)));
+            values.push(try!(CalcLengthOrPercentage::parse_value(input, expected_unit)));
 
             loop {
                 let position = input.position();
                 match input.next() {
                     Ok(Token::Delim('*')) => {
-                        values.push(try!(Calc::parse_value(input, expected_unit)));
+                        values.push(try!(CalcLengthOrPercentage::parse_value(input, expected_unit)));
                     }
-                    Ok(Token::Delim('/')) => {
+                    Ok(Token::Delim('/')) if expected_unit != CalcUnit::Integer => {
                         if let Ok(Token::Number(ref value)) = input.next() {
                             if value.value == 0. {
                                 return Err(());
@@ -568,7 +569,7 @@ pub mod specified {
                 (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
                 (Token::ParenthesisBlock, _) => {
-                    let result = try!(input.parse_nested_block(|i| Calc::parse_sum(i, expected_unit)));
+                    let result = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, expected_unit)));
                     Ok(CalcValueNode::Sum(box result))
                 },
                 _ => Err(())
@@ -578,7 +579,7 @@ pub mod specified {
         fn simplify_value_to_number(node: &CalcValueNode) -> Option<CSSFloat> {
             match *node {
                 CalcValueNode::Number(number) => Some(number),
-                CalcValueNode::Sum(box ref sum) => Calc::simplify_sum_to_number(sum),
+                CalcValueNode::Sum(box ref sum) => CalcLengthOrPercentage::simplify_sum_to_number(sum),
                 _ => None
             }
         }
@@ -586,7 +587,7 @@ pub mod specified {
         fn simplify_sum_to_number(node: &CalcSumNode) -> Option<CSSFloat> {
             let mut sum = 0.;
             for ref product in &node.products {
-                match Calc::simplify_product_to_number(product) {
+                match CalcLengthOrPercentage::simplify_product_to_number(product) {
                     Some(number) => sum += number,
                     _ => return None
                 }
@@ -597,7 +598,7 @@ pub mod specified {
         fn simplify_product_to_number(node: &CalcProductNode) -> Option<CSSFloat> {
             let mut product = 1.;
             for ref value in &node.values {
-                match Calc::simplify_value_to_number(value) {
+                match CalcLengthOrPercentage::simplify_value_to_number(value) {
                     Some(number) => product *= number,
                     _ => return None
                 }
@@ -608,7 +609,7 @@ pub mod specified {
         fn simplify_products_in_sum(node: &CalcSumNode) -> Result<SimplifiedValueNode, ()> {
             let mut simplified = Vec::new();
             for product in &node.products {
-                match try!(Calc::simplify_product(product)) {
+                match try!(CalcLengthOrPercentage::simplify_product(product)) {
                     SimplifiedValueNode::Sum(box sum) => simplified.push_all(&sum.values),
                     val => simplified.push(val),
                 }
@@ -625,12 +626,12 @@ pub mod specified {
             let mut multiplier = 1.;
             let mut node_with_unit = None;
             for node in &node.values {
-                match Calc::simplify_value_to_number(&node) {
+                match CalcLengthOrPercentage::simplify_value_to_number(&node) {
                     Some(number) => multiplier *= number,
                     _ if node_with_unit.is_none() => {
                         node_with_unit = Some(match *node {
                             CalcValueNode::Sum(box ref sum) =>
-                                try!(Calc::simplify_products_in_sum(sum)),
+                                try!(CalcLengthOrPercentage::simplify_products_in_sum(sum)),
                             CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
                             CalcValueNode::Angle(a) => SimplifiedValueNode::Angle(a),
                             CalcValueNode::Time(t) => SimplifiedValueNode::Time(t),
@@ -649,19 +650,19 @@ pub mod specified {
         }
 
         fn parse_length(input: &mut Parser) -> Result<Length, ()> {
-            Calc::parse(input, CalcUnit::Length).map(Length::Calc)
+            CalcLengthOrPercentage::parse(input, CalcUnit::Length).map(Length::Calc)
         }
 
-        fn parse_length_or_percentage(input: &mut Parser) -> Result<Calc, ()> {
-            Calc::parse(input, CalcUnit::LengthOrPercentage)
+        fn parse_length_or_percentage(input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
+            CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
         }
 
-        fn parse(input: &mut Parser, expected_unit: CalcUnit) -> Result<Calc, ()> {
-            let ast = try!(Calc::parse_sum(input, expected_unit));
+        fn parse(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
+            let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
 
             let mut simplified = Vec::new();
             for ref node in ast.products {
-                match try!(Calc::simplify_product(node)) {
+                match try!(CalcLengthOrPercentage::simplify_product(node)) {
                     SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
                     value => simplified.push(value),
                 }
@@ -712,7 +713,7 @@ pub mod specified {
                 }
             }
 
-            Ok(Calc {
+            Ok(CalcLengthOrPercentage {
                 absolute: absolute.map(Au),
                 vw: vw.map(ViewportPercentageLength::Vw),
                 vh: vh.map(ViewportPercentageLength::Vh),
@@ -727,11 +728,11 @@ pub mod specified {
         }
 
         pub fn parse_time(input: &mut Parser) -> Result<Time, ()> {
-            let ast = try!(Calc::parse_sum(input, CalcUnit::Time));
+            let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Time));
 
             let mut simplified = Vec::new();
             for ref node in ast.products {
-                match try!(Calc::simplify_product(node)) {
+                match try!(CalcLengthOrPercentage::simplify_product(node)) {
                     SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
                     value => simplified.push(value),
                 }
@@ -754,11 +755,11 @@ pub mod specified {
         }
 
         pub fn parse_angle(input: &mut Parser) -> Result<Angle, ()> {
-            let ast = try!(Calc::parse_sum(input, CalcUnit::Angle));
+            let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Angle));
 
             let mut simplified = Vec::new();
             for ref node in ast.products {
-                match try!(Calc::simplify_product(node)) {
+                match try!(CalcLengthOrPercentage::simplify_product(node)) {
                     SimplifiedValueNode::Sum(sum) => simplified.push_all(&sum.values),
                     value => simplified.push(value),
                 }
@@ -784,7 +785,7 @@ pub mod specified {
         }
     }
 
-    impl ToCss for Calc {
+    impl ToCss for CalcLengthOrPercentage {
         #[allow(unused_assignments)]
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
@@ -849,7 +850,7 @@ pub mod specified {
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(Percentage),
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
     }
 
     impl ToCss for LengthOrPercentage {
@@ -877,7 +878,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
+                    let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                     Ok(LengthOrPercentage::Calc(calc))
                 },
                 _ => Err(())
@@ -898,7 +899,7 @@ pub mod specified {
         Length(Length),
         Percentage(Percentage),
         Auto,
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
     }
 
     impl ToCss for LengthOrPercentageOrAuto {
@@ -926,7 +927,7 @@ pub mod specified {
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
+                    let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                     Ok(LengthOrPercentageOrAuto::Calc(calc))
                 },
                 _ => Err(())
@@ -946,7 +947,7 @@ pub mod specified {
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(Percentage),
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
         None,
     }
 
@@ -972,7 +973,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    let calc = try!(input.parse_nested_block(Calc::parse_length_or_percentage));
+                    let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                     Ok(LengthOrPercentageOrNone::Calc(calc))
                 },
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
@@ -1014,7 +1015,7 @@ pub mod specified {
                 Token::Number(ref value) if value.value == 0. =>
                     Ok(LengthOrNone::Length(Length::Absolute(Au(0)))),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                    input.parse_nested_block(Calc::parse_length).map(LengthOrNone::Length),
+                    input.parse_nested_block(CalcLengthOrPercentage::parse_length).map(LengthOrNone::Length),
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                     Ok(LengthOrNone::None),
                 _ => Err(())
@@ -1136,7 +1137,7 @@ pub mod specified {
                 Token::Dimension(ref value, ref unit) => Angle::parse_dimension(value.value, unit),
                 Token::Number(ref value) if value.value == 0. => Ok(Angle(0.)),
                 Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                    input.parse_nested_block(Calc::parse_angle)
+                    input.parse_nested_block(CalcLengthOrPercentage::parse_angle)
                 },
                 _ => Err(())
             }
@@ -1390,7 +1391,7 @@ pub mod specified {
                     Time::parse_dimension(value.value, &unit)
                 }
                 Ok(Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {
-                    input.parse_nested_block(Calc::parse_time)
+                    input.parse_nested_block(CalcLengthOrPercentage::parse_time)
                 }
                 _ => Err(())
             }
@@ -1497,12 +1498,12 @@ pub mod computed {
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
-    pub struct Calc {
+    pub struct CalcLengthOrPercentage {
         pub length: Option<Au>,
         pub percentage: Option<CSSFloat>,
     }
 
-    impl Calc {
+    impl CalcLengthOrPercentage {
         pub fn length(&self) -> Au {
             self.length.unwrap_or(Au(0))
         }
@@ -1512,17 +1513,17 @@ pub mod computed {
         }
     }
 
-    impl From<LengthOrPercentage> for Calc {
-        fn from(len: LengthOrPercentage) -> Calc {
+    impl From<LengthOrPercentage> for CalcLengthOrPercentage {
+        fn from(len: LengthOrPercentage) -> CalcLengthOrPercentage {
             match len {
                 LengthOrPercentage::Percentage(this) => {
-                    Calc {
+                    CalcLengthOrPercentage {
                         length: None,
                         percentage: Some(this),
                     }
                 }
                 LengthOrPercentage::Length(this) => {
-                    Calc {
+                    CalcLengthOrPercentage {
                         length: Some(this),
                         percentage: None,
                     }
@@ -1534,17 +1535,17 @@ pub mod computed {
         }
     }
 
-    impl From<LengthOrPercentageOrAuto> for Option<Calc> {
-        fn from(len: LengthOrPercentageOrAuto) -> Option<Calc> {
+    impl From<LengthOrPercentageOrAuto> for Option<CalcLengthOrPercentage> {
+        fn from(len: LengthOrPercentageOrAuto) -> Option<CalcLengthOrPercentage> {
             match len {
                 LengthOrPercentageOrAuto::Percentage(this) => {
-                    Some(Calc {
+                    Some(CalcLengthOrPercentage {
                         length: None,
                         percentage: Some(this),
                     })
                 }
                 LengthOrPercentageOrAuto::Length(this) => {
-                    Some(Calc {
+                    Some(CalcLengthOrPercentage {
                         length: Some(this),
                         percentage: None,
                     })
@@ -1559,7 +1560,7 @@ pub mod computed {
         }
     }
 
-    impl ::cssparser::ToCss for Calc {
+    impl ::cssparser::ToCss for CalcLengthOrPercentage {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match (self.length, self.percentage) {
                 (None, Some(p)) => write!(dest, "{}%", p * 100.),
@@ -1570,10 +1571,10 @@ pub mod computed {
         }
     }
 
-    impl ToComputedValue for specified::Calc {
-        type ComputedValue = Calc;
+    impl ToComputedValue for specified::CalcLengthOrPercentage {
+        type ComputedValue = CalcLengthOrPercentage;
 
-        fn to_computed_value(&self, context: &Context) -> Calc {
+        fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
             let mut length = None;
 
             if let Some(absolute) = self.absolute {
@@ -1593,7 +1594,7 @@ pub mod computed {
                 }
             }
 
-            Calc { length: length, percentage: self.percentage.map(|p| p.0) }
+            CalcLengthOrPercentage { length: length, percentage: self.percentage.map(|p| p.0) }
         }
     }
 
@@ -1632,7 +1633,7 @@ pub mod computed {
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
     }
 
     impl LengthOrPercentage {
@@ -1685,7 +1686,7 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
         Auto,
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
     }
     impl fmt::Debug for LengthOrPercentageOrAuto {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -1736,7 +1737,7 @@ pub mod computed {
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
-        Calc(Calc),
+        Calc(CalcLengthOrPercentage),
         None,
     }
     impl fmt::Debug for LengthOrPercentageOrNone {
