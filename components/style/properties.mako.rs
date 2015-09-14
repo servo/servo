@@ -1759,7 +1759,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![FontFamily::FamilyName(Atom::from_slice("serif"))])
+            computed_value::T(vec![FontFamily::FamilyName(atom!("serif"))])
         }
         /// <family-name>#
         /// <family-name> = <string> | [ <ident>+ ]
