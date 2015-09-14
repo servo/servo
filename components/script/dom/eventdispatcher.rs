@@ -5,14 +5,59 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
-use dom::bindings::js::JS;
+use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
-use dom::eventtarget::{EventTarget, ListenerPhase};
+use dom::eventtarget::{EventTarget, ListenerPhase, EventListenerType};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
+use dom::window::Window;
+
+use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
+
+struct AutoDOMEventMarker {
+    window: Root<Window>,
+    marker: Option<StartedTimelineMarker>,
+}
+
+impl AutoDOMEventMarker {
+    fn new(window: &Window) -> AutoDOMEventMarker {
+        AutoDOMEventMarker {
+            window: Root::from_ref(window),
+            marker: Some(TimelineMarker::start("DOMEvent".to_owned())),
+        }
+    }
+}
+
+impl Drop for AutoDOMEventMarker {
+    fn drop(&mut self) {
+        self.window.emit_timeline_marker(self.marker.take().unwrap().end());
+    }
+}
+
+fn handle_event(window: Option<&Window>, listener: &EventListenerType,
+                current_target: &EventTarget, event: &Event) {
+    let _marker;
+    if let Some(window) = window {
+        _marker = AutoDOMEventMarker::new(window);
+    }
+
+    listener.call_or_handle_event(current_target, event, Report);
+}
 
 fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTarget]) {
+    let window = match global_object_for_reflector(target) {
+        GlobalRoot::Window(window) => {
+            if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                Some(window)
+            } else {
+                None
+            }
+        },
+        _ => None,
+    };
+
     let type_ = event.Type();
 
     /* capturing */
@@ -21,8 +66,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
         if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             event.set_current_target(cur_target);
             for listener in &listeners {
-                // Explicitly drop any exception on the floor.
-                listener.call_or_handle_event(*cur_target, event, Report);
+                handle_event(window.r(), listener, *cur_target, event);
 
                 if event.stop_immediate() {
                     return;
@@ -41,8 +85,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 
     if let Some(listeners) = target.get_listeners(&type_) {
         for listener in listeners {
-            // Explicitly drop any exception on the floor.
-            listener.call_or_handle_event(target, event, Report);
+            handle_event(window.r(), &listener, target, event);
 
             if event.stop_immediate() {
                 return;
@@ -61,8 +104,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
             if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
                 event.set_current_target(cur_target);
                 for listener in &listeners {
-                    // Explicitly drop any exception on the floor.
-                    listener.call_or_handle_event(*cur_target, event, Report);
+                    handle_event(window.r(), listener, *cur_target, event);
 
                     if event.stop_immediate() {
                         return;

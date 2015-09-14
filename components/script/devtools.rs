@@ -19,7 +19,7 @@ use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use page::{IterablePage, Page};
-use script_task::{get_page, ScriptTask};
+use script_task::get_page;
 use std::ffi::CStr;
 use std::rc::Rc;
 use std::str;
@@ -171,36 +171,16 @@ pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: b
 }
 
 pub fn handle_set_timeline_markers(page: &Rc<Page>,
-                                   script_task: &ScriptTask,
                                    marker_types: Vec<TimelineMarkerType>,
                                    reply: IpcSender<TimelineMarker>) {
-    for marker_type in &marker_types {
-        match *marker_type {
-            TimelineMarkerType::Reflow => {
-                let window = page.window();
-                window.r().set_devtools_timeline_marker(TimelineMarkerType::Reflow, reply.clone());
-            }
-            TimelineMarkerType::DOMEvent => {
-                script_task.set_devtools_timeline_marker(TimelineMarkerType::DOMEvent, reply.clone());
-            }
-        }
-    }
+    let window = page.window();
+    window.set_devtools_timeline_markers(marker_types, reply);
 }
 
 pub fn handle_drop_timeline_markers(page: &Rc<Page>,
-                                    script_task: &ScriptTask,
                                     marker_types: Vec<TimelineMarkerType>) {
     let window = page.window();
-    for marker_type in &marker_types {
-        match *marker_type {
-            TimelineMarkerType::Reflow => {
-                window.r().drop_devtools_timeline_markers();
-            }
-            TimelineMarkerType::DOMEvent => {
-                script_task.drop_devtools_timeline_markers();
-            }
-        }
-    }
+    window.drop_devtools_timeline_markers(marker_types);
 }
 
 pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, actor_name: String) {
