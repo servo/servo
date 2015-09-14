@@ -12,32 +12,12 @@ use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 
-// See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
-pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
-                      event: &Event) -> bool {
-    assert!(!event.dispatching());
-    assert!(event.initialized());
-
-    event.set_target(match pseudo_target {
-        Some(pseudo_target) => pseudo_target,
-        None => target.clone(),
-    });
-    event.set_dispatching(true);
-
-    //TODO: no chain if not participating in a tree
-    let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
-    if let Some(target_node) = NodeCast::to_ref(target) {
-        for ancestor in target_node.ancestors() {
-            let ancestor_target = EventTargetCast::from_ref(ancestor.r());
-            chain.push(JS::from_ref(ancestor_target))
-        }
-    }
-
+fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTarget]) {
     let type_ = event.Type();
 
     /* capturing */
     event.set_phase(EventPhase::Capturing);
-    for cur_target in chain.r().iter().rev() {
+    for cur_target in chain.iter().rev() {
         let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target);
@@ -82,7 +62,7 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     if event.bubbles() && !event.stop_propagation() {
         event.set_phase(EventPhase::Bubbling);
 
-        for cur_target in chain.r() {
+        for cur_target in chain {
             let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target);
@@ -104,6 +84,30 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
             }
         }
     }
+}
+
+// See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
+pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
+                      event: &Event) -> bool {
+    assert!(!event.dispatching());
+    assert!(event.initialized());
+
+    event.set_target(match pseudo_target {
+        Some(pseudo_target) => pseudo_target,
+        None => target.clone(),
+    });
+    event.set_dispatching(true);
+
+    //TODO: no chain if not participating in a tree
+    let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
+    if let Some(target_node) = NodeCast::to_ref(target) {
+        for ancestor in target_node.ancestors() {
+            let ancestor_target = EventTargetCast::from_ref(ancestor.r());
+            chain.push(JS::from_ref(ancestor_target))
+        }
+    }
+
+    dispatch_to_listeners(event, target, chain.r());
 
     /* default action */
     let target = event.GetTarget();
