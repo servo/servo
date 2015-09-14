@@ -58,10 +58,10 @@ pub struct _cef_cookie_manager_t {
   pub base: types::cef_base_t,
 
   //
-  // Set the schemes supported by this manager. By default only "http" and
-  // "https" schemes are supported. If |callback| is non-NULL it will be
-  // executed asnychronously on the IO thread after the change has been applied.
-  // Must be called before any cookies are accessed.
+  // Set the schemes supported by this manager. The default schemes ("http",
+  // "https", "ws" and "wss") will always be supported. If |callback| is non-
+  // NULL it will be executed asnychronously on the IO thread after the change
+  // has been applied. Must be called before any cookies are accessed.
   //
   pub set_supported_schemes: Option<extern "C" fn(
       this: *mut cef_cookie_manager_t, schemes: &types::cef_string_list_t,
@@ -222,10 +222,10 @@ impl CefCookieManager {
   }
 
   //
-  // Set the schemes supported by this manager. By default only "http" and
-  // "https" schemes are supported. If |callback| is non-NULL it will be
-  // executed asnychronously on the IO thread after the change has been applied.
-  // Must be called before any cookies are accessed.
+  // Set the schemes supported by this manager. The default schemes ("http",
+  // "https", "ws" and "wss") will always be supported. If |callback| is non-
+  // NULL it will be executed asnychronously on the IO thread after the change
+  // has been applied. Must be called before any cookies are accessed.
   //
   pub fn set_supported_schemes(&self, schemes: &Vec<String>,
       callback: interfaces::CefCompletionCallback) -> () {

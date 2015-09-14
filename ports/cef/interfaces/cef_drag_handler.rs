@@ -69,6 +69,18 @@ pub struct _cef_drag_handler_t {
       mask: types::cef_drag_operations_mask_t) -> libc::c_int>,
 
   //
+  // Called whenever draggable regions for the browser window change. These can
+  // be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+  // draggable regions are never defined in a document this function will also
+  // never be called. If the last draggable region is removed from a document
+  // this function will be called with an NULL vector.
+  //
+  pub on_draggable_regions_changed: Option<extern "C" fn(
+      this: *mut cef_drag_handler_t, browser: *mut interfaces::cef_browser_t,
+      regions_count: libc::size_t,
+      regions: *const types::cef_draggable_region_t) -> ()>,
+
+  //
   // The reference count. This will only be present for Rust instances!
   //
   pub ref_count: u32,
@@ -173,6 +185,30 @@ impl CefDragHandler {
           CefWrap::to_c(browser),
           CefWrap::to_c(dragData),
           CefWrap::to_c(mask)))
+    }
+  }
+
+  //
+  // Called whenever draggable regions for the browser window change. These can
+  // be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+  // draggable regions are never defined in a document this function will also
+  // never be called. If the last draggable region is removed from a document
+  // this function will be called with an NULL vector.
+  //
+  pub fn on_draggable_regions_changed(&self, browser: interfaces::CefBrowser,
+      regions_count: libc::size_t,
+      regions: *const types::cef_draggable_region_t) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_draggable_regions_changed.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(regions_count),
+          CefWrap::to_c(regions)))
     }
   }
 } 
