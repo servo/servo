@@ -23,7 +23,7 @@ use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
 
 use devtools_traits::{DevtoolsControlMsg};
 use hyper::client::pool::Pool;
-use hyper::header::{ContentType, Header, SetCookie, UserAgent};
+use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 
@@ -233,12 +233,11 @@ impl ResourceManager {
         self.hsts_list.is_host_secure(host)
     }
 
-    fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
-        load_data.preserved_headers.set(UserAgent(self.user_agent.clone()));
+    fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-            box move |load_data, senders, classifier| {
+                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
+            box move |load_data, senders, classifier, _user_agent| {
                 factory(load_data, senders, classifier)
             }
         }
@@ -260,6 +259,6 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.call_box((load_data, consumer, self.mime_classifier.clone()));
+        loader.call_box((load_data, consumer, self.mime_classifier.clone(), self.user_agent.clone()));
     }
 }
