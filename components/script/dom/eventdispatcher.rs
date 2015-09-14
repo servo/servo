@@ -37,8 +37,6 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
 
     event.set_phase(EventPhase::Capturing);
 
-    //FIXME: The "callback this value" should be currentTarget
-
     /* capturing */
     for cur_target in chain.r().iter().rev() {
         let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
