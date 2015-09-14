@@ -520,7 +520,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|value| &***value));
             },
-            name if name == &Atom::from_slice("placeholder") => {
+            &atom!(placeholder) => {
                 let mut placeholder = self.placeholder.borrow_mut();
                 placeholder.clear();
                 if let AttributeMutation::Set(_) = mutation {
