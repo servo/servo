@@ -140,21 +140,19 @@ impl VirtualMethods for HTMLBodyElement {
                 });
             },
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                static FORWARDED_EVENTS: &'static [&'static str] =
-                    &["onfocus", "onload", "onscroll", "onafterprint", "onbeforeprint",
-                      "onbeforeunload", "onhashchange", "onlanguagechange", "onmessage",
-                      "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
-                      "onstorage", "onresize", "onunload", "onerror"];
                 let window = window_from_node(self);
                 let (cx, url, reflector) = (window.get_cx(),
                                             window.get_url(),
                                             window.reflector().get_jsobject());
-                let evtarget =
-                    if FORWARDED_EVENTS.iter().any(|&event| &**name == event) {
-                        EventTargetCast::from_ref(window.r())
-                    } else {
-                        EventTargetCast::from_ref(self)
-                    };
+                let evtarget = match name {
+                    &atom!(onfocus) | &atom!(onload) | &atom!(onscroll) | &atom!(onafterprint) |
+                    &atom!(onbeforeprint) | &atom!(onbeforeunload) | &atom!(onhashchange) |
+                    &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
+                    &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
+                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
+                      => EventTargetCast::from_ref(window.r()), // forwarded event
+                    _ => EventTargetCast::from_ref(self),
+                };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
                                                       (**attr.value()).to_owned());
