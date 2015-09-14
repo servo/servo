@@ -38,7 +38,6 @@ pub enum GlobalRef<'a> {
 }
 
 /// A stack-based rooted reference to a global object.
-#[no_move]
 pub enum GlobalRoot {
     /// A root for a `Window` object.
     Window(Root<window::Window>),
