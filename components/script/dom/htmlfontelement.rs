@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
@@ -22,6 +23,7 @@ use std::cell::Cell;
 pub struct HTMLFontElement {
     htmlelement: HTMLElement,
     color: Cell<Option<RGBA>>,
+    face: DOMRefCell<Option<DOMString>>,
 }
 
 impl HTMLFontElementDerived for EventTarget {
@@ -37,6 +39,7 @@ impl HTMLFontElement {
         HTMLFontElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFontElement, localName, prefix, document),
             color: Cell::new(None),
+            face: DOMRefCell::new(None),
         }
     }
 
@@ -55,6 +58,12 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-color
     make_setter!(SetColor, "color");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-face
+    make_getter!(Face);
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-face
+    make_setter!(SetFace, "face");
 }
 
 impl VirtualMethods for HTMLFontElement {
@@ -71,6 +80,11 @@ impl VirtualMethods for HTMLFontElement {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
+            &atom!(face) => {
+                *self.face.borrow_mut() =
+                    mutation.new_value(attr)
+                            .map(|value| (*value).as_string().to_owned())
+            },
             _ => {},
         }
     }
@@ -80,5 +94,14 @@ impl VirtualMethods for HTMLFontElement {
 impl HTMLFontElement {
     pub fn get_color(&self) -> Option<RGBA> {
         self.color.get()
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_face(&self) -> Option<&str> {
+        let face = unsafe { self.face.borrow_for_layout() };
+        match *face {
+            Some(ref s) => Some(s),
+            None => None,
+        }
     }
 }
