@@ -96,12 +96,21 @@ def _activate_virtualenv(topdir):
     # chain each of the requirements files into the same `pip install` call
     # and it will check for conflicts.
     requirements_paths = [
-        os.path.join(topdir, "python", "requirements.txt"),
-        os.path.join(topdir, "tests", "wpt", "harness", "requirements.txt"),
-        os.path.join(topdir, "tests", "wpt", "harness", "requirements_servo.txt"),
+        os.path.join("python", "requirements.txt"),
+        os.path.join("tests", "wpt", "harness", "requirements.txt"),
+        os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
     ]
-    for path in requirements_paths:
-        subprocess.check_call(["pip", "install", "-q", "-r", path])
+    for req_rel_path in requirements_paths:
+        req_path = os.path.join(topdir, req_rel_path)
+        marker_file = req_rel_path.replace(os.path.sep, '-')
+        marker_path = os.path.join(virtualenv_path, marker_file)
+        try:
+            if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
+                continue
+        except OSError:
+            open(marker_path, 'w').close()
+        subprocess.check_call(["pip", "install", "-q", "-r", req_path])
+        os.utime(marker_path, None)
 
 
 def bootstrap(topdir):
