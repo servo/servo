@@ -41,3 +41,7 @@ use interfaces;
 use types;
 use wrappers::CefWrap;
 
+use libc;
+use std::collections::HashMap;
+use std::mem;
+use std::ptr;

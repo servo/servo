@@ -106,14 +106,6 @@ pub struct _cef_navigation_entry_t {
       this: *mut cef_navigation_entry_t) -> libc::c_int>,
 
   //
-  // Returns the name of the sub-frame that navigated or an NULL value if the
-  // main frame navigated.
-  //
-  // The resulting string must be freed by calling cef_string_userfree_free().
-  pub get_frame_name: Option<extern "C" fn(
-      this: *mut cef_navigation_entry_t) -> types::cef_string_userfree_t>,
-
-  //
   // Returns the time for the last known successful navigation completion. A
   // navigation may be completed more than once if the page is reloaded. May be
   // 0 if the navigation has not yet completed.
@@ -321,23 +313,6 @@ impl CefNavigationEntry {
     unsafe {
       CefWrap::to_rust(
         ((*self.c_object).has_post_data.unwrap())(
-          self.c_object))
-    }
-  }
-
-  //
-  // Returns the name of the sub-frame that navigated or an NULL value if the
-  // main frame navigated.
-  //
-  // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_frame_name(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
-      panic!("called a CEF method on a null object")
-    }
-    unsafe {
-      CefWrap::to_rust(
-        ((*self.c_object).get_frame_name.unwrap())(
           self.c_object))
     }
   }
