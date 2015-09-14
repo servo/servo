@@ -69,6 +69,19 @@ pub struct cef_main_args {
 
 pub type cef_color_t = c_uint;
 
+pub enum cef_json_parser_error_t {
+  JSON_NO_ERROR = 0,
+  JSON_INVALID_ESCAPE,
+  JSON_SYNTAX_ERROR,
+  JSON_UNEXPECTED_TOKEN,
+  JSON_TRAILING_COMMA,
+  JSON_TOO_MUCH_NESTING,
+  JSON_UNEXPECTED_DATA_AFTER_ROOT,
+  JSON_UNSUPPORTED_ENCODING,
+  JSON_UNQUOTED_DICTIONARY_KEY,
+  JSON_PARSE_ERROR_COUNT
+}
+
 ///
 // Represents the state of a setting.
 ///
@@ -377,6 +390,22 @@ impl cef_rect {
             height: 0,
         }
     }
+}
+
+pub type cef_draggable_region_t = cef_draggable_region;
+///
+// Structure representing a draggable region.
+///
+pub struct cef_draggable_region {
+  ///
+  // Bounds of the region.
+  ///
+  pub bounds: cef_rect_t,
+
+  ///
+  // True (1) this this region is draggable and false (0) otherwise.
+  ///
+  pub draggable: i32
 }
 
 //
@@ -1915,3 +1944,90 @@ pub struct _cef_request_context_settings {
 
 pub type cef_request_context_settings_t = _cef_request_context_settings;
 pub type CefRequestContextSettings = cef_request_context_settings_t;
+
+///
+// Margin type for PDF printing.
+///
+pub enum cef_pdf_print_margin_type_t {
+  ///
+  // Default margins.
+  ///
+  PDF_PRINT_MARGIN_DEFAULT = 0,
+
+  ///
+  // No margins.
+  ///
+  PDF_PRINT_MARGIN_NONE,
+
+  ///
+  // Minimum margins.
+  ///
+  PDF_PRINT_MARGIN_MINIMUM,
+
+  ///
+  // Custom margins using the |margin_*| values from cef_pdf_print_settings_t.
+  ///
+  PDF_PRINT_MARGIN_CUSTOM,
+}
+
+///
+// Structure representing PDF print settings.
+///
+pub struct cef_pdf_print_settings {
+  ///
+  // Page title to display in the header. Only used if |header_footer_enabled|
+  // is set to true (1).
+  ///
+  pub header_footer_title: cef_string_t,
+
+  ///
+  // URL to display in the footer. Only used if |header_footer_enabled| is set
+  // to true (1).
+  ///
+  pub header_footer_url: cef_string_t,
+
+  ///
+  // Output page size in microns. If either of these values is less than or
+  // equal to zero then the default paper size (A4) will be used.
+  ///
+  pub page_width: i32,
+  pub page_height: i32,
+
+  ///
+  // Margins in millimeters. Only used if |margin_type| is set to
+  // PDF_PRINT_MARGIN_CUSTOM.
+  ///
+  pub margin_top: f64,
+  pub margin_right: f64,
+  pub margin_bottom: f64,
+  pub margin_left: f64,
+
+  ///
+  // Margin type.
+  ///
+  pub margin_type: cef_pdf_print_margin_type_t,
+
+  ///
+  // Set to true (1) to print headers and footers or false (0) to not print
+  // headers and footers.
+  ///
+  pub header_footer_enabled: i32,
+
+  ///
+  // Set to true (1) to print the selection only or false (0) to print all.
+  ///
+  pub selection_only: i32,
+
+  ///
+  // Set to true (1) for landscape mode or false (0) for portrait mode.
+  ///
+  pub landscape: i32,
+
+  ///
+  // Set to true (1) to print background graphics or false (0) to not print
+  // background graphics.
+  ///
+  pub backgrounds_enabled: i32,
+}
+pub type cef_pdf_print_settings_t = cef_pdf_print_settings;
+pub type CefPdfPrintSettings = cef_pdf_print_settings;
