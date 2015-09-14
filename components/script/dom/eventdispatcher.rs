@@ -24,8 +24,6 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     });
     event.set_dispatching(true);
 
-    let type_ = event.Type();
-
     //TODO: no chain if not participating in a tree
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = NodeCast::to_ref(target) {
@@ -35,9 +33,10 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
         }
     }
 
-    event.set_phase(EventPhase::Capturing);
+    let type_ = event.Type();
 
     /* capturing */
+    event.set_phase(EventPhase::Capturing);
     for cur_target in chain.r().iter().rev() {
         let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
             Some(listeners) => {
