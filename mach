@@ -16,7 +16,7 @@ import sys
 
 def main(args):
     topdir = os.path.dirname(sys.argv[0])
-    sys.path[0:0] = [os.path.join(topdir, "python")]
+    sys.path.insert(0, os.path.join(topdir, "python"))
     import mach_bootstrap
     mach = mach_bootstrap.bootstrap(topdir)
     sys.exit(mach.run(sys.argv[1:]))
