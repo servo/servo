@@ -81,6 +81,7 @@ pub use export::gleam::gl;
 use compositing::CompositorEventListener;
 use compositing::windowing::WindowEvent;
 
+use compositing::compositor_task::InitialCompositorState;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 
@@ -163,12 +164,13 @@ impl Browser {
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        let compositor = CompositorTask::create(window,
-                                                compositor_proxy,
-                                                compositor_receiver,
-                                                constellation_chan,
-                                                time_profiler_chan,
-                                                mem_profiler_chan);
+        let compositor = CompositorTask::create(window, InitialCompositorState {
+            sender: compositor_proxy,
+            receiver: compositor_receiver,
+            constellation_chan: constellation_chan,
+            time_profiler_chan: time_profiler_chan,
+            mem_profiler_chan: mem_profiler_chan,
+        });
 
         Browser {
             compositor: compositor,

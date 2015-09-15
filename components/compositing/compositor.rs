@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
-use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver, Msg};
+use compositor_task::{CompositorEventListener, CompositorProxy};
+use compositor_task::{CompositorReceiver, InitialCompositorState, Msg};
 use constellation::SendableFrameTree;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
@@ -248,23 +249,19 @@ pub fn reporter_name() -> String {
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
-    fn new(window: Rc<Window>,
-           sender: Box<CompositorProxy + Send>,
-           receiver: Box<CompositorReceiver>,
-           constellation_chan: ConstellationChan,
-           time_profiler_chan: time::ProfilerChan,
-           mem_profiler_chan: mem::ProfilerChan)
+    fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
         // Register this thread as a memory reporter, via its own channel.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-        let compositor_proxy_for_memory_reporter = sender.clone_compositor_proxy();
+        let compositor_proxy_for_memory_reporter = state.sender.clone_compositor_proxy();
         ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
             let reporter_request: ReporterRequest = reporter_request.to().unwrap();
             compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(
                     reporter_request.reports_channel));
         });
         let reporter = Reporter(reporter_sender);
-        mem_profiler_chan.send(mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
+        state.mem_profiler_chan.send(
+            mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
 
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
@@ -276,7 +273,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         IOCompositor {
             window: window,
             native_display: native_display,
-            port: receiver,
+            port: state.receiver,
             context: None,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
@@ -286,8 +283,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }),
             window_size: window_size,
             hidpi_factor: hidpi_factor,
-            channel_to_self: sender.clone_compositor_proxy(),
-            scrolling_timer: ScrollingTimerProxy::new(sender),
+            channel_to_self: state.sender.clone_compositor_proxy(),
+            scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             pending_scroll_events: Vec::new(),
             composite_target: composite_target,
@@ -300,9 +297,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             zoom_time: 0f64,
             got_load_complete_message: false,
             frame_tree_id: FrameTreeId(0),
-            constellation_chan: constellation_chan,
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            constellation_chan: state.constellation_chan,
+            time_profiler_chan: state.time_profiler_chan,
+            mem_profiler_chan: state.mem_profiler_chan,
             fragment_point: None,
             last_composite_time: 0,
             has_seen_quit_event: false,
@@ -311,19 +308,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn create(window: Rc<Window>,
-                  sender: Box<CompositorProxy + Send>,
-                  receiver: Box<CompositorReceiver>,
-                  constellation_chan: ConstellationChan,
-                  time_profiler_chan: time::ProfilerChan,
-                  mem_profiler_chan: mem::ProfilerChan)
+    pub fn create(window: Rc<Window>, state: InitialCompositorState)
                   -> IOCompositor<Window> {
-        let mut compositor = IOCompositor::new(window,
-                                               sender,
-                                               receiver,
-                                               constellation_chan,
-                                               time_profiler_chan,
-                                               mem_profiler_chan);
+        let mut compositor = IOCompositor::new(window, state);
 
         // Set the size of the root layer.
         compositor.update_zoom_transform();

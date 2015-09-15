@@ -260,28 +260,16 @@ pub struct CompositorTask;
 
 impl CompositorTask {
     pub fn create<Window>(window: Option<Rc<Window>>,
-                          sender: Box<CompositorProxy + Send>,
-                          receiver: Box<CompositorReceiver>,
-                          constellation_chan: ConstellationChan,
-                          time_profiler_chan: time::ProfilerChan,
-                          mem_profiler_chan: mem::ProfilerChan)
+                          state: InitialCompositorState)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
         match window {
             Some(window) => {
-                box compositor::IOCompositor::create(window,
-                                                     sender,
-                                                     receiver,
-                                                     constellation_chan,
-                                                     time_profiler_chan,
-                                                     mem_profiler_chan)
+                box compositor::IOCompositor::create(window, state)
                     as Box<CompositorEventListener>
             }
             None => {
-                box headless::NullCompositor::create(receiver,
-                                                     constellation_chan,
-                                                     time_profiler_chan,
-                                                     mem_profiler_chan)
+                box headless::NullCompositor::create(state)
                     as Box<CompositorEventListener>
             }
         }
@@ -295,4 +283,18 @@ pub trait CompositorEventListener {
     fn pinch_zoom_level(&self) -> f32;
     /// Requests that the compositor send the title for the main frame as soon as possible.
     fn title_for_main_frame(&self);
+}
+
+/// Data used to construct a compositor.
+pub struct InitialCompositorState {
+    /// A channel to the compositor.
+    pub sender: Box<CompositorProxy + Send>,
+    /// A port on which messages inbound to the compositor can be received.
+    pub receiver: Box<CompositorReceiver>,
+    /// A channel to the constellation.
+    pub constellation_chan: ConstellationChan,
+    /// A channel to the time profiler thread.
+    pub time_profiler_chan: time::ProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub mem_profiler_chan: mem::ProfilerChan,
 }

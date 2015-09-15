@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
+use compositor_task::{CompositorEventListener, CompositorReceiver};
+use compositor_task::{InitialCompositorState, Msg};
 use windowing::WindowEvent;
 
 use euclid::scale_factor::ScaleFactor;
@@ -29,28 +30,17 @@ pub struct NullCompositor {
 }
 
 impl NullCompositor {
-    fn new(port: Box<CompositorReceiver>,
-           constellation_chan: ConstellationChan,
-           time_profiler_chan: time::ProfilerChan,
-           mem_profiler_chan: mem::ProfilerChan)
-           -> NullCompositor {
+    fn new(state: InitialCompositorState) -> NullCompositor {
         NullCompositor {
-            port: port,
-            constellation_chan: constellation_chan,
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            port: state.receiver,
+            constellation_chan: state.constellation_chan,
+            time_profiler_chan: state.time_profiler_chan,
+            mem_profiler_chan: state.mem_profiler_chan,
         }
     }
 
-    pub fn create(port: Box<CompositorReceiver>,
-                  constellation_chan: ConstellationChan,
-                  time_profiler_chan: time::ProfilerChan,
-                  mem_profiler_chan: mem::ProfilerChan)
-                  -> NullCompositor {
-        let compositor = NullCompositor::new(port,
-                                             constellation_chan,
-                                             time_profiler_chan,
-                                             mem_profiler_chan);
+    pub fn create(state: InitialCompositorState) -> NullCompositor {
+        let compositor = NullCompositor::new(state);
 
         // Tell the constellation about the initial fake size.
         {
