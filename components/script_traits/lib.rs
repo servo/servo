@@ -171,26 +171,46 @@ pub enum CompositorEvent {
 /// crates that don't need to know about them.
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
 
+/// Data needed to construct a script thread.
+pub struct InitialScriptState {
+    /// The ID of the pipeline with which this script thread is associated.
+    pub id: PipelineId,
+    /// The subpage ID of this pipeline to create in its pipeline parent.
+    /// If `None`, this is the root.
+    pub parent_info: Option<(PipelineId, SubpageId)>,
+    /// The compositor.
+    pub compositor: IpcSender<ScriptToCompositorMsg>,
+    /// A channel with which messages can be sent to us (the script task).
+    pub control_chan: Sender<ConstellationControlMsg>,
+    /// A port on which messages sent by the constellation to script can be received.
+    pub control_port: Receiver<ConstellationControlMsg>,
+    /// A channel on which messages can be sent to the constellation from script.
+    pub constellation_chan: ConstellationChan,
+    /// Information that script sends out when it panics.
+    pub failure_info: Failure,
+    /// A channel to the resource manager task.
+    pub resource_task: ResourceTask,
+    /// A channel to the storage task.
+    pub storage_task: StorageTask,
+    /// A channel to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+    /// A channel to the time profiler thread.
+    pub time_profiler_chan: time::ProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub mem_profiler_chan: mem::ProfilerChan,
+    /// A channel to the developer tools, if applicable.
+    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    /// Information about the initial window size.
+    pub window_size: Option<WindowSizeData>,
+}
+
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
 pub trait ScriptTaskFactory {
     /// Create a `ScriptTask`.
     fn create(_phantom: Option<&mut Self>,
-              id: PipelineId,
-              parent_info: Option<(PipelineId, SubpageId)>,
-              compositor: IpcSender<ScriptToCompositorMsg>,
+              state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
-              control_chan: Sender<ConstellationControlMsg>,
-              control_port: Receiver<ConstellationControlMsg>,
-              constellation_msg: ConstellationChan,
-              failure_msg: Failure,
-              resource_task: ResourceTask,
-              storage_task: StorageTask,
-              image_cache_task: ImageCacheTask,
-              time_profiler_chan: time::ProfilerChan,
-              mem_profiler_chan: mem::ProfilerChan,
-              devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-              window_size: Option<WindowSizeData>,
               load_data: LoadData);
     /// Create a script -> layout channel (`Sender`, `Receiver` pair).
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;

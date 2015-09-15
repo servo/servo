@@ -4,8 +4,8 @@
 
 use CompositorProxy;
 use layout_traits::{LayoutTaskFactory, LayoutControlChan};
-use script_traits::{LayoutControlMsg, ScriptTaskFactory};
-use script_traits::{NewLayoutInfo, ConstellationControlMsg};
+use script_traits::{ConstellationControlMsg, InitialScriptState};
+use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptTaskFactory};
 
 use compositor_task;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
@@ -340,23 +340,22 @@ impl PipelineContent {
                 script_to_compositor_port)
         });
 
-        ScriptTaskFactory::create(None::<&mut STF>,
-                                  self.id,
-                                  self.parent_info,
-                                  script_to_compositor_chan,
-                                  &layout_pair,
-                                  self.script_chan.clone(),
-                                  mem::replace(&mut self.script_port, None).unwrap(),
-                                  self.constellation_chan.clone(),
-                                  self.failure.clone(),
-                                  self.resource_task,
-                                  self.storage_task.clone(),
-                                  self.image_cache_task.clone(),
-                                  self.time_profiler_chan.clone(),
-                                  self.mem_profiler_chan.clone(),
-                                  self.devtools_chan,
-                                  self.window_size,
-                                  self.load_data.clone());
+        ScriptTaskFactory::create(None::<&mut STF>, InitialScriptState {
+            id: self.id,
+            parent_info: self.parent_info,
+            compositor: script_to_compositor_chan,
+            control_chan: self.script_chan.clone(),
+            control_port: mem::replace(&mut self.script_port, None).unwrap(),
+            constellation_chan: self.constellation_chan.clone(),
+            failure_info: self.failure.clone(),
+            resource_task: self.resource_task,
+            storage_task: self.storage_task.clone(),
+            image_cache_task: self.image_cache_task.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            devtools_chan: self.devtools_chan,
+            window_size: self.window_size,
+        }, &layout_pair, self.load_data.clone());
 
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   self.id,
