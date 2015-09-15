@@ -798,12 +798,19 @@ impl Document {
         match key {
             Key::Space if !prevented && state == KeyState::Released => {
                 let maybe_elem: Option<&Element> = ElementCast::to_ref(target);
-                maybe_elem.map(
-                    |el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
+                if let Some(el) = maybe_elem {
+                    if let Some(a) = el.as_maybe_activatable() {
+                        a.synthetic_click_activation(ctrl, alt, shift, meta);
+                    }
+                }
             }
             Key::Enter if !prevented && state == KeyState::Released => {
                 let maybe_elem: Option<&Element> = ElementCast::to_ref(target);
-                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.implicit_submission(ctrl, alt, shift, meta)));
+                if let Some(el) = maybe_elem {
+                    if let Some(a) = el.as_maybe_activatable() {
+                        a.implicit_submission(ctrl, alt, shift, meta);
+                    }
+                }
             }
             _ => ()
         }
