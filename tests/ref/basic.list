@@ -121,6 +121,7 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == focus_selector.html focus_selector_ref.html
 == font_advance.html font_advance_ref.html
 == font_color_attribute_a.html font_color_attribute_ref.html
+== font_face_attribute.html font_face_attribute_ref.html
 == font_size.html font_size_ref.html
 == font_style.html font_style_ref.html
 == height_compute_reset.html height_compute.html
