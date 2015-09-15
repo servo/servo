@@ -533,7 +533,7 @@ impl<'a> GlyphStore {
         assert!(i < self.char_len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
+        debug!("adding spacer for character without associated glyph[idx={:?}]", i);
 
         self.entry_buffer[i.to_usize()] = entry;
     }
