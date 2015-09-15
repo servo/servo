@@ -37,14 +37,14 @@ On Fedora:
 ``` sh
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
+    fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel
 ```
 
 On Arch Linux:
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa cmake bzip2 libxmu
+sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu
 ```
 
 Cross-compilation for Android:
