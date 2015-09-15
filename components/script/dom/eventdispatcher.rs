@@ -148,7 +148,6 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
 
     event.set_dispatching(true);
 
-    //TODO: no chain if not participating in a tree
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = NodeCast::to_ref(target) {
         for ancestor in target_node.ancestors() {
