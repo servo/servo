@@ -87,6 +87,11 @@ def check_whatwg_url(idx, line):
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
+def check_extra_ptr_deref(idx, line):
+    match = re.search(r": &Vec<", line)
+    if match is not None:
+        yield (idx  +1, "use &[T] instead of &Vec<T>")
+
 def check_whitespace(idx, line):
     if line[-1] == "\n":
         line = line[:-1]
@@ -110,6 +115,7 @@ def check_by_line(file_name, contents):
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
             check_whatwg_url(idx, line),
+            check_extra_ptr_deref(idx, line)
         )
         for error in errors:
             yield error
