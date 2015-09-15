@@ -97,23 +97,24 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     }
 
     /* bubbling */
-    if event.bubbles() {
-        event.set_phase(EventPhase::Bubbling);
+    if !event.bubbles() {
+        return;
+    }
 
-        for cur_target in chain {
-            if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
-                event.set_current_target(cur_target);
-                for listener in &listeners {
-                    handle_event(window.r(), listener, *cur_target, event);
+    event.set_phase(EventPhase::Bubbling);
+    for cur_target in chain {
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
+            event.set_current_target(cur_target);
+            for listener in &listeners {
+                handle_event(window.r(), listener, *cur_target, event);
 
-                    if event.stop_immediate() {
-                        return;
-                    }
-                }
-
-                if event.stop_propagation() {
+                if event.stop_immediate() {
                     return;
                 }
+            }
+
+            if event.stop_propagation() {
+                return;
             }
         }
     }
