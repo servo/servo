@@ -37,6 +37,7 @@ use incremental::RestyleDamage;
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
+use gfx::text::glyph::CharIndex;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use script::dom::attr::AttrValue;
@@ -904,7 +905,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// its content. Otherwise, panics.
     ///
     /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
-    pub fn text_content(&self) -> Vec<ContentItem> {
+    pub fn text_content(&self) -> TextContent {
         if self.pseudo != PseudoElementType::Normal {
             let layout_data_ref = self.borrow_layout_data();
             let data = &layout_data_ref.as_ref().unwrap().data;
@@ -915,8 +916,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 &data.after_style
             };
             return match style.as_ref().unwrap().get_box().content {
-                content::T::Content(ref value) if !value.is_empty() => (*value).clone(),
-                _ => vec![],
+                content::T::Content(ref value) if !value.is_empty() => {
+                    TextContent::GeneratedContent((*value).clone())
+                }
+                _ => TextContent::GeneratedContent(vec![]),
             };
         }
 
@@ -926,20 +929,46 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let data = unsafe {
                 CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned()
             };
-            return vec![ContentItem::String(data)];
+            return TextContent::Text(data);
         }
         let input = HTMLInputElementCast::to_layout_js(this);
         if let Some(input) = input {
             let data = unsafe { input.get_value_for_layout() };
-            return vec![ContentItem::String(data)];
+            return TextContent::Text(data);
         }
         let area = HTMLTextAreaElementCast::to_layout_js(this);
         if let Some(area) = area {
             let data = unsafe { area.get_value_for_layout() };
-            return vec![ContentItem::String(data)];
+            return TextContent::Text(data);
         }
 
         panic!("not text!")
+    }
+
+    /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
+    pub fn insertion_point(&self) -> Option<CharIndex> {
+        let this = unsafe {
+            self.get_jsmanaged()
+        };
+        let input = HTMLInputElementCast::to_layout_js(this);
+        if let Some(input) = input {
+            let insertion_point = unsafe {
+                input.get_insertion_point_for_layout()
+            };
+            let text = unsafe {
+                input.get_value_for_layout()
+            };
+
+            let mut character_count = 0;
+            for (character_index, _) in text.char_indices() {
+                if character_index == insertion_point.index {
+                    return Some(CharIndex(character_count))
+                }
+                character_count += 1
+            }
+            return Some(CharIndex(character_count))
+        }
+        None
     }
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
@@ -1090,3 +1119,18 @@ pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> La
     let (node, _) = *node;
     mem::transmute(node)
 }
+
+pub enum TextContent {
+    Text(String),
+    GeneratedContent(Vec<ContentItem>),
+}
+
+impl TextContent {
+    pub fn is_empty(&self) -> bool {
+        match *self {
+            TextContent::Text(_) => false,
+            TextContent::GeneratedContent(ref content) => content.is_empty(),
+        }
+    }
+}
+
