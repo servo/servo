@@ -332,6 +332,7 @@ impl Shaper {
 
             let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.begin());
             char_byte_span.reset(char_byte_start as usize, 0);
+            let mut glyph_spans_multiple_characters = false;
 
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
@@ -350,6 +351,7 @@ impl Shaper {
                     let range = text.char_range_at(char_byte_span.end());
                     drop(range.ch);
                     char_byte_span.extend_to(range.next);
+                    glyph_spans_multiple_characters = true;
                 }
 
                 // extend glyph range to max glyph index covered by char_span,
@@ -435,7 +437,7 @@ impl Shaper {
             covered_byte_span.extend_to(cmp::min(end, byte_max));
 
             // fast path: 1-to-1 mapping of single char and single glyph.
-            if glyph_span.length() == 1 {
+            if glyph_span.length() == 1 && !glyph_spans_multiple_characters {
                 // TODO(Issue #214): cluster ranges need to be computed before
                 // shaping, and then consulted here.
                 // for now, just pretend that every character is a cluster start.
