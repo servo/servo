@@ -82,6 +82,7 @@ use compositing::CompositorEventListener;
 use compositing::windowing::WindowEvent;
 
 use compositing::compositor_task::InitialCompositorState;
+use compositing::constellation::InitialConstellationState;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 
@@ -210,17 +211,20 @@ fn create_constellation(opts: opts::Opts,
     let font_cache_task = FontCacheTask::new(resource_task.clone());
     let storage_task: StorageTask = StorageTaskFactory::new();
 
-    let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
-    script::script_task::ScriptTask>::start(
-        compositor_proxy,
-        resource_task,
-        image_cache_task,
-        font_cache_task,
-        time_profiler_chan,
-        mem_profiler_chan,
-        devtools_chan,
-        storage_task,
-        supports_clipboard);
+    let initial_state = InitialConstellationState {
+        compositor_proxy: compositor_proxy,
+        devtools_chan: devtools_chan,
+        image_cache_task: image_cache_task,
+        font_cache_task: font_cache_task,
+        resource_task: resource_task,
+        storage_task: storage_task,
+        time_profiler_chan: time_profiler_chan,
+        mem_profiler_chan: mem_profiler_chan,
+        supports_clipboard: supports_clipboard,
+    };
+    let constellation_chan =
+        Constellation::<layout::layout_task::LayoutTask,
+                        script::script_task::ScriptTask>::start(initial_state);
 
     // Send the URL command to the constellation.
     match opts.url {
