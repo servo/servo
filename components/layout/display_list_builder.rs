@@ -1024,6 +1024,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &clip);
                 }
             }
+
             if !self.is_scanned_text_fragment() {
                 self.build_display_list_for_box_shadow_if_applicable(&*self.style,
                                                                      display_list,
@@ -2107,3 +2108,4 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
+

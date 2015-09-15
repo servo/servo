@@ -529,7 +529,10 @@ impl<'a> GlyphStore {
     }
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
-    pub fn add_nonglyph_for_char_index(&mut self, i: CharIndex, cluster_start: bool, ligature_start: bool) {
+    pub fn add_nonglyph_for_char_index(&mut self,
+                                       i: CharIndex,
+                                       cluster_start: bool,
+                                       ligature_start: bool) {
         assert!(i < self.char_len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
@@ -692,8 +695,10 @@ impl<'a> GlyphIterator<'a> {
     #[inline(never)]
     fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
         match self.glyph_range.as_mut().unwrap().next() {
-            Some(j) => Some((self.char_index,
-                GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */))),
+            Some(j) => {
+                Some((self.char_index,
+                    GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */)))
+            }
             None => {
                 // No more glyphs for current character.  Try to get another.
                 self.glyph_range = None;
