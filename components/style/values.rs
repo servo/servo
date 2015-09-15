@@ -842,6 +842,21 @@ pub mod specified {
             let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
                 BorderRadiusSize(Size2D::new(zero, zero))
         }
+
+        pub fn new(width: LengthOrPercentage, height: LengthOrPercentage) -> BorderRadiusSize {
+            BorderRadiusSize(Size2D::new(width, height))
+        }
+
+        pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
+            BorderRadiusSize(Size2D::new(radius, radius))
+        }
+
+        #[inline]
+        pub fn parse(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
+            let first = try!(LengthOrPercentage::parse_non_negative(input));
+            let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
+            Ok(BorderRadiusSize(Size2D::new(first, second)))
+        }
     }
 
     impl ToCss for BorderRadiusSize {
@@ -850,27 +865,6 @@ pub mod specified {
             try!(size.width.to_css(dest));
             try!(dest.write_str(" "));
             size.height.to_css(dest)
-        }
-    }
-    impl BorderRadiusSize {
-        pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
-            BorderRadiusSize(Size2D::new(radius, radius))
-        }
-
-        pub fn parse_one_radii(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
-            if let Ok(first) = LengthOrPercentage::parse_non_negative(input) {
-                Ok(BorderRadiusSize(Size2D::new(first, first)))
-            } else {
-                Err(())
-            }
-        }
-
-        #[allow(dead_code)]
-        #[inline]
-        pub fn parse(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
-            let first = try!(LengthOrPercentage::parse_non_negative(input));
-            let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
-            Ok(BorderRadiusSize(Size2D::new(first, second)))
         }
     }
 
