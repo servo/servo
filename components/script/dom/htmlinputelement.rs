@@ -144,6 +144,8 @@ pub trait LayoutHTMLInputElementHelpers {
     unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32;
+    #[allow(unsafe_code)]
+    unsafe fn get_insertion_point_for_layout(self) -> TextPoint;
 }
 
 pub trait RawLayoutHTMLInputElementHelpers {
@@ -193,6 +195,12 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32 {
         (*self.unsafe_get()).get_size_for_layout()
+    }
+
+    #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
+    unsafe fn get_insertion_point_for_layout(self) -> TextPoint {
+        (*self.unsafe_get()).textinput.borrow_for_layout().edit_point
     }
 }
 

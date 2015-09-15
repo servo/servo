@@ -37,6 +37,7 @@ use incremental::RestyleDamage;
 use opaque_node::OpaqueNodeMethods;
 
 use gfx::display_list::OpaqueNode;
+use gfx::text::glyph::CharIndex;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use script::dom::attr::AttrValue;
@@ -940,6 +941,32 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         panic!("not text!")
+    }
+
+    /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
+    pub fn insertion_point(&self) -> Option<CharIndex> {
+        let this = unsafe {
+            self.get_jsmanaged()
+        };
+        let input = HTMLInputElementCast::to_layout_js(this);
+        if let Some(input) = input {
+            let insertion_point = unsafe {
+                input.get_insertion_point_for_layout()
+            };
+            let text = unsafe {
+                input.get_value_for_layout()
+            };
+
+            let mut character_count = 0;
+            for (character_index, _) in text.char_indices() {
+                if character_index == insertion_point.index {
+                    return Some(CharIndex(character_count))
+                }
+                character_count += 1
+            }
+            return Some(CharIndex(character_count))
+        }
+        None
     }
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.

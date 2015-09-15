@@ -583,7 +583,7 @@ impl<'a> FlowConstructor<'a> {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
-                    UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                    UnscannedTextFragmentInfo::new(" ".to_owned(), None));
                 properties::modify_style_for_replaced_content(&mut whitespace_style);
                 properties::modify_style_for_text(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
@@ -714,12 +714,13 @@ impl<'a> FlowConstructor<'a> {
             return
         }
 
+        let insertion_point = node.insertion_point();
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
         for content_item in text_content {
             let specific = match content_item {
                 ContentItem::String(string) => {
-                    let info = UnscannedTextFragmentInfo::from_text(string);
+                    let info = UnscannedTextFragmentInfo::new(string, insertion_point);
                     SpecificFragmentInfo::UnscannedText(info)
                 }
                 content_item => {
@@ -851,7 +852,7 @@ impl<'a> FlowConstructor<'a> {
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
-                        UnscannedTextFragmentInfo::from_text(" ".to_owned()));
+                        UnscannedTextFragmentInfo::new(" ".to_owned(), None));
                     properties::modify_style_for_replaced_content(&mut whitespace_style);
                     properties::modify_style_for_text(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
@@ -1199,7 +1200,7 @@ impl<'a> FlowConstructor<'a> {
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
                             SpecificFragmentInfo::UnscannedText(
-                                UnscannedTextFragmentInfo::from_text(text))));
+                                UnscannedTextFragmentInfo::new(text, None))));
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
                             &mut self.layout_context.font_context(),
                             unscanned_marker_fragments);
@@ -1793,7 +1794,7 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
                              restyle_damage: RestyleDamage)
                              -> Fragment {
     let info = SpecificFragmentInfo::UnscannedText(
-        UnscannedTextFragmentInfo::from_text(String::from(text)));
+        UnscannedTextFragmentInfo::new(String::from(text), None));
     let mut style = node.style.clone();
     properties::modify_style_for_text(&mut style);
     Fragment::from_opaque_node_and_style(node.address,
