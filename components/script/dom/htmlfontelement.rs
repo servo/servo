@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
@@ -15,11 +16,9 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
+use std::cell::Cell;
 use string_cache::Atom;
 use util::str::{self, DOMString};
-
-use cssparser::RGBA;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLFontElement {
