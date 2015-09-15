@@ -338,7 +338,6 @@ impl Shaper {
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end() < byte_max {
                 let range = text.char_range_at(char_byte_span.end());
-                drop(range.ch);
                 char_byte_span.extend_to(range.next);
 
                 debug!("Processing char byte span: off={}, len={} for glyph idx={}",
@@ -349,7 +348,6 @@ impl Shaper {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end());
                     let range = text.char_range_at(char_byte_span.end());
-                    drop(range.ch);
                     char_byte_span.extend_to(range.next);
                     glyph_spans_multiple_characters = true;
                 }
@@ -482,7 +480,6 @@ impl Shaper {
                 let mut i = covered_byte_span.begin();
                 loop {
                     let range = text.char_range_at(i);
-                    drop(range.ch);
                     i = range.next;
                     if i >= covered_byte_span.end() { break; }
                     char_idx = char_idx + char_step;
