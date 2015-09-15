@@ -8,6 +8,7 @@ use euclid::point::Point2D;
 use simd::u32x4;
 
 use std::cmp::{Ordering, PartialOrd};
+use std::fmt;
 use std::mem;
 use std::u16;
 use std::vec::Vec;
@@ -23,7 +24,7 @@ use util::vec::*;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Debug, Copy, Deserialize, Serialize)]
+#[derive(Clone, Debug, Copy, Deserialize, Serialize, PartialEq)]
 struct GlyphEntry {
     value: u32,
 }
@@ -71,6 +72,10 @@ impl GlyphEntry {
         assert!(glyph_count <= u16::MAX as usize);
 
         GlyphEntry::new(glyph_count as u32)
+    }
+
+    fn is_initial(&self) -> bool {
+        *self == GlyphEntry::initial()
     }
 }
 
@@ -642,6 +647,34 @@ impl<'a> GlyphStore {
                     (advance << GLYPH_ADVANCE_SHIFT);
             }
         }
+    }
+}
+
+impl fmt::Debug for GlyphStore {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(formatter, "GlyphStore:\n"));
+        let mut detailed_buffer = self.detail_store.detail_buffer.iter();
+        for entry in self.entry_buffer.iter() {
+            if entry.is_simple() {
+                try!(write!(formatter,
+                            "  simple id={:?} advance={:?}\n",
+                            entry.id(),
+                            entry.advance()));
+                continue
+            }
+            if entry.is_initial() {
+                continue
+            }
+            try!(write!(formatter, "  complex..."));
+            if detailed_buffer.next().is_none() {
+                continue
+            }
+            try!(write!(formatter,
+                        "  detailed id={:?} advance={:?}\n",
+                        entry.id(),
+                        entry.advance()));
+        }
+        Ok(())
     }
 }
 
