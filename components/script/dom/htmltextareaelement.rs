@@ -350,6 +350,9 @@ impl VirtualMethods for HTMLTextAreaElement {
 
                         self.force_relayout();
                     }
+                    KeyReaction::RedrawSelection => {
+                        self.force_relayout();
+                    }
                     KeyReaction::Nothing => (),
                 }
             });

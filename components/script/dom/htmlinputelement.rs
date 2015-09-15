@@ -27,9 +27,9 @@ use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing, RedrawSelection};
 use textinput::Lines::Single;
-use textinput::TextInput;
+use textinput::{TextInput, TextPoint};
 
 use string_cache::Atom;
 use util::str::DOMString;
@@ -598,6 +598,9 @@ impl VirtualMethods for HTMLInputElement {
                             self.value_changed.set(true);
                             self.force_relayout();
                             event.PreventDefault();
+                        }
+                        RedrawSelection => {
+                            self.force_relayout();
                         }
                         Nothing => (),
                     }
