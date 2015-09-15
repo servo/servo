@@ -9,7 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
-use pipeline::{Pipeline, CompositionPipeline};
+use pipeline::{Pipeline, CompositionPipeline, InitialPipelineState};
 
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
@@ -296,21 +296,23 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let spawning_paint_only = script_channel.is_some();
         let (pipeline, mut pipeline_content) =
-            Pipeline::create::<LTF, STF>(pipeline_id,
-                                         parent_info,
-                                         self.chan.clone(),
-                                         self.compositor_proxy.clone_compositor_proxy(),
-                                         self.devtools_chan.clone(),
-                                         self.image_cache_task.clone(),
-                                         self.font_cache_task.clone(),
-                                         self.resource_task.clone(),
-                                         self.storage_task.clone(),
-                                         self.time_profiler_chan.clone(),
-                                         self.mem_profiler_chan.clone(),
-                                         initial_window_rect,
-                                         script_channel,
-                                         load_data,
-                                         self.window_size.device_pixel_ratio);
+            Pipeline::create::<LTF, STF>(InitialPipelineState {
+                id: pipeline_id,
+                parent_info: parent_info,
+                constellation_chan: self.chan.clone(),
+                compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+                devtools_chan: self.devtools_chan.clone(),
+                image_cache_task: self.image_cache_task.clone(),
+                font_cache_task: self.font_cache_task.clone(),
+                resource_task: self.resource_task.clone(),
+                storage_task: self.storage_task.clone(),
+                time_profiler_chan: self.time_profiler_chan.clone(),
+                mem_profiler_chan: self.mem_profiler_chan.clone(),
+                window_rect: initial_window_rect,
+                script_chan: script_channel,
+                load_data: load_data,
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
+            });
 
         // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
         // the content process and call this over there.

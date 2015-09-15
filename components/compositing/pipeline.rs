@@ -63,25 +63,46 @@ pub struct CompositionPipeline {
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }
 
+/// Initial setup data needed to construct a pipeline.
+pub struct InitialPipelineState {
+    /// The ID of the pipeline to create.
+    pub id: PipelineId,
+    /// The subpage ID of this pipeline to create in its pipeline parent.
+    /// If `None`, this is the root.
+    pub parent_info: Option<(PipelineId, SubpageId)>,
+    /// A channel to the associated constellation.
+    pub constellation_chan: ConstellationChan,
+    /// A channel to the compositor.
+    pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
+    /// A channel to the developer tools, if applicable.
+    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    /// A channel to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+    /// A channel to the font cache task.
+    pub font_cache_task: FontCacheTask,
+    /// A channel to the resource task.
+    pub resource_task: ResourceTask,
+    /// A channel to the storage task.
+    pub storage_task: StorageTask,
+    /// A channel to the time profiler thread.
+    pub time_profiler_chan: time::ProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub mem_profiler_chan: profile_mem::ProfilerChan,
+    /// Information about the initial window size.
+    pub window_rect: Option<TypedRect<PagePx, f32>>,
+    /// Information about the device pixel ratio.
+    pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
+    /// A channel to the script thread, if applicable. If this is `Some`,
+    /// then `parent_info` must also be `Some`.
+    pub script_chan: Option<Sender<ConstellationControlMsg>>,
+    /// Information about the page to load.
+    pub load_data: LoadData,
+}
+
 impl Pipeline {
     /// Starts a paint task, layout task, and possibly a script task.
     /// Returns the channels wrapped in a struct.
-    /// If script_pipeline is not None, then subpage_id must also be not None.
-    pub fn create<LTF, STF>(id: PipelineId,
-                            parent_info: Option<(PipelineId, SubpageId)>,
-                            constellation_chan: ConstellationChan,
-                            compositor_proxy: Box<CompositorProxy + 'static + Send>,
-                            devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            image_cache_task: ImageCacheTask,
-                            font_cache_task: FontCacheTask,
-                            resource_task: ResourceTask,
-                            storage_task: StorageTask,
-                            time_profiler_chan: time::ProfilerChan,
-                            mem_profiler_chan: profile_mem::ProfilerChan,
-                            window_rect: Option<TypedRect<PagePx, f32>>,
-                            script_chan: Option<Sender<ConstellationControlMsg>>,
-                            load_data: LoadData,
-                            device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>)
+    pub fn create<LTF, STF>(state: InitialPipelineState)
                             -> (Pipeline, PipelineContent)
                             where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
@@ -92,20 +113,20 @@ impl Pipeline {
         let mut pipeline_port = Some(pipeline_port);
 
         let failure = Failure {
-            pipeline_id: id,
-            parent_info: parent_info,
+            pipeline_id: state.id,
+            parent_info: state.parent_info,
         };
 
-        let window_size = window_rect.map(|rect| {
+        let window_size = state.window_rect.map(|rect| {
             WindowSizeData {
                 visible_viewport: rect.size,
                 initial_viewport: rect.size * ScaleFactor::new(1.0),
-                device_pixel_ratio: device_pixel_ratio,
+                device_pixel_ratio: state.device_pixel_ratio,
             }
         });
 
         // Route messages coming from content to devtools as appropriate.
-        let script_to_devtools_chan = devtools_chan.as_ref().map(|devtools_chan| {
+        let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
             let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel().unwrap();
             let devtools_chan = (*devtools_chan).clone();
             ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
@@ -115,15 +136,15 @@ impl Pipeline {
             script_to_devtools_chan
         });
 
-        let (script_chan, script_port) = match script_chan {
+        let (script_chan, script_port) = match state.script_chan {
             Some(script_chan) => {
                 let (containing_pipeline_id, subpage_id) =
-                    parent_info.expect("script_pipeline != None but subpage_id == None");
+                    state.parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
-                    new_pipeline_id: id,
+                    new_pipeline_id: state.id,
                     subpage_id: subpage_id,
-                    load_data: load_data.clone(),
+                    load_data: state.load_data.clone(),
                     paint_chan: box layout_to_paint_chan.clone() as Box<Any + Send>,
                     failure: failure,
                     pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
@@ -140,31 +161,31 @@ impl Pipeline {
             }
         };
 
-        let pipeline = Pipeline::new(id,
-                                     parent_info,
+        let pipeline = Pipeline::new(state.id,
+                                     state.parent_info,
                                      script_chan.clone(),
                                      LayoutControlChan(pipeline_chan),
                                      chrome_to_paint_chan.clone(),
                                      layout_shutdown_port,
                                      paint_shutdown_port,
-                                     load_data.url.clone(),
-                                     window_rect);
+                                     state.load_data.url.clone(),
+                                     state.window_rect);
 
         let pipeline_content = PipelineContent {
-            id: id,
-            parent_info: parent_info,
-            constellation_chan: constellation_chan,
-            compositor_proxy: compositor_proxy,
+            id: state.id,
+            parent_info: state.parent_info,
+            constellation_chan: state.constellation_chan,
+            compositor_proxy: state.compositor_proxy,
             devtools_chan: script_to_devtools_chan,
-            image_cache_task: image_cache_task,
-            font_cache_task: font_cache_task,
-            resource_task: resource_task,
-            storage_task: storage_task,
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            image_cache_task: state.image_cache_task,
+            font_cache_task: state.font_cache_task,
+            resource_task: state.resource_task,
+            storage_task: state.storage_task,
+            time_profiler_chan: state.time_profiler_chan,
+            mem_profiler_chan: state.mem_profiler_chan,
             window_size: window_size,
             script_chan: script_chan,
-            load_data: load_data,
+            load_data: state.load_data,
             failure: failure,
             script_port: script_port,
             layout_to_paint_chan: layout_to_paint_chan,
