@@ -51,6 +51,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("derive_HeapSizeOf"), MultiDecorator(box heap_size::expand_heap_size));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
+    reg.register_lint_pass(box lints::sorter::Sorter as LintPassObject);
     reg.register_lint_pass(box lints::transmute_type::TransmutePass as LintPassObject);
     reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass::new() as LintPassObject);
     reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
