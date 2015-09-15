@@ -57,14 +57,14 @@ pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSe
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                             classifier: Arc<MIMEClassifier>, partial_body: &[u8])
                              -> ProgressSender {
     start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
+                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8])
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094

@@ -111,6 +111,7 @@ def check_by_line(file_name, contents):
             check_whitespace(idx, line),
             check_whatwg_url(idx, line),
         )
+
         for error in errors:
             yield error
 
@@ -348,6 +349,10 @@ def check_rust(file_name, contents):
                     found = "\n\t\033[91mfound: {}\033[0m".format(mods[i])
                     yield (idx + 1 - len(mods) + i, message + expected + found)
             mods = []
+
+        # There should not be any extra pointer dereferencing
+        if re.search(r": &Vec<", line) is not None:
+            yield (idx + 1, "use &[T] instead of &Vec<T>")
 
 
 # Avoid flagging <Item=Foo> constructs

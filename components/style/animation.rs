@@ -736,8 +736,8 @@ impl Interpolate for TextShadowList {
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-fn can_interpolate_list(from_list: &Vec<TransformOperation>,
-                        to_list: &Vec<TransformOperation>) -> bool {
+fn can_interpolate_list(from_list: &[TransformOperation],
+                        to_list: &[TransformOperation]) -> bool {
     // Lists must be equal length
     if from_list.len() != to_list.len() {
         return false;
@@ -763,8 +763,8 @@ fn can_interpolate_list(from_list: &Vec<TransformOperation>,
 
 /// Interpolate two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
-                              to_list: &Vec<TransformOperation>,
+fn interpolate_transform_list(from_list: &[TransformOperation],
+                              to_list: &[TransformOperation],
                               time: f64) -> TransformList {
     let mut result = vec!();
 
@@ -823,7 +823,7 @@ fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
 /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<TransformOperation> {
+fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
     let mut result = vec!();
 
     for operation in list {
