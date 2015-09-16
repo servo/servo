@@ -87,12 +87,6 @@ def check_whatwg_url(idx, line):
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
-def check_extra_ptr_deref(idx, line):
-    match = re.search(r": &Vec<", line)
-    if match is not None:
-        yield (idx + 1, "use &[T] instead of &Vec<T>")
-
-
 def check_whitespace(idx, line):
     if line[-1] == "\n":
         line = line[:-1]
@@ -115,9 +109,9 @@ def check_by_line(file_name, contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
-            check_extra_ptr_deref(idx, line)
+            check_whatwg_url(idx, line)
         )
+
         for error in errors:
             yield error
 
@@ -355,6 +349,10 @@ def check_rust(file_name, contents):
                     found = "\n\t\033[91mfound: {}\033[0m".format(mods[i])
                     yield (idx + 1 - len(mods) + i, message + expected + found)
             mods = []
+
+        # There should not be any extra pointer dereferencing
+        if re.search(r": &Vec<", line) is not None:
+            yield (idx + 1, "use &[T] instead of &Vec<T>")
 
 
 # Avoid flagging <Item=Foo> constructs

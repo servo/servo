@@ -102,7 +102,7 @@ pub trait CompositorLayer {
     fn collect_old_layers<Window>(&self,
                                   compositor: &mut IOCompositor<Window>,
                                   pipeline_id: PipelineId,
-                                  new_layers: &Vec<LayerProperties>)
+                                  new_layers: &[LayerProperties])
                                   where Window: WindowMethods;
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
@@ -282,7 +282,7 @@ impl CompositorLayer for Layer<CompositorData> {
     fn collect_old_layers<Window>(&self,
                                   compositor: &mut IOCompositor<Window>,
                                   pipeline_id: PipelineId,
-                                  new_layers: &Vec<LayerProperties>)
+                                  new_layers: &[LayerProperties])
                                   where Window: WindowMethods {
         // Traverse children first so that layers are removed
         // bottom up - allowing each layer being removed to properly
