@@ -21,25 +21,20 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     /* capturing */
     event.set_phase(EventPhase::Capturing);
     for cur_target in chain.iter().rev() {
-        let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
-            Some(listeners) => {
-                event.set_current_target(cur_target);
-                for listener in &listeners {
-                    // Explicitly drop any exception on the floor.
-                    listener.call_or_handle_event(*cur_target, event, Report);
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
+            event.set_current_target(cur_target);
+            for listener in &listeners {
+                // Explicitly drop any exception on the floor.
+                listener.call_or_handle_event(*cur_target, event, Report);
 
-                    if event.stop_immediate() {
-                        break;
-                    }
+                if event.stop_immediate() {
+                    break;
                 }
-
-                event.stop_propagation()
             }
-            None => false
-        };
 
-        if stopped {
-            break;
+            if event.stop_propagation() {
+                break;
+            }
         }
     }
 
@@ -48,8 +43,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
         event.set_phase(EventPhase::AtTarget);
         event.set_current_target(target.clone());
 
-        let opt_listeners = target.get_listeners(&type_);
-        for listeners in opt_listeners {
+        if let Some(listeners) = target.get_listeners(&type_) {
             for listener in listeners {
                 // Explicitly drop any exception on the floor.
                 listener.call_or_handle_event(target, event, Report);
@@ -66,24 +60,20 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
         event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain {
-            let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
-                Some(listeners) => {
-                    event.set_current_target(cur_target);
-                    for listener in &listeners {
-                        // Explicitly drop any exception on the floor.
-                        listener.call_or_handle_event(*cur_target, event, Report);
+            if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
+                event.set_current_target(cur_target);
+                for listener in &listeners {
+                    // Explicitly drop any exception on the floor.
+                    listener.call_or_handle_event(*cur_target, event, Report);
 
-                        if event.stop_immediate() {
-                            break;
-                        }
+                    if event.stop_immediate() {
+                        break;
                     }
-
-                    event.stop_propagation()
                 }
-                None => false
-            };
-            if stopped {
-                break;
+
+                if event.stop_propagation() {
+                    break;
+                }
             }
         }
     }
