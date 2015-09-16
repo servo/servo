@@ -87,7 +87,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
 
     /* at target */
     event.set_phase(EventPhase::AtTarget);
-    event.set_current_target(target.clone());
+    event.set_current_target(target);
 
     if let Some(listeners) = target.get_listeners(&type_) {
         for listener in listeners {
