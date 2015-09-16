@@ -38,7 +38,6 @@ pub enum GlobalRef<'a> {
 }
 
 /// A stack-based rooted reference to a global object.
-#[no_move]
 pub enum GlobalRoot {
     /// A root for a `Window` object.
     Window(Root<window::Window>),
@@ -228,6 +227,11 @@ impl GlobalField {
             GlobalField::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
         }
     }
+}
+
+/// Returns the global object of the realm that the given DOM object's reflector was created in.
+pub fn global_object_for_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
+    global_object_for_js_object(*reflector.reflector().get_jsobject())
 }
 
 /// Returns the global object of the realm that the given JS object was created in.

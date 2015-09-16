@@ -5,28 +5,149 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
-use dom::bindings::js::JS;
+use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
-use dom::eventtarget::{EventTarget, ListenerPhase};
+use dom::eventtarget::{EventTarget, ListenerPhase, EventListenerType};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
+use dom::window::Window;
+
+use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
+
+struct AutoDOMEventMarker {
+    window: Root<Window>,
+    marker: Option<StartedTimelineMarker>,
+}
+
+impl AutoDOMEventMarker {
+    fn new(window: &Window) -> AutoDOMEventMarker {
+        AutoDOMEventMarker {
+            window: Root::from_ref(window),
+            marker: Some(TimelineMarker::start("DOMEvent".to_owned())),
+        }
+    }
+}
+
+impl Drop for AutoDOMEventMarker {
+    fn drop(&mut self) {
+        self.window.emit_timeline_marker(self.marker.take().unwrap().end());
+    }
+}
+
+fn handle_event(window: Option<&Window>, listener: &EventListenerType,
+                current_target: &EventTarget, event: &Event) {
+    let _marker;
+    if let Some(window) = window {
+        _marker = AutoDOMEventMarker::new(window);
+    }
+
+    listener.call_or_handle_event(current_target, event, Report);
+}
+
+fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTarget]) {
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
+
+    let window = match global_object_for_reflector(target) {
+        GlobalRoot::Window(window) => {
+            if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
+                Some(window)
+            } else {
+                None
+            }
+        },
+        _ => None,
+    };
+
+    let type_ = event.Type();
+
+    /* capturing */
+    event.set_phase(EventPhase::Capturing);
+    for cur_target in chain.iter().rev() {
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
+            event.set_current_target(cur_target);
+            for listener in &listeners {
+                handle_event(window.r(), listener, *cur_target, event);
+
+                if event.stop_immediate() {
+                    return;
+                }
+            }
+
+            if event.stop_propagation() {
+                return;
+            }
+        }
+    }
+
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
+
+    /* at target */
+    event.set_phase(EventPhase::AtTarget);
+    event.set_current_target(target);
+
+    if let Some(listeners) = target.get_listeners(&type_) {
+        for listener in listeners {
+            handle_event(window.r(), &listener, target, event);
+
+            if event.stop_immediate() {
+                return;
+            }
+        }
+        if event.stop_propagation() {
+            return;
+        }
+    }
+
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
+
+    /* bubbling */
+    if !event.bubbles() {
+        return;
+    }
+
+    event.set_phase(EventPhase::Bubbling);
+    for cur_target in chain {
+        if let Some(listeners) = cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
+            event.set_current_target(cur_target);
+            for listener in &listeners {
+                handle_event(window.r(), listener, *cur_target, event);
+
+                if event.stop_immediate() {
+                    return;
+                }
+            }
+
+            if event.stop_propagation() {
+                return;
+            }
+        }
+    }
+}
 
 // See https://dom.spec.whatwg.org/#concept-event-dispatch for the full dispatch algorithm
 pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
                       event: &Event) -> bool {
     assert!(!event.dispatching());
     assert!(event.initialized());
+    assert_eq!(event.phase(), EventPhase::None);
+    assert!(event.GetCurrentTarget().is_none());
 
     event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
         None => target.clone(),
     });
+
+    if event.stop_propagation() {
+        return !event.DefaultPrevented();
+    }
+
     event.set_dispatching(true);
 
-    let type_ = event.Type();
-
-    //TODO: no chain if not participating in a tree
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = NodeCast::to_ref(target) {
         for ancestor in target_node.ancestors() {
@@ -35,78 +156,7 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
         }
     }
 
-    event.set_phase(EventPhase::Capturing);
-
-    //FIXME: The "callback this value" should be currentTarget
-
-    /* capturing */
-    for cur_target in chain.r().iter().rev() {
-        let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Capturing) {
-            Some(listeners) => {
-                event.set_current_target(cur_target);
-                for listener in &listeners {
-                    // Explicitly drop any exception on the floor.
-                    listener.call_or_handle_event(*cur_target, event, Report);
-
-                    if event.stop_immediate() {
-                        break;
-                    }
-                }
-
-                event.stop_propagation()
-            }
-            None => false
-        };
-
-        if stopped {
-            break;
-        }
-    }
-
-    /* at target */
-    if !event.stop_propagation() {
-        event.set_phase(EventPhase::AtTarget);
-        event.set_current_target(target.clone());
-
-        let opt_listeners = target.get_listeners(&type_);
-        for listeners in opt_listeners {
-            for listener in listeners {
-                // Explicitly drop any exception on the floor.
-                listener.call_or_handle_event(target, event, Report);
-
-                if event.stop_immediate() {
-                    break;
-                }
-            }
-        }
-    }
-
-    /* bubbling */
-    if event.bubbles() && !event.stop_propagation() {
-        event.set_phase(EventPhase::Bubbling);
-
-        for cur_target in chain.r() {
-            let stopped = match cur_target.get_listeners_for(&type_, ListenerPhase::Bubbling) {
-                Some(listeners) => {
-                    event.set_current_target(cur_target);
-                    for listener in &listeners {
-                        // Explicitly drop any exception on the floor.
-                        listener.call_or_handle_event(*cur_target, event, Report);
-
-                        if event.stop_immediate() {
-                            break;
-                        }
-                    }
-
-                    event.stop_propagation()
-                }
-                None => false
-            };
-            if stopped {
-                break;
-            }
-        }
-    }
+    dispatch_to_listeners(event, target, chain.r());
 
     /* default action */
     let target = event.GetTarget();
