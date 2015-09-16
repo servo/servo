@@ -13,6 +13,9 @@ use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 
 fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTarget]) {
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
+
     let type_ = event.Type();
 
     /* capturing */
@@ -98,6 +101,11 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
         Some(pseudo_target) => pseudo_target,
         None => target.clone(),
     });
+
+    if event.stop_propagation() {
+        return !event.DefaultPrevented();
+    }
+
     event.set_dispatching(true);
 
     //TODO: no chain if not participating in a tree
