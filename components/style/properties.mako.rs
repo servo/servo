@@ -5144,16 +5144,18 @@ pub mod shorthands {
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
+        use util::geometry::Au;
+        use values::specified::{Length, LengthOrPercentage};
         use values::specified::BorderRadiusSize;
 
         let _ignored = context;
 
-        fn parse_one_set_of_border_radii(mut input: &mut Parser)
-                                         -> Result<[BorderRadiusSize; 4], ()> {
+        fn parse_one_set_of_border_values(mut input: &mut Parser)
+                                         -> Result<[LengthOrPercentage; 4], ()> {
             let mut count = 0;
-            let mut values = [BorderRadiusSize::zero(); 4];
+            let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
             while count < 4 {
-                if let Ok(value) = input.try(BorderRadiusSize::parse_one_radii) {
+                if let Ok(value) = input.try(LengthOrPercentage::parse) {
                     values[count] = value;
                     count += 1;
                 } else {
@@ -5170,9 +5172,21 @@ pub mod shorthands {
             }
         }
 
-        let radii = try!(parse_one_set_of_border_radii(input));
-        // TODO(bjwbell): Finish parsing code for elliptical borders.
+        fn parse_one_set_of_border_radii(mut input: &mut Parser)
+                                         -> Result<[BorderRadiusSize; 4], ()> {
+            let widths = try!(parse_one_set_of_border_values(input));
+            let mut heights = widths.clone();
+            let mut radii_values = [BorderRadiusSize::zero(); 4];
+            if input.try(|input| input.expect_delim('/')).is_ok() {
+                heights = try!(parse_one_set_of_border_values(input));
+            }
+            for i in 0..radii_values.len() {
+                radii_values[i] = BorderRadiusSize::new(widths[i], heights[i]);
+            }
+            Ok(radii_values)
+        }
 
+        let radii = try!(parse_one_set_of_border_radii(input));
         Ok(Longhands {
             border_top_left_radius: Some(radii[0]),
             border_top_right_radius: Some(radii[1]),
