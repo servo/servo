@@ -9,7 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
-use pipeline::{Pipeline, CompositionPipeline};
+use pipeline::{Pipeline, CompositionPipeline, InitialPipelineState};
 
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
@@ -139,6 +139,28 @@ pub struct Constellation<LTF, STF> {
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
 }
 
+/// State needed to construct a constellation.
+pub struct InitialConstellationState {
+    /// A channel through which messages can be sent to the compositor.
+    pub compositor_proxy: Box<CompositorProxy + Send>,
+    /// A channel to the developer tools, if applicable.
+    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    /// A channel to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+    /// A channel to the font cache task.
+    pub font_cache_task: FontCacheTask,
+    /// A channel to the resource task.
+    pub resource_task: ResourceTask,
+    /// A channel to the storage task.
+    pub storage_task: StorageTask,
+    /// A channel to the time profiler thread.
+    pub time_profiler_chan: time::ProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub mem_profiler_chan: mem::ProfilerChan,
+    /// Whether the constellation supports the clipboard.
+    pub supports_clipboard: bool,
+}
+
 /// Stores the navigation context for a single frame in the frame tree.
 pub struct Frame {
     prev: Vec<PipelineId>,
@@ -219,28 +241,19 @@ enum ExitPipelineMode {
 }
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
-    pub fn start(compositor_proxy: Box<CompositorProxy + Send>,
-                 resource_task: ResourceTask,
-                 image_cache_task: ImageCacheTask,
-                 font_cache_task: FontCacheTask,
-                 time_profiler_chan: time::ProfilerChan,
-                 mem_profiler_chan: mem::ProfilerChan,
-                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                 storage_task: StorageTask,
-                 supports_clipboard: bool)
-                 -> ConstellationChan {
+    pub fn start(state: InitialConstellationState) -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,
-                compositor_proxy: compositor_proxy,
-                devtools_chan: devtools_chan,
-                resource_task: resource_task,
-                image_cache_task: image_cache_task,
-                font_cache_task: font_cache_task,
-                storage_task: storage_task,
+                compositor_proxy: state.compositor_proxy,
+                devtools_chan: state.devtools_chan,
+                resource_task: state.resource_task,
+                image_cache_task: state.image_cache_task,
+                font_cache_task: state.font_cache_task,
+                storage_task: state.storage_task,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pipeline_to_frame_map: HashMap::new(),
@@ -250,8 +263,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 focus_pipeline_id: None,
-                time_profiler_chan: time_profiler_chan,
-                mem_profiler_chan: mem_profiler_chan,
+                time_profiler_chan: state.time_profiler_chan,
+                mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
                     visible_viewport: opts::get().initial_window_size.as_f32() *
                                           ScaleFactor::new(1.0),
@@ -260,7 +273,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     device_pixel_ratio: ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
-                clipboard_ctx: if supports_clipboard {
+                clipboard_ctx: if state.supports_clipboard {
                     ClipboardContext::new().ok()
                 } else {
                     None
@@ -296,21 +309,23 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let spawning_paint_only = script_channel.is_some();
         let (pipeline, mut pipeline_content) =
-            Pipeline::create::<LTF, STF>(pipeline_id,
-                                         parent_info,
-                                         self.chan.clone(),
-                                         self.compositor_proxy.clone_compositor_proxy(),
-                                         self.devtools_chan.clone(),
-                                         self.image_cache_task.clone(),
-                                         self.font_cache_task.clone(),
-                                         self.resource_task.clone(),
-                                         self.storage_task.clone(),
-                                         self.time_profiler_chan.clone(),
-                                         self.mem_profiler_chan.clone(),
-                                         initial_window_rect,
-                                         script_channel,
-                                         load_data,
-                                         self.window_size.device_pixel_ratio);
+            Pipeline::create::<LTF, STF>(InitialPipelineState {
+                id: pipeline_id,
+                parent_info: parent_info,
+                constellation_chan: self.chan.clone(),
+                compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+                devtools_chan: self.devtools_chan.clone(),
+                image_cache_task: self.image_cache_task.clone(),
+                font_cache_task: self.font_cache_task.clone(),
+                resource_task: self.resource_task.clone(),
+                storage_task: self.storage_task.clone(),
+                time_profiler_chan: self.time_profiler_chan.clone(),
+                mem_profiler_chan: self.mem_profiler_chan.clone(),
+                window_rect: initial_window_rect,
+                script_chan: script_channel,
+                load_data: load_data,
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
+            });
 
         // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
         // the content process and call this over there.

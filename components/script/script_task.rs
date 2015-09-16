@@ -54,9 +54,9 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType};
-use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
+use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
+use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
@@ -67,10 +67,9 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
 use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
-use script_traits::ConstellationControlMsg;
-use script_traits::{CompositorEvent, MouseButton};
-use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptState, ScriptTaskFactory};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
+use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
 use string_cache::Atom;
 use util::opts;
 use util::str::DOMString;
@@ -466,42 +465,25 @@ impl ScriptTaskFactory for ScriptTask {
     }
 
     fn create(_phantom: Option<&mut ScriptTask>,
-              id: PipelineId,
-              parent_info: Option<(PipelineId, SubpageId)>,
-              compositor: IpcSender<ScriptToCompositorMsg>,
+              state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
-              control_chan: Sender<ConstellationControlMsg>,
-              control_port: Receiver<ConstellationControlMsg>,
-              constellation_chan: ConstellationChan,
-              failure_msg: Failure,
-              resource_task: ResourceTask,
-              storage_task: StorageTask,
-              image_cache_task: ImageCacheTask,
-              time_profiler_chan: time::ProfilerChan,
-              mem_profiler_chan: mem::ProfilerChan,
-              devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-              window_size: Option<WindowSizeData>,
               load_data: LoadData) {
-        let ConstellationChan(const_chan) = constellation_chan.clone();
+        let ConstellationChan(const_chan) = state.constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", id), task_state::SCRIPT, move || {
+        let failure_info = state.failure_info;
+        spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan);
             let channel_for_reporter = chan.clone();
-            let script_task = ScriptTask::new(compositor,
+            let id = state.id;
+            let parent_info = state.parent_info;
+            let mem_profiler_chan = state.mem_profiler_chan.clone();
+            let window_size = state.window_size;
+            let script_task = ScriptTask::new(state,
                                               script_port,
-                                              chan,
-                                              control_chan,
-                                              control_port,
-                                              constellation_chan,
-                                              Arc::new(resource_task),
-                                              storage_task,
-                                              image_cache_task,
-                                              time_profiler_chan.clone(),
-                                              mem_profiler_chan.clone(),
-                                              devtools_chan);
+                                              chan);
 
             SCRIPT_TASK_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_task as *const _);
@@ -520,7 +502,7 @@ impl ScriptTaskFactory for ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, ConstellationMsg::Failure(failure_msg), const_chan);
+        }, ConstellationMsg::Failure(failure_info), const_chan);
     }
 }
 
@@ -606,18 +588,9 @@ impl ScriptTask {
     }
 
     /// Creates a new script task.
-    pub fn new(compositor: IpcSender<ScriptToCompositorMsg>,
+    pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
-               chan: MainThreadScriptChan,
-               control_chan: Sender<ConstellationControlMsg>,
-               control_port: Receiver<ConstellationControlMsg>,
-               constellation_chan: ConstellationChan,
-               resource_task: Arc<ResourceTask>,
-               storage_task: StorageTask,
-               image_cache_task: ImageCacheTask,
-               time_profiler_chan: time::ProfilerChan,
-               mem_profiler_chan: mem::ProfilerChan,
-               devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>)
+               chan: MainThreadScriptChan)
                -> ScriptTask {
         let runtime = ScriptTask::new_rt_and_cx();
 
@@ -639,23 +612,23 @@ impl ScriptTask {
             page: DOMRefCell::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
 
-            image_cache_task: image_cache_task,
+            image_cache_task: state.image_cache_task,
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
             image_cache_port: image_cache_port,
 
-            resource_task: resource_task,
-            storage_task: storage_task,
+            resource_task: Arc::new(state.resource_task),
+            storage_task: state.storage_task,
 
             port: port,
             chan: chan,
-            control_chan: control_chan,
-            control_port: control_port,
-            constellation_chan: constellation_chan,
-            compositor: DOMRefCell::new(compositor),
-            time_profiler_chan: time_profiler_chan,
-            mem_profiler_chan: mem_profiler_chan,
+            control_chan: state.control_chan,
+            control_port: state.control_port,
+            constellation_chan: state.constellation_chan,
+            compositor: DOMRefCell::new(state.compositor),
+            time_profiler_chan: state.time_profiler_chan,
+            mem_profiler_chan: state.mem_profiler_chan,
 
-            devtools_chan: devtools_chan,
+            devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
             devtools_sender: ipc_devtools_sender,
 
