@@ -47,7 +47,7 @@ path = "../plugins"
 [dependencies]
 bitflags = "0.3"
 rustc-serialize = "0.3.4"
-euclid = "0.1"
+euclid = "0.2"
 serde = "0.5"
 serde_macros = "0.5"
 

@@ -415,6 +415,13 @@ impl Interpolate for i32 {
     }
 }
 
+impl Interpolate for Angle {
+    #[inline]
+    fn interpolate(&self, other: &Angle, time: f64) -> Option<Angle> {
+        self.radians().interpolate(&other.radians(), time).map(Angle)
+    }
+}
+
 impl Interpolate for Visibility {
     #[inline]
     fn interpolate(&self, other: &Visibility, time: f64)
@@ -804,7 +811,7 @@ fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<Transfor
                 result.push(TransformOperation::Matrix(identity));
             }
             TransformOperation::Skew(..) => {
-                result.push(TransformOperation::Skew(0.0, 0.0));
+                result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
             }
             TransformOperation::Translate(..) => {
                 result.push(TransformOperation::Translate(LengthOrPercentage::zero(),

@@ -72,7 +72,7 @@ log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
 gleam = "0.1"
-euclid = "0.1"
+euclid = "0.2"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.1"
