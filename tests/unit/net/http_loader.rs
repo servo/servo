@@ -174,6 +174,52 @@ impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
     }
 }
 
+struct AssertRequestMustNotHaveHeaders {
+    headers_not_expected: Headers,
+    request_headers: Headers,
+    t: ResponseType
+}
+
+impl AssertRequestMustNotHaveHeaders {
+    fn new(t: ResponseType, headers_not_expected: Headers) -> Self {
+        AssertRequestMustNotHaveHeaders {
+            headers_not_expected: headers_not_expected,
+            request_headers: Headers::new(), t: t }
+    }
+}
+
+impl HttpRequest for AssertRequestMustNotHaveHeaders {
+    type R = MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
+
+    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        for header in self.headers_not_expected.iter() {
+            assert!(self.request_headers.get_raw(header.name()).is_none());
+        }
+
+        response_for_request_type(self.t)
+    }
+}
+
+struct AssertMustNotHaveHeadersRequestFactory {
+    headers_not_expected: Headers,
+    body: Vec<u8>
+}
+
+impl HttpRequestFactory for AssertMustNotHaveHeadersRequestFactory {
+    type R = AssertRequestMustNotHaveHeaders;
+
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustNotHaveHeaders, LoadError> {
+        Ok(
+            AssertRequestMustNotHaveHeaders::new(
+                ResponseType::Text(self.body.clone()),
+                self.headers_not_expected.clone()
+            )
+        )
+    }
+}
+
 fn assert_cookie_for_domain(resource_mgr: &ResourceTask, domain: &str, cookie: &str) {
     let (tx, rx) = ipc::channel().unwrap();
     resource_mgr.send(ControlMsg::GetCookiesForUrl(Url::parse(&*domain).unwrap(),
@@ -442,11 +488,11 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let url = Url::parse("http://mozilla.com").unwrap();
     let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
-    resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("http://mozilla.com").unwrap(),
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(url.clone(),
                                                    "mozillaIs=theBest".to_string(),
                                                    CookieSource::HTTP)).unwrap();
 
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(url, None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let mut cookie = Headers::new();
@@ -456,6 +502,58 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         load_data.clone(), resource_mgr, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: cookie,
+            body: <[_]>::to_vec(&*load_data.data.unwrap())
+        }, DEFAULT_USER_AGENT.to_string());
+}
+
+#[test]
+fn test_load_doesnt_send_cookie_if_nonhttp() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                   "mozillaIs=theBest".to_string(),
+                                                   CookieSource::NonHTTP)).unwrap();
+
+    let mut load_data = LoadData::new(url, None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+    let _ = load::<AssertRequestMustHaveHeaders>(
+        load_data.clone(), resource_mgr, None,
+        &AssertMustHaveHeadersRequestFactory {
+            expected_headers: Headers::new(),
+            body: <[_]>::to_vec(&*load_data.data.unwrap())
+        }, DEFAULT_USER_AGENT.to_string());
+}
+
+#[test]
+fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("http://mozilla.com").unwrap(),
+                                                   "foo=bar; HttpOnly; Secure;".to_string(),
+                                                   CookieSource::HTTP)).unwrap();
+
+    assert_cookie_for_domain(&resource_mgr, "http://mozilla.com", "");
+}
+
+#[test]
+fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let resource_mgr = new_resource_task(DEFAULT_USER_AGENT.to_string(), None);
+    resource_mgr.send(ControlMsg::SetCookiesForUrl(Url::parse("https://mozilla.com").unwrap(),
+                                                   "mozillaIs=theBest; HttpOnly; Secure;".to_string(),
+                                                   CookieSource::HTTP)).unwrap();
+
+    let mut load_data = LoadData::new(url, None);
+    load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
+
+    assert_cookie_for_domain(&resource_mgr, "https://mozilla.com", "mozillaIs=theBest; HttpOnly; Secure;");
+
+    let mut cookie = Headers::new();
+    cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest; HttpOnly; Secure;".as_bytes())]);
+
+    let _ = load::<AssertRequestMustNotHaveHeaders>(
+        load_data.clone(), resource_mgr, None,
+        &AssertMustNotHaveHeadersRequestFactory {
+            headers_not_expected: cookie,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
         }, DEFAULT_USER_AGENT.to_string());
 }
