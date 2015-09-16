@@ -37,26 +37,30 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
             }
         }
     }
+    if event.stop_propagation() {
+        return;
+    }
 
     /* at target */
-    if !event.stop_propagation() {
-        event.set_phase(EventPhase::AtTarget);
-        event.set_current_target(target.clone());
+    event.set_phase(EventPhase::AtTarget);
+    event.set_current_target(target.clone());
 
-        if let Some(listeners) = target.get_listeners(&type_) {
-            for listener in listeners {
-                // Explicitly drop any exception on the floor.
-                listener.call_or_handle_event(target, event, Report);
+    if let Some(listeners) = target.get_listeners(&type_) {
+        for listener in listeners {
+            // Explicitly drop any exception on the floor.
+            listener.call_or_handle_event(target, event, Report);
 
-                if event.stop_immediate() {
-                    break;
-                }
+            if event.stop_immediate() {
+                break;
             }
         }
     }
+    if event.stop_propagation() {
+        return;
+    }
 
     /* bubbling */
-    if event.bubbles() && !event.stop_propagation() {
+    if event.bubbles() {
         event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain {
