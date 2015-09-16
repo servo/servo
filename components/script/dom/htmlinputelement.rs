@@ -229,6 +229,11 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_getter!(DefaultChecked, "checked");
 
