@@ -5,6 +5,18 @@
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+
+lazy_static! {
+    static ref CMD_RESOURCE_DIR: Arc<Mutex<Option<String>>> = {
+        Arc::new(Mutex::new(None))
+    };
+}
+
+pub fn set_resources_path(path: Option<String>) {
+    let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
+    *dir = path;
+}
 
 #[cfg(target_os = "android")]
 pub fn resources_dir_path() -> PathBuf {
@@ -13,11 +25,10 @@ pub fn resources_dir_path() -> PathBuf {
 
 #[cfg(not(target_os = "android"))]
 pub fn resources_dir_path() -> PathBuf {
-    use opts;
     use std::env;
     use std::fs::PathExt;
 
-    match opts::get().resources_path {
+    match *CMD_RESOURCE_DIR.lock().unwrap() {
         Some(ref path) => PathBuf::from(path),
         None => {
             // FIXME: Find a way to not rely on the executable being
