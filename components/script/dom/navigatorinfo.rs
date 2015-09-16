@@ -28,30 +28,14 @@ pub fn Platform() -> DOMString {
     "Win32".to_owned()
 }
 
-#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "x86_64"))]
+#[cfg(any(target_os = "android", target_os = "Linux"))]
 pub fn Platform() -> DOMString {
-    "Linux x86_64".to_owned()
+    "Linux".to_owned()
 }
 
-#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "i686"))]
+#[cfg(target_os = "macos")]
 pub fn Platform() -> DOMString {
-    "Linux i686".to_owned()
-}
-
-#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "arm`"))]
-pub fn Platform() -> DOMString {
-    // Assuming v7
-    "Linux armv7l".to_owned()
-}
-
-#[cfg(all(any(target_os = "android", target_os = "Linux"), target_arch = "aarch64"))]
-pub fn Platform() -> DOMString {
-    "Linux aarch64".to_owned()
-}
-
-#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-pub fn Platform() -> DOMString {
-    "MacIntel".to_owned()
+    "Mac".to_owned()
 }
 
 pub fn UserAgent() -> DOMString {

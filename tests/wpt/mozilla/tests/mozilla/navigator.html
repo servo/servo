@@ -20,11 +20,11 @@ test(function() {
 
 
 test(function() {
-  assert_true(navigator.platform == "Linux i686" || navigator.platform == "linux x86_64");
+  assert_equals(navigator.platform, "Linux");
 }, "navigator.platform linux");
 
 test(function() {
-  assert_true(navigator.platform == "MacIntel");
+  assert_equals(navigator.platform, "Mac");
 }, "navigator.platform mac");
 
 
