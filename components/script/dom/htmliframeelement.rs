@@ -42,7 +42,7 @@ use url::{Url, UrlParser};
 use util::str::{self, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false)
+    prefs::get_pref("dom.mozbrowser.enabled").and_then(|x| x.as_boolean()).unwrap_or(false)
 }
 
 #[derive(HeapSizeOf)]

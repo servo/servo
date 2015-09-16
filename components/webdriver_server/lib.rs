@@ -35,7 +35,7 @@ use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::thread::{self, sleep_ms};
 use url::Url;
-use util::prefs::{get_pref, set_pref};
+use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::task::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
@@ -150,7 +150,7 @@ impl ToJson for GetPrefsParameters {
 
 #[derive(Clone, PartialEq)]
 struct SetPrefsParameters {
-    prefs: Vec<(String, bool)>
+    prefs: Vec<(String, PrefValue)>
 }
 
 impl Parameters for SetPrefsParameters {
@@ -166,9 +166,9 @@ impl Parameters for SetPrefsParameters {
                 "prefs was not an array")));
         let mut params = Vec::with_capacity(items.len());
         for (name, val) in items.iter() {
-            let value = try!(val.as_boolean().ok_or(
-                WebDriverError::new(ErrorStatus::InvalidArgument,
-                                    "Pref is not a bool")));
+            let value = try!(PrefValue::from_json(val).or(
+                Err(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                        "Pref is not a boolean or string"))));
             let key = name.to_owned();
             params.push((key, value));
         }
@@ -631,15 +631,17 @@ impl Handler {
                         parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         let prefs = parameters.prefs
             .iter()
-            .map(|item| (item.clone(), get_pref(item).to_json()))
+            .map(|item| (item.clone(), get_pref(item).map(
+                |x| (*x).to_json()).unwrap_or(Json::Null)))
             .collect::<BTreeMap<_, _>>();
+
         Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
     }
 
     fn handle_set_prefs(&self,
                         parameters: &SetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            set_pref(key, *value);
+            set_pref(key, value.clone());
         }
         Ok(WebDriverResponse::Void)
     }
