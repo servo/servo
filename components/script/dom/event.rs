@@ -19,7 +19,7 @@ use std::default::Default;
 
 use time;
 
-#[derive(JSTraceable, Copy, Clone)]
+#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u16)]
 #[derive(HeapSizeOf)]
 pub enum EventPhase {
@@ -134,6 +134,11 @@ impl Event {
     #[inline]
     pub fn set_target(&self, val: &EventTarget) {
         self.target.set(Some(JS::from_ref(val)));
+    }
+
+    #[inline]
+    pub fn phase(&self) -> EventPhase {
+        self.phase.get()
     }
 
     #[inline]

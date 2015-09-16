@@ -91,6 +91,8 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
                       event: &Event) -> bool {
     assert!(!event.dispatching());
     assert!(event.initialized());
+    assert_eq!(event.phase(), EventPhase::None);
+    assert!(event.GetCurrentTarget().is_none());
 
     event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
