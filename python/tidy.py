@@ -90,7 +90,8 @@ def check_whatwg_url(idx, line):
 def check_extra_ptr_deref(idx, line):
     match = re.search(r": &Vec<", line)
     if match is not None:
-        yield (idx  +1, "use &[T] instead of &Vec<T>")
+        yield (idx + 1, "use &[T] instead of &Vec<T>")
+
 
 def check_whitespace(idx, line):
     if line[-1] == "\n":
