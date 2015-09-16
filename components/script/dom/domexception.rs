@@ -104,4 +104,9 @@ impl DOMExceptionMethods for DOMException {
 
         message.to_owned()
     }
+
+    // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.tostring
+    fn Stringifier(&self) -> String {
+        format!("{}: {}", self.Name(), self.Message())
+    }
 }
