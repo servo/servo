@@ -115,9 +115,14 @@ def check_by_line(file_name, contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
-            check_extra_ptr_deref(idx, line)
+            check_whatwg_url(idx, line)
         )
+
+        if file_name.endswith('.rs'):
+            errors = itertools.chain(
+                check_extra_ptr_deref(idx, line)
+            )
+
         for error in errors:
             yield error
 
