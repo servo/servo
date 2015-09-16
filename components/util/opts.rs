@@ -9,7 +9,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
-use prefs;
+use prefs::{self, PrefValue};
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -614,7 +614,7 @@ pub fn from_cmdline_args(args: &[String]) {
     // This must happen after setting the default options, since the prefs rely on
     // on the resource path.
     for pref in opt_match.opt_strs("pref").iter() {
-        prefs::set_pref(pref, true);
+        prefs::set_pref(pref, PrefValue::Boolean(true));
     }
 }
 
