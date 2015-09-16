@@ -40,7 +40,7 @@ use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false)
+    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
 }
 
 #[derive(HeapSizeOf)]
