@@ -7,7 +7,7 @@
 interface HTMLButtonElement : HTMLElement {
   //         attribute boolean autofocus;
              attribute boolean disabled;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
              attribute DOMString formAction;
              attribute DOMString formEnctype;
              attribute DOMString formMethod;
