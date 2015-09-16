@@ -49,7 +49,8 @@ use webdriver::server::{self, WebDriverHandler, Session};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
-                (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs)]
+                (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs),
+                (Post, "/session/{sessionId}/servo/prefs/reset", ServoExtensionRoute::ResetPrefs)]
 }
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
@@ -77,6 +78,7 @@ struct Handler {
 enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
+    ResetPrefs,
 }
 
 impl WebDriverExtensionRoute for ServoExtensionRoute {
@@ -94,6 +96,10 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
                 let parameters: SetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::SetPrefs(parameters)
             }
+            &ServoExtensionRoute::ResetPrefs => {
+                let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
+                ServoExtensionCommand::ResetPrefs(parameters)
+            }
         };
         Ok(WebDriverCommand::Extension(command))
     }
@@ -102,14 +108,16 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 #[derive(Clone, PartialEq)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
-    SetPrefs(SetPrefsParameters)
+    SetPrefs(SetPrefsParameters),
+    ResetPrefs(GetPrefsParameters),
 }
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
     fn parameters_json(&self) -> Option<Json> {
         match self {
             &ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
-            &ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json())
+            &ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json()),
+            &ServoExtensionCommand::ResetPrefs(ref x) => Some(x.to_json()),
         }
     }
 }
@@ -166,7 +174,7 @@ impl Parameters for SetPrefsParameters {
                 "prefs was not an array")));
         let mut params = Vec::with_capacity(items.len());
         for (name, val) in items.iter() {
-            let value = try!(PrefValue::from_json(val).or(
+            let value = try!(PrefValue::from_json(val.clone()).or(
                 Err(WebDriverError::new(ErrorStatus::InvalidArgument,
                                         "Pref is not a boolean or string"))));
             let key = name.to_owned();
@@ -644,6 +652,20 @@ impl Handler {
         }
         Ok(WebDriverResponse::Void)
     }
+
+    fn handle_reset_prefs(&self,
+                        parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
+        let prefs = if parameters.prefs.len() == 0 {
+            reset_all_prefs();
+            BTreeMap::new()
+        } else {
+            parameters.prefs
+                .iter()
+                .map(|item| (item.clone(), reset_pref(item).to_json()))
+                .collect::<BTreeMap<_, _>>()
+        };
+        Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
+    }
 }
 
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
@@ -685,6 +707,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 match extension {
                     &ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
                     &ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                    &ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
                 }
             }
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,
