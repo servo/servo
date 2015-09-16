@@ -28,18 +28,18 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
                 listener.call_or_handle_event(*cur_target, event, Report);
 
                 if event.stop_immediate() {
-                    break;
+                    return;
                 }
             }
 
             if event.stop_propagation() {
-                break;
+                return;
             }
         }
     }
-    if event.stop_propagation() {
-        return;
-    }
+
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
 
     /* at target */
     event.set_phase(EventPhase::AtTarget);
@@ -51,13 +51,16 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
             listener.call_or_handle_event(target, event, Report);
 
             if event.stop_immediate() {
-                break;
+                return;
             }
         }
+        if event.stop_propagation() {
+            return;
+        }
     }
-    if event.stop_propagation() {
-        return;
-    }
+
+    assert!(!event.stop_propagation());
+    assert!(!event.stop_immediate());
 
     /* bubbling */
     if event.bubbles() {
@@ -71,12 +74,12 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
                     listener.call_or_handle_event(*cur_target, event, Report);
 
                     if event.stop_immediate() {
-                        break;
+                        return;
                     }
                 }
 
                 if event.stop_propagation() {
-                    break;
+                    return;
                 }
             }
         }
