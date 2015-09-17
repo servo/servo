@@ -692,7 +692,7 @@ impl StackingContextLayerCreator {
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
             let next_layer_id =
-                    stacking_context.display_list.layered_children.back().unwrap().id.next_layer_id();
+                stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
             let child_stacking_context =
                 Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
             stacking_context.display_list.layered_children.push_back(
