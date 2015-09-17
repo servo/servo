@@ -17,7 +17,17 @@ connect-src 'self'; script-src 'self' 'unsafe-inline';
     <script>
         try {
             var es = new EventSource("http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/simple-event-stream");
-            log("Fail");
+            // Firefox doesn't throw an exception and takes some time to close async
+            if (es.readyState == EventSource.CONNECTING) {
+                setTimeout( function() {
+                    es.readyState != EventSource.CLOSED ? log("Fail") : log("Pass");
+                }, 2);
+            } else if (es.readyState == EventSource.CLOSED) {
+                log("Pass");
+            } else {
+                log("Fail");
+            }
+
         } catch (e) {
             log("Pass");
         }

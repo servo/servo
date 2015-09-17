@@ -8,6 +8,7 @@ if (expected_logs.length == 0) {
 } else {
     var t_log = async_test('Expecting logs: {{GET[logs]}}');
     function log(msg) {
+        //cons/**/ole.log(msg);
         t_log.step(function () {
             if (msg.match(/^FAIL/i)) {
                 assert_unreached(msg);

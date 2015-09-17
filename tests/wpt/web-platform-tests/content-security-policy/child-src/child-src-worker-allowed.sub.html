@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>child-src-worker-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+child-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
+-->
+
+</head>
+
+<body>
+    <script>
+        try {
+            var foo = new Worker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/post-message.js');
+            foo.onmessage = function(event) {
+                alert_assert("PASS");
+            };
+        } catch (e) {
+            alert_assert(e);
+        }
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

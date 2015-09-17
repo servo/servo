@@ -104,3 +104,7 @@ PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py
 
 # Should probably be fixed.
 W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers
+
+# Lint doesn't know about sub.svg I guess
+PARSE-FAILED:content-security-policy/svg/including.sub.svg
+

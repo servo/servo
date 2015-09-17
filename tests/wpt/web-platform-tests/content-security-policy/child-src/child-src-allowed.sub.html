@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>child-src-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src='../support/logTest.sub.js?logs=["PASS IFrame %231 generated a load event."]'></script>
+    <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
+
+        var t_alert = async_test('Expecting alerts: ["PASS"]');
+        var expected_alerts = ["PASS"];
+
+        function alert_assert(msg) {
+            t_alert.step(function() {
+                if (msg.match(/^FAIL/i)) {
+                    assert_unreached(msg);
+                    t_alert.done();
+                }
+                for (var i = 0; i < expected_alerts.length; i++) {
+                    if (expected_alerts[i] == msg) {
+                        assert_true(expected_alerts[i] == msg);
+                        expected_alerts.splice(i, 1);
+                        if (expected_alerts.length == 0) {
+                            t_alert.done();
+                        }
+                        return;
+                    }
+                }
+                assert_unreached('unexpected alert: ' + msg);
+                t_alert.done();
+            });
+        }
+
+    </script>
+    <!-- enforcing policy:
+Content-Security-Policy: child-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <p>
+        This iframe should be allowed.
+    </p>
+    <script>
+        window.wasPostTestScriptParsed = true;
+        var loads = 0;
+
+        function loadEvent() {
+            loads++;
+            log("PASS " + "IFrame #" + loads + " generated a load event.");
+        }
+
+    </script>
+</head>
+
+<body>
+    <iframe src="/content-security-policy/blink-contrib/resources/postmessage-pass.html" onload="loadEvent()"></iframe>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

@@ -1,0 +1,20 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="6cm" height="5cm" viewBox="0 0 600 500"
+     xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <desc>Example script01 - redirect</desc>
+
+  <script id="postmessagescript" type="application/ecmascript"> <![CDATA[
+    location = "/content-security-policy/blink-contrib/resources/postmessage-fail.html";
+  ]]> </script>
+
+  <circle cx="300" cy="225" r="100" fill="lawngreen"/>
+
+  <text x="300" y="250"
+        font-family="Verdana"
+        font-size="50"
+        text-anchor="middle">
+      PASS
+    </text>
+</svg>

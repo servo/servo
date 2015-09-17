@@ -181,7 +181,7 @@ test(function() {
 
   test(function() {
     textarea.setSelectionRange("string",1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange("string",1)');
 
@@ -193,31 +193,31 @@ test(function() {
 
   test(function() {
     textarea.setSelectionRange([],1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange([],1)');
 
   test(function() {
     textarea.setSelectionRange({},1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange({},1)');
 
   test(function() {
     textarea.setSelectionRange(NaN,1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange(NaN,1)');
 
   test(function() {
     textarea.setSelectionRange(null,1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange(null,1)');
 
   test(function() {
     textarea.setSelectionRange(undefined,1);
-    assert_equals(textarea.selectionStart, 1, "element.selectionStart should be 0");
+    assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange(undefined,1)');
 },"test of textarea.setSelectionRange");

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>child-src-about-blank-allowed-by-scheme</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+ 
+    <!-- enforcing policy:
+child-src about:; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <p>This frame should not be blocked by Content-Security-Policy.
+    </p>
+    <iframe src="about:blank"></iframe>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>
