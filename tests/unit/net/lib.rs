@@ -4,14 +4,15 @@
 
 #![cfg_attr(test, feature(box_raw))]
 
+extern crate cookie as cookie_rs;
+extern crate flate2;
+extern crate hyper;
 extern crate ipc_channel;
 extern crate net;
 extern crate net_traits;
+extern crate time;
 extern crate url;
 extern crate util;
-extern crate time;
-extern crate hyper;
-extern crate flate2;
 
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;
