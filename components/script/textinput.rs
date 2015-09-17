@@ -49,6 +49,7 @@ pub struct TextInput<T: ClipboardProvider> {
 pub enum KeyReaction {
     TriggerDefaultAction,
     DispatchInput,
+    RedrawSelection,
     Nothing,
 }
 
@@ -366,7 +367,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         match key {
             Key::A if is_control_key(mods) => {
                 self.select_all();
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             },
             Key::C if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
@@ -397,36 +398,36 @@ impl<T: ClipboardProvider> TextInput<T> {
             }
             Key::Left => {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::Right => {
                 self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::Up => {
                 self.adjust_vertical(-1, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::Down => {
                 self.adjust_vertical(1, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::Enter | Key::KpEnter => self.handle_return(),
             Key::Home => {
                 self.edit_point.index = 0;
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::End => {
                 self.edit_point.index = self.current_line_length();
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::PageUp => {
                 self.adjust_vertical(-28, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::PageDown => {
                 self.adjust_vertical(28, maybe_select);
-                KeyReaction::Nothing
+                KeyReaction::RedrawSelection
             }
             Key::Tab => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,

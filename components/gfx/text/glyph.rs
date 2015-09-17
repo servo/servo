@@ -8,6 +8,7 @@ use euclid::point::Point2D;
 use simd::u32x4;
 
 use std::cmp::{Ordering, PartialOrd};
+use std::fmt;
 use std::mem;
 use std::u16;
 use std::vec::Vec;
@@ -23,7 +24,7 @@ use util::vec::*;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Debug, Copy, Deserialize, Serialize)]
+#[derive(Clone, Debug, Copy, Deserialize, Serialize, PartialEq)]
 struct GlyphEntry {
     value: u32,
 }
@@ -71,6 +72,10 @@ impl GlyphEntry {
         assert!(glyph_count <= u16::MAX as usize);
 
         GlyphEntry::new(glyph_count as u32)
+    }
+
+    fn is_initial(&self) -> bool {
+        *self == GlyphEntry::initial()
     }
 }
 
@@ -524,11 +529,14 @@ impl<'a> GlyphStore {
     }
 
     // used when a character index has no associated glyph---for example, a ligature continuation.
-    pub fn add_nonglyph_for_char_index(&mut self, i: CharIndex, cluster_start: bool, ligature_start: bool) {
+    pub fn add_nonglyph_for_char_index(&mut self,
+                                       i: CharIndex,
+                                       cluster_start: bool,
+                                       ligature_start: bool) {
         assert!(i < self.char_len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
+        debug!("adding spacer for character without associated glyph[idx={:?}]", i);
 
         self.entry_buffer[i.to_usize()] = entry;
     }
@@ -645,6 +653,34 @@ impl<'a> GlyphStore {
     }
 }
 
+impl fmt::Debug for GlyphStore {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(formatter, "GlyphStore:\n"));
+        let mut detailed_buffer = self.detail_store.detail_buffer.iter();
+        for entry in self.entry_buffer.iter() {
+            if entry.is_simple() {
+                try!(write!(formatter,
+                            "  simple id={:?} advance={:?}\n",
+                            entry.id(),
+                            entry.advance()));
+                continue
+            }
+            if entry.is_initial() {
+                continue
+            }
+            try!(write!(formatter, "  complex..."));
+            if detailed_buffer.next().is_none() {
+                continue
+            }
+            try!(write!(formatter,
+                        "  detailed id={:?} advance={:?}\n",
+                        entry.id(),
+                        entry.advance()));
+        }
+        Ok(())
+    }
+}
+
 /// An iterator over the glyphs in a character range in a `GlyphStore`.
 pub struct GlyphIterator<'a> {
     store: &'a GlyphStore,
@@ -658,8 +694,10 @@ impl<'a> GlyphIterator<'a> {
     #[inline(never)]
     fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
         match self.glyph_range.as_mut().unwrap().next() {
-            Some(j) => Some((self.char_index,
-                GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */))),
+            Some(j) => {
+                Some((self.char_index,
+                    GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */)))
+            }
             None => {
                 // No more glyphs for current character.  Try to get another.
                 self.glyph_range = None;

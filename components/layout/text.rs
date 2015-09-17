@@ -176,9 +176,12 @@ impl TextRunScanner {
             let (mut run_info_list, mut run_info) = (Vec::new(), RunInfo::new());
             for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
                 let mut mapping = RunMapping::new(&run_info_list[..], &run_info, fragment_index);
-                let text = match in_fragment.specific {
+                let text;
+                let insertion_point;
+                match in_fragment.specific {
                     SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
-                        &text_fragment_info.text
+                        text = &text_fragment_info.text;
+                        insertion_point = text_fragment_info.insertion_point;
                     }
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
@@ -208,6 +211,7 @@ impl TextRunScanner {
                             mapping.flush(&mut mappings,
                                           &mut run_info,
                                           &**text,
+                                          insertion_point,
                                           compression,
                                           text_transform,
                                           &mut last_whitespace,
@@ -239,6 +243,7 @@ impl TextRunScanner {
                 mapping.flush(&mut mappings,
                               &mut run_info,
                               &**text,
+                              insertion_point,
                               compression,
                               text_transform,
                               &mut last_whitespace,
@@ -275,7 +280,13 @@ impl TextRunScanner {
                     options.flags.insert(RTL_FLAG);
                 }
                 let mut font = fontgroup.fonts.get(run_info.font_index).unwrap().borrow_mut();
-                Arc::new(TextRun::new(&mut *font, run_info.text, &options, run_info.bidi_level))
+                ScannedTextRun {
+                    run: Arc::new(TextRun::new(&mut *font,
+                                               run_info.text,
+                                               &options,
+                                               run_info.bidi_level)),
+                    insertion_point: run_info.insertion_point,
+                }
             }).collect::<Vec<_>>()
         };
 
@@ -296,19 +307,20 @@ impl TextRunScanner {
                 };
 
                 let mut mapping = mappings.next().unwrap();
-                let run = runs[mapping.text_run_index].clone();
+                let scanned_run = runs[mapping.text_run_index].clone();
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
-                    run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
+                    scanned_run.run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     mapping.char_range.extend_by(CharIndex(-1));
                 }
 
                 let text_size = old_fragment.border_box.size;
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
-                    run,
+                    scanned_run.run,
                     mapping.char_range,
                     text_size,
+                    &scanned_run.insertion_point,
                     requires_line_break_afterward_if_wrapping_on_newlines);
 
                 let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
@@ -382,6 +394,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
     let new_fragment = {
         let mut first_fragment = fragments.front_mut().unwrap();
         let string_before;
+        let insertion_point_before;
         {
             let unscanned_text_fragment_info = match first_fragment.specific {
                 SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
@@ -403,12 +416,14 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
 
             string_before =
                 unscanned_text_fragment_info.text[..(position + 1)].to_owned();
+            insertion_point_before = unscanned_text_fragment_info.insertion_point;
             unscanned_text_fragment_info.text =
                 unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_str();
         }
         first_fragment.transform(first_fragment.border_box.size,
                                  SpecificFragmentInfo::UnscannedText(
-                                     UnscannedTextFragmentInfo::from_text(string_before)))
+                                     UnscannedTextFragmentInfo::new(string_before,
+                                                                    insertion_point_before)))
     };
 
     fragments.push_front(new_fragment);
@@ -418,6 +433,8 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
 struct RunInfo {
     /// The text that will go in this text run.
     text: String,
+    /// The insertion point in this text run, if applicable.
+    insertion_point: Option<CharIndex>,
     /// The index of the applicable font in the font group.
     font_index: usize,
     /// A cached copy of the number of Unicode characters in the text run.
@@ -430,6 +447,7 @@ impl RunInfo {
     fn new() -> RunInfo {
         RunInfo {
             text: String::new(),
+            insertion_point: None,
             font_index: 0,
             character_length: 0,
             bidi_level: 0,
@@ -472,6 +490,7 @@ impl RunMapping {
              mappings: &mut Vec<RunMapping>,
              run_info: &mut RunInfo,
              text: &str,
+             insertion_point: Option<CharIndex>,
              compression: CompressionMode,
              text_transform: text_transform::T,
              last_whitespace: &mut bool,
@@ -488,6 +507,12 @@ impl RunMapping {
         let character_count = apply_style_transform_if_necessary(&mut run_info.text,
                                                                  old_byte_length,
                                                                  text_transform);
+
+        // Record the position of the insertion point if necessary.
+        if let Some(insertion_point) = insertion_point {
+            run_info.insertion_point =
+                Some(CharIndex(run_info.character_length as isize + insertion_point.0))
+        }
 
         run_info.character_length = run_info.character_length + character_count;
         *start_position = end_position;
@@ -568,5 +593,11 @@ fn apply_style_transform_if_necessary(string: &mut String,
             count
         }
     }
+}
+
+#[derive(Clone)]
+struct ScannedTextRun {
+    run: Arc<TextRun>,
+    insertion_point: Option<CharIndex>,
 }
 
