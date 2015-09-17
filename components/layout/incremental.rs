@@ -175,13 +175,22 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
         get_padding.padding_top, get_padding.padding_right,
         get_padding.padding_bottom, get_padding.padding_left,
         get_box.width, get_box.height,
-        get_font.font_family, get_font.font_size, get_font.font_style, get_font.font_weight,
         get_inheritedtext.text_align, get_text.text_decoration, get_inheritedbox.line_height
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW, RECONSTRUCT_FLOW ],
-                      [ get_box.float, get_box.display, get_box.position ]);
+                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW, RECONSTRUCT_FLOW ], [
+        get_box.float, get_box.display, get_box.position, get_box.content,
+        get_counters.counter_reset, get_counters.counter_increment,
+        get_list.quotes, get_list.list_style_type,
+
+        // If these text or font properties change, we need to reconstruct the flow so that
+        // text shaping is re-run.
+        get_inheritedtext.letter_spacing, get_inheritedtext.text_rendering,
+        get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
+        get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
+        get_font.font_size, get_font.font_stretch
+    ]);
 
     // FIXME: test somehow that we checked every CSS property
     damage
