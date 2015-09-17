@@ -979,7 +979,7 @@ impl LayoutTask {
             // FIXME: implement used value computation for line-height
             property => {
                 rw_data.resolved_style_response =
-                    style.computed_value_to_string(property.as_slice());
+                    style.computed_value_to_string(property.as_slice()).ok();
             }
         };
     }

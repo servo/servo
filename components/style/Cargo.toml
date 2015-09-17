@@ -23,7 +23,7 @@ git = "https://github.com/servo/rust-selectors"
 features = ["unstable"]
 
 [dependencies.cssparser]
-version = "0.3.6"
+version = "0.3.9"
 features = [ "serde-serialization" ]
 
 [dependencies.url]
