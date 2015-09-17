@@ -201,6 +201,9 @@ def check_rust(file_name, contents):
     comment_depth = 0
     merged_lines = ''
 
+    import_block = False
+    whitespace = False
+
     uses = []
 
     mods = []
@@ -223,6 +226,16 @@ def check_rust(file_name, contents):
         if merged_lines:
             line = merged_lines + line
             merged_lines = ''
+
+        # Keep track of whitespace to enable checking for a merged import block
+        #
+        # Ignore attributes, comments, and imports
+        if import_block:
+            if not (line_is_comment(line) or line_is_attribute(line) or line.startswith("use ")):
+                whitespace = line == ""
+
+                if not whitespace:
+                    import_block = False
 
         # get rid of strings and chars because cases like regex expression, keep attributes
         if not line_is_attribute(line):
@@ -291,21 +304,27 @@ def check_rust(file_name, contents):
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 
-        # imports must be in the same line and alphabetically sorted
+        # imports must be in the same line, alphabetically sorted, and merged
+        # into a single import block
         if line.startswith("use "):
+            import_block = True
             use = line[4:]
             if not use.endswith(";"):
                 yield (idx + 1, "use statement spans multiple lines")
-            uses.append(use[:len(use) - 1])
-        elif len(uses) > 0:
+            uses.append((use[:len(use) - 1], idx + 1))
+        elif len(uses) > 0 and whitespace or not import_block:
             sorted_uses = sorted(uses)
             for i in range(len(uses)):
-                if sorted_uses[i] != uses[i]:
+                if sorted_uses[i][0] != uses[i][0]:
                     message = "use statement is not in alphabetical order"
-                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i])
-                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i])
-                    yield (idx + 1 - len(uses) + i, message + expected + found)
+                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_uses[i][0])
+                    found = "\n\t\033[91mfound: {}\033[0m".format(uses[i][0])
+                    yield(uses[i][1], message + expected + found)
             uses = []
+
+        if import_block and whitespace and line.startswith("use "):
+            whitespace = False
+            yield(idx, "encountered whitespace following a use statement")
 
         # modules must be in the same line and alphabetically sorted
         if line.startswith("mod ") or line.startswith("pub mod "):
@@ -343,6 +362,10 @@ def is_associated_type(match, line, index):
 
 def line_is_attribute(line):
     return re.search(r"#\[.*\]", line)
+
+
+def line_is_comment(line):
+    return re.search(r"^//|^/\*|^\*", line)
 
 
 def check_webidl_spec(file_name, contents):
