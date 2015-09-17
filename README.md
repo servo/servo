@@ -123,7 +123,6 @@ Use `./mach run [url]` to run Servo.
 
 ### Keyboard Shortcuts
 
-- `Ctrl-L` opens a dialog to browse to a new URL (Mac only currently)
 - `Ctrl--` zooms out
 - `Ctrl-=` zooms in
 - `Backspace` goes backwards in the history
