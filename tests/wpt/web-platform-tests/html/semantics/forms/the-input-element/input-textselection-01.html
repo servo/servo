@@ -7,10 +7,10 @@
 <div id="log"></div>
 <script>
 test(function() {
-  var valid = ["text", "search", "url", "tel", "email", "password"];
+  var valid = ["text", "search", "url", "tel", "password"];
   var invalid = ["hidden", "datetime", "date", "month", "week", "datetime-local",
                  "number", "range", "color", "checkbox", "radio", "button",
-                 "file", "submit", "image", "reset"];
+                 "file", "email", "submit", "image", "reset"];
   valid.forEach(function(aType) {
     test(function() {
       var input = document.createElement("input");

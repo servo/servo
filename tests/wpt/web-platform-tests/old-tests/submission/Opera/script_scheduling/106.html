@@ -1,27 +1,20 @@
 <!DOCTYPE html>
 <html><head>
-	<title> scheduler: stylesheets blocking scripts</title>
-	<script src="/resources/testharness.js"></script>
-	<script src="/resources/testharnessreport.js"></script>
-	<script src="testlib/testlib.js"></script>
-</head>
-<body>
-	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
-        <div id="test">Test</div>
-
-	<script>
-          var t = async_test();
-          var t0 = Date.now();
-        </script>
-
+        <title> scheduler: stylesheets blocking scripts</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
         <!-- this stylesheet blocks scripts -->
         <link rel="stylesheet" href="css/import.css?pipe=trickle(d2)">
+</head>
+<body>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <div id="test">Test</div>
 
         <script>
-          t.step(function() {
-            var t1 = Date.now();
-            assert_true(t1 - t0 > 1000, "Delayed by "  + (t1-t0) + "ms expected > 1000ms");
-            t.done();
+          test(function() {
+            assert_equals(getComputedStyle(document.getElementById("test")).position,
+                          "fixed");
           });
         </script>
 </body></html>

@@ -119,7 +119,7 @@
             e.addEventListener("error", function() {
                 test.step(function() {
                     var background = window.getComputedStyle(div, null).getPropertyValue("background-color");
-                    assert_equals(background, "rgba(0, 0, 0, 0)");
+                    assert_not_equals(background, that.passValue);
                     test.done();
                 });
             });
@@ -165,7 +165,7 @@
 
     new SRIScriptTest(
         true,
-        "Smame-origin with empty integrity.",
+        "Same-origin with empty integrity.",
         "matching-digest.js",
         ""
     ).execute();
@@ -246,15 +246,15 @@
     ).execute();
 
     new SRIScriptTest(
-        true,
+        false,
         "Cross-origin, not CORS request, with correct hash",
         xorigin_anon_script,
         "sha256-51AjITq701Y0yKSx3/UoIKtIY2UQ9+H8WGyyMuOWOC0="
     ).execute();
 
     new SRIScriptTest(
-        true,
-        "Cross-origin, not CORS request, with hash masmatch",
+        false,
+        "Cross-origin, not CORS request, with hash mismatch",
         xorigin_anon_script,
         "sha256-deadbeef01Y0yKSx3/UoIKtIY2UQ9+H8WGyyMuOWOC0="
     ).execute();
@@ -287,7 +287,7 @@
         "Same-origin with correct sha256 hash",
         {
             href: "style.css",
-            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
         }
     );
 
@@ -367,7 +367,7 @@
         "Same-origin with sha256 match, sha512 mismatch",
         {
             href: "style.css",
-            integrity: "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4="
+            integrity: "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
         }
     );
 
@@ -428,7 +428,7 @@
 
     new SRIStyleTest(
         style_tests,
-        true,
+        false,
         "Cross-origin, not CORS request, with correct hash",
         {
             href: xorigin_anon_style,
@@ -438,8 +438,8 @@
 
     new SRIStyleTest(
         style_tests,
-        true,
-        "Cross-origin, not CORS request, with hash masmatch",
+        false,
+        "Cross-origin, not CORS request, with hash mismatch",
         {
             href: xorigin_anon_style,
             integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk="

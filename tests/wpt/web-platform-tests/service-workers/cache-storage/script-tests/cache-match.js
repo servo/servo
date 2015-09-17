@@ -64,18 +64,6 @@ var simple_entries = [
     name: 'cat_in_the_hat',
     request: new Request('http://example.com/cat/in/the/hat'),
     response: new Response('')
-  },
-
-  {
-    name: 'secret_cat',
-    request: new Request('http://tom:jerry@example.com/cat'),
-    response: new Response('')
-  },
-
-  {
-    name: 'top_secret_cat',
-    request: new Request('http://tom:j3rry@example.com/cat'),
-    response: new Response('')
   }
 ];
 
@@ -278,24 +266,6 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
             'just a string fragment.');
         });
   }, 'Cache.match with string fragment "http" as query');
-
-prepopulated_cache_test(simple_entries, function(cache, entries) {
-    return cache.matchAll(entries.secret_cat.request.url)
-      .then(function(result) {
-          assert_response_array_equivalent(
-            result, [entries.secret_cat.response],
-            'Cache.matchAll should not ignore embedded credentials');
-        });
-  }, 'Cache.matchAll with URL containing credentials');
-
-prepopulated_cache_test(simple_entries, function(cache, entries) {
-    return cache.match(entries.secret_cat.request.url)
-      .then(function(result) {
-          assert_response_equals(
-            result, entries.secret_cat.response,
-            'Cache.match should not ignore embedded credentials');
-        });
-  }, 'Cache.match with URL containing credentials');
 
 prepopulated_cache_test(vary_entries, function(cache, entries) {
     return cache.matchAll('http://example.com/c')

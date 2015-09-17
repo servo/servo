@@ -1,0 +1,2 @@
+This directory contains tests that have been written before the slot proposal had been adopted by the spec.
+These tests need to be triaged, fixed, and merged back into shadow-dom directory.

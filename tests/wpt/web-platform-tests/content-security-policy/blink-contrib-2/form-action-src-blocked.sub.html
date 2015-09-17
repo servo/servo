@@ -12,25 +12,29 @@
 form-action 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
     <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('submit').click();
-                log("TEST COMPLETE");
             }, 0);
         });
-        setTimeout(function() {}, 1000);
+        setTimeout(function() {log("TEST COMPLETE");}, 1);
 
     </script>
 </head>
 
 <body>
-    <form action="../content-security-policy/support/fail.png" id="theform" method="post">
+    <iframe name="test_target" id="test_iframe"></iframe>
+    <form action="/common/redirect.py?location=/content-security-policy/blink-contrib/resources/postmessage-fail.html" id="theform" method="post" target="test_target">
         <input type="text" name="fieldname" value="fieldvalue">
         <input type="submit" id="submit" value="submit">
     </form>
     <p>Tests that blocking form actions works correctly. If this test passes, a CSP violation will be generated, and will not see a page indicating a form was POSTed.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=form-action%20&apos;none&apos;"></script>
-</body>
+
+    </body>
 
 </html>

@@ -14,6 +14,11 @@ script-src 'self' 'unsafe-inline' 'self'; connect-src 'self';
 </head>
 
 <body>
+    <p>This test loads a worker, delivered with its own policy.
+    The eval() call in the worker should be forbidden by that
+    policy.  No report should be generated because the worker
+    policy does not set a report-uri (although this parent
+    resource does).</p>
     <script>
         try {
             var worker = new Worker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/worker-eval.js');

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>child-src-worker-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["PASS"]'></script>
+    <!-- enforcing policy:
+child-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
+-->
+
+</head>
+
+<body>
+    <script>
+        try {
+            var foo = new Worker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/post-message.js');
+            foo.onmessage = function(event) {
+                alert_assert("FAIL");
+            };
+        } catch (e) {
+            alert_assert("PASS");
+        }
+
+    </script>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=child-src%20&apos;none&apos;"></script>
+</body>
+</html>

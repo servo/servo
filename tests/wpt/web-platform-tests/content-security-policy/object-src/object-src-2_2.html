@@ -44,6 +44,11 @@
 
         if (hasMimeType) {
           test1.step(function() {assert_false(is_loaded, "External object loaded.")});
+          var s = document.createElement('script');
+              s.async = true;
+              s.defer = true;
+              s.src = "../support/checkReport.sub.js?reportField=violated-directive&reportValue=object-src%20%27self%27"
+          document.lastChild.appendChild(s);
         } else {
           //test1.step(function() {});
           test1.set_status(test1.NOTRUN, "No Flash Player, cannot run test.");
@@ -52,8 +57,5 @@
         test1.done();
       }
     </script>
-
-    <script async defer src="../support/checkReport.sub.js?reportField=violated-directive&reportValue=object-src%20%27self%27"></script>
-
 </body>
 </html>

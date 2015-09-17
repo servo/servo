@@ -5,8 +5,7 @@
         <script src="/resources/testharnessreport.js"></script>
         <script src="testlib/testlib.js"></script>
         <script>
-                // add a script that looks for document.body as first child of HEAD
-                testlib.addScript('',{src:'scripts/find-body.js'},document.getElementsByTagName('head')[0], true );
+                testlib.addScript('',{src:'scripts/find-body.js?pipe=trickle(d1)'},document.getElementsByTagName('head')[0], true );
         </script>
 </head>
 <body>
@@ -23,7 +22,9 @@
                 if(!(window.findFooLoaded && window.findBodyLoaded)) {
                     return setTimeout(t.step_func(test), 200);
                 }
-                assert_array_equals(eventOrder, ['document.body: <BODY>', 'found #foo element: YES']);
+                assert_any(assert_array_equals, eventOrder,
+                           [['document.body: <BODY>', 'found #foo element: YES'],
+                            ['found #foo element: YES', 'document.body: <BODY>']]);
                 t.done();
         }
         onload = t.step_func(test)

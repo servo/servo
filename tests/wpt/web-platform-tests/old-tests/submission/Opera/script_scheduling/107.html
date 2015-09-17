@@ -1,27 +1,21 @@
 <!DOCTYPE html>
 <html><head>
-	<title> scheduler: stylesheets blocking scripts document.write</title>
-	<script src="/resources/testharness.js"></script>
-	<script src="/resources/testharnessreport.js"></script>
-	<script src="testlib/testlib.js"></script>
+        <title> scheduler: stylesheets blocking scripts document.write</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="testlib/testlib.js"></script>
 </head>
 <body>
-	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
+        <div id="log">FAILED (This TC requires JavaScript enabled)</div>
         <div id="test">Test</div>
-
-	<script>
-          var t = async_test();
-          var t0 = Date.now();
-        </script>
 
         <!-- this stylesheet blocks scripts -->
         <script>
-          t.step(function() {
+          test(function() {
             document.write("<link rel='stylesheet' href='css/import.css?pipe=trickle(d2)'>");
-            var t1 = Date.now();
             <!-- note that the pass condition here is not per spec (but does match implementations) as of 2012-06-26 -->
-            assert_true(t1-t0 < 1000, "Stylesheet blocked scripts, delayed by " + (t1-t0) + "ms expected < 1000ms");
-            t.done();
+            assert_equals(getComputedStyle(document.getElementById("test")).position,
+                          "static");
           });
         </script>
 </body></html>

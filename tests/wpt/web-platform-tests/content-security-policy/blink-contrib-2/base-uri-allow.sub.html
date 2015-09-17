@@ -14,7 +14,13 @@ base-uri http://www1.{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe-inli
     <base href="http://www1.{{host}}:{{ports[http][0]}}/">
     <script>
         test(function() {
-            assert_equals(document.baseURI, 'http://www1.{{host}}:{{ports[http][0]}}/');
+            if ('{{ports[http][0]}}' == '80' ||
+               '{{ports[http][0]}}' == '443') {
+                assert_equals(document.baseURI, 'http://www1.{{host}}/');
+            } else {
+                assert_equals(document.baseURI, 'http://www1.{{host}}' + ':{{ports[http][0]}}/');
+            }
+
             log("TEST COMPLETE")
         });
 
