@@ -1060,8 +1060,7 @@ impl LayoutTask {
                                                   stacking_context.clone());
 
                 if opts::get().dump_display_list {
-                    println!("#### start printing display list.");
-                    stacking_context.print("#".to_owned());
+                    stacking_context.print("DisplayList".to_owned());
                 }
                 if opts::get().dump_display_list_json {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
