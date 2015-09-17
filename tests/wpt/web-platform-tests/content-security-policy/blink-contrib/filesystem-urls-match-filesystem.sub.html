@@ -18,31 +18,42 @@ script-src 'self' 'unsafe-inline' 'unsafe-inline' 'self'; connect-src 'self';
         filesystem: URLs are same-origin with the page in which they were created, but explicitly do not match the &apos;self&apos; or &apos;*&apos; source in CSP directives because they are more akin to 'unsafe-inline' content, but should match filesystem: source.
     </p>
     <script>
-        function pass() {
-            log("PASS (1/1)");
-        }
-        window.webkitRequestFileSystem(TEMPORARY, 1024 * 1024 /*1MB*/ , function(fs) {
-            fs.root.getFile('pass.js', {
-                create: true
-            }, function(fileEntry) {
-                fileEntry.createWriter(function(fileWriter) {
-                    fileWriter.onwriteend = function(e) {
-                        var script = document.createElement('script');
-                        script.src = fileEntry.toURL('application/javascript');
-                        document.body.appendChild(script);
-                    };
-                    // Create a new Blob and write it to pass.js.
-                    var b = new Blob(['pass();'], {
-                        type: 'application/javascript'
+        if(!window.webkitRequestFileSystem) {
+            t_log.set_status(t_log.NOTRUN, "No filesystem:// support, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+            function pass() {
+                log("PASS (1/1)");
+            }
+            window.webkitRequestFileSystem(
+                TEMPORARY, 1024 * 1024 /*1MB*/ , function(fs) {
+                    fs.root.getFile('pass.js', {
+                        create: true
+                    }, function(fileEntry) {
+                        fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.onwriteend = function(e) {
+                                var script = document.createElement('script');
+                                script.src = fileEntry.toURL('application/javascript');
+                                document.body.appendChild(script);
+                            };
+                            // Create a new Blob and write it to pass.js.
+                            var b = new Blob(['pass();'], {
+                                type: 'application/javascript'
+                            });
+                            fileWriter.write(b);
+                        });
                     });
-                    fileWriter.write(b);
                 });
-            });
-        });
+            var s = document.createElement('script');
+            s.async = true;
+            s.defer = true;
+            s.src = "../support/checkReport.sub.js?reportExists=false"
+            document.lastChild.appendChild(s);
+        }
 
     </script>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
 </body>
 
 </html>

@@ -11,19 +11,24 @@
     <!-- enforcing policy:
 connect-src 'self'; script-src 'self' 'unsafe-inline';
 -->
-    <script></script>
+    <script id="inject_here"></script>
 </head>
 
 <body>
     <script>
         var xhr = new XMLHttpRequest;
         try {
-            xhr.open("GET", "/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png", true);
+            xhr.open("GET", "/common/redirect.py?location=http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.asis", true);
         } catch (e) {
             log("FAIL " + "XMLHttpRequest.open() should not throw an exception.");
         }
         xhr.onload = function() {
-            log("FAIL " + "XMLHttpRequest.send() should fail to follow the disallowed redirect.");
+            //cons/**/ole.log(xhr.responseText);
+            if(xhr.responseText == "FAIL") {
+                log("FAIL " + "XMLHttpRequest.send() should fail to follow the disallowed redirect.");
+            } else {
+                log("PASS " + "XMLHttpRequest.send() did not follow the disallowed redirect.");
+            }
             log("TEST COMPLETE");
         };
         xhr.onerror = function() {

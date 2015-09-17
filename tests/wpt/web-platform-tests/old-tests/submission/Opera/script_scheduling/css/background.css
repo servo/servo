@@ -1,3 +1,1 @@
-    #test {background-image:url("1x1-green.png?pipe=trickle(d2)"); 
-           background-repeat:repeat;
-           background-color:orange;}
+#test {position:fixed}

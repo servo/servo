@@ -3,15 +3,18 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <title>form-action-src-get-allowed</title>
+    <title>form-action-src-allowed</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src='../support/logTest.sub.js?logs=["PASS","TEST COMPLETE"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing policy:
 form-action 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
     <script>
+        window.addEventListener("message", function(event) {
+            log(event.data);
+        }, false);
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('submit').click();
@@ -23,13 +26,16 @@ form-action 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 </head>
 
 <body>
-    <form action="../support/pass.png" id="theform" method="get" target="_blank">
+    <iframe name="test_target" id="test_iframe"></iframe>
+
+    <form action="/common/redirect.py" id="theform" method="get" target="test_target">
+        <input type="text" name="location" value="/content-security-policy/blink-contrib/resources/postmessage-pass.html">
         <input type="text" name="fieldname" value="fieldvalue">
         <input type="submit" id="submit" value="submit">
     </form>
-    <p>Tests that allowed form actions work correctly. If this test passes, you will see a page indicating a form was POSTed or a blocked pop-up warning.</p>
+    <p>Tests that allowed form actions work correctly. If this test passes, you will see a page indicating a form was POSTed.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
-</body>
+    </body>
 
 </html>

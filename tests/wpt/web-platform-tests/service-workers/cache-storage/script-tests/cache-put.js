@@ -180,42 +180,6 @@ cache_test(function(cache) {
   }, 'Cache.put called twice with request URLs that differ only by a fragment');
 
 cache_test(function(cache) {
-    var entries = {
-      dark: {
-        url: 'http://darkhelmet:12345@example.com/spaceballs',
-        body: 'Moranis'
-      },
-
-      skroob: {
-        url: 'http://skroob:12345@example.com/spaceballs',
-        body: 'Brooks'
-      },
-
-      control: {
-        url: 'http://example.com/spaceballs',
-        body: 'v(o.o)v'
-      }
-    };
-
-    return Promise.all(Object.keys(entries).map(function(key) {
-        return cache.put(new Request(entries[key].url),
-                         new Response(entries[key].body));
-      }))
-      .then(function() {
-          return Promise.all(Object.keys(entries).map(function(key) {
-              return cache.match(entries[key].url)
-                .then(function(result) {
-                    return result.text();
-                  })
-                .then(function(body) {
-                    assert_equals(body, entries[key].body,
-                                  'Cache put should store response body.');
-                  });
-            }));
-        });
-  }, 'Cache.put with request URLs containing embedded credentials');
-
-cache_test(function(cache) {
     var url = 'http://example.com/foo';
     return cache.put(url, new Response('some body'))
       .then(function() { return cache.match(url); })

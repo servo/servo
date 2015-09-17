@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>svg-policy-with-resource</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+    <p>Tests that an SVG loaded in an iframe with a policy enforces it, not
+    the policy enforced by this parent frame.  The SVG should render and
+    not redirect to a different resource.</p>
+    <div id="log"></div>
+    <?xml version="1.0" standalone="no"?>
+<svg width="6cm" height="5cm" viewBox="0 0 600 500"
+     xmlns="http://www.w3.org/2000/svg" version="1.1">
+
+    <script type="application/ecmascript"
+            xlink:href="http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/.js">
+    </script>
+
+  <circle cx="300" cy="225" r="100" fill="lawngreen"/>
+
+  <text x="300" y="250"
+        font-family="Verdana"
+        font-size="50"
+        text-anchor="middle">
+      PASS
+    </text>
+</svg>
+
+    <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=script-src%20%27self%27+%27unsafe-inline%27'></script>
+</body>
+</html>

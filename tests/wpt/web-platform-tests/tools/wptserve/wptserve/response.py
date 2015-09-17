@@ -209,7 +209,7 @@ class Response(object):
                "message": message}
         data = json.dumps({"error": err})
         self.status = code
-        self.headers = [("Content-Type", "text/json"),
+        self.headers = [("Content-Type", "application/json"),
                         ("Content-Length", len(data))]
         self.content = data
         if code == 500:

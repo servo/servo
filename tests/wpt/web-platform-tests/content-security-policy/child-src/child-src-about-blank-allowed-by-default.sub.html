@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>child-src-about-blank-allowed-by-default</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+ 
+    <!-- enforcing policy:
+child-src 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+-->
+    <p>These frames should not be blocked by Content-Security-Policy.
+        It&apos;s pointless to block about:blank iframes because
+        blocking a frame just results in displaying about:blank anyway!
+    </p>
+    <iframe src="about:blank"></iframe>
+    <object type="text/html" data="about:blank"></object>
+
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+</body>
+
+</html>

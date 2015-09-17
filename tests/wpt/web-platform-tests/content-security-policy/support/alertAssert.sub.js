@@ -9,7 +9,10 @@ if(expected_alerts.length == 0) {
  var t_alert = async_test('Expecting alerts: {{GET[alerts]}}');
  function alert_assert(msg) {
      t_alert.step(function () {
-         if (msg.match(/^FAIL/i)) {
+         if(msg && msg instanceof Error) {
+             msg = msg.message;
+         }
+         if (msg && msg.match(/^FAIL/i)) {
              assert_unreached(msg);
              t_alert.done();
          }
