@@ -38,7 +38,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     return rv
 
 def env_options():
-    return {"host": "localhost",
+    return {"host": "127.0.0.1",
+            "external_host": "web-platform.test",
             "bind_hostname": "true",
             "testharnessreport": "testharnessreport-servo.js",
             "supports_debugger": True}
