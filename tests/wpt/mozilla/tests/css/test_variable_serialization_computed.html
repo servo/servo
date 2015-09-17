@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <title>Test serialization of computed CSS variable values</title>
-<!-- Adapted from https://dxr.mozilla.org/mozilla-central/source/layout/style/test/test_variable_serialization_computed.html -->
+<!--
+
+Adapted from https://dxr.mozilla.org/mozilla-central/source/layout/style/test/test_variable_serialization_computed.html
+
+NOTE: CSS does not define the exact serialization of whitespace and comments
+(see https://drafts.csswg.org/css-syntax/#serialization)
+so an implementation could fail this test but still be conforming.
+
+-->
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
