@@ -274,6 +274,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Should be ==?
 != overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
 == overflow_position_abs_simple_a.html overflow_position_abs_simple_b.html
+== overflow_position_rel_inline_block.html overflow_position_rel_inline_block_ref.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
 == overflow_wrap_a.html overflow_wrap_ref.html
