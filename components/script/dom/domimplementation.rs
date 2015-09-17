@@ -21,9 +21,8 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::text::Text;
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]

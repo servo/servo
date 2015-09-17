@@ -26,14 +26,13 @@ use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use script_traits::StylesheetLoadResponder;
-use style::media_queries::parse_media_query_list;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use string_cache::Atom;
+use style::media_queries::parse_media_query_list;
 use url::UrlParser;
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct HTMLLinkElement {

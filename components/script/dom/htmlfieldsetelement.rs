@@ -16,7 +16,6 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
 use util::str::{DOMString, StaticStringVec};
 
 #[dom_struct]

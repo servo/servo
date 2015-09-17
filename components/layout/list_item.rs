@@ -10,19 +10,18 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
+use euclid::{Point2D, Rect};
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
 use generated_content;
+use gfx::display_list::DisplayList;
 use incremental::RESOLVE_GENERATED_CONTENT;
 use inline::InlineMetrics;
-use text;
-
-use euclid::{Point2D, Rect};
-use gfx::display_list::DisplayList;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::properties::ComputedValues;
+use text;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;

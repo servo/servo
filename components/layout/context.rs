@@ -6,9 +6,8 @@
 
 #![deny(unsafe_code)]
 
-use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-
 use canvas_traits::CanvasMsg;
+use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use euclid::{Rect, Size2D};
 use fnv::FnvHasher;
 use gfx::display_list::OpaqueNode;

@@ -6,14 +6,6 @@ extern crate freetype;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
-use platform::font_context::FontContextHandle;
-use platform::font_template::FontTemplateData;
-use style::computed_values::{font_stretch, font_weight};
-use text::glyph::GlyphId;
-use text::util::{float_to_fixed, fixed_to_float};
-use util::geometry::Au;
-use util::str::c_str_to_string;
-
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
@@ -24,11 +16,17 @@ use freetype::freetype::{FT_New_Memory_Face, FT_Done_Face};
 use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_};
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
-
 use libc::c_char;
+use platform::font_context::FontContextHandle;
+use platform::font_template::FontTemplateData;
 use std::mem;
 use std::ptr;
 use std::sync::Arc;
+use style::computed_values::{font_stretch, font_weight};
+use text::glyph::GlyphId;
+use text::util::{float_to_fixed, fixed_to_float};
+use util::geometry::Au;
+use util::str::c_str_to_string;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)

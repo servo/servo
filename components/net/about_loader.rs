@@ -3,19 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use file_loader;
+use hyper::header::ContentType;
+use hyper::http::RawStatus;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadData, Metadata, LoadConsumer};
 use resource_task::start_sending;
-
-use hyper::header::ContentType;
-use hyper::http::RawStatus;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use url::Url;
-use util::resource_files::resources_dir_path;
-
 use std::fs::PathExt;
 use std::sync::Arc;
+use url::Url;
+use util::resource_files::resources_dir_path;
 
 pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>) {
     match load_data.url.non_relative_scheme_data().unwrap() {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools;
+use devtools_traits::DevtoolScriptControlMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -20,28 +21,24 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, SimpleWorkerErrorHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
-use script_task::ScriptTaskEventCategory::WorkerEvent;
-use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
-
-use devtools_traits::DevtoolScriptControlMsg;
-use msg::constellation_msg::PipelineId;
-use net_traits::load_whole_resource;
-use util::task::spawn_named;
-use util::task_state;
-use util::task_state::{SCRIPT, IN_WORKER};
-
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsapi::{JSContext, RootedValue, HandleValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use url::Url;
-
+use msg::constellation_msg::PipelineId;
+use net_traits::load_whole_resource;
 use rand::random;
+use script_task::ScriptTaskEventCategory::WorkerEvent;
+use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
 use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
+use url::Url;
+use util::task::spawn_named;
+use util::task_state;
+use util::task_state::{SCRIPT, IN_WORKER};
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {

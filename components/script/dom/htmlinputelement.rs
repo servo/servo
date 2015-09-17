@@ -27,15 +27,13 @@ use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use std::borrow::ToOwned;
+use std::cell::Cell;
+use string_cache::Atom;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing, RedrawSelection};
 use textinput::Lines::Single;
 use textinput::{TextInput, TextPoint};
-
-use string_cache::Atom;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::cell::Cell;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";

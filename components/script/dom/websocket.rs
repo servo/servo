@@ -22,18 +22,20 @@ use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
-use script_task::ScriptTaskEventCategory::WebSocketEvent;
-use script_task::{Runnable, CommonScriptMsg};
-
-use net_traits::hosts::replace_hosts;
-use util::str::DOMString;
-use util::task::spawn_named;
-
 use hyper::header::Host;
 use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
 use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use libc::{uint8_t, uint32_t};
+use net_traits::hosts::replace_hosts;
+use script_task::ScriptTaskEventCategory::WebSocketEvent;
+use script_task::{Runnable, CommonScriptMsg};
+use std::borrow::ToOwned;
+use std::cell::{Cell, RefCell};
+use std::ptr;
+use std::sync::{Arc, Mutex};
+use util::str::DOMString;
+use util::task::spawn_named;
 use websocket::Client;
 use websocket::Message;
 use websocket::client::receiver::Receiver;
@@ -45,11 +47,6 @@ use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
-
-use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
-use std::ptr;
-use std::sync::{Arc, Mutex};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {

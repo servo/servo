@@ -9,12 +9,10 @@ use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
-
-use url::{Host, ParseResult, Url, UrlParser};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::RefCell;
+use url::{Host, ParseResult, Url, UrlParser};
+use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{RGBA, Color};
+use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
@@ -21,15 +22,13 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use values::CSSFloat;
-use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthOrPercentage, Length, Time};
-
-use euclid::point::Point2D;
 use std::cmp::Ordering;
 use std::iter::repeat;
 use util::bezier::Bezier;
 use util::geometry::Au;
+use values::CSSFloat;
+use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use values::computed::{LengthOrPercentage, Length, Time};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {

@@ -26,16 +26,13 @@ use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
 use dom::virtualmethods::VirtualMethods;
-
 use msg::constellation_msg::FocusType;
-use util::str::DOMString;
-
-use string_cache::Atom;
-
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
 use std::rc::Rc;
+use string_cache::Atom;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLElement {

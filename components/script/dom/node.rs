@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use core::nonzero::NonZero;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
 use dom::attr::Attr;
@@ -46,21 +47,15 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use euclid::rect::Rect;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg};
+use libc;
+use libc::{uintptr_t, c_void};
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
-use style::properties::ComputedValues;
-use util::geometry::Au;
-use util::str::DOMString;
-use util::task_state;
-
-use core::nonzero::NonZero;
-use js::jsapi::{JSContext, JSObject, JSRuntime};
-use libc;
-use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
@@ -69,6 +64,10 @@ use std::mem;
 use std::slice::ref_slice;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
+use style::properties::ComputedValues;
+use util::geometry::Au;
+use util::str::DOMString;
+use util::task_state;
 use uuid;
 
 //

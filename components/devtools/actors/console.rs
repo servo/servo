@@ -9,15 +9,13 @@
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::object::ObjectActor;
-use protocol::JsonPacketStream;
-
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
 use devtools_traits::EvaluateJSReply::{StringValue, BooleanValue, ActorValue};
 use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR, CONSOLE_API};
-use msg::constellation_msg::PipelineId;
-
 use ipc_channel::ipc::{self, IpcSender};
+use msg::constellation_msg::PipelineId;
+use protocol::JsonPacketStream;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::collections::BTreeMap;

@@ -12,11 +12,9 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::window_from_node;
-
+use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, str_join};
-
-use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct DOMTokenList {

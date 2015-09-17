@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRender
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, LayoutJS, Root};
@@ -30,11 +29,10 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
 use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
-
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
-
+use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
@@ -42,8 +40,6 @@ use std::slice;
 use std::sync::mpsc::channel;
 use util::str::DOMString;
 use util::vec::byte_swap;
-
-use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 

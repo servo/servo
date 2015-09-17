@@ -33,13 +33,12 @@
 use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
-use incremental::RestyleDamage;
-use opaque_node::OpaqueNodeMethods;
-
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
+use incremental::RestyleDamage;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, SubpageId};
+use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};

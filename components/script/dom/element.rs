@@ -4,6 +4,8 @@
 
 //! Element nodes.
 
+use cssparser::Color;
+use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::attr::{Attr, AttrHelpersForLayout};
@@ -57,19 +59,6 @@ use dom::node::{document_from_node, NodeDamage};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-
-use devtools_traits::AttrInfo;
-use smallvec::VecLike;
-use style::legacy::{UnsignedIntegerAttribute, from_declaration};
-use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing, font_family};
-use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
-use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
-use util::geometry::Au;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::Color;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -78,15 +67,23 @@ use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 use selectors::matching::{matches, DeclarationBlock};
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use string_cache::{Atom, Namespace, QualName};
-use url::UrlParser;
-
+use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
+use string_cache::{Atom, Namespace, QualName};
+use style::legacy::{UnsignedIntegerAttribute, from_declaration};
+use style::properties::DeclaredValue;
+use style::properties::longhands::{self, background_image, border_spacing, font_family};
+use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
+use style::values::CSSFloat;
+use style::values::specified::{self, CSSColor, CSSRGBA};
+use url::UrlParser;
+use util::geometry::Au;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct Element {

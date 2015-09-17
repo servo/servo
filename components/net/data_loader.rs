@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use hyper::mime::Mime;
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::{LoadData, Metadata, LoadConsumer};
 use resource_task::start_sending;
-
 use rustc_serialize::base64::FromBase64;
-
-use hyper::mime::Mime;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;

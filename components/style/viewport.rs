@@ -7,16 +7,14 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
 use properties::longhands;
+use std::ascii::AsciiExt;
+use std::collections::hash_map::{Entry, HashMap};
+use std::intrinsics;
 use style_traits::viewport::{UserZoom, Zoom, Orientation, ViewportConstraints};
 use stylesheets::Origin;
 use util::geometry::{Au, ViewportPx};
 use values::computed::{Context, ToComputedValue};
 use values::specified::LengthOrPercentageOrAuto;
-
-
-use std::ascii::AsciiExt;
-use std::collections::hash_map::{Entry, HashMap};
-use std::intrinsics;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ViewportDescriptor {

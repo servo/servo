@@ -9,8 +9,6 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
-use pipeline::{Pipeline, CompositionPipeline, InitialPipelineState};
-
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
@@ -39,6 +37,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use net_traits::{self, ResourceTask};
 use offscreen_gl_context::GLContextAttributes;
+use pipeline::{Pipeline, CompositionPipeline, InitialPipelineState};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};

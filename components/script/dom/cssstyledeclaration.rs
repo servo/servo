@@ -12,15 +12,14 @@ use dom::element::{StylePriority, Element};
 use dom::node::{window_from_node, document_from_node, NodeDamage};
 use dom::window::Window;
 use selectors::parser::PseudoElement;
-use string_cache::Atom;
-use style::properties::PropertyDeclaration;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
-use util::str::DOMString;
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::slice::SliceConcatExt;
+use string_cache::Atom;
+use style::properties::PropertyDeclaration;
+use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
+use util::str::DOMString;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]

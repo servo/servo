@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
@@ -16,25 +17,20 @@ use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
-use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
-
-use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
-
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use net_traits::{load_whole_resource, ResourceTask};
-use profile_traits::mem;
-use util::str::DOMString;
-
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, HandleValue, JSAutoRequest};
 use js::rust::Runtime;
-use url::{Url, UrlParser};
-
+use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use net_traits::{load_whole_resource, ResourceTask};
+use profile_traits::mem;
+use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use url::{Url, UrlParser};
+use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {

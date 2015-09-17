@@ -10,7 +10,6 @@
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::tab::{TabActor, TabActorMsg};
 use protocol::JsonPacketStream;
-
 use rustc_serialize::json;
 use std::net::TcpStream;
 

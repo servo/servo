@@ -10,7 +10,6 @@ use script::dom::htmlelement::HTMLElement;
 use script::dom::htmlspanelement::HTMLSpanElement;
 use script::dom::node::Node;
 use script::dom::text::Text;
-
 use std::mem::size_of;
 
 // Macro so that we can stringify type names

@@ -32,14 +32,13 @@
 //! | sequences               | `Vec<T>`                         |
 //! | union types             | `T`                              |
 
+use core::nonzero::NonZero;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
-use util::str::DOMString;
-
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
@@ -54,8 +53,6 @@ use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value
 use js::rust::{ToUint16, ToNumber, ToBoolean, ToString};
 use js::rust::{ToUint32, ToInt32};
 use js::rust::{ToUint64, ToInt64};
-
-use core::nonzero::NonZero;
 use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
@@ -64,6 +61,7 @@ use std::char;
 use std::ptr;
 use std::rc::Rc;
 use std::slice;
+use util::str::DOMString;
 
 trait As<O>: Copy {
     fn cast(self) -> O;

@@ -5,14 +5,13 @@
 //! Legacy presentational attributes defined in the HTML5 specification: `<td width>`,
 //! `<input size>`, and so forth.
 
-use std::sync::Arc;
-
 use node::TElementAttributes;
 use properties::PropertyDeclaration;
 use selector_matching::Stylist;
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
+use std::sync::Arc;
 
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.

@@ -7,11 +7,10 @@
 #![deny(unsafe_code)]
 
 use context::LayoutContext;
+use euclid::{Point2D, Rect};
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
-
-use euclid::{Point2D, Rect};
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;

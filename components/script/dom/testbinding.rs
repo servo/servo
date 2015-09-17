@@ -20,14 +20,12 @@ use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::Reflector;
 use dom::blob::Blob;
-use util::str::DOMString;
-
 use js::jsapi::{JSContext, JSObject, HandleValue};
 use js::jsval::{JSVal, NullValue};
-
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct TestBinding {

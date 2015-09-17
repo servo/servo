@@ -11,9 +11,8 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.

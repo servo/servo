@@ -10,18 +10,15 @@ use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-
-use util::str::DOMString;
-
 use encoding::Encoding;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{EncodingRef, DecoderTrap};
 use js::jsapi::JS_GetObjectAsArrayBufferView;
 use js::jsapi::{JSContext, JSObject};
-
 use std::borrow::ToOwned;
 use std::ptr;
 use std::slice;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct TextDecoder {

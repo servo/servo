@@ -14,18 +14,15 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
-use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
-
-use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use net_traits::ResourceTask;
-use profile_traits::mem;
-
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
+use net_traits::ResourceTask;
+use profile_traits::mem;
+use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
 use url::Url;
-
 use util::mem::HeapSizeOf;
 
 /// A freely-copyable reference to a rooted global object.

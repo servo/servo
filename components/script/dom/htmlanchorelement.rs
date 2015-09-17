@@ -22,14 +22,11 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::DOMString;
-
 use num::ToPrimitive;
+use std::default::Default;
 use string_cache::Atom;
 use url::UrlParser;
-
-use std::default::Default;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {

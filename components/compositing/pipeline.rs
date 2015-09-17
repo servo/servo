@@ -3,10 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use layout_traits::{LayoutTaskFactory, LayoutControlChan};
-use script_traits::{ConstellationControlMsg, InitialScriptState};
-use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptTaskFactory};
-
 use compositor_task;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::rect::{TypedRect};
@@ -16,6 +12,7 @@ use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
+use layout_traits::{LayoutTaskFactory, LayoutControlChan};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
 use net_traits::ResourceTask;
@@ -23,6 +20,8 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
+use script_traits::{ConstellationControlMsg, InitialScriptState};
+use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptTaskFactory};
 use std::any::Any;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};

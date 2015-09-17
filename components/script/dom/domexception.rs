@@ -8,9 +8,8 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 #[repr(u16)]
 #[derive(JSTraceable, Copy, Clone, Debug, HeapSizeOf)]

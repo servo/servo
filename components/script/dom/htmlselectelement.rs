@@ -17,11 +17,9 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
+use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct HTMLSelectElement {

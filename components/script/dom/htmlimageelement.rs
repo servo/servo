@@ -21,19 +21,17 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
-use script_task::{Runnable, ScriptChan, CommonScriptMsg};
-use string_cache::Atom;
-use util::str::DOMString;
-
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
-use url::{Url, UrlParser};
-
+use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
+use script_task::{Runnable, ScriptChan, CommonScriptMsg};
 use std::borrow::ToOwned;
 use std::sync::Arc;
+use string_cache::Atom;
+use url::{Url, UrlParser};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLImageElement {

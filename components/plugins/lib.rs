@@ -27,7 +27,6 @@ extern crate clippy;
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
 use syntax::ext::base::*;
-
 use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::parse::token::intern;
 

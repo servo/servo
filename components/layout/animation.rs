@@ -4,11 +4,10 @@
 
 //! CSS transitions and animations.
 
-use flow::{self, Flow};
-use incremental::{self, RestyleDamage};
-
 use clock_ticks;
+use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
+use incremental::{self, RestyleDamage};
 use layout_task::{LayoutTask, LayoutTaskData};
 use msg::constellation_msg::{AnimationState, Msg, PipelineId};
 use script::layout_interface::Animation;

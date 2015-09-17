@@ -12,10 +12,9 @@ use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_obje
 use dom::element::Element;
 use dom::node::{Node, TreeIterator};
 use dom::window::Window;
-use util::str::{DOMString, split_html_space_chars};
-
 use std::ascii::AsciiExt;
 use string_cache::{Atom, Namespace};
+use util::str::{DOMString, split_html_space_chars};
 
 pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;

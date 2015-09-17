@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas::canvas_paint_task::RectToi32;
+use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
+use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
+use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
+use cssparser::Color as CSSColor;
+use cssparser::{Parser, RGBA};
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
@@ -22,24 +28,14 @@ use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
 use dom::node::{window_from_node, NodeDamage};
-
-use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::image::base::PixelFormat;
-use net_traits::image_cache_task::ImageResponse;
-
-use cssparser::Color as CSSColor;
-use cssparser::{Parser, RGBA};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-
-use canvas::canvas_paint_task::RectToi32;
-use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
-use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
-use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
-
 use ipc_channel::ipc::{self, IpcSender};
+use msg::constellation_msg::Msg as ConstellationMsg;
+use net_traits::image::base::PixelFormat;
+use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -47,7 +43,6 @@ use std::cmp;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
-
 use url::Url;
 use util::str::DOMString;
 use util::vec::byte_swap;

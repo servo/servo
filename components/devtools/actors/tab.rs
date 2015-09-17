@@ -11,7 +11,6 @@ use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
-
 use rustc_serialize::json;
 use std::net::TcpStream;
 

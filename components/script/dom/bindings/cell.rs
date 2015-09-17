@@ -6,11 +6,9 @@
 
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
-
+use std::cell::{BorrowState, RefCell, Ref, RefMut};
 use util::task_state;
 use util::task_state::SCRIPT;
-
-use std::cell::{BorrowState, RefCell, Ref, RefMut};
 
 /// A mutable field in the DOM.
 ///

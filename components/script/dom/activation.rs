@@ -9,7 +9,6 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
-
 use std::borrow::ToOwned;
 
 /// Trait for elements with defined activation behavior

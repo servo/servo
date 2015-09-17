@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use url::Url;
-
+use legacy::PresentationalHintSynthesis;
+use media_queries::Device;
+use node::TElementAttributes;
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
@@ -11,15 +13,11 @@ use selectors::matching::{SelectorMap, Rule};
 use selectors::parser::PseudoElement;
 use smallvec::VecLike;
 use std::process;
-use util::opts;
-use util::resource_files::read_resource_file;
-
-use legacy::PresentationalHintSynthesis;
-use media_queries::Device;
-use node::TElementAttributes;
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{Stylesheet, CSSRuleIteratorExt, Origin};
+use url::Url;
+use util::opts;
+use util::resource_files::read_resource_file;
 use viewport::{MaybeNew, ViewportRuleCascade};
 
 

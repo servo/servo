@@ -24,21 +24,19 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use page::IterablePage;
-
+use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsval::UndefinedValue;
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
-use string_cache::Atom;
-use util::prefs;
-use util::str::DOMString;
-
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
-use js::jsval::UndefinedValue;
+use page::IterablePage;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use string_cache::Atom;
 use url::{Url, UrlParser};
+use util::prefs;
+use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {

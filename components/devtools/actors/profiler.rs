@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
-
 use rustc_serialize::json;
 use std::net::TcpStream;
 

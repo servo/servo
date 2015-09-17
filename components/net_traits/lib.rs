@@ -35,10 +35,9 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
+use std::thread;
 use url::Url;
 use util::mem::HeapSizeOf;
-
-use std::thread;
 
 pub mod hosts;
 pub mod image_cache_task;

@@ -29,15 +29,13 @@
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
 //! a datatype.
 
-use dom::bindings::js::{JS, Root};
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
-use script_task::ScriptChan;
-
 use canvas_traits::WebGLError;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
 use cssparser::RGBA;
+use dom::bindings::js::{JS, Root};
+use dom::bindings::refcounted::Trusted;
+use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use encoding::types::EncodingRef;
 use euclid::matrix2d::Matrix2D;
 use euclid::rect::Rect;
@@ -59,6 +57,7 @@ use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_task::ScriptChan;
 use script_traits::UntrustedNodeAddress;
 use selectors::parser::PseudoElement;
 use serde::{Serialize, Deserialize};

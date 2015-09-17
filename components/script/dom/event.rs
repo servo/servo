@@ -11,13 +11,11 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEventTypeId};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-
 use time;
+use util::str::DOMString;
 
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u16)]

@@ -4,11 +4,9 @@
 
 use net_traits::{IncludeSubdomains, IPV4_REGEX, IPV6_REGEX};
 use rustc_serialize::json::{decode};
+use std::str::{from_utf8};
 use time;
 use url::Url;
-
-use std::str::{from_utf8};
-
 use util::resource_files::read_resource_file;
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]

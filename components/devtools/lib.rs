@@ -43,15 +43,12 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
-use protocol::JsonPacketStream;
-
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg, LogLevel, NetworkEvent};
 use devtools_traits::{ScriptToDevtoolsControlMsg};
-use msg::constellation_msg::{PipelineId, WorkerId};
-use util::task::spawn_named;
-
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{PipelineId, WorkerId};
+use protocol::JsonPacketStream;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -61,6 +58,7 @@ use std::net::{TcpListener, TcpStream, Shutdown};
 use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
+use util::task::spawn_named;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/

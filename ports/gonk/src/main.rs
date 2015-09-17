@@ -47,9 +47,8 @@ extern {}
 use compositing::windowing::WindowEvent;
 use net_traits::hosts;
 use servo::Browser;
-use util::opts;
-
 use std::env;
+use util::opts;
 
 mod input;
 mod window;

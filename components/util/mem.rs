@@ -4,15 +4,6 @@
 
 //! Data structure measurement.
 
-use libc::{c_void, size_t};
-use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, LinkedList, hash_state};
-use std::hash::Hash;
-use std::mem::{size_of, transmute};
-use std::rc::Rc;
-use std::result::Result;
-use std::sync::Arc;
-
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
 use cssparser::{RGBA, TokenSerializationType};
@@ -30,10 +21,18 @@ use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::GCMethods;
 use layers::geometry::DevicePixel;
+use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
 use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
+use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, LinkedList, hash_state};
+use std::hash::Hash;
+use std::mem::{size_of, transmute};
+use std::rc::Rc;
+use std::result::Result;
+use std::sync::Arc;
 use str::LengthOrPercentageOrAuto;
 use string_cache::atom::Atom;
 use string_cache::namespace::Namespace;

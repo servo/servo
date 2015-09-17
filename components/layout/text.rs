@@ -7,14 +7,13 @@
 #![deny(unsafe_code)]
 
 use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo, UnscannedTextFragmentInfo};
-use inline::InlineFragments;
-
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
+use inline::InlineFragments;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;

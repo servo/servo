@@ -39,10 +39,9 @@ use dom::event::Event;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::node::NodeTypeId;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
-
+use string_cache::Atom;
 use util::str::DOMString;
 
-use string_cache::Atom;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.

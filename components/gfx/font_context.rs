@@ -2,23 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::SpecifiedFontStyle;
-use font::{Font, FontGroup};
-use platform::font_context::FontContextHandle;
-use style::computed_values::{font_style, font_variant};
-
+use azure::azure_hl::BackendType;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+use azure::scaled_font::FontInfo;
+use azure::scaled_font::ScaledFont;
 use fnv::FnvHasher;
 use font::FontHandleMethods;
+use font::SpecifiedFontStyle;
+use font::{Font, FontGroup};
 use font_cache_task::FontCacheTask;
 use font_template::FontTemplateDescriptor;
 use platform::font::FontHandle;
+use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
-use string_cache::Atom;
-use util::cache::HashCache;
-use util::geometry::Au;
-use util::mem::HeapSizeOf;
-
 use std::borrow::{self, ToOwned};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -27,12 +24,11 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 use std::sync::Arc;
-
-use azure::azure_hl::BackendType;
-use azure::scaled_font::ScaledFont;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-use azure::scaled_font::FontInfo;
+use string_cache::Atom;
+use style::computed_values::{font_style, font_variant};
+use util::cache::HashCache;
+use util::geometry::Au;
+use util::mem::HeapSizeOf;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
