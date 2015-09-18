@@ -237,6 +237,11 @@ impl Au {
     }
 
     #[inline]
+    pub fn to_nearest_pixel(self, pixels_per_px: f32) -> f32 {
+        ((self.0 as f32) / (AU_PER_PX as f32) * pixels_per_px).round() / pixels_per_px
+    }
+
+    #[inline]
     pub fn to_f32_px(self) -> f32 {
         (self.0 as f32) / (AU_PER_PX as f32)
     }
