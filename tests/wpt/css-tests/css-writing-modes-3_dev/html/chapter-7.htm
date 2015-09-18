@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Abstract Box Layout (495 tests)</h2>
+  <h2>Abstract Box Layout (485 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -4235,7 +4235,51 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.4">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#logical-direction-layout">7.4 Flow-Relative Mappings</a></th></tr>
-      <!-- 36 tests -->
+      <!-- 40 tests -->
+      <tr id="caption-side-vlr-003-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="caption-side-vlr-003.htm">caption-side-vlr-003</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'caption-side: top' and vertical-lr
+          <ul class="assert">
+            <li>This test checks that when 'caption-side' is set to 'top' in a vertical-lr table, then the caption is placed at the block-start side of the table, which is on the lefthand side of such table.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="caption-side-vlr-005-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="caption-side-vlr-005.htm">caption-side-vlr-005</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'caption-side: bottom' and vertical-lr
+          <ul class="assert">
+            <li>This test checks that when 'caption-side' is set to 'bottom' in a vertical-lr table, then the caption is placed at the block-end side of the table, which is on the righthand side of such table.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="caption-side-vrl-002-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="caption-side-vrl-002.htm">caption-side-vrl-002</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'caption-side: top' and vertical-rl
+          <ul class="assert">
+            <li>This test checks that when 'caption-side' is set to 'top' in a vertical-rl table, then the caption is placed at the block-start side of the table, which is on the righthand side of such table.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="caption-side-vrl-004-7.4" class="primary ahem image">
+        <td><strong>
+            <a href="caption-side-vrl-004.htm">caption-side-vrl-004</a></strong></td>
+        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
+        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>'caption-side: bottom' and vertical-rl
+          <ul class="assert">
+            <li>This test checks that when 'caption-side' is set to 'bottom' in a vertical-rl table, then the caption is placed at the block-end side of the table, which is on the lefthand side of such table.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="margin-collapse-vlr-003-7.4" class="primary ahem image">
         <td><strong>
             <a href="margin-collapse-vlr-003.htm">margin-collapse-vlr-003</a></strong></td>
@@ -4637,73 +4681,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#line-mappings">7.5 Line-Relative Mappings</a></th></tr>
-      <!-- 32 tests -->
-      <tr id="text-decoration-sidewaysleft-vlr-003-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vlr-003.htm">text-decoration-sidewaysleft-vlr-003</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: underline' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: underline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-left' in a 'vertical-lr' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-decoration-sidewaysleft-vlr-005-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vlr-005.htm">text-decoration-sidewaysleft-vlr-005</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: overline' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: overline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-lr' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-decoration-sidewaysleft-vlr-007-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vlr-007.htm">text-decoration-sidewaysleft-vlr-007</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: line-through' and 'text-orientation: sideways-left' in a 'vertical-lr' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-left' in a 'vertical-lr' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-decoration-sidewaysleft-vrl-002-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vrl-002.htm">text-decoration-sidewaysleft-vrl-002</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: underline' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: underline' generates a line on the righthand side of text when 'text-orientation' is set to 'sideways-left' in a 'vertical-rl' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-decoration-sidewaysleft-vrl-004-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vrl-004.htm">text-decoration-sidewaysleft-vrl-004</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: overline' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: overline' generates a line on the lefthand side of text when 'text-orientation' is set to 'sideways-right' in a 'vertical-rl' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-decoration-sidewaysleft-vrl-006-7.5" class="primary">
-        <td><strong>
-            <a href="text-decoration-sidewaysleft-vrl-006.htm">text-decoration-sidewaysleft-vrl-006</a></strong></td>
-        <td></td>
-        <td></td>
-        <td>'text-decoration: line-through' and 'text-orientation: sideways-left' in a 'vertical-rl' writing-mode
-          <ul class="assert">
-            <li>This test checks that 'text-decoration: line-through' generates a line that passes through the middle of glyphs when 'text-orientation' is set to 'sideways-left' in a 'vertical-rl' writing-mode.</li>
-          </ul>
-        </td>
-      </tr>
+      <!-- 26 tests -->
       <tr id="text-decoration-sidewaysright-vlr-003-7.5" class="primary">
         <td><strong>
             <a href="text-decoration-sidewaysright-vlr-003.htm">text-decoration-sidewaysright-vlr-003</a></strong></td>
@@ -5430,95 +5408,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.7">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#caption-side">7.7 Table Caption Mappings: the caption-side keywords</a></th></tr>
-      <!-- 8 tests -->
-      <tr id="caption-side-vlr-003-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vlr-003.htm">caption-side-vlr-003</a></strong></td>
-        <td></td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: top' and vertical-lr
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'top' in a vertical-lr table and if the rendering engine does not support side captions (i.e. left and right captions in horizontal writing modes), then the caption is placed at the block-start side of the table, which is on the lefthand side of such table. If the rendering engine supports side captions, then the rendering engine must place the caption at the physical top (logical left) side of the table box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vlr-005-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vlr-005.htm">caption-side-vlr-005</a></strong></td>
-        <td></td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: bottom' and vertical-lr
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'bottom' in a vertical-lr table and if the rendering engine does not support side captions (i.e. left and right captions in horizontal writing modes), then the caption is placed at the block-start side of the table, which is on the lefthand side of such table. If the rendering engine supports side captions, then the rendering engine must place the caption at the physical bottom (logical right) side of the table box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vlr-007-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vlr-007.htm">caption-side-vlr-007</a></strong></td>
-        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: block-start' and vertical-lr
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'block-start' in a vertical-lr table, then the caption is placed at the block-start side of the table, which is on the lefthand side of such table.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vlr-009-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vlr-009.htm">caption-side-vlr-009</a></strong></td>
-        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: block-end' and vertical-lr
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'block-end' in a vertical-lr table, then the caption is placed at the block-end side of the table, which is on the righthand side of such table.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vrl-002-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vrl-002.htm">caption-side-vrl-002</a></strong></td>
-        <td></td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: top' and vertical-rl
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'top' in a vertical-rl table and if the rendering engine does not support side captions (i.e. left and right captions in horizontal writing modes), then the caption is placed at the block-start side of the table, which is on the righthand side of such table. If the rendering engine supports side captions, then the rendering engine must place the caption at the physical top (logical left) side of the table box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vrl-004-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vrl-004.htm">caption-side-vrl-004</a></strong></td>
-        <td></td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: bottom' and vertical-rl
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'bottom' in a vertical-rl table and if the rendering engine does not support side captions (i.e. left and right captions in horizontal writing modes), then the caption is placed at the block-start side of the table, which is on the righthand side of such table. If the rendering engine supports side captions, then the rendering engine must place the caption at the physical bottom (logical right) side of the table box.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vrl-006-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vrl-006.htm">caption-side-vrl-006</a></strong></td>
-        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: block-start' and vertical-rl
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'block-start' in a vertical-rl table, then the caption is placed at the block-start side of the table, which is on the righthand side of such table.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="caption-side-vrl-008-7.7" class="primary ahem image">
-        <td><strong>
-            <a href="caption-side-vrl-008.htm">caption-side-vrl-008</a></strong></td>
-        <td><a href="reference/ref-filled-green-100px-square.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>'caption-side: block-end' and vertical-rl
-          <ul class="assert">
-            <li>This test checks that when 'caption-side' is set to 'block-end' in a vertical-rl table, then the caption is placed at the block-end side of the table, which is on the lefthand side of such table.</li>
-          </ul>
-        </td>
-      </tr>
+      <!-- 0 tests -->
     </tbody>
     <tbody id="s7.7.#valuedef-block-end">
       <!-- 0 tests -->

@@ -5,6 +5,7 @@ background-position-002.xht == reference/background-position-002-ref.xht
 c526-font-sz-001.xht == reference/c526-font-sz-001-ref.xht
 c526-font-sz-002.xht == reference/c526-font-sz-002-ref.xht
 c526-font-sz-003.xht == reference/c526-font-sz-003-ref.xht
+font-003.xht == reference/font-003-ref.xht
 font-051.xht == reference/font-051-ref.xht
 font-146.xht == reference/font-146-ref.xht
 font-applies-to-001.xht == reference/font-applies-to-001-ref.xht

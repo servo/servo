@@ -3382,6 +3382,7 @@ floats-wrap-top-below-inline-003l.htm == reference/floats-wrap-top-below-003l-re
 floats-wrap-top-below-inline-003r.htm == reference/floats-wrap-top-below-003r-ref.htm
 floats-zero-height-wrap-001.htm == reference/floats-zero-height-wrap-001-ref.htm
 floats-zero-height-wrap-002.htm == reference/floats-zero-height-wrap-001-ref.htm
+font-003.htm == reference/font-003-ref.htm
 font-051.htm == reference/font-051-ref.htm
 font-146.htm == reference/font-146-ref.htm
 font-applies-to-001.htm == reference/font-applies-to-001-ref.htm
@@ -3681,8 +3682,6 @@ inline-block-alignment-006.htm == reference/inline-block-alignment-006-ref.htm
 inline-block-alignment-007.htm == reference/inline-block-alignment-007-ref.htm
 inline-block-alignment-008.htm == reference/inline-block-alignment-006-ref.htm
 inline-block-alignment-009.htm == reference/inline-block-alignment-009-ref.htm
-inline-block-alignment-010.htm == reference/inline-block-alignment-010-ref.htm
-inline-block-alignment-011.htm == reference/inline-block-alignment-007-ref.htm
 inline-block-height-001.htm == reference/inline-block-height-001-ref.htm
 inline-block-height-002.htm == reference/inline-block-height-002-ref.htm
 inline-block-non-replaced-height-001.htm == reference/height-percentage-001-ref.htm
@@ -3889,6 +3888,7 @@ left-offset-002.htm == reference/left-offset-001-ref.htm
 left-offset-003.htm == reference/left-offset-003-ref.htm
 left-offset-percentage-001.htm == reference/left-offset-percentage-001-ref.htm
 left-offset-percentage-002.htm == reference/left-offset-percentage-002-ref.htm
+left-offset-position-fixed-001.htm == reference/left-offset-position-fixed-001-ref.htm
 line-box-height-002.htm == reference/line-box-height-002-ref.htm
 line-breaking-bidi-001.htm == reference/line-breaking-bidi-001-ref.htm
 line-breaking-bidi-002.htm == reference/line-breaking-bidi-002-ref.htm
@@ -4746,8 +4746,8 @@ numbers-units-010.htm == reference/numbers-units-010-ref.htm
 numbers-units-011.htm == reference/numbers-units-011-ref.htm
 numbers-units-012.htm == reference/numbers-units-012-ref.htm
 numbers-units-013.htm == reference/numbers-units-013-ref.htm
-numbers-units-015.htm == reference/numbers-units-014-ref-a.htm
-numbers-units-015.htm == reference/numbers-units-014-ref-b.htm
+numbers-units-015.htm == reference/numbers-units-015-ref-a.htm
+numbers-units-015.htm == reference/numbers-units-015-ref-b.htm
 numbers-units-016.htm == reference/no-red-on-blank-page-ref.htm
 numbers-units-017.htm == reference/no-red-on-blank-page-ref.htm
 numbers-units-018.htm == reference/numbers-units-018-ref.htm
@@ -4775,7 +4775,10 @@ outline-color-115.htm == reference/outline-color-115-ref.htm
 outline-color-applies-to-005.htm == reference/no-red-on-blank-page-ref.htm
 outline-color-applies-to-006.htm == reference/no-red-on-blank-page-ref.htm
 outline-layout-006.htm == reference/outline-layout-006-ref.htm
-outline-style-001.htm == reference/no-red-filler-text-ref.htm
+outline-style-001.htm == reference/outline-style-001-ref.htm
+outline-style-002.htm == reference/outline-style-002-ref.htm
+outline-style-003.htm == reference/outline-style-003-ref.htm
+outline-style-004.htm == reference/outline-style-004-ref.htm
 outline-style-applies-to-005.htm == reference/no-red-on-blank-page-ref.htm
 outline-style-applies-to-006.htm == reference/no-red-on-blank-page-ref.htm
 outline-width-002.htm == reference/no-red-filler-text-ref.htm
@@ -5317,6 +5320,7 @@ right-offset-002.htm == reference/left-offset-001-ref.htm
 right-offset-003.htm == reference/right-offset-001-ref.htm
 right-offset-004.htm == reference/ref-filled-green-100px-square.htm
 right-offset-percentage-001.htm == reference/right-offset-percentage-001-ref.htm
+right-offset-position-fixed-001.htm == reference/right-offset-position-fixed-001-ref.htm
 root-box-001.htm == reference/root-box-001-ref.htm
 root-box-002.htm == reference/root-box-002-ref.htm
 root-box-003.htm == reference/root-box-003-ref.htm
