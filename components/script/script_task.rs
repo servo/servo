@@ -1282,6 +1282,11 @@ impl ScriptTask {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
+        // Workaround for a race condition when navigating before the initial page has
+        // been constructed c.f. https://github.com/servo/servo/issues/7677
+        if self.page.borrow().is_none() {
+            return
+        };
         let page = self.root_page();
         let page = page.find(id).expect("ScriptTask: received freeze msg for a
                     pipeline ID not associated with this script task. This is a bug.");
