@@ -47,9 +47,9 @@ extern crate util;
 extern crate style_traits;
 
 mod custom_properties;
-pub mod stylesheets;
 pub mod parser;
 pub mod selector_matching;
+pub mod stylesheets;
 #[macro_use] pub mod values;
 
 // Generated from the properties.mako.rs template by build.rs
@@ -58,11 +58,11 @@ pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
 
-pub mod node;
-pub mod media_queries;
+pub mod animation;
 pub mod font_face;
 pub mod legacy;
-pub mod animation;
+pub mod media_queries;
+pub mod node;
 pub mod viewport;
 
 macro_rules! reexport_computed_values {

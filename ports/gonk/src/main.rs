@@ -51,8 +51,8 @@ use util::opts;
 
 use std::env;
 
-mod window;
 mod input;
+mod window;
 
 struct BrowserWrapper {
     browser: Browser,
@@ -105,4 +105,3 @@ fn main() {
     } = browser;
     browser.shutdown();
 }
-

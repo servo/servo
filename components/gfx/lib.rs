@@ -85,8 +85,8 @@ pub mod paint_task;
 
 // Fonts
 pub mod font;
-pub mod font_context;
 pub mod font_cache_task;
+pub mod font_context;
 pub mod font_template;
 
 // Misc.

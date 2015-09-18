@@ -203,6 +203,8 @@ def check_rust(file_name, contents):
 
     uses = []
 
+    mods = []
+
     for idx, line in enumerate(contents):
         # simplify the analysis
         line = line.strip()
@@ -304,6 +306,29 @@ def check_rust(file_name, contents):
                     found = "\n\t\033[91mfound: {}\033[0m".format(uses[i])
                     yield (idx + 1 - len(uses) + i, message + expected + found)
             uses = []
+
+        # modules must be in the same line and alphabetically sorted
+        if line.startswith("mod ") or line.startswith("pub mod "):
+            mod = ""
+            if line.startswith("mod "):
+                mod = line[4:]
+            else:
+                mod = line[8:]
+
+            match = line.find(" {")
+            if match == -1:
+                if not mod.endswith(";"):
+                    yield (idx + 1, "mod statement spans multiple lines")
+                mods.append(mod[:len(mod) - 1])
+        elif len(mods) > 0:
+            sorted_mods = sorted(mods)
+            for i in range(len(mods)):
+                if sorted_mods[i] != mods[i]:
+                    message = "mod statement is not in alphabetical order"
+                    expected = "\n\t\033[93mexpected: {}\033[0m".format(sorted_mods[i])
+                    found = "\n\t\033[91mfound: {}\033[0m".format(mods[i])
+                    yield (idx + 1 - len(mods) + i, message + expected + found)
+            mods = []
 
 
 # Avoid flagging <Item=Foo> constructs
