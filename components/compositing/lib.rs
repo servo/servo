@@ -49,11 +49,11 @@ pub use constellation::Constellation;
 
 pub mod compositor_task;
 
-mod surface_map;
-mod compositor_layer;
 mod compositor;
+mod compositor_layer;
 mod headless;
 mod scrolling;
+mod surface_map;
 
 pub mod pipeline;
 pub mod constellation;

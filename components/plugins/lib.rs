@@ -37,11 +37,11 @@ pub mod jstraceable;
 /// Handles the auto-deriving for `#[derive(HeapSizeOf)]`
 pub mod heap_size;
 /// Autogenerates implementations of Reflectable on DOM structs
-pub mod reflector;
 pub mod lints;
+pub mod reflector;
 /// Utilities for writing plugins
-pub mod utils;
 pub mod casing;
+pub mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {

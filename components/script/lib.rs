@@ -91,16 +91,16 @@ pub mod dom;
 
 pub mod parse;
 
+pub mod clipboard_provider;
+mod devtools;
+mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
 pub mod page;
 pub mod script_task;
-mod timers;
 pub mod textinput;
-pub mod clipboard_provider;
-mod devtools;
-mod horribly_inefficient_timers;
+mod timers;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
