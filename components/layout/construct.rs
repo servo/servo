@@ -1309,10 +1309,9 @@ impl<'a> FlowConstructor<'a> {
     pub fn repair_if_possible(&mut self, node: &ThreadSafeLayoutNode) -> bool {
         // We can skip reconstructing the flow if we don't have to reconstruct and none of our kids
         // did either.
-        if node.restyle_damage().contains(RECONSTRUCT_FLOW) {
-            return false
-        }
-
+        //
+        // We visit the kids first and reset their HAS_NEWLY_CONSTRUCTED_FLOW flags after checking
+        // them.  NOTE: Make sure not to bail out early before resetting all the flags!
         let mut need_to_reconstruct = false;
         for kid in node.children() {
             if kid.flags().contains(HAS_NEWLY_CONSTRUCTED_FLOW) {
@@ -1323,6 +1322,11 @@ impl<'a> FlowConstructor<'a> {
         if need_to_reconstruct {
             return false
         }
+
+        if node.restyle_damage().contains(RECONSTRUCT_FLOW) {
+            return false
+        }
+
 
         let mut style = node.style().clone();
         let mut layout_data_ref = node.mutate_layout_data();
