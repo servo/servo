@@ -204,7 +204,7 @@ impl DisplayList {
     // Print the display list. Only makes sense to call it after performing reflow.
     pub fn print_items(&self, indentation: String) {
         // Closures are so nice!
-        let doit = |items: &Vec<DisplayItem>| {
+        let doit = |items: &[DisplayItem]| {
             for item in items {
                 match *item {
                     DisplayItem::SolidColorClass(ref solid_color) => {
