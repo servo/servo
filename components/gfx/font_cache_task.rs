@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
+use net_traits::mime_classifier::{GroupedClassifier, MIMEChecker};
 use net_traits::{ResourceTask, load_whole_resource};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
@@ -10,14 +11,18 @@ use platform::font_list::for_each_variation;
 use platform::font_list::last_resort_font_families;
 use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
+use rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Cursor, Write};
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use string_cache::Atom;
 use style::font_face::Source;
 use util::str::LowercaseString;
 use util::task::spawn_named;
+use woff;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -60,7 +65,7 @@ impl FontFamily {
         None
     }
 
-    fn add_template(&mut self, identifier: Atom, maybe_data: Option<Vec<u8>>) {
+    fn add_template(&mut self, identifier: Atom, maybe_data: Option<DownloadedWebFont>) {
         for template in &self.templates {
             if *template.identifier() == identifier {
                 return;
@@ -94,6 +99,7 @@ struct FontCache {
     web_families: HashMap<LowercaseString, FontFamily>,
     font_context: FontContextHandle,
     resource_task: ResourceTask,
+    font_classifier: GroupedClassifier,
 }
 
 fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString>,
@@ -131,14 +137,21 @@ impl FontCache {
                     match src {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
-                            let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
+                            let maybe_resource = load_whole_resource(&self.resource_task,
+                                                                     url.clone());
                             match maybe_resource {
                                 Ok((_, bytes)) => {
-                                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
+                                    let family = &mut self.web_families
+                                                          .get_mut(&family_name)
+                                                          .unwrap();
+                                    family.add_template(Atom::from_slice(&url.to_string()),
+                                                        Some(DownloadedWebFont::new(
+                                                                bytes,
+                                                                &self.font_classifier)));
                                 },
                                 Err(_) => {
-                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
+                                    debug!("Failed to load web font: family={:?} url={}",
+                                           family_name, url);
                                 }
                             }
                         }
@@ -242,6 +255,42 @@ impl FontCache {
     }
 }
 
+/// The data representing a downloaded Web font.
+#[derive(Deserialize, Serialize)]
+pub struct DownloadedWebFont {
+    /// The actual Web font data.
+    pub data: Vec<u8>,
+    /// The MIME type/subtype for the Web font.
+    pub content_type: Option<(String, String)>,
+}
+
+impl DownloadedWebFont {
+    pub fn new(data: Vec<u8>, font_classifier: &GroupedClassifier) -> DownloadedWebFont {
+        let sniffed_content_type = font_classifier.classify(&data[..]);
+        DownloadedWebFont {
+            data: data,
+            content_type: sniffed_content_type,
+        }
+    }
+
+    pub fn is_woff(&self) -> bool {
+        match self.content_type {
+            Some((ref top_type, ref subtype)) => {
+                &top_type[..] == "application" && (&subtype[..] == "font-woff" ||
+                                                   &subtype[..] == "x-font-woff")
+            }
+            _ => false,
+        }
+    }
+
+    pub fn convert_woff_to_otf(&self) -> Result<Vec<u8>,()> {
+        let mut input = Cursor::new(&self.data[..]);
+        let mut output = Cursor::new(Vec::new());
+        try!(woff::convert_woff_to_otf(&mut input, &mut output));
+        Ok(output.into_inner())
+    }
+}
+
 /// The public interface to the font cache task, used exclusively by
 /// the per-thread/task FontContext structures.
 #[derive(Clone)]
@@ -269,6 +318,7 @@ impl FontCacheTask {
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
                 resource_task: resource_task,
+                font_classifier: GroupedClassifier::font_classifier(),
             };
 
             cache.refresh_local_families();

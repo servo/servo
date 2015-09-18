@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use font_cache_task::DownloadedWebFont;
+
 use std::fs::File;
 use std::io::Read;
 use string_cache::Atom;
+use woff;
 
 /// Platform specific font representation for Linux.
 /// The identifier is an absolute path, and the bytes
@@ -17,10 +20,17 @@ pub struct FontTemplateData {
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom, font_data: Option<DownloadedWebFont>) -> FontTemplateData {
         let bytes = match font_data {
-            Some(bytes) => {
-                bytes
+            Some(font_data) => {
+                if font_data.is_woff() {
+                    match font_data.convert_woff_to_otf() {
+                        Some(bytes) => bytes,
+                        None => Vec::new(),
+                    }
+                } else {
+                    font_data.data.clone()
+                }
             },
             None => {
                 // TODO: Handle file load failure!

@@ -407,6 +407,7 @@ flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_re
 == whitespace_nowrap_line_breaking_a.html whitespace_nowrap_line_breaking_ref.html
 == whitespace_pre.html whitespace_pre_ref.html
 == width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html
+== woff_a.html woff_ref.html
 == word_break_a.html word_break_ref.html
 
 

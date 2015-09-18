@@ -42,6 +42,7 @@ use std::thread;
 
 pub mod hosts;
 pub mod image_cache_task;
+pub mod mime_classifier;
 pub mod net_error_list;
 pub mod storage_task;
 

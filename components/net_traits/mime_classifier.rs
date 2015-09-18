@@ -6,10 +6,11 @@ use std::borrow::ToOwned;
 
 pub struct MIMEClassifier {
     image_classifier: GroupedClassifier,
-    audio_video_classifer: GroupedClassifier,
+    audio_video_classifier: GroupedClassifier,
     scriptable_classifier: GroupedClassifier,
     plaintext_classifier: GroupedClassifier,
-    archive_classifer: GroupedClassifier,
+    archive_classifier: GroupedClassifier,
+    font_classifier: GroupedClassifier,
     binary_or_plaintext: BinaryOrPlaintextClassifier,
     feeds_classifier: FeedsClassifier
 }
@@ -37,13 +38,17 @@ impl MIMEClassifier {
                         } else if MIMEClassifier::is_xml(media_type, media_subtype) {
                             supplied_type.clone()
                         } else if MIMEClassifier::is_html(media_type, media_subtype) {
-                            //Implied in section 7.3, but flow is not clear
+                            // Implied in section 7.3, but flow is not clear.
                             self.feeds_classifier.classify(data).or(supplied_type.clone())
                         } else {
                             match (&**media_type, &**media_subtype) {
                                 ("image", _) => self.image_classifier.classify(data),
-                                ("audio", _) | ("video", _) | ("application", "ogg") =>
-                                    self.audio_video_classifer.classify(data),
+                                ("audio", _) | ("video", _) | ("application", "ogg") => {
+                                    self.audio_video_classifier.classify(data)
+                                }
+                                ("font", _) => {
+                                    self.font_classifier.classify(data)
+                                }
                                 _ => None
                             }.or(supplied_type.clone())
                         }
@@ -55,26 +60,27 @@ impl MIMEClassifier {
 
     pub fn new() -> MIMEClassifier {
          MIMEClassifier {
-             image_classifier: GroupedClassifier::image_classifer(),
-             audio_video_classifer: GroupedClassifier::audio_video_classifer(),
+             image_classifier: GroupedClassifier::image_classifier(),
+             audio_video_classifier: GroupedClassifier::audio_video_classifier(),
              scriptable_classifier: GroupedClassifier::scriptable_classifier(),
              plaintext_classifier: GroupedClassifier::plaintext_classifier(),
-             archive_classifer: GroupedClassifier::archive_classifier(),
+             archive_classifier: GroupedClassifier::archive_classifier(),
+             font_classifier: GroupedClassifier::font_classifier(),
              binary_or_plaintext: BinaryOrPlaintextClassifier,
              feeds_classifier: FeedsClassifier
          }
     }
     //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &[u8]) ->
-      Option<(String, String)> {
+    fn sniff_unknown_type(&self, sniff_scriptable: bool, data: &[u8]) -> Option<(String, String)> {
         if sniff_scriptable {
             self.scriptable_classifier.classify(data)
         } else {
             None
         }.or_else(|| self.plaintext_classifier.classify(data))
          .or_else(|| self.image_classifier.classify(data))
-         .or_else(|| self.audio_video_classifer.classify(data))
-         .or_else(|| self.archive_classifer.classify(data))
+         .or_else(|| self.audio_video_classifier.classify(data))
+         .or_else(|| self.archive_classifier.classify(data))
+         .or_else(|| self.font_classifier.classify(data))
          .or_else(|| self.binary_or_plaintext.classify(data))
     }
 
@@ -99,8 +105,8 @@ pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(St
     tup.map(|(a, b)| (a.to_owned(), b.to_owned()))
 }
 
-//Interface used for composite types
-trait MIMEChecker {
+/// Interface used for composite types
+pub trait MIMEChecker {
     fn classify(&self, data: &[u8]) -> Option<(String, String)>;
 }
 
@@ -242,16 +248,19 @@ impl BinaryOrPlaintextClassifier {
         }
     }
 }
+
 impl MIMEChecker for BinaryOrPlaintextClassifier {
     fn classify(&self, data: &[u8]) -> Option<(String, String)> {
         as_string_option(Some(self.classify_impl(data)))
     }
 }
-struct GroupedClassifier {
+
+pub struct GroupedClassifier {
     byte_matchers: Vec<Box<MIMEChecker + Send + Sync>>,
 }
+
 impl GroupedClassifier {
-    fn image_classifer() -> GroupedClassifier {
+    fn image_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::image_x_icon(),
@@ -265,7 +274,7 @@ impl GroupedClassifier {
             ]
         }
     }
-    fn audio_video_classifer() -> GroupedClassifier {
+    fn audio_video_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::video_webm(),
@@ -325,9 +334,7 @@ impl GroupedClassifier {
         }
     }
 
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
-    fn font_classifier() -> GroupedClassifier {
+    pub fn font_classifier() -> GroupedClassifier {
         GroupedClassifier {
             byte_matchers: vec![
                 box ByteMatcher::application_font_woff(),

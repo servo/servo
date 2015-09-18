@@ -10,9 +10,9 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use file_loader;
 use http_loader::{self, create_http_connector, Connector};
-use mime_classifier::MIMEClassifier;
 
 use net_traits::ProgressMsg::Done;
+use net_traits::mime_classifier::MIMEClassifier;
 use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
 use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
 use url::Url;
@@ -244,10 +244,11 @@ impl ResourceManager {
 
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" =>
+            "http" | "https" | "view-source" => {
                 http_loader::factory(self.resource_task.clone(),
                                      self.devtools_chan.clone(),
-                                     self.connector.clone()),
+                                     self.connector.clone())
+            }
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
