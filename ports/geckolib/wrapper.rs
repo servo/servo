@@ -182,6 +182,17 @@ impl<'ln> TNode<'ln> for GeckoNode<'ln> {
         unimplemented!()
     }
 
+    fn in_fragmentation_container(&self) -> bool {
+        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
+        // Maybe this isn’t useful for Gecko?
+        false
+    }
+
+    unsafe fn set_in_fragmentation_container(&self, _value: bool) {
+        // FIXME(SimonSapin): Servo uses this to implement CSS multicol / fragmentation
+        // Maybe this isn’t useful for Gecko?
+    }
+
     #[inline(always)]
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
         self.get_node_data().as_ref().map(|d| d.as_unsafe_cell().get() as *const PrivateStyleData)

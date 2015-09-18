@@ -700,6 +700,11 @@ pub trait MatchMethods<'ln> : TNode<'ln> {
             // This method needs to borrow the data as mutable, so make sure data_ref goes out of
             // scope first.
             self.set_restyle_damage(damage);
+
+            self.set_in_fragmentation_container(
+                parent.as_ref().map_or(false, |p| p.in_fragmentation_container()) ||
+                self.borrow_data().unwrap().style.as_ref().unwrap().is_multicol()
+            );
         }
     }
 }
