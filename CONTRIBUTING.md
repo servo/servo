@@ -31,7 +31,7 @@ If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://g
   will usually be a web platform test; for layout, a reftest.  See our [testing
   guide](https://github.com/servo/servo/wiki/Testing) for more information.
 
-For specific git instructions, see [GitHub & Critic PR handling 101](https://github.com/servo/servo/wiki/Github-&-Critic-PR-handling-101).
+For specific git instructions, see [GitHub workflow 101](https://github.com/servo/servo/wiki/Github-workflow).
 
 ## Conduct
 

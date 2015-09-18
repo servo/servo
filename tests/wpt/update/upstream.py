@@ -92,11 +92,11 @@ class CheckoutBranch(Step):
     def create(self, state):
         self.logger.info("Updating sync tree from %s" % state.sync["remote_url"])
         state.branch = state.sync_tree.unique_branch_name(
-            "outbound_update_%s" % state.test_manifest.rev)
+            "outbound_update_%s" % state.old_manifest.rev)
         state.sync_tree.update(state.sync["remote_url"],
                                state.sync["branch"],
                                state.branch)
-        state.sync_tree.checkout(state.test_manifest.rev, state.branch, force=True)
+        state.sync_tree.checkout(state.old_manifest.rev, state.branch, force=True)
 
 
 class GetLastSyncCommit(Step):

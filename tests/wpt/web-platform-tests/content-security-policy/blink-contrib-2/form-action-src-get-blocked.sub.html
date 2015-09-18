@@ -3,7 +3,7 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <title>form-action-src-get-blocked</title>
+    <title>form-action-src-allowed</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
@@ -12,23 +12,31 @@
 form-action 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
     <script>
+        window.addEventListener("message", function(event) {
+            alert_assert(event.data);
+        }, false);
         window.addEventListener('load', function() {
-            setTimeout(function() {}, 1000);
-            document.getElementById('submit').click();
-            log("TEST COMPLETE");
+            setTimeout(function() {
+                document.getElementById('submit').click();
+                log("TEST COMPLETE");
+            }, 0);
         });
 
     </script>
 </head>
 
 <body>
-    <form action="/navigation/resources/form-target.pl" id="theform" method="get">
+    <iframe name="test_target" id="test_iframe"></iframe>
+
+    <form action="/common/redirect.py" id="theform" method="get" target="test_target">
+        <input type="text" name="location" value="/content-security-policy/blink-contrib/resources/postmessage-fail.html">
         <input type="text" name="fieldname" value="fieldvalue">
         <input type="submit" id="submit" value="submit">
     </form>
-    <p>Tests that blocking form actions works correctly. If this test passes, a CSP violation will be generated, and will not see a page indicating a form was POSTed.</p>
+    <p>Tests that allowed form actions work correctly. If this test passes, you will see a page indicating a form was POSTed.</p>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=form-action%20&apos;none&apos;"></script>
-</body>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=form-action%20&apos;none&apos;
+"></script>
+    </body>
 
 </html>

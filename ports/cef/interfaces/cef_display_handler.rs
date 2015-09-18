@@ -80,6 +80,17 @@ pub struct _cef_display_handler_t {
       icon_urls: &types::cef_string_list_t) -> ()>,
 
   //
+  // Called when web content in the page has toggled fullscreen mode. If
+  // |fullscreen| is true (1) the content will automatically be sized to fill
+  // the browser content area. If |fullscreen| is false (0) the content will
+  // automatically return to its original size and position. The client is
+  // responsible for resizing the browser if desired.
+  //
+  pub on_fullscreen_mode_change: Option<extern "C" fn(
+      this: *mut cef_display_handler_t, browser: *mut interfaces::cef_browser_t,
+      fullscreen: libc::c_int) -> ()>,
+
+  //
   // Called when the browser is about to display a tooltip. |text| contains the
   // text that will be displayed in the tooltip. To handle the display of the
   // tooltip yourself return true (1). Otherwise, you can optionally modify
@@ -245,6 +256,28 @@ impl CefDisplayHandler {
           self.c_object,
           CefWrap::to_c(browser),
           CefWrap::to_c(icon_urls)))
+    }
+  }
+
+  //
+  // Called when web content in the page has toggled fullscreen mode. If
+  // |fullscreen| is true (1) the content will automatically be sized to fill
+  // the browser content area. If |fullscreen| is false (0) the content will
+  // automatically return to its original size and position. The client is
+  // responsible for resizing the browser if desired.
+  //
+  pub fn on_fullscreen_mode_change(&self, browser: interfaces::CefBrowser,
+      fullscreen: libc::c_int) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_fullscreen_mode_change.unwrap())(
+          self.c_object,
+          CefWrap::to_c(browser),
+          CefWrap::to_c(fullscreen)))
     }
   }
 

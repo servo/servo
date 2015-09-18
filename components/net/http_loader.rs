@@ -9,14 +9,13 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::secure_url;
 use hyper::Error as HttpError;
 use hyper::client::{Request, Response, Pool};
-use hyper::error::Result as HttpResult;
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
-use hyper::header::{Location, qitem, StrictTransportSecurity};
+use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent};
 use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::net::{Fresh, HttpsConnector, HttpStream, Ssl, Openssl};
+use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
 use ipc_channel::ipc::{self, IpcSender};
 use log;
@@ -24,7 +23,6 @@ use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
 use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
-use openssl::ssl::SslStream as OpensslStream;
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -39,37 +37,15 @@ use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use uuid;
 
-pub type Connector = HttpsConnector<SslProvider>;
-
-pub enum SslProvider {
-    None,
-    Openssl(Openssl)
-}
-
-
-impl Ssl for SslProvider {
-    type Stream = OpensslStream<HttpStream>;
-
-    fn wrap_client(&self, stream: HttpStream, host: &str) -> HttpResult<Self::Stream> {
-        match *self {
-            SslProvider::None => Err(HttpError::Ssl("ssl disabled".into())),
-            SslProvider::Openssl(ref s) => s.wrap_client(stream, host)
-        }
-    }
-
-    fn wrap_server(&self, _: HttpStream) -> HttpResult<Self::Stream> {
-        unimplemented!()
-    }
-}
-
+pub type Connector = HttpsConnector<Openssl>;
 
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
     context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
-    let connector = HttpsConnector::new(SslProvider::Openssl(Openssl {
+    let connector = HttpsConnector::new(Openssl {
         context: Arc::new(context)
-    }));
+    });
 
     Arc::new(Pool::with_connector(Default::default(), connector))
 }
@@ -77,10 +53,10 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
 pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data: LoadData, senders, classifier| {
+               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
+    box move |load_data: LoadData, senders, classifier, user_agent| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
-            load_for_consumer(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan)
+            load_for_consumer(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan, user_agent)
         })
     }
 }
@@ -123,12 +99,13 @@ fn load_for_consumer(load_data: LoadData,
                      classifier: Arc<MIMEClassifier>,
                      connector: Arc<Pool<Connector>>,
                      resource_mgr_chan: IpcSender<ControlMsg>,
-                     devtools_chan: Option<Sender<DevtoolsControlMsg>>) {
+                     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                     user_agent: String) {
 
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
-    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &factory) {
+    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &factory, user_agent) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -477,7 +454,8 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 pub fn load<A>(load_data: LoadData,
                resource_mgr_chan: IpcSender<ControlMsg>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               request_factory: &HttpRequestFactory<R=A>)
+               request_factory: &HttpRequestFactory<R=A>,
+               user_agent: String)
                -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
@@ -540,6 +518,8 @@ pub fn load<A>(load_data: LoadData,
         };
 
         request_headers.set(host);
+
+        request_headers.set(UserAgent(user_agent.clone()));
 
         set_default_accept(&mut request_headers);
         set_default_accept_encoding(&mut request_headers);

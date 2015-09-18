@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>multiple-frames-self-allowed</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["hello frame1","hello frame2"]'></script>
+    <!-- enforcing policy:
+connect-src 'self' 'none'; script-src 'self' 'unsafe-inline'; frame-src 'self';
+-->
+    <script>
+        var startTestCtr = 0;
+        function onMessage(event) {
+            if(event.data == "start test") {
+                startTestCtr++;
+                if(startTestCtr == 2) {
+                    startTest();
+                }
+            } else {
+                alert_assert(event.data);
+            }
+        }
+
+        window.addEventListener(
+            "message",
+            onMessage,
+            false);
+
+        function startTest() {
+            window.frames['frame1'].postMessage("hello frame1", "*");
+            window.frames['frame2'].postMessage("hello frame2", "*");
+        }
+    </script>
+</head>
+<body>
+    <iframe src='http://{{host}}:{{ports[http][0]}}/content-security-policy/frame-ancestors/reporting-frame-allows-self.html' name="frame1"></iframe>
+        <iframe src='http://{{host}}:{{ports[http][0]}}/content-security-policy/frame-ancestors/reporting-frame-allows-none-meta.html' name="frame2"></iframe>
+    <div id="log"></div>
+</body>
+</html>

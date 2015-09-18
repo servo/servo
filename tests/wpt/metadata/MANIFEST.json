@@ -710,8 +710,16 @@
         "url": "/html/semantics/forms/attributes-common-to-form-controls/dirname-rtl-manual.html"
       },
       {
+        "path": "html/semantics/forms/constraints/tooLong-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-manual.html"
+      },
+      {
         "path": "html/semantics/forms/the-input-element/file-manual.html",
         "url": "/html/semantics/forms/the-input-element/file-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/the-optgroup-element/optgroup-disabled-manual.html",
+        "url": "/html/semantics/forms/the-optgroup-element/optgroup-disabled-manual.html"
       },
       {
         "path": "html/semantics/forms/the-option-element/option-disabled-manual.html",
@@ -732,6 +740,10 @@
       {
         "path": "html/semantics/grouping-content/the-li-element/grouping-li-novalue-manual.html",
         "url": "/html/semantics/grouping-content/the-li-element/grouping-li-novalue-manual.html"
+      },
+      {
+        "path": "html/webappapis/scripting/event-loops/task_microtask_ordering-manual.html",
+        "url": "/html/webappapis/scripting/event-loops/task_microtask_ordering-manual.html"
       },
       {
         "path": "html/webappapis/system-state-and-capabilities/the-navigator-object/get-navigatorlanguage-manual.html",
@@ -3531,7 +3543,7 @@
         "path": "2dcontext/transformations/canvas_transformations_reset_001.html",
         "references": [
           [
-            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
+            "/2dcontext/transformations/canvas_transformations_reset_001-ref.html",
             "=="
           ]
         ],
@@ -4868,94 +4880,94 @@
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest.html",
+        "path": "shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/reprojection/reprojection-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/reprojection/reprojection-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/reprojection/reprojection-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/reprojection/reprojection-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/reprojection/reprojection-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/reprojection/reprojection-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/shadow-root-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/shadow-root-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/shadow-root-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/shadow-root-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/shadow-root-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/shadow-root-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/shadow-root-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/shadow-root-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/shadow-root-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/shadow-root-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/shadow-root-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/shadow-root-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/text-decoration-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/text-decoration-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/text-decoration-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/text-decoration-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/text-decoration-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/text-decoration-001.html"
       },
       {
-        "path": "shadow-dom/styles/not-apply-in-shadow-root-001.html",
+        "path": "shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html",
         "references": [
           [
-            "/shadow-dom/styles/not-apply-in-shadow-root-001-ref.html",
+            "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/styles/not-apply-in-shadow-root-001.html"
+        "url": "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html"
       },
       {
         "path": "webvtt/rendering/cues-with-video/processing-model/2_cues_overlapping_completely_move_up.html",
@@ -10324,10 +10336,6 @@
         "url": "/DOMEvents/tests/approved/stopPropagation.deferred.effect.html"
       },
       {
-        "path": "DOMEvents/tests/approved/stopPropagation.dispatchEvent.html",
-        "url": "/DOMEvents/tests/approved/stopPropagation.dispatchEvent.html"
-      },
-      {
         "path": "DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html",
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html"
       },
@@ -10366,10 +10374,6 @@
       {
         "path": "DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.deferred.effect.html",
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.deferred.effect.html"
-      },
-      {
-        "path": "DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.dispatchEvent.html",
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.dispatchEvent.html"
       },
       {
         "path": "DOMEvents/throwing-in-listener-and-window-error-event.html",
@@ -12300,8 +12304,8 @@
         "url": "/content-security-policy/blink-contrib/blob-urls-match-blob.sub.html"
       },
       {
-        "path": "content-security-policy/blink-contrib/combine-multiple-policies.sub.html",
-        "url": "/content-security-policy/blink-contrib/combine-multiple-policies.sub.html"
+        "path": "content-security-policy/blink-contrib/combine-header-and-meta-policies.sub.html",
+        "url": "/content-security-policy/blink-contrib/combine-header-and-meta-policies.sub.html"
       },
       {
         "path": "content-security-policy/blink-contrib/connect-src-beacon-allowed.sub.html",
@@ -12394,6 +12398,22 @@
       {
         "path": "content-security-policy/blink-contrib/filesystem-urls-match-filesystem.sub.html",
         "url": "/content-security-policy/blink-contrib/filesystem-urls-match-filesystem.sub.html"
+      },
+      {
+        "path": "content-security-policy/blink-contrib/frame-src-about-blank-allowed-by-default.sub.html",
+        "url": "/content-security-policy/blink-contrib/frame-src-about-blank-allowed-by-default.sub.html"
+      },
+      {
+        "path": "content-security-policy/blink-contrib/frame-src-about-blank-allowed-by-scheme.sub.html",
+        "url": "/content-security-policy/blink-contrib/frame-src-about-blank-allowed-by-scheme.sub.html"
+      },
+      {
+        "path": "content-security-policy/blink-contrib/frame-src-allowed.sub.html",
+        "url": "/content-security-policy/blink-contrib/frame-src-allowed.sub.html"
+      },
+      {
+        "path": "content-security-policy/blink-contrib/frame-src-blocked.sub.html",
+        "url": "/content-security-policy/blink-contrib/frame-src-blocked.sub.html"
       },
       {
         "path": "content-security-policy/blink-contrib/frame-src-cross-origin-load.sub.html",
@@ -12528,6 +12548,10 @@
         "url": "/content-security-policy/blink-contrib/script-src-overrides-default-src.sub.html"
       },
       {
+        "path": "content-security-policy/blink-contrib/self-doesnt-match-blob.sub.html",
+        "url": "/content-security-policy/blink-contrib/self-doesnt-match-blob.sub.html"
+      },
+      {
         "path": "content-security-policy/blink-contrib/shared-worker-connect-src-allowed.sub.html",
         "url": "/content-security-policy/blink-contrib/shared-worker-connect-src-allowed.sub.html"
       },
@@ -12542,6 +12566,10 @@
       {
         "path": "content-security-policy/blink-contrib/srcdoc-doesnt-bypass-script-src.sub.html",
         "url": "/content-security-policy/blink-contrib/srcdoc-doesnt-bypass-script-src.sub.html"
+      },
+      {
+        "path": "content-security-policy/blink-contrib/star-doesnt-match-blob.sub.html",
+        "url": "/content-security-policy/blink-contrib/star-doesnt-match-blob.sub.html"
       },
       {
         "path": "content-security-policy/blink-contrib/style-allowed.sub.html",
@@ -12564,6 +12592,10 @@
         "url": "/content-security-policy/blink-contrib/worker-eval-blocked.sub.html"
       },
       {
+        "path": "content-security-policy/blink-contrib/worker-from-guid.sub.html",
+        "url": "/content-security-policy/blink-contrib/worker-from-guid.sub.html"
+      },
+      {
         "path": "content-security-policy/blink-contrib/worker-function-function-blocked.sub.html",
         "url": "/content-security-policy/blink-contrib/worker-function-function-blocked.sub.html"
       },
@@ -12578,6 +12610,70 @@
       {
         "path": "content-security-policy/blink-contrib/worker-set-timeout-blocked.sub.html",
         "url": "/content-security-policy/blink-contrib/worker-set-timeout-blocked.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-about-blank-allowed-by-default.sub.html",
+        "url": "/content-security-policy/child-src/child-src-about-blank-allowed-by-default.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-about-blank-allowed-by-scheme.sub.html",
+        "url": "/content-security-policy/child-src/child-src-about-blank-allowed-by-scheme.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-allowed.sub.html",
+        "url": "/content-security-policy/child-src/child-src-allowed.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-blocked.sub.html",
+        "url": "/content-security-policy/child-src/child-src-blocked.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-conflicting-frame-src.sub.html",
+        "url": "/content-security-policy/child-src/child-src-conflicting-frame-src.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-cross-origin-load.sub.html",
+        "url": "/content-security-policy/child-src/child-src-cross-origin-load.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-worker-allowed.sub.html",
+        "url": "/content-security-policy/child-src/child-src-worker-allowed.sub.html"
+      },
+      {
+        "path": "content-security-policy/child-src/child-src-worker-blocked.sub.html",
+        "url": "/content-security-policy/child-src/child-src-worker-blocked.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/deep-allows-none.sub.html",
+        "url": "/content-security-policy/frame-ancestors/deep-allows-none.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/multiple-frames-meta-ignored.sub.html",
+        "url": "/content-security-policy/frame-ancestors/multiple-frames-meta-ignored.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/multiple-frames-one-blocked.sub.html",
+        "url": "/content-security-policy/frame-ancestors/multiple-frames-one-blocked.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/multiple-frames-self-allowed.sub.html",
+        "url": "/content-security-policy/frame-ancestors/multiple-frames-self-allowed.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/nested-traversing-allowed.sub.html",
+        "url": "/content-security-policy/frame-ancestors/nested-traversing-allowed.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/nested-traversing-banned-top-is-self.sub.html",
+        "url": "/content-security-policy/frame-ancestors/nested-traversing-banned-top-is-self.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/nested-traversing-banned.sub.html",
+        "url": "/content-security-policy/frame-ancestors/nested-traversing-banned.sub.html"
+      },
+      {
+        "path": "content-security-policy/frame-ancestors/single-frame-self-allowed.sub.html",
+        "url": "/content-security-policy/frame-ancestors/single-frame-self-allowed.sub.html"
       },
       {
         "path": "content-security-policy/generic/generic-0_1-img-src.html",
@@ -12640,6 +12736,14 @@
         "url": "/content-security-policy/media-src/media-src-7_3_2.html"
       },
       {
+        "path": "content-security-policy/meta/meta-img-src.html",
+        "url": "/content-security-policy/meta/meta-img-src.html"
+      },
+      {
+        "path": "content-security-policy/meta/meta-modified.html",
+        "url": "/content-security-policy/meta/meta-modified.html"
+      },
+      {
         "path": "content-security-policy/script-src/script-src-1_1.html",
         "url": "/content-security-policy/script-src/script-src-1_1.html"
       },
@@ -12676,10 +12780,6 @@
         "url": "/content-security-policy/script-src/script-src-1_4_2.html"
       },
       {
-        "path": "content-security-policy/script-src/script-src-1_9.html",
-        "url": "/content-security-policy/script-src/script-src-1_9.html"
-      },
-      {
         "path": "content-security-policy/style-src/style-src-3_1.html",
         "url": "/content-security-policy/style-src/style-src-3_1.html"
       },
@@ -12694,6 +12794,22 @@
       {
         "path": "content-security-policy/style-src/style-src-3_4.html",
         "url": "/content-security-policy/style-src/style-src-3_4.html"
+      },
+      {
+        "path": "content-security-policy/svg/svg-from-guid.html",
+        "url": "/content-security-policy/svg/svg-from-guid.html"
+      },
+      {
+        "path": "content-security-policy/svg/svg-inline.sub.html",
+        "url": "/content-security-policy/svg/svg-inline.sub.html"
+      },
+      {
+        "path": "content-security-policy/svg/svg-policy-resource-doc-includes.html",
+        "url": "/content-security-policy/svg/svg-policy-resource-doc-includes.html"
+      },
+      {
+        "path": "content-security-policy/svg/svg-policy-with-resource.html",
+        "url": "/content-security-policy/svg/svg-policy-with-resource.html"
       },
       {
         "path": "cors/allow-headers.htm",
@@ -12758,10 +12874,6 @@
       {
         "path": "cors/status.htm",
         "url": "/cors/status.htm"
-      },
-      {
-        "path": "csp/csp-inline-script.html",
-        "url": "/csp/csp-inline-script.html"
       },
       {
         "path": "custom-elements/concepts/custom-elements-type-allowed-chars-first-char.html",
@@ -13026,6 +13138,10 @@
       {
         "path": "dom/events/Event-dispatch-omitted-capture.html",
         "url": "/dom/events/Event-dispatch-omitted-capture.html"
+      },
+      {
+        "path": "dom/events/Event-dispatch-propagation-stopped.html",
+        "url": "/dom/events/Event-dispatch-propagation-stopped.html"
       },
       {
         "path": "dom/events/Event-dispatch-redispatch.html",
@@ -13990,6 +14106,10 @@
       {
         "path": "encoding/api-surrogates-utf8.html",
         "url": "/encoding/api-surrogates-utf8.html"
+      },
+      {
+        "path": "encoding/big5-encoder.html",
+        "url": "/encoding/big5-encoder.html"
       },
       {
         "path": "encoding/gb18030-encoder.html",
@@ -15502,6 +15622,10 @@
       {
         "path": "html/infrastructure/urls/terminology-0/multiple-base.sub.html",
         "url": "/html/infrastructure/urls/terminology-0/multiple-base.sub.html"
+      },
+      {
+        "path": "html/obsolete/requirements-for-implementations/other-elements-attributes-and-apis/document-all.html",
+        "url": "/html/obsolete/requirements-for-implementations/other-elements-attributes-and-apis/document-all.html"
       },
       {
         "path": "html/obsolete/requirements-for-implementations/other-elements-attributes-and-apis/document-color-01.html",
@@ -17802,6 +17926,10 @@
       {
         "path": "html/webappapis/atob/base64.html",
         "url": "/html/webappapis/atob/base64.html"
+      },
+      {
+        "path": "html/webappapis/scripting/event-loops/task_microtask_ordering.html",
+        "url": "/html/webappapis/scripting/event-loops/task_microtask_ordering.html"
       },
       {
         "path": "html/webappapis/scripting/events/body-onload.html",
@@ -24988,452 +25116,452 @@
         "url": "/selectors/attribute-selectors/attribute-case/syntax.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-005.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-005.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-005.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-005.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-006.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/attributes/test-006.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-006.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-006.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/elements-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/elements-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/elements-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/elements-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/non-element-nodes-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/non-element-nodes-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/non-element-nodes-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/non-element-nodes-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-002.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-002.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-002.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-002.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-003.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-element-interface/methods/test-003.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-003.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/methods/test-003.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-event-interface/event-path-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-event-interface/event-path-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-event-interface/event-path-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-event-interface/event-path-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/extensions-to-event-interface/event-path-002.html",
-        "url": "/shadow-dom/elements-and-dom-objects/extensions-to-event-interface/event-path-002.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-event-interface/event-path-002.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/extensions-to-event-interface/event-path-002.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/activeElement-confirm-return-null.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-007.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-009.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-009.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-009.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-009.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-010.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-010.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-010.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-010.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-011.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-011.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-011.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-011.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-012.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-012.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-012.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-012.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-013.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-013.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-013.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-013.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-014.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-014.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-014.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-attributes/test-014.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-004.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-004.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-004.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-004.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-006.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-006.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-006.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-006.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-007.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-007.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-007.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-007.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-010.html",
-        "url": "/shadow-dom/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-010.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-010.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/shadowroot-object/shadowroot-methods/test-010.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-002.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-002.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-002.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-002.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-003.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-003.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-003.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-003.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-005.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-005.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-005.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-005.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-content-html-element/test-006.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-content-html-element/test-006.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-006.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-content-html-element/test-006.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-001.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-001.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-001.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-001.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-002.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-002.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-002.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-002.html"
       },
       {
-        "path": "shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-004.html",
-        "url": "/shadow-dom/elements-and-dom-objects/the-shadow-html-element/test-004.html"
+        "path": "shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-004.html",
+        "url": "/shadow-dom/untriaged/elements-and-dom-objects/the-shadow-html-element/test-004.html"
       },
       {
-        "path": "shadow-dom/events/event-dispatch/test-001.html",
-        "url": "/shadow-dom/events/event-dispatch/test-001.html"
+        "path": "shadow-dom/untriaged/events/event-dispatch/test-001.html",
+        "url": "/shadow-dom/untriaged/events/event-dispatch/test-001.html"
       },
       {
-        "path": "shadow-dom/events/event-dispatch/test-002.html",
-        "url": "/shadow-dom/events/event-dispatch/test-002.html"
+        "path": "shadow-dom/untriaged/events/event-dispatch/test-002.html",
+        "url": "/shadow-dom/untriaged/events/event-dispatch/test-002.html"
       },
       {
-        "path": "shadow-dom/events/event-dispatch/test-003.html",
-        "url": "/shadow-dom/events/event-dispatch/test-003.html"
+        "path": "shadow-dom/untriaged/events/event-dispatch/test-003.html",
+        "url": "/shadow-dom/untriaged/events/event-dispatch/test-003.html"
       },
       {
-        "path": "shadow-dom/events/event-retargeting/test-001.html",
-        "url": "/shadow-dom/events/event-retargeting/test-001.html"
+        "path": "shadow-dom/untriaged/events/event-retargeting/test-001.html",
+        "url": "/shadow-dom/untriaged/events/event-retargeting/test-001.html"
       },
       {
-        "path": "shadow-dom/events/event-retargeting/test-002.html",
-        "url": "/shadow-dom/events/event-retargeting/test-002.html"
+        "path": "shadow-dom/untriaged/events/event-retargeting/test-002.html",
+        "url": "/shadow-dom/untriaged/events/event-retargeting/test-002.html"
       },
       {
-        "path": "shadow-dom/events/event-retargeting/test-003.html",
-        "url": "/shadow-dom/events/event-retargeting/test-003.html"
+        "path": "shadow-dom/untriaged/events/event-retargeting/test-003.html",
+        "url": "/shadow-dom/untriaged/events/event-retargeting/test-003.html"
       },
       {
-        "path": "shadow-dom/events/event-retargeting/test-004.html",
-        "url": "/shadow-dom/events/event-retargeting/test-004.html"
+        "path": "shadow-dom/untriaged/events/event-retargeting/test-004.html",
+        "url": "/shadow-dom/untriaged/events/event-retargeting/test-004.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-001.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-001.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-001.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-001.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-002.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-002.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-002.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-002.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-003.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-003.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-003.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-003.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-004.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-004.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-004.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-004.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-005.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-005.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-005.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-005.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-006.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-006.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-006.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-006.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-007.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-007.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-007.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-007.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-008.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-008.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-008.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-008.html"
       },
       {
-        "path": "shadow-dom/events/events-that-are-always-stopped/test-009.html",
-        "url": "/shadow-dom/events/events-that-are-always-stopped/test-009.html"
+        "path": "shadow-dom/untriaged/events/events-that-are-always-stopped/test-009.html",
+        "url": "/shadow-dom/untriaged/events/events-that-are-always-stopped/test-009.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-focus-events/test-001.html",
-        "url": "/shadow-dom/events/retargeting-focus-events/test-001.html"
+        "path": "shadow-dom/untriaged/events/retargeting-focus-events/test-001.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-focus-events/test-001.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-focus-events/test-002.html",
-        "url": "/shadow-dom/events/retargeting-focus-events/test-002.html"
+        "path": "shadow-dom/untriaged/events/retargeting-focus-events/test-002.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-focus-events/test-002.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-focus-events/test-003.html",
-        "url": "/shadow-dom/events/retargeting-focus-events/test-003.html"
+        "path": "shadow-dom/untriaged/events/retargeting-focus-events/test-003.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-focus-events/test-003.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-relatedtarget/test-001.html",
-        "url": "/shadow-dom/events/retargeting-relatedtarget/test-001.html"
+        "path": "shadow-dom/untriaged/events/retargeting-relatedtarget/test-001.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-relatedtarget/test-001.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-relatedtarget/test-002.html",
-        "url": "/shadow-dom/events/retargeting-relatedtarget/test-002.html"
+        "path": "shadow-dom/untriaged/events/retargeting-relatedtarget/test-002.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-relatedtarget/test-002.html"
       },
       {
-        "path": "shadow-dom/events/retargeting-relatedtarget/test-003.html",
-        "url": "/shadow-dom/events/retargeting-relatedtarget/test-003.html"
+        "path": "shadow-dom/untriaged/events/retargeting-relatedtarget/test-003.html",
+        "url": "/shadow-dom/untriaged/events/retargeting-relatedtarget/test-003.html"
       },
       {
-        "path": "shadow-dom/events/test-001.html",
-        "url": "/shadow-dom/events/test-001.html"
+        "path": "shadow-dom/untriaged/events/test-001.html",
+        "url": "/shadow-dom/untriaged/events/test-001.html"
       },
       {
-        "path": "shadow-dom/html-elements-and-their-shadow-trees/test-001.html",
-        "url": "/shadow-dom/html-elements-and-their-shadow-trees/test-001.html"
+        "path": "shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-001.html",
+        "url": "/shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-001.html"
       },
       {
-        "path": "shadow-dom/html-elements-and-their-shadow-trees/test-002.html",
-        "url": "/shadow-dom/html-elements-and-their-shadow-trees/test-002.html"
+        "path": "shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-002.html",
+        "url": "/shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-002.html"
       },
       {
-        "path": "shadow-dom/html-elements-and-their-shadow-trees/test-003.html",
-        "url": "/shadow-dom/html-elements-and-their-shadow-trees/test-003.html"
+        "path": "shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-003.html",
+        "url": "/shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-003.html"
       },
       {
-        "path": "shadow-dom/html-elements-and-their-shadow-trees/test-004.html",
-        "url": "/shadow-dom/html-elements-and-their-shadow-trees/test-004.html"
+        "path": "shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-004.html",
+        "url": "/shadow-dom/untriaged/html-elements-and-their-shadow-trees/test-004.html"
       },
       {
-        "path": "shadow-dom/html-elements-in-shadow-trees/html-forms/test-001.html",
-        "url": "/shadow-dom/html-elements-in-shadow-trees/html-forms/test-001.html"
+        "path": "shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-001.html",
+        "url": "/shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-001.html"
       },
       {
-        "path": "shadow-dom/html-elements-in-shadow-trees/html-forms/test-002.html",
-        "url": "/shadow-dom/html-elements-in-shadow-trees/html-forms/test-002.html"
+        "path": "shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-002.html",
+        "url": "/shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-002.html"
       },
       {
-        "path": "shadow-dom/html-elements-in-shadow-trees/html-forms/test-003.html",
-        "url": "/shadow-dom/html-elements-in-shadow-trees/html-forms/test-003.html"
+        "path": "shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-003.html",
+        "url": "/shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-003.html"
       },
       {
-        "path": "shadow-dom/html-elements-in-shadow-trees/inert-html-elements/test-001.html",
-        "url": "/shadow-dom/html-elements-in-shadow-trees/inert-html-elements/test-001.html"
+        "path": "shadow-dom/untriaged/html-elements-in-shadow-trees/inert-html-elements/test-001.html",
+        "url": "/shadow-dom/untriaged/html-elements-in-shadow-trees/inert-html-elements/test-001.html"
       },
       {
-        "path": "shadow-dom/html-elements-in-shadow-trees/inert-html-elements/test-002.html",
-        "url": "/shadow-dom/html-elements-in-shadow-trees/inert-html-elements/test-002.html"
+        "path": "shadow-dom/untriaged/html-elements-in-shadow-trees/inert-html-elements/test-002.html",
+        "url": "/shadow-dom/untriaged/html-elements-in-shadow-trees/inert-html-elements/test-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/composition/test-001.html",
-        "url": "/shadow-dom/shadow-trees/composition/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/composition/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/composition/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/content-pseudo-element/test-001.html",
-        "url": "/shadow-dom/shadow-trees/content-pseudo-element/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/content-pseudo-element/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/content-pseudo-element/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/content-pseudo-element/test-002.html",
-        "url": "/shadow-dom/shadow-trees/content-pseudo-element/test-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/content-pseudo-element/test-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/content-pseudo-element/test-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/custom-pseudo-elements/test-001.html",
-        "url": "/shadow-dom/shadow-trees/custom-pseudo-elements/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/custom-pseudo-elements/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/custom-pseudo-elements/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-003.html",
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-003.html"
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-003.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-003.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/test-003.html",
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/test-003.html"
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-003.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-003.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/test-004.html",
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/test-004.html"
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-004.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-004.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/test-005.html",
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/test-005.html"
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-005.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/test-005.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/nested-shadow-trees/test-001.html",
-        "url": "/shadow-dom/shadow-trees/nested-shadow-trees/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/nested-shadow-trees/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/nested-shadow-trees/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/rendering-shadow-trees/test-001.html",
-        "url": "/shadow-dom/shadow-trees/rendering-shadow-trees/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/rendering-shadow-trees/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/rendering-shadow-trees/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/reprojection/test-001.html",
-        "url": "/shadow-dom/shadow-trees/reprojection/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/reprojection/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/reprojection/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/satisfying-matching-criteria/test-001.html",
-        "url": "/shadow-dom/shadow-trees/satisfying-matching-criteria/test-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/satisfying-matching-criteria/test-002.html",
-        "url": "/shadow-dom/shadow-trees/satisfying-matching-criteria/test-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/satisfying-matching-criteria/test-003.html",
-        "url": "/shadow-dom/shadow-trees/satisfying-matching-criteria/test-003.html"
+        "path": "shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-003.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-003.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/satisfying-matching-criteria/test-004.html",
-        "url": "/shadow-dom/shadow-trees/satisfying-matching-criteria/test-004.html"
+        "path": "shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-004.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-004.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/satisfying-matching-criteria/test-005.html",
-        "url": "/shadow-dom/shadow-trees/satisfying-matching-criteria/test-005.html"
+        "path": "shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-005.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/satisfying-matching-criteria/test-005.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-001.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-002.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/dom-tree-accessors-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/ownerdocument-001.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/ownerdocument-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/ownerdocument-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/ownerdocument-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/ownerdocument-002.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/ownerdocument-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/ownerdocument-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/ownerdocument-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/selectors-api-001.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/selectors-api-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/selectors-api-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/selectors-api-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/selectors-api-002.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/selectors-api-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/selectors-api-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/selectors-api-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/shadow-root-001.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/shadow-root-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/shadow-root-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/shadow-root-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/test-005.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/test-005.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-005.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-005.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/test-007.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/test-007.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-007.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-007.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/test-009.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/test-009.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-009.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-009.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/test-011.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/test-011.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-011.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/test-011.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-001.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-001.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-001.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-001.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-002.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-002.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-002.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-002.html"
       },
       {
-        "path": "shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html",
-        "url": "/shadow-dom/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html"
+        "path": "shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html",
+        "url": "/shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/window-named-properties-003.html"
       },
       {
-        "path": "shadow-dom/styles/css-variables/test-001.html",
-        "url": "/shadow-dom/styles/css-variables/test-001.html"
+        "path": "shadow-dom/untriaged/styles/css-variables/test-001.html",
+        "url": "/shadow-dom/untriaged/styles/css-variables/test-001.html"
       },
       {
-        "path": "shadow-dom/styles/deep-combinator/deep-combinator-001.html",
-        "url": "/shadow-dom/styles/deep-combinator/deep-combinator-001.html"
+        "path": "shadow-dom/untriaged/styles/deep-combinator/deep-combinator-001.html",
+        "url": "/shadow-dom/untriaged/styles/deep-combinator/deep-combinator-001.html"
       },
       {
-        "path": "shadow-dom/styles/shadow-pseudoelement/shadow-pseudoelement-001.html",
-        "url": "/shadow-dom/styles/shadow-pseudoelement/shadow-pseudoelement-001.html"
+        "path": "shadow-dom/untriaged/styles/shadow-pseudoelement/shadow-pseudoelement-001.html",
+        "url": "/shadow-dom/untriaged/styles/shadow-pseudoelement/shadow-pseudoelement-001.html"
       },
       {
-        "path": "shadow-dom/styles/test-001.html",
-        "url": "/shadow-dom/styles/test-001.html"
+        "path": "shadow-dom/untriaged/styles/test-001.html",
+        "url": "/shadow-dom/untriaged/styles/test-001.html"
       },
       {
-        "path": "shadow-dom/styles/test-003.html",
-        "url": "/shadow-dom/styles/test-003.html"
+        "path": "shadow-dom/untriaged/styles/test-003.html",
+        "url": "/shadow-dom/untriaged/styles/test-003.html"
       },
       {
-        "path": "shadow-dom/styles/test-005.html",
-        "url": "/shadow-dom/styles/test-005.html"
+        "path": "shadow-dom/untriaged/styles/test-005.html",
+        "url": "/shadow-dom/untriaged/styles/test-005.html"
       },
       {
-        "path": "shadow-dom/styles/test-007.html",
-        "url": "/shadow-dom/styles/test-007.html"
+        "path": "shadow-dom/untriaged/styles/test-007.html",
+        "url": "/shadow-dom/untriaged/styles/test-007.html"
       },
       {
-        "path": "shadow-dom/styles/test-008.html",
-        "url": "/shadow-dom/styles/test-008.html"
+        "path": "shadow-dom/untriaged/styles/test-008.html",
+        "url": "/shadow-dom/untriaged/styles/test-008.html"
       },
       {
-        "path": "shadow-dom/styles/test-009.html",
-        "url": "/shadow-dom/styles/test-009.html"
+        "path": "shadow-dom/untriaged/styles/test-009.html",
+        "url": "/shadow-dom/untriaged/styles/test-009.html"
       },
       {
-        "path": "shadow-dom/styles/test-010.html",
-        "url": "/shadow-dom/styles/test-010.html"
+        "path": "shadow-dom/untriaged/styles/test-010.html",
+        "url": "/shadow-dom/untriaged/styles/test-010.html"
       },
       {
-        "path": "shadow-dom/user-interaction/active-element/test-001.html",
-        "url": "/shadow-dom/user-interaction/active-element/test-001.html"
+        "path": "shadow-dom/untriaged/user-interaction/active-element/test-001.html",
+        "url": "/shadow-dom/untriaged/user-interaction/active-element/test-001.html"
       },
       {
-        "path": "shadow-dom/user-interaction/active-element/test-002.html",
-        "url": "/shadow-dom/user-interaction/active-element/test-002.html"
+        "path": "shadow-dom/untriaged/user-interaction/active-element/test-002.html",
+        "url": "/shadow-dom/untriaged/user-interaction/active-element/test-002.html"
       },
       {
-        "path": "shadow-dom/user-interaction/editing/inheritance-of-content-editable-001.html",
-        "url": "/shadow-dom/user-interaction/editing/inheritance-of-content-editable-001.html"
+        "path": "shadow-dom/untriaged/user-interaction/editing/inheritance-of-content-editable-001.html",
+        "url": "/shadow-dom/untriaged/user-interaction/editing/inheritance-of-content-editable-001.html"
       },
       {
-        "path": "shadow-dom/user-interaction/focus-navigation/test-001.html",
-        "url": "/shadow-dom/user-interaction/focus-navigation/test-001.html"
+        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-001.html",
+        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-001.html"
       },
       {
-        "path": "shadow-dom/user-interaction/focus-navigation/test-002.html",
-        "url": "/shadow-dom/user-interaction/focus-navigation/test-002.html"
+        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-002.html",
+        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-002.html"
       },
       {
-        "path": "shadow-dom/user-interaction/focus-navigation/test-003.html",
-        "url": "/shadow-dom/user-interaction/focus-navigation/test-003.html"
+        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-003.html",
+        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-003.html"
       },
       {
-        "path": "shadow-dom/user-interaction/focus-navigation/test-004.html",
-        "url": "/shadow-dom/user-interaction/focus-navigation/test-004.html"
+        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-004.html",
+        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-004.html"
       },
       {
-        "path": "shadow-dom/user-interaction/ranges-and-selections/test-001.html",
-        "url": "/shadow-dom/user-interaction/ranges-and-selections/test-001.html"
+        "path": "shadow-dom/untriaged/user-interaction/ranges-and-selections/test-001.html",
+        "url": "/shadow-dom/untriaged/user-interaction/ranges-and-selections/test-001.html"
       },
       {
-        "path": "shadow-dom/user-interaction/ranges-and-selections/test-002.html",
-        "url": "/shadow-dom/user-interaction/ranges-and-selections/test-002.html"
+        "path": "shadow-dom/untriaged/user-interaction/ranges-and-selections/test-002.html",
+        "url": "/shadow-dom/untriaged/user-interaction/ranges-and-selections/test-002.html"
       },
       {
         "path": "subresource-integrity/subresource-integrity.html",
@@ -26394,10 +26522,6 @@
       {
         "path": "websockets/constructor/012.html",
         "url": "/websockets/constructor/012.html"
-      },
-      {
-        "path": "websockets/constructor/014.html",
-        "url": "/websockets/constructor/014.html"
       },
       {
         "path": "websockets/constructor/016.html",
@@ -28919,6 +29043,11 @@
         "url": "/websockets/constructor/013.html"
       },
       {
+        "path": "websockets/constructor/014.html",
+        "timeout": "long",
+        "url": "/websockets/constructor/014.html"
+      },
+      {
         "path": "websockets/cookies/005.html",
         "timeout": "long",
         "url": "/websockets/cookies/005.html"
@@ -29055,27 +29184,6 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
-    "deleted": [
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-002.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-006.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-004.html",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-003.html",
-      "2dcontext/transformations/canvas_transformations_reset_001.htm",
-      "shadow-dom/shadow-trees/hosting-multiple-shadow-trees-005.html"
-    ],
-
-    "items": {
-      "testharness": {
-        "dom/nodes/CharacterData-surrogates.html": [
-          {
-            "path": "dom/nodes/CharacterData-surrogates.html",
-            "url": "/dom/nodes/CharacterData-surrogates.html"
-          }
-        ]
-      }
-    },
-
     "items": {},
     "reftest_nodes": {}
   },
@@ -29481,7 +29589,7 @@
         "path": "2dcontext/transformations/canvas_transformations_reset_001.html",
         "references": [
           [
-            "/2dcontext/transformations/canvas_transformations_reset_001-ref.htm",
+            "/2dcontext/transformations/canvas_transformations_reset_001-ref.html",
             "=="
           ]
         ],
@@ -31696,18 +31804,6 @@
         "url": "/html/semantics/text-level-semantics/the-br-element/br-bidi.html"
       }
     ],
-    "html/semantics/text-level-semantics/the-wbr-element/wbr-element-ref.html": [
-      {
-        "path": "html/semantics/text-level-semantics/the-wbr-element/wbr-element-ref.html",
-        "references": [
-          [
-            "/html/semantics/text-level-semantics/the-wbr-element/wbr-element-notref.html",
-            "!="
-          ]
-        ],
-        "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element-ref.html"
-      }
-    ],
     "html/semantics/text-level-semantics/the-wbr-element/wbr-element.html": [
       {
         "path": "html/semantics/text-level-semantics/the-wbr-element/wbr-element.html",
@@ -31720,112 +31816,112 @@
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
       }
     ],
-    "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html": [
+    "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001.html": [
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-001.html"
       }
     ],
-    "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002.html": [
+    "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002.html": [
       {
-        "path": "shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/lower-boundary-encapsulation/distribution-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/lower-boundary-encapsulation/distribution-002.html"
       }
     ],
-    "shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest.html": [
+    "shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest.html": [
       {
-        "path": "shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest.html",
+        "path": "shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/nested-shadow-trees/nested_tree_reftest.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/nested-shadow-trees/nested_tree_reftest.html"
       }
     ],
-    "shadow-dom/shadow-trees/reprojection/reprojection-001.html": [
+    "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001.html": [
       {
-        "path": "shadow-dom/shadow-trees/reprojection/reprojection-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/reprojection/reprojection-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/reprojection/reprojection-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-001.html"
       }
     ],
-    "shadow-dom/shadow-trees/reprojection/reprojection-002.html": [
+    "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002.html": [
       {
-        "path": "shadow-dom/shadow-trees/reprojection/reprojection-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/reprojection/reprojection-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/reprojection/reprojection-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/reprojection/reprojection-002.html"
       }
     ],
-    "shadow-dom/shadow-trees/shadow-root-001.html": [
+    "shadow-dom/untriaged/shadow-trees/shadow-root-001.html": [
       {
-        "path": "shadow-dom/shadow-trees/shadow-root-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/shadow-root-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/shadow-root-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/shadow-root-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/shadow-root-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/shadow-root-001.html"
       }
     ],
-    "shadow-dom/shadow-trees/shadow-root-002.html": [
+    "shadow-dom/untriaged/shadow-trees/shadow-root-002.html": [
       {
-        "path": "shadow-dom/shadow-trees/shadow-root-002.html",
+        "path": "shadow-dom/untriaged/shadow-trees/shadow-root-002.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/shadow-root-002-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/shadow-root-002-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/shadow-root-002.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/shadow-root-002.html"
       }
     ],
-    "shadow-dom/shadow-trees/text-decoration-001.html": [
+    "shadow-dom/untriaged/shadow-trees/text-decoration-001.html": [
       {
-        "path": "shadow-dom/shadow-trees/text-decoration-001.html",
+        "path": "shadow-dom/untriaged/shadow-trees/text-decoration-001.html",
         "references": [
           [
-            "/shadow-dom/shadow-trees/text-decoration-001-ref.html",
+            "/shadow-dom/untriaged/shadow-trees/text-decoration-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/shadow-trees/text-decoration-001.html"
+        "url": "/shadow-dom/untriaged/shadow-trees/text-decoration-001.html"
       }
     ],
-    "shadow-dom/styles/not-apply-in-shadow-root-001.html": [
+    "shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html": [
       {
-        "path": "shadow-dom/styles/not-apply-in-shadow-root-001.html",
+        "path": "shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html",
         "references": [
           [
-            "/shadow-dom/styles/not-apply-in-shadow-root-001-ref.html",
+            "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001-ref.html",
             "=="
           ]
         ],
-        "url": "/shadow-dom/styles/not-apply-in-shadow-root-001.html"
+        "url": "/shadow-dom/untriaged/styles/not-apply-in-shadow-root-001.html"
       }
     ],
     "webvtt/rendering/cues-with-video/processing-model/2_cues_overlapping_completely_move_up.html": [
@@ -34481,7 +34577,7 @@
       }
     ]
   },
-  "rev": "cf8340b5fae7b820788ffc31f8cc6b6b04978002",
+  "rev": "71a0d51d14d8b0f1b53cda3a7d39ef8765164485",
   "url_base": "/",
   "version": 2
 }

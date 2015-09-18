@@ -10,6 +10,7 @@
 #![feature(append)]
 #![feature(fs_walk)]
 #![feature(path_ext)]
+#![feature(result_expect)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
@@ -143,6 +144,7 @@ struct Reftest {
     prefs: Vec<String>,
     fragment_identifier: Option<String>,
     resolution: Option<String>,
+    pixel_ratio: Option<f32>,
 }
 
 struct TestLine<'a> {
@@ -201,6 +203,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         let mut prefs = vec![];
         let mut fragment_identifier = None;
         let mut resolution = None;
+        let mut pixel_ratio = None;
         for condition in conditions_list {
             match condition {
                 "flaky_cpu" => flakiness.insert(CPU_RENDERING),
@@ -220,6 +223,10 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             if condition.starts_with("resolution=") {
                 resolution = Some(condition["resolution=".len() ..].to_string());
             }
+            if condition.starts_with("device-pixel-ratio=") {
+                pixel_ratio = Some(condition["device-pixel-ratio=".len() ..].to_string()
+                                   .parse().expect("Invalid device-pixel-ratio"));
+            }
         }
 
         let reftest = Reftest {
@@ -233,6 +240,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             prefs: prefs,
             fragment_identifier: fragment_identifier,
             resolution: resolution,
+            pixel_ratio: pixel_ratio,
         };
 
         tests.push(make_test(reftest));
@@ -286,6 +294,10 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     if let Some(ref resolution) = reftest.resolution {
         command.arg("--resolution");
         command.arg(resolution);
+    }
+    if let Some(pixel_ratio) = reftest.pixel_ratio {
+        command.arg("--device-pixel-ratio");
+        command.arg(pixel_ratio.to_string());
     }
     let retval = match command.status() {
         Ok(status) => status,

@@ -5,8 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use std::default::Default;
 use std::fmt;
 use std::fmt::Debug;
@@ -16,7 +15,7 @@ use std::mem;
 use std::sync::Arc;
 
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
-                DeclarationListParser, parse_important, ToCss};
+                DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use url::Url;
 use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
@@ -115,6 +114,7 @@ pub mod longhands {
                             derived_from=derived_from,
                             custom_cascade=custom_cascade,
                             experimental=experimental)
+        property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
@@ -128,7 +128,7 @@ pub mod longhands {
             % if derived_from is None:
                 use cssparser::Parser;
                 use parser::ParserContext;
-                use properties::{CSSWideKeyword, DeclaredValue};
+                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
             % endif
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
@@ -157,7 +157,7 @@ pub mod longhands {
                         return
                     }
                     seen.set_${property.ident}();
-                    let computed_value = substitute_variables(
+                    let computed_value = ::properties::substitute_variables_${property.ident}(
                         declared_value, &style.custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 specified_value.to_computed_value(&context)
@@ -193,29 +193,6 @@ pub mod longhands {
                 % endif
             }
             % if derived_from is None:
-                pub fn substitute_variables<F, R>(value: &DeclaredValue<SpecifiedValue>,
-                                                  custom_properties: &Option<Arc<HashMap<Atom, String>>>,
-                                                  f: F)
-                                                  -> R
-                                                  where F: FnOnce(&DeclaredValue<SpecifiedValue>) -> R {
-                    if let DeclaredValue::WithVariables { ref css, ref base_url } = *value {
-                        f(&
-                            ::custom_properties::substitute(css, custom_properties)
-                            .and_then(|css| {
-                                // As of this writing, only the base URL is used for property values:
-                                let context = ParserContext::new(
-                                    ::stylesheets::Origin::Author, base_url);
-                                parse_specified(&context, &mut Parser::new(&css))
-                            })
-                            .unwrap_or(
-                                // Invalid at computed-value time.
-                                DeclaredValue::${"Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}
-                            )
-                        )
-                    } else {
-                        f(value)
-                    }
-                }
                 pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match input.try(CSSWideKeyword::parse) {
@@ -227,13 +204,19 @@ pub mod longhands {
                             input.look_for_var_functions();
                             let start = input.position();
                             let specified = parse_specified(context, input);
+                            if specified.is_err() {
+                                while let Ok(_) = input.next() {}  // Look for var() after the error.
+                            }
                             let var = input.seen_var_functions();
                             if specified.is_err() && var {
                                 input.reset(start);
-                                try!(::custom_properties::parse_declaration_value(input, &mut None));
+                                let (first_token_type, _) = try!(
+                                    ::custom_properties::parse_declaration_value(input, &mut None));
                                 return Ok(DeclaredValue::WithVariables {
                                     css: input.slice_from(start).to_owned(),
+                                    first_token_type: first_token_type,
                                     base_url: context.base_url.clone(),
+                                    from_shorthand: Shorthand::None,
                                 })
                             }
                             specified
@@ -1759,7 +1742,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![FontFamily::FamilyName(Atom::from_slice("serif"))])
+            computed_value::T(vec![FontFamily::FamilyName(atom!("serif"))])
         }
         /// <family-name>#
         /// <family-name> = <string> | [ <ident>+ ]
@@ -3610,7 +3593,7 @@ pub mod longhands {
             #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
             pub enum ComputedOperation {
                 Matrix(ComputedMatrix),
-                Skew(CSSFloat, CSSFloat),
+                Skew(computed::Angle, computed::Angle),
                 Translate(computed::LengthOrPercentage,
                           computed::LengthOrPercentage,
                           computed::Length),
@@ -3645,6 +3628,15 @@ pub mod longhands {
             Ok((first, second))
         }
 
+        fn parse_two_angles(input: &mut Parser) -> Result<(specified::Angle, specified::Angle),()> {
+            let first = try!(specified::Angle::parse(input));
+            let second = input.try(|input| {
+                try!(input.expect_comma());
+                specified::Angle::parse(input)
+            }).unwrap_or(specified::Angle(0.0));
+            Ok((first, second))
+        }
+
         #[derive(Copy, Clone, Debug, PartialEq)]
         enum TranslateKind {
             Translate,
@@ -3657,7 +3649,7 @@ pub mod longhands {
         #[derive(Clone, Debug, PartialEq)]
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
-            Skew(CSSFloat, CSSFloat),
+            Skew(specified::Angle, specified::Angle),
             Translate(TranslateKind,
                       specified::LengthOrPercentage,
                       specified::LengthOrPercentage,
@@ -3946,22 +3938,22 @@ pub mod longhands {
                     },
                     "skew" => {
                         try!(input.parse_nested_block(|input| {
-                            let (sx, sy) = try!(parse_two_floats(input));
-                            result.push(SpecifiedOperation::Skew(sx, sy));
+                            let (theta_x, theta_y) = try!(parse_two_angles(input));
+                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
                             Ok(())
                         }))
                     },
                     "skewx" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Skew(sx, 1.0));
+                            let theta_x = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
                             Ok(())
                         }))
                     },
                     "skewy" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
-                            result.push(SpecifiedOperation::Skew(1.0, sy));
+                            let theta_y = try!(specified::Angle::parse(input));
+                            result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
                             Ok(())
                         }))
                     },
@@ -4009,8 +4001,8 @@ pub mod longhands {
                         SpecifiedOperation::Rotate(ax, ay, az, theta) => {
                             result.push(computed_value::ComputedOperation::Rotate(ax, ay, az, theta));
                         }
-                        SpecifiedOperation::Skew(sx, sy) => {
-                            result.push(computed_value::ComputedOperation::Skew(sx, sy));
+                        SpecifiedOperation::Skew(theta_x, theta_y) => {
+                            result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
                         }
                         SpecifiedOperation::Perspective(d) => {
                             result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
@@ -4872,7 +4864,7 @@ pub mod shorthands {
         pub mod ${shorthand.ident} {
             use cssparser::Parser;
             use parser::ParserContext;
-            use properties::longhands;
+            use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
 
             pub struct Longhands {
                 % for sub_property in shorthand.sub_properties:
@@ -4881,8 +4873,46 @@ pub mod shorthands {
                 % endfor
             }
 
+            pub fn parse(context: &ParserContext, input: &mut Parser,
+                         declarations: &mut Vec<PropertyDeclaration>)
+                         -> Result<(), ()> {
+                input.look_for_var_functions();
+                let start = input.position();
+                let value = parse_value(context, input);
+                let var = input.seen_var_functions();
+                if let Ok(value) = value {
+                    % for sub_property in shorthand.sub_properties:
+                        declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                            match value.${sub_property.ident} {
+                                Some(value) => DeclaredValue::Value(value),
+                                None => DeclaredValue::Initial,
+                            }
+                        ));
+                    % endfor
+                    Ok(())
+                } else if var {
+                    input.reset(start);
+                    let (first_token_type, _) = try!(
+                        ::custom_properties::parse_declaration_value(input, &mut None));
+                    let css = input.slice_from(start);
+                    % for sub_property in shorthand.sub_properties:
+                        declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                            DeclaredValue::WithVariables {
+                                css: css.to_owned(),
+                                first_token_type: first_token_type,
+                                base_url: context.base_url.clone(),
+                                from_shorthand: Shorthand::${shorthand.camel_case},
+                            }
+                        ));
+                    % endfor
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            }
+
             #[allow(unused_variables)]
-            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
                 ${caller.body()}
             }
         }
@@ -5135,16 +5165,18 @@ pub mod shorthands {
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
+        use util::geometry::Au;
+        use values::specified::{Length, LengthOrPercentage};
         use values::specified::BorderRadiusSize;
 
         let _ignored = context;
 
-        fn parse_one_set_of_border_radii(mut input: &mut Parser)
-                                         -> Result<[BorderRadiusSize; 4], ()> {
+        fn parse_one_set_of_border_values(mut input: &mut Parser)
+                                         -> Result<[LengthOrPercentage; 4], ()> {
             let mut count = 0;
-            let mut values = [BorderRadiusSize::zero(); 4];
+            let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
             while count < 4 {
-                if let Ok(value) = input.try(BorderRadiusSize::parse_one_radii) {
+                if let Ok(value) = input.try(LengthOrPercentage::parse) {
                     values[count] = value;
                     count += 1;
                 } else {
@@ -5161,9 +5193,21 @@ pub mod shorthands {
             }
         }
 
-        let radii = try!(parse_one_set_of_border_radii(input));
-        // TODO(bjwbell): Finish parsing code for elliptical borders.
+        fn parse_one_set_of_border_radii(mut input: &mut Parser)
+                                         -> Result<[BorderRadiusSize; 4], ()> {
+            let widths = try!(parse_one_set_of_border_values(input));
+            let mut heights = widths.clone();
+            let mut radii_values = [BorderRadiusSize::zero(); 4];
+            if input.try(|input| input.expect_delim('/')).is_ok() {
+                heights = try!(parse_one_set_of_border_values(input));
+            }
+            for i in 0..radii_values.len() {
+                radii_values[i] = BorderRadiusSize::new(widths[i], heights[i]);
+            }
+            Ok(radii_values)
+        }
 
+        let radii = try!(parse_one_set_of_border_radii(input));
         Ok(Longhands {
             border_top_left_radius: Some(radii[0]),
             border_top_right_radius: Some(radii[1]),
@@ -5559,6 +5603,55 @@ mod property_bit_field {
     }
 }
 
+% for property in LONGHANDS:
+    % if property.derived_from is None:
+        fn substitute_variables_${property.ident}<F, R>(
+            value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
+            f: F)
+            -> R
+            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
+        {
+            if let DeclaredValue::WithVariables {
+                ref css, first_token_type, ref base_url, from_shorthand
+            } = *value {
+                f(&
+                    ::custom_properties::substitute(css, first_token_type, custom_properties)
+                    .and_then(|css| {
+                        // As of this writing, only the base URL is used for property values:
+                        let context = ParserContext::new(
+                            ::stylesheets::Origin::Author, base_url);
+                        Parser::new(&css).parse_entirely(|input| {
+                            match from_shorthand {
+                                Shorthand::None => {
+                                    longhands::${property.ident}::parse_specified(&context, input)
+                                }
+                                % for shorthand in SHORTHANDS:
+                                    % if property in shorthand.sub_properties:
+                                        Shorthand::${shorthand.camel_case} => {
+                                            shorthands::${shorthand.ident}::parse_value(&context, input)
+                                            .map(|result| match result.${property.ident} {
+                                                Some(value) => DeclaredValue::Value(value),
+                                                None => DeclaredValue::Initial,
+                                            })
+                                        }
+                                    % endif
+                                % endfor
+                                _ => unreachable!()
+                            }
+                        })
+                    })
+                    .unwrap_or(
+                        // Invalid at computed-value time.
+                        DeclaredValue::${"Inherit" if property.style_struct.inherited else "Initial"}
+                    )
+                )
+            } else {
+                f(value)
+            }
+        }
+    % endif
+% endfor
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
@@ -5697,11 +5790,24 @@ impl CSSWideKeyword {
     }
 }
 
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+pub enum Shorthand {
+    None,
+    % for property in SHORTHANDS:
+        ${property.camel_case},
+    % endfor
+}
+
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
     Value(T),
-    WithVariables { css: String, base_url: Url },
+    WithVariables {
+        css: String,
+        first_token_type: TokenSerializationType,
+        base_url: Url,
+        from_shorthand: Shorthand
+    },
     Initial,
     Inherit,
     // There is no Unset variant here.
@@ -5709,13 +5815,17 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
-impl<T: ToCss> DeclaredValue<T> {
-    pub fn specified_value(&self) -> String {
+impl<T: ToCss> ToCss for DeclaredValue<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            DeclaredValue::Value(ref inner) => inner.to_css_string(),
-            DeclaredValue::WithVariables { ref css, .. } => css.clone(),
-            DeclaredValue::Initial => "initial".to_owned(),
-            DeclaredValue::Inherit => "inherit".to_owned(),
+            DeclaredValue::Value(ref inner) => inner.to_css(dest),
+            DeclaredValue::WithVariables { ref css, from_shorthand: Shorthand::None, .. } => {
+                dest.write_str(css)
+            }
+            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+            DeclaredValue::WithVariables { .. } => Ok(()),
+            DeclaredValue::Initial => dest.write_str("initial"),
+            DeclaredValue::Inherit => dest.write_str("inherit"),
         }
     }
 }
@@ -5725,7 +5835,7 @@ pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
-    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::Value>),
+    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
 }
 
 
@@ -5737,15 +5847,52 @@ pub enum PropertyDeclarationParseResult {
     ValidOrIgnoredDeclaration,
 }
 
+#[derive(Eq, PartialEq, Clone)]
+pub enum PropertyDeclarationName {
+    Longhand(&'static str),
+    Custom(::custom_properties::Name),
+    Internal
+}
+
+impl PartialEq<str> for PropertyDeclarationName {
+    fn eq(&self, other: &str) -> bool {
+        match *self {
+            PropertyDeclarationName::Longhand(n) => n == other,
+            PropertyDeclarationName::Custom(ref n) => {
+                ::custom_properties::parse_name(other) == Ok(&**n)
+            }
+            PropertyDeclarationName::Internal => false,
+        }
+    }
+}
+
+impl fmt::Display for PropertyDeclarationName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            PropertyDeclarationName::Longhand(n) => f.write_str(n),
+            PropertyDeclarationName::Custom(ref n) => {
+                try!(f.write_str("--"));
+                f.write_str(n)
+            }
+            PropertyDeclarationName::Internal => Ok(()),
+        }
+    }
+}
+
 impl PropertyDeclaration {
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> PropertyDeclarationName {
         match *self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => "${property.name}",
+                    PropertyDeclaration::${property.camel_case}(..) => {
+                        PropertyDeclarationName::Longhand("${property.name}")
+                    }
                 % endif
             % endfor
-            _ => "",
+            PropertyDeclaration::Custom(ref name, _) => {
+                PropertyDeclarationName::Custom(name.clone())
+            }
+            _ => PropertyDeclarationName::Internal,
         }
     }
 
@@ -5754,10 +5901,11 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.specified_value(),
+                        value.to_css_string(),
                 % endif
             % endfor
-            ref decl => panic!("unsupported property declaration: {:?}", decl.name()),
+            PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
+            ref decl => panic!("unsupported property declaration: {}", decl.name()),
         }
     }
 
@@ -5770,6 +5918,9 @@ impl PropertyDeclaration {
                     }
                 % endif
             % endfor
+            PropertyDeclaration::Custom(ref declaration_name, _) => {
+                ::custom_properties::parse_name(name) == Ok(&**declaration_name)
+            }
             _ => false,
         }
     }
@@ -5786,7 +5937,7 @@ impl PropertyDeclaration {
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
-            result_list.push(PropertyDeclaration::Custom(name, value));
+            result_list.push(PropertyDeclaration::Custom(Atom::from_slice(name), value));
             return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
         match_ignore_ascii_case! { name,
@@ -5842,18 +5993,8 @@ impl PropertyDeclaration {
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
-                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input) {
-                            Ok(result) => {
-                                % for sub_property in shorthand.sub_properties:
-                                    result_list.push(PropertyDeclaration::${sub_property.camel_case}(
-                                        match result.${sub_property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
-                                            None => DeclaredValue::Initial,
-                                        }
-                                    ));
-                                % endfor
-                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                            },
+                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
+                            Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }
@@ -5896,7 +6037,7 @@ pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
-    custom_properties: Option<Arc<HashMap<::custom_properties::Name, String>>>,
+    custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     shareable: bool,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
@@ -6054,14 +6195,19 @@ impl ComputedValues {
     }
     % endfor
 
-    pub fn computed_value_to_string(&self, name: &str) -> Option<String> {
+    pub fn computed_value_to_string(&self, name: &str) -> Result<String, ()> {
         match name {
             % for style_struct in STYLE_STRUCTS:
                 % for longhand in style_struct.longhands:
-                "${longhand.name}" => Some(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
+                "${longhand.name}" => Ok(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
                 % endfor
             % endfor
-            _ => None
+            _ => {
+                let name = try!(::custom_properties::parse_name(name));
+                let map = try!(self.custom_properties.as_ref().ok_or(()));
+                let value = try!(map.get(&Atom::from_slice(name)).ok_or(()));
+                Ok(value.to_css_string())
+            }
         }
     }
 }
@@ -6130,7 +6276,7 @@ fn cascade_with_cached_declarations(
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
-        custom_properties: Option<Arc<HashMap<Atom, String>>>,
+        custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         context: &computed::Context)
         -> ComputedValues {
     % for style_struct in STYLE_STRUCTS:
@@ -6159,7 +6305,7 @@ fn cascade_with_cached_declarations(
                                     }
                                     seen.set_${property.ident}();
                                     let computed_value =
-                                    longhands::${property.ident}::substitute_variables(
+                                    substitute_variables_${property.ident}(
                                         declared_value, &custom_properties, |value| match *value {
                                             DeclaredValue::Value(ref specified_value)
                                             => specified_value.to_computed_value(context),
@@ -6331,7 +6477,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // This assumes that the computed and specified values have the same Rust type.
     macro_rules! get_specified(
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
-            longhands::$property::substitute_variables(
+            concat_idents!(substitute_variables_, $property)(
                 $declared_value, &custom_properties, |value| match *value {
                     DeclaredValue::Value(specified_value) => specified_value,
                     DeclaredValue::Initial => longhands::$property::get_initial_value(),
@@ -6351,7 +6497,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
-                    context.font_size = longhands::font_size::substitute_variables(
+                    context.font_size = substitute_variables_font_size(
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 match specified_value.0 {
@@ -6372,7 +6518,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                     );
                 }
                 PropertyDeclaration::Color(ref value) => {
-                    context.color = longhands::color::substitute_variables(
+                    context.color = substitute_variables_color(
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 specified_value.parsed
@@ -6677,7 +6823,7 @@ pub fn is_supported_property(property: &str) -> bool {
             "${property.name}" => true,
         % endfor
         "${LONGHANDS[-1].name}" => true
-        _ => false
+        _ => property.starts_with("--")
     }
 }
 

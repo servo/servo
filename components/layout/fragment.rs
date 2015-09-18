@@ -651,6 +651,11 @@ pub struct ScannedTextFragmentInfo {
     /// The intrinsic size of the text fragment.
     pub content_size: LogicalSize<Au>,
 
+    /// The position of the insertion point in characters, if any.
+    ///
+    /// TODO(pcwalton): Make this a range.
+    pub insertion_point: Option<CharIndex>,
+
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
 
@@ -669,11 +674,13 @@ impl ScannedTextFragmentInfo {
     pub fn new(run: Arc<TextRun>,
                range: Range<CharIndex>,
                content_size: LogicalSize<Au>,
+               insertion_point: &Option<CharIndex>,
                requires_line_break_afterward_if_wrapping_on_newlines: bool)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
+            insertion_point: *insertion_point,
             content_size: content_size,
             range_end_including_stripped_whitespace: range.end(),
             requires_line_break_afterward_if_wrapping_on_newlines:
@@ -726,14 +733,20 @@ pub struct TruncationResult {
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
     pub text: Box<str>,
+
+    /// The position of the insertion point, if any.
+    ///
+    /// TODO(pcwalton): Make this a range.
+    pub insertion_point: Option<CharIndex>,
 }
 
 impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
+    pub fn new(text: String, insertion_point: Option<CharIndex>) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
             text: text.into_boxed_str(),
+            insertion_point: insertion_point,
         }
     }
 }
@@ -843,10 +856,12 @@ impl Fragment {
                                     self.border_box.size.block);
         let requires_line_break_afterward_if_wrapping_on_newlines =
             self.requires_line_break_afterward_if_wrapping_on_newlines();
+        // FIXME(pcwalton): This should modify the insertion point as necessary.
         let info = box ScannedTextFragmentInfo::new(
             text_run,
             split.range,
             size,
+            &None,
             requires_line_break_afterward_if_wrapping_on_newlines);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
@@ -856,8 +871,8 @@ impl Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
-                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
-                        "…".to_owned()))));
+                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new("…".to_owned(),
+                                                                                   None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
@@ -2179,11 +2194,11 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&block_flow.compute_overflow());
+                overflow = overflow.union(&flow::base(block_flow).overflow);
             }
             SpecificFragmentInfo::InlineAbsolute(ref info) => {
                 let block_flow = info.flow_ref.as_block();
-                overflow = overflow.union(&block_flow.compute_overflow());
+                overflow = overflow.union(&flow::base(block_flow).overflow);
             }
             _ => (),
         }

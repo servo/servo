@@ -6,12 +6,15 @@
     <title>form-action-src-default-ignored</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE"]'></script>
+    <script src='../support/logTest.sub.js?logs=["PASS","TEST COMPLETE"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing policy:
-default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';
+default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self'; frame-src 'self';
 -->
     <script>
+        window.addEventListener("message", function(event) {
+            log(event.data);
+        }, false);
         window.addEventListener('load', function() {
             setTimeout(function() {
                 document.getElementById('submit').click();
@@ -23,11 +26,13 @@ default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-s
 </head>
 
 <body>
-    <form action="../support/pass.png" id="theform" method="post" target="_blank">
+    <iframe name="test_target" id="test_iframe"></iframe>
+
+    <form action="/common/redirect.py?location=/content-security-policy/blink-contrib/resources/postmessage-pass.html" id="theform" method="post" target="test_target">
         <input type="text" name="fieldname" value="fieldvalue">
         <input type="submit" id="submit" value="submit">
     </form>
-    <p>Tests that default-src does. If this test passes, you will see a page indicating a form was POSTed or a blocked pop-up warning.</p>
+    <p>Tests that default-src does not cascade to form-action.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
 </body>

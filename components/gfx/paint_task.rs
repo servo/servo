@@ -429,7 +429,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                        &perspective,
                                        parent_id)
             }
-
         }
     }
 }

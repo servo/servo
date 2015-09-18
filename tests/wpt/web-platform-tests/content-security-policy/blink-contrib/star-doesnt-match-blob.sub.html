@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
+    <title>worker-connect-src-blocked</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../support/logTest.sub.js?logs=[]"></script>
+    <script src='../support/alertAssert.sub.js?alerts=["TEST COMPLETE"]'></script>
+    <!-- enforcing policy:
+connect-src 'self'; script-src 'self' 'unsafe-inline'; child-src *;
+-->
+
+</head>
+<p>This test loads a worker, from a guid.
+    The worker should be blocked from loading with a child-src policy of *
+    as the blob: scheme must be specified explicitly.
+    A report should be sent to the report-uri specified
+    with this resource.</p>
+<body>
+    <script>
+        try {
+            var blob = new Blob([
+                "postMessage('FAIL');" +
+                "postMessage('TEST COMPLETE');"
+                ],
+                {type : 'application/javascript'});
+            var url = URL.createObjectURL(blob);
+            var worker = new Worker(url);
+            worker.onmessage = function(event) {
+                alert_assert(event.data);
+            };
+        } catch (e) {
+            alert_assert('TEST COMPLETE');
+        }
+        function timeout() {
+            alert_assert('TEST COMPLETE');
+        }
+    </script>
+    <div id="log"></div>
+     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=child-src%20&apos;self&apos;"></script>
+</body>
+
+</html>

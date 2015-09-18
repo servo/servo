@@ -47,6 +47,7 @@ use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;
+use util::print_tree::PrintTree;
 use util::range::Range;
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
@@ -58,8 +59,6 @@ pub mod optimizer;
 /// The factor that we multiply the blur radius by in order to inflate the boundaries of display
 /// items that involve a blur. This ensures that the display item boundaries include all the ink.
 pub static BLUR_INFLATION_FACTOR: i32 = 3;
-
-const MIN_INDENTATION_LENGTH: usize = 4;
 
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
@@ -201,62 +200,45 @@ impl DisplayList {
         result
     }
 
-    // Print the display list. Only makes sense to call it after performing reflow.
-    pub fn print_items(&self, indentation: String) {
-        // Closures are so nice!
-        let doit = |items: &[DisplayItem]| {
-            for item in items {
-                match *item {
-                    DisplayItem::SolidColorClass(ref solid_color) => {
-                        println!("{} SolidColor({},{},{},{}). {:?}",
-                                 indentation,
-                                 solid_color.color.r,
-                                 solid_color.color.g,
-                                 solid_color.color.b,
-                                 solid_color.color.a,
-                                 solid_color.base.bounds)
-                    }
-                    DisplayItem::TextClass(ref text) => {
-                        println!("{} Text. {:?}", indentation, text.base.bounds)
-                    }
-                    DisplayItem::ImageClass(ref image) => {
-                        println!("{} Image. {:?}", indentation, image.base.bounds)
-                    }
-                    DisplayItem::BorderClass(ref border) => {
-                        println!("{} Border. {:?}", indentation, border.base.bounds)
-                    }
-                    DisplayItem::GradientClass(ref gradient) => {
-                        println!("{} Gradient. {:?}", indentation, gradient.base.bounds)
-                    }
-                    DisplayItem::LineClass(ref line) => {
-                        println!("{} Line. {:?}", indentation, line.base.bounds)
-                    }
-                    DisplayItem::BoxShadowClass(ref box_shadow) => {
-                        println!("{} Box_shadow. {:?}", indentation, box_shadow.base.bounds)
-                    }
-                }
-            }
-            println!("\n");
-        };
+    pub fn print(&self, title: String) {
+        let mut print_tree = PrintTree::new(title);
+        self.print_with_tree(&mut print_tree);
+    }
 
-        doit(&(self.all_display_items()));
-        if !self.children.is_empty() {
-            println!("{} Children stacking contexts list length: {}",
-                     indentation,
-                     self.children.len());
-            for stacking_context in &self.children {
-                stacking_context.print(indentation.clone() +
-                                       &indentation[0..MIN_INDENTATION_LENGTH]);
+    pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
+        fn print_display_list_section(print_tree: &mut PrintTree,
+                                      items: &LinkedList<DisplayItem>,
+                                      title: &str) {
+            if items.is_empty() {
+                return;
+
             }
+
+            print_tree.new_level(title.to_owned());
+            for item in items {
+                print_tree.add_item(format!("{:?}", item));
+            }
+            print_tree.end_level();
         }
-        if !self.layered_children.is_empty() {
-            println!("{} Child layers list length: {}",
-                     indentation,
-                     self.layered_children.len());
-            for paint_layer in &self.layered_children {
-                paint_layer.stacking_context.print(indentation.clone() +
-                                                   &indentation[0..MIN_INDENTATION_LENGTH]);
-            }
+
+        print_display_list_section(print_tree,
+                                   &self.background_and_borders,
+                                   "Backgrounds and Borders");
+        print_display_list_section(print_tree,
+                                   &self.block_backgrounds_and_borders,
+                                   "Block Backgrounds and Borders");
+        print_display_list_section(print_tree, &self.floats, "Floats");
+        print_display_list_section(print_tree, &self.content, "Content");
+        print_display_list_section(print_tree, &self.positioned_content, "Positioned Content");
+        print_display_list_section(print_tree, &self.outlines, "Outlines");
+
+
+        for stacking_context in &self.children {
+            stacking_context.print_with_tree(print_tree);
+        }
+
+        for paint_layer in &self.layered_children {
+            paint_layer.stacking_context.print_with_tree(print_tree);
         }
     }
 }
@@ -375,8 +357,8 @@ impl StackingContext {
             };
 
             if opts::get().dump_display_list_optimized {
-                println!("**** optimized display list. Tile bounds: {:?}", paint_context.page_rect);
-                display_list.print_items("####".to_owned());
+                display_list.print(format!("Optimized display list. Tile bounds: {:?}",
+                                           paint_context.page_rect));
             }
 
             // Set up our clip rect and transform.
@@ -645,25 +627,23 @@ impl StackingContext {
                          self.display_list.background_and_borders.iter().rev())
     }
 
-    pub fn print(&self, mut indentation: String) {
-        // We cover the case of an empty string.
-        if indentation.is_empty() {
-            indentation = "####".to_owned();
+    pub fn print(&self, title: String) {
+        let mut print_tree = PrintTree::new(title);
+        self.print_with_tree(&mut print_tree);
+    }
+
+    fn print_with_tree(&self, print_tree: &mut PrintTree) {
+        if self.layer_id.is_some() {
+            print_tree.new_level(format!("Layered StackingContext at {:?} with overflow {:?}:",
+                                             self.bounds,
+                                             self.overflow));
+        } else {
+            print_tree.new_level(format!("StackingContext at {:?} with overflow {:?}:",
+                                             self.bounds,
+                                             self.overflow));
         }
-
-        // We grow the indentation by 4 characters if needed.
-        // I wish to push it all as a slice, but it won't work if the string is a single char.
-        while indentation.len() < MIN_INDENTATION_LENGTH {
-            let c = indentation.char_at(0);
-            indentation.push(c);
-        }
-
-        println!("{:?} Stacking context at {:?} with overflow {:?}:",
-                 indentation,
-                 self.bounds,
-                 self.overflow);
-
-        self.display_list.print_items(indentation);
+        self.display_list.print_with_tree(print_tree);
+        print_tree.end_level();
     }
 }
 
@@ -713,7 +693,7 @@ impl StackingContextLayerCreator {
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
             let next_layer_id =
-                    stacking_context.display_list.layered_children.back().unwrap().id.next_layer_id();
+                stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
             let child_stacking_context =
                 Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
             stacking_context.display_list.layered_children.push_back(
@@ -1301,13 +1281,18 @@ impl fmt::Debug for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} @ {:?} ({:x})",
             match *self {
-                DisplayItem::SolidColorClass(_) => "SolidColor",
-                DisplayItem::TextClass(_) => "Text",
-                DisplayItem::ImageClass(_) => "Image",
-                DisplayItem::BorderClass(_) => "Border",
-                DisplayItem::GradientClass(_) => "Gradient",
-                DisplayItem::LineClass(_) => "Line",
-                DisplayItem::BoxShadowClass(_) => "BoxShadow",
+                DisplayItem::SolidColorClass(ref solid_color) =>
+                    format!("SolidColor rgba({}, {}, {}, {})",
+                            solid_color.color.r,
+                            solid_color.color.g,
+                            solid_color.color.b,
+                            solid_color.color.a),
+                DisplayItem::TextClass(_) => "Text".to_owned(),
+                DisplayItem::ImageClass(_) => "Image".to_owned(),
+                DisplayItem::BorderClass(_) => "Border".to_owned(),
+                DisplayItem::GradientClass(_) => "Gradient".to_owned(),
+                DisplayItem::LineClass(_) => "Line".to_owned(),
+                DisplayItem::BoxShadowClass(_) => "BoxShadow".to_owned(),
             },
             self.base().bounds,
             self.base().metadata.node.id()

@@ -44,7 +44,7 @@
         var data = JSON.parse(report.responseText);
 
         if (data.error) {
-          assert_equals("false", reportExists, reportExists ? "Report sent in error" : "No report sent.");
+          assert_equals("false", reportExists, data.error);
         } else {
           if(reportExists != "" && reportExists == "false" && data["csp-report"]) {
               assert_unreached("CSP report sent, but not expecting one: " + JSON.stringify(data["csp-report"]));

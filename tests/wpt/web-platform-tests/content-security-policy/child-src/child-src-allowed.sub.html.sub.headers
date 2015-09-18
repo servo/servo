@@ -1,0 +1,6 @@
+Expires: Mon, 26 Jul 1997 05:00:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Cache-Control: post-check=0, pre-check=0, false
+Pragma: no-cache
+Set-Cookie: child-src-allowed={{$id:uuid()}}; Path=/content-security-policy/child-src
+Content-Security-Policy: child-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; report-uri /content-security-policy/support/report.py?op=put&reportID={{$id}}

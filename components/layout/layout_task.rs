@@ -20,8 +20,9 @@ use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAI
 use layout_debug;
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
-use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request, MarginPadding, Side};
-use query::{MarginRetrievingFragmentBorderBoxIterator, PositionProperty, PositionRetrievingFragmentBorderBoxIterator};
+use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
+use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
+use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use sequential;
 use wrapper::LayoutNode;
 
@@ -244,7 +245,9 @@ impl LayoutTaskFactory for LayoutTask {
               mem_profiler_chan: mem::ProfilerChan,
               shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id), task_state::LAYOUT, move || {
+        spawn_named_with_send_on_failure(format!("LayoutTask {:?}", id),
+                                         task_state::LAYOUT,
+                                         move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout_chan = LayoutChan(sender);
@@ -561,7 +564,11 @@ impl LayoutTask {
                 self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
             }
             Msg::LoadStylesheet(url, mq, pending, link_element) => {
-                self.handle_load_stylesheet(url, mq, pending, link_element, possibly_locked_rw_data)
+                self.handle_load_stylesheet(url,
+                                            mq,
+                                            pending,
+                                            link_element,
+                                            possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
             Msg::GetRPC(response_chan) => {
@@ -734,7 +741,9 @@ impl LayoutTask {
                                                 Origin::Author);
 
         //TODO: mark critical subresources as blocking load as well (#5974)
-        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id, url, responder)).unwrap();
+        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
+                                                                              url,
+                                                                              responder)).unwrap();
 
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
@@ -923,19 +932,22 @@ impl LayoutTask {
                     atom!("padding-right") => (MarginPadding::Padding, Side::Right),
                     _ => unreachable!()
                 };
-                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let requested_node: OpaqueNode =
+                    OpaqueNodeMethods::from_script_node(requested_node);
                 let mut iterator =
                     MarginRetrievingFragmentBorderBoxIterator::new(requested_node,
                                                                    side,
                                                                    margin_padding,
                                                                    style.writing_mode);
-                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+                                                                            &mut iterator);
                 rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
             atom!("left") | atom!("width") | atom!("height")
-            if applies && positioned && style.get_box().display != display::computed_value::T::none => {
+            if applies && positioned && style.get_box().display !=
+                    display::computed_value::T::none => {
                 let layout_data = layout_node.borrow_layout_data();
                 let position = layout_data.as_ref().map(|layout_data| {
                     match layout_data.data.flow_construction_result {
@@ -954,17 +966,20 @@ impl LayoutTask {
                     atom!("height") => PositionProperty::Height,
                     _ => unreachable!()
                 };
-                let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+                let requested_node: OpaqueNode =
+                    OpaqueNodeMethods::from_script_node(requested_node);
                 let mut iterator =
                     PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
                                                                      property,
                                                                      position);
-                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+                                                                            &mut iterator);
                 rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
             // FIXME: implement used value computation for line-height
             property => {
-                rw_data.resolved_style_response = style.computed_value_to_string(property.as_slice());
+                rw_data.resolved_style_response =
+                    style.computed_value_to_string(property.as_slice()).ok();
             }
         };
     }
@@ -1042,7 +1057,7 @@ impl LayoutTask {
                     .display_list_building_result
                     .add_to(&mut *display_list);
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let layer_id = layout_root.layer_id(0);
+                let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
@@ -1060,8 +1075,7 @@ impl LayoutTask {
                                                   stacking_context.clone());
 
                 if opts::get().dump_display_list {
-                    println!("#### start printing display list.");
-                    stacking_context.print("#".to_owned());
+                    stacking_context.print("DisplayList".to_owned());
                 }
                 if opts::get().dump_display_list_json {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
@@ -1194,8 +1208,13 @@ impl LayoutTask {
                     process_content_boxes_request(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::NodeGeometryQuery(node) =>
                     self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
-                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) =>
-                    self.process_resolved_style_request(node, pseudo, property, &mut root_flow, &mut rw_data),
+                ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
+                    self.process_resolved_style_request(node,
+                                                        pseudo,
+                                                        property,
+                                                        &mut root_flow,
+                                                        &mut rw_data)
+                }
                 ReflowQueryType::OffsetParentQuery(node) =>
                     self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::NoQuery => {}
@@ -1313,16 +1332,16 @@ impl LayoutTask {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                if opts::get().nonincremental_layout || flow_ref::deref_mut(&mut root_flow)
-                                                                 .compute_layout_damage()
-                                                                 .contains(REFLOW_ENTIRE_DOCUMENT) {
+                if opts::get().nonincremental_layout ||
+                        flow_ref::deref_mut(&mut root_flow).compute_layout_damage()
+                                                           .contains(REFLOW_ENTIRE_DOCUMENT) {
                     flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
 
-            // Verification of the flow tree, which ensures that all nodes were either marked as leaves
-            // or as non-leaves. This becomes a no-op in release builds. (It is inconsequential to
-            // memory safety but is a useful debugging tool.)
+            // Verification of the flow tree, which ensures that all nodes were either marked as
+            // leaves or as non-leaves. This becomes a no-op in release builds. (It is
+            // inconsequential to memory safety but is a useful debugging tool.)
             self.verify_flow_tree(&mut root_flow);
 
             if opts::get().trace_layout {

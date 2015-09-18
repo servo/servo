@@ -48,7 +48,7 @@ use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::ClippingRegion;
-use msg::compositor_msg::LayerId;
+use msg::compositor_msg::{LayerId, LayerType};
 use msg::constellation_msg::ConstellationChan;
 use rustc_serialize::{Encoder, Encodable};
 use std::fmt;
@@ -359,9 +359,16 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     /// Returns a layer ID for the given fragment.
     #[allow(unsafe_code)]
-    fn layer_id(&self, fragment_id: u32) -> LayerId {
+    fn layer_id(&self) -> LayerId {
         let obj = unsafe { mem::transmute::<&&Self, &raw::TraitObject>(&self) };
-        LayerId(obj.data as usize, fragment_id, 0)
+        LayerId::new_of_type(LayerType::FragmentBody, obj.data as usize)
+    }
+
+    /// Returns a layer ID for the given fragment.
+    #[allow(unsafe_code)]
+    fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        let obj = unsafe { mem::transmute::<&&Self, &raw::TraitObject>(&self) };
+        LayerId::new_of_type(LayerType::OverflowScroll, obj.data as usize)
     }
 
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
@@ -953,10 +960,11 @@ unsafe impl Sync for BaseFlow {}
 impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "@ {:?}, CC {}, ADC {}",
+               "@ {:?}, CC {}, ADC {}, Ovr {:?}",
                self.position,
                self.parallel.children_count.load(Ordering::SeqCst),
-               self.abs_descendants.len())
+               self.abs_descendants.len(),
+               self.overflow)
     }
 }
 

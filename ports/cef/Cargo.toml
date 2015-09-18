@@ -12,7 +12,7 @@ crate-type = ["dylib"]
 log = "*"
 url = "*"
 libc = "*"
-euclid = "0.1"
+euclid = "0.2"
 gleam = "0.1"
 
 [dependencies.servo]

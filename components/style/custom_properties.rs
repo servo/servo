@@ -2,96 +2,135 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, Token, SourcePosition};
+use cssparser::{Parser, Token, SourcePosition, Delimiter, TokenSerializationType, ToCss};
 use properties::DeclaredValue;
+use std::ascii::AsciiExt;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::Arc;
 use string_cache::Atom;
+use util::mem::HeapSizeOf;
 
 // Does not include the `--` prefix
 pub type Name = Atom;
 
 // https://drafts.csswg.org/css-variables/#typedef-custom-property-name
-pub fn parse_name(s: &str) -> Result<Name, ()> {
+pub fn parse_name(s: &str) -> Result<&str, ()> {
     if s.starts_with("--") {
-        Ok(Atom::from_slice(&s[2..]))
+        Ok(&s[2..])
     } else {
         Err(())
     }
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Value {
-    /// In CSS syntax
-    value: String,
+pub struct SpecifiedValue {
+    css: String,
+
+    first_token_type: TokenSerializationType,
+    last_token_type: TokenSerializationType,
 
     /// Custom property names in var() functions.
     references: HashSet<Name>,
 }
 
-pub struct BorrowedValue<'a> {
-    value: &'a str,
+pub struct BorrowedSpecifiedValue<'a> {
+    css: &'a str,
+    first_token_type: TokenSerializationType,
+    last_token_type: TokenSerializationType,
     references: Option<&'a HashSet<Name>>,
 }
 
-pub fn parse(input: &mut Parser) -> Result<Value, ()> {
+#[derive(Clone, HeapSizeOf)]
+pub struct ComputedValue {
+    css: String,
+    first_token_type: TokenSerializationType,
+    last_token_type: TokenSerializationType,
+}
+
+impl ToCss for SpecifiedValue {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(&self.css)
+    }
+}
+
+impl ToCss for ComputedValue {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(&self.css)
+    }
+}
+
+pub type ComputedValuesMap = HashMap<Name, ComputedValue>;
+
+impl ComputedValue {
+    fn empty() -> ComputedValue {
+        ComputedValue {
+            css: String::new(),
+            last_token_type: TokenSerializationType::nothing(),
+            first_token_type: TokenSerializationType::nothing(),
+        }
+    }
+
+    fn push(&mut self, css: &str, css_first_token_type: TokenSerializationType,
+            css_last_token_type: TokenSerializationType) {
+        self.first_token_type.set_if_nothing(css_first_token_type);
+        // If self.first_token_type was nothing,
+        // self.last_token_type is also nothing and this will be false:
+        if self.last_token_type.needs_separator_when_before(css_first_token_type) {
+            self.css.push_str("/**/")
+        }
+        self.css.push_str(css);
+        self.last_token_type = css_last_token_type
+    }
+
+    fn push_from(&mut self, position: (SourcePosition, TokenSerializationType),
+                 input: &Parser, last_token_type: TokenSerializationType) {
+        self.push(input.slice_from(position.0), position.1, last_token_type)
+    }
+
+    fn push_variable(&mut self, variable: &ComputedValue) {
+        self.push(&variable.css, variable.first_token_type, variable.last_token_type)
+    }
+}
+
+pub fn parse(input: &mut Parser) -> Result<SpecifiedValue, ()> {
     let start = input.position();
     let mut references = Some(HashSet::new());
-    // FIXME: don’t consume a top-level `!` as that would prevent parsing `!important`.
-    // Maybe using Parser::parse_until_before?
-    try!(parse_declaration_value(input, &mut references));
-    Ok(Value {
-        value: input.slice_from(start).to_owned(),
+    let (first, last) = try!(parse_declaration_value(input, &mut references));
+    Ok(SpecifiedValue {
+        css: input.slice_from(start).to_owned(),
+        first_token_type: first,
+        last_token_type: last,
         references: references.unwrap(),
     })
 }
 
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
 pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
-                               -> Result<(), ()> {
-    if input.is_exhausted() {
+                               -> Result<(TokenSerializationType, TokenSerializationType), ()> {
+    input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
-        return Err(())
-    }
-    while let Ok(token) = input.next() {
-        match token {
-            Token::BadUrl |
-            Token::BadString |
-            Token::CloseParenthesis |
-            Token::CloseSquareBracket |
-            Token::CloseCurlyBracket |
+        let start_position = input.position();
+        try!(input.next_including_whitespace());
+        input.reset(start_position);
 
-            Token::Semicolon |
-            Token::Delim('!') => {
-                return Err(())
-            }
-
-            Token::Function(ref name) if name == "var" => {
-                try!(input.parse_nested_block(|input| {
-                    parse_var_function(input, references)
-                }));
-            }
-
-            Token::Function(_) |
-            Token::ParenthesisBlock |
-            Token::CurlyBracketBlock |
-            Token::SquareBracketBlock => {
-                try!(input.parse_nested_block(|input| {
-                    parse_declaration_value_block(input, references)
-                }));
-            }
-
-            _ => {}
-        }
-    }
-    Ok(())
+        parse_declaration_value_block(input, references)
+    })
 }
 
 /// Like parse_declaration_value,
 /// but accept `!` and `;` since they are only invalid at the top level
 fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<HashSet<Name>>)
-                                 -> Result<(), ()> {
-    while let Ok(token) = input.next() {
+                                 -> Result<(TokenSerializationType, TokenSerializationType), ()> {
+    let mut first_token_type = TokenSerializationType::nothing();
+    let mut last_token_type = TokenSerializationType::nothing();
+    while let Ok(token) = input.next_including_whitespace_and_comments() {
+        first_token_type.set_if_nothing(token.serialization_type());
+        // This may be OpenParen when it should be Other (for the closing paren)
+        // but that doesn’t make a difference since OpenParen is only special
+        // when it comes *after* an identifier (it would turn into a function)
+        // but a "last" token will only be concantenated *before* another unrelated token.
+        last_token_type = token.serialization_type();
         match token {
             Token::BadUrl |
             Token::BadString |
@@ -101,7 +140,7 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
                 return Err(())
             }
 
-            Token::Function(ref name) if name == "var" => {
+            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 try!(input.parse_nested_block(|input| {
                     parse_var_function(input, references)
                 }));
@@ -119,7 +158,7 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
             _ => {}
         }
     }
-    Ok(())
+    Ok((first_token_type, last_token_type))
 }
 
 // If the var function is valid, return Ok((custom_property_name, fallback))
@@ -131,37 +170,44 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Optio
         try!(parse_declaration_value(input, references));
     }
     if let Some(ref mut refs) = *references {
-        refs.insert(name);
+        refs.insert(Atom::from_slice(name));
     }
     Ok(())
 }
 
 /// Add one custom property declaration to a map,
 /// unless another with the same name was already there.
-pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedValue<'a>>>,
-                   inherited: &'a Option<Arc<HashMap<Name, String>>>,
+pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
+                   inherited: &'a Option<Arc<HashMap<Name, ComputedValue>>>,
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
-                   value: &'a DeclaredValue<Value>) {
+                   specified_value: &'a DeclaredValue<SpecifiedValue>) {
     let was_not_already_present = seen.insert(name);
     if was_not_already_present {
         let map = match *custom_properties {
             Some(ref mut map) => map,
             None => {
                 *custom_properties = Some(match *inherited {
-                    Some(ref inherited) => inherited.iter().map(|(key, value)| {
-                        (key, BorrowedValue { value: &value, references: None })
+                    Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
+                        (key, BorrowedSpecifiedValue {
+                            css: &inherited_value.css,
+                            first_token_type: inherited_value.first_token_type,
+                            last_token_type: inherited_value.last_token_type,
+                            references: None
+                        })
                     }).collect(),
                     None => HashMap::new(),
                 });
                 custom_properties.as_mut().unwrap()
             }
         };
-        match *value {
-            DeclaredValue::Value(ref value) => {
-                map.insert(name, BorrowedValue {
-                    value: &value.value,
-                    references: Some(&value.references),
+        match *specified_value {
+            DeclaredValue::Value(ref specified_value) => {
+                map.insert(name, BorrowedSpecifiedValue {
+                    css: &specified_value.css,
+                    first_token_type: specified_value.first_token_type,
+                    last_token_type: specified_value.last_token_type,
+                    references: Some(&specified_value.references),
                 });
             },
             DeclaredValue::WithVariables { .. } => unreachable!(),
@@ -173,10 +219,10 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedValu
     }
 }
 
-pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedValue>>,
-                      inherited: &Option<Arc<HashMap<Name, String>>>)
-                      -> Option<Arc<HashMap<Name, String>>> {
-    if let Some(mut map) = custom_properties {
+pub fn finish_cascade(specified_values_map: Option<HashMap<&Name, BorrowedSpecifiedValue>>,
+                      inherited: &Option<Arc<HashMap<Name, ComputedValue>>>)
+                      -> Option<Arc<HashMap<Name, ComputedValue>>> {
+    if let Some(mut map) = specified_values_map {
         remove_cycles(&mut map);
         Some(Arc::new(substitute_all(map, inherited)))
     } else {
@@ -186,7 +232,7 @@ pub fn finish_cascade(custom_properties: Option<HashMap<&Name, BorrowedValue>>,
 
 /// https://drafts.csswg.org/css-variables/#cycles
 /// The initial value of a custom property is represented by this property not being in the map.
-fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
+fn remove_cycles(map: &mut HashMap<&Name, BorrowedSpecifiedValue>) {
     let mut to_remove = HashSet::new();
     {
         let mut visited = HashSet::new();
@@ -194,7 +240,7 @@ fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
         for name in map.keys() {
             walk(map, name, &mut stack, &mut visited, &mut to_remove);
 
-            fn walk<'a>(map: &HashMap<&'a Name, BorrowedValue<'a>>,
+            fn walk<'a>(map: &HashMap<&'a Name, BorrowedSpecifiedValue<'a>>,
                         name: &'a Name,
                         stack: &mut Vec<&'a Name>,
                         visited: &mut HashSet<&'a Name>,
@@ -228,114 +274,150 @@ fn remove_cycles(map: &mut HashMap<&Name, BorrowedValue>) {
 }
 
 /// Replace `var()` functions for all custom properties.
-fn substitute_all(custom_properties: HashMap<&Name, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Name, String>>>)
-                  -> HashMap<Name, String> {
-    let mut substituted_map = HashMap::new();
+fn substitute_all(specified_values_map: HashMap<&Name, BorrowedSpecifiedValue>,
+                  inherited: &Option<Arc<HashMap<Name, ComputedValue>>>)
+                  -> HashMap<Name, ComputedValue> {
+    let mut computed_values_map = HashMap::new();
     let mut invalid = HashSet::new();
-    for (&name, value) in &custom_properties {
-        // If this value is invalid at computed-time it won’t be inserted in substituted_map.
+    for (&name, value) in &specified_values_map {
+        // If this value is invalid at computed-time it won’t be inserted in computed_values_map.
         // Nothing else to do.
         let _ = substitute_one(
-            name, value, &custom_properties, inherited, None, &mut substituted_map, &mut invalid);
+            name, value, &specified_values_map, inherited, None,
+            &mut computed_values_map, &mut invalid);
     }
-    substituted_map
+    computed_values_map
 }
 
 /// Replace `var()` functions for one custom property.
 /// Also recursively record results for other custom properties referenced by `var()` functions.
 /// Return `Err(())` for invalid at computed time.
+/// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
 fn substitute_one(name: &Name,
-                  value: &BorrowedValue,
-                  custom_properties: &HashMap<&Name, BorrowedValue>,
-                  inherited: &Option<Arc<HashMap<Name, String>>>,
-                  substituted: Option<&mut String>,
-                  substituted_map: &mut HashMap<Name, String>,
+                  specified_value: &BorrowedSpecifiedValue,
+                  specified_values_map: &HashMap<&Name, BorrowedSpecifiedValue>,
+                  inherited: &Option<Arc<HashMap<Name, ComputedValue>>>,
+                  partial_computed_value: Option<&mut ComputedValue>,
+                  computed_values_map: &mut HashMap<Name, ComputedValue>,
                   invalid: &mut HashSet<Name>)
-                  -> Result<(), ()> {
-    if let Some(value) = substituted_map.get(name) {
-        if let Some(substituted) = substituted {
-            substituted.push_str(value)
+                  -> Result<TokenSerializationType, ()> {
+    if let Some(computed_value) = computed_values_map.get(name) {
+        if let Some(partial_computed_value) = partial_computed_value {
+            partial_computed_value.push_variable(computed_value)
         }
-        return Ok(())
+        return Ok(computed_value.last_token_type)
     }
 
     if invalid.contains(name) {
         return Err(());
     }
-    let value = if value.references.map(|set| set.is_empty()) == Some(false) {
-        let mut substituted = String::new();
-        let mut input = Parser::new(&value.value);
-        let mut start = input.position();
-        if substitute_block(&mut input, &mut start, &mut substituted, &mut |name, substituted| {
-            if let Some(value) = custom_properties.get(name) {
-                substitute_one(name, value, custom_properties, inherited,
-                               Some(substituted), substituted_map, invalid)
-            } else {
-                Err(())
+    let computed_value = if specified_value.references.map(|set| set.is_empty()) == Some(false) {
+        let mut partial_computed_value = ComputedValue::empty();
+        let mut input = Parser::new(&specified_value.css);
+        let mut position = (input.position(), specified_value.first_token_type);
+        let result = substitute_block(
+            &mut input, &mut position, &mut partial_computed_value,
+            &mut |name, partial_computed_value| {
+                if let Some(other_specified_value) = specified_values_map.get(name) {
+                    substitute_one(name, other_specified_value, specified_values_map, inherited,
+                                   Some(partial_computed_value), computed_values_map, invalid)
+                } else {
+                    Err(())
+                }
             }
-        }).is_ok() {
-            substituted.push_str(input.slice_from(start));
-            substituted
+        );
+        if let Ok(last_token_type) = result {
+            partial_computed_value.push_from(position, &input, last_token_type);
+            partial_computed_value
         } else {
             // Invalid at computed-value time. Use the inherited value.
-            if let Some(value) = inherited.as_ref().and_then(|i| i.get(name)) {
-                value.clone()
+            if let Some(inherited_value) = inherited.as_ref().and_then(|i| i.get(name)) {
+                inherited_value.clone()
             } else {
                 invalid.insert(name.clone());
                 return Err(())
             }
         }
     } else {
-        value.value.to_owned()
+        // The specified value contains no var() reference
+        ComputedValue {
+            css: specified_value.css.to_owned(),
+            first_token_type: specified_value.first_token_type,
+            last_token_type: specified_value.last_token_type,
+        }
     };
-    if let Some(substituted) = substituted {
-        substituted.push_str(&value)
+    if let Some(partial_computed_value) = partial_computed_value {
+        partial_computed_value.push_variable(&computed_value)
     }
-    substituted_map.insert(name.clone(), value);
-    Ok(())
+    let last_token_type = computed_value.last_token_type;
+    computed_values_map.insert(name.clone(), computed_value);
+    Ok(last_token_type)
 }
 
 /// Replace `var()` functions in an arbitrary bit of input.
 ///
 /// The `substitute_one` callback is called for each `var()` function in `input`.
 /// If the variable has its initial value,
-/// the callback should return `Err(())` and leave `substituted` unchanged.
+/// the callback should return `Err(())` and leave `partial_computed_value` unchanged.
 /// Otherwise, it should push the value of the variable (with its own `var()` functions replaced)
-/// to `substituted` and return `Ok(())`.
+/// to `partial_computed_value` and return `Ok(last_token_type of what was pushed)`
 ///
 /// Return `Err(())` if `input` is invalid at computed-value time.
+/// or `Ok(last_token_type that was pushed to partial_computed_value)` otherwise.
 fn substitute_block<F>(input: &mut Parser,
-                       start: &mut SourcePosition,
-                       substituted: &mut String,
+                       position: &mut (SourcePosition, TokenSerializationType),
+                       partial_computed_value: &mut ComputedValue,
                        substitute_one: &mut F)
-                       -> Result<(), ()>
-                       where F: FnMut(&Name, &mut String) -> Result<(), ()> {
+                       -> Result<TokenSerializationType, ()>
+                       where F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()> {
+    let mut last_token_type = TokenSerializationType::nothing();
+    let mut set_position_at_next_iteration = false;
     loop {
-        let input_slice = input.slice_from(*start);
-        let token = if let Ok(token) = input.next() { token } else { break };
+        let before_this_token = input.position();
+        let next = input.next_including_whitespace_and_comments();
+        if set_position_at_next_iteration {
+            *position = (before_this_token, match next {
+                Ok(ref token) => token.serialization_type(),
+                Err(()) => TokenSerializationType::nothing(),
+            });
+            set_position_at_next_iteration = false;
+        }
+        let token = if let Ok(token) = next {
+            token
+        } else {
+            break
+        };
         match token {
-            Token::Function(ref name) if name == "var" => {
-                substituted.push_str(input_slice);
+            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
+                partial_computed_value.push(
+                    input.slice(position.0..before_this_token), position.1, last_token_type);
                 try!(input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident().unwrap();
-                    let name = parse_name(&name).unwrap();
+                    let name = Atom::from_slice(parse_name(&name).unwrap());
 
-                    if substitute_one(&name, substituted).is_ok() {
+                    if let Ok(last) = substitute_one(&name, partial_computed_value) {
+                        last_token_type = last;
                         // Skip over the fallback, as `parse_nested_block` would return `Err`
                         // if we don’t consume all of `input`.
                         // FIXME: Add a specialized method to cssparser to do this with less work.
                         while let Ok(_) = input.next() {}
                     } else {
                         try!(input.expect_comma());
-                        let mut start = input.position();
-                        try!(substitute_block(input, &mut start, substituted, substitute_one));
-                        substituted.push_str(input.slice_from(start));
+                        let position = input.position();
+                        let first_token_type = input.next_including_whitespace_and_comments()
+                            // parse_var_function() ensures that .unwrap() will not fail.
+                            .unwrap()
+                            .serialization_type();
+                        input.reset(position);
+                        let mut position = (position, first_token_type);
+                        last_token_type = try!(substitute_block(
+                            input, &mut position, partial_computed_value, substitute_one));
+                        partial_computed_value.push_from(position, input, last_token_type);
                     }
                     Ok(())
                 }));
-                *start = input.position();
+                set_position_at_next_iteration = true
             }
 
             Token::Function(_) |
@@ -343,11 +425,13 @@ fn substitute_block<F>(input: &mut Parser,
             Token::CurlyBracketBlock |
             Token::SquareBracketBlock => {
                 try!(input.parse_nested_block(|input| {
-                    substitute_block(input, start, substituted, substitute_one)
+                    substitute_block(input, position, partial_computed_value, substitute_one)
                 }));
+                // It’s the same type for CloseCurlyBracket and CloseSquareBracket.
+                last_token_type = Token::CloseParenthesis.serialization_type();
             }
 
-            _ => {}
+            _ => last_token_type = token.serialization_type()
         }
     }
     // FIXME: deal with things being implicitly closed at the end of the input. E.g.
@@ -356,31 +440,27 @@ fn substitute_block<F>(input: &mut Parser,
     // <p style="background: var(--color) var(--image) top left; --image: url('a.png"></p>
     // </div>
     // ```
-    Ok(())
+    Ok(last_token_type)
 }
 
 /// Replace `var()` functions for a non-custom property.
 /// Return `Err(())` for invalid at computed time.
-pub fn substitute(input: &str, custom_properties: &Option<Arc<HashMap<Name, String>>>)
+pub fn substitute(input: &str, first_token_type: TokenSerializationType,
+                  computed_values_map: &Option<Arc<HashMap<Name, ComputedValue>>>)
                   -> Result<String, ()> {
-    let empty_map;
-    let custom_properties = if let &Some(ref arc) = custom_properties {
-        &**arc
-    } else {
-        empty_map = HashMap::new();
-        &empty_map
-    };
-    let mut substituted = String::new();
+    let mut substituted = ComputedValue::empty();
     let mut input = Parser::new(input);
-    let mut start = input.position();
-    try!(substitute_block(&mut input, &mut start, &mut substituted, &mut |name, substituted| {
-        if let Some(value) = custom_properties.get(name) {
-            substituted.push_str(value);
-            Ok(())
-        } else {
-            Err(())
+    let mut position = (input.position(), first_token_type);
+    let last_token_type = try!(substitute_block(
+        &mut input, &mut position, &mut substituted, &mut |name, substituted| {
+            if let Some(value) = computed_values_map.as_ref().and_then(|map| map.get(name)) {
+                substituted.push_variable(value);
+                Ok(value.last_token_type)
+            } else {
+                Err(())
+            }
         }
-    }));
-    substituted.push_str(input.slice_from(start));
-    Ok(substituted)
+    ));
+    substituted.push_from(position, &input, last_token_type);
+    Ok(substituted.css)
 }

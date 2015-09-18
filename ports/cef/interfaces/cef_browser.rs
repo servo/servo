@@ -943,6 +943,157 @@ impl CefWrap<*mut cef_navigation_entry_visitor_t> for Option<CefNavigationEntryV
 
 
 //
+// Callback structure for cef_browser_host_t::PrintToPDF. The functions of this
+// structure will be called on the browser process UI thread.
+//
+#[repr(C)]
+pub struct _cef_pdf_print_callback_t {
+  //
+  // Base structure.
+  //
+  pub base: types::cef_base_t,
+
+  //
+  // Method that will be executed when the PDF printing has completed. |path| is
+  // the output path. |ok| will be true (1) if the printing completed
+  // successfully or false (0) otherwise.
+  //
+  pub on_pdf_print_finished: Option<extern "C" fn(
+      this: *mut cef_pdf_print_callback_t, path: *const types::cef_string_t,
+      ok: libc::c_int) -> ()>,
+
+  //
+  // The reference count. This will only be present for Rust instances!
+  //
+  pub ref_count: u32,
+
+  //
+  // Extra data. This will only be present for Rust instances!
+  //
+  pub extra: u8,
+}
+
+pub type cef_pdf_print_callback_t = _cef_pdf_print_callback_t;
+
+
+//
+// Callback structure for cef_browser_host_t::PrintToPDF. The functions of this
+// structure will be called on the browser process UI thread.
+//
+pub struct CefPdfPrintCallback {
+  c_object: *mut cef_pdf_print_callback_t,
+}
+
+impl Clone for CefPdfPrintCallback {
+  fn clone(&self) -> CefPdfPrintCallback{
+    unsafe {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
+        ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
+      }
+      CefPdfPrintCallback {
+        c_object: self.c_object,
+      }
+    }
+  }
+}
+
+impl Drop for CefPdfPrintCallback {
+  fn drop(&mut self) {
+    unsafe {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
+        ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
+      }
+    }
+  }
+}
+
+impl CefPdfPrintCallback {
+  pub unsafe fn from_c_object(c_object: *mut cef_pdf_print_callback_t) -> CefPdfPrintCallback {
+    CefPdfPrintCallback {
+      c_object: c_object,
+    }
+  }
+
+  pub unsafe fn from_c_object_addref(c_object: *mut cef_pdf_print_callback_t) -> CefPdfPrintCallback {
+    if !c_object.is_null() &&
+        c_object as usize != mem::POST_DROP_USIZE {
+      ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
+    }
+    CefPdfPrintCallback {
+      c_object: c_object,
+    }
+  }
+
+  pub fn c_object(&self) -> *mut cef_pdf_print_callback_t {
+    self.c_object
+  }
+
+  pub fn c_object_addrefed(&self) -> *mut cef_pdf_print_callback_t {
+    unsafe {
+      if !self.c_object.is_null() &&
+          self.c_object as usize != mem::POST_DROP_USIZE {
+        eutil::add_ref(self.c_object as *mut types::cef_base_t);
+      }
+      self.c_object
+    }
+  }
+
+  pub fn is_null_cef_object(&self) -> bool {
+    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+  }
+  pub fn is_not_null_cef_object(&self) -> bool {
+    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+  }
+
+  //
+  // Method that will be executed when the PDF printing has completed. |path| is
+  // the output path. |ok| will be true (1) if the printing completed
+  // successfully or false (0) otherwise.
+  //
+  pub fn on_pdf_print_finished(&self, path: &[u16], ok: libc::c_int) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).on_pdf_print_finished.unwrap())(
+          self.c_object,
+          CefWrap::to_c(path),
+          CefWrap::to_c(ok)))
+    }
+  }
+} 
+
+impl CefWrap<*mut cef_pdf_print_callback_t> for CefPdfPrintCallback {
+  fn to_c(rust_object: CefPdfPrintCallback) -> *mut cef_pdf_print_callback_t {
+    rust_object.c_object_addrefed()
+  }
+  unsafe fn to_rust(c_object: *mut cef_pdf_print_callback_t) -> CefPdfPrintCallback {
+    CefPdfPrintCallback::from_c_object_addref(c_object)
+  }
+}
+impl CefWrap<*mut cef_pdf_print_callback_t> for Option<CefPdfPrintCallback> {
+  fn to_c(rust_object: Option<CefPdfPrintCallback>) -> *mut cef_pdf_print_callback_t {
+    match rust_object {
+      None => ptr::null_mut(),
+      Some(rust_object) => rust_object.c_object_addrefed(),
+    }
+  }
+  unsafe fn to_rust(c_object: *mut cef_pdf_print_callback_t) -> Option<CefPdfPrintCallback> {
+    if c_object.is_null() &&
+       c_object as usize != mem::POST_DROP_USIZE {
+      None
+    } else {
+      Some(CefPdfPrintCallback::from_c_object_addref(c_object))
+    }
+  }
+}
+
+
+//
 // Structure used to represent the browser process aspects of a browser window.
 // The functions of this structure can only be called in the browser process.
 // They may be called on any thread in that process unless otherwise indicated
@@ -1061,6 +1212,17 @@ pub struct _cef_browser_host_t {
   // Print the current browser contents.
   //
   pub print: Option<extern "C" fn(this: *mut cef_browser_host_t) -> ()>,
+
+  //
+  // Print the current browser contents to the PDF file specified by |path| and
+  // execute |callback| on completion. The caller is responsible for deleting
+  // |path| when done. For PDF printing to work on Linux you must implement the
+  // cef_print_handler_t::GetPdfPaperSize function.
+  //
+  pub print_to_pdf: Option<extern "C" fn(this: *mut cef_browser_host_t,
+      path: *const types::cef_string_t,
+      settings: *const interfaces::cef_pdf_print_settings_t,
+      callback: *mut interfaces::cef_pdf_print_callback_t) -> ()>,
 
   //
   // Search for |searchText|. |identifier| can be used to have multiple searches
@@ -1230,6 +1392,26 @@ pub struct _cef_browser_host_t {
   //
   pub notify_move_or_resize_started: Option<extern "C" fn(
       this: *mut cef_browser_host_t) -> ()>,
+
+  //
+  // Returns the maximum rate in frames per second (fps) that
+  // cef_render_handler_t:: OnPaint will be called for a windowless browser. The
+  // actual fps may be lower if the browser cannot generate frames at the
+  // requested rate. The minimum value is 1 and the maximum value is 60 (default
+  // 30). This function can only be called on the UI thread.
+  //
+  pub get_windowless_frame_rate: Option<extern "C" fn(
+      this: *mut cef_browser_host_t) -> libc::c_int>,
+
+  //
+  // Set the maximum rate in frames per second (fps) that cef_render_handler_t::
+  // OnPaint will be called for a windowless browser. The actual fps may be
+  // lower if the browser cannot generate frames at the requested rate. The
+  // minimum value is 1 and the maximum value is 60 (default 30). Can also be
+  // set at browser creation via cef_browser_tSettings.windowless_frame_rate.
+  //
+  pub set_windowless_frame_rate: Option<extern "C" fn(
+      this: *mut cef_browser_host_t, frame_rate: libc::c_int) -> ()>,
 
   //
   // Get the NSTextInputContext implementation for enabling IME on Mac when
@@ -1658,6 +1840,29 @@ impl CefBrowserHost {
   }
 
   //
+  // Print the current browser contents to the PDF file specified by |path| and
+  // execute |callback| on completion. The caller is responsible for deleting
+  // |path| when done. For PDF printing to work on Linux you must implement the
+  // cef_print_handler_t::GetPdfPaperSize function.
+  //
+  pub fn print_to_pdf(&self, path: &[u16],
+      settings: &interfaces::CefPdfPrintSettings,
+      callback: interfaces::CefPdfPrintCallback) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).print_to_pdf.unwrap())(
+          self.c_object,
+          CefWrap::to_c(path),
+          CefWrap::to_c(settings),
+          CefWrap::to_c(callback)))
+    }
+  }
+
+  //
   // Search for |searchText|. |identifier| can be used to have multiple searches
   // running simultaniously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
@@ -2038,6 +2243,45 @@ impl CefBrowserHost {
       CefWrap::to_rust(
         ((*self.c_object).notify_move_or_resize_started.unwrap())(
           self.c_object))
+    }
+  }
+
+  //
+  // Returns the maximum rate in frames per second (fps) that
+  // cef_render_handler_t:: OnPaint will be called for a windowless browser. The
+  // actual fps may be lower if the browser cannot generate frames at the
+  // requested rate. The minimum value is 1 and the maximum value is 60 (default
+  // 30). This function can only be called on the UI thread.
+  //
+  pub fn get_windowless_frame_rate(&self) -> libc::c_int {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).get_windowless_frame_rate.unwrap())(
+          self.c_object))
+    }
+  }
+
+  //
+  // Set the maximum rate in frames per second (fps) that cef_render_handler_t::
+  // OnPaint will be called for a windowless browser. The actual fps may be
+  // lower if the browser cannot generate frames at the requested rate. The
+  // minimum value is 1 and the maximum value is 60 (default 30). Can also be
+  // set at browser creation via cef_browser_tSettings.windowless_frame_rate.
+  //
+  pub fn set_windowless_frame_rate(&self, frame_rate: libc::c_int) -> () {
+    if self.c_object.is_null() ||
+       self.c_object as usize == mem::POST_DROP_USIZE {
+      panic!("called a CEF method on a null object")
+    }
+    unsafe {
+      CefWrap::to_rust(
+        ((*self.c_object).set_windowless_frame_rate.unwrap())(
+          self.c_object,
+          CefWrap::to_c(frame_rate)))
     }
   }
 

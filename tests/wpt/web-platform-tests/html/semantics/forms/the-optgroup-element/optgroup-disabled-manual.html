@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLOptGroupElement Test: disabled</title>
+<meta name="flags" content="interact">
+<link rel="author" title="Intel" href="http://www.intel.com/">
+
+<form>
+  <select>
+    <optgroup label="8.01" disabled>
+      <option value="8.01.1">Lecture 01: Powers of Ten</option>
+      <option value="8.01.2">Lecture 02: 1D Kinematics</option>
+      <option value="8.01.3">Lecture 03: Vectors</option>
+    </optgroup>
+    <optgroup label="8.02">
+      <option value="8.02.1">Lecture 01: What holds our world together?</option>
+      <option value="8.02.2">Lecture 02: Electric Field</option>
+      <option value="8.02.3">Lecture 03: Electric Flux</option>
+    </optgroup>
+  </select>
+</form>
+
+<h2>Description</h2>
+<p>
+  This test validates that an optgroup element is disabled if its disabled attribute is present.
+</p>
+
+<h2>Test steps:</h2>
+<ol>
+  <li>
+    Click the select flag to select section '8.01'
+  </li>
+</ol>
+
+<h2>Result:</h2>
+<p>Click the select flag and try to select section 8.01, test passes if the section 8.01 is disable to be selected</p>

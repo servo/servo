@@ -8,7 +8,7 @@ use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{MutableFlowUtils, OpaqueFlow};
+use flow::{MutableFlowUtils, EarlyAbsolutePositionInfo, OpaqueFlow};
 use flow::{self, BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
@@ -1616,6 +1616,31 @@ impl Flow for InlineFlow {
                                                     Au(0),
                                                     -self.base.position.size.block));
 
+        let containing_block_size = LogicalSize::new(writing_mode,
+                                                    Au(0),
+                                                    self.base.position.size.block);
+        self.mutate_fragments(&mut |f: &mut Fragment| {
+            match f.specific {
+                SpecificFragmentInfo::InlineBlock(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                        relative_containing_block_size: containing_block_size,
+                        relative_containing_block_mode: writing_mode,
+                    };
+                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                        relative_containing_block_size: containing_block_size,
+                        relative_containing_block_mode: writing_mode,
+                    };
+                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
+                }
+                _ => (),
+            }
+        });
+
         self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
@@ -1817,7 +1842,11 @@ impl Flow for InlineFlow {
 
 impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?} - {:x} - {:?}", self.class(), self.base.debug_id(), self.fragments)
+        write!(f, "{:?} - {:x} - Ovr {:?} - {:?}",
+            self.class(),
+            self.base.debug_id(),
+            flow::base(self).overflow,
+            self.fragments)
     }
 }
 

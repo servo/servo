@@ -5,6 +5,7 @@
 #![feature(arc_unique)]
 #![feature(box_syntax)]
 #![feature(box_patterns)]
+#![feature(concat_idents)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]

@@ -40,6 +40,7 @@ use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, Opaqu
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, ForceNonfloatedFlag, FlowClass, Flow};
+use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -47,10 +48,11 @@ use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{IntrinsicISizes, MarginCollapseInfo};
 use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
+use wrapper::PseudoElementType;
 
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
-use msg::compositor_msg::LayerId;
+use msg::compositor_msg::{LayerId, LayerType};
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::{max, min};
 use std::fmt;
@@ -493,6 +495,20 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
                 return;
             }
         }
+
+        flow.mutate_fragments(&mut |f: &mut Fragment| {
+            match f.specific {
+                SpecificFragmentInfo::InlineBlock(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
+                }
+                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
+                    let block = flow_ref::deref_mut(&mut info.flow_ref);
+                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
+                }
+                _ => (),
+            }
+        });
 
         flow.early_store_overflow(self.layout_context);
     }
@@ -1962,7 +1978,7 @@ impl Flow for BlockFlow {
         let stacking_relative_position_of_display_port_for_children =
             if is_stacking_context || self.is_root() {
                 let visible_rect =
-                    match layout_context.shared.visible_rects.get(&self.layer_id(0)) {
+                    match layout_context.shared.visible_rects.get(&self.layer_id()) {
                         Some(visible_rect) => *visible_rect,
                         None => Rect::new(Point2D::zero(), layout_context.shared.screen_size),
                     };
@@ -2060,11 +2076,17 @@ impl Flow for BlockFlow {
         (self.fragment.border_box - self.fragment.style().logical_border_width()).size
     }
 
-    fn layer_id(&self, fragment_index: u32) -> LayerId {
-        // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
-        // elements. But until we have incremental reflow we can't do better--we recreate the flow
-        // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id() as usize, fragment_index, 0)
+    fn layer_id(&self) -> LayerId {
+        let layer_type = match self.fragment.pseudo {
+            PseudoElementType::Normal => LayerType::FragmentBody,
+            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
+            PseudoElementType::After(_) => LayerType::AfterPseudoContent
+        };
+        LayerId::new_of_type(layer_type, self.fragment.node.id() as usize)
+    }
+
+    fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        LayerId::new_of_type(LayerType::OverflowScroll, self.fragment.node.id() as usize)
     }
 
     fn is_absolute_containing_block(&self) -> bool {

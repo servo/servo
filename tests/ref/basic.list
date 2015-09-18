@@ -68,6 +68,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 != border_radius_dashed_a.html border_radius_dashed_ref.html
 == border_radius_elliptical_a.html border_radius_elliptical_ref.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
+== border_radius_shorthand_a.html border_radius_shorthand_ref.html
 == border_rounding_1px_invisible_issue_7184_a.html border_rounding_1px_invisible_issue_7184_ref.html
 == border_spacing_a.html border_spacing_ref.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
@@ -121,6 +122,7 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == focus_selector.html focus_selector_ref.html
 == font_advance.html font_advance_ref.html
 == font_color_attribute_a.html font_color_attribute_ref.html
+== font_face_attribute.html font_face_attribute_ref.html
 == font_size.html font_size_ref.html
 == font_style.html font_style_ref.html
 == height_compute_reset.html height_compute.html
@@ -160,6 +162,7 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == img_width_style_intrinsic_width_a.html img_width_style_intrinsic_width_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == incremental_inline_layout_a.html incremental_inline_layout_ref.html
+== incremental_letter_spacing_a.html incremental_letter_spacing_ref.html
 == inline_absolute_hypothetical_clip_a.html inline_absolute_hypothetical_clip_ref.html
 == inline_absolute_out_of_flow_a.html inline_absolute_out_of_flow_ref.html
 != inline_background_a.html inline_background_ref.html
@@ -272,6 +275,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Should be ==?
 != overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
 == overflow_position_abs_simple_a.html overflow_position_abs_simple_b.html
+== overflow_position_rel_inline_block.html overflow_position_rel_inline_block_ref.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
 == overflow_wrap_a.html overflow_wrap_ref.html
@@ -281,6 +285,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == percentage_height_float_a.html percentage_height_float_ref.html
 == percentage_height_root.html percentage_height_root_ref.html
 == percentage_width_inline_block_a.html percentage_width_inline_block_ref.html
+device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
 == position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 == position_abs_height_width_a.html position_abs_height_width_b.html
@@ -309,6 +314,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == position_relative_vertical_percentage_overflow_a.html position_relative_vertical_percentage_overflow_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pre_with_tab.html pre_with_tab_ref.html
+== pseudo_content_with_layers.html pseudo_content_with_layers_ref.html
 == pseudo_element_a.html pseudo_element_b.html
 == pseudo_inherit.html pseudo_inherit_ref.html
 == quotes_none_a.html quotes_none_ref.html
@@ -370,6 +376,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == transform_3d.html transform_3d_ref.html
 == transform_optimization.html transform_optimization_ref.html
 == transform_simple_a.html transform_simple_ref.html
+== transform_skew_a.html transform_skew_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html

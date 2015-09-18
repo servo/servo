@@ -1217,16 +1217,21 @@ impl Window {
         sender.send(marker).unwrap();
     }
 
-    pub fn set_devtools_timeline_marker(&self,
-                                    marker: TimelineMarkerType,
-                                    reply: IpcSender<TimelineMarker>) {
+    pub fn set_devtools_timeline_markers(&self,
+                                         markers: Vec<TimelineMarkerType>,
+                                         reply: IpcSender<TimelineMarker>) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers.borrow_mut().insert(marker);
+        self.devtools_markers.borrow_mut().extend(markers.into_iter());
     }
 
-    pub fn drop_devtools_timeline_markers(&self) {
-        self.devtools_markers.borrow_mut().clear();
-        *self.devtools_marker_sender.borrow_mut() = None;
+    pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
+        let mut devtools_markers = self.devtools_markers.borrow_mut();
+        for marker in markers {
+            devtools_markers.remove(&marker);
+        }
+        if devtools_markers.is_empty() {
+            *self.devtools_marker_sender.borrow_mut() = None;
+        }
     }
 
     pub fn set_webdriver_script_chan(&self, chan: Option<IpcSender<WebDriverJSResult>>) {

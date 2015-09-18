@@ -45,7 +45,6 @@ use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
 use std::cell::{RefCell, Cell};
 use std::mem;
 use std::sync::{Arc, Mutex};
-use string_cache::Atom;
 use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 
@@ -233,7 +232,7 @@ impl HTMLScriptElement {
 
         // Step 12.
         let for_attribute = element.get_attribute(&ns!(""), &atom!("for"));
-        let event_attribute = element.get_attribute(&ns!(""), &Atom::from_slice("event"));
+        let event_attribute = element.get_attribute(&ns!(""), &atom!("event"));
         match (for_attribute.r(), event_attribute.r()) {
             (Some(for_attribute), Some(event_attribute)) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
@@ -252,7 +251,7 @@ impl HTMLScriptElement {
         }
 
         // Step 13.
-        if let Some(ref charset) = element.get_attribute(&ns!(""), &Atom::from_slice("charset")) {
+        if let Some(ref charset) = element.get_attribute(&ns!(""), &atom!("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.r().Value()) {
                 *self.block_character_encoding.borrow_mut() = encodingRef;
             }

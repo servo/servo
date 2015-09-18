@@ -56,6 +56,9 @@ pub enum ViewportPx {}
 #[derive(RustcEncodable, Debug, Copy, Clone)]
 pub enum PagePx {}
 
+/// The number of app units in a pixel.
+pub const AU_PER_PX: i32 = 60;
+
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
@@ -202,57 +205,62 @@ impl Au {
 
     #[inline]
     pub fn from_px(px: i32) -> Au {
-        Au((px * 60) as i32)
+        Au((px * AU_PER_PX) as i32)
     }
 
     #[inline]
     pub fn from_page_px(px: Length<PagePx, f32>) -> Au {
-        Au((px.get() * 60f32) as i32)
+        Au((px.get() * (AU_PER_PX as f32)) as i32)
     }
 
     /// Rounds this app unit down to the pixel towards zero and returns it.
     #[inline]
     pub fn to_px(self) -> i32 {
-        self.0 / 60
+        self.0 / AU_PER_PX
     }
 
     /// Rounds this app unit down to the previous (left or top) pixel and returns it.
     #[inline]
     pub fn to_prev_px(self) -> i32 {
-        ((self.0 as f64) / 60f64).floor() as i32
+        ((self.0 as f64) / (AU_PER_PX as f64)).floor() as i32
     }
 
     /// Rounds this app unit up to the next (right or bottom) pixel and returns it.
     #[inline]
     pub fn to_next_px(self) -> i32 {
-        ((self.0 as f64) / 60f64).ceil() as i32
+        ((self.0 as f64) / (AU_PER_PX as f64)).ceil() as i32
     }
 
     #[inline]
     pub fn to_nearest_px(self) -> i32 {
-        ((self.0 as f64) / 60f64).round() as i32
+        ((self.0 as f64) / (AU_PER_PX as f64)).round() as i32
+    }
+
+    #[inline]
+    pub fn to_nearest_pixel(self, pixels_per_px: f32) -> f32 {
+        ((self.0 as f32) / (AU_PER_PX as f32) * pixels_per_px).round() / pixels_per_px
     }
 
     #[inline]
     pub fn to_f32_px(self) -> f32 {
-        (self.0 as f32) / 60f32
+        (self.0 as f32) / (AU_PER_PX as f32)
     }
 
     #[inline]
     pub fn to_f64_px(self) -> f64 {
-        (self.0 as f64) / 60f64
+        (self.0 as f64) / (AU_PER_PX as f64)
     }
 
     #[inline]
     pub fn to_snapped(self) -> Au {
-        let res = self.0 % 60i32;
-        return if res >= 30i32 { return Au(self.0 - res + 60i32) }
+        let res = self.0 % AU_PER_PX;
+        return if res >= 30i32 { return Au(self.0 - res + AU_PER_PX) }
                        else { return Au(self.0 - res) };
     }
 
     #[inline]
     pub fn from_f32_px(px: f32) -> Au {
-        Au((px * 60f32) as i32)
+        Au((px * (AU_PER_PX as f32)) as i32)
     }
 
     #[inline]
@@ -262,7 +270,7 @@ impl Au {
 
     #[inline]
     pub fn from_f64_px(px: f64) -> Au {
-        Au((px * 60.) as i32)
+        Au((px * (AU_PER_PX as f64)) as i32)
     }
 }
 

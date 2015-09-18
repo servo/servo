@@ -38,5 +38,5 @@ features = [ "serde-serialization" ]
 log = "0.3"
 num = "0.1.24"
 gleam = "0.1"
-euclid = "0.1"
+euclid = "0.2"
 

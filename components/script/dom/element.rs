@@ -62,7 +62,7 @@ use devtools_traits::AttrInfo;
 use smallvec::VecLike;
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing};
+use style::properties::longhands::{self, background_image, border_spacing, font_family};
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
@@ -300,6 +300,22 @@ impl RawLayoutElementHelpers for Element {
                     parsed: color,
                     authored: None,
                 }))));
+        }
+
+        let font_family = if self.is_htmlfontelement() {
+            let this: &HTMLFontElement = mem::transmute(self);
+            this.get_face()
+        } else {
+            None
+        };
+
+        if let Some(font_family) = font_family {
+            hints.push(from_declaration(
+                PropertyDeclaration::FontFamily(
+                    DeclaredValue::Value(
+                        font_family::computed_value::T(vec![
+                            font_family::computed_value::FontFamily::FamilyName(
+                                font_family)])))));
         }
 
         let cellspacing = if self.is_htmltableelement() {
@@ -634,7 +650,7 @@ impl Element {
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let index = declarations.normal
                                     .iter()
-                                    .position(|decl| decl.name() == property);
+                                    .position(|decl| decl.matches(property));
             if let Some(index) = index {
                 Arc::make_mut(&mut declarations.normal).remove(index);
                 return;
@@ -642,7 +658,7 @@ impl Element {
 
             let index = declarations.important
                                     .iter()
-                                    .position(|decl| decl.name() == property);
+                                    .position(|decl| decl.matches(property));
             if let Some(index) = index {
                 Arc::make_mut(&mut declarations.important).remove(index);
                 return;
@@ -699,7 +715,8 @@ impl Element {
             let to = Arc::make_mut(to);
             let mut new_from = Vec::new();
             for declaration in from.drain(..) {
-                if properties.contains(&declaration.name()) {
+                let name = declaration.name();
+                if properties.iter().any(|p| name == **p) {
                     to.push(declaration)
                 } else {
                     new_from.push(declaration)

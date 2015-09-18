@@ -34,6 +34,7 @@ use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
+use gfx::text::glyph::CharIndex;
 use gfx_traits::color;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use msg::compositor_msg::{ScrollPolicy, LayerId};
@@ -60,14 +61,13 @@ use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercenta
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{Au, ZERO_POINT};
+use util::geometry::{AU_PER_PX, Au, ZERO_POINT};
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
+use util::range::Range;
 
-/// The fake fragment ID we use to indicate the inner display list for `overflow: scroll`.
-///
-/// FIXME(pcwalton): This is pretty ugly. Consider modifying `LayerId` somehow.
-const FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL: u32 = 1000000;
+/// The logical width of an insertion point: at the moment, a one-pixel-wide line.
+const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
 /// Whether a stacking context needs a layer or not.
 pub enum StackingContextLayerNecessity {
@@ -228,6 +228,14 @@ pub trait FragmentDisplayListBuilding {
                                       parent_clip: &ClippingRegion,
                                       stacking_relative_border_box: &Rect<Au>)
                                       -> ClippingRegion;
+
+    /// Builds the display items necessary to paint the selection and/or caret for this fragment,
+    /// if any.
+    fn build_display_items_for_selection_if_necessary(&self,
+                                                      display_list: &mut DisplayList,
+                                                      stacking_relative_border_box: &Rect<Au>,
+                                                      level: StackingLevel,
+                                                      clip: &ClippingRegion);
 
     /// Creates the text display item for one text fragment. This can be called multiple times for
     /// one fragment if there are text shadows.
@@ -882,6 +890,50 @@ impl FragmentDisplayListBuilding for Fragment {
         (*parent_clip).clone().intersect_rect(&Rect::new(clip_origin, clip_size))
     }
 
+    fn build_display_items_for_selection_if_necessary(&self,
+                                                      display_list: &mut DisplayList,
+                                                      stacking_relative_border_box: &Rect<Au>,
+                                                      level: StackingLevel,
+                                                      clip: &ClippingRegion) {
+        let scanned_text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref scanned_text_fragment_info) => {
+                scanned_text_fragment_info
+            }
+            _ => return,
+        };
+        let insertion_point_index = match scanned_text_fragment_info.insertion_point {
+            Some(insertion_point_index) => insertion_point_index,
+            None => return,
+        };
+        let range = Range::new(CharIndex(0), insertion_point_index);
+        let advance = scanned_text_fragment_info.run.advance_for_range(&range);
+
+        let insertion_point_bounds;
+        let cursor;
+        if !self.style.writing_mode.is_vertical() {
+            insertion_point_bounds =
+                Rect::new(Point2D::new(stacking_relative_border_box.origin.x + advance,
+                                       stacking_relative_border_box.origin.y),
+                          Size2D::new(INSERTION_POINT_LOGICAL_WIDTH,
+                                      stacking_relative_border_box.size.height));
+            cursor = Cursor::TextCursor;
+        } else {
+            insertion_point_bounds =
+                Rect::new(Point2D::new(stacking_relative_border_box.origin.x,
+                                       stacking_relative_border_box.origin.y + advance),
+                          Size2D::new(stacking_relative_border_box.size.width,
+                                      INSERTION_POINT_LOGICAL_WIDTH));
+            cursor = Cursor::VerticalTextCursor;
+        };
+
+        display_list.push(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+            base: BaseDisplayItem::new(insertion_point_bounds,
+                                       DisplayItemMetadata::new(self.node, &*self.style, cursor),
+                                       clip.clone()),
+            color: self.style().get_color().color.to_gfx_color(),
+        }), level);
+    }
+
     fn build_display_list(&mut self,
                           display_list: &mut DisplayList,
                           layout_context: &LayoutContext,
@@ -967,6 +1019,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &clip);
                 }
             }
+
             if !self.is_scanned_text_fragment() {
                 self.build_display_list_for_box_shadow_if_applicable(&*self.style,
                                                                      display_list,
@@ -991,6 +1044,12 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                   &stacking_relative_border_box,
                                                                   &clip);
             }
+
+            // Paint the selection point if necessary.
+            self.build_display_items_for_selection_if_necessary(display_list,
+                                                                &stacking_relative_border_box,
+                                                                level,
+                                                                &clip);
         }
 
         // Create special per-fragment-type display items.
@@ -1217,8 +1276,8 @@ impl FragmentDisplayListBuilding for Fragment {
                     transform::ComputedOperation::Matrix(m) => {
                         m.to_gfx_matrix()
                     }
-                    transform::ComputedOperation::Skew(sx, sy) => {
-                        Matrix4::create_skew(sx, sy)
+                    transform::ComputedOperation::Skew(theta_x, theta_y) => {
+                        Matrix4::create_skew(theta_x.radians(), theta_y.radians())
                     }
                 };
 
@@ -1577,7 +1636,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 display_list,
                 layout_context,
-                StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
+                StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
                 StackingContextCreationMode::Normal);
             DisplayListBuildingResult::StackingContext(stacking_context)
         } else if self.fragment.establishes_stacking_context() {
@@ -1586,7 +1645,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
@@ -1663,7 +1722,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                             &self.base,
                             display_list,
                             layout_context,
-                            StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                            StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                             StackingContextCreationMode::Normal));
             }
             return
@@ -1683,9 +1742,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         let layer_id = if outer_display_list_for_overflow_scroll.is_some() {
-            self.layer_id(FAKE_FRAGMENT_ID_FOR_OVERFLOW_SCROLL)
+            self.layer_id_for_overflow_scroll()
         } else {
-            self.layer_id(0)
+            self.layer_id()
         };
         let stacking_context = self.fragment.create_stacking_context(
             &self.base,
@@ -1702,7 +1761,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     outer_display_list_for_overflow_scroll,
                     layout_context,
-                    StackingContextLayerNecessity::Always(self.layer_id(0), scroll_policy),
+                    StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
                     StackingContextCreationMode::OuterScrollWrapper)
             }
             None => stacking_context,
@@ -1728,7 +1787,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
@@ -1828,7 +1887,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id(0)),
+                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
@@ -2044,3 +2103,4 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
+
