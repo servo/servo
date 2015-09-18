@@ -55,6 +55,10 @@ use util::opts;
 
 const BUFFER_MAP_SIZE: usize = 10000000;
 
+// Default viewport constraints
+const MAX_ZOOM: f32 = 8.0;
+const MIN_ZOOM: f32 = 0.1;
+
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
 #[derive(Copy, Clone, PartialEq)]
@@ -1170,7 +1174,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
-        self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification).max(1.0));
+        self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
+                                          .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
         self.send_window_size();
     }
@@ -1183,15 +1188,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.zoom_time = precise_time_s();
         let old_viewport_zoom = self.viewport_zoom;
 
-        let mut viewport_zoom = self.viewport_zoom.get() * magnification;
-        if let Some(min_zoom) = self.min_viewport_zoom.as_ref() {
-            viewport_zoom = min_zoom.get().max(viewport_zoom)
-        }
-        let viewport_zoom = self.max_viewport_zoom
-                                .as_ref()
-                                .map_or(1., |z| z.get())
-                                .min(viewport_zoom);
-        let viewport_zoom = ScaleFactor::new(viewport_zoom);
+        let viewport_zoom = ScaleFactor::new((self.viewport_zoom.get() * magnification)
+            .min(self.max_viewport_zoom.as_ref().map_or(MAX_ZOOM, ScaleFactor::get))
+            .max(self.min_viewport_zoom.as_ref().map_or(MIN_ZOOM, ScaleFactor::get)));
         self.viewport_zoom = viewport_zoom;
 
         self.update_zoom_transform();
