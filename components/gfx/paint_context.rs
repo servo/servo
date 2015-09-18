@@ -93,13 +93,17 @@ struct CornerOrigin {
 }
 
 impl<'a> PaintContext<'a> {
+    pub fn screen_pixels_per_px(&self) -> f32 {
+        self.screen_rect.size.width as f32 / self.page_rect.size.width
+    }
+
     pub fn draw_target(&self) -> &DrawTarget {
         &self.draw_target
     }
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(),
+        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(self.screen_pixels_per_px()),
                                    PatternRef::Color(&ColorPattern::new(color)),
                                    None);
     }
@@ -110,8 +114,9 @@ impl<'a> PaintContext<'a> {
                        radius: &BorderRadii<Au>,
                        color: &SideOffsets2D<Color>,
                        style: &SideOffsets2D<border_style::T>) {
-        let border = border.to_float_px();
-        let radius = radius.to_radii_px();
+        let scale = self.screen_pixels_per_px();
+        let border = border.to_float_pixels(scale);
+        let radius = radius.to_radii_pixels(scale);
 
         self.draw_border_segment(Direction::Top, bounds, &border, &radius, color, style);
         self.draw_border_segment(Direction::Right, bounds, &border, &radius, color, style);
@@ -126,7 +131,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
-        let rect = bounds.to_nearest_azure_rect();
+        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
         let path_builder = self.draw_target.create_path_builder();
 
         let left_top = Point2D::new(rect.origin.x, rect.origin.y);
@@ -161,6 +166,7 @@ impl<'a> PaintContext<'a> {
             PixelFormat::KA8 => panic!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
+        let scale = self.screen_pixels_per_px();
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
@@ -170,7 +176,7 @@ impl<'a> PaintContext<'a> {
                                                                             source_format);
         let source_rect = Rect::new(Point2D::new(0.0, 0.0),
                                     Size2D::new(image.width as AzFloat, image.height as AzFloat));
-        let dest_rect = bounds.to_nearest_azure_rect();
+        let dest_rect = bounds.to_nearest_azure_rect(scale);
 
         // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
         // conforming implementation of `crisp-edges`, but it is not the best we could do.
@@ -198,7 +204,7 @@ impl<'a> PaintContext<'a> {
         // Annoyingly, surface patterns in Azure/Skia are relative to the top left of the *canvas*,
         // not the rectangle we're drawing to. So we need to translate it explicitly.
         let matrix = Matrix2D::identity().translate(dest_rect.origin.x, dest_rect.origin.y);
-        let stretch_size = stretch_size.to_nearest_azure_size();
+        let stretch_size = stretch_size.to_nearest_azure_size(scale);
         if source_rect.size == stretch_size {
             let pattern = SurfacePattern::new(azure_surface.azure_source_surface,
                                               true,
@@ -213,6 +219,7 @@ impl<'a> PaintContext<'a> {
         // Slow path: Both stretch and a pattern are needed.
         let draw_surface_options = DrawSurfaceOptions::new(draw_surface_filter, true);
         let draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
+        let scale = self.screen_pixels_per_px();
         let temporary_draw_target =
             self.draw_target.create_similar_draw_target(&stretch_size.to_azure_int_size(),
                                                         self.draw_target.get_format());
@@ -306,7 +313,8 @@ impl<'a> PaintContext<'a> {
                          radius: &BorderRadii<AzFloat>,
                          color: Color,
                          style: border_style::T) {
-        let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
+        let scale = self.screen_pixels_per_px();
+        let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_pixels(scale);
         match style {
             border_style::T::none | border_style::T::hidden => {}
             border_style::T::dotted => {
@@ -1027,7 +1035,7 @@ impl<'a> PaintContext<'a> {
                                   radius: &BorderRadii<AzFloat>,
                                   color: Color,
                                   dash_size: DashSize) {
-        let rect = bounds.to_nearest_azure_rect();
+        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
         let draw_opts = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         let border_width = match direction {
             Direction::Top => border.top,
@@ -1095,7 +1103,7 @@ impl<'a> PaintContext<'a> {
                                  border: &SideOffsets2D<f32>,
                                  radius: &BorderRadii<AzFloat>,
                                  color: Color) {
-        let rect = bounds.to_nearest_azure_rect();
+        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
         self.draw_border_path(&rect, direction, border, radius, color);
     }
 
@@ -1103,7 +1111,7 @@ impl<'a> PaintContext<'a> {
                              bounds: &Rect<Au>,
                              border: &SideOffsets2D<f32>,
                              shrink_factor: f32) -> Rect<f32> {
-        let rect            = bounds.to_nearest_azure_rect();
+        let rect            = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
         let scaled_border   = SideOffsets2D::new(shrink_factor * border.top,
                                                  shrink_factor * border.right,
                                                  shrink_factor * border.bottom,
@@ -1302,11 +1310,12 @@ impl<'a> PaintContext<'a> {
         self.draw_target.make_current();
 
         let stops = self.draw_target.create_gradient_stops(stops, ExtendMode::Clamp);
-        let pattern = LinearGradientPattern::new(&start_point.to_nearest_azure_point(),
-                                                 &end_point.to_nearest_azure_point(),
+        let scale = self.screen_pixels_per_px();
+        let pattern = LinearGradientPattern::new(&start_point.to_nearest_azure_point(scale),
+                                                 &end_point.to_nearest_azure_point(scale),
                                                  stops,
                                                  &Matrix2D::identity());
-        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(),
+        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(scale),
                                    PatternRef::LinearGradient(&pattern),
                                    None);
     }
@@ -1424,6 +1433,7 @@ impl<'a> PaintContext<'a> {
         self.pop_clip_if_applicable();
 
         // If we have blur, create a new draw target.
+        let pixels_per_px = self.screen_pixels_per_px();
         let shadow_bounds = box_bounds.translate(offset).inflate(spread_radius, spread_radius);
         let side_inflation = blur_radius * BLUR_INFLATION_FACTOR;
         let inflated_shadow_bounds = shadow_bounds.inflate(side_inflation, side_inflation);
@@ -1435,17 +1445,21 @@ impl<'a> PaintContext<'a> {
             BoxShadowClipMode::Inset => {
                 path = temporary_draw_target.draw_target
                                             .create_rectangular_border_path(&MAX_RECT,
-                                                                            &shadow_bounds);
-                self.draw_target.push_clip(&self.draw_target.create_rectangular_path(box_bounds))
+                                                                            &shadow_bounds,
+                                                                            pixels_per_px);
+                self.draw_target.push_clip(
+                    &self.draw_target.create_rectangular_path(box_bounds, pixels_per_px))
             }
             BoxShadowClipMode::Outset => {
-                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds);
-                self.draw_target.push_clip(&self.draw_target
-                                                .create_rectangular_border_path(&MAX_RECT,
-                                                                                box_bounds))
+                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds,
+                                                                                pixels_per_px);
+                self.draw_target.push_clip(
+                    &self.draw_target.create_rectangular_border_path(&MAX_RECT, box_bounds,
+                                                                     pixels_per_px))
             }
             BoxShadowClipMode::None => {
-                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds)
+                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds,
+                                                                                pixels_per_px)
             }
         }
 
@@ -1521,26 +1535,28 @@ impl<'a> PaintContext<'a> {
     /// Sets a new transient clipping region. Automatically calls
     /// `remove_transient_clip_if_applicable()` first.
     pub fn push_transient_clip(&mut self, clip_region: ClippingRegion) {
+        let scale = self.screen_pixels_per_px();
         self.remove_transient_clip_if_applicable();
 
         self.draw_push_clip(&clip_region.main);
         for complex_region in &clip_region.complex {
             // FIXME(pcwalton): Actually draw a rounded rect.
-            self.push_rounded_rect_clip(&complex_region.rect.to_nearest_azure_rect(),
-                                        &complex_region.radii.to_radii_px())
+            self.push_rounded_rect_clip(&complex_region.rect.to_nearest_azure_rect(scale),
+                                        &complex_region.radii.to_radii_pixels(scale))
         }
         self.transient_clip = Some(clip_region)
     }
 }
 
 pub trait ToAzurePoint {
-    fn to_nearest_azure_point(&self) -> Point2D<AzFloat>;
+    fn to_nearest_azure_point(&self, pixels_per_px: f32) -> Point2D<AzFloat>;
     fn to_azure_point(&self) -> Point2D<AzFloat>;
 }
 
 impl ToAzurePoint for Point2D<Au> {
-    fn to_nearest_azure_point(&self) -> Point2D<AzFloat> {
-        Point2D::new(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
+    fn to_nearest_azure_point(&self, pixels_per_px: f32) -> Point2D<AzFloat> {
+        Point2D::new(self.x.to_nearest_pixel(pixels_per_px) as AzFloat,
+                     self.y.to_nearest_pixel(pixels_per_px) as AzFloat)
     }
     fn to_azure_point(&self) -> Point2D<AzFloat> {
         Point2D::new(self.x.to_f32_px(), self.y.to_f32_px())
@@ -1548,8 +1564,8 @@ impl ToAzurePoint for Point2D<Au> {
 }
 
 pub trait ToAzureRect {
-    fn to_nearest_azure_rect(&self) -> Rect<AzFloat>;
-    fn to_nearest_non_empty_azure_rect(&self) -> Rect<AzFloat>;
+    fn to_nearest_azure_rect(&self, pixels_per_px: f32) -> Rect<AzFloat>;
+    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: f32) -> Rect<AzFloat>;
     fn to_azure_rect(&self) -> Rect<AzFloat>;
 }
 
@@ -1557,7 +1573,7 @@ impl ToAzureRect for Rect<Au> {
 
     /// Round rects to pixel coordinates, maintaining the invariant of non-overlap,
     /// assuming that before rounding rects don't overlap.
-    fn to_nearest_azure_rect(&self) -> Rect<AzFloat> {
+    fn to_nearest_azure_rect(&self, pixels_per_px: f32) -> Rect<AzFloat> {
         // Rounding the top left corner to the nearest pixel with the size rounded
         // to the nearest pixel multiple would violate the non-overlap condition,
         // e.g.
@@ -1566,8 +1582,8 @@ impl ToAzureRect for Rect<Au> {
         // 10px×10.0px at (0px,7.0px) & 10px×10.0px at (0px,16.0px), which overlap.
         //
         // Instead round each corner to the nearest pixel.
-        let top_left = self.origin.to_nearest_azure_point();
-        let bottom_right = self.bottom_right().to_nearest_azure_point();
+        let top_left = self.origin.to_nearest_azure_point(pixels_per_px);
+        let bottom_right = self.bottom_right().to_nearest_azure_point(pixels_per_px);
         Rect::new(top_left, Size2D::new((bottom_right.x - top_left.x) as AzFloat,
                                         (bottom_right.y - top_left.y) as AzFloat))
     }
@@ -1577,8 +1593,9 @@ impl ToAzureRect for Rect<Au> {
     /// 10px×0.6px at 0px,28.56px -> 10px×0px at 0px,29px
     /// Instead round the top left to the nearest pixel and the size to the nearest pixel
     /// multiple. It's possible for non-overlapping rects after this rounding to overlap.
-    fn to_nearest_non_empty_azure_rect(&self) -> Rect<AzFloat> {
-        Rect::new(self.origin.to_nearest_azure_point(), self.size.to_nearest_azure_size())
+    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: f32) -> Rect<AzFloat> {
+        Rect::new(self.origin.to_nearest_azure_point(pixels_per_px),
+                  self.size.to_nearest_azure_size(pixels_per_px))
     }
 
     fn to_azure_rect(&self) -> Rect<AzFloat> {
@@ -1587,13 +1604,14 @@ impl ToAzureRect for Rect<Au> {
 }
 
 pub trait ToAzureSize {
-    fn to_nearest_azure_size(&self) -> Size2D<AzFloat>;
+    fn to_nearest_azure_size(&self, pixels_per_px: f32) -> Size2D<AzFloat>;
     fn to_azure_size(&self) -> Size2D<AzFloat>;
 }
 
 impl ToAzureSize for Size2D<Au> {
-    fn to_nearest_azure_size(&self) -> Size2D<AzFloat> {
-        Size2D::new(self.width.to_nearest_px() as AzFloat, self.height.to_nearest_px() as AzFloat)
+    fn to_nearest_azure_size(&self, pixels_per_px: f32) -> Size2D<AzFloat> {
+        Size2D::new(self.width.to_nearest_pixel(pixels_per_px) as AzFloat,
+                    self.height.to_nearest_pixel(pixels_per_px) as AzFloat)
     }
     fn to_azure_size(&self) -> Size2D<AzFloat> {
         Size2D::new(self.width.to_f32_px(), self.height.to_f32_px())
@@ -1601,7 +1619,7 @@ impl ToAzureSize for Size2D<Au> {
 }
 
 impl ToAzureSize for AzIntSize {
-    fn to_nearest_azure_size(&self) -> Size2D<AzFloat> {
+    fn to_nearest_azure_size(&self, _: f32) -> Size2D<AzFloat> {
         Size2D::new(self.width as AzFloat, self.height as AzFloat)
     }
     fn to_azure_size(&self) -> Size2D<AzFloat> {
@@ -1613,46 +1631,34 @@ trait ToAzureIntSize {
     fn to_azure_int_size(&self) -> Size2D<i32>;
 }
 
-impl ToAzureIntSize for Size2D<Au> {
-    fn to_azure_int_size(&self) -> Size2D<i32> {
-        Size2D::new(self.width.to_nearest_px() as i32, self.height.to_nearest_px() as i32)
-    }
-}
-
 impl ToAzureIntSize for Size2D<AzFloat> {
     fn to_azure_int_size(&self) -> Size2D<i32> {
         Size2D::new(self.width as i32, self.height as i32)
     }
 }
 
-impl ToAzureIntSize for Size2D<i32> {
-    fn to_azure_int_size(&self) -> Size2D<i32> {
-        Size2D::new(self.width, self.height)
+trait ToSideOffsetsPixels {
+    fn to_float_pixels(&self, pixels_per_px: f32) -> SideOffsets2D<AzFloat>;
+}
+
+impl ToSideOffsetsPixels for SideOffsets2D<Au> {
+    fn to_float_pixels(&self, pixels_per_px: f32) -> SideOffsets2D<AzFloat> {
+        SideOffsets2D::new(self.top.to_nearest_pixel(pixels_per_px) as AzFloat,
+                           self.right.to_nearest_pixel(pixels_per_px) as AzFloat,
+                           self.bottom.to_nearest_pixel(pixels_per_px) as AzFloat,
+                           self.left.to_nearest_pixel(pixels_per_px) as AzFloat)
     }
 }
 
-trait ToSideOffsetsPx {
-    fn to_float_px(&self) -> SideOffsets2D<AzFloat>;
+trait ToRadiiPixels {
+    fn to_radii_pixels(&self, pixels_per_px: f32) -> BorderRadii<AzFloat>;
 }
 
-impl ToSideOffsetsPx for SideOffsets2D<Au> {
-    fn to_float_px(&self) -> SideOffsets2D<AzFloat> {
-        SideOffsets2D::new(self.top.to_nearest_px() as AzFloat,
-                           self.right.to_nearest_px() as AzFloat,
-                           self.bottom.to_nearest_px() as AzFloat,
-                           self.left.to_nearest_px() as AzFloat)
-    }
-}
-
-trait ToRadiiPx {
-    fn to_radii_px(&self) -> BorderRadii<AzFloat>;
-}
-
-impl ToRadiiPx for BorderRadii<Au> {
-    fn to_radii_px(&self) -> BorderRadii<AzFloat> {
-        fn to_nearest_px(x: Au) -> AzFloat {
-            x.to_nearest_px() as AzFloat
-        }
+impl ToRadiiPixels for BorderRadii<Au> {
+    fn to_radii_pixels(&self, pixels_per_px: f32) -> BorderRadii<AzFloat> {
+        let to_nearest_px = |x: Au| -> AzFloat {
+            x.to_nearest_pixel(pixels_per_px) as AzFloat
+        };
 
         BorderRadii {
             top_left: Size2D { width: to_nearest_px(self.top_left.width),
@@ -1748,18 +1754,20 @@ trait DrawTargetExtensions {
     ///     |################################|
     ///     +--------------------------------+
     /// ```
-    fn create_rectangular_border_path<T>(&self, outer_rect: &T, inner_rect: &T)
-                                         -> Path
-                                         where T: ToAzureRect;
+    fn create_rectangular_border_path(&self,
+                                      outer_rect: &Rect<Au>,
+                                      inner_rect: &Rect<Au>,
+                                      pixels_per_px: f32) -> Path;
 
     /// Creates and returns a path that represents a rectangle.
-    fn create_rectangular_path(&self, rect: &Rect<Au>) -> Path;
+    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: f32) -> Path;
 }
 
 impl DrawTargetExtensions for DrawTarget {
-    fn create_rectangular_border_path<T>(&self, outer_rect: &T, inner_rect: &T)
-                                         -> Path
-                                         where T: ToAzureRect {
+    fn create_rectangular_border_path(&self,
+                                      outer_rect: &Rect<Au>,
+                                      inner_rect: &Rect<Au>,
+                                      pixels_per_px: f32) -> Path {
         // +-----------+
         // |2          |1
         // |           |
@@ -1772,7 +1780,8 @@ impl DrawTargetExtensions for DrawTarget {
         // +-----------+
         //  3           4
 
-        let (outer_rect, inner_rect) = (outer_rect.to_nearest_azure_rect(), inner_rect.to_nearest_azure_rect());
+        let outer_rect = outer_rect.to_nearest_azure_rect(pixels_per_px);
+        let inner_rect = inner_rect.to_nearest_azure_rect(pixels_per_px);
         let path_builder = self.create_path_builder();
         path_builder.move_to(Point2D::new(outer_rect.max_x(), outer_rect.origin.y));     // 1
         path_builder.line_to(Point2D::new(outer_rect.origin.x, outer_rect.origin.y));    // 2
@@ -1787,11 +1796,11 @@ impl DrawTargetExtensions for DrawTarget {
         path_builder.finish()
     }
 
-    fn create_rectangular_path(&self, rect: &Rect<Au>) -> Path {
+    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: f32) -> Path {
         // Explicitly round to the nearest non-empty rect because when drawing
         // box-shadow the rect height can be between 0.5px & 1px and could
         // otherwise round to an empty rect.
-        let rect = rect.to_nearest_non_empty_azure_rect();
+        let rect = rect.to_nearest_non_empty_azure_rect(pixels_per_px);
 
         let path_builder = self.create_path_builder();
         path_builder.move_to(rect.origin);
