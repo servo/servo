@@ -135,19 +135,19 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs, non_snake_case)]
 
+pub mod callback;
 pub mod cell;
+pub mod conversions;
+pub mod error;
 pub mod global;
 pub mod js;
-pub mod refcounted;
-pub mod utils;
-pub mod callback;
-pub mod error;
-pub mod conversions;
-pub mod proxyhandler;
 pub mod num;
+pub mod proxyhandler;
+pub mod refcounted;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;
+pub mod utils;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
@@ -179,4 +179,3 @@ pub mod codegen {
         include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
     }
 }
-
