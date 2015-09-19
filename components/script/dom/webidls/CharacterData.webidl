@@ -12,9 +12,9 @@
 
 [Abstract]
 interface CharacterData : Node {
-  [TreatNullAs=EmptyString] attribute DOMString data;
-  readonly attribute unsigned long length;
-  [Throws]
+  [Pure, TreatNullAs=EmptyString] attribute DOMString data;
+  [Pure] readonly attribute unsigned long length;
+  [Pure, Throws]
   DOMString substringData(unsigned long offset, unsigned long count);
   void appendData(DOMString data);
   [Throws]

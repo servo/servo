@@ -8,5 +8,6 @@
  */
 
 interface ProcessingInstruction : CharacterData {
+  [Constant]
   readonly attribute DOMString target;
 };

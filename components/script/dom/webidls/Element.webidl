@@ -14,12 +14,12 @@
  */
 
 interface Element : Node {
-
-  readonly attribute DOMString? prefix;
-  readonly attribute DOMString localName;
-
   [Constant]
   readonly attribute DOMString? namespaceURI;
+  [Constant]
+  readonly attribute DOMString? prefix;
+  [Constant]
+  readonly attribute DOMString localName;
   // Not [Constant] because it depends on which document we're in
   [Pure]
   readonly attribute DOMString tagName;
@@ -28,12 +28,14 @@ interface Element : Node {
            attribute DOMString id;
   [Pure]
            attribute DOMString className;
-  [Constant]
+  [SameObject]
   readonly attribute DOMTokenList classList;
 
-  [Constant]
+  [SameObject]
   readonly attribute NamedNodeMap attributes;
+  [Pure]
   DOMString? getAttribute(DOMString name);
+  [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [Throws]
   void setAttribute(DOMString name, DOMString value);
@@ -44,10 +46,10 @@ interface Element : Node {
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
-  [Throws]
+  [Pure, Throws]
   Element? closest(DOMString selectors);
 
-  [Throws]
+  [Pure, Throws]
   boolean matches(DOMString selectors);
 
   HTMLCollection getElementsByTagName(DOMString localName);

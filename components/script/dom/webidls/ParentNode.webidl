@@ -9,7 +9,7 @@
 
 [NoInterfaceObject]
 interface ParentNode {
-  [Constant]
+  [SameObject]
   readonly attribute HTMLCollection children;
   [Pure]
   readonly attribute Element? firstElementChild;
@@ -26,9 +26,8 @@ interface ParentNode {
   //Element? query(DOMString relativeSelectors);
   //[NewObject]
   //Elements queryAll(DOMString relativeSelectors);
-  [Throws]
+  [Pure, Throws]
   Element? querySelector(DOMString selectors);
-  //[NewObject]
-  [Throws]
+  [NewObject, Throws]
   NodeList querySelectorAll(DOMString selectors);
 };

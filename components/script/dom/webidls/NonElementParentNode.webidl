@@ -7,5 +7,6 @@
 [NoInterfaceObject,
  Exposed=Window]
 interface NonElementParentNode {
+  [Pure]
   Element? getElementById(DOMString elementId);
 };

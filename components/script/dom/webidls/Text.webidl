@@ -15,5 +15,6 @@
 interface Text : CharacterData {
   [NewObject, Throws]
   Text splitText(unsigned long offset);
+  [Pure]
   readonly attribute DOMString wholeText;
 };
