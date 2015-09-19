@@ -2,34 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc;
 use net::hsts::{HSTSList, HSTSEntry};
 use net::hsts::{secure_url, preload_hsts_domains};
-use net::resource_task::ResourceManager;
 use net_traits::IncludeSubdomains;
-use std::sync::mpsc::channel;
 use time;
 use url::Url;
-
-#[test]
-fn test_add_hsts_entry_to_resource_manager_adds_an_hsts_entry() {
-    let list = HSTSList {
-        entries: Vec::new()
-    };
-
-    let (tx, _) = ipc::channel().unwrap();
-    let mut manager = ResourceManager::new("".to_owned(), tx, list, None);
-
-    let entry = HSTSEntry::new(
-        "mozilla.org".to_string(), IncludeSubdomains::NotIncluded, None
-    );
-
-    assert!(!manager.is_host_sts("mozilla.org"));
-
-    manager.add_hsts_entry(entry.unwrap());
-
-    assert!(manager.is_host_sts("mozilla.org"))
-}
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {

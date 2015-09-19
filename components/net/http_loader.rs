@@ -3,26 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use cookie;
+use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hsts::secure_url;
+use hsts::{secure_url, HSTSList, HSTSEntry};
 use hyper::Error as HttpError;
 use hyper::client::{Request, Response, Pool};
 use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
-use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent};
-use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding};
+use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent, SetCookie};
+use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding, Header};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusCode, StatusClass};
-use ipc_channel::ipc::{self, IpcSender};
 use log;
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::hosts::replace_hosts;
-use net_traits::{ControlMsg, CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
+use net_traits::{CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
 use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -30,8 +31,8 @@ use std::boxed::FnBox;
 use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
-use std::sync::Arc;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, RwLock};
 use url::{Url, UrlParser};
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
@@ -50,13 +51,21 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     Arc::new(Pool::with_connector(Default::default(), connector))
 }
 
-pub fn factory(resource_mgr_chan: IpcSender<ControlMsg>,
+pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
+               cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
     box move |load_data: LoadData, senders, classifier, user_agent| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
-            load_for_consumer(load_data, senders, classifier, connector, resource_mgr_chan, devtools_chan, user_agent)
+            load_for_consumer(load_data,
+                              senders,
+                              classifier,
+                              connector,
+                              hsts_list,
+                              cookie_jar,
+                              devtools_chan,
+                              user_agent)
         })
     }
 }
@@ -98,14 +107,15 @@ fn load_for_consumer(load_data: LoadData,
                      start_chan: LoadConsumer,
                      classifier: Arc<MIMEClassifier>,
                      connector: Arc<Pool<Connector>>,
-                     resource_mgr_chan: IpcSender<ControlMsg>,
+                     hsts_list: Arc<RwLock<HSTSList>>,
+                     cookie_jar: Arc<RwLock<CookieStorage>>,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      user_agent: String) {
 
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
-    match load::<WrappedHttpRequest>(load_data, resource_mgr_chan, devtools_chan, &factory, user_agent) {
+    match load::<WrappedHttpRequest>(load_data, hsts_list, cookie_jar, devtools_chan, &factory, user_agent) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -313,61 +323,66 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-fn set_request_cookies(url: Url, headers: &mut Headers, resource_mgr_chan: &IpcSender<ControlMsg>) {
-    let (tx, rx) = ipc::channel().unwrap();
-    resource_mgr_chan.send(ControlMsg::GetCookiesForUrl(url, tx, CookieSource::HTTP)).unwrap();
-    if let Some(cookie_list) = rx.recv().unwrap() {
+fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    let mut cookie_jar = cookie_jar.write().unwrap();
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
         headers.set_raw("Cookie".to_owned(), v);
     }
 }
 
-fn set_cookies_from_response(url: Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
-    if let Some(cookies) = response.headers().get_raw("set-cookie") {
-        for cookie in cookies.iter() {
-            if let Ok(cookies) = String::from_utf8(cookie.clone()) {
-                resource_mgr_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
-                                                                    cookies,
-                                                                    CookieSource::HTTP)).unwrap();
+fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
+                      request: Url,
+                      cookie_val: String) {
+    let mut cookie_jar = cookie_jar.write().unwrap();
+    let source = CookieSource::HTTP;
+    let header = Header::parse_header(&[cookie_val.into_bytes()]);
+
+    if let Ok(SetCookie(cookies)) = header {
+        for bare_cookie in cookies {
+            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
+                cookie_jar.push(cookie, source);
             }
         }
     }
 }
 
-fn request_must_be_secured(url: &Url, resource_mgr_chan: &IpcSender<ControlMsg>) -> bool {
-    let (tx, rx) = ipc::channel().unwrap();
-    resource_mgr_chan.send(
-        ControlMsg::GetHostMustBeSecured(url.domain().unwrap().to_string(), tx)
-    ).unwrap();
-
-    rx.recv().unwrap()
+fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    if let Some(cookies) = response.headers().get_raw("set-cookie") {
+        for cookie in cookies.iter() {
+            if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
+                set_cookie_for_url(&cookie_jar,
+                                   url.clone(),
+                                   cookie_value);
+            }
+        }
+    }
 }
 
-fn update_sts_list_from_response(url: &Url, response: &HttpResponse, resource_mgr_chan: &IpcSender<ControlMsg>) {
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HSTSList>>) {
     if url.scheme != "https" {
         return;
     }
 
     if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
         if let Some(host) = url.domain() {
-            info!("adding host {} to the strict transport security list", host);
-            info!("- max-age {}", header.max_age);
-
+            let mut hsts_list = hsts_list.write().unwrap();
             let include_subdomains = if header.include_subdomains {
-                info!("- includeSubdomains");
                 IncludeSubdomains::Included
             } else {
                 IncludeSubdomains::NotIncluded
             };
 
-            let msg = ControlMsg::SetHSTSEntryForHost(
-                host.to_string(),
-                include_subdomains,
-                header.max_age
-            );
+            if let Some(entry) = HSTSEntry::new(host.to_string(), include_subdomains, Some(header.max_age)) {
+                info!("adding host {} to the strict transport security list", host);
+                info!("- max-age {}", header.max_age);
+                if header.include_subdomains {
+                    info!("- includeSubdomains");
+                }
 
-            resource_mgr_chan.send(msg).unwrap();
+                hsts_list.push(entry);
+            }
         }
     }
 }
@@ -451,8 +466,16 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     }
 }
 
+fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool {
+    match url.domain() {
+        Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
+        None => false
+    }
+}
+
 pub fn load<A>(load_data: LoadData,
-               resource_mgr_chan: IpcSender<ControlMsg>,
+               hsts_list: Arc<RwLock<HSTSList>>,
+               cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
                user_agent: String)
@@ -484,7 +507,7 @@ pub fn load<A>(load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if &*url.scheme == "http" && request_must_be_secured(&url, &resource_mgr_chan) {
+        if &*url.scheme == "http" && request_must_be_secured(&url, &hsts_list) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
@@ -523,7 +546,7 @@ pub fn load<A>(load_data: LoadData,
 
         set_default_accept(&mut request_headers);
         set_default_accept_encoding(&mut request_headers);
-        set_request_cookies(doc_url.clone(), &mut request_headers, &resource_mgr_chan);
+        set_request_cookies(doc_url.clone(), &mut request_headers, &cookie_jar);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -601,8 +624,8 @@ pub fn load<A>(load_data: LoadData,
             }
         }
 
-        set_cookies_from_response(doc_url.clone(), &response, &resource_mgr_chan);
-        update_sts_list_from_response(&url, &response, &resource_mgr_chan);
+        set_cookies_from_response(doc_url.clone(), &response, &cookie_jar);
+        update_sts_list_from_response(&url, &response, &hsts_list);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
