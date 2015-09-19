@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::ElementTypeId;
@@ -14,10 +14,9 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
+use std::ascii::AsciiExt;
 use style::viewport::ViewportRule;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
-
-use std::ascii::AsciiExt;
 
 #[dom_struct]
 pub struct HTMLMetaElement {
