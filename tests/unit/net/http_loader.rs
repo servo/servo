@@ -398,7 +398,6 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
                                 &Factory,
                                 DEFAULT_USER_AGENT.to_string());
 
-    let hsts_list = hsts_list.clone();
     assert_eq!(hsts_list.read().unwrap().is_host_secure("mozilla.com"), false);
 }
 
@@ -431,7 +430,6 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
                                 &Factory,
                                 DEFAULT_USER_AGENT.to_string());
 
-    let hsts_list = hsts_list.clone();
     assert!(hsts_list.read().unwrap().is_host_secure("mozilla.com"));
 }
 
