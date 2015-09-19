@@ -12,14 +12,11 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
-
-use util::str::DOMString;
-
 use js::jsapi::{JSContext, Heap, HandleValue};
 use js::jsval::JSVal;
-
 use std::borrow::ToOwned;
 use std::default::Default;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct MessageEvent {

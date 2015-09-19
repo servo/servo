@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -18,13 +19,9 @@ use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::RGBA;
-use string_cache::Atom;
-
 use std::cell::Cell;
+use string_cache::Atom;
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct HTMLTableElement {

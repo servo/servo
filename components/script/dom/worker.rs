@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -20,19 +21,15 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
-
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use script_task::{ScriptChan, Runnable};
-
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoRequest, JSAutoCompartment};
 use js::jsapi::{JSContext, HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use url::UrlParser;
-use util::str::DOMString;
-
+use script_task::{ScriptChan, Runnable};
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};
+use url::UrlParser;
+use util::str::DOMString;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

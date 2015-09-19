@@ -12,10 +12,8 @@ use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
-
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLDialogElement {

@@ -1218,12 +1218,12 @@ pub mod specified {
 
 pub mod computed {
     pub use super::specified::{Angle, BorderStyle, Time};
-    use super::specified::AngleOrCorner;
-    use super::{specified, CSSFloat};
-    pub use cssparser::Color as CSSColor;
     use euclid::size::Size2D;
+    pub use cssparser::Color as CSSColor;
     use properties::longhands;
     use std::fmt;
+    use super::specified::AngleOrCorner;
+    use super::{specified, CSSFloat};
     use url::Url;
     use util::geometry::Au;
 

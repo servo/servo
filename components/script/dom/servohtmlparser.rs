@@ -18,13 +18,6 @@ use dom::document::Document;
 use dom::node::{window_from_node, Node};
 use dom::text::Text;
 use dom::window::Window;
-use network_listener::PreInvoke;
-use parse::Parser;
-use script_task::{ScriptTask, ScriptChan};
-
-use msg::constellation_msg::{PipelineId, SubpageId};
-use net_traits::{Metadata, AsyncResponseListener};
-
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 use html5ever::tokenizer;
@@ -33,6 +26,11 @@ use html5ever::tree_builder::{NodeOrText, TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use js::jsapi::JSTracer;
+use msg::constellation_msg::{PipelineId, SubpageId};
+use net_traits::{Metadata, AsyncResponseListener};
+use network_listener::PreInvoke;
+use parse::Parser;
+use script_task::{ScriptTask, ScriptChan};
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 use url::Url;

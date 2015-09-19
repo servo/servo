@@ -32,13 +32,12 @@ use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
 use script_task::{ScriptChan, MainThreadScriptMsg};
+use std::borrow::ToOwned;
+use std::cell::Cell;
 use string_cache::Atom;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLFormElement {

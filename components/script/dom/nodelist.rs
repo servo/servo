@@ -10,7 +10,6 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
-
 use std::cell::Cell;
 
 #[derive(JSTraceable, HeapSizeOf)]

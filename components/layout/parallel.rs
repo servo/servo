@@ -12,19 +12,18 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow;
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow_ref::{self, FlowRef};
+use profile_traits::time::{self, ProfilerMetadata, profile};
+use std::mem;
+use std::sync::atomic::{AtomicIsize, Ordering};
 use traversal::PostorderNodeMutTraversal;
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use traversal::{PreorderDomTraversal, PostorderDomTraversal};
 use traversal::{RecalcStyleForNode, ConstructFlows};
-use wrapper::UnsafeLayoutNode;
-use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
-
-use profile_traits::time::{self, ProfilerMetadata, profile};
-use std::mem;
-use std::sync::atomic::{AtomicIsize, Ordering};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use wrapper::UnsafeLayoutNode;
+use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 
 const CHUNK_SIZE: usize = 64;
 

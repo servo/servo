@@ -11,9 +11,8 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
-use util::str::DOMString;
-
 use string_cache::Atom;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct NamedNodeMap {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas_traits::CanvasMsg;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
@@ -20,17 +21,13 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{WebGLRenderingContext, LayoutCanvasWebGLRenderingContextHelpers};
-
-use canvas_traits::CanvasMsg;
+use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, HandleValue};
 use offscreen_gl_context::GLContextAttributes;
-use util::str::{DOMString, parse_unsigned_integer};
-
-use euclid::size::Size2D;
-
 use std::cell::Cell;
 use std::default::Default;
+use util::str::{DOMString, parse_unsigned_integer};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;

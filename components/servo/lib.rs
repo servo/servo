@@ -79,31 +79,26 @@ pub use export::layers;
 pub use export::gleam::gl;
 
 use compositing::CompositorEventListener;
-use compositing::windowing::WindowEvent;
-
 use compositing::compositor_task::InitialCompositorState;
 use compositing::constellation::InitialConstellationState;
+use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorTask, Constellation};
-
+use gfx::font_cache_task::FontCacheTask;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-
 use net::image_cache_task::new_image_cache_task;
 use net::resource_task::new_resource_task;
 use net::storage_task::StorageTaskFactory;
 use net_traits::storage_task::StorageTask;
-
-use gfx::font_cache_task::FontCacheTask;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use util::opts;
-
 use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use util::opts;
 
 pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,

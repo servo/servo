@@ -4,18 +4,16 @@
 
 //! The task that handles all painting.
 
-use display_list::{self, StackingContext};
-use font_cache_task::FontCacheTask;
-use font_context::FontContext;
-use paint_context::PaintContext;
-
 use azure::AzFloat;
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
 use canvas_traits::CanvasMsg;
+use display_list::{self, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use font_cache_task::FontCacheTask;
+use font_context::FontContext;
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -24,6 +22,7 @@ use msg::compositor_msg::{LayerProperties, PaintListener};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::PipelineExitType;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
 use rand::{self, Rng};

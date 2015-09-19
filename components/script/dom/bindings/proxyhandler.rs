@@ -20,7 +20,6 @@ use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsval::ObjectValue;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY};
 use js::{JSTrue, JSFalse};
-
 use libc;
 use std::mem;
 use std::ptr;

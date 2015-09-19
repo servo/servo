@@ -19,7 +19,6 @@ use dom::htmlformelement::{SubmittedFrom};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;

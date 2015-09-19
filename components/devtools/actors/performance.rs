@@ -4,7 +4,6 @@
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
 use protocol::JsonPacketStream;
-
 use rustc_serialize::json;
 use std::net::TcpStream;
 

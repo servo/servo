@@ -4,15 +4,6 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
-use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
-use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
-use display_list::{TextDisplayItem};
-use filters;
-use font_context::FontContext;
-use gfx_traits::color;
-use text::TextRun;
-use text::glyph::CharIndex;
-
 use azure::azure::AzIntSize;
 use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, FilterType};
@@ -23,11 +14,17 @@ use azure::azure_hl::{Pattern, PatternRef, Path, PathBuilder, SurfacePattern};
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
+use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
+use display_list::{TextDisplayItem};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
+use filters;
+use font_context::FontContext;
+use gfx_traits::color;
 use libc::types::common::c99::uint32_t;
 use msg::compositor_msg::LayerKind;
 use net_traits::image::base::{Image, PixelFormat};
@@ -37,6 +34,8 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
+use text::TextRun;
+use text::glyph::CharIndex;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::opts;
 use util::range::Range;

@@ -13,6 +13,7 @@ use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
 use dom::node::Node;
 use dom::window::ScriptHelpers;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{RootedValue, HandleValue};
 use js::jsval::UndefinedValue;
@@ -20,8 +21,6 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
 use page::Page;
 use script_task::get_page;
-
-use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
 use url::Url;
 

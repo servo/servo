@@ -10,7 +10,6 @@
 use flow;
 use flow_ref::FlowRef;
 use rustc_serialize::json;
-
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fs::File;

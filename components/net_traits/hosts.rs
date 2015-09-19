@@ -7,7 +7,6 @@ use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use url::Url;
-
 use {IPV4_REGEX, IPV6_REGEX};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;

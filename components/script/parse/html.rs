@@ -25,16 +25,14 @@ use dom::node::{Node, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
 use dom::servohtmlparser;
 use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
-use parse::Parser;
-
 use encoding::types::Encoding;
-
 use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
 use html5ever::serialize::{Serializable, Serializer, AttrRef};
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
+use parse::Parser;
 use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;

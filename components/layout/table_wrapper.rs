@@ -16,15 +16,12 @@
 use block::{BlockFlow, FloatNonReplaced, AbsoluteNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
+use euclid::{Point2D, Rect};
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
-use table_row;
-
-use euclid::{Point2D, Rect};
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
@@ -33,6 +30,8 @@ use style::computed_values::{border_collapse, table_layout};
 use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table_row;
 use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 

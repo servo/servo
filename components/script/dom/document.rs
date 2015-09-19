@@ -66,8 +66,12 @@ use dom::text::Text;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, ReflowReason};
-
+use euclid::point::Point2D;
+use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
+use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{HitTestResponse, MouseOverResponse};
+use layout_interface::{LayoutChan, Msg};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
@@ -77,19 +81,9 @@ use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
+use num::ToPrimitive;
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
-use util::str::{DOMString, split_html_space_chars};
-
-use euclid::point::Point2D;
-use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
-use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg};
-use string_cache::{Atom, QualName};
-use url::Url;
-
-use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -101,7 +95,10 @@ use std::iter::FromIterator;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::channel;
+use string_cache::{Atom, QualName};
 use time;
+use url::Url;
+use util::str::{DOMString, split_html_space_chars};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {

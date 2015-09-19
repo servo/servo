@@ -6,7 +6,6 @@ use rustc::lint::{Context, LintPass, LintArray, Level};
 use rustc::middle::def;
 use rustc::middle::def_id::DefId;
 use syntax::ast;
-
 use utils::match_lang_ty;
 
 declare_lint!(INHERITANCE_INTEGRITY, Deny,

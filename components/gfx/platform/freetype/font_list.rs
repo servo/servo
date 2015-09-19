@@ -13,14 +13,12 @@ use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPa
 use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
 use fontconfig::fontconfig::{FcPatternAddString, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy};
 use fontconfig::fontconfig::{FcPatternDestroy, FcFontSetDestroy, FcMatchPattern, FcPatternCreate};
-
-use util::str::c_str_to_string;
-
 use libc;
 use libc::{c_int, c_char};
 use std::borrow::ToOwned;
 use std::ffi::CString;
 use std::ptr;
+use util::str::c_str_to_string;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";

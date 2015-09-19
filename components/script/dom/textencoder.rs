@@ -10,19 +10,15 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-
-use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::ptr;
-
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::EncodingRef;
 use encoding::{Encoding, EncoderTrap};
-
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
 use libc::uint8_t;
+use std::borrow::ToOwned;
+use std::ptr;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct TextEncoder {

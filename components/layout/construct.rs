@@ -26,24 +26,13 @@ use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use fragment::{WhitespaceStrippingResult};
+use gfx::display_list::OpaqueNode;
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
 use parallel;
-use table::TableFlow;
-use table_caption::TableCaptionFlow;
-use table_cell::TableCellFlow;
-use table_colgroup::TableColGroupFlow;
-use table_row::TableRowFlow;
-use table_rowgroup::TableRowGroupFlow;
-use table_wrapper::TableWrapperFlow;
-use text::TextRunScanner;
-use traversal::PostorderNodeMutTraversal;
-use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutNode};
-
-use gfx::display_list::OpaqueNode;
 use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -58,9 +47,19 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::properties::{self, ComputedValues};
+use table::TableFlow;
+use table_caption::TableCaptionFlow;
+use table_cell::TableCellFlow;
+use table_colgroup::TableColGroupFlow;
+use table_row::TableRowFlow;
+use table_rowgroup::TableRowGroupFlow;
+use table_wrapper::TableWrapperFlow;
+use text::TextRunScanner;
+use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
+use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutNode};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]

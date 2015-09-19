@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
@@ -11,14 +12,10 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
-
-use util::str::{self, DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::RGBA;
-use string_cache::Atom;
-
 use std::cell::Cell;
 use std::cmp::max;
+use string_cache::Atom;
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
 

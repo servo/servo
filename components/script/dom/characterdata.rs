@@ -16,11 +16,9 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId};
-
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::Ref;
+use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]

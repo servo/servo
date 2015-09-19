@@ -6,7 +6,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, Root};
 use dom::document::Document;
 use dom::window::Window;
-
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::rc::Rc;

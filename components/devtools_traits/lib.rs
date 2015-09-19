@@ -27,18 +27,16 @@ extern crate hyper;
 extern crate util;
 extern crate time;
 
-use msg::constellation_msg::{PipelineId, WorkerId};
-use rustc_serialize::{Decodable, Decoder};
-use url::Url;
-use util::str::DOMString;
-
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
-use time::Duration;
-
+use msg::constellation_msg::{PipelineId, WorkerId};
+use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
+use time::Duration;
+use url::Url;
+use util::str::DOMString;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

@@ -16,10 +16,9 @@ use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
+use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
 

@@ -27,13 +27,11 @@ use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{Runnable, CommonScriptMsg};
-use textinput::{TextInput, Lines, KeyReaction};
-
-use string_cache::Atom;
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use string_cache::Atom;
+use textinput::{TextInput, Lines, KeyReaction};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {

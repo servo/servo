@@ -8,9 +8,6 @@ use core::nonzero::NonZero;
 use euclid::size::Size2D;
 use gleam::gl;
 use gleam::gl::types::{GLsizei};
-
-use util::task::spawn_named;
-
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
@@ -18,6 +15,7 @@ use offscreen_gl_context::{GLContext, GLContextAttributes, ColorAttachmentType};
 use std::borrow::ToOwned;
 use std::slice::bytes::copy_memory;
 use std::sync::mpsc::{channel, Sender};
+use util::task::spawn_named;
 use util::vec::byte_swap;
 
 pub struct WebGLPaintTask {

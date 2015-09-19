@@ -5,15 +5,13 @@
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
-use text::glyph::{CharIndex, GlyphStore};
-
-use util::geometry::Au;
-use util::range::Range;
-use util::vec::{Comparator, FullBinarySearchMethods};
-
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
+use text::glyph::{CharIndex, GlyphStore};
+use util::geometry::Au;
+use util::range::Range;
+use util::vec::{Comparator, FullBinarySearchMethods};
 
 /// A single "paragraph" of text in one font size and style.
 #[derive(Clone, Deserialize, Serialize)]

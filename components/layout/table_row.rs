@@ -8,18 +8,15 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
+use cssparser::{Color, RGBA};
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use euclid::{Point2D, Rect};
 use flow::{self, EarlyAbsolutePositionInfo, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use gfx::display_list::DisplayList;
 use layout_debug;
 use model::MaybeAuto;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
-use table_cell::{CollapsedBordersForCell, TableCellFlow};
-
-use cssparser::{Color, RGBA};
-use euclid::{Point2D, Rect};
-use gfx::display_list::DisplayList;
 use rustc_serialize::{Encoder, Encodable};
 use std::cmp::max;
 use std::fmt;
@@ -28,6 +25,8 @@ use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
+use table_cell::{CollapsedBordersForCell, TableCellFlow};
 use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 

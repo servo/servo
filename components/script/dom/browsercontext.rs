@@ -11,7 +11,6 @@ use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
-
 use js::glue::{GetProxyPrivate};
 use js::glue::{WrapperNew, CreateWrapperProxyHandler, ProxyTraps};
 use js::jsapi::{HandleObject, HandleId, MutableHandle, MutableHandleValue};
@@ -22,7 +21,6 @@ use js::jsapi::{JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedVal
 use js::jsapi::{JS_GetPropertyDescriptorById, JS_DefinePropertyById6};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::{JSTrue, JSFalse};
-
 use std::default::Default;
 use std::ptr;
 

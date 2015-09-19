@@ -16,15 +16,9 @@
 
 #![deny(unsafe_code)]
 
-use display_list::optimizer::DisplayListOptimizer;
-use paint_context::PaintContext;
-use self::DisplayItem::*;
-use self::DisplayItemIterator::*;
-use text::TextRun;
-use text::glyph::CharIndex;
-
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
+use display_list::optimizer::DisplayListOptimizer;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
@@ -32,7 +26,10 @@ use gfx_traits::color;
 use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
 use net_traits::image::base::Image;
+use paint_context::PaintContext;
 use paint_task::PaintLayer;
+use self::DisplayItem::*;
+use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
 use std::collections::linked_list::{self, LinkedList};
 use std::fmt;
@@ -42,6 +39,8 @@ use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
 use style::properties::ComputedValues;
+use text::TextRun;
+use text::glyph::CharIndex;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;

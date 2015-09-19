@@ -8,12 +8,11 @@ use clipboard_provider::ClipboardProvider;
 use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
-use util::mem::HeapSizeOf;
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
+use util::mem::HeapSizeOf;
+use util::str::DOMString;
 
 
 #[derive(Copy, Clone, PartialEq)]

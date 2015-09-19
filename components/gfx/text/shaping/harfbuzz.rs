@@ -4,14 +4,9 @@
 
 extern crate harfbuzz;
 
+use euclid::Point2D;
 use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
-use platform::font::FontTable;
-use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
-use text::shaping::ShaperMethods;
-use text::util::{float_to_fixed, fixed_to_float, is_bidi_control};
-
-use euclid::Point2D;
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR, HB_DIRECTION_RTL};
 use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
 use harfbuzz::{RUST_hb_buffer_add_utf8};
@@ -39,9 +34,13 @@ use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_uint, c_int, c_void, c_char};
+use platform::font::FontTable;
 use std::char;
 use std::cmp;
 use std::ptr;
+use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
+use text::shaping::ShaperMethods;
+use text::util::{float_to_fixed, fixed_to_float, is_bidi_control};
 use util::geometry::Au;
 use util::range::Range;
 

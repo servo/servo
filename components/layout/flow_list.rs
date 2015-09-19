@@ -4,7 +4,6 @@
 
 use flow::Flow;
 use flow_ref::{self, FlowRef};
-
 use std::collections::{linked_list, LinkedList};
 
 // This needs to be reworked now that we have dynamically-sized types in Rust.

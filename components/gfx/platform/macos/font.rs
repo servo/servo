@@ -8,15 +8,6 @@ extern crate core_foundation;
 extern crate core_graphics;
 extern crate core_text;
 
-use font::FontTableTag;
-use font::FractionalPixel;
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use platform::font_template::FontTemplateData;
-use platform::macos::font_context::FontContextHandle;
-use style::computed_values::{font_stretch, font_weight};
-use text::glyph::GlyphId;
-use util::geometry::{Au, px_to_pt};
-
 use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
@@ -25,9 +16,16 @@ use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
-
+use font::FontTableTag;
+use font::FractionalPixel;
+use font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use platform::font_template::FontTemplateData;
+use platform::macos::font_context::FontContextHandle;
 use std::ptr;
 use std::sync::Arc;
+use style::computed_values::{font_stretch, font_weight};
+use text::glyph::GlyphId;
+use util::geometry::{Au, px_to_pt};
 
 pub struct FontTable {
     data: CFData,

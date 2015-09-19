@@ -17,13 +17,12 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
-use util::opts;
-use util::task::spawn_named;
-use util::vec::byte_swap;
-
 use std::borrow::ToOwned;
 use std::mem;
 use std::sync::mpsc::{channel, Sender};
+use util::opts;
+use util::task::spawn_named;
+use util::vec::byte_swap;
 
 impl<'a> CanvasPaintTask<'a> {
     /// It reads image data from the canvas

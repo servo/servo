@@ -16,7 +16,6 @@ use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException
 use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
 use js::jsapi::{RootedObject, RootedValue, MutableHandleObject, Heap};
 use js::jsval::{JSVal, UndefinedValue};
-
 use std::default::Default;
 use std::ffi::CString;
 use std::intrinsics::return_address;

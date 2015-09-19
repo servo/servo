@@ -6,7 +6,6 @@ use rustc::ast_map;
 use rustc::lint::Context;
 use rustc::middle::def;
 use rustc::middle::def_id::DefId;
-
 use syntax::ast;
 use syntax::ast::{TyPath, Path, AngleBracketedParameters, PathSegment, Ty};
 use syntax::attr::mark_used;

@@ -3,13 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::str::USVString;
-
-use url::{Url, UrlParser, SchemeData};
-
-use url::urlutils::{UrlUtils, UrlUtilsWrapper};
-
 use std::borrow::ToOwned;
 use std::fmt::Write;
+use url::urlutils::{UrlUtils, UrlUtilsWrapper};
+use url::{Url, UrlParser, SchemeData};
 
 #[derive(HeapSizeOf)]
 pub struct UrlHelper;

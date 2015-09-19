@@ -2,23 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::AsciiExt;
-use std::cell::Cell;
-use std::iter::Iterator;
-use std::slice;
-use url::Url;
-
-use encoding::EncodingRef;
-
 use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRuleParser};
 use cssparser::{RuleListParser, AtRuleType};
+use encoding::EncodingRef;
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selectors::parser::{Selector, parse_selector_list};
 use smallvec::SmallVec;
+use std::ascii::AsciiExt;
+use std::cell::Cell;
+use std::iter::Iterator;
+use std::slice;
 use string_cache::{Atom, Namespace};
+use url::Url;
 use viewport::ViewportRule;
 
 

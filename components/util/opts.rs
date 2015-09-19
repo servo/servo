@@ -5,9 +5,8 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use geometry::ScreenPx;
-
 use euclid::size::{Size2D, TypedSize2D};
+use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
 use prefs;

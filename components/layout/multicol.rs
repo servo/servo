@@ -8,11 +8,10 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
+use euclid::{Point2D, Rect};
 use floats::FloatKind;
 use flow::{FlowClass, Flow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-
-use euclid::{Point2D, Rect};
 use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;

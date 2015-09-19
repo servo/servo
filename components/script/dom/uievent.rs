@@ -10,14 +10,12 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
-
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use dom::window::Window;
-use util::str::DOMString;
-
 use std::cell::Cell;
 use std::default::Default;
+use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum UIEventTypeId {

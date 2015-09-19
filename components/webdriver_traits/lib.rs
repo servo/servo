@@ -7,7 +7,6 @@
 
 extern crate rustc_serialize;
 use rustc_serialize::json::{Json, ToJson};
-
 use std::sync::mpsc::Sender;
 
 pub enum WebDriverScriptCommand {

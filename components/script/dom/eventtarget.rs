@@ -17,16 +17,14 @@ use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
+use fnv::FnvHasher;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsapi::{JSContext, RootedFunction, HandleObject};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
-use util::mem::HeapSizeOf;
-use util::str::DOMString;
-
-use fnv::FnvHasher;
 use libc::{c_char, size_t};
 use std::borrow::ToOwned;
+use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
 use std::default::Default;
@@ -35,8 +33,8 @@ use std::intrinsics;
 use std::ptr;
 use std::rc::Rc;
 use url::Url;
-
-use std::collections::HashMap;
+use util::mem::HeapSizeOf;
+use util::str::DOMString;
 
 pub type EventHandler = EventHandlerNonNull;
 

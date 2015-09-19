@@ -4,13 +4,12 @@
 
 //! Utilities for querying the layout, as needed by the layout task.
 
-use layout_task::{LayoutTaskData, RWGuard};
-
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
+use layout_task::{LayoutTaskData, RWGuard};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
@@ -18,7 +17,6 @@ use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeo
 use script::layout_interface::{HitTestResponse, LayoutRPC, MouseOverResponse, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, TrustedNodeAddress};
 use sequential;
-
 use std::sync::{Arc, Mutex};
 use util::cursor::Cursor;
 use util::geometry::Au;

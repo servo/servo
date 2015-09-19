@@ -17,9 +17,6 @@ use dom::bindings::trace::trace_object;
 use dom::browsercontext;
 use dom::eventtarget::EventTargetTypeId;
 use dom::window;
-use util::mem::HeapSizeOf;
-use util::str::DOMString;
-
 use js;
 use js::glue::{CallJitMethodOp, CallJitGetterOp, CallJitSetterOp, IsWrapper};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT};
@@ -61,6 +58,8 @@ use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
 use string_cache::{Atom, Namespace};
+use util::mem::HeapSizeOf;
+use util::str::DOMString;
 
 /// Proxy handler for a WindowProxy.
 #[allow(raw_pointer_derive)]

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -31,28 +32,6 @@ use dom::node::{window_from_node, TrustedNodeAddress, from_untrusted_node_addres
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use page::Page;
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
-use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
-use script_traits::ConstellationControlMsg;
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
-use webdriver_handlers::jsval_to_webdriver;
-
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
-use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceTask;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
-use net_traits::storage_task::{StorageTask, StorageType};
-use profile_traits::mem;
-use string_cache::Atom;
-use util::geometry::{self, Au, MAX_RECT};
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
-use util::{breakpoint, opts};
-
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
@@ -60,12 +39,23 @@ use js::jsapi::{JSContext, HandleValue};
 use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
-use selectors::parser::PseudoElement;
-use url::Url;
-
+use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
+use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
 use libc;
+use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
+use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
+use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
+use net_traits::ResourceTask;
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
+use net_traits::storage_task::{StorageTask, StorageType};
 use num::traits::ToPrimitive;
+use page::Page;
+use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_traits::ConstellationControlMsg;
+use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefCell};
@@ -78,7 +68,14 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use std::sync::mpsc::{channel, Receiver, Sender};
+use string_cache::Atom;
 use time;
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use url::Url;
+use util::geometry::{self, Au, MAX_RECT};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::{breakpoint, opts};
+use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, HeapSizeOf)]
