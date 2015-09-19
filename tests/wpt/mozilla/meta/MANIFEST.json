@@ -635,6 +635,12 @@
             "url": "/_mozilla/mozilla/htmlfieldsetelement_elements.html"
           }
         ],
+        "mozilla/htmlfontelement_size_attribute.html": [
+          {
+            "path": "mozilla/htmlfontelement_size_attribute.html",
+            "url": "/_mozilla/mozilla/htmlfontelement_size_attribute.html"
+          }
+        ],
         "mozilla/htmlspacechars.html": [
           {
             "path": "mozilla/htmlspacechars.html",
