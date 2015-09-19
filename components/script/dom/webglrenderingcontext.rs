@@ -124,6 +124,27 @@ impl WebGLRenderingContext {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
     }
 
+    pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        self.ipc_renderer.clone()
+    }
+
+    pub fn webgl_error(&self, err: WebGLError) {
+        // If an error has been detected no further errors must be
+        // recorded until `getError` has been called
+        if self.last_error.get().is_none() {
+            self.last_error.set(Some(err));
+        }
+    }
+
+    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+        match target {
+            constants::TEXTURE_2D => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+
+            _ => unreachable!(),
+        }
+    }
+
     fn mark_as_dirty(&self) {
         let canvas = self.canvas.root();
         let node = NodeCast::from_ref(canvas.r());
@@ -845,8 +866,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
             // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(_rooted_canvas)
-                => unimplemented!(),
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(canvas) => {
+                let canvas = canvas.r();
+                if let Some((mut data, size)) = canvas.fetch_all_data() {
+                    byte_swap(&mut data);
+                    (data, size)
+                } else {
+                    return
+                }
+            },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLVideoElement(_rooted_video)
                 => unimplemented!(),
         };
@@ -894,26 +922,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
 
             _ => self.webgl_error(InvalidEnum),
-        }
-    }
-}
-
-
-impl WebGLRenderingContext {
-    pub fn webgl_error(&self, err: WebGLError) {
-        // If an error has been detected no further errors must be
-        // recorded until `getError` has been called
-        if self.last_error.get().is_none() {
-            self.last_error.set(Some(err));
-        }
-    }
-
-    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
-        match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-
-            _ => unreachable!(),
         }
     }
 }
