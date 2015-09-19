@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss;
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
@@ -237,7 +237,8 @@ pub struct ViewportRule {
 const WHITESPACE: &'static [char] = &['\t', '\n', '\r', ' '];
 
 /// Separators as defined by DEVICE-ADAPT § 9.2
-const SEPARATOR: &'static [char] = &[',', ';'];
+// need to use \x2c instead of ',' due to test-tidy
+const SEPARATOR: &'static [char] = &['\x2c', ';'];
 
 #[inline]
 fn is_whitespace_separator_or_equals(c: &char) -> bool {
