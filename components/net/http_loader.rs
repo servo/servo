@@ -323,7 +323,7 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: Arc<RwLock<CookieStorage>>) {
+fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
         let mut v = Vec::new();
@@ -332,7 +332,7 @@ fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: Arc<RwLock<C
     }
 }
 
-fn set_cookie_for_url(cookie_jar: Arc<RwLock<CookieStorage>>,
+fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
                       request: Url,
                       cookie_val: String) {
     let mut cookie_jar = cookie_jar.write().unwrap();
@@ -348,11 +348,11 @@ fn set_cookie_for_url(cookie_jar: Arc<RwLock<CookieStorage>>,
     }
 }
 
-fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: Arc<RwLock<CookieStorage>>) {
+fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = response.headers().get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                set_cookie_for_url(cookie_jar.clone(),
+                set_cookie_for_url(&cookie_jar,
                                    url.clone(),
                                    cookie_value);
             }
@@ -360,7 +360,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: Arc<
     }
 }
 
-fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: Arc<RwLock<HSTSList>>) {
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HSTSList>>) {
     if url.scheme != "https" {
         return;
     }
@@ -466,6 +466,13 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     }
 }
 
+fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool {
+    match url.domain() {
+        Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
+        None => false
+    }
+}
+
 pub fn load<A>(load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
@@ -500,8 +507,7 @@ pub fn load<A>(load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        // if &*url.scheme == "http" && request_must_be_secured(&url, &resource_mgr_chan) {
-        if &*url.scheme == "http" && hsts_list.read().unwrap().is_host_secure(url.domain().unwrap()) {
+        if &*url.scheme == "http" && request_must_be_secured(&url, &hsts_list) {
             info!("{} is in the strict transport security list, requesting secure host", url);
             url = secure_url(&url);
         }
@@ -540,7 +546,7 @@ pub fn load<A>(load_data: LoadData,
 
         set_default_accept(&mut request_headers);
         set_default_accept_encoding(&mut request_headers);
-        set_request_cookies(doc_url.clone(), &mut request_headers, cookie_jar.clone());
+        set_request_cookies(doc_url.clone(), &mut request_headers, &cookie_jar);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -618,8 +624,8 @@ pub fn load<A>(load_data: LoadData,
             }
         }
 
-        set_cookies_from_response(doc_url.clone(), &response, cookie_jar.clone());
-        update_sts_list_from_response(&url, &response, hsts_list.clone());
+        set_cookies_from_response(doc_url.clone(), &response, &cookie_jar);
+        update_sts_list_from_response(&url, &response, &hsts_list);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {

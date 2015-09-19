@@ -481,7 +481,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
     {
         let mut cookie_jar = cookie_jar.write().unwrap();
-        let cookie_url = Url::parse("http://mozilla.com").unwrap();
+        let cookie_url = url.clone();
         let cookie = Cookie::new_wrapped(
             cookie_rs::Cookie::parse("mozillaIs=theBest").unwrap(),
             &cookie_url,
