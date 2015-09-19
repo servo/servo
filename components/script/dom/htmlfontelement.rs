@@ -7,17 +7,18 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFontElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId, RawLayoutElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::{self, DOMString};
+use style::values::specified;
+use util::str::{self, DOMString, parse_legacy_font_size};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -64,6 +65,12 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
     make_atomic_setter!(SetFace, "face");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    make_getter!(Size);
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    make_setter!(SetSize, "size");
 }
 
 impl VirtualMethods for HTMLFontElement {
@@ -92,6 +99,10 @@ impl VirtualMethods for HTMLFontElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("face") => AttrValue::from_atomic(value),
+            &atom!("size") => {
+                let length = parse_legacy_font_size(&value).and_then(|parsed| specified::Length::from_str(&parsed));
+                AttrValue::Length(value, length)
+            },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -109,6 +120,16 @@ impl HTMLFontElement {
         match *face {
             Some(ref s) => Some(s.clone()),
             None => None,
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_size(&self) -> Option<specified::Length> {
+        unsafe {
+            ElementCast::from_ref(self)
+                .get_attr_for_layout(&ns!(""), &atom!("size"))
+                .and_then(AttrValue::as_length)
+                .cloned()
         }
     }
 }

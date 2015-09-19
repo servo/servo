@@ -71,7 +71,7 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use style::legacy::{UnsignedIntegerAttribute, from_declaration};
 use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing, font_family};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
@@ -300,6 +300,19 @@ impl RawLayoutElementHelpers for Element {
                         font_family::computed_value::T(vec![
                             font_family::computed_value::FontFamily::FamilyName(
                                 font_family)])))));
+        }
+
+        let font_size = if let Some(this) = HTMLFontElementCast::to_ref(self) {
+            this.get_size()
+        } else {
+            None
+        };
+
+        if let Some(font_size) = font_size {
+            hints.push(from_declaration(
+                PropertyDeclaration::FontSize(
+                    DeclaredValue::Value(
+                        font_size::SpecifiedValue(font_size)))))
         }
 
         let cellspacing = if let Some(this) = HTMLTableElementCast::to_ref(self) {
