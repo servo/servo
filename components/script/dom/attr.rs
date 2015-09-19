@@ -86,6 +86,13 @@ impl AttrValue {
         }
     }
 
+    pub fn as_str(&self) -> &str {
+        match *self {
+            AttrValue::String(ref string) => string,
+            _ => panic!("String not found"),
+        }
+    }
+
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.

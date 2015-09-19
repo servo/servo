@@ -1922,7 +1922,7 @@ pub mod longhands {
             use util::geometry::Au;
             pub type T = Au;
         }
-        const MEDIUM_PX: i32 = 16;
+        pub const MEDIUM_PX: i32 = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
@@ -1947,21 +1947,8 @@ pub mod longhands {
                 specified::LengthOrPercentage::Calc(_) => Err(())
             })
             .or_else(|()| {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
-                    "xx-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
-                    "x-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4)),
-                    "small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9)),
-                    "medium" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX))),
-                    "large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5)),
-                    "x-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2)),
-                    "xx-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 2)),
-
-                    // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-                    "smaller" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(0.85))),
-                    "larger" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(1.2)))
-
-                    _ => Err(())
-                }
+                let ident = try!(input.expect_ident());
+                specified::Length::from_str(&ident as &str).ok_or(())
             })
             .map(SpecifiedValue)
         }

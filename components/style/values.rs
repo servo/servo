@@ -269,6 +269,25 @@ pub mod specified {
     const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
     const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
+        // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+        pub fn from_str(s: &str) -> Option<Length> {
+            use ::properties::longhands::font_size::MEDIUM_PX;
+            Some(match_ignore_ascii_case! { s,
+                "xx-small" => Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5),
+                "x-small" => Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4),
+                "small" => Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9),
+                "medium" => Length::Absolute(Au::from_px(MEDIUM_PX)),
+                "large" => Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5),
+                "x-large" => Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2),
+                "xx-large" => Length::Absolute(Au::from_px(MEDIUM_PX) * 2),
+
+                // https://github.com/servo/servo/issues/3423#issuecomment-56321664
+                "smaller" => Length::FontRelative(FontRelativeLength::Em(0.85)),
+                "larger" => Length::FontRelative(FontRelativeLength::Em(1.2))
+                _ => return None
+            })
+        }
+
         #[inline]
         fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
             match try!(input.next()) {
