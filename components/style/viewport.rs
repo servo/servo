@@ -375,26 +375,22 @@ impl ViewportRule {
                                start: usize)
                                -> Option<(&'a str, &'a str)>
     {
-        macro_rules! end_of_token {
-            ($iter:ident) => {
-                $iter.by_ref()
-                    .skip_while(|&(_, c)| !is_whitespace_separator_or_equals(&c))
-                    .next()
-            }
+        fn end_of_token<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+            iter.by_ref()
+                .skip_while(|&(_, c)| !is_whitespace_separator_or_equals(&c))
+                .next()
         }
 
-        macro_rules! skip_whitespace {
-            ($iter:ident) => {
-                $iter.by_ref()
-                    .skip_while(|&(_, c)| WHITESPACE.contains(&c))
-                    .next()
-            }
+        fn skip_whitespace<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+            iter.by_ref()
+                .skip_while(|&(_, c)| WHITESPACE.contains(&c))
+                .next()
         }
 
         // <name> <whitespace>* '='
-        let end = match end_of_token!(iter) {
+        let end = match end_of_token(iter) {
             Some((end, c)) if WHITESPACE.contains(&c) => {
-                match skip_whitespace!(iter) {
+                match skip_whitespace(iter) {
                     Some((_, c)) if c == '=' => end,
                     _ => return None
                 }
@@ -405,11 +401,11 @@ impl ViewportRule {
         let name = &content[start..end];
 
         // <whitespace>* <value>
-        let start = match skip_whitespace!(iter) {
+        let start = match skip_whitespace(iter) {
             Some((start, c)) if !SEPARATOR.contains(&c) => start,
             _ => return None
         };
-        let value = match end_of_token!(iter) {
+        let value = match end_of_token(iter) {
             Some((end, _)) => &content[start..end],
             _ => &content[start..]
         };
