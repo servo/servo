@@ -8,30 +8,25 @@ use about_loader;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
-use file_loader;
-use http_loader::{self, create_http_connector, Connector};
-use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
-use net_traits::ProgressMsg::Done;
-use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
-use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
-use url::Url;
-use util::opts;
-use util::task::spawn_named;
-
-use hsts::{HSTSList, HSTSEntry, preload_hsts_domains};
-
 use devtools_traits::{DevtoolsControlMsg};
+use file_loader;
+use hsts::{HSTSList, preload_hsts_domains};
+use http_loader::{self, create_http_connector, Connector};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-
+use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
+use net_traits::ProgressMsg::Done;
+use net_traits::{ControlMsg, LoadData, LoadResponse, LoadConsumer, CookieSource};
+use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-
-use std::sync::{Arc};
-
 use std::sync::mpsc::{channel, Sender};
+use std::sync::{Arc, RwLock};
+use url::Url;
+use util::opts;
+use util::task::spawn_named;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -147,10 +142,9 @@ pub fn new_resource_task(user_agent: String,
     };
 
     let (setup_chan, setup_port) = ipc::channel().unwrap();
-    let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = ResourceManager::new(
-            user_agent, setup_chan_clone, hsts_preload, devtools_chan
+            user_agent, hsts_preload, devtools_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -179,15 +173,9 @@ impl ResourceChannelManager {
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source)
                 }
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                    consumer.send(self.resource_manager.cookie_storage.cookies_for_url(&url, source)).unwrap();
-                }
-                ControlMsg::SetHSTSEntryForHost(host, include_subdomains, max_age) => {
-                    if let Some(entry) = HSTSEntry::new(host, include_subdomains, Some(max_age)) {
-                        self.resource_manager.add_hsts_entry(entry)
-                    }
-                }
-                ControlMsg::GetHostMustBeSecured(host, consumer) => {
-                    consumer.send(self.resource_manager.is_host_sts(&*host)).unwrap();
+                    let ref cookie_jar = self.resource_manager.cookie_storage;
+                    let mut cookie_jar = cookie_jar.write().unwrap();
+                    consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
                 ControlMsg::Exit => {
                     break
@@ -199,26 +187,23 @@ impl ResourceChannelManager {
 
 pub struct ResourceManager {
     user_agent: String,
-    cookie_storage: CookieStorage,
-    resource_task: IpcSender<ControlMsg>,
+    cookie_storage: Arc<RwLock<CookieStorage>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: HSTSList,
+    hsts_list: Arc<RwLock<HSTSList>>,
     connector: Arc<Pool<Connector>>,
 }
 
 impl ResourceManager {
     pub fn new(user_agent: String,
-               resource_task: IpcSender<ControlMsg>,
                hsts_list: HSTSList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,
-            cookie_storage: CookieStorage::new(),
-            resource_task: resource_task,
+            cookie_storage: Arc::new(RwLock::new(CookieStorage::new())),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
-            hsts_list: hsts_list,
+            hsts_list: Arc::new(RwLock::new(hsts_list)),
             connector: create_http_connector(),
         }
     }
@@ -230,18 +215,12 @@ impl ResourceManager {
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                    self.cookie_storage.push(cookie, source);
+                    let ref cookie_jar = self.cookie_storage;
+                    let mut cookie_jar = cookie_jar.write().unwrap();
+                    cookie_jar.push(cookie, source);
                 }
             }
         }
-    }
-
-    pub fn add_hsts_entry(&mut self, entry: HSTSEntry) {
-        self.hsts_list.push(entry);
-    }
-
-    pub fn is_host_sts(&self, host: &str) -> bool {
-        self.hsts_list.is_host_secure(host)
     }
 
     fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
@@ -256,7 +235,8 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.resource_task.clone(),
+                http_loader::factory(self.hsts_list.clone(),
+                                     self.cookie_storage.clone(),
                                      self.devtools_chan.clone(),
                                      self.connector.clone()),
             "data" => from_factory(data_loader::factory),
