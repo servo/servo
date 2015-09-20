@@ -650,7 +650,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     """
     # We should not have a defaultValue if we know we're an object
-    assert(not isDefinitelyObject or defaultValue is None)
+    assert not isDefinitelyObject or defaultValue is None
 
     # If exceptionCode is not set, we'll just rethrow the exception we got.
     # Note that we can't just set failureCode to exceptionCode, because setting
@@ -908,7 +908,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
-            assert(defaultValue.type.tag() == IDLType.Tags.domstring)
+            assert defaultValue.type.tag() == IDLType.Tags.domstring
             default = "%s::%s" % (enum, getEnumValueName(defaultValue.value))
         else:
             default = None
@@ -1065,7 +1065,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             elif tag in numericTags:
                 defaultStr = str(defaultValue.value)
             else:
-                assert(tag == IDLType.Tags.bool)
+                assert tag == IDLType.Tags.bool
                 defaultStr = toStringBool(defaultValue.value)
 
             if type.nullable():
@@ -1137,7 +1137,7 @@ class CGArgumentConverter(CGThing):
     def __init__(self, argument, index, args, argc, descriptorProvider,
                  invalidEnumValueFatal=True):
         CGThing.__init__(self)
-        assert(not argument.defaultValue or argument.optional)
+        assert not argument.defaultValue or argument.optional
 
         replacer = {
             "index": index,
@@ -1364,7 +1364,7 @@ class PropertyDefiner:
           returns a tuple suitable for substitution into specTemplate.
         """
 
-        assert(len(array) is not 0)
+        assert len(array) is not 0
         specs = []
 
         for member in array:
@@ -3034,8 +3034,8 @@ class CGMemberJITInfo(CGThing):
         reason (e.g. we have overloads or we're not a method) and
         otherwise an iterable of the arguments for this method.
         """
-        assert(not movable or aliasSet != "AliasEverything")  # Can't move write-aliasing things
-        assert(not alwaysInSlot or movable)  # Things always in slots had better be movable
+        assert not movable or aliasSet != "AliasEverything"  # Can't move write-aliasing things
+        assert not alwaysInSlot or movable  # Things always in slots had better be movable
 
         def jitInfoInitializer(isTypedMethod):
             initializer = fill(
