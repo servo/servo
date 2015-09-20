@@ -17,11 +17,11 @@ interface TestBindingProxy : TestBinding {
 
   getter DOMString getNamedItem(DOMString item_name);
 
-  setter creator void setNamedItem(DOMString item_name, DOMString value);
+  setter void setNamedItem(DOMString item_name, DOMString value);
 
   getter DOMString getItem(unsigned long index);
 
-  setter creator void setItem(unsigned long index, DOMString value);
+  setter void setItem(unsigned long index, DOMString value);
 
   deleter void removeItem(DOMString name);
 

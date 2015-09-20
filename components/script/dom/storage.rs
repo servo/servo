@@ -131,10 +131,6 @@ impl StorageMethods for Storage {
         self.SetItem(name, value);
     }
 
-    fn NamedCreator(&self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
-
     fn NamedDeleter(&self, name: DOMString) {
         self.RemoveItem(name);
     }

@@ -16,7 +16,7 @@ interface Storage {
 
   getter DOMString? getItem(DOMString name);
 
-  setter creator void setItem(DOMString name, DOMString value);
+  setter void setItem(DOMString name, DOMString value);
 
   deleter void removeItem(DOMString name);
 

@@ -179,11 +179,9 @@ class Descriptor(DescriptorProvider):
         self.operations = {
             'IndexedGetter': None,
             'IndexedSetter': None,
-            'IndexedCreator': None,
             'IndexedDeleter': None,
             'NamedGetter': None,
             'NamedSetter': None,
-            'NamedCreator': None,
             'NamedDeleter': None,
             'Stringifier': None,
         }
