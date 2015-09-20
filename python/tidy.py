@@ -76,7 +76,7 @@ def check_length(file_name, idx, line):
     if file_name.endswith(".lock"):
         raise StopIteration
     max_length = 120
-    if len(line) >= max_length:
+    if len(line.rstrip('\n')) > max_length:
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
