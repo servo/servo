@@ -1364,7 +1364,7 @@ class PropertyDefiner:
           returns a tuple suitable for substitution into specTemplate.
         """
 
-        assert len(array) is not 0
+        assert len(array) != 0
         specs = []
 
         for member in array:
@@ -4156,7 +4156,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
-            if not (self.descriptor.operations['IndexedCreator'] is indexedSetter):
+            if self.descriptor.operations['IndexedCreator'] != indexedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("let index = get_array_index_from_id(cx, id);\n" +
                     "if let Some(index) = index {\n" +
@@ -4173,7 +4173,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         namedSetter = self.descriptor.operations['NamedSetter']
         if namedSetter:
-            if not self.descriptor.operations['NamedCreator'] is namedSetter:
+            if self.descriptor.operations['NamedCreator'] != namedSetter:
                 raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
