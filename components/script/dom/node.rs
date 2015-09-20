@@ -811,18 +811,17 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self.clone());
-                Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
+                Ok(self.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
                     matches(selectors, element, None)
                 }))
             }
         }
     }
 
+    /// https://dom.spec.whatwg.org/#scope-match-a-selectors-string
     /// Get an iterator over all nodes which match a set of selectors
-    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
-    /// the iterator may be invalidated
+    /// Be careful not to do anything which may manipulate the DOM tree
+    /// whilst iterating, otherwise the iterator may be invalidated.
     #[allow(unsafe_code)]
     pub unsafe fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
@@ -832,9 +831,7 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self);
-                Ok(QuerySelectorIterator::new(root.traverse_preorder(), selectors))
+                Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
             }
         }
     }
@@ -1767,15 +1764,12 @@ impl Node {
                 let node_elem = ElementCast::to_ref(node).unwrap();
                 let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
-                let window = document.r().window();
-                for ref attr in &*node_elem.attrs() {
-                    let attr = attr.root();
-                    let newattr =
-                        Attr::new(window.r(),
-                                  attr.r().local_name().clone(), attr.r().value().clone(),
-                                  attr.r().name().clone(), attr.r().namespace().clone(),
-                                  attr.r().prefix().clone(), Some(copy_elem));
-                    copy_elem.attrs_mut().push(JS::from_rooted(&newattr));
+                for attr in node_elem.attrs().iter().map(JS::root) {
+                    copy_elem.push_new_attribute(attr.local_name().clone(),
+                                                 attr.value().clone(),
+                                                 attr.name().clone(),
+                                                 attr.namespace().clone(),
+                                                 attr.prefix().clone());
                 }
             },
             _ => ()
