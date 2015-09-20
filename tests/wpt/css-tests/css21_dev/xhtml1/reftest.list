@@ -4746,8 +4746,8 @@ numbers-units-010.xht == reference/numbers-units-010-ref.xht
 numbers-units-011.xht == reference/numbers-units-011-ref.xht
 numbers-units-012.xht == reference/numbers-units-012-ref.xht
 numbers-units-013.xht == reference/numbers-units-013-ref.xht
-numbers-units-015.xht == reference/numbers-units-014-ref-a.xht
-numbers-units-015.xht == reference/numbers-units-014-ref-b.xht
+numbers-units-015.xht == reference/numbers-units-015-ref-a.xht
+numbers-units-015.xht == reference/numbers-units-015-ref-b.xht
 numbers-units-016.xht == reference/no-red-on-blank-page-ref.xht
 numbers-units-017.xht == reference/no-red-on-blank-page-ref.xht
 numbers-units-018.xht == reference/numbers-units-018-ref.xht
@@ -4775,7 +4775,10 @@ outline-color-115.xht == reference/outline-color-115-ref.xht
 outline-color-applies-to-005.xht == reference/no-red-on-blank-page-ref.xht
 outline-color-applies-to-006.xht == reference/no-red-on-blank-page-ref.xht
 outline-layout-006.xht == reference/outline-layout-006-ref.xht
-outline-style-001.xht == reference/no-red-filler-text-ref.xht
+outline-style-001.xht == reference/outline-style-001-ref.xht
+outline-style-002.xht == reference/outline-style-002-ref.xht
+outline-style-003.xht == reference/outline-style-003-ref.xht
+outline-style-004.xht == reference/outline-style-004-ref.xht
 outline-style-applies-to-005.xht == reference/no-red-on-blank-page-ref.xht
 outline-style-applies-to-006.xht == reference/no-red-on-blank-page-ref.xht
 outline-width-002.xht == reference/no-red-filler-text-ref.xht
