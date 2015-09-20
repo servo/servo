@@ -436,10 +436,10 @@ box-offsets-rel-pos-vlr-003.xht == reference/abs-pos-non-replaced-vlr-013-ref.xh
 box-offsets-rel-pos-vlr-005.xht == reference/box-offsets-rel-pos-vlr-005-ref.xht
 box-offsets-rel-pos-vrl-002.xht == reference/abs-pos-non-replaced-vrl-012-ref.xht
 box-offsets-rel-pos-vrl-004.xht == reference/box-offsets-rel-pos-vrl-004-ref.xht
-caption-side-vlr-007.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vlr-009.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vrl-006.xht == reference/ref-filled-green-100px-square.xht
-caption-side-vrl-008.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vlr-003.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vlr-005.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vrl-002.xht == reference/ref-filled-green-100px-square.xht
+caption-side-vrl-004.xht == reference/ref-filled-green-100px-square.xht
 central-baseline-alignment-002.xht == reference/central-baseline-alignment-002-ref.xht
 central-baseline-alignment-003.xht == reference/central-baseline-alignment-002-ref.xht
 clearance-calculations-vrl-002.xht == reference/clearance-calculations-vrl-002-ref.xht
@@ -552,8 +552,6 @@ inline-block-alignment-006.xht == reference/inline-block-alignment-006-ref.xht
 inline-block-alignment-007.xht == reference/inline-block-alignment-007-ref.xht
 inline-block-alignment-008.xht == reference/inline-block-alignment-006-ref.xht
 inline-block-alignment-009.xht == reference/inline-block-alignment-009-ref.xht
-inline-block-alignment-010.xht == reference/inline-block-alignment-010-ref.xht
-inline-block-alignment-011.xht == reference/inline-block-alignment-007-ref.xht
 inline-block-alignment-orthogonal-vlr-003.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
 inline-block-alignment-orthogonal-vlr-005.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
 inline-block-alignment-orthogonal-vrl-002.xht == reference/inline-block-alignment-orthogonal-vrl-002-ref.xht
@@ -659,8 +657,6 @@ text-baseline-006.xht == reference/text-baseline-006-ref.xht
 text-baseline-007.xht == reference/text-baseline-007-ref.xht
 text-baseline-008.xht == reference/text-baseline-006-ref.xht
 text-baseline-009.xht == reference/text-baseline-006-ref.xht
-text-baseline-010.xht == reference/text-baseline-007-ref.xht
-text-baseline-011.xht == reference/text-baseline-007-ref.xht
 text-combine-upright-decorations-001.xht == reference/text-combine-upright-decorations-001.xht
 text-combine-upright-inherit-all-001.xht == reference/text-combine-upright-inherit-all-001.xht
 text-combine-upright-inherit-all-002.xht == reference/text-combine-upright-inherit-all-002.xht
@@ -696,9 +692,7 @@ text-indent-vrl-012.xht == reference/text-indent-vrl-012-ref.xht
 text-indent-vrl-014.xht == reference/text-indent-vrl-010-ref.xht
 text-indent-vrl-016.xht == reference/text-indent-vrl-012-ref.xht
 text-orientation-012.xht == reference/text-orientation-012-ref.xht
-text-orientation-013.xht == reference/text-orientation-013-ref.xht
 text-orientation-014.xht == reference/text-orientation-014-ref.xht
-text-orientation-015.xht == reference/text-orientation-015-ref.xht
 unicode-bidi-001.xht == reference/direction-002-ref.xht
 unicode-bidi-002.xht == reference/unicode-bidi-002-ref.xht
 unicode-bidi-003.xht == reference/direction-002-ref.xht

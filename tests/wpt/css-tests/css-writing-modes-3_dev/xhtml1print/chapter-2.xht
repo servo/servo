@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Inline Direction and Bidirectionality (163 tests)</h2>
+  <h2>Inline Direction and Bidirectionality (164 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -1359,7 +1359,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#unicode-bidi">2.2 Embeddings and Overrides: the unicode-bidi property</a></th></tr>
-      <!-- 19 tests -->
+      <!-- 20 tests -->
       <tr id="bidi-alt-001-2.2" class="primary">
         <td><strong>
             <a href="bidi-alt-001.xht">bidi-alt-001</a></strong></td>
@@ -1566,6 +1566,17 @@
         <td>Unicode-bidi applied to element with 'display' set to 'table-caption'
           <ul class="assert">
             <li>The 'unicode-bidi' property applies to elements with a display of 'table-caption'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="unicode-bidi-parsing-002-2.2" class="primary dom script">
+        <td><strong>
+            <a href="unicode-bidi-parsing-002.xht">unicode-bidi-parsing-002</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS Writing Modes: parsing unicode-bidi: isolate, isolate-override, plaintext
+          <ul class="assert">
+            <li>This test asserts the parser and getComputedStyle works correctly for the unicode-bidi: isolate, isolate-override, plaintext.</li>
           </ul>
         </td>
       </tr>

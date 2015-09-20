@@ -5,9 +5,9 @@
     <link href="http://www.w3.org/TR/css-transforms-1/#transform-property" rel="help" />
     <link href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions" rel="help" />
     <meta content="dom" name="flags" />
-    <meta content="Check if transform supports translate(0, 0)" name="assert" /> 
+    <meta content="Check if transform supports translate(0, 0)" name="assert" />
     <script src="/resources/testharness.js" type="text/javascript"></script>
-    <script src="/resources/testharnessreport.js" type="text/javascript"></script>    
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>
 </head>
 <body>
     <div id="test"></div>
@@ -15,10 +15,10 @@
     <script type="text/javascript">
     test(function() {
         document.getElementById("test").style.transform = "translate(0, 0)";
-        var value = document.getElementById("test").style.getPropertyCSSValue("transform").cssText;
-        assert_equals(value, "translate(0px, 0px)")
+        var value = window.getComputedStyle(document.getElementById("test")).getPropertyValue("transform");
+        assert_equals(value, "matrix(1, 0, 0, 1, 0, 0)")
     }, "transform_translate_0_0");
-    </script>    
+    </script>
 
 
 </body></html>

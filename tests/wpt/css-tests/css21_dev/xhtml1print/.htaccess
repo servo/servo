@@ -23,23 +23,10 @@ ReadmeName README
 # Add some default descriptions
 AddDescription "Information about the files in this directory" README
 
-<files ~ '^character-encoding-03[1234567]\.(xht|xhtml|xml|html|htm)$'>
-AddCharset us-ascii .xht .xhtml .xml .html .htm
-</files>
-
-<files ~ '^at-charset-07[1234567]\.(xht|xhtml|xml|html|htm)$'>
-AddCharset us-ascii .xht .xhtml .xml .html .htm
-</files>
-
 <Files ~ "^cascade-import-002\.(xht|xhtml|xml|html|htm)$">
   Header add Link "<support/cascade-import-002d.css>; rel=\"stylesheet\""
   Header add Link "<support/cascade-import-002f.css>; rel=\"stylesheet\""
 </files>
-
-<Files ~ "^lang-selector-005\.(xht|xhtml|xml|html|htm)$">
-AddLanguage fr .xht .xhtml .xml .html .htm
-</Files>
-
 
 <Files ~ '^character-encoding-001\.(xht|xhtml|xml|html|htm)$'>
 AddCharset utf-8 .xht .xhtml .xml .html .htm
@@ -128,4 +115,17 @@ AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
 <Files ~ '^character-encoding-029\.(xht|xhtml|xml|html|htm)$'>
 AddCharset iso-8859-1 .xht .xhtml .xml .html .htm
 </Files>
+
+<Files ~ "^lang-selector-005\.(xht|xhtml|xml|html|htm)$">
+AddLanguage fr .xht .xhtml .xml .html .htm
+</Files>
+
+
+<files ~ '^character-encoding-03[1234567]\.(xht|xhtml|xml|html|htm)$'>
+AddCharset us-ascii .xht .xhtml .xml .html .htm
+</files>
+
+<files ~ '^at-charset-07[1234567]\.(xht|xhtml|xml|html|htm)$'>
+AddCharset us-ascii .xht .xhtml .xml .html .htm
+</files>
 

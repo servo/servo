@@ -5,9 +5,10 @@
     <link href="http://www.w3.org/TR/css-transforms-1/#transform-property" rel="help">
     <link href="http://www.w3.org/TR/css-transforms-1/#two-d-transform-functions" rel="help">
     <meta content="dom" name="flags">
-    <meta content="Check if transform sets translate(null, null) that an expection is to be thrown" name="assert"> 
+    <meta content="Check if transform sets translate(null, null),
+                                 transform property returns initial value." name="assert">
     <script src="/resources/testharness.js" type="text/javascript"></script>
-    <script src="/resources/testharnessreport.js" type="text/javascript"></script>    
+    <script src="/resources/testharnessreport.js" type="text/javascript"></script>
 </head>
 <body>
     <div id="test"></div>
@@ -15,12 +16,10 @@
     <script type="text/javascript">
     test(function() {
         document.getElementById("test").style.transform = "translate(null, null)";
- 
-        assert_throws(null, function() {
-            document.getElementById("test").style.getPropertyCSSValue("transform").cssText;
-        });
+        var value = window.getComputedStyle(document.getElementById("test")).getPropertyValue("transform");
+        assert_equals(value, "none", "transform property value should be none");
     }, "transform_translate_null_null");
-    </script>    
+    </script>
 
 
 </body></html>
