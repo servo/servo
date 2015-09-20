@@ -67,7 +67,7 @@ impl DOMStringMapMethods for DOMStringMap {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#domstringmap
+    // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]
