@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolScriptControlMsg};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
-use dom::bindings::error::Error::{Syntax, Network, JSFailed};
+use dom::bindings::error::Error::{JSFailed, Network, Syntax};
 use dom::bindings::error::{ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root, MutNullableHeap};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
 use dom::crypto::Crypto;
@@ -18,17 +18,17 @@ use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSContext, HandleValue, JSAutoRequest};
+use js::jsapi::{HandleValue, JSAutoRequest, JSContext};
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use net_traits::{load_whole_resource, ResourceTask};
+use net_traits::{ResourceTask, load_whole_resource};
 use profile_traits::mem;
-use script_task::{CommonScriptMsg, ScriptChan, TimerSource, ScriptPort};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
 use url::{Url, UrlParser};
 use util::str::DOMString;
 

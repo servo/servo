@@ -10,7 +10,7 @@ use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
-use dom::eventtarget::{EventTarget, ListenerPhase, EventListenerType};
+use dom::eventtarget::{EventListenerType, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;

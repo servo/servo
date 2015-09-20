@@ -17,56 +17,54 @@
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
-#[macro_use] extern crate log;
-#[macro_use] extern crate bitflags;
-
-extern crate fnv;
-extern crate euclid;
-extern crate serde;
-extern crate smallvec;
-extern crate url;
-
+#[macro_use]
+extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
-
-#[macro_use]
-extern crate matches;
-
-extern crate encoding;
-extern crate rustc_serialize;
-extern crate string_cache;
-extern crate selectors;
-
 #[macro_use]
 extern crate lazy_static;
-
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate matches;
+#[macro_use]
+extern crate style_traits;
+extern crate encoding;
+extern crate euclid;
+extern crate fnv;
 extern crate num;
+extern crate rustc_serialize;
+extern crate selectors;
+extern crate serde;
+extern crate smallvec;
+extern crate string_cache;
+extern crate url;
 extern crate util;
 
 #[macro_use]
-extern crate style_traits;
-
+#[allow(non_camel_case_types)]
+pub mod values;
 mod custom_properties;
-pub mod parser;
-pub mod selector_matching;
-pub mod stylesheets;
-#[macro_use] pub mod values;
-
-// Generated from the properties.mako.rs template by build.rs
-#[macro_use]
-pub mod properties {
-    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
-}
-
 pub mod animation;
 pub mod font_face;
 pub mod legacy;
 pub mod media_queries;
 pub mod node;
+pub mod parser;
+pub mod selector_matching;
+pub mod stylesheets;
 pub mod viewport;
+
+// Generated from the properties.mako.rs template by build.rs
+#[macro_use]
+#[allow(unsorted_declarations)]
+pub mod properties {
+    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {
+        #[allow(unsorted_declarations)]
         pub mod computed_values {
             $(
                 pub use properties::longhands::$name::computed_value as $name;

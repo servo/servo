@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, DeclarationListParser, AtRuleParser, DeclarationParser, parse_important};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
@@ -10,7 +10,7 @@ use properties::longhands;
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
 use std::intrinsics;
-use style_traits::viewport::{UserZoom, Zoom, Orientation, ViewportConstraints};
+use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
 use util::geometry::{Au, ViewportPx};
 use values::computed::{Context, ToComputedValue};

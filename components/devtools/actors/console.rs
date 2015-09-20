@@ -7,12 +7,12 @@
 //! Mediates interaction between the remote web console and equivalent functionality (object
 //! inspection, JS evaluation, autocompletion) in Servo.
 
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::object::ObjectActor;
 use devtools_traits::CachedConsoleMessage;
-use devtools_traits::EvaluateJSReply::{NullValue, VoidValue, NumberValue};
-use devtools_traits::EvaluateJSReply::{StringValue, BooleanValue, ActorValue};
-use devtools_traits::{CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR, CONSOLE_API};
+use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
+use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
+use devtools_traits::{CONSOLE_API, CachedConsoleMessageTypes, DevtoolScriptControlMsg, PAGE_ERROR};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;

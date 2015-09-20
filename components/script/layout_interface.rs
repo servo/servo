@@ -22,14 +22,13 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use std::any::Any;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::animation::PropertyAnimation;
 use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
 use url::Url;
 use util::geometry::Au;
-
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
@@ -250,4 +249,3 @@ pub struct NewLayoutTaskInfo {
     pub paint_chan: Box<Any + Send>,
     pub layout_shutdown_chan: Sender<()>,
 }
-

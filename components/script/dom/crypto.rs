@@ -10,10 +10,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
-use rand::{Rng, OsRng};
-use std::ptr;
-use std::slice;
+use js::jsapi::{JS_GetArrayBufferViewType, JS_GetObjectAsArrayBufferView, Type};
+use rand::{OsRng, Rng};
+use std::{ptr, slice};
 
 no_jsmanaged_fields!(OsRng);
 

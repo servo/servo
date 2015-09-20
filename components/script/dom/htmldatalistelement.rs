@@ -11,7 +11,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlcollection::{HTMLCollection, CollectionFilter};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use util::str::DOMString;

@@ -4,29 +4,28 @@
 
 //! Communication with the compositor task.
 
-pub use windowing;
-pub use constellation::SendableFrameTree;
-
 use compositor;
-use euclid::{Size2D, Point2D, Rect};
+use euclid::{Point2D, Rect, Size2D};
 use headless;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, LayerId, LayerProperties, FrameTreeId};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
-use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use png;
 use profile_traits::mem;
 use profile_traits::time;
-use std::fmt::{Error, Formatter, Debug};
+use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use windowing::{WindowEvent, WindowMethods};
+pub use constellation::SendableFrameTree;
+pub use windowing;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-

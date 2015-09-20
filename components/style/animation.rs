@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{RGBA, Color};
+use cssparser::{Color, RGBA};
 use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
@@ -28,7 +28,7 @@ use util::bezier::Bezier;
 use util::geometry::Au;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthOrPercentage, Length, Time, Calc};
+use values::computed::{Calc, Length, LengthOrPercentage, Time};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {

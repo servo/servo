@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRuleParser};
-use cssparser::{RuleListParser, AtRuleType};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
+use cssparser::{AtRuleType, RuleListParser};
 use encoding::EncodingRef;
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
@@ -18,7 +18,6 @@ use std::slice;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use viewport::ViewportRule;
-
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
