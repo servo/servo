@@ -1299,8 +1299,8 @@ pub mod computed {
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct Calc {
-        length: Option<Au>,
-        percentage: Option<CSSFloat>,
+        pub length: Option<Au>,
+        pub percentage: Option<CSSFloat>,
     }
 
     impl Calc {
@@ -1310,6 +1310,53 @@ pub mod computed {
 
         pub fn percentage(&self) -> CSSFloat {
             self.percentage.unwrap_or(0.)
+        }
+    }
+
+    impl From<LengthOrPercentage> for Calc {
+        fn from(len: LengthOrPercentage) -> Calc {
+            match len {
+                LengthOrPercentage::Percentage(this) => {
+                    Calc {
+                        length: None,
+                        percentage: Some(this),
+                    }
+                }
+                LengthOrPercentage::Length(this) => {
+                    Calc {
+                        length: Some(this),
+                        percentage: None,
+                    }
+                }
+                LengthOrPercentage::Calc(this) => {
+                    this
+                }
+            }
+        }
+    }
+
+    impl From<LengthOrPercentageOrAuto> for Option<Calc> {
+        fn from(len: LengthOrPercentageOrAuto) -> Option<Calc> {
+            match len {
+                LengthOrPercentageOrAuto::Percentage(this) => {
+                    Some(Calc {
+                        length: None,
+                        percentage: Some(this),
+                    })
+                }
+                LengthOrPercentageOrAuto::Length(this) => {
+                    Some(Calc {
+                        length: Some(this),
+                        percentage: None,
+                    })
+                }
+                LengthOrPercentageOrAuto::Calc(this) => {
+                    Some(this)
+                }
+                LengthOrPercentageOrAuto::Auto => {
+                    None
+                }
+            }
         }
     }
 
