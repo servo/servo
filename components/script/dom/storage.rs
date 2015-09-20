@@ -114,6 +114,12 @@ impl StorageMethods for Storage {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
+        vec![]
+    }
+
     // check-tidy: no specs after this line
     fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<DOMString> {
         let item = self.GetItem(name);
@@ -131,11 +137,6 @@ impl StorageMethods for Storage {
 
     fn NamedDeleter(&self, name: DOMString) {
         self.RemoveItem(name);
-    }
-
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
     }
 }
 

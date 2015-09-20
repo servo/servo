@@ -1848,7 +1848,7 @@ impl DocumentMethods for Document {
         collection.r().reflector().get_jsobject().get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#document
+    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]
