@@ -147,29 +147,13 @@ impl Request {
     }
 
     pub fn fetch_async(&self,
+                       cors_flag: bool,
                        listener: Box<AsyncFetchListener + Send>) {
-        struct FetchContext {
-            listener: Box<AsyncFetchListener + Send>,
-            response: RefCell<Option<Response>>,
-        }
-
-        impl AsyncFetchListener for FetchContext {
-            fn headers_available(&self, _metadata: Metadata) {}
-
-            fn data_available(&self, _payload: Vec<u8>) {}
-
-            fn response_complete(&self, _status: Result<(), String>) {
-                let response = self.response.borrow_mut().take().unwrap();
-                self.listener.response_available(response);
-            }
-        }
-
-        let context = FetchContext {
-            listener: listener,
-            response: RefCell::new(None),
-        };
-
-        // FIXME: Not entirely sure what to do here...
+        let req = self.clone();
+        spawn_named("fetch".to_owned(), move || {
+            let res = req.fetch(cors_flag);
+            listener.response_available(res);
+        });
     }
 
     /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
