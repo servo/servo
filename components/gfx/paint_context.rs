@@ -19,7 +19,7 @@ use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, Clippi
 use display_list::{TextDisplayItem};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::rect::{Rect, TypedRect};
 use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use filters;
@@ -36,7 +36,7 @@ use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
 use text::glyph::CharIndex;
-use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::geometry::{self, Au, MAX_RECT, PagePx, ScreenPx, ZERO_RECT};
 use util::opts;
 use util::range::Range;
 
@@ -44,9 +44,9 @@ pub struct PaintContext<'a> {
     pub draw_target: DrawTarget,
     pub font_context: &'a mut Box<FontContext>,
     /// The rectangle that this context encompasses in page coordinates.
-    pub page_rect: Rect<f32>,
+    pub page_rect: TypedRect<PagePx, f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
-    pub screen_rect: Rect<usize>,
+    pub screen_rect: TypedRect<ScreenPx, usize>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
     /// The current transient clipping region, if any. A "transient clipping region" is the
@@ -93,7 +93,9 @@ struct CornerOrigin {
 
 impl<'a> PaintContext<'a> {
     pub fn screen_pixels_per_px(&self) -> f32 {
-        self.screen_rect.size.width as f32 / self.page_rect.size.width
+        let screen_rect = self.screen_rect.to_untyped();
+        let page_rect = self.page_rect.to_untyped();
+        screen_rect.size.width as f32 / page_rect.size.width
     }
 
     pub fn draw_target(&self) -> &DrawTarget {
@@ -238,10 +240,12 @@ impl<'a> PaintContext<'a> {
 
     pub fn clear(&self) {
         let pattern = ColorPattern::new(color::transparent());
-        let rect = Rect::new(Point2D::new(self.page_rect.origin.x as AzFloat,
-                                          self.page_rect.origin.y as AzFloat),
-                             Size2D::new(self.screen_rect.size.width as AzFloat,
-                                         self.screen_rect.size.height as AzFloat));
+        let page_rect = self.page_rect.to_untyped();
+        let screen_rect = self.page_rect.to_untyped();
+        let rect = Rect::new(Point2D::new(page_rect.origin.x as AzFloat,
+                                          page_rect.origin.y as AzFloat),
+                             Size2D::new(screen_rect.size.width as AzFloat,
+                                         screen_rect.size.height as AzFloat));
         let mut draw_options = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         draw_options.set_composition_op(CompositionOp::Source);
         self.draw_target.make_current();
@@ -1483,7 +1487,7 @@ impl<'a> PaintContext<'a> {
         // smallest possible rectangle that encompasses all the paint.
         let side_inflation = blur_radius * BLUR_INFLATION_FACTOR;
         let tile_box_bounds =
-            geometry::f32_rect_to_au_rect(self.page_rect).intersection(box_bounds)
+            geometry::f32_rect_to_au_rect(self.page_rect.to_untyped()).intersection(box_bounds)
                                                          .unwrap_or(ZERO_RECT)
                                                          .inflate(side_inflation, side_inflation);
         TemporaryDrawTarget::from_bounds(&self.draw_target, &tile_box_bounds)

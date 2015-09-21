@@ -10,7 +10,7 @@ use canvas_traits::CanvasMsg;
 use display_list::{self, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
@@ -33,7 +33,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
-use util::geometry::{Au, ZERO_POINT};
+use util::geometry::{Au, PagePx, ScreenPx, ZERO_POINT};
 use util::opts;
 use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;
@@ -590,8 +590,8 @@ impl WorkerThread {
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_context: &mut self.font_context,
-                page_rect: tile.page_rect,
-                screen_rect: tile.screen_rect,
+                page_rect: Rect::from_untyped(&tile.page_rect),
+                screen_rect: Rect::from_untyped(&tile.screen_rect),
                 clip_rect: None,
                 transient_clip: None,
                 layer_kind: layer_kind,
