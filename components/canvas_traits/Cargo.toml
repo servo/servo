@@ -23,7 +23,7 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 git = "https://github.com/pcwalton/ipc-channel"
 
 [dependencies.serde]
-version = "0.5"
+version = "0.6"
 features = [ "nightly" ]
 
 [dependencies.cssparser]

@@ -4,7 +4,6 @@
 
 #![feature(box_syntax)]
 #![feature(custom_derive)]
-#![feature(box_raw)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]

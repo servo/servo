@@ -12,7 +12,7 @@ use freetype::freetype::struct_FT_MemoryRec_;
 use libc::{c_void, c_long};
 use std::ptr;
 use std::rc::Rc;
-use std::rt::heap;
+use alloc::heap;
 use util::mem::{HeapSizeOf, heap_size_of};
 
 // We pass a |User| struct -- via an opaque |void*| -- to FreeType each time a new instance is
