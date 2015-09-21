@@ -21,22 +21,21 @@
 
 #[macro_use]
 extern crate log;
-
 extern crate devtools_traits;
-extern crate rustc_serialize;
-extern crate ipc_channel;
-extern crate serde;
-extern crate msg;
-extern crate time;
-extern crate util;
 extern crate hyper;
+extern crate ipc_channel;
+extern crate msg;
+extern crate rustc_serialize;
+extern crate serde;
+extern crate time;
 extern crate url;
+extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
+use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
@@ -44,7 +43,7 @@ use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
-use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg, LogLevel, NetworkEvent};
+use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
 use devtools_traits::{ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, WorkerId};
@@ -54,8 +53,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
-use std::net::{TcpListener, TcpStream, Shutdown};
-use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
+use std::net::{Shutdown, TcpListener, TcpStream};
+use std::sync::mpsc::{Receiver, RecvError, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
 use util::task::spawn_named;

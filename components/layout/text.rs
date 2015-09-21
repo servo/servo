@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo, UnscannedTextFragmentInfo};
+use fragment::{Fragment, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
@@ -599,4 +599,3 @@ struct ScannedTextRun {
     run: Arc<TextRun>,
     insertion_point: Option<CharIndex>,
 }
-

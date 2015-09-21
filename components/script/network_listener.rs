@@ -4,7 +4,7 @@
 
 use net_traits::{AsyncResponseListener, ResponseAction};
 use script_task::ScriptTaskEventCategory::NetworkEvent;
-use script_task::{ScriptChan, Runnable, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to

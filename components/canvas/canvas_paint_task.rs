@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure::{AzFloat, AzColor};
-use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
-use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
+use azure::azure::{AzColor, AzFloat};
+use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
+use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use canvas_traits::*;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -19,7 +19,7 @@ use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use util::opts;
 use util::task::spawn_named;
 use util::vec::byte_swap;

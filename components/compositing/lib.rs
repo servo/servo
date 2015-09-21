@@ -13,50 +13,47 @@
 
 #[macro_use]
 extern crate log;
-
+#[macro_use]
+extern crate profile_traits;
+#[macro_use]
+extern crate util;
 extern crate azure;
 extern crate canvas;
 extern crate canvas_traits;
-extern crate devtools_traits;
-extern crate euclid;
-extern crate gfx;
-extern crate ipc_channel;
-extern crate layers;
-extern crate layout_traits;
-extern crate offscreen_gl_context;
-extern crate png;
-extern crate script_traits;
-extern crate msg;
-extern crate num;
-#[macro_use]
-extern crate profile_traits;
-extern crate net_traits;
-extern crate gfx_traits;
-extern crate style_traits;
-#[macro_use]
-extern crate util;
-extern crate gleam;
 extern crate clipboard;
-
-extern crate time;
-extern crate url;
 
 #[cfg(target_os = "macos")]
 extern crate core_graphics;
 #[cfg(target_os = "macos")]
 extern crate core_text;
 
+extern crate devtools_traits;
+extern crate euclid;
+extern crate gfx;
+extern crate gfx_traits;
+extern crate gleam;
+extern crate ipc_channel;
+extern crate layers;
+extern crate layout_traits;
+extern crate msg;
+extern crate net_traits;
+extern crate num;
+extern crate offscreen_gl_context;
+extern crate png;
+extern crate script_traits;
+extern crate style_traits;
+extern crate time;
+extern crate url;
+
 pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
 pub use constellation::Constellation;
-
-pub mod compositor_task;
 
 mod compositor;
 mod compositor_layer;
 mod headless;
 mod scrolling;
 mod surface_map;
-
-pub mod pipeline;
+pub mod compositor_task;
 pub mod constellation;
+pub mod pipeline;
 pub mod windowing;

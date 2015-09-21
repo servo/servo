@@ -8,7 +8,7 @@
 //! In release builds, `get` returns 0.  All of the other functions inline
 //! away to nothing.
 
-pub use self::imp::{initialize, get, enter, exit};
+pub use self::imp::{enter, exit, get, initialize};
 
 bitflags! {
     flags TaskState: u32 {
@@ -50,7 +50,7 @@ task_types! {
 #[cfg(debug_assertions)]
 mod imp {
     use std::cell::RefCell;
-    use super::{TaskState, TYPES};
+    use super::{TYPES, TaskState};
 
     thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None));
 

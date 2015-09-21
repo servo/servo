@@ -5,10 +5,10 @@
 use file_loader;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
-use net_traits::{LoadData, Metadata, LoadConsumer};
+use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_task::start_sending;
 use std::fs::PathExt;
 use std::sync::Arc;

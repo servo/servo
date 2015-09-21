@@ -17,13 +17,13 @@ use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
-use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
+use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);

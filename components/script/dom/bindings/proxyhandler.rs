@@ -10,19 +10,18 @@ use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::glue::{SetProxyExtra, GetProxyHandler};
+use js::glue::{GetProxyHandler, SetProxyExtra};
 use js::jsapi::GetObjectProto;
-use js::jsapi::{Handle, HandleObject, HandleId, MutableHandle, RootedObject, ObjectOpResult};
-use js::jsapi::{JSContext, JSPropertyDescriptor, JSObject};
+use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult, RootedObject};
+use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor};
+use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
 use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_GetPropertyDescriptorById};
-use js::jsapi::{JS_StrictPropertyStub, JSErrNum};
 use js::jsval::ObjectValue;
-use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY};
-use js::{JSTrue, JSFalse};
+use js::{JSFalse, JSTrue};
+use js::{JSPROP_ENUMERATE, JSPROP_GETTER, JSPROP_READONLY};
 use libc;
-use std::mem;
-use std::ptr;
+use std::{mem, ptr};
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 

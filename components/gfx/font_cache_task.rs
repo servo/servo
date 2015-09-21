@@ -13,7 +13,7 @@ use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::font_face::Source;
 use util::str::LowercaseString;

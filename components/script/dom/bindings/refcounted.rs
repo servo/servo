@@ -25,12 +25,12 @@
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_reflector;
-use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::utils::{Reflectable, Reflector};
 use js::jsapi::{JSContext, JSTracer};
 use libc;
-use script_task::{ScriptChan, CommonScriptMsg};
+use script_task::{CommonScriptMsg, ScriptChan};
 use std::cell::RefCell;
-use std::collections::hash_map::Entry::{Vacant, Occupied};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};

@@ -26,9 +26,9 @@
 use core::nonzero::NonZero;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
-use dom::bindings::utils::{Reflector, Reflectable};
+use dom::bindings::utils::{Reflectable, Reflector};
 use dom::node::Node;
-use js::jsapi::{JSObject, Heap, JSTracer};
+use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;

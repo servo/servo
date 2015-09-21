@@ -185,14 +185,16 @@
 #[macro_use]
 pub mod macros;
 
-pub mod bindings;
-
 pub mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub mod activation;
 pub mod attr;
+mod create;
+#[allow(unsafe_code)]
+#[deny(missing_docs, non_snake_case)]
+pub mod bindings;
 pub mod blob;
 pub mod browsercontext;
 pub mod canvasgradient;
@@ -202,7 +204,6 @@ pub mod characterdata;
 pub mod closeevent;
 pub mod comment;
 pub mod console;
-mod create;
 pub mod crypto;
 pub mod css;
 pub mod cssstyledeclaration;
@@ -319,6 +320,8 @@ pub mod screen;
 pub mod servohtmlparser;
 pub mod storage;
 pub mod storageevent;
+pub mod testbinding;
+pub mod testbindingproxy;
 pub mod text;
 pub mod textdecoder;
 pub mod textencoder;
@@ -350,6 +353,3 @@ pub mod workernavigator;
 pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
-
-pub mod testbinding;
-pub mod testbindingproxy;

@@ -67,6 +67,9 @@ path = "../net_traits"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.profile]
 path = "../profile"
 

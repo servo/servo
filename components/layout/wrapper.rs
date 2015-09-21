@@ -41,7 +41,7 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::LayoutJS;
@@ -53,12 +53,12 @@ use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
-use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
+use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{Node, NodeTypeId};
 use script::dom::text::Text;
 use selectors::matching::DeclarationBlock;
-use selectors::parser::{NamespaceConstraint, AttrSelector};
+use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
@@ -1132,4 +1132,3 @@ impl TextContent {
         }
     }
 }
-

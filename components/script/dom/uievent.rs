@@ -11,7 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
