@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>location_reload</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+
+    <iframe></iframe>
+
+    <script>
+
+    async_test(function(t) {
+
+      var url = new URL("./location_reload-iframe.html", window.location).href;
+      var pingCount = 0;
+
+      window._ping = t.step_func(function(innerURL) {
+          assert_equals(url, innerURL, "iframe url (" + pingCount + ")");
+          pingCount++;
+          if (pingCount == 5) {
+            t.done();
+          }
+      });
+
+      var iframe = document.querySelector("iframe");
+      iframe.src = url;
+
+    });
+
+
+    </script>
+
+  </body>
+</html>

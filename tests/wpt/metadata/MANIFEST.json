@@ -29184,7 +29184,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/browsers/history/the-location-interface/location_reload.html": [
+          {
+            "path": "html/browsers/history/the-location-interface/location_reload.html",
+            "url": "/html/browsers/history/the-location-interface/location_reload.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
