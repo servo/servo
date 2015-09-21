@@ -12,7 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
-use js::jsapi::{JSContext, Heap, HandleValue};
+use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
 use std::default::Default;

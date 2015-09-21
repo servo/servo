@@ -8,7 +8,7 @@
 
 extern crate hyper;
 
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;

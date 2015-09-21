@@ -12,9 +12,9 @@ use gfx::paint_task::{ChromeToPaintMsg, LayoutToPaintMsg, PaintTask};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
-use msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType, MozBrowserEvent};
+use msg::constellation_msg::{LoadData, MozBrowserEvent, PipelineExitType, WindowSizeData};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -389,4 +389,3 @@ impl PipelineContent {
 
     }
 }
-

@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(non_camel_case_types)]
-
 pub use cssparser::RGBA;
-
 
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
@@ -43,14 +40,13 @@ pub type CSSFloat = f32;
 
 
 pub mod specified {
-    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
+    use cssparser::{self, CssStringWriter, Parser, ToCss, Token};
     use euclid::size::Size2D;
     use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
-    use std::fmt;
-    use std::fmt::Write;
+    use std::fmt::{self, Write};
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::CSSFloat;
@@ -1217,15 +1213,15 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use super::specified::{Angle, BorderStyle, Time};
     use euclid::size::Size2D;
-    pub use cssparser::Color as CSSColor;
     use properties::longhands;
     use std::fmt;
     use super::specified::AngleOrCorner;
-    use super::{specified, CSSFloat};
+    use super::{CSSFloat, specified};
     use url::Url;
     use util::geometry::Au;
+    pub use cssparser::Color as CSSColor;
+    pub use super::specified::{Angle, BorderStyle, Time};
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,

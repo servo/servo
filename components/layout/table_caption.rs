@@ -9,7 +9,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
-use flow::{FlowClass, Flow, OpaqueFlow};
+use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use std::fmt;
 use std::sync::Arc;

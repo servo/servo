@@ -5,30 +5,30 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(ip_addr)]
+#![feature(ip_addr, plugin)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
-
-extern crate webdriver;
+extern crate hyper;
+extern crate ipc_channel;
 extern crate msg;
 extern crate png;
+extern crate regex;
+extern crate rustc_serialize;
 extern crate url;
 extern crate util;
-extern crate rustc_serialize;
 extern crate uuid;
-extern crate ipc_channel;
-extern crate regex;
-extern crate hyper;
+extern crate webdriver;
 
 use hyper::method::Method::{self, Post};
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
+use msg::constellation_msg::{ConstellationChan, FrameId, LoadData, PipelineId};
 use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
+use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
-use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -39,13 +39,13 @@ use util::prefs::{get_pref, set_pref};
 use util::task::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
-use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters, Parameters};
-use webdriver::command::{WebDriverMessage, WebDriverCommand, WebDriverExtensionCommand};
+use webdriver::command::{Parameters, SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::common::{LocatorStrategy, WebElement};
-use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
+use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
-use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
-use webdriver::server::{self, WebDriverHandler, Session};
+use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse};
+use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),

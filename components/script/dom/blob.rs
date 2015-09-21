@@ -6,14 +6,14 @@ use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::InheritTypes::FileDerived;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell};
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::sync::mpsc::Sender;
 use util::str::DOMString;
 

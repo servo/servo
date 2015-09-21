@@ -16,7 +16,7 @@
 //
 
 use std::boxed::FnBox;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use task::spawn_named;
 

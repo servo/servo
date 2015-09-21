@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::{reflect_dom_object};
-use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
 use dom::storage::Storage;
 use util::str::DOMString;
 

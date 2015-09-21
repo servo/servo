@@ -5,9 +5,9 @@
 //! Geometry in flow-relative space.
 
 use euclid::num::Zero;
-use euclid::{Size2D, Point2D, SideOffsets2D, Rect};
-use std::cmp::{min, max};
-use std::fmt::{self, Debug, Formatter, Error};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use std::cmp::{max, min};
+use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
 
 bitflags!(
@@ -1026,4 +1026,3 @@ pub enum PhysicalSide {
     Bottom,
     Left,
 }
-

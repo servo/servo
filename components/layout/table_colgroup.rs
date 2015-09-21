@@ -8,7 +8,7 @@
 
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
-use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
+use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 use std::cmp::max;

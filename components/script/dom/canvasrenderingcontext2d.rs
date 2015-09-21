@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas::canvas_paint_task::RectToi32;
-use canvas_traits::{CanvasMsg, Canvas2dMsg, CanvasCommonMsg};
+use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
+use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
-use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
@@ -17,7 +17,7 @@ use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCan
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::Error::{IndexSize, InvalidState, Syntax};
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -27,7 +27,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
-use dom::node::{window_from_node, NodeDamage};
+use dom::node::{NodeDamage, window_from_node};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -39,10 +39,9 @@ use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::cmp;
-use std::fmt;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
+use std::{cmp, fmt};
 use url::Url;
 use util::str::DOMString;
 use util::vec::byte_swap;

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
-use dom::bindings::js::{Root, RootedReference, LayoutJS};
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;

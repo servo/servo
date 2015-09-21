@@ -16,18 +16,18 @@
 //! [glutin]: https://github.com/tomaka/glutin
 
 #![feature(start)]
-
-// The Servo engine
-extern crate servo;
-
-// The window backed by glutin
-extern crate glutin_app as app;
-extern crate time;
-extern crate env_logger;
+#![feature(plugin)]
+#![plugin(plugins)]
 
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
+// The window backed by glutin
+extern crate glutin_app as app;
+extern crate env_logger;
+// The Servo engine
+extern crate servo;
+extern crate time;
 
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;

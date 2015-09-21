@@ -6,22 +6,23 @@
 #![feature(nonzero)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
-
-extern crate core;
-extern crate canvas_traits;
-extern crate azure;
-extern crate cssparser;
-extern crate euclid;
-extern crate gfx_traits;
-extern crate ipc_channel;
-extern crate util;
-extern crate gleam;
-extern crate num;
-extern crate layers;
-extern crate offscreen_gl_context;
+#![feature(plugin)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
+extern crate azure;
+extern crate canvas_traits;
+extern crate core;
+extern crate cssparser;
+extern crate euclid;
+extern crate gfx_traits;
+extern crate gleam;
+extern crate ipc_channel;
+extern crate layers;
+extern crate num;
+extern crate offscreen_gl_context;
+extern crate util;
 
 pub mod canvas_paint_task;
 pub mod webgl_paint_task;

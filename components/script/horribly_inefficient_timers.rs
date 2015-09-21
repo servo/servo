@@ -5,8 +5,8 @@
 /// A quick hack to work around the removal of [`std::old_io::timer::Timer`](
 /// http://doc.rust-lang.org/1.0.0-beta/std/old_io/timer/struct.Timer.html )
 
-use std::sync::mpsc::{channel, Receiver};
-use std::thread::{spawn, sleep_ms};
+use std::sync::mpsc::{Receiver, channel};
+use std::thread::{sleep_ms, spawn};
 
 pub fn oneshot(duration_ms: u32) -> Receiver<()> {
     let (tx, rx) = channel();
