@@ -92,9 +92,9 @@ def _activate_virtualenv(topdir):
         except OSError:
             sys.exit("Python virtualenv not found. Please install virtualenv and ensure permissions prior to running mach.")
 
-        activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
-        execfile(activate_path, dict(__file__=activate_path))
-        
+    activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
+    execfile(activate_path, dict(__file__=activate_path))
+
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
     # requirements, we wouldn't know about them. Once
