@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use rustc::lint::{Context, LintPass, LintArray, Level};
+use rustc::lint::{LateContext, LintPass, LintArray, Level, LateLintPass, LintContext};
 use rustc::middle::def;
 use rustc::middle::def_id::DefId;
 use syntax::ast;
+use rustc_front::hir;
+
 use utils::match_lang_ty;
 
 declare_lint!(INHERITANCE_INTEGRITY, Deny,
@@ -21,9 +23,11 @@ impl LintPass for InheritancePass {
     fn get_lints(&self) -> LintArray {
         lint_array!(INHERITANCE_INTEGRITY)
     }
+}
 
-    fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident,
-                        _gen: &ast::Generics, id: ast::NodeId) {
+impl LateLintPass for InheritancePass {
+    fn check_struct_def(&mut self, cx: &LateContext, def: &hir::StructDef, _i: ast::Ident,
+                        _gen: &hir::Generics, id: ast::NodeId) {
         // Lints are run post expansion, so it's fine to use
         // #[_dom_struct_marker] here without also checking for #[dom_struct]
         if cx.tcx.has_attr(DefId::local(id), "_dom_struct_marker") {
@@ -43,7 +47,7 @@ impl LintPass for InheritancePass {
                                     .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields.iter().enumerate().filter_map(|(ctr, f)| {
-                if let ast::TyPath(..) = f.node.ty.node {
+                if let hir::TyPath(..) = f.node.ty.node {
                     if let Some(&def::PathResolution { base_def: def::DefTy(def_id, _), .. }) =
                             cx.tcx.def_map.borrow().get(&f.node.ty.id) {
                         if cx.tcx.has_attr(def_id, "_dom_struct_marker") {
