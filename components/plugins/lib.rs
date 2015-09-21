@@ -20,11 +20,12 @@ extern crate syntax;
 #[macro_use]
 extern crate rustc;
 
+extern crate rustc_front;
+
 extern crate tenacious;
 #[cfg(feature = "clippy")]
 extern crate clippy;
 
-use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
 use syntax::ext::base::*;
 use syntax::feature_gate::AttributeType::Whitelisted;
@@ -50,12 +51,12 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("derive_HeapSizeOf"), MultiDecorator(box heap_size::expand_heap_size));
     reg.register_macro("to_lower", casing::expand_lower);
     reg.register_macro("to_upper", casing::expand_upper);
-    reg.register_lint_pass(box lints::transmute_type::TransmutePass as LintPassObject);
-    reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass::new() as LintPassObject);
-    reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
-    reg.register_lint_pass(box lints::inheritance_integrity::InheritancePass as LintPassObject);
-    reg.register_lint_pass(box lints::ban::BanPass as LintPassObject);
-    reg.register_lint_pass(box tenacious::TenaciousPass as LintPassObject);
+    reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
+    reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
+    reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
+    reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
+    reg.register_early_lint_pass(box lints::ban::BanPass);
+    reg.register_late_lint_pass(box tenacious::TenaciousPass);
     reg.register_attribute("must_root".to_string(), Whitelisted);
     reg.register_attribute("servo_lang".to_string(), Whitelisted);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
@@ -68,5 +69,5 @@ fn register_clippy(reg: &mut Registry) {
 }
 #[cfg(not(feature = "clippy"))]
 fn register_clippy(reg: &mut Registry) {
-    reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
+    reg.register_late_lint_pass(box lints::str_to_string::StrToStringPass);
 }

@@ -52,7 +52,7 @@ pub use self::Stolen::{Empty, Abort, Data};
 use std::marker;
 use std::mem::{forget, align_of, size_of, transmute};
 use std::ptr;
-use std::rt::heap::{allocate, deallocate};
+use alloc::heap::{allocate, deallocate};
 use std::sync::Arc;
 
 use std::sync::Mutex;
