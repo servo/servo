@@ -35,11 +35,6 @@ impl DOMStringMap {
 
 // https://html.spec.whatwg.org/#domstringmap
 impl DOMStringMapMethods for DOMStringMap {
-    // https://html.spec.whatwg.org/multipage/#dom-domstringmap-additem
-    fn NamedCreator(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        self.NamedSetter(name, value)
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
     fn NamedDeleter(&self, name: DOMString) {
         let element = self.element.root();

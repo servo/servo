@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://html.spec.whatwg.org/multipage/#webstorage
+ * https://html.spec.whatwg.org/multipage/#the-storage-interface
  *
  */
 
@@ -16,7 +16,7 @@ interface Storage {
 
   getter DOMString? getItem(DOMString name);
 
-  setter creator void setItem(DOMString name, DOMString value);
+  setter void setItem(DOMString name, DOMString value);
 
   deleter void removeItem(DOMString name);
 

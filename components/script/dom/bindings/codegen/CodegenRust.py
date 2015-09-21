@@ -4156,8 +4156,6 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
-            if self.descriptor.operations['IndexedCreator'] != indexedSetter:
-                raise TypeError("Can't handle creator that's different from the setter")
             set += ("let index = get_array_index_from_id(cx, id);\n" +
                     "if let Some(index) = index {\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -4173,8 +4171,6 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         namedSetter = self.descriptor.operations['NamedSetter']
         if namedSetter:
-            if self.descriptor.operations['NamedCreator'] != namedSetter:
-                raise TypeError("Can't handle creator that's different from the setter")
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
