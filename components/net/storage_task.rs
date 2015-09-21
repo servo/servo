@@ -53,6 +53,9 @@ impl StorageManager {
                 StorageTaskMsg::Key(sender, url, storage_type, index) => {
                     self.key(sender, url, storage_type, index)
                 }
+                StorageTaskMsg::Keys(sender, url, storage_type) => {
+                    self.keys(sender, url, storage_type)
+                }
                 StorageTaskMsg::SetItem(sender, url, storage_type, name, value) => {
                     self.set_item(sender, url, storage_type, name, value)
                 }
@@ -104,6 +107,18 @@ impl StorageManager {
         sender.send(data.get(&origin)
                     .and_then(|entry| entry.keys().nth(index as usize))
                     .map(|key| key.clone())).unwrap();
+    }
+
+    fn keys(&self,
+            sender: IpcSender<Vec<DOMString>>,
+            url: Url,
+            storage_type: StorageType) {
+        let origin = self.origin_as_string(url);
+        let data = self.select_data(storage_type);
+        let keys = data.get(&origin)
+                       .map_or(vec![], |entry| entry.keys().cloned().collect());
+
+        sender.send(keys).unwrap();
     }
 
     /// Sends Some(old_value) in case there was a previous value with the same key name but with different
