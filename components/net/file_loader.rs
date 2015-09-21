@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, Metadata, LoadConsumer};
-use resource_task::{start_sending, start_sending_sniffed, ProgressSender};
+use net_traits::ProgressMsg::{Done, Payload};
+use net_traits::{LoadConsumer, LoadData, Metadata};
+use resource_task::{ProgressSender, start_sending, start_sending_sniffed};
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;

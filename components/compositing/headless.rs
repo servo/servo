@@ -5,7 +5,7 @@
 use compositor_task::{CompositorEventListener, CompositorReceiver};
 use compositor_task::{InitialCompositorState, Msg};
 use euclid::scale_factor::ScaleFactor;
-use euclid::{Size2D, Point2D};
+use euclid::{Point2D, Size2D};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};

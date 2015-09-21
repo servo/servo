@@ -5,7 +5,7 @@
 //! The task that handles all painting.
 
 use azure::AzFloat;
-use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
+use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
 use display_list::{self, StackingContext};
 use euclid::Matrix4;

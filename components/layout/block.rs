@@ -40,7 +40,7 @@ use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
-use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
@@ -48,15 +48,15 @@ use gfx::display_list::{ClippingRegion, DisplayList};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
+use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{IntrinsicISizes, MarginCollapseInfo};
-use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use msg::compositor_msg::{LayerId, LayerType};
-use rustc_serialize::{Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{transform, transform_style, position, text_align};
+use style::computed_values::{position, text_align, transform, transform_style};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -3029,4 +3029,3 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
-

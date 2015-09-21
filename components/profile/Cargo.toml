@@ -10,6 +10,9 @@ path = "lib.rs"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.util]
 path = "../util"
 

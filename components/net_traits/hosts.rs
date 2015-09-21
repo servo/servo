@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ::{IPV4_REGEX, IPV6_REGEX};
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use url::Url;
-use {IPV4_REGEX, IPV6_REGEX};
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 

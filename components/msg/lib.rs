@@ -5,25 +5,25 @@
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros, plugins)]
 
+#[macro_use]
+extern crate bitflags;
 extern crate azure;
-#[macro_use] extern crate bitflags;
 extern crate canvas_traits;
+#[cfg(target_os = "macos")]
+extern crate core_foundation;
 extern crate euclid;
 extern crate hyper;
+#[cfg(target_os = "macos")]
+extern crate io_surface;
 extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
 extern crate png;
 extern crate rustc_serialize;
 extern crate serde;
-extern crate util;
-extern crate url;
 extern crate style_traits;
-
-#[cfg(target_os = "macos")]
-extern crate core_foundation;
-#[cfg(target_os = "macos")]
-extern crate io_surface;
+extern crate url;
+extern crate util;
 
 pub mod compositor_msg;
 pub mod constellation_msg;

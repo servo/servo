@@ -6,12 +6,10 @@ use euclid::point::Point2D;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 use simd::u32x4;
 use std::cmp::{Ordering, PartialOrd};
-use std::fmt;
-use std::mem;
-use std::u16;
 use std::vec::Vec;
+use std::{fmt, mem, u16};
 use util::geometry::Au;
-use util::range::{self, Range, RangeIndex, EachIndex};
+use util::range::{self, EachIndex, Range, RangeIndex};
 use util::vec::*;
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.

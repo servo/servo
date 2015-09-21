@@ -17,11 +17,11 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
-use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
-use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use url::Url;
 use util::mem::HeapSizeOf;
 

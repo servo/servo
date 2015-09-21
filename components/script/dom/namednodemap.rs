@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{namespace_from_domstring, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, namespace_from_domstring, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
 use string_cache::Atom;

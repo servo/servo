@@ -10,10 +10,10 @@
 #![feature(plugin)]
 #![plugin(serde_macros, plugins)]
 
-extern crate core;
 extern crate azure;
-extern crate euclid;
+extern crate core;
 extern crate cssparser;
+extern crate euclid;
 extern crate gfx_traits;
 extern crate ipc_channel;
 extern crate layers;
@@ -21,11 +21,11 @@ extern crate offscreen_gl_context;
 extern crate serde;
 extern crate util;
 
-use azure::azure::{AzFloat, AzColor};
-use azure::azure_hl::{DrawTarget, Pattern, ColorPattern};
-use azure::azure_hl::{GradientStop, LinearGradientPattern, RadialGradientPattern, ExtendMode};
-use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp};
-use azure::azure_hl::{SurfacePattern, SurfaceFormat};
+use azure::azure::{AzColor, AzFloat};
+use azure::azure_hl::{CapStyle, CompositionOp, JoinStyle};
+use azure::azure_hl::{ColorPattern, DrawTarget, Pattern};
+use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
+use azure::azure_hl::{SurfaceFormat, SurfacePattern};
 use core::nonzero::NonZero;
 use cssparser::RGBA;
 use euclid::matrix2d::Matrix2D;
