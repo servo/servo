@@ -279,7 +279,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         pub fn parse(input: &mut Parser) -> Result<Length, ()> {
             Length::parse_internal(input, &AllowedNumericType::All)
         }
@@ -692,7 +691,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
             LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
@@ -784,7 +782,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::All)
@@ -823,7 +820,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
             LengthOrNone::parse_internal(input, &AllowedNumericType::All)
