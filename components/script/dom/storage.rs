@@ -116,8 +116,10 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        self.get_storage_task().send(StorageTaskMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
+        receiver.recv().unwrap()
     }
 
     // check-tidy: no specs after this line
