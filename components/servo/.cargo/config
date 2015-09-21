@@ -1,4 +1,4 @@
-paths = ["../../support/android-rs-glue"]
+paths = ["../../support/android-rs-glue", "/home/manishearth/Mozilla/Git/rust-aster"]
 
 [target.arm-linux-androideabi]
 linker = "../../target/debug/apk-builder"

@@ -4,7 +4,6 @@
 
 #![feature(alloc)]
 #![feature(box_syntax)]
-#![feature(box_raw)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
