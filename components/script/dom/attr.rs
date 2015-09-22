@@ -74,6 +74,11 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
+    /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `TokenList`
     pub fn as_tokens(&self) -> &[Atom] {
         match *self {
             AttrValue::TokenList(_, ref tokens) => tokens,
@@ -81,6 +86,11 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is an `Atom` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not an `Atom`
     pub fn as_atom(&self) -> &Atom {
         match *self {
             AttrValue::Atom(ref value) => value,
@@ -88,6 +98,11 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `SpecifiedLength` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `SpecifiedLength`
     pub fn as_specified_length(&self) -> &Length {
         match *self {
             AttrValue::SpecifiedLength(_, ref length) => length,
@@ -98,6 +113,10 @@ impl AttrValue {
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `UInt`
     pub fn as_uint(&self) -> u32 {
         if let AttrValue::UInt(_, value) = *self {
             value
