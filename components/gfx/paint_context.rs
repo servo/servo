@@ -86,12 +86,15 @@ struct Ellipse {
     height: f32,
 }
 
+/// When `Line::new` creates a new `Line` it ensures `start.x <= end.x` for that line.
 #[derive(Copy, Clone, Debug)]
 struct Line {
     start: Point2D<f32>,
     end: Point2D<f32>,
 }
+
 impl Line {
+    /// Guarantees that `start.x <= end.x` for the returned `Line`.
     fn new(start: Point2D<f32>, end: Point2D<f32>) -> Line {
         let line = if start.x <= end.x {
             Line { start: start, end: end }
@@ -419,28 +422,25 @@ impl<'a> PaintContext<'a> {
         (Some(x1), Some(x2))
     }
 
-    fn intersect_ellipse_line(_e: Ellipse, _l: Line) -> (Option<Point2D<f32>>,
-                                                         Option<Point2D<f32>>) {
-        let mut line = _l;
-        let mut e = _e;
-        let mut rotated_axises = false;
-
-        fn rotate_axises(point: Point2D<f32>, clockwise: bool) -> Point2D<f32> {
+    fn intersect_ellipse_line(mut e: Ellipse, mut line: Line) -> (Option<Point2D<f32>>,
+                                                                  Option<Point2D<f32>>) {
+        let mut rotated_axes = false;
+        fn rotate_axes(point: Point2D<f32>, clockwise: bool) -> Point2D<f32> {
             if clockwise {
-                // rotate clockwise by 90 degress
+                // rotate clockwise by 90 degrees
                 Point2D::new(point.y, -point.x)
             } else {
-                // rotate counter clockwise by 90 degress
+                // rotate counter clockwise by 90 degrees
                 Point2D::new(-point.y, point.x)
             }
         }
 
-        // if line height is greater than it's width then rotate the axises by 90 degrees,
+        // if line height is greater than its width then rotate the axes by 90 degrees,
         // i.e. (x, y) -> (y, -x).
         if (line.end.x - line.start.x).abs() < (line.end.y - line.start.y).abs() {
-            rotated_axises = true;
-            line = Line::new(rotate_axises(line.start, true), rotate_axises(line.end, true));
-            e = Ellipse { origin: rotate_axises(e.origin, true),
+            rotated_axes = true;
+            line = Line::new(rotate_axes(line.start, true), rotate_axes(line.end, true));
+            e = Ellipse { origin: rotate_axes(e.origin, true),
                           width: e.height, height: e.width };
         }
         debug_assert!(line.end.x - line.start.x > f32::EPSILON,
@@ -471,23 +471,23 @@ impl<'a> PaintContext<'a> {
                 if x0 > x1 {
                     mem::swap(&mut p0, &mut p1);
                 }
-                if rotated_axises {
-                    p0 = rotate_axises(p0, false);
-                    p1 = rotate_axises(p1, false);
+                if rotated_axes {
+                    p0 = rotate_axes(p0, false);
+                    p1 = rotate_axes(p1, false);
                 }
                 (Some(p0), Some(p1))
             },
             (Some(x0), None) => {
                 let mut p = Point2D::new(x0, a * x0 + b) + e.origin;
-                if rotated_axises {
-                    p = rotate_axises(p, false);
+                if rotated_axes {
+                    p = rotate_axes(p, false);
                 }
                 (Some(p), None)
             },
             (None, Some(x1)) => {
                 let mut p = Point2D::new(x1, a * x1 + b) + e.origin;
-                if rotated_axises {
-                    p = rotate_axises(p, false);
+                if rotated_axes {
+                    p = rotate_axes(p, false);
                 }
                 (Some(p), None)
             },
