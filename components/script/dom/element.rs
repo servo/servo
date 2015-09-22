@@ -20,12 +20,11 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTableSectionElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementCast, HTMLFontElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableElementCast, HTMLTableCellElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSectionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::Error::NoModificationAllowed;
@@ -42,17 +41,11 @@ use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlfontelement::HTMLFontElement;
-use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
-use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
+use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, NodeDamage};
@@ -248,20 +241,15 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
-        let bgcolor = if self.is_htmlbodyelement() {
-            let this: &HTMLBodyElement = mem::transmute(self);
+        let bgcolor = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablecellelement() {
-            let this: &HTMLTableCellElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablerowelement() {
-            let this: &HTMLTableRowElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableRowElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablesectionelement() {
-            let this: &HTMLTableSectionElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableSectionElementCast::to_ref(self) {
             this.get_background_color()
         } else {
             None
@@ -273,8 +261,7 @@ impl RawLayoutElementHelpers for Element {
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
 
-        let background = if self.is_htmlbodyelement() {
-            let this: &HTMLBodyElement = mem::transmute(self);
+        let background = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
             this.get_background()
         } else {
             None
@@ -286,8 +273,7 @@ impl RawLayoutElementHelpers for Element {
                     background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
         }
 
-        let color = if self.is_htmlfontelement() {
-            let this: &HTMLFontElement = mem::transmute(self);
+        let color = if let Some(this) = HTMLFontElementCast::to_ref(self) {
             this.get_color()
         } else {
             None
@@ -301,8 +287,7 @@ impl RawLayoutElementHelpers for Element {
                 }))));
         }
 
-        let font_family = if self.is_htmlfontelement() {
-            let this: &HTMLFontElement = mem::transmute(self);
+        let font_family = if let Some(this) = HTMLFontElementCast::to_ref(self) {
             this.get_face()
         } else {
             None
@@ -317,8 +302,7 @@ impl RawLayoutElementHelpers for Element {
                                 font_family)])))));
         }
 
-        let cellspacing = if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        let cellspacing = if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_cellspacing()
         } else {
             None
@@ -335,13 +319,12 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let size = if self.is_htmlinputelement() {
+        let size = if let Some(this) = HTMLInputElementCast::to_ref(self) {
             // FIXME(pcwalton): More use of atoms, please!
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
             match self.get_attr_val_for_layout(&ns!(""), &atom!("type")) {
                 Some("text") | Some("password") => {
-                    let this: &HTMLInputElement = mem::transmute(self);
                     match this.get_size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
@@ -362,14 +345,11 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let width = if self.is_htmliframeelement() {
-            let this: &HTMLIFrameElement = mem::transmute(self);
+        let width = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
             this.get_width()
-        } else if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_width()
-        } else if self.is_htmltablecellelement() {
-            let this: &HTMLTableCellElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
             this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -392,8 +372,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let height = if self.is_htmliframeelement() {
-            let this: &HTMLIFrameElement = mem::transmute(self);
+        let height = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -416,8 +395,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let cols = if self.is_htmltextareaelement() {
-            let this: &HTMLTextAreaElement = mem::transmute(self);
+        let cols = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
             match this.get_cols_for_layout() {
                 0 => None,
                 c => Some(c as i32),
@@ -439,8 +417,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let rows = if self.is_htmltextareaelement() {
-            let this: &HTMLTextAreaElement = mem::transmute(self);
+        let rows = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
             match this.get_rows_for_layout() {
                 0 => None,
                 r => Some(r as i32),
@@ -460,8 +437,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let border = if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        let border = if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_border()
         } else {
             None
@@ -489,8 +465,7 @@ impl RawLayoutElementHelpers for Element {
                                                         -> Option<u32> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
-                if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
+                if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
                     this.get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
