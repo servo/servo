@@ -17,6 +17,9 @@ import toml
 
 from mach.registrar import Registrar
 
+BIN_SUFFIX = ""
+if sys.platform == "win32":
+    BIN_SUFFIX = ".exe"
 
 @contextlib.contextmanager
 def cd(new_path):
@@ -37,6 +40,8 @@ def host_triple():
         os_type = "apple-darwin"
     elif os_type == "android":
         os_type = "linux-androideabi"
+    elif os_type.startswith("mingw64_nt-"):
+        os_type = "pc-windows-gnu"
     else:
         os_type = "unknown"
 
@@ -52,6 +57,11 @@ def host_triple():
 
     return "%s-%s" % (cpu_type, os_type)
 
+def use_nightly_rust():
+    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST")
+    if envvar:
+        return envvar != "0"
+    return False
 
 class CommandBase(object):
     """Base class for mach command providers.
@@ -101,7 +111,7 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
-        self.config["tools"].setdefault("rustc-with-gold", True)
+        self.config["tools"].setdefault("rustc-with-gold", sys.platform != "win32")
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -122,9 +132,13 @@ class CommandBase(object):
 
     def rust_snapshot_path(self):
         if self._rust_snapshot_path is None:
-            filename = path.join(self.context.topdir, "rust-snapshot-hash")
-            with open(filename) as f:
-                snapshot_hash = f.read().strip()
+            snapshot_hash = None
+            if use_nightly_rust():
+                snapshot_hash = "rust-nightly"
+            else:
+                filename = path.join(self.context.topdir, "rust-snapshot-hash")
+                with open(filename) as f:
+                    snapshot_hash = f.read().strip()
             self._rust_snapshot_path = "%s-%s" % (snapshot_hash, host_triple())
         return self._rust_snapshot_path
 
@@ -313,6 +327,9 @@ class CommandBase(object):
             if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
                 env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
 
+        # This sometimes ends up as unicode
+        env["PATH"] = env["PATH"].encode('ascii', 'ignore')
+
         return env
 
     def servo_crate(self):
@@ -329,11 +346,11 @@ class CommandBase(object):
 
         if not self.config["tools"]["system-rust"] and \
            not path.exists(path.join(
-                self.config["tools"]["rust-root"], "rustc", "bin", "rustc")):
+                self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo" + BIN_SUFFIX)):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True

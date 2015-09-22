@@ -115,6 +115,10 @@ def call(*args, **kwargs):
     verbose = kwargs.pop('verbose', False)
     if verbose:
         print(' '.join(args[0]))
+    if sys.platform == "win32":
+        # we have to use shell=True in order to get PATH handling
+        # when looking for the binary on Windows
+        return subprocess.call(*args, shell=True, **kwargs)
     return subprocess.call(*args, **kwargs)
 
 
