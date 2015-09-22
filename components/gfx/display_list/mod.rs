@@ -99,7 +99,7 @@ pub struct DisplayList {
     /// Child stacking contexts.
     pub children: LinkedList<Arc<StackingContext>>,
     /// Child PaintLayers that will be rendered on top of everything else.
-    pub layered_children: LinkedList<PaintLayer>,
+    pub layered_children: LinkedList<Arc<PaintLayer>>,
 }
 
 impl DisplayList {
@@ -705,8 +705,8 @@ impl StackingContextLayerCreator {
                 stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
             let child_stacking_context =
                 Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
-            stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context));
+            stacking_context.display_list.layered_children.push_back(Arc::new(
+                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context)));
             self.all_following_children_need_layers = true;
         }
     }
@@ -717,7 +717,7 @@ impl StackingContextLayerCreator {
         if let Some(layer_id) = stacking_context.layer_id {
             self.finish_building_current_layer(parent_stacking_context);
             parent_stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(layer_id, color::transparent(), stacking_context));
+                Arc::new(PaintLayer::new(layer_id, color::transparent(), stacking_context)));
 
             // We have started processing layered stacking contexts, so any stacking context that
             // we process from now on needs its own layer to ensure proper rendering order.
@@ -735,17 +735,18 @@ impl StackingContextLayerCreator {
 }
 
 /// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
-pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
-                                           -> Option<Arc<StackingContext>> {
+pub fn find_layer_with_layer_id(this: &Arc<StackingContext>,
+                                layer_id: LayerId)
+                                -> Option<Arc<PaintLayer>> {
     for kid in &this.display_list.layered_children {
-        if let Some(stacking_context) = kid.find_stacking_context_with_layer_id(layer_id) {
-            return Some(stacking_context);
+        if let Some(paint_layer) = PaintLayer::find_layer_with_layer_id(&kid, layer_id) {
+            return Some(paint_layer);
         }
     }
 
     for kid in &this.display_list.children {
-        if let Some(stacking_context) = find_stacking_context_with_layer_id(kid, layer_id) {
-            return Some(stacking_context);
+        if let Some(paint_layer) = find_layer_with_layer_id(kid, layer_id) {
+            return Some(paint_layer);
         }
     }
 

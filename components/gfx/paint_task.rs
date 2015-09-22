@@ -60,14 +60,14 @@ impl PaintLayer {
         }
     }
 
-    pub fn find_stacking_context_with_layer_id(&self,
-                                               layer_id: LayerId)
-                                               -> Option<Arc<StackingContext>> {
-        if self.id == layer_id {
-            return Some(self.stacking_context.clone());
+    pub fn find_layer_with_layer_id(this: &Arc<PaintLayer>,
+                                    layer_id: LayerId)
+                                    -> Option<Arc<PaintLayer>> {
+        if this.id == layer_id {
+            return Some(this.clone());
         }
 
-        display_list::find_stacking_context_with_layer_id(&self.stacking_context, layer_id)
+        display_list::find_layer_with_layer_id(&this.stacking_context, layer_id)
     }
 }
 
@@ -111,7 +111,7 @@ pub struct PaintTask<C> {
     time_profiler_chan: time::ProfilerChan,
 
     /// The root paint layer sent to us by the layout thread.
-    root_paint_layer: Option<PaintLayer>,
+    root_paint_layer: Option<Arc<PaintLayer>>,
 
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
@@ -216,7 +216,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             match message {
                 Msg::FromLayout(LayoutToPaintMsg::PaintInit(epoch, paint_layer)) => {
                     self.current_epoch = Some(epoch);
-                    self.root_paint_layer = Some(paint_layer);
+                    self.root_paint_layer = Some(Arc::new(paint_layer));
 
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
@@ -296,9 +296,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
               layer_kind: LayerKind) {
         time::profile(time::ProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate layer.
-            let stacking_context = if let Some(ref paint_layer) = self.root_paint_layer {
-                match paint_layer.find_stacking_context_with_layer_id(layer_id) {
-                    Some(stacking_context) => stacking_context,
+            let paint_layer = if let Some(ref root_paint_layer) = self.root_paint_layer {
+                match PaintLayer::find_layer_with_layer_id(root_paint_layer, layer_id) {
+                    Some(paint_layer) => paint_layer,
                     None => return,
                 }
             } else {
@@ -313,7 +313,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 let thread_id = i % self.worker_threads.len();
                 self.worker_threads[thread_id].paint_tile(thread_id,
                                                           tile,
-                                                          stacking_context.clone(),
+                                                          paint_layer.clone(),
                                                           scale,
                                                           layer_kind);
             }
@@ -347,7 +347,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                                        self.current_epoch.unwrap());
 
         fn build_from_paint_layer(properties: &mut Vec<LayerProperties>,
-                                  paint_layer: &PaintLayer,
+                                  paint_layer: &Arc<PaintLayer>,
                                   page_position: &Point2D<Au>,
                                   transform: &Matrix4,
                                   perspective: &Matrix4,
@@ -470,12 +470,12 @@ impl WorkerThreadProxy {
     fn paint_tile(&mut self,
                   thread_id: usize,
                   tile: BufferRequest,
-                  stacking_context: Arc<StackingContext>,
+                  paint_layer: Arc<PaintLayer>,
                   scale: f32,
                   layer_kind: LayerKind) {
         let msg = MsgToWorkerThread::PaintTile(thread_id,
                                                tile,
-                                               stacking_context,
+                                               paint_layer,
                                                scale,
                                                layer_kind);
         self.sender.send(msg).unwrap()
@@ -540,10 +540,10 @@ impl WorkerThread {
         loop {
             match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
-                MsgToWorkerThread::PaintTile(thread_id, tile, stacking_context, scale, layer_kind) => {
+                MsgToWorkerThread::PaintTile(thread_id, tile, paint_layer, scale, layer_kind) => {
                     let buffer = self.optimize_and_paint_tile(thread_id,
                                                               tile,
-                                                              stacking_context,
+                                                              paint_layer,
                                                               scale,
                                                               layer_kind);
                     self.sender.send(MsgFromWorkerThread::PaintedTile(buffer)).unwrap()
@@ -576,10 +576,11 @@ impl WorkerThread {
     fn optimize_and_paint_tile(&mut self,
                                thread_id: usize,
                                mut tile: BufferRequest,
-                               stacking_context: Arc<StackingContext>,
+                               paint_layer: Arc<PaintLayer>,
                                scale: f32,
                                layer_kind: LayerKind)
                                -> Box<LayerBuffer> {
+        let stacking_context = &paint_layer.stacking_context;
         let size = Size2D::new(tile.screen_rect.size.width as i32,
                                tile.screen_rect.size.height as i32);
         let mut buffer = self.create_layer_buffer(&mut tile, scale);
@@ -683,7 +684,7 @@ impl WorkerThread {
 
 enum MsgToWorkerThread {
     Exit,
-    PaintTile(usize, BufferRequest, Arc<StackingContext>, f32, LayerKind),
+    PaintTile(usize, BufferRequest, Arc<PaintLayer>, f32, LayerKind),
 }
 
 enum MsgFromWorkerThread {
