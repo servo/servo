@@ -32,10 +32,16 @@ test(function() {
   assert_equals(doc.documentURI, "about:blank");
   assert_equals(doc.compatMode, "CSS1Compat");
   assert_equals(doc.characterSet, "UTF-8");
-  assert_equals(doc.inputEncoding, "UTF-8");
   assert_equals(doc.contentType, "application/xml");
   assert_equals(doc.createElement("DIV").localName, "DIV");
 }, "new Document(): metadata")
+
+test(function() {
+  var doc = new Document();
+  assert_equals(doc.characterSet, "UTF-8", "characterSet");
+  assert_equals(doc.charset, "UTF-8", "charset");
+  assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
+}, "new Document(): characterSet aliases")
 
 test(function() {
   var doc = new Document();

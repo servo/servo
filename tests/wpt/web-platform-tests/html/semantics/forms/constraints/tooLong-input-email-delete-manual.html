@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>ValidityState.tooLong and user editing</title>
+    <title>input[type="email"], ValidityState.tooLong and user editing</title>
     <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
     <link rel="help" href="https://html.spec.whatwg.org/multipage/#limiting-user-input-length:-the-maxlength-attribute">
     <meta name="flags" content="interact">
@@ -12,7 +12,7 @@
   </head>
   <body>
     <p>Delete one character from the following text input:</p>
-    <input type="text" value="0123456789" maxlength="5" autocomplete="off" id="testinput">
+    <input type="email" value="jane.doe@example.com" maxlength="5" autocomplete="off" id="testinput">
 
     <div id="log"></div>
     <script>

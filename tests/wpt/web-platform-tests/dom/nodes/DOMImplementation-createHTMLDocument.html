@@ -69,10 +69,16 @@ test(function() {
   assert_equals(doc.documentURI, "about:blank");
   assert_equals(doc.compatMode, "CSS1Compat");
   assert_equals(doc.characterSet, "UTF-8");
-  assert_equals(doc.inputEncoding, "UTF-8");
   assert_equals(doc.contentType, "text/html");
   assert_equals(doc.createElement("DIV").localName, "div");
 }, "createHTMLDocument(): metadata")
+
+test(function() {
+  var doc = document.implementation.createHTMLDocument("test");
+  assert_equals(doc.characterSet, "UTF-8", "characterSet");
+  assert_equals(doc.charset, "UTF-8", "charset");
+  assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
+}, "createHTMLDocument(): characterSet aliases")
 
 test(function() {
   var doc = document.implementation.createHTMLDocument("test");

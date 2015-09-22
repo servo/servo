@@ -229,8 +229,8 @@ var validator = {
         assert_true(ctl.reportValidity(), "The reportValidity method should be true.");
         assert_false(eventFired, "The invalid event should not be fired.");
       } else {
-        assert_true(eventFired, "The invalid event should be fired.");
         assert_false(ctl.reportValidity(), "The reportValidity method should be false.");
+        assert_true(eventFired, "The invalid event should be fired.");
       }
     }, data.name);
 
@@ -262,8 +262,20 @@ var validator = {
   },
 
   set_conditions: function (ctl, obj) {
-    ["required", "pattern", "step", "max", "min", "maxlength",
-     "value", "multiple", "checked", "selected"].forEach(function(item) {
+    [
+      "checked",
+      "disabled",
+      "max",
+      "maxlength",
+      "min",
+      "minlength",
+      "multiple",
+      "pattern",
+      "required",
+      "selected",
+      "step",
+      "value"
+    ].forEach(function(item) {
       ctl.removeAttribute(item);
     });
     for (var attr in obj) {
