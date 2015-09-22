@@ -654,7 +654,7 @@ impl Handler {
     }
 
     fn handle_reset_prefs(&self,
-                        parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
+                          parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.len() == 0 {
             reset_all_prefs();
             BTreeMap::new()
