@@ -67,10 +67,10 @@ enum Direction {
 
 #[derive(Copy, Clone)]
 enum BorderCorner {
-    TL, // top left
-    TR, // top right
-    BR, // bottom right
-    BL, // bottom left
+    TopLeft,
+    TopRight,
+    BottomRight,
+    BottomLeft,
 }
 
 #[derive(Copy, Clone)]
@@ -748,24 +748,24 @@ impl<'a> PaintContext<'a> {
         } else {
             let corner_line = Line::new(*inner_border, *outer_border);
             match corner {
-                BorderCorner::TL | BorderCorner::BL =>
+                BorderCorner::TopLeft | BorderCorner::BottomLeft =>
                     PaintContext::ellipse_leftmost_intersection(ellipse, corner_line).unwrap(),
-                BorderCorner::TR | BorderCorner::BR =>
+                BorderCorner::TopRight | BorderCorner::BottomRight =>
                     PaintContext::ellipse_rightmost_intersection(ellipse, corner_line).unwrap(),
             }
         };
         let (start_angle, end_angle) = match corner {
             // TR corner - top border & right border
-            BorderCorner::TR =>
+            BorderCorner::TopRight =>
                 if clockwise { (-rad_B, rad_R - corner_angle) } else { (rad_R - corner_angle, rad_R) },
             // BR corner - right border & bottom border
-            BorderCorner::BR =>
+            BorderCorner::BottomRight =>
                 if clockwise { (rad_R, rad_R + corner_angle) } else { (rad_R + corner_angle, rad_B) },
             // TL corner - left border & top border
-            BorderCorner::TL =>
+            BorderCorner::TopLeft =>
                 if clockwise { (rad_L, rad_L + corner_angle) } else { (rad_L + corner_angle, rad_T) },
             // BL corner - bottom border & left border
-            BorderCorner::BL =>
+            BorderCorner::BottomLeft =>
                 if clockwise { (rad_B, rad_L - corner_angle) } else { (rad_L - corner_angle, rad_L) },
         };
         if clockwise {
@@ -837,7 +837,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::TR,
+                                          BorderCorner::TopRight,
                                           &corner_origin.top_right,
                                           &radii.top_right,
                                           &inner_TR,
@@ -852,7 +852,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::TL,
+                                          BorderCorner::TopLeft,
                                           &corner_origin.top_left,
                                           &radii.top_left,
                                           &inner_TL,
@@ -880,7 +880,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_TL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::TL,
+                                          BorderCorner::TopLeft,
                                           &corner_origin.top_left,
                                           &radii.top_left,
                                           &inner_TL,
@@ -895,7 +895,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_BR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::BL,
+                                          BorderCorner::BottomLeft,
                                           &corner_origin.bottom_left,
                                           &radii.bottom_left,
                                           &inner_BL,
@@ -923,7 +923,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::TR,
+                                          BorderCorner::TopRight,
                                           &corner_origin.top_right,
                                           &radii.top_right,
                                           &inner_TR,
@@ -938,7 +938,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::BR,
+                                          BorderCorner::BottomRight,
                                           &corner_origin.bottom_right,
                                           &radii.bottom_right,
                                           &inner_BR,
@@ -968,7 +968,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(edge_TR),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::BR,
+                                          BorderCorner::BottomRight,
                                           &corner_origin.bottom_right,
                                           &radii.bottom_right,
                                           &inner_BR,
@@ -983,7 +983,7 @@ impl<'a> PaintContext<'a> {
                     BorderPathDrawingMode::CornersOnly => path_builder.move_to(corner_BL),
                 }
                 PaintContext::draw_corner(path_builder,
-                                          BorderCorner::BL,
+                                          BorderCorner::BottomLeft,
                                           &corner_origin.bottom_left,
                                           &radii.bottom_left,
                                           &inner_BL,
@@ -1041,7 +1041,7 @@ impl<'a> PaintContext<'a> {
         path_builder.move_to(Point2D::new(bounds.origin.x + radii.top_left.width, bounds.origin.y));   // 1
         path_builder.line_to(Point2D::new(bounds.max_x() - radii.top_right.width, bounds.origin.y));   // 2
         PaintContext::draw_corner(path_builder,                                                        // 3
-                                  BorderCorner::TR,
+                                  BorderCorner::TopRight,
                                   &origin_TR,
                                   &radii.top_right,
                                   &inner_TR,
@@ -1049,7 +1049,7 @@ impl<'a> PaintContext<'a> {
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 3
-                                  BorderCorner::TR,
+                                  BorderCorner::TopRight,
                                   &origin_TR,
                                   &radii.top_right,
                                   &inner_TR,
@@ -1058,7 +1058,7 @@ impl<'a> PaintContext<'a> {
                                   false);
         path_builder.line_to(Point2D::new(bounds.max_x(), bounds.max_y() - radii.bottom_right.width)); // 4
         PaintContext::draw_corner(path_builder,                                                        // 5
-                                  BorderCorner::BR,
+                                  BorderCorner::BottomRight,
                                   &origin_BR,
                                   &radii.bottom_right,
                                   &inner_BR,
@@ -1066,7 +1066,7 @@ impl<'a> PaintContext<'a> {
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 5
-                                  BorderCorner::BR,
+                                  BorderCorner::BottomRight,
                                   &origin_BR,
                                   &radii.bottom_right,
                                   &inner_BR,
@@ -1076,7 +1076,7 @@ impl<'a> PaintContext<'a> {
         path_builder.line_to(Point2D::new(bounds.origin.x + radii.bottom_left.width,
                                           bounds.max_y()));                                            // 6
         PaintContext::draw_corner(path_builder,                                                        // 7
-                                  BorderCorner::BL,
+                                  BorderCorner::BottomLeft,
                                   &origin_BL,
                                   &radii.bottom_left,
                                   &inner_BL,
@@ -1084,7 +1084,7 @@ impl<'a> PaintContext<'a> {
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                        // 7
-                                  BorderCorner::BL,
+                                  BorderCorner::BottomLeft,
                                   &origin_BL,
                                   &radii.bottom_left,
                                   &inner_BL,
@@ -1094,7 +1094,7 @@ impl<'a> PaintContext<'a> {
         path_builder.line_to(Point2D::new(bounds.origin.x,
                                           bounds.origin.y + radii.top_left.height));                    // 8
         PaintContext::draw_corner(path_builder,                                                         // 9
-                                  BorderCorner::TL,
+                                  BorderCorner::TopLeft,
                                   &origin_TL,
                                   &radii.top_left,
                                   &inner_TL,
@@ -1102,7 +1102,7 @@ impl<'a> PaintContext<'a> {
                                   &zero_elbow,
                                   true);
         PaintContext::draw_corner(path_builder,                                                         // 9
-                                  BorderCorner::TL,
+                                  BorderCorner::TopLeft,
                                   &origin_TL,
                                   &radii.top_left,
                                   &inner_TL,
