@@ -17,7 +17,7 @@
 #![deny(unsafe_code)]
 
 use azure::azure::AzFloat;
-use azure::azure_hl::Color;
+use azure::azure_hl::{Color, DrawTarget};
 use display_list::optimizer::DisplayListOptimizer;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
@@ -239,6 +239,113 @@ impl DisplayList {
             paint_layer.stacking_context.print_with_tree(print_tree);
         }
     }
+
+    /// Draws the DisplayList in stacking context order according to the steps in CSS 2.1 § E.2.
+    fn draw_into_context(&self,
+                         draw_target: &DrawTarget,
+                         paint_context: &mut PaintContext,
+                         transform: &Matrix4,
+                         clip_rect: Option<&Rect<Au>>) {
+        let mut paint_subcontext = PaintContext {
+            draw_target: draw_target.clone(),
+            font_context: &mut *paint_context.font_context,
+            page_rect: paint_context.page_rect,
+            screen_rect: paint_context.screen_rect,
+            clip_rect: clip_rect.map(|clip_rect| *clip_rect),
+            transient_clip: None,
+            layer_kind: paint_context.layer_kind,
+        };
+
+        if opts::get().dump_display_list_optimized {
+            self.print(format!("Optimized display list. Tile bounds: {:?}",
+                                paint_context.page_rect));
+        }
+
+        // Set up our clip rect and transform.
+        let old_transform = paint_subcontext.draw_target.get_transform();
+        let xform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                     transform.m21, transform.m22,
+                                     transform.m41, transform.m42);
+        paint_subcontext.draw_target.set_transform(&xform_2d);
+        paint_subcontext.push_clip_if_applicable();
+
+        // Steps 1 and 2: Borders and background for the root.
+        for display_item in &self.background_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index >= 0 {
+                break
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_px() as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_px() as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 4: Block backgrounds and borders.
+        for display_item in &self.block_backgrounds_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 5: Floats.
+        for display_item in &self.floats {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
+
+        // Step 7: Content.
+        for display_item in &self.content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 8: Positioned descendants with `z-index: auto`.
+        for display_item in &self.positioned_content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 9: Positioned descendants with nonnegative, numeric z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index < 0 {
+                continue
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_px() as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_px() as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 10: Outlines.
+        for display_item in &self.outlines {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Undo our clipping and transform.
+        paint_subcontext.remove_transient_clip_if_applicable();
+        paint_subcontext.pop_clip_if_applicable();
+        paint_subcontext.draw_target.set_transform(&old_transform)
+    }
 }
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
@@ -343,107 +450,11 @@ impl StackingContext {
                              clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
-        {
-            let mut paint_subcontext = PaintContext {
-                draw_target: temporary_draw_target.clone(),
-                font_context: &mut *paint_context.font_context,
-                page_rect: paint_context.page_rect,
-                screen_rect: paint_context.screen_rect,
-                clip_rect: clip_rect.map(|clip_rect| *clip_rect),
-                transient_clip: None,
-                layer_kind: paint_context.layer_kind,
-            };
 
-            if opts::get().dump_display_list_optimized {
-                display_list.print(format!("Optimized display list. Tile bounds: {:?}",
-                                           paint_context.page_rect));
-            }
-
-            // Set up our clip rect and transform.
-            let old_transform = paint_subcontext.draw_target.get_transform();
-            let xform_2d = Matrix2D::new(transform.m11, transform.m12,
-                                         transform.m21, transform.m22,
-                                         transform.m41, transform.m42);
-            paint_subcontext.draw_target.set_transform(&xform_2d);
-            paint_subcontext.push_clip_if_applicable();
-
-            // Steps 1 and 2: Borders and background for the root.
-            for display_item in &display_list.background_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 3: Positioned descendants with negative z-indices.
-            for positioned_kid in &display_list.children {
-                if positioned_kid.z_index >= 0 {
-                    break
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 4: Block backgrounds and borders.
-            for display_item in &display_list.block_backgrounds_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 5: Floats.
-            for display_item in &display_list.floats {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-
-            // Step 7: Content.
-            for display_item in &display_list.content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 8: Positioned descendants with `z-index: auto`.
-            for display_item in &display_list.positioned_content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 9: Positioned descendants with nonnegative, numeric z-indices.
-            for positioned_kid in &self.display_list.children {
-                if positioned_kid.z_index < 0 {
-                    continue
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 10: Outlines.
-            for display_item in &display_list.outlines {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Undo our clipping and transform.
-            paint_subcontext.remove_transient_clip_if_applicable();
-            paint_subcontext.pop_clip_if_applicable();
-            paint_subcontext.draw_target.set_transform(&old_transform)
-        }
+        display_list.draw_into_context(&temporary_draw_target,
+                                       paint_context,
+                                       transform,
+                                       clip_rect);
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
                                                               &self.filters,
