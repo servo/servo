@@ -136,7 +136,6 @@ var expected = {
         URL: String(location),
         compatMode: "CSS1Compat",
         characterSet: "UTF-8",
-        inputEncoding: "UTF-8",
         contentType: "text/html",
         doctype: doctype,
         //documentElement: ,
@@ -153,7 +152,6 @@ var expected = {
         URL: "about:blank",
         compatMode: "CSS1Compat",
         characterSet: "UTF-8",
-        inputEncoding: "UTF-8",
         contentType: "text/html",
         //doctype: ,
         //documentElement: ,
@@ -211,7 +209,6 @@ var expected = {
         URL: "about:blank",
         compatMode: "CSS1Compat",
         characterSet: "UTF-8",
-        inputEncoding: "UTF-8",
         contentType: "application/xml",
         //doctype: ,
         //documentElement: ,
@@ -640,6 +637,8 @@ for (var node in expected) {
             expected[node].nextSibling = expected[node].nodeValue =
             expected[node].textContent = null;
         expected[node].documentURI = expected[node].URL;
+        expected[node].charset = expected[node].inputEncoding =
+            expected[node].characterSet;
         break;
 
     case Node.DOCUMENT_TYPE_NODE:

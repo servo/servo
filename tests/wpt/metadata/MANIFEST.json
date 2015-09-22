@@ -710,8 +710,32 @@
         "url": "/html/semantics/forms/attributes-common-to-form-controls/dirname-rtl-manual.html"
       },
       {
-        "path": "html/semantics/forms/constraints/tooLong-manual.html",
-        "url": "/html/semantics/forms/constraints/tooLong-manual.html"
+        "path": "html/semantics/forms/constraints/tooLong-input-email-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-email-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-input-password-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-password-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-input-search-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-search-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-input-tel-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-tel-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-input-text-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-text-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-input-url-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-input-url-delete-manual.html"
+      },
+      {
+        "path": "html/semantics/forms/constraints/tooLong-textarea-delete-manual.html",
+        "url": "/html/semantics/forms/constraints/tooLong-textarea-delete-manual.html"
       },
       {
         "path": "html/semantics/forms/the-input-element/file-manual.html",
@@ -14682,6 +14706,10 @@
       {
         "path": "html/browsers/history/the-location-interface/location_protocol.html",
         "url": "/html/browsers/history/the-location-interface/location_protocol.html"
+      },
+      {
+        "path": "html/browsers/history/the-location-interface/location_reload.html",
+        "url": "/html/browsers/history/the-location-interface/location_reload.html"
       },
       {
         "path": "html/browsers/history/the-location-interface/location_replace.html",
@@ -29184,16 +29212,7 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "html/browsers/history/the-location-interface/location_reload.html": [
-          {
-            "path": "html/browsers/history/the-location-interface/location_reload.html",
-            "url": "/html/browsers/history/the-location-interface/location_reload.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -34586,7 +34605,7 @@
       }
     ]
   },
-  "rev": "71a0d51d14d8b0f1b53cda3a7d39ef8765164485",
+  "rev": "0159b3ec9ba5355a3340621226e02ae026effd7f",
   "url_base": "/",
   "version": 2
 }

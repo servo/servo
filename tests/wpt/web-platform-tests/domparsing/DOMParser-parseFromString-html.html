@@ -39,6 +39,10 @@ test(function() {
 }, 'inputEncoding');
 
 test(function() {
+    assert_equals(doc.charset, "UTF-8")
+}, 'charset');
+
+test(function() {
     var url = document.URL;
     assert_equals(doc.documentURI, url,
                   'The document must have a URL value equal to the URL of the active document.');

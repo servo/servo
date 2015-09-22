@@ -286,7 +286,7 @@
         true,
         "Same-origin with correct sha256 hash",
         {
-            href: "style.css",
+            href: "style.css?1",
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
         }
     );
@@ -296,7 +296,7 @@
         true,
         "Same-origin with correct sha384 hash",
         {
-            href: "style.css",
+            href: "style.css?2",
             integrity: "sha384-wDAWxH4tOWBwAwHfBn9B7XuNmFxHTMeigAMwn0iVQ0zq3FtmYMLxihcGnU64CwcX"
         }
     );
@@ -306,7 +306,7 @@
         true,
         "Same-origin with correct sha512 hash",
         {
-            href: "style.css",
+            href: "style.css?3",
             integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w=="
         }
     );
@@ -316,7 +316,7 @@
         true,
         "Same-origin with empty integrity",
         {
-            href: "style.css",
+            href: "style.css?4",
             integrity: ""
         }
     );
@@ -326,7 +326,7 @@
         false,
         "Same-origin with incorrect hash.",
         {
-            href: "style.css",
+            href: "style.css?5",
             integrity: "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
         }
     );
@@ -336,8 +336,8 @@
         true,
         "Same-origin with multiple sha256 hashes, including correct.",
         {
-            href: "style.css",
-            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+            href: "style.css?6",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4= sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
         }
     );
 
@@ -346,8 +346,8 @@
         true,
         "Same-origin with multiple sha256 hashes, including unknown algorithm.",
         {
-            href: "style.css",
-            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
+            href: "style.css?7",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4= foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
         }
     );
 
@@ -356,7 +356,7 @@
         true,
         "Same-origin with sha256 mismatch, sha512 match",
         {
-            href: "style.css",
+            href: "style.css?8",
             integrity: "sha512-9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2HSZX4l6w== sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"
         }
     );
@@ -366,7 +366,7 @@
         false,
         "Same-origin with sha256 match, sha512 mismatch",
         {
-            href: "style.css",
+            href: "style.css?9",
             integrity: "sha512-deadbeef9wXDjd6Wq3H6nPAhI9zOvG7mJkUr03MTxaO+8ztTKnfJif42laL93Be/IF6YYZHHF4esitVYxiwpY2== sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
         }
     );
@@ -376,7 +376,7 @@
         true,
         "<crossorigin='anonymous'> with correct hash, ACAO: *",
         {
-            href: xorigin_anon_style,
+            href: xorigin_anon_style + '?1',
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
             crossorigin: "anonymous"
         }
@@ -387,7 +387,7 @@
         false,
         "<crossorigin='anonymous'> with incorrect hash, ACAO: *",
         {
-            href: xorigin_anon_style,
+            href: xorigin_anon_style + '?2',
             integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
             crossorigin: "anonymous"
         }
@@ -398,7 +398,7 @@
         true,
         "<crossorigin='use-credentials'> with correct hash, CORS-eligible",
         {
-            href: xorigin_creds_style,
+            href: xorigin_creds_style + '?1',
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
             crossorigin: "use-credentials"
         }
@@ -409,7 +409,7 @@
         false,
         "<crossorigin='use-credentials'> with incorrect hash CORS-eligible",
         {
-            href: xorigin_creds_style,
+            href: xorigin_creds_style + '?2',
             integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk=",
             crossorigin: "use-credentials"
         }
@@ -420,7 +420,7 @@
         false,
         "<crossorigin='anonymous'> with CORS-ineligible resource",
         {
-            href: xorigin_ineligible_style,
+            href: xorigin_ineligible_style + '?1',
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
             crossorigin: "anonymous"
         }
@@ -431,7 +431,7 @@
         false,
         "Cross-origin, not CORS request, with correct hash",
         {
-            href: xorigin_anon_style,
+            href: xorigin_anon_style + '?3',
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4="
         }
     );
@@ -441,7 +441,7 @@
         false,
         "Cross-origin, not CORS request, with hash mismatch",
         {
-            href: xorigin_anon_style,
+            href: xorigin_anon_style + '?4',
             integrity: "sha256-deadbeefCzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk="
         }
     );
@@ -451,7 +451,7 @@
         true,
         "Cross-origin, empty integrity",
         {
-            href: xorigin_anon_style,
+            href: xorigin_anon_style + '?5',
             integrity: ""
         }
     );
@@ -461,7 +461,7 @@
         true,
         "Same-origin with correct hash, options.",
         {
-            href: "style.css",
+            href: "style.css?10",
             integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
         }
     );
@@ -471,7 +471,7 @@
         true,
         "Same-origin with unknown algorithm only.",
         {
-            href: "style.css",
+            href: "style.css?11",
             integrity: "foo666-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=?foo=bar?spam=eggs"
         }
     );
@@ -481,8 +481,8 @@
         true,
         "Same-origin with correct sha256 hash, rel='stylesheet license'",
         {
-            href: "style.css",
-            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4=",
+            href: "style.css?12",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
             rel: "stylesheet license"
         }
     );
@@ -492,8 +492,8 @@
         true,
         "Same-origin with correct sha256 hash, rel='license stylesheet'",
         {
-            href: "style.css",
-            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F-SPLT7YZk7gyCWUV4=",
+            href: "style.css?13",
+            integrity: "sha256-CzHgdJ7wOccM8L89n4bhcJMz3F+SPLT7YZk7gyCWUV4=",
             rel: "license stylesheet"
         }
     );
@@ -503,7 +503,7 @@
         true,
         "Same-origin with correct sha256 and sha512 hash, rel='alternate stylesheet' enabled",
         {
-            href: "alternate.css",
+            href: "alternate.css?1",
             title: "alt",
             type: "text/css",
             class: "alternate",
@@ -523,7 +523,7 @@
         false,
         "Same-origin with incorrect sha256 and sha512 hash, rel='alternate stylesheet' enabled",
         {
-            href: "alternate.css",
+            href: "alternate.css?2",
             title: "alt",
             type: "text/css",
             class: "alternate",

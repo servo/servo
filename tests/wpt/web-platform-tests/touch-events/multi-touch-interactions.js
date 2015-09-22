@@ -290,7 +290,7 @@ function run() {
 
 		// In some cases, when multiple touch points are released simultaneously
 		// the UA would dispatch the "same" touchend event (same changedTouches, same touches, but possibly different targetTouches)
-		// to each of the elements that are starting elments of the released touch points.
+		// to each of the elements that are starting elements of the released touch points.
 		// in these situations, the subsequent events are exempt from TA 1.5.3.4 and 1.5.4.2
 		var same_event_as_last = false;
 		if (last_changedTouches && last_changedTouches.length==ev.changedTouches.length) {
