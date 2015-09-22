@@ -14,7 +14,6 @@ import re
 import sys
 import os
 import os.path as path
-import subprocess
 from collections import OrderedDict
 from time import time
 
@@ -25,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase
+from servo.command_base import CommandBase, call, check_call
 from wptrunner import wptcommandline
 from update import updatecommandline
 import tidy
@@ -74,7 +73,7 @@ class MachCommands(CommandBase):
     def run_test(self, prefix, args=[], release=False):
         t = self.find_test(prefix, release=release)
         if t:
-            return subprocess.call([t] + args, env=self.build_env())
+            return call([t] + args, env=self.build_env())
 
     @Command('test',
              description='Run all Servo tests',
@@ -188,7 +187,7 @@ class MachCommands(CommandBase):
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
-        result = subprocess.call(args, env=self.build_env(), cwd=self.servo_crate())
+        result = call(args, env=self.build_env(), cwd=self.servo_crate())
         if result != 0:
             return result
 
@@ -261,7 +260,7 @@ class MachCommands(CommandBase):
              category='testing')
     def test_wpt_failure(self):
         self.ensure_bootstrapped()
-        return not subprocess.call([
+        return not call([
             "bash",
             path.join("tests", "wpt", "run.sh"),
             "--no-pause-after-test",
@@ -418,17 +417,17 @@ class MachCommands(CommandBase):
 
         # Clone the jQuery repository if it doesn't exist
         if not os.path.isdir(jquery_dir):
-            subprocess.check_call(
+            check_call(
                 ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/servo/jquery", jquery_dir])
 
         # Run pull in case the jQuery repo was updated since last test run
-        subprocess.check_call(
+        check_call(
             ["git", "-C", jquery_dir, "pull"])
 
         # Check that a release servo build exists
         bin_path = path.abspath(self.get_binary_path(release, dev))
 
-        return subprocess.check_call(
+        return check_call(
             [run_file, cmd, bin_path, base_dir])
 
     def dromaeo_test_runner(self, tests, release, dev):
@@ -439,21 +438,21 @@ class MachCommands(CommandBase):
 
         # Clone the Dromaeo repository if it doesn't exist
         if not os.path.isdir(dromaeo_dir):
-            subprocess.check_call(
+            check_call(
                 ["git", "clone", "-b", "servo", "--depth", "1", "https://github.com/notriddle/dromaeo", dromaeo_dir])
 
         # Run pull in case the Dromaeo repo was updated since last test run
-        subprocess.check_call(
+        check_call(
             ["git", "-C", dromaeo_dir, "pull"])
 
         # Compile test suite
-        subprocess.check_call(
+        check_call(
             ["make", "-C", dromaeo_dir, "web"])
 
         # Check that a release servo build exists
         bin_path = path.abspath(self.get_binary_path(release, dev))
 
-        return subprocess.check_call(
+        return check_call(
             [run_file, "|".join(tests), bin_path, base_dir])
 
 

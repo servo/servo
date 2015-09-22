@@ -10,7 +10,6 @@
 from __future__ import print_function, unicode_literals
 from os import path, getcwd, listdir
 
-import subprocess
 import sys
 
 from mach.decorators import (
@@ -19,7 +18,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd
+from servo.command_base import CommandBase, cd, call
 
 
 @CommandProvider
@@ -36,10 +35,8 @@ class MachCommands(CommandBase):
 
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
-                return subprocess.call(
-                    ["cargo"] + params, env=self.build_env())
-        return subprocess.call(['cargo'] + params,
-                               env=self.build_env())
+                return call(["cargo"] + params, env=self.build_env())
+        return call(['cargo'] + params, env=self.build_env())
 
     @Command('cargo-update',
              description='Same as update-cargo',
@@ -88,8 +85,8 @@ class MachCommands(CommandBase):
         for cargo_path in cargo_paths:
             with cd(cargo_path):
                 print(cargo_path)
-                subprocess.call(["cargo", "update"] + params,
-                                env=self.build_env())
+                call(["cargo", "update"] + params,
+                     env=self.build_env())
 
     @Command('clippy',
              description='Run Clippy',
@@ -110,7 +107,7 @@ class MachCommands(CommandBase):
     def rustc(self, params):
         if params is None:
             params = []
-        return subprocess.call(["rustc"] + params, env=self.build_env())
+        return call(["rustc"] + params, env=self.build_env())
 
     @Command('rust-root',
              description='Print the path to the root of the Rust compiler',
@@ -139,7 +136,7 @@ class MachCommands(CommandBase):
         root_dirs_abs = [path.join(self.context.topdir, s) for s in root_dirs]
         # Absolute paths for all directories to be considered
         grep_paths = root_dirs_abs + tests_dirs_abs
-        return subprocess.call(
+        return call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
             env=self.build_env())
 
@@ -148,14 +145,14 @@ class MachCommands(CommandBase):
              category='devenv')
     def upgrade_wpt_runner(self):
         with cd(path.join(self.context.topdir, 'tests', 'wpt', 'harness')):
-            code = subprocess.call(["git", "init"], env=self.build_env())
+            code = call(["git", "init"], env=self.build_env())
             if code:
                 return code
-            subprocess.call(
+            call(
                 ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=self.build_env())
-            code = subprocess.call(["git", "fetch", "upstream"], env=self.build_env())
+            code = call(["git", "fetch", "upstream"], env=self.build_env())
             if code:
                 return code
-            code = subprocess.call(["git", "reset", '--', "hard", "remotes/upstream/master"], env=self.build_env())
+            code = call(["git", "reset", '--', "hard", "remotes/upstream/master"], env=self.build_env())
             if code:
                 return code

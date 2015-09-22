@@ -11,7 +11,6 @@ from __future__ import print_function, unicode_literals
 
 import os
 import os.path as path
-import subprocess
 import sys
 
 from time import time
@@ -22,7 +21,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd
+from servo.command_base import CommandBase, cd, call
 
 
 def is_headless_build():
@@ -110,14 +109,6 @@ def notify(title, text):
         except Exception as e:
             extra = getattr(e, "message", "")
             print("[Warning] Could not generate notification! %s" % extra, file=sys.stderr)
-
-
-def call(*args, **kwargs):
-    """Wrap `subprocess.call`, printing the command if verbose=True."""
-    verbose = kwargs.pop('verbose', False)
-    if verbose:
-        print(' '.join(args[0]))
-    return subprocess.call(*args, **kwargs)
 
 
 @CommandProvider
