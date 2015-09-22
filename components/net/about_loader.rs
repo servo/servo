@@ -21,7 +21,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
             let chan = start_sending(start_chan, Metadata {
                 final_url: load_data.url,
                 content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
-                charset: Some("utf-8".to_string()),
+                charset: Some("utf-8".to_owned()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".into())),
             });
@@ -37,7 +37,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
         }
         _ => {
             start_sending(start_chan, Metadata::default(load_data.url))
-                .send(Done(Err("Unknown about: URL.".to_string())))
+                .send(Done(Err("Unknown about: URL.".to_owned())))
                 .unwrap();
             return
         }

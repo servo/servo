@@ -107,7 +107,7 @@ impl CookieStorage {
                 _ => acc + ";"
             }) + &c.cookie.name + "=" + &c.cookie.value
         };
-        let result = url_cookies.iter_mut().fold("".to_string(), reducer);
+        let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
 
         info!(" === COOKIES SENT: {}", result);
         match result.len() {

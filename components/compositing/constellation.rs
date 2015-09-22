@@ -486,10 +486,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             ConstellationMsg::GetClipboardContents(sender) => {
                 let result = self.clipboard_ctx.as_ref().map_or(
-                    "".to_string(),
+                    "".to_owned(),
                     |ctx| ctx.get_contents().unwrap_or_else(|e| {
                         debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                        "".to_string()
+                        "".to_owned()
                     })
                 );
                 sender.send(result).unwrap();

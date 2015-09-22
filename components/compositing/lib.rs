@@ -6,6 +6,8 @@
 #![feature(iter_cmp)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
+#![feature(plugin)]
+#![plugin(plugins)]
 
 #![deny(unsafe_code)]
 
