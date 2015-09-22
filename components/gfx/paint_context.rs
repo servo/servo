@@ -477,15 +477,8 @@ impl<'a> PaintContext<'a> {
                 }
                 (Some(p0), Some(p1))
             },
-            (Some(x0), None) => {
+            (Some(x0), None) | (None, Some(x0)) => {
                 let mut p = Point2D::new(x0, a * x0 + b) + e.origin;
-                if rotated_axes {
-                    p = rotate_axes(p, false);
-                }
-                (Some(p), None)
-            },
-            (None, Some(x1)) => {
-                let mut p = Point2D::new(x1, a * x1 + b) + e.origin;
                 if rotated_axes {
                     p = rotate_axes(p, false);
                 }
