@@ -118,27 +118,6 @@ impl DisplayList {
         }
     }
 
-    /// Sort all children by their z-index and split layered children into their own
-    /// section of the display list.
-    /// TODO(mrobinson): This should properly handle unlayered children that are on
-    /// top of layered children.
-    #[inline]
-    pub fn sort_and_layerize_children(&mut self) {
-        let mut children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-        while let Some(stacking_context) = self.children.pop_front() {
-            children.push(stacking_context);
-        }
-        children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
-
-        for stacking_context in children.into_iter() {
-            match stacking_context.layer_id {
-                Some(layer_id) => self.layered_children.push_back(
-                    PaintLayer::new(layer_id, color::transparent(), stacking_context)),
-                None => self.children.push_back(stacking_context),
-            }
-        }
-    }
-
     /// Appends all display items from `other` into `self`, preserving stacking order and emptying
     /// `other` in the process.
     #[inline]
