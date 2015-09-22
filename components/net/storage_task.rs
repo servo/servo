@@ -172,7 +172,7 @@ impl StorageManager {
     }
 
     fn origin_as_string(&self, url: Url) -> String {
-        let mut origin = "".to_string();
+        let mut origin = "".to_owned();
         origin.push_str(&url.scheme);
         origin.push_str("://");
         url.domain().map(|domain| origin.push_str(&domain));

@@ -29,7 +29,7 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
             buf.truncate(n);
             Ok(ReadStatus::Partial(buf))
         }
-        Err(e) => Err(e.description().to_string()),
+        Err(e) => Err(e.description().to_owned()),
     }
 }
 
@@ -68,7 +68,7 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
                     }
                     Err(e) => {
                         let progress_chan = start_sending(senders, metadata);
-                        progress_chan.send(Done(Err(e.description().to_string()))).unwrap();
+                        progress_chan.send(Done(Err(e.description().to_owned()))).unwrap();
                     }
                 }
             }

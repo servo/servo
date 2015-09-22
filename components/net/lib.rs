@@ -8,6 +8,8 @@
 #![feature(path_ext)]
 #![feature(plugin)]
 #![feature(vec_push_all)]
+#![feature(plugin)]
+#![plugin(plugins)]
 
 extern crate net_traits;
 extern crate cookie as cookie_rs;

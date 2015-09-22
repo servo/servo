@@ -248,7 +248,7 @@ fn initialize_png(width: usize, height: usize) -> (Vec<gl::GLuint>, Vec<gl::GLui
 }
 
 pub fn reporter_name() -> String {
-    "compositor-reporter".to_string()
+    "compositor-reporter".to_owned()
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {

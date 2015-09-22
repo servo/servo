@@ -155,7 +155,7 @@ impl Request {
                     => vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
                 Context::Form | Context::Frame | Context::Hyperlink |
@@ -164,14 +164,14 @@ impl Request {
                     => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
                 Context::Internal if self.context_frame_type != ContextFrameType::ContextNone
                     => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
                 Context::Style

@@ -124,7 +124,7 @@ fn load_for_consumer(load_data: LoadData,
             send_error(url, e, start_chan)
         }
         Err(LoadError::MaxRedirects(url)) => {
-            send_error(url, "too many redirects".to_string(), start_chan)
+            send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
@@ -237,7 +237,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
                 )
             },
             Err(e) => {
-                 return Err(LoadError::Connection(url, e.description().to_string()))
+                 return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         };
 
@@ -267,13 +267,13 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         if let Some(ref data) = *body {
             match request_writer.write_all(&data) {
                 Err(e) => {
-                    return Err(LoadError::Connection(url, e.description().to_string()))
+                    return Err(LoadError::Connection(url, e.description().to_owned()))
                 }
                 _ => {}
             }
@@ -282,9 +282,9 @@ impl HttpRequest for WrappedHttpRequest {
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::ConnectionAborted(io_error.description().to_string()));
+                return Err(LoadError::ConnectionAborted(io_error.description().to_owned()));
             },
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -315,7 +315,7 @@ fn set_default_accept(headers: &mut Headers) {
     if !headers.has::<Accept>() {
         let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                             QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
@@ -374,7 +374,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
                 IncludeSubdomains::NotIncluded
             };
 
-            if let Some(entry) = HSTSEntry::new(host.to_string(), include_subdomains, Some(header.max_age)) {
+            if let Some(entry) = HSTSEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
                 info!("adding host {} to the strict transport security list", host);
                 info!("- max-age {}", header.max_age);
                 if header.include_subdomains {
@@ -638,7 +638,7 @@ pub fn load<A>(load_data: LoadData,
                                 return Err(
                                     LoadError::Cors(
                                         url,
-                                        "Preflight fetch inconsistent with main fetch".to_string()));
+                                        "Preflight fetch inconsistent with main fetch".to_owned()));
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
                                 // but they don't seem necessary until credentials are implemented
@@ -667,7 +667,7 @@ pub fn load<A>(load_data: LoadData,
                     }
 
                     if redirected_to.contains(&url) {
-                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_string()));
+                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_owned()));
                     }
 
                     redirected_to.insert(doc_url.clone());
