@@ -319,6 +319,8 @@ device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.h
 == pseudo_inherit.html pseudo_inherit_ref.html
 == quotes_none_a.html quotes_none_ref.html
 == quotes_simple_a.html quotes_simple_ref.html
+== root_display_inline_a.html root_display_ref.html
+== root_display_without_style_a.html root_display_ref.html
 == root_height_a.html root_height_b.html
 == root_margin_collapse_a.html root_margin_collapse_b.html
 == root_pseudo_a.html root_pseudo_b.html
