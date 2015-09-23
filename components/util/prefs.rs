@@ -86,13 +86,13 @@ impl Pref {
         Ok(Pref::new_default(value))
     }
 
-    pub fn value(&self) -> Arc<PrefValue> {
+    pub fn value(&self) -> &Arc<PrefValue> {
         match self {
-            &Pref::NoDefault(ref x) => x.clone(),
+            &Pref::NoDefault(ref x) => x,
             &Pref::WithDefault(ref default, ref override_value) => {
                 match override_value {
-                    &Some(ref x) => x.clone(),
-                    &None => default.clone()
+                    &Some(ref x) => x,
+                    &None => default
                 }
             }
         }
@@ -146,7 +146,7 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
 }
 
 pub fn get_pref(name: &str) -> Arc<PrefValue> {
-    PREFS.lock().unwrap().get(name).map(|x| x.value()).unwrap_or(Arc::new(PrefValue::Missing))
+    PREFS.lock().unwrap().get(name).map(|x| x.value().clone()).unwrap_or(Arc::new(PrefValue::Missing))
 }
 
 pub fn set_pref(name: &str, value: PrefValue) {
