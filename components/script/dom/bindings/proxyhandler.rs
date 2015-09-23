@@ -18,7 +18,6 @@ use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
 use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_GetPropertyDescriptorById};
 use js::jsval::ObjectValue;
-use js::{JSFalse, JSTrue};
 use js::{JSPROP_ENUMERATE, JSPROP_GETTER, JSPROP_READONLY};
 use libc;
 use std::{mem, ptr};
@@ -33,19 +32,19 @@ pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
                                              proxy: HandleObject,
                                              id: HandleId,
                                              desc: MutableHandle<JSPropertyDescriptor>)
-                                             -> u8 {
+                                             -> bool {
     let handler = GetProxyHandler(proxy.get());
-    if InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) == 0 {
-        return JSFalse;
+    if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) {
+        return false;
     }
     if !desc.get().obj.is_null() {
-        return JSTrue;
+        return true;
     }
 
     let mut proto = RootedObject::new(cx, ptr::null_mut());
-    if GetObjectProto(cx, proxy, proto.handle_mut()) == 0 {
+    if !GetObjectProto(cx, proxy, proto.handle_mut()) {
         desc.get().obj = ptr::null_mut();
-        return JSTrue;
+        return true;
     }
 
     JS_GetPropertyDescriptorById(cx, proto.handle(), id, desc)
@@ -55,13 +54,13 @@ pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
 pub unsafe extern fn define_property(cx: *mut JSContext, proxy: HandleObject,
                                      id: HandleId, desc: Handle<JSPropertyDescriptor>,
                                      result: *mut ObjectOpResult)
-                                     -> u8 {
+                                     -> bool {
     //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
     let setter: *const libc::c_void = mem::transmute(desc.get().setter);
     let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
     if (desc.get().attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
-        (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as u32;
-        return JSTrue;
+        (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as ::libc::uintptr_t;
+        return true;
     }
 
     let expando = RootedObject::new(cx, ensure_expando_object(cx, proxy));
@@ -70,11 +69,11 @@ pub unsafe extern fn define_property(cx: *mut JSContext, proxy: HandleObject,
 
 /// Deletes an expando off the given `proxy`.
 pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleId,
-                            bp: *mut ObjectOpResult) -> u8 {
+                            bp: *mut ObjectOpResult) -> bool {
     let expando = RootedObject::new(cx, get_expando_object(proxy));
     if expando.ptr.is_null() {
         (*bp).code_ = 0 /* OkCode */;
-        return JSTrue;
+        return true;
     }
 
     delete_property_by_id(cx, expando.handle(), id, bp)
@@ -83,16 +82,16 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: HandleObject, id: HandleI
 /// Controls whether the Extensible bit can be changed
 pub unsafe extern fn prevent_extensions(_cx: *mut JSContext,
                                         _proxy: HandleObject,
-                                        result: *mut ObjectOpResult) -> u8 {
-    (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as u32;
-    JSTrue
+                                        result: *mut ObjectOpResult) -> bool {
+    (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as ::libc::uintptr_t;
+    true
 }
 
 /// Reports whether the object is Extensible
 pub unsafe extern fn is_extensible(_cx: *mut JSContext, _proxy: HandleObject,
-                                   succeeded: *mut u8) -> u8 {
-    *succeeded = JSTrue;
-    JSTrue
+                                   succeeded: *mut bool) -> bool {
+    *succeeded = true;
+    true
 }
 
 /// Get the expando object, or null if there is none.

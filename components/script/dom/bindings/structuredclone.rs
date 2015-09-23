@@ -31,7 +31,7 @@ impl StructuredCloneData {
                                     ptr::null(), ptr::null_mut(),
                                     HandleValue::undefined())
         };
-        if result == 0 {
+        if !result {
             unsafe { JS_ClearPendingException(cx); }
             return Err(Error::DataClone);
         }
@@ -49,7 +49,7 @@ impl StructuredCloneData {
             assert!(JS_ReadStructuredClone(
                 global.get_cx(), self.data, self.nbytes,
                 JS_STRUCTURED_CLONE_VERSION, rval,
-                ptr::null(), ptr::null_mut()) != 0);
+                ptr::null(), ptr::null_mut()));
         }
     }
 }

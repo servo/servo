@@ -232,6 +232,7 @@ impl TimerManager {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn fire_timer<T: Reflectable>(&self, timer_id: TimerId, this: &T) {
 
         let (is_interval, callback, args): (IsInterval, TimerCallback, Vec<JSVal>) =
@@ -245,7 +246,9 @@ impl TimerManager {
 
         match callback {
             TimerCallback::FunctionTimerCallback(function) => {
-                let arg_handles = args.iter().by_ref().map(|arg| HandleValue { ptr: arg }).collect();
+                let arg_handles = args.iter().by_ref().map(|arg| unsafe {
+                    HandleValue::from_marked_location(arg)
+                }).collect();
                 let _ = function.Call_(this, arg_handles, Report);
             }
             TimerCallback::StringTimerCallback(code_str) => {
