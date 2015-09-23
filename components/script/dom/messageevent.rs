@@ -63,12 +63,13 @@ impl MessageEvent {
         ev
     }
 
+    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   HandleValue { ptr: &init.data },
+                                   unsafe { HandleValue::from_marked_location(&init.data) },
                                    init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
