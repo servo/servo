@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFieldSetElementDerived, HTMLInputElementDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
@@ -20,8 +20,8 @@ use dom::element::{AttributeMutation, Element, ElementTypeId, RawLayoutElementHe
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement};
-use dom::htmlformelement::{SubmittedFrom, ResetFrom};
+use dom::htmlformelement::{FormControl, FormSubmitter, HTMLFormElement};
+use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
@@ -30,7 +30,7 @@ use msg::constellation_msg::ConstellationChan;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
-use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing, RedrawSelection};
+use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, TextPoint};
 use util::str::DOMString;

@@ -13,7 +13,7 @@ use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::properties::ComputedValues;
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 use util::geometry::Au;
 use util::logical_geometry::LogicalMargin;
 

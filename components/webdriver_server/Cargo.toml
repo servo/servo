@@ -10,6 +10,9 @@ path = "lib.rs"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.util]
 path = "../util"
 

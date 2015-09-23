@@ -20,7 +20,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
 use dom::bindings::utils::Reflector;
 use dom::blob::Blob;
-use js::jsapi::{JSContext, JSObject, HandleValue};
+use js::jsapi::{HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;

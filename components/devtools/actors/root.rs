@@ -7,7 +7,7 @@
 /// Connection point for all new remote devtools interactions, providing lists of know actors
 /// that perform more specific actions (tabs, addons, browser chrome, etc.)
 
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::tab::{TabActor, TabActorMsg};
 use protocol::JsonPacketStream;
 use rustc_serialize::json;

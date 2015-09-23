@@ -13,9 +13,11 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
-
 [dependencies.canvas_traits]
 path = "../canvas_traits"
+
+[dependencies.plugins]
+path = "../plugins"
 
 [dependencies.util]
 path = "../util"
@@ -39,4 +41,3 @@ log = "0.3"
 num = "0.1.24"
 gleam = "0.1"
 euclid = "0.2"
-

@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;

@@ -10,8 +10,7 @@ use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
-use flow;
-use flow::Flow;
+use flow::{self, Flow};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -45,7 +44,7 @@ use text::TextRunScanner;
 use url::Url;
 use util;
 use util::geometry::{Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::{is_whitespace, slice_chars};
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
@@ -2550,4 +2549,3 @@ bitflags! {
         const HAS_LAYER = 0x01,
     }
 }
-

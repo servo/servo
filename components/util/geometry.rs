@@ -8,11 +8,11 @@ use euclid::num::Zero;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use rustc_serialize::{Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder};
 use std::default::Default;
 use std::fmt;
 use std::i32;
-use std::ops::{Add, Sub, Neg, Mul, Div, Rem};
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 // Units for use with euclid::length and euclid::scale_factor.
 

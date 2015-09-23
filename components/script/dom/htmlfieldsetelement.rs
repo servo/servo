@@ -11,7 +11,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlcollection::{HTMLCollection, CollectionFilter};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;

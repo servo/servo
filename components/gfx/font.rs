@@ -16,7 +16,7 @@ use std::sync::Arc;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use text::Shaper;
-use text::glyph::{GlyphStore, GlyphId};
+use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use util::cache::HashCache;
 use util::geometry::Au;

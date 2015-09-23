@@ -21,26 +21,25 @@
 extern crate util as _util;
 
 mod export {
+    extern crate canvas;
+    extern crate canvas_traits;
     extern crate compositing;
     extern crate devtools;
     extern crate devtools_traits;
+    extern crate euclid;
+    extern crate gfx;
+    extern crate gleam;
+    extern crate layers;
+    extern crate layout;
+    extern crate msg;
     extern crate net;
     extern crate net_traits;
-    extern crate msg;
     extern crate profile;
     extern crate profile_traits;
     extern crate script;
     extern crate script_traits;
-    extern crate layout;
-    extern crate gfx;
     extern crate style;
-    extern crate canvas;
-    extern crate canvas_traits;
-
-    extern crate euclid;
     extern crate url;
-    extern crate layers;
-    extern crate gleam;
 }
 
 extern crate libc;
@@ -55,28 +54,6 @@ fn webdriver(port: u16, constellation: msg::constellation_msg::ConstellationChan
 
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: msg::constellation_msg::ConstellationChan) { }
-
-pub use _util as util;
-pub use export::compositing;
-pub use export::devtools;
-pub use export::devtools_traits;
-pub use export::net;
-pub use export::net_traits;
-pub use export::msg;
-pub use export::profile;
-pub use export::profile_traits;
-pub use export::script;
-pub use export::script_traits;
-pub use export::layout;
-pub use export::gfx;
-pub use export::style;
-pub use export::canvas;
-pub use export::canvas_traits;
-
-pub use export::euclid;
-pub use export::url;
-pub use export::layers;
-pub use export::gleam::gl;
 
 use compositing::CompositorEventListener;
 use compositing::compositor_task::InitialCompositorState;
@@ -99,6 +76,27 @@ use std::borrow::Borrow;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
+
+pub use _util as util;
+pub use export::canvas;
+pub use export::canvas_traits;
+pub use export::compositing;
+pub use export::devtools;
+pub use export::devtools_traits;
+pub use export::euclid;
+pub use export::gfx;
+pub use export::gleam::gl;
+pub use export::layers;
+pub use export::layout;
+pub use export::msg;
+pub use export::net;
+pub use export::net_traits;
+pub use export::profile;
+pub use export::profile_traits;
+pub use export::script;
+pub use export::script_traits;
+pub use export::style;
+pub use export::url;
 
 pub struct Browser {
     compositor: Box<CompositorEventListener + 'static>,
