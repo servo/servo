@@ -454,7 +454,7 @@ dependencies = [
 [[package]]
 name = "expat-sys"
 version = "2.1.0"
-source = "git+https://github.com/servo/libexpat#b0f0d40b6651b0f6286f0f6bcc31c86c5c6c0f4f"
+source = "git+https://github.com/servo/libexpat#f186c2f9eb66ef3b6ffbff1c7c9ccf5c41f7b2a4"
 
 [[package]]
 name = "flate2"
@@ -473,7 +473,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "fontconfig"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-fontconfig#7839e5adcb4d6da3cefe2256f5071ac0203b9206"
+source = "git+https://github.com/servo/rust-fontconfig#5ad2ec0436036cd8151f7e03b637d89470daba91"
 dependencies = [
  "fontconfig-sys 2.11.1 (git+https://github.com/servo/libfontconfig)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -499,7 +499,7 @@ dependencies = [
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#8b6e4e384dd78a5b373c9bfcdd4a2f2cf650db86"
+source = "git+https://github.com/servo/libfreetype2#1d5518a6a05b500ac949a7d0a8db462f0cb922bd"
 
 [[package]]
 name = "futf"
@@ -550,7 +550,7 @@ dependencies = [
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
- "harfbuzz 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "harfbuzz 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "harfbuzz"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -813,7 +813,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#2a970d9fc44137d6e99abc7a1ac7a23e7ad5a6ba"
+source = "git+https://github.com/servo/rust-mozjs#d92b23158f77c976544d8e99279f6e2006effa17"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -936,6 +936,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libz-sys"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gcc 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "log"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -998,7 +1008,11 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#5da854e637fcfeefe4aebda0b66fc2406ea7dc63"
+source = "git+https://github.com/servo/mozjs#0224492ad276cd68eac197b2b9e2f6c14d0fe967"
+dependencies = [
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libz-sys 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "msg"
@@ -1217,7 +1231,7 @@ dependencies = [
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#a3569ca11ea54e5d6152ee80d7d39b2799700dbf"
+source = "git+https://github.com/servo/rust-png#b8c2bf074719e5a39b9e4423989f5f06fa79317d"
 dependencies = [
  "gcc 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1229,7 +1243,10 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#a3569ca11ea54e5d6152ee80d7d39b2799700dbf"
+source = "git+https://github.com/servo/rust-png#b8c2bf074719e5a39b9e4423989f5f06fa79317d"
+dependencies = [
+ "libz-sys 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "profile"
@@ -1499,12 +1516,13 @@ source = "git+https://github.com/huonw/simd#be4242121e081206d8769cc60a7d2fa8e23c
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#1aa954c2031a55f0869a37c0115e26b9a1d3c58b"
+source = "git+https://github.com/servo/skia#0a08cc9f699552b6e2fa156e70a6e65f758e357c"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
+ "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
  "gleam 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
@@ -1530,7 +1548,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#ad05c642b64a9059dd31c37b1a1ac78722821008"
+source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e2518aa044397894b"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
