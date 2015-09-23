@@ -692,10 +692,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
                 unsafe {
-                    if JS_ParseJSON(cx,
-                                    decoded.as_ptr() as *const i16,
-                                    decoded.len() as u32,
-                                    rval.handle_mut()) == 0 {
+                    if !JS_ParseJSON(cx,
+                                     decoded.as_ptr(),
+                                     decoded.len() as u32,
+                                     rval.handle_mut()) {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }

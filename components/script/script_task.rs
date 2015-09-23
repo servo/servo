@@ -658,7 +658,7 @@ impl ScriptTask {
         }
 
         unsafe {
-            unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> u8 { 1 }
+            unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
             SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
             SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
             SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
