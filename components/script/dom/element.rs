@@ -65,6 +65,7 @@ use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
 use std::cell::Ref;
 use std::default::Default;
+use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
@@ -644,7 +645,9 @@ impl Element {
         }
     }
 
-    pub fn update_inline_style(&self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+    pub fn update_inline_style(&self,
+                               property_decl: PropertyDeclaration,
+                               style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
@@ -657,7 +660,7 @@ impl Element {
             // than that.
             let existing_declarations = Arc::make_mut(existing_declarations);
             for declaration in &mut *existing_declarations {
-                if declaration.name() == property_decl.name() {
+                if declaration.id() == property_decl.id() {
                     *declaration = property_decl;
                     return;
                 }

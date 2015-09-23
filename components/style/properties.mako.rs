@@ -5679,8 +5679,8 @@ pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url)
     }
 }
 
-struct PropertyDeclarationParser<'a, 'b: 'a> {
-    context: &'a ParserContext<'b>,
+pub struct PropertyDeclarationParser<'a, 'b: 'a> {
+    pub context: &'a ParserContext<'b>,
 }
 
 
@@ -5836,6 +5836,15 @@ pub enum PropertyDeclaration {
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
     % endfor
     Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
+}
+
+impl PropertyDeclaration {
+    #[inline]
+    pub fn id(&self) -> u64 {
+        unsafe {
+            intrinsics::discriminant_value(self)
+        }
+    }
 }
 
 
