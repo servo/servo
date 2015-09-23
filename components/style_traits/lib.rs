@@ -14,17 +14,13 @@
 #![plugin(plugins)]
 #![deny(unsafe_code)]
 
-
-
+#[macro_use]
+extern crate cssparser;
 extern crate euclid;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate util;
 
 #[macro_use]
-extern crate cssparser;
-
-#[macro_use]
 pub mod values;
-
 pub mod viewport;

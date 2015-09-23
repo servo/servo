@@ -26,8 +26,10 @@ optional = true
 version = "0.1.0"
 optional = true
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies]
 serde = "0.6"
 serde_macros = "0.5"
 time = "0.1.12"
-

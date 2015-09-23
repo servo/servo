@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use computed_values::font_family::FontFamily;
-use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationParser};
+use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, Token};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;

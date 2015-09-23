@@ -11,21 +11,21 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
-extern crate net_traits;
-extern crate cookie as cookie_rs;
-extern crate devtools_traits;
-extern crate flate2;
-extern crate euclid;
-extern crate hyper;
-extern crate ipc_channel;
-extern crate png;
 #[macro_use]
 extern crate log;
+extern crate cookie as cookie_rs;
+extern crate devtools_traits;
+extern crate euclid;
+extern crate flate2;
+extern crate hyper;
+extern crate ipc_channel;
+extern crate net_traits;
 extern crate openssl;
+extern crate png;
 extern crate rustc_serialize;
-extern crate util;
 extern crate time;
 extern crate url;
+extern crate util;
 extern crate uuid;
 
 pub mod about_loader;

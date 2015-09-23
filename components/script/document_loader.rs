@@ -7,7 +7,7 @@
 
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
-use net_traits::{Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
+use net_traits::{Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
 use script_task::MainThreadScriptMsg;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;

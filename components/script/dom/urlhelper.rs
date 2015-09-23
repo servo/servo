@@ -6,7 +6,7 @@ use dom::bindings::str::USVString;
 use std::borrow::ToOwned;
 use std::fmt::Write;
 use url::urlutils::{UrlUtils, UrlUtilsWrapper};
-use url::{Url, UrlParser, SchemeData};
+use url::{SchemeData, Url, UrlParser};
 
 #[derive(HeapSizeOf)]
 pub struct UrlHelper;

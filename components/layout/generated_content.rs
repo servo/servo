@@ -15,7 +15,7 @@ use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTe
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;
-use std::collections::{LinkedList, HashMap};
+use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};

@@ -3,15 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
-use constellation_msg::PipelineId;
-use constellation_msg::{Key, KeyState, KeyModifiers};
-use euclid::Matrix4;
-use euclid::{Size2D, Point2D, Rect};
+use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
+use euclid::{Matrix4, Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
-use std::fmt;
-use std::fmt::{Formatter, Debug};
+use std::fmt::{self, Debug, Formatter};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]

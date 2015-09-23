@@ -14,14 +14,12 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-#![deny(unsafe_code)]
-
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 use display_list::optimizer::DisplayListOptimizer;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::color;
 use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};

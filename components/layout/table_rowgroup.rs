@@ -9,10 +9,10 @@
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
-use flow::{FlowClass, Flow, OpaqueFlow};
+use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
-use rustc_serialize::{Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
