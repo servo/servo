@@ -8,6 +8,7 @@
 #![feature(borrow_state)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
+#![feature(const_fn)]
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
@@ -120,7 +121,7 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        assert_eq!(js::jsapi::JS_Init(), 1);
+        assert_eq!(js::jsapi::JS_Init(), true);
     }
 
     // Create the global vtables used by the (generated) DOM
