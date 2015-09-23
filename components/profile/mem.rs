@@ -7,7 +7,7 @@
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use profile_traits::mem::ReportsChan;
-use profile_traits::mem::{ProfilerChan, ProfilerMsg, Reporter, ReporterRequest, ReportKind};
+use profile_traits::mem::{ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -362,7 +362,7 @@ impl ReportsForest {
 
 mod system_reporter {
     use libc::{c_char, c_int, c_void, size_t};
-    use profile_traits::mem::{Report, ReporterRequest, ReportKind};
+    use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     use std::borrow::ToOwned;
     use std::ffi::CString;
     use std::mem::size_of;

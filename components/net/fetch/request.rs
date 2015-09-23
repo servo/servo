@@ -4,12 +4,12 @@
 
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use fetch::response::{Response, ResponseType};
-use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
-use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
-use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
-use hyper::header::{QualityItem, qitem, q};
+use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
+use hyper::header::{AcceptLanguage, ContentLanguage, HeaderView};
+use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
+use hyper::header::{QualityItem, q, qitem};
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::str::FromStr;

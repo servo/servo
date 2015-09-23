@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{StylePriority, Element};
-use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::element::{Element, StylePriority};
+use dom::node::{NodeDamage, document_from_node, window_from_node};
 use dom::window::Window;
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;

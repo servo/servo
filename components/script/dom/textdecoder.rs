@@ -12,12 +12,11 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use encoding::Encoding;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{EncodingRef, DecoderTrap};
+use encoding::types::{DecoderTrap, EncodingRef};
 use js::jsapi::JS_GetObjectAsArrayBufferView;
 use js::jsapi::{JSContext, JSObject};
 use std::borrow::ToOwned;
-use std::ptr;
-use std::slice;
+use std::{ptr, slice};
 use util::str::DOMString;
 
 #[dom_struct]

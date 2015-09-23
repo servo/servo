@@ -19,7 +19,7 @@ use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
-use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
+use flow::{self, AbsoluteDescendants, Flow, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};

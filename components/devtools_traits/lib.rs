@@ -17,15 +17,14 @@
 
 #[macro_use]
 extern crate bitflags;
-
+extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
 extern crate rustc_serialize;
 extern crate serde;
-extern crate url;
-extern crate hyper;
-extern crate util;
 extern crate time;
+extern crate url;
+extern crate util;
 
 use hyper::header::Headers;
 use hyper::http::RawStatus;
