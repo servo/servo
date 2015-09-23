@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(arc_weak)]
-#![feature(box_raw)]
+#![feature(alloc)]
 #![feature(box_syntax)]
 
 // For simd (currently x86_64/aarch64)
@@ -26,6 +25,7 @@
 extern crate log;
 extern crate serde;
 
+extern crate alloc;
 extern crate azure;
 #[macro_use] extern crate bitflags;
 extern crate fnv;
