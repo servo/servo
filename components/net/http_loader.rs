@@ -449,7 +449,8 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             body: Option<Vec<u8>>) {
 
     if let Some(ref chan) = devtools_chan {
-        let net_event = NetworkEvent::HttpRequest(devHttpRequest { url: url, method: method, headers: headers, s: body });
+        let request = devHttpRequest { url: url, method: method, headers: headers, body: body };
+        let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -461,7 +462,8 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              headers: Option<Headers>,
                              status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
-        let net_event_response = NetworkEvent::HttpResponse(devHttpResponse { headers: headers, status: status, s: None });
+        let response = devHttpResponse { headers: headers, status: status, body: None };
+        let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();

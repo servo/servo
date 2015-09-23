@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
-use devtools_traits::HttpRequest as devHttpRequest;
-use devtools_traits::HttpResponse as devHttpResponse;
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
@@ -20,6 +20,7 @@ use net_traits::{LoadData, CookieSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::{Arc, mpsc, RwLock};
+use std::sync::mpsc::Receiver;
 use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
@@ -215,36 +216,35 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
-fn expect_devtools_http_request(devtools_port: & mpsc::Receiver<DevtoolsControlMsg>) -> Option<devHttpRequest> {
+fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
-        ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)) => {
+        ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
             match net_event {
                 NetworkEvent::HttpRequest(httprequest) => {
-                    Some(httprequest)
+                    httprequest
                 },
 
-                _ => None,
+                _ => panic!("No HttpRequest Received"),
             }
         },
-        _ => None,
+        _ => panic!("No HttpRequest Received"),
     }
 }
 
-fn expect_devtools_http_response(devtools_port: & mpsc::Receiver<DevtoolsControlMsg>) -> Option<devHttpResponse> {
+fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
-            ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response)) => {
+            ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
             match net_event_response {
                 NetworkEvent::HttpResponse(httpresponse) => {
-                    //assert_eq!(headers, Headers::new());
-                    Some(httpresponse)
+                    httpresponse
                 },
 
-                _ => None,
+                _ => panic!("No HttpResponse Received"),
             }
         },
-        _ => None,
+        _ => panic!("No HttpResponse Received"),
     }
 }
 
@@ -277,7 +277,7 @@ fn test_request_and_response_data_with_network_messages() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             Ok(MockRequest::new(
                         ResponseType::Text(
                             <[_]>::to_vec("Yay!".as_bytes())
@@ -286,31 +286,40 @@ fn test_request_and_response_data_with_network_messages() {
         }
     }
 
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let resource_mgr = new_resource_task("Test-agent".to_string(), Some(devtools_chan.clone()));
-    let mut load_data = LoadData::new(url.clone(), None);
-    let mut response = load::<MockRequest>(load_data, resource_mgr, Some(devtools_chan), &Factory).unwrap();
+    let load_data = LoadData::new(url.clone(), None);
+    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory, DEFAULT_USER_AGENT.to_string());
 
-    // notification obtained from devtools
-    let devhttprequest = expect_devtools_http_request(& devtools_port).unwrap();
-    let devhttpresponse = expect_devtools_http_response(& devtools_port).unwrap();
+    // notification received from devtools
+    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
-    let httprequest = devHttpRequest {
-        url: url ,
+    let httprequest = DevtoolsHttpRequest {
+        url: url,
         method: Method::Get,
         headers: Headers::new(),
-        s: None,
+        body: None,
+    };
+    
+    let content = "Yay!";
+    let content_len = format!("{}", content.len());
+    let mut response_headers = Headers::new();
+    response_headers.set_raw(
+        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*content_len.as_bytes())]
+    );
+
+    let httpresponse = DevtoolsHttpResponse {
+        headers: Some(response_headers),
+        status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
+        body: None
     };
 
-    // [debug] Will remove after resolving issues
-    println!("{:?}", devhttprequest.url);
-    println!("{:?}", devhttprequest.method);
-    println!("{:?}", devhttprequest.headers);
-    println!("{:?}", devhttprequest.s);
-
-    // Err: binary operation '==' cannot be applied to HttpRequest
     assert_eq!(devhttprequest, httprequest);
+    assert_eq!(devhttpresponse, httpresponse);
 }
 
 #[test]

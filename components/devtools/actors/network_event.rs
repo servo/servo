@@ -9,8 +9,8 @@
 extern crate hyper;
 
 use actor::{Actor, ActorRegistry, ActorMessageStatus};
-use devtools_traits::HttpRequest as devHttpRequest;
-use devtools_traits::HttpResponse as devHttpResponse;
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
@@ -127,18 +127,17 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn add_request(&mut self, request: devHttpRequest) {
+    pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
         self.request.url = request.url.serialize();
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
-        self.request.body = request.s;
+        self.request.body = request.body;
     }
 
-    // pub fn add_response(&mut self, headers: Option<Headers>, status: Option<RawStatus>, body: Option<Vec<u8>>) {
-    pub fn add_response(&mut self, response: devHttpResponse) {
+    pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response.headers = response.headers.clone();
         self.response.status = response.status.clone();
-        self.response.body = response.s.clone();
+        self.response.body = response.body.clone();
      }
 
     pub fn event_actor(&self) -> EventActor {
