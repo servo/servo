@@ -12,7 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use js::jsapi::{HandleValue, Heap, JSContext};
+use js::jsapi::{RootedValue, HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -67,8 +67,11 @@ impl MessageEvent {
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
+        // Dictionaries need to be rooted
+        // https://github.com/servo/servo/issues/6381
+        let data = RootedValue::new(global.get_cx(), init.data);
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   HandleValue { ptr: &init.data },
+                                   data.handle(),
                                    init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }

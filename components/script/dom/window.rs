@@ -779,9 +779,9 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
         unsafe {
-            if Evaluate2(cx, options.ptr, code.as_ptr() as *const i16,
-                         code.len() as libc::size_t,
-                         rval) == 0 {
+            if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                          code.len() as libc::size_t,
+                          rval) {
                 debug!("error evaluating JS string");
                 report_pending_exception(cx, globalhandle.get());
             }
