@@ -186,7 +186,7 @@ impl ToJSValConvertible for () {
 impl ToJSValConvertible for JSVal {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(*self);
-        if unsafe { JS_WrapValue(cx, rval) } == 0 {
+        if unsafe { !JS_WrapValue(cx, rval) } {
             panic!("JS_WrapValue failed.");
         }
     }
@@ -195,7 +195,7 @@ impl ToJSValConvertible for JSVal {
 impl ToJSValConvertible for HandleValue {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(self.get());
-        if unsafe { JS_WrapValue(cx, rval) } == 0 {
+        if unsafe { !JS_WrapValue(cx, rval) } {
             panic!("JS_WrapValue failed.");
         }
     }
@@ -396,7 +396,7 @@ impl ToJSValConvertible for str {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
             let string_utf16: Vec<u16> = self.utf16_units().collect();
-            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr() as *const i16,
+            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(),
                                             string_utf16.len() as libc::size_t);
             if jsstr.is_null() {
                 panic!("JS_NewUCStringCopyN failed");
@@ -425,7 +425,7 @@ pub enum StringificationBehavior {
 /// contain valid UTF-16.
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     let mut length = 0;
-    let latin1 = unsafe { JS_StringHasLatin1Chars(s) != 0 };
+    let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
     if latin1 {
         let chars = unsafe {
             JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
@@ -478,7 +478,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
 /// string, or if the string does not contain valid UTF-16.
 pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
     unsafe {
-        assert!(RUST_JSID_IS_STRING(id) != 0);
+        assert!(RUST_JSID_IS_STRING(id));
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
     }
 }
@@ -518,7 +518,7 @@ impl FromJSValConvertible for USVString {
             debug!("ToString failed");
             return Err(());
         }
-        let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) != 0 };
+        let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
             return Ok(USVString(jsstring_to_str(cx, jsstr)));
         }
@@ -554,7 +554,7 @@ impl FromJSValConvertible for ByteString {
             return Err(());
         }
 
-        let latin1 = unsafe { JS_StringHasLatin1Chars(string) != 0 };
+        let latin1 = unsafe { JS_StringHasLatin1Chars(string) };
         if latin1 {
             let mut length = 0;
             let chars = unsafe {
@@ -590,7 +590,7 @@ impl ToJSValConvertible for Reflector {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
         rval.set(ObjectValue(unsafe { &*obj }));
-        if unsafe { JS_WrapValue(cx, rval) } == 0 {
+        if unsafe { !JS_WrapValue(cx, rval) } {
             panic!("JS_WrapValue failed.");
         }
     }
@@ -669,14 +669,14 @@ pub unsafe fn private_from_proto_chain(mut obj: *mut JSObject,
                                        proto_id: u16, proto_depth: u16)
                                        -> Result<*const libc::c_void, ()> {
     let dom_class = try!(get_dom_class(obj).or_else(|_| {
-        if IsWrapper(obj) == 1 {
+        if IsWrapper(obj) {
             debug!("found wrapper");
             obj = UnwrapObject(obj, /* stopAtOuter = */ 0);
             if obj.is_null() {
                 debug!("unwrapping security wrapper failed");
                 Err(())
             } else {
-                assert!(IsWrapper(obj) == 0);
+                assert!(!IsWrapper(obj));
                 debug!("unwrapped successfully");
                 get_dom_class(obj)
             }
@@ -773,7 +773,7 @@ impl ToJSValConvertible for *mut JSObject {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(ObjectOrNullValue(*self));
         unsafe {
-            assert!(JS_WrapValue(cx, rval) != 0);
+            assert!(JS_WrapValue(cx, rval));
         }
     }
 }

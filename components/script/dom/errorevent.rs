@@ -77,6 +77,7 @@ impl ErrorEvent {
         ev
     }
 
+    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
@@ -106,7 +107,7 @@ impl ErrorEvent {
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,
-                                HandleValue { ptr: &init.error });
+                                unsafe { HandleValue::from_marked_location(&init.error) });
         Ok(event)
     }
 
