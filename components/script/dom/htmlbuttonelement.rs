@@ -15,7 +15,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, FormSubmitter};
-use dom::htmlformelement::{SubmittedFrom};
+use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -81,6 +81,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(&self) -> DOMString {
