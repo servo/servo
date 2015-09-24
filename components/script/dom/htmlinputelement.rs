@@ -338,6 +338,15 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
 #[allow(unsafe_code)]
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
+    match group {
+        None | Some(&atom!("")) => {
+            // Radio input elements with a missing or empty name are alone in their
+            // own group.
+            return;
+        },
+        _ => {},
+    }
+
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner();
     let doc = document_from_node(broadcaster);
@@ -362,6 +371,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     do_broadcast(doc_node, broadcaster, owner.r(), group)
 }
 
+// https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
                  group: Option<&Atom>) -> bool {
     let other_owner = other.form_owner();
@@ -371,8 +381,7 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other_owner == owner &&
     // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => s1 == s2,
-        (None, None) => true,
+        (Some(ref s1), Some(s2)) => s1 == s2 && s2 != &atom!(""),
         _ => false
     }
 }
