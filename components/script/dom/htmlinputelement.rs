@@ -291,7 +291,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_getter!(Name);
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
     make_getter!(Placeholder);
@@ -337,7 +337,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
 
 #[allow(unsafe_code)]
-fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) {
+fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner();
     let doc = document_from_node(broadcaster);
@@ -345,7 +345,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) 
 
     // This function is a workaround for lifetime constraint difficulties.
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
-                        owner: Option<&HTMLFormElement>, group: Option<&str>) {
+                        owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
         // There is no DOM tree manipulation here, so this is safe
         let iter = unsafe {
             doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
@@ -363,7 +363,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&str>) 
 }
 
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
-                 group: Option<&str>) -> bool {
+                 group: Option<&Atom>) -> bool {
     let other_owner = other.form_owner();
     let other_owner = other_owner.r();
     other.input_type.get() == InputType::InputRadio &&
@@ -371,7 +371,7 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other_owner == owner &&
     // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => &**s1 == s2,
+        (Some(ref s1), Some(s2)) => s1 == s2,
         (None, None) => true,
         _ => false
     }
@@ -384,17 +384,18 @@ impl HTMLInputElement {
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
-    pub fn radio_group_updated(&self, group: Option<&str>) {
+    pub fn radio_group_updated(&self, group: Option<&Atom>) {
         if self.Checked() {
             broadcast_radio_checked(self, group);
         }
     }
 
-    pub fn get_radio_group_name(&self) -> Option<String> {
+    // https://html.spec.whatwg.org/multipage/#radio-button-group
+    pub fn get_radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         let elem = ElementCast::from_ref(self);
         elem.get_attribute(&ns!(""), &atom!("name"))
-            .map(|name| name.r().Value())
+            .map(|name| name.value().as_atom().clone())
     }
 
     pub fn update_checked_state(&self, checked: bool, dirty: bool) {
@@ -406,9 +407,7 @@ impl HTMLInputElement {
 
         if self.input_type.get() == InputType::InputRadio && checked {
             broadcast_radio_checked(self,
-                                    self.get_radio_group_name()
-                                        .as_ref()
-                                        .map(|group| &**group));
+                                    self.get_radio_group_name().as_ref());
         }
 
         self.force_relayout();
@@ -504,14 +503,14 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type.set(value);
                         if value == InputType::InputRadio {
                             self.radio_group_updated(
-                                self.get_radio_group_name().as_ref().map(|group| &**group));
+                                self.get_radio_group_name().as_ref());
                         }
                     },
                     AttributeMutation::Removed => {
                         if self.input_type.get() == InputType::InputRadio {
                             broadcast_radio_checked(
                                 self,
-                                self.get_radio_group_name().as_ref().map(|group| &**group));
+                                self.get_radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::InputText);
                     }
@@ -524,7 +523,7 @@ impl VirtualMethods for HTMLInputElement {
             },
             &atom!(name) if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
-                    mutation.new_value(attr).as_ref().map(|value| &***value));
+                    mutation.new_value(attr).as_ref().map(|name| name.as_atom()));
             },
             &atom!(placeholder) => {
                 let mut placeholder = self.placeholder.borrow_mut();
@@ -540,6 +539,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
+            &atom!(name) => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
@@ -676,7 +676,7 @@ impl Activatable for HTMLInputElement {
                         doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
                                 .filter_map(HTMLInputElementCast::to_root)
                                 .find(|r| {
-                                    in_same_group(r.r(), owner.r(), group.as_ref().map(|gr| &**gr)) &&
+                                    in_same_group(r.r(), owner.r(), group.as_ref()) &&
                                     r.r().Checked()
                                 })
                     };
