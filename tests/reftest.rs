@@ -7,10 +7,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(append)]
 #![feature(fs_walk)]
 #![feature(path_ext)]
-#![feature(result_expect)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
