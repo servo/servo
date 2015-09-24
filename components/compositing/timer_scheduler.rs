@@ -46,10 +46,10 @@ impl CancelableOneshotTimer {
                 // given amout. We might have woken up early.
                 let current_time = precise_time_ns();
                 if current_time >= due_time {
-                    tx.send(()).unwrap();
+                    let _ = tx.send(());
                     return;
                 }
-                park_time = (due_time - current_time + 1) as u32;
+                park_time = ((due_time - current_time + 999999) / (1000 * 1000)) as u32;
             }
         }).thread().clone();
 
@@ -71,7 +71,6 @@ impl CancelableOneshotTimer {
 }
 
 pub struct TimerScheduler {
-    chan: Sender<TimerEventRequest>,
     port: Receiver<TimerEventRequest>,
 
     scheduled_events: RefCell<BinaryHeap<ScheduledEvent>>,
@@ -99,7 +98,7 @@ impl PartialOrd for ScheduledEvent {
 impl Eq for ScheduledEvent {}
 impl PartialEq for ScheduledEvent {
     fn eq(&self, other: &ScheduledEvent) -> bool {
-        self == other
+        self as *const ScheduledEvent == other as *const ScheduledEvent
     }
 }
 
@@ -109,27 +108,22 @@ enum Task {
 }
 
 impl TimerScheduler {
-    pub fn new() -> TimerScheduler {
+    pub fn start() -> Sender<TimerEventRequest> {
         let (chan, port) = channel();
 
-        TimerScheduler {
-            chan: chan,
+        let timer_scheduler = TimerScheduler {
             port: port,
 
             scheduled_events: RefCell::new(BinaryHeap::new()),
 
             timer: RefCell::new(None),
-        }
-    }
-
-    pub fn start(self) -> Sender<TimerEventRequest> {
-        let result = self.chan.clone();
+        };
 
         spawn_named("TimerScheduler".to_owned(), move || {
-            &self.run_event_loop();
+            &timer_scheduler.run_event_loop();
         });
 
-        result
+        chan
     }
 
     fn run_event_loop(&self) {
@@ -148,10 +142,10 @@ impl TimerScheduler {
         let timer = self.timer.borrow();
         let timer_port = timer.as_ref().map(|timer| timer.port());
 
-        if timer_port.is_some() {
+        if let Some(ref timer_port) = timer_port {
             let sel = Select::new();
             let mut scheduler_handle = sel.handle(port);
-            let mut timer_handle = sel.handle(timer_port.as_ref().unwrap());
+            let mut timer_handle = sel.handle(timer_port);
 
             unsafe {
                 scheduler_handle.add();
@@ -201,8 +195,7 @@ impl TimerScheduler {
                 let event = events.pop().unwrap();
                 let TimerEventRequest(chan, source, id, _) = event.request;
 
-                // FIXME handle error
-                chan.send(TimerEvent(source, id)).unwrap();
+                let _ = chan.send(TimerEvent(source, id));
             }
         }
 
@@ -215,8 +208,8 @@ impl TimerScheduler {
 
         let mut timer = self.timer.borrow_mut();
 
-        if timer.is_some() {
-            timer.as_ref().unwrap().cancel();
+        if let Some(ref mut timer) = *timer {
+            timer.cancel();
         }
 
         *timer = next_event.map(|next_event| {

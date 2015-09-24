@@ -39,6 +39,10 @@ pub struct ActiveTimers {
     next_timer_handle: Cell<TimerHandle>,
     timers: DOMRefCell<BinaryHeap<Timer>>,
     suspended_since: Cell<Option<u64>>,
+    /// Initially 0, increased whenever the associated document is reactivated
+    /// by the amount of ns the document was inactive. The current time can be
+    /// offset back by this amount for a coherent time across document
+    /// activations.
     suspension_offset: Cell<u64>,
     /// Calls to `fire_timer` with a different argument than this get ignored.
     /// They were previously scheduled and got invalidated when
@@ -91,7 +95,7 @@ impl PartialOrd for Timer {
 impl Eq for Timer {}
 impl PartialEq for Timer {
     fn eq(&self, other: &Timer) -> bool {
-        self == other
+        self as *const Timer == other as *const Timer
     }
 }
 
@@ -123,7 +127,6 @@ impl ActiveTimers {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn set_timeout_or_interval(&self,
                                callback: TimerCallback,
                                arguments: Vec<HandleValue>,
@@ -168,7 +171,6 @@ impl ActiveTimers {
         new_handle
     }
 
-    // FIXME extra parameter is_interval: IsInterval
     pub fn clear_timeout_or_interval(&self, handle: i32) {
         let handle = TimerHandle(handle);
         let was_first = self.is_next_timer(handle);
@@ -185,9 +187,10 @@ impl ActiveTimers {
         }
     }
 
-    // FIXME swap parameters this and id
     pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
-        if self.expected_event_id.get() != id {
+        let expected_id = self.expected_event_id.get();
+        if expected_id != id {
+            debug!("ignoring timer fire event {:?} (expected {:?}", id, expected_id);
             return;
         }
 
@@ -246,17 +249,14 @@ impl ActiveTimers {
 
         let timers = self.timers.borrow();
 
-        if timers.is_empty() {
-            return;
+        if let Some(timer) = timers.peek() {
+            let expected_event_id = self.invalidate_expected_event_id();
+
+            let delay = (timer.next_call.saturating_sub(precise_time_ms())) as u32;
+            let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
+                                            expected_event_id, delay);
+            self.scheduler_chan.send(request).unwrap();
         }
-
-        let timer = timers.peek().unwrap();
-        let expected_event_id = self.invalidate_expected_event_id();
-
-        let delay = (timer.next_call.saturating_sub(precise_time_ms())) as u32;
-        let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
-                                        expected_event_id, delay);
-        self.scheduler_chan.send(request).unwrap();
     }
 
     pub fn suspend(&self) {
@@ -286,6 +286,7 @@ impl ActiveTimers {
     fn invalidate_expected_event_id(&self) -> TimerEventId {
         let TimerEventId(currently_expected) = self.expected_event_id.get();
         let next_id = TimerEventId(currently_expected + 1);
+        debug!("invalidating expected timer (was {:?}, now {:?}", currently_expected, next_id);
         self.expected_event_id.set(next_id);
         next_id
     }

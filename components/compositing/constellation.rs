@@ -272,7 +272,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
-                scheduler_chan: TimerScheduler::new().start(),
+                scheduler_chan: TimerScheduler::start(),
             };
             constellation.run();
         });

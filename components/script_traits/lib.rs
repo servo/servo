@@ -198,7 +198,7 @@ pub enum TimerSource {
 }
 
 /// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
-#[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub struct TimerEventId(pub u32);
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`
