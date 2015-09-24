@@ -1183,9 +1183,6 @@ impl LayoutTask {
 
             // Retrieve the (possibly rebuilt) root flow.
             rw_data.root_flow = self.try_get_layout_root((*node).clone());
-
-            // Kick off animations if any were triggered.
-            animation::process_new_animations(&mut *rw_data, self.id);
         }
 
         // Send new canvas renderers to the paint task
@@ -1327,6 +1324,9 @@ impl LayoutTask {
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = rw_data.layout_root() {
+            // Kick off animations if any were triggered, expire completed ones.
+            animation::update_animation_state(&mut *rw_data, self.id);
+
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
