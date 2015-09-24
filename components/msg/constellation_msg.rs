@@ -275,7 +275,7 @@ pub enum Msg {
     NodeStatus(Option<String>),
 }
 
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
 pub enum AnimationState {
     AnimationsPresent,
     AnimationCallbacksPresent,
