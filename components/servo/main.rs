@@ -23,6 +23,8 @@ extern crate android_glue;
 // The window backed by glutin
 extern crate glutin_app as app;
 extern crate env_logger;
+#[cfg(target_os = "android")]
+extern crate libc;
 #[macro_use]
 extern crate log;
 // The Servo engine
@@ -171,6 +173,16 @@ fn args() -> Vec<String> {
     env::args().collect()
 }
 
+
+// This extern definition ensures that the linker will not discard
+// the static native lib bits, which are brought in from the NDK libraries
+// we link in from build.rs.
+#[cfg(target_os = "android")]
+extern {
+    fn app_dummy() -> libc::c_void;
+}
+
+
 // This macro must be used at toplevel because it defines a nested
 // module, but macros can only accept identifiers - not paths -
 // preventing the expansion of this macro within the android module
@@ -193,6 +205,8 @@ mod android {
         //env::set_var("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
         redirect_output(STDERR_FILENO);
         redirect_output(STDOUT_FILENO);
+
+        unsafe { super::app_dummy(); }
     }
 
     struct FilePtr(*mut self::libc::types::common::c95::FILE);

@@ -1,0 +1,13 @@
+[package]
+
+name = "build-apk"
+version = "0.0.1"
+authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>", "The Servo Project Developers"]
+
+[[bin]]
+name = "build-apk"
+path = "src/main.rs"
+test = false
+doc = false
+bench = false
+

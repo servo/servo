@@ -22,7 +22,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase
+from servo.command_base import CommandBase, cd
 
 
 def read_file(filename, if_exists=False):
@@ -33,8 +33,7 @@ def read_file(filename, if_exists=False):
 
 
 @CommandProvider
-class MachCommands(CommandBase):
-
+class PostBuildCommands(CommandBase):
     @Command('run',
              description='Run Servo',
              category='post-build')
@@ -167,3 +166,36 @@ class MachCommands(CommandBase):
         import webbrowser
         webbrowser.open("file://" + path.abspath(path.join(
             self.get_target_dir(), "doc", "servo", "index.html")))
+
+    @Command('package',
+             description='Package Servo (currently, Android APK only)',
+             category='post-build')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Package the release build')
+    @CommandArgument('--dev', '-d', action='store_true',
+                     help='Package the dev build')
+    @CommandArgument(
+        'params', nargs='...',
+        help="Command-line arguments to be passed through to Servo")
+    def package(self, params, release=False, dev=False, debug=False, debugger=None):
+        env = self.build_env()
+        target_dir = path.join(self.get_target_dir(), "arm-linux-androideabi")
+        dev_flag = ""
+
+        if dev:
+            env["NDK_DEBUG"] = "1"
+            env["ANT_FLAVOR"] = "debug"
+            dev_flag = "-d"
+            target_dir = path.join(target_dir, "debug")
+        else:
+            env["ANT_FLAVOR"] = "release"
+            target_dir = path.join(target_dir, "release")
+
+        output_apk = path.join(target_dir, "servo.apk")
+        try:
+            with cd(path.join("support", "android", "build-apk")):
+                subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
+                                       "-r", self.get_top_dir()], env=env)
+        except subprocess.CalledProcessError as e:
+            print("Packaging Android exited with return value %d" % e.returncode)
+            return e.returncode
