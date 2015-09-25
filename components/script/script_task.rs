@@ -1909,7 +1909,7 @@ impl ScriptTask {
         window.r().set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), final_url, (id, None));
+        self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
     }
 }
 

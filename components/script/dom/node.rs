@@ -1715,7 +1715,7 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window.r(), Some(document.url()),
+                let document = Document::new(window.r(), Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 NodeCast::from_root(document)

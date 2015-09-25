@@ -133,7 +133,8 @@ impl VirtualMethods for HTMLBodyElement {
             },
             (&atom!(background), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
-                    let base = document_from_node(self).url();
+                    let document = document_from_node(self);
+                    let base = document.url();
                     UrlParser::new().base_url(&base).parse(&value).ok()
                 });
             },
