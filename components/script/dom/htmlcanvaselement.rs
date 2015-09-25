@@ -114,27 +114,23 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     unsafe fn get_renderer_id(&self) -> Option<usize> {
         let ref canvas = *self.unsafe_get();
-        if let Some(context) = canvas.context.get() {
+        canvas.context.get().map(|context| {
             match context {
-                CanvasContext::Context2d(context) => Some(context.to_layout().get_renderer_id()),
-                CanvasContext::WebGL(context) => Some(context.to_layout().get_renderer_id()),
+                CanvasContext::Context2d(context) => context.to_layout().get_renderer_id(),
+                CanvasContext::WebGL(context) => context.to_layout().get_renderer_id(),
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         let ref canvas = *self.unsafe_get();
-        if let Some(context) = canvas.context.get() {
+        canvas.context.get().map(|context| {
             match context {
-                CanvasContext::Context2d(context) => Some(context.to_layout().get_ipc_renderer()),
-                CanvasContext::WebGL(context) => Some(context.to_layout().get_ipc_renderer()),
+                CanvasContext::Context2d(context) => context.to_layout().get_ipc_renderer(),
+                CanvasContext::WebGL(context) => context.to_layout().get_ipc_renderer(),
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[allow(unsafe_code)]
@@ -151,14 +147,12 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
 
 impl HTMLCanvasElement {
     pub fn ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
-        if let Some(context) = self.context.get() {
+        self.context.get().map(|context| {
             match context {
-                CanvasContext::Context2d(context) => Some(context.root().r().ipc_renderer()),
-                CanvasContext::WebGL(context) => Some(context.root().r().ipc_renderer()),
+                CanvasContext::Context2d(context) => context.root().r().ipc_renderer(),
+                CanvasContext::WebGL(context) => context.root().r().ipc_renderer(),
             }
-        } else {
-            None
-        }
+        })
     }
 
     pub fn get_or_init_2d_context(&self) -> Option<Root<CanvasRenderingContext2D>> {
