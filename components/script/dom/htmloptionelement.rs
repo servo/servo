@@ -122,6 +122,11 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     make_setter!(SetLabel, "label");
 
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_getter!(DefaultSelected, "selected");
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_setter!(SetDefaultSelected, "selected");
 }
 
 impl VirtualMethods for HTMLOptionElement {
