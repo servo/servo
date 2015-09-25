@@ -26,7 +26,8 @@ fn test_viewport_rule<F>(css: &str,
                          callback: F)
     where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
 {
-    ::util::prefs::set_pref("layout.viewport.enabled", true);
+    ::util::prefs::set_pref("layout.viewport.enabled",
+                            ::util::prefs::PrefValue::Boolean(true));
 
     let stylesheet = stylesheet!(css, Author);
     let mut rule_count = 0;
@@ -173,7 +174,8 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    ::util::prefs::set_pref("layout.viewport.enabled", true);
+    ::util::prefs::set_pref("layout.viewport.enabled",
+                            ::util::prefs::PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
 
     let stylesheets = vec![

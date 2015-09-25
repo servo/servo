@@ -9,7 +9,8 @@ use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
-use prefs;
+use prefs::{self, PrefValue};
+use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -154,9 +155,6 @@ pub struct Opts {
 
     /// Whether to show an error when display list geometry escapes flow overflow regions.
     pub validate_display_list_geometry: bool,
-
-    /// A specific path to find required resources (such as user-agent.css).
-    pub resources_path: Option<String>,
 
     /// Whether MIME sniffing should be used
     pub sniff_mime_types: bool,
@@ -409,7 +407,6 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
-        resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
@@ -460,6 +457,8 @@ pub fn from_cmdline_args(args: &[String]) {
         Err(f) => args_fail(&f.to_string()),
     };
 
+    set_resources_path(opt_match.opt_str("resources-path"));
+
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
         process::exit(0);
@@ -480,12 +479,21 @@ pub fn from_cmdline_args(args: &[String]) {
     }
 
     let cwd = env::current_dir().unwrap();
-    let url = if opt_match.free.is_empty() {
-        print_usage(app_name, &opts);
-        args_fail("servo asks that you provide a URL")
+    let homepage_pref = prefs::get_pref("shell.homepage");
+    let url_opt = if !opt_match.free.is_empty() {
+        Some(&opt_match.free[0][..])
     } else {
-        parse_url_or_filename(&cwd, &opt_match.free[0])
-            .unwrap_or_else(|()| args_fail("URL parsing failed"))
+        homepage_pref.as_string()
+    };
+    let url = match url_opt {
+        Some(url_string) => {
+            parse_url_or_filename(&cwd, url_string)
+                .unwrap_or_else(|()| args_fail("URL parsing failed"))
+        },
+        None => {
+            print_usage(app_name, &opts);
+            args_fail("servo asks that you provide a URL")
+        }
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -602,7 +610,6 @@ pub fn from_cmdline_args(args: &[String]) {
         dump_display_list_optimized: debug_options.dump_display_list_optimized,
         relayout_event: debug_options.relayout_event,
         validate_display_list_geometry: debug_options.validate_display_list_geometry,
-        resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
@@ -614,7 +621,7 @@ pub fn from_cmdline_args(args: &[String]) {
     // This must happen after setting the default options, since the prefs rely on
     // on the resource path.
     for pref in opt_match.opt_strs("pref").iter() {
-        prefs::set_pref(pref, true);
+        prefs::set_pref(pref, PrefValue::Boolean(true));
     }
 }
 
