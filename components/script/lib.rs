@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(ascii)]
-#![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_syntax)]
