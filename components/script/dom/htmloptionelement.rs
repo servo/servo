@@ -17,11 +17,18 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
+use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+
+    /// https://html.spec.whatwg.org/multipage/#attr-option-selected
+    selectedness: Cell<bool>,
+
+    /// https://html.spec.whatwg.org/multipage/#concept-option-dirtiness
+    dirtiness: Cell<bool>,
 }
 
 impl HTMLOptionElementDerived for EventTarget {
@@ -38,7 +45,9 @@ impl HTMLOptionElement {
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptionElement, localName, prefix, document)
+                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptionElement, localName, prefix, document),
+            selectedness: Cell::new(false),
+            dirtiness: Cell::new(false),
         }
     }
 
@@ -122,6 +131,23 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     make_setter!(SetLabel, "label");
 
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_getter!(DefaultSelected, "selected");
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_setter!(SetDefaultSelected, "selected");
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    fn Selected(&self) -> bool {
+        self.selectedness.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    fn SetSelected(&self, selected: bool) {
+        self.dirtiness.set(true);
+        self.selectedness.set(selected);
+        // FIXME: as per the spec, implement 'ask for a reset'
+    }
 }
 
 impl VirtualMethods for HTMLOptionElement {
@@ -145,6 +171,22 @@ impl VirtualMethods for HTMLOptionElement {
                         node.set_enabled_state(true);
                         node.check_parent_disabled_state_for_option();
                     }
+                }
+            },
+            &atom!(selected) => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
+                        if !self.dirtiness.get() {
+                            self.selectedness.set(true);
+                        }
+                    },
+                    AttributeMutation::Removed => {
+                        // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
+                        if !self.dirtiness.get() {
+                            self.selectedness.set(false);
+                        }
+                    },
                 }
             },
             _ => {},

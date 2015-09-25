@@ -11,8 +11,8 @@ interface HTMLOptionElement : HTMLElement {
              attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
              attribute DOMString label;
-  //         attribute boolean defaultSelected;
-  //         attribute boolean selected;
+             attribute boolean defaultSelected;
+             attribute boolean selected;
              attribute DOMString value;
 
              attribute DOMString text;
