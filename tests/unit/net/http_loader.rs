@@ -8,7 +8,7 @@ use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
-use hyper::header::{Headers, Location, ContentLength};
+use hyper::header::{Headers, Location, ContentLength, Host};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::status::StatusCode;
@@ -152,10 +152,7 @@ impl HttpRequest for AssertRequestMustHaveHeaders {
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
-            assert_eq!(
-                self.request_headers.get_raw(header.name()).unwrap(),
-                self.expected_headers.get_raw(header.name()).unwrap()
-            )
+            assert_eq!(self.request_headers, self.expected_headers)
         }
 
         response_for_request_type(self.t)
@@ -278,11 +275,11 @@ fn test_request_and_response_data_with_network_messages() {
         type R = MockRequest;
 
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut headers = Headers::new();
+            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
             Ok(MockRequest::new(
-                        ResponseType::Text(
-                            <[_]>::to_vec("Yay!".as_bytes())
-                        )
-                    ) )
+                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
+            )
         }
     }
 
@@ -291,7 +288,10 @@ fn test_request_and_response_data_with_network_messages() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(url.clone(), None);
+    let mut request_headers = Headers::new();
+    request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
+    load_data.headers = request_headers.clone();
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory, DEFAULT_USER_AGENT.to_string());
 
     // notification received from devtools
@@ -301,16 +301,14 @@ fn test_request_and_response_data_with_network_messages() {
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::Get,
-        headers: Headers::new(),
+        headers: request_headers,
         body: None,
     };
-    
+
     let content = "Yay!";
-    let content_len = format!("{}", content.len());
     let mut response_headers = Headers::new();
-    response_headers.set_raw(
-        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*content_len.as_bytes())]
-    );
+    response_headers.set(ContentLength(content.len() as u64));
+    response_headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
