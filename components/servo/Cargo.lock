@@ -958,7 +958,7 @@ dependencies = [
  "string_cache 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
- "unicode-bidi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1771,7 +1771,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
