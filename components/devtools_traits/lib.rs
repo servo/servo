@@ -258,10 +258,24 @@ pub enum CachedConsoleMessage {
     ConsoleAPI(ConsoleAPI),
 }
 
-#[derive(Clone)]
+#[derive(Debug, PartialEq)]
+pub struct HttpRequest {
+    pub url: Url,
+    pub method: Method,
+    pub headers: Headers,
+    pub body: Option<Vec<u8>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct HttpResponse {
+    pub headers: Option<Headers>,
+    pub status: Option<RawStatus>,
+    pub body: Option<Vec<u8>>,
+}
+
 pub enum NetworkEvent {
-    HttpRequest(Url, Method, Headers, Option<Vec<u8>>),
-    HttpResponse(Option<Headers>, Option<RawStatus>, Option<Vec<u8>>)
+    HttpRequest(HttpRequest),
+    HttpResponse(HttpResponse),
 }
 
 impl TimelineMarker {
