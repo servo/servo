@@ -27,6 +27,7 @@ use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::default::Default;
+use std::iter::repeat;
 use util::str::{DOMString, parse_unsigned_integer};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -213,16 +214,15 @@ impl HTMLCanvasElement {
             return None
         }
 
-        let renderer = match self.ipc_renderer() {
-            Some(renderer) => renderer,
-            None => return None,
+        let data = if let Some(renderer) = self.ipc_renderer() {
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendPixelContents(sender));
+            renderer.send(msg).unwrap();
+
+            receiver.recv().unwrap().to_vec()
+        } else {
+            repeat(0xffu8).take((size.height as usize) * (size.width as usize) * 4).collect()
         };
-
-        let (sender, receiver) = ipc::channel().unwrap();
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendPixelContents(sender));
-        renderer.send(msg).unwrap();
-
-        let data = receiver.recv().unwrap().to_vec();
 
         Some((data, size))
     }
