@@ -3028,8 +3028,14 @@ delete-inline-in-blocks-middle-002.htm == reference/delete-inline-in-blocks-midd
 delete-inline-in-blocks-middle-003.htm == reference/delete-inline-in-blocks-middle-002-ref.htm
 descendant-display-none-001.htm == reference/ref-if-there-is-no-red.htm
 descendant-display-override-001.htm == reference/ref-if-there-is-no-red.htm
+descendant-selector-000.htm == reference/descendant-selector-000-ref.htm
+descendant-selector-001.htm == reference/descendant-selector-000-ref.htm
 descendent-selector-001.htm == reference/no-red-filler-text-ref.htm
+descendent-selector-002.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-003.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-004.htm == reference/descendent-selector-004-ref.htm
 descendent-selector-005.htm == reference/no-red-filler-text-ref.htm
+descendent-selector-006.htm == reference/descendent-selector-004-ref.htm
 direction-001.htm == reference/direction-001-ref.htm
 direction-002.htm == reference/direction-002-ref.htm
 direction-003.htm == reference/direction-002-ref.htm
@@ -3530,6 +3536,9 @@ grid-float-001.htm == reference/ref-filled-green-100px-square.htm
 grid-inline-float-001.htm == reference/ref-filled-green-100px-square.htm
 grid-inline-vertical-align-001.htm == reference/ref-filled-green-100px-square.htm
 grid-vertical-align-001.htm == reference/ref-filled-green-100px-square.htm
+grouping-000.htm == reference/grouping-000-ref.htm != reference/grouping-000-notref.htm
+grouping-001.htm == reference/grouping-000-ref.htm != reference/grouping-000-notref.htm
+grouping-002.htm == reference/grouping-002-ref.htm != reference/grouping-002-notref.htm
 height-001.htm == reference/height-001-ref.htm
 height-002.htm == reference/height-001-ref.htm
 height-003.htm == reference/height-003-ref.htm
@@ -3679,9 +3688,8 @@ inline-block-alignment-003.htm == reference/inline-block-alignment-003-ref.htm
 inline-block-alignment-004.htm == reference/inline-block-alignment-002-ref.htm
 inline-block-alignment-005.htm == reference/inline-block-alignment-003-ref.htm
 inline-block-alignment-006.htm == reference/inline-block-alignment-006-ref.htm
-inline-block-alignment-007.htm == reference/inline-block-alignment-007-ref.htm
+inline-block-alignment-007.htm == reference/inline-block-alignment-006-ref.htm
 inline-block-alignment-008.htm == reference/inline-block-alignment-006-ref.htm
-inline-block-alignment-009.htm == reference/inline-block-alignment-009-ref.htm
 inline-block-height-001.htm == reference/inline-block-height-001-ref.htm
 inline-block-height-002.htm == reference/inline-block-height-002-ref.htm
 inline-block-non-replaced-height-001.htm == reference/height-percentage-001-ref.htm
@@ -5488,8 +5496,8 @@ strings-000.htm == reference/ref-this-text-should-be-green.htm
 style-attr-cascade-001.htm == reference/ref-green.htm
 style-attr-cascade-002.htm == reference/ref-green.htm
 style-attr-cascade-003.htm == reference/ref-green.htm
-style-attr-cascade-004.htm == reference/ref-green-background.htm
-style-attr-cascade-005.htm == reference/ref-green-background.htm
+style-attr-cascade-004.htm == reference/ref-white-on-green-background.htm
+style-attr-cascade-005.htm == reference/ref-white-on-green-background.htm
 style-attr-cascade-006.htm == reference/ref-green.htm
 style-attr-cascade-007.htm == reference/style-attr-cascade-007.htm
 style-attr-specificity-001.htm == reference/ref-green-on-green.htm
@@ -5626,6 +5634,7 @@ top-offset-002.htm == reference/bottom-offset-001-ref.htm
 top-offset-003.htm == reference/top-offset-003-ref.htm
 top-offset-percentage-001.htm == reference/top-offset-percentage-001-ref.htm
 top-offset-percentage-002.htm == reference/left-offset-percentage-002-ref.htm
+type-selector-001.htm == reference/type-selector-001-ref.htm
 unicode-bidi-001.htm == reference/direction-002-ref.htm
 unicode-bidi-002.htm == reference/unicode-bidi-002-ref.htm
 unicode-bidi-003.htm == reference/direction-002-ref.htm
@@ -5651,8 +5660,11 @@ units-005.htm == reference/units-005-ref.htm
 units-006.htm == reference/units-006-ref.htm
 units-008.htm == reference/units-006-ref.htm
 units-009.htm == reference/units-006-ref.htm
+universal-selector-001.htm == reference/universal-selector-001-ref.htm != reference/universal-selector-001-notref.htm
+universal-selector-002.htm == reference/universal-selector-002-ref.htm != reference/universal-selector-002-notref.htm
 universal-selector-003.htm == reference/filler-text-below-green.htm
 universal-selector-004.htm == reference/filler-text-below-green.htm
+universal-selector-005.htm == reference/universal-selector-005-ref.htm
 unterminated-string-001.htm == reference/filler-text-below-green.htm
 uri-001.htm == reference/filler-text-below-green.htm
 uri-002.htm == reference/no-red-filler-text-ref.htm
