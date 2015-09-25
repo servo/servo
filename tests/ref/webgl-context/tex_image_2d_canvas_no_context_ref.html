@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGL texture test</title>
+<!--
+  This test should show a 256x256 red square
+  with a 128x128 white square embedded in the
+  middle
+-->
+<style>
+  html, body { margin: 0 }
+  .a {
+    width: 256px;
+    height: 256px;
+    background: red;
+    position: relative;
+  }
+  .b {
+    width: 128px;
+    height: 128px;
+    background: white;
+    position: absolute;
+    top: 64px;
+    left: 64px;
+  }
+</style>
+<div class="a"><div class="b"></div></div>
