@@ -5811,42 +5811,69 @@ class GlobalGenRoots():
                      CGGeneric("use std::mem;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
-            protos = [CGGeneric("""\
+            chain = descriptor.prototypeChain
+            upcast = (descriptor.interface.getUserData("hasConcreteDescendant", False) or
+                      descriptor.interface.getUserData("hasProxyDescendant", False))
+            downcast = len(chain) != 1
+
+            if upcast or downcast:
+                # Define a dummy structure to hold the cast functions.
+                allprotos.append(CGGeneric("pub struct %sCast;\n\n" % name))
+
+            if upcast:
+                # Define a `FooBase` trait for subclasses to implement, as well as the
+                # `FooCast::from_*` methods that use it.
+                allprotos.append(CGGeneric("""\
 /// Types which are derived from `%(name)s` and can be freely converted
 /// to `%(name)s`
-pub trait %(name)sBase : Sized {}\n""" % {'name': name})]
-            for proto in descriptor.prototypeChain:
-                protos += [CGGeneric('impl %s for %s {}\n' % (proto + 'Base',
-                                                                      descriptor.concreteType))]
-            derived = [CGGeneric("""\
-/// Types which `%(name)s` derives from
-pub trait %(name)sDerived : Sized { fn %(method)s(&self) -> bool; }\n""" %
-                                 {'name': name, 'method': 'is_' + name.lower()})]
-            for protoName in descriptor.prototypeChain[1:-1]:
-                protoDescriptor = config.getDescriptor(protoName)
-                delegate = string.Template("""\
-impl ${selfName} for ${baseName} {
+pub trait %(baseTrait)s: Sized {}
+
+impl %(name)sCast {
     #[inline]
-    fn ${fname}(&self) -> bool {
-        let base: &${parentName} = ${parentName}Cast::from_ref(self);
-        base.${fname}()
+    /// Upcast an instance of a derived class of `%(name)s` to `%(name)s`
+    pub fn from_ref<T: %(baseTrait)s + Reflectable>(derived: &T) -> &%(name)s {
+        unsafe { mem::transmute(derived) }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    pub fn from_layout_js<T: %(baseTrait)s + Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<%(name)s> {
+        unsafe { mem::transmute_copy(derived) }
+    }
+
+    #[inline]
+    pub fn from_root<T: %(baseTrait)s + Reflectable>(derived: Root<T>) -> Root<%(name)s> {
+        unsafe { mem::transmute(derived) }
     }
 }
-""").substitute({'fname': 'is_' + name.lower(),
-                 'selfName': name + 'Derived',
-                 'baseName': protoDescriptor.concreteType,
-                 'parentName': protoDescriptor.prototypeChain[-2]})
-                derived += [CGGeneric(delegate)]
-            derived += [CGGeneric('\n')]
 
-            cast = [CGGeneric(string.Template("""\
-pub struct ${name}Cast;
-impl ${name}Cast {
+""" % {'baseTrait': name + 'Base', 'name': name}))
+            else:
+                # The `FooBase` trait is not defined, so avoid implementing it by
+                # removing `Foo` itself from the chain.
+                chain = descriptor.prototypeChain[:-1]
+
+            # Implement `BarBase` for `Foo`, for all `Bar` that `Foo` inherits from.
+            for baseName in chain:
+                allprotos.append(CGGeneric("impl %s for %s {}\n" % (baseName + 'Base', name)))
+            if chain:
+                allprotos.append(CGGeneric("\n"))
+
+            if downcast:
+                # Define a `FooDerived` trait for superclasses to implement,
+                # as well as the `FooCast::to_*` methods that use it.
+                allprotos.append(CGGeneric("""\
+/// Types which `%(name)s` derives from
+pub trait %(derivedTrait)s: Sized {
+    fn %(methodName)s(&self) -> bool;
+}
+
+impl %(name)sCast {
     #[inline]
     /// Downcast an instance of a base class of `${name}` to an instance of
     /// `${name}`, if it internally is an instance of `${name}`
-    pub fn to_ref<'a, T: ${toBound}+Reflectable>(base: &'a T) -> Option<&'a ${name}> {
-        match base.${checkFn}() {
+    pub fn to_ref<T: %(derivedTrait)s + Reflectable>(base: &T) -> Option<&%(name)s> {
+        match base.%(methodName)s() {
             true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
@@ -5854,9 +5881,9 @@ impl ${name}Cast {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    pub fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<${name}>> {
+    pub fn to_layout_js<T: %(derivedTrait)s + Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<%(name)s>> {
         unsafe {
-            match (*base.unsafe_get()).${checkFn}() {
+            match (*base.unsafe_get()).%(methodName)s() {
                 true => Some(mem::transmute_copy(base)),
                 false => None
             }
@@ -5864,36 +5891,36 @@ impl ${name}Cast {
     }
 
     #[inline]
-    pub fn to_root<T: ${toBound}+Reflectable>(base: Root<T>) -> Option<Root<${name}>> {
-        match base.r().${checkFn}() {
+    pub fn to_root<T: %(derivedTrait)s + Reflectable>(base: Root<T>) -> Option<Root<%(name)s>> {
+        match base.%(methodName)s() {
             true => Some(unsafe { mem::transmute(base) }),
             false => None
         }
     }
+}
 
-    #[inline]
-    /// Upcast an instance of a derived class of `${name}` to `${name}`
-    pub fn from_ref<'a, T: ${fromBound}+Reflectable>(derived: &'a T) -> &'a ${name} {
-        unsafe { mem::transmute(derived) }
-    }
+""" % {'derivedTrait': name + 'Derived', 'name': name, 'methodName': 'is_' + name.lower()}))
 
+            # Implement the `FooDerived` trait for non-root superclasses by deferring to
+            # the direct superclass. This leaves the implementation of the `FooDerived`
+            # trait for the root superclass to manual code. `FooDerived` is not
+            # implemented for `Foo` itself.
+            for baseName in descriptor.prototypeChain[1:-1]:
+                args = {
+                    'baseName': baseName,
+                    'derivedTrait': name + 'Derived',
+                    'methodName': 'is_' + name.lower(),
+                    'parentName': config.getDescriptor(baseName).prototypeChain[-2],
+                }
+                allprotos.append(CGGeneric("""\
+impl %(derivedTrait)s for %(baseName)s {
     #[inline]
-    #[allow(unrooted_must_root)]
-    pub fn from_layout_js<T: ${fromBound}+Reflectable>(derived: &LayoutJS<T>) -> LayoutJS<${name}> {
-        unsafe { mem::transmute_copy(derived) }
-    }
-
-    #[inline]
-    pub fn from_root<T: ${fromBound}+Reflectable>(derived: Root<T>) -> Root<${name}> {
-        unsafe { mem::transmute(derived) }
+    fn %(methodName)s(&self) -> bool {
+        %(parentName)sCast::from_ref(self).%(methodName)s()
     }
 }
-""").substitute({'checkFn': 'is_' + name.lower(),
-                 'name': name,
-                 'fromBound': name + 'Base',
-                 'toBound': name + 'Derived'}))]
 
-            allprotos += protos + derived + cast
+""" % args))
 
         curr = CGList(allprotos)
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
