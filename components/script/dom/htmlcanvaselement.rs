@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::CanvasMsg;
+use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
@@ -22,11 +22,12 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use euclid::size::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
 use std::default::Default;
+use std::iter::repeat;
 use util::str::{DOMString, parse_unsigned_integer};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -114,27 +115,23 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
     unsafe fn get_renderer_id(&self) -> Option<usize> {
         let ref canvas = *self.unsafe_get();
-        if let Some(context) = canvas.context.get() {
+        canvas.context.get().map(|context| {
             match context {
-                CanvasContext::Context2d(context) => Some(context.to_layout().get_renderer_id()),
-                CanvasContext::WebGL(context) => Some(context.to_layout().get_renderer_id()),
+                CanvasContext::Context2d(context) => context.to_layout().get_renderer_id(),
+                CanvasContext::WebGL(context) => context.to_layout().get_renderer_id(),
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         let ref canvas = *self.unsafe_get();
-        if let Some(context) = canvas.context.get() {
+        canvas.context.get().map(|context| {
             match context {
-                CanvasContext::Context2d(context) => Some(context.to_layout().get_ipc_renderer()),
-                CanvasContext::WebGL(context) => Some(context.to_layout().get_ipc_renderer()),
+                CanvasContext::Context2d(context) => context.to_layout().get_ipc_renderer(),
+                CanvasContext::WebGL(context) => context.to_layout().get_ipc_renderer(),
             }
-        } else {
-            None
-        }
+        })
     }
 
     #[allow(unsafe_code)]
@@ -150,6 +147,15 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
 
 
 impl HTMLCanvasElement {
+    pub fn ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
+        self.context.get().map(|context| {
+            match context {
+                CanvasContext::Context2d(context) => context.root().r().ipc_renderer(),
+                CanvasContext::WebGL(context) => context.root().r().ipc_renderer(),
+            }
+        })
+    }
+
     pub fn get_or_init_2d_context(&self) -> Option<Root<CanvasRenderingContext2D>> {
         if self.context.get().is_none() {
             let window = window_from_node(self);
@@ -199,6 +205,26 @@ impl HTMLCanvasElement {
 
     pub fn is_valid(&self) -> bool {
         self.height.get() != 0 && self.width.get() != 0
+    }
+
+    pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<i32>)> {
+        let size = self.get_size();
+
+        if size.width == 0 || size.height == 0 {
+            return None
+        }
+
+        let data = if let Some(renderer) = self.ipc_renderer() {
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendPixelContents(sender));
+            renderer.send(msg).unwrap();
+
+            receiver.recv().unwrap().to_vec()
+        } else {
+            repeat(0xffu8).take((size.height as usize) * (size.width as usize) * 4).collect()
+        };
+
+        Some((data, size))
     }
 }
 
