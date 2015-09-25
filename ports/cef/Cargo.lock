@@ -138,6 +138,7 @@ dependencies = [
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
+ "plugins 0.0.1",
  "util 0.0.1",
 ]
 
@@ -908,7 +909,7 @@ dependencies = [
  "string_cache 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_plugin 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
- "unicode-bidi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1270,6 +1271,7 @@ dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plugins 0.0.1",
  "profile_traits 0.0.1",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "task_info 0.0.1",
@@ -1282,6 +1284,7 @@ name = "profile_traits"
 version = "0.0.1"
 dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
+ "plugins 0.0.1",
  "serde 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1414,6 +1417,7 @@ dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
+ "plugins 0.0.1",
  "profile_traits 0.0.1",
  "serde 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1710,7 +1714,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1841,6 +1845,7 @@ dependencies = [
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
+ "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
