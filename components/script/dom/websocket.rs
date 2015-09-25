@@ -32,8 +32,8 @@ use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::ptr;
 use std::sync::{Arc, Mutex};
+use std::{ptr, slice};
 use util::str::DOMString;
 use util::task::spawn_named;
 use websocket::client::receiver::Receiver;
@@ -139,7 +139,9 @@ impl WebSocket {
         // Step 3: Potentially block access to some ports.
 
         // Step 4.
-        let protocols = protocols.as_slice();
+        let protocols: &[DOMString] = protocols
+                                      .as_ref()
+                                      .map_or(&[], |ref string| slice::ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
@@ -151,7 +153,6 @@ impl WebSocket {
 
             if protocols[i + 1..].iter().any(|p| p == protocol) {
                 return Err(Syntax);
-
             }
 
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
