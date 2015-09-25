@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Backgrounds and Borders Module Level 3 CR Test Suite</h1>
-  <h2>Backgrounds (383 tests)</h2>
+  <h2>Backgrounds (385 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -271,7 +271,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.4">+</a>
         <a href="http://www.w3.org/TR/css3-background/#the-background-repeat">3.4 Tiling Images: the &#8216;background-repeat&#8217; property</a></th></tr>
-      <!-- 22 tests -->
+      <!-- 23 tests -->
       <tr id="background-003-3.4" class="image">
         <td>
             <a href="background-003.xht">background-003</a></td>
@@ -385,11 +385,11 @@
       <tr id="background-repeat-round-3.4" class="primary image">
         <td><strong>
             <a href="background-repeat-round.xht">background-repeat-round</a></strong></td>
-        <td></td>
+        <td><a href="reference/background-repeat-round.xht">=</a> </td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>background-repeat: round basic support
+        <td>background-repeat:round
           <ul class="assert">
-            <li>The image is repeated as often as will fit within the background positioning area. If it doesn't fit a whole number of times, it is rescaled so that it does.</li>
+            <li>The 'background-repeat: round' declaration must scale an image in one or more dimensions so it fits a whole number of times in the background positioning area.</li>
           </ul>
         </td>
       </tr>
@@ -401,6 +401,17 @@
         <td>background-repeat - one round keyword value
           <ul class="assert">
             <li>Check if 'background-repeat' is 'round', then the width and height of the corresponding background image is rescaled so that they fit a whole number of times (2 in this test) in the background positioning area. Therefore the used width and height of the background image in this test should be 110px.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-repeat-round-002-3.4" class="primary image">
+        <td><strong>
+            <a href="background-repeat-round-002.xht">background-repeat-round-002</a></strong></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-repeat: round basic support
+          <ul class="assert">
+            <li>The image is repeated as often as will fit within the background positioning area. If it doesn't fit a whole number of times, it is rescaled so that it does.</li>
           </ul>
         </td>
       </tr>
@@ -1502,7 +1513,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.9">+</a>
         <a href="http://www.w3.org/TR/css3-background/#the-background-size">3.9 Sizing Images: the &#8216;background-size&#8217; property</a></th></tr>
-      <!-- 262 tests -->
+      <!-- 263 tests -->
       <tr id="background-intrinsic-001-3.9" class="svg">
         <td>
             <a href="background-intrinsic-001.xht">background-intrinsic-001</a></td>
@@ -1632,6 +1643,17 @@
         <td>background-size - initial value
           <ul class="assert">
             <li>Check if 'background-size' with initial value implies to the intrinsic width and height of the image are to be used. Therefore the used width and height of the background-size in this test should be 60px and 60px.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="background-size-003-3.9" class="primary">
+        <td><strong>
+            <a href="background-size-003.xht">background-size-003</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>Value of 'auto' is used for y dimension in 'background-size'
+          <ul class="assert">
+            <li>An 'auto' value for y dimension in 'background-size' is resolved by using the image's intrinsic ratio and the size provided for the x dimension.</li>
           </ul>
         </td>
       </tr>

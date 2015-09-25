@@ -1,13 +1,18 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>CSS Test: vertical-rl Table Row/Rowgroup/Cell Ordering</title>
 <link href="http://fantasai.inkedblade.net/contact" rel="author" title="Elika J. Etemad" />
-<link href="reference/table-progression-001-ref.xht" rel="match" />
+<link href="table-progression-001-ref.orngtml" rel="match" />
 <meta content="This test checks that vertical-rl tables order rows/rowgroups right to left and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'." name="assert" />
+<meta content="This test checks that 'writing-mode' and 'direction' do not apply to table rows and row groups." name="assert" />
 <link href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode" rel="help" />
+<link href="http://www.w3.org/TR/css-writing-modes-3/#direction" rel="help" />
 
 <style>
   .test {
     writing-mode: vertical-rl;
+  }
+  [dir=rtl] {
+    direction: rtl;
   }
 
   table {
@@ -20,14 +25,32 @@
     border: solid gray;
   }
 
-  .a { background: navy}
-  .b { background: blue }
-  .c { background: aqua }
-  .d { background: teal }
-  .e { background: purple }
-  .f { background: fuchsia }
-  .g { background: yellow }
-  .h { background: orange }
+  .navy { background: navy}
+  .blue { background: blue }
+  .aqua { background: aqua }
+  .teal { background: teal }
+  .purp { background: purple }
+  .pink { background: fuchsia }
+  .yllw { background: yellow }
+  .orng { background: orange }
+
+  /* These rules must have no effect. */
+  .test thead,
+  .test tfoot,
+  .test tbody,
+  .test tr,
+  .test td {
+    writing-mode: horizontal-tb; /* For UAs not supporting vertical-rl */
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+  .test[dir=rtl] thead,
+  .test[dir=rtl] tfoot,
+  .test[dir=rtl] tbody,
+  .test[dir=rtl] tr,
+  .test[dir=rtl] td {
+    direction: ltr;
+  }
 </style>
 
 </head><body><p>Test passes if the following three tables look identical.
@@ -35,27 +58,27 @@
 </p><table class="test">
   <thead>
     <tr>
-      <td class="a">
-      </td><td class="b">
+      <td class="navy">
+      </td><td class="blue">
       </td><td colspan="2">
   </td></tr></thead><tfoot>
     <tr>
-      <td colspan="2">
-      </td><td class="c">
-      </td><td class="d">
+      <td colspan="2"> 
+      </td><td class="aqua">
+      </td><td class="teal">
   </td></tr></tfoot><tbody>
     <tr>
       <td rowspan="3">
       </td><td colspan="2">
-      </td><td class="e">
+      </td><td class="purp">
     </td></tr><tr>
-      <td class="f">
+      <td class="pink">
       </td><td colspan="2" rowspan="2">
     </td></tr><tr>
-      <td class="g">
+      <td class="yllw">
   </td></tr></tbody><tbody>
     <tr>
-      <td class="h">
+      <td class="orng">
       </td><td colspan="3">
 </td></tr></tbody></table>
 
@@ -63,48 +86,48 @@
   <thead>
     <tr>
       <td colspan="2">
-      </td><td class="b">
-      </td><td class="a">
+      </td><td class="blue">
+      </td><td class="navy">
   </td></tr></thead><tfoot>
     <tr>
-      <td class="d">
-      </td><td class="c">
-      </td><td colspan="2">
+      <td class="teal">
+      </td><td class="aqua">
+      </td><td colspan="2"> 
   </td></tr></tfoot><tbody>
     <tr>
-      <td class="e">
+      <td class="purp">
       </td><td colspan="2">
       </td><td rowspan="3">
     </td></tr><tr>
       <td colspan="2" rowspan="2">
-      </td><td class="f">
+      </td><td class="pink">
     </td></tr><tr>
-      <td class="g">
+      <td class="yllw">
   </td></tr></tbody><tbody>
     <tr>
       <td colspan="3">
-      </td><td class="h">
+      </td><td class="orng">
 </td></tr></tbody></table>
 
 <table class="reference">
   <tbody><tr>
     <td rowspan="2">
-    </td><td class="h">
-    </td><td colspan="3">
-    </td><td class="a">
+    </td><td class="orng">
+    </td><td colspan='3"'>
+    </td><td class="navy">
   </td></tr><tr>
-    <td rowspan="3">
-    </td><td class="g">
-    </td><td class="f">
-    </td><td rowspan="2">
-    </td><td class="b">
+    <td rowspan='3"'>
+    </td><td class="yllw">
+    </td><td class="pink">
+    </td><td rowspan='2"'>
+    </td><td class="blue">
   </td></tr><tr>
-    <td class="c">
+    <td class="aqua">
     </td><td colspan="2" rowspan="2">
     </td><td rowspan="2">
   </td></tr><tr>
-    <td class="d">
-    </td><td class="e">
+    <td class="teal">
+    </td><td class="purp">
 </td></tr></tbody></table>
 
 </body></html>
