@@ -4,7 +4,7 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -53,6 +53,14 @@ impl HTMLTableRowElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
+}
+
+impl HTMLTableRowElementMethods for HTMLTableRowElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_setter!(SetBgColor, "bgcolor");
 }
 
 impl VirtualMethods for HTMLTableRowElement {

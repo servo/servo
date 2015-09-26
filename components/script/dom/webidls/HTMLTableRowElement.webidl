@@ -21,5 +21,5 @@ partial interface HTMLTableRowElement {
   //         attribute DOMString chOff;
   //         attribute DOMString vAlign;
 
-  //[TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [TreatNullAs=EmptyString] attribute DOMString bgColor;
 };

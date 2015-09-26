@@ -34,7 +34,7 @@ partial interface HTMLTableElement {
   //         attribute DOMString summary;
   //         attribute DOMString width;
 
-  //[TreatNullAs=EmptyString] attribute DOMString bgColor;
+  [TreatNullAs=EmptyString] attribute DOMString bgColor;
   //[TreatNullAs=EmptyString] attribute DOMString cellPadding;
   //[TreatNullAs=EmptyString] attribute DOMString cellSpacing;
 };
