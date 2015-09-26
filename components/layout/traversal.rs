@@ -292,23 +292,6 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
     }
 }
 
-/// The flow tree verification traversal. This is only on in debug builds.
-#[cfg(debug)]
-struct FlowTreeVerification;
-
-#[cfg(debug)]
-impl PreorderFlow for FlowTreeVerification {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) {
-        let base = flow::base(flow);
-        if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
-            println!("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
-            flow.dump();
-            panic!("flow tree verification failed")
-        }
-    }
-}
-
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes
 /// preferred and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizes<'a> {
