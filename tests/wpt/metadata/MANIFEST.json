@@ -17744,6 +17744,18 @@
         "url": "/html/semantics/tabular-data/the-tbody-element/insertRow.html"
       },
       {
+        "path": "html/semantics/tabular-data/the-tbody-element/rows.html",
+        "url": "/html/semantics/tabular-data/the-tbody-element/rows.html"
+      },
+      {
+        "path": "html/semantics/tabular-data/the-tfoot-element/rows.html",
+        "url": "/html/semantics/tabular-data/the-tfoot-element/rows.html"
+      },
+      {
+        "path": "html/semantics/tabular-data/the-thead-element/rows.html",
+        "url": "/html/semantics/tabular-data/the-thead-element/rows.html"
+      },
+      {
         "path": "html/semantics/tabular-data/the-tr-element/cells.html",
         "url": "/html/semantics/tabular-data/the-tr-element/cells.html"
       },

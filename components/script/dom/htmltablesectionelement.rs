@@ -4,14 +4,17 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived, HTMLTableSectionElementDerived};
+use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{self, DOMString};
@@ -51,6 +54,22 @@ impl HTMLTableSectionElement {
 
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+}
+
+#[derive(JSTraceable)]
+struct RowsFilter;
+impl CollectionFilter for RowsFilter {
+    fn filter(&self, elem: &Element, root: &Node) -> bool {
+        elem.is_htmltablerowelement()
+            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+    }
+}
+
+impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
+    fn Rows(&self) -> Root<HTMLCollection> {
+        HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
     }
 }
 
