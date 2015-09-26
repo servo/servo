@@ -1257,23 +1257,23 @@ impl Document {
             .find(|node| node.subpage_id() == Some(subpage_id))
     }
 
-    pub fn get_dom_loading(self) -> u64 {
+    pub fn get_dom_loading(&self) -> u64 {
         self.dom_loading.get()
     }
 
-    pub fn get_dom_interactive(self) -> u64 {
+    pub fn get_dom_interactive(&self) -> u64 {
         self.dom_interactive.get()
     }
 
-    pub fn get_dom_content_loaded_event_start(self) -> u64 {
+    pub fn get_dom_content_loaded_event_start(&self) -> u64 {
         self.dom_content_loaded_event_start.get()
     }
 
-    pub fn get_dom_content_loaded_event_end(self) -> u64 {
+    pub fn get_dom_content_loaded_event_end(&self) -> u64 {
         self.dom_content_loaded_event_end.get()
     }
 
-    pub fn get_dom_complete(self) -> u64 {
+    pub fn get_dom_complete(&self) -> u64 {
         self.dom_complete.get()
     }
 }

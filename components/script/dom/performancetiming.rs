@@ -56,31 +56,31 @@ impl PerformanceTimingMethods for PerformanceTiming {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domloading
     fn DomLoading(&self) -> u64 {
-        self.document.root().r().get_dom_loading()
+        self.document.root().get_dom_loading()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-dominteractive
     fn DomInteractive(&self) -> u64 {
-        self.document.root().r().get_dom_interactive()
+        self.document.root().get_dom_interactive()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventstart
     fn DomContentLoadedEventStart(&self) -> u64 {
-        self.document.root().r().get_dom_content_loaded_event_start()
+        self.document.root().get_dom_content_loaded_event_start()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventend
     fn DomContentLoadedEventEnd(&self) -> u64 {
-        self.document.root().r().get_dom_content_loaded_event_end()
+        self.document.root().get_dom_content_loaded_event_end()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcomplete
     fn DomComplete(&self) -> u64 {
-        self.document.root().r().get_dom_complete()
+        self.document.root().get_dom_complete()
     }
 }
 
