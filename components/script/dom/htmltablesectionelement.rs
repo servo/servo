@@ -4,14 +4,15 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{self, DOMString};
@@ -51,6 +52,13 @@ impl HTMLTableSectionElement {
 
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+}
+
+impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
+    fn Rows(&self) -> Root<HTMLCollection> {
+        HTMLCollection::by_tag_name(&window_from_node(self), NodeCast::from_ref(self), String::from("tr"))
     }
 }
 
