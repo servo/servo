@@ -215,6 +215,8 @@ impl ShaperMethods for Shaper {
                 HB_DIRECTION_LTR
             });
 
+            hb_buffer_set_script(hb_buffer, options.script.to_hb_script());
+
             hb_buffer_add_utf8(hb_buffer,
                                text.as_ptr() as *const c_char,
                                text.len() as c_int,

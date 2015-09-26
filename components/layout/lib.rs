@@ -53,6 +53,7 @@ extern crate smallvec;
 extern crate string_cache;
 extern crate style;
 extern crate unicode_bidi;
+extern crate unicode_script;
 extern crate url;
 
 #[macro_use]

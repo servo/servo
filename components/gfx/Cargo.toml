@@ -23,6 +23,7 @@ serde_macros = "0.5"
 smallvec = "0.1"
 string_cache = "0.1"
 time = "0.1.12"
+unicode-script = { version = "0.1", features = ["harfbuzz"] }
 
 [dependencies.plugins]
 path = "../plugins"

@@ -72,6 +72,7 @@ extern crate smallvec;
 extern crate string_cache;
 extern crate style;
 extern crate time;
+extern crate unicode_script;
 extern crate url;
 
 
