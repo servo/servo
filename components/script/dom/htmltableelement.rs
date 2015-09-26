@@ -127,6 +127,12 @@ impl HTMLTableElementMethods for HTMLTableElement {
                                   reference_element.r()).is_ok());
         tbody
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
+    make_setter!(SetBgColor, "bgcolor");
 }
 
 
