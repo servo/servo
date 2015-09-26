@@ -3,42 +3,40 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(box_raw)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
-#![feature(custom_attribute)]
-#![plugin(serde_macros, plugins)]
 
+#![plugin(plugins, serde_macros)]
 #![plugin(regex_macros)]
 
+#[macro_use]
+extern crate log;
 extern crate euclid;
 extern crate hyper;
 extern crate ipc_channel;
-#[macro_use]
-extern crate log;
+extern crate msg;
 extern crate png;
 extern crate regex;
 extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;
-extern crate msg;
 
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{Mime, Attr};
+use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
+use std::thread;
 use url::Url;
 use util::mem::HeapSizeOf;
-
-use std::thread;
 
 pub mod hosts;
 pub mod image_cache_task;

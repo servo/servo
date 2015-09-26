@@ -4,19 +4,18 @@
 
 //! Base classes to work with IDL callbacks.
 
-use dom::bindings::error::{Fallible, Error};
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
+use js::jsapi::{Heap, MutableHandleObject, RootedObject, RootedValue};
+use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSAutoCompartment};
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, IsCallable};
+use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
-use js::jsapi::{JS_EnterCompartment, JS_LeaveCompartment, JSCompartment};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
-use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
-use js::jsapi::{RootedObject, RootedValue, MutableHandleObject, Heap};
+use js::jsapi::{JS_RestoreFrameChain, JS_SaveFrameChain};
 use js::jsval::{JSVal, UndefinedValue};
-
 use std::default::Default;
 use std::ffi::CString;
 use std::intrinsics::return_address;

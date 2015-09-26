@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::WebGLError::*;
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, CanvasCommonMsg, WebGLError};
-use canvas_traits::{WebGLShaderParameter, WebGLFramebufferBindingRequest};
+use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, WebGLError};
+use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::node::{window_from_node, NodeDamage};
+use dom::node::{NodeDamage, window_from_node};
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglframebuffer::WebGLFramebuffer;
 use dom::webglprogram::WebGLProgram;
@@ -29,21 +28,16 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsapi::{JS_GetFloat32ArrayData, JS_GetObjectAsArrayBufferView};
-use js::jsval::{JSVal, UndefinedValue, NullValue, Int32Value, BooleanValue};
-
+use js::jsval::{BooleanValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
-
+use offscreen_gl_context::GLContextAttributes;
 use std::cell::Cell;
-use std::mem;
-use std::ptr;
-use std::slice;
 use std::sync::mpsc::channel;
+use std::{mem, ptr, slice};
 use util::str::DOMString;
 use util::vec::byte_swap;
-
-use offscreen_gl_context::GLContextAttributes;
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
@@ -128,6 +122,27 @@ impl WebGLRenderingContext {
 
     pub fn recreate(&self, size: Size2D<i32>) {
         self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Recreate(size))).unwrap();
+    }
+
+    pub fn ipc_renderer(&self) -> IpcSender<CanvasMsg> {
+        self.ipc_renderer.clone()
+    }
+
+    pub fn webgl_error(&self, err: WebGLError) {
+        // If an error has been detected no further errors must be
+        // recorded until `getError` has been called
+        if self.last_error.get().is_none() {
+            self.last_error.set(Some(err));
+        }
+    }
+
+    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+        match target {
+            constants::TEXTURE_2D => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+
+            _ => unreachable!(),
+        }
     }
 
     fn mark_as_dirty(&self) {
@@ -851,8 +866,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
             // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
-            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(_rooted_canvas)
-                => unimplemented!(),
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLCanvasElement(canvas) => {
+                let canvas = canvas.r();
+                if let Some((mut data, size)) = canvas.fetch_all_data() {
+                    byte_swap(&mut data);
+                    (data, size)
+                } else {
+                    return
+                }
+            },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLVideoElement(_rooted_video)
                 => unimplemented!(),
         };
@@ -900,26 +922,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
 
             _ => self.webgl_error(InvalidEnum),
-        }
-    }
-}
-
-
-impl WebGLRenderingContext {
-    pub fn webgl_error(&self, err: WebGLError) {
-        // If an error has been detected no further errors must be
-        // recorded until `getError` has been called
-        if self.last_error.get().is_none() {
-            self.last_error.set(Some(err));
-        }
-    }
-
-    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
-        match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-
-            _ => unreachable!(),
         }
     }
 }

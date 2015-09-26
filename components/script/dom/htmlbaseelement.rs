@@ -14,9 +14,8 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use util::str::DOMString;
-
 use url::{Url, UrlParser};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -51,7 +50,8 @@ impl HTMLBaseElement {
         let href = ElementCast::from_ref(self).get_attribute(&ns!(""), &atom!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");
-        let base = document_from_node(self).fallback_base_url();
+        let document = document_from_node(self);
+        let base = document.fallback_base_url();
         let parsed = UrlParser::new().base_url(&base).parse(&href.value());
         parsed.unwrap_or(base)
     }

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::AsciiExt;
-
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -14,7 +12,7 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, HTMLScriptElementDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
@@ -29,20 +27,20 @@ use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ScriptHelpers;
-use js::jsapi::RootedValue;
-use js::jsval::UndefinedValue;
-use network_listener::{NetworkListener, PreInvoke};
-use script_task::ScriptTaskEventCategory::ScriptEvent;
-use script_task::{ScriptChan, Runnable, CommonScriptMsg};
-
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{Encoding, EncodingRef, DecoderTrap};
+use encoding::types::{DecoderTrap, Encoding, EncodingRef};
 use html5ever::tree_builder::NextParserState;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{Metadata, AsyncResponseListener, AsyncResponseTarget};
-use std::cell::{RefCell, Cell};
+use js::jsapi::RootedValue;
+use js::jsval::UndefinedValue;
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::ScriptEvent;
+use script_task::{CommonScriptMsg, Runnable, ScriptChan};
+use std::ascii::AsciiExt;
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::{Arc, Mutex};
 use url::{Url, UrlParser};

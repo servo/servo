@@ -23,7 +23,7 @@ interface HTMLSelectElement : HTMLElement {
   void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   //void remove(); // ChildNode overload
   //void remove(long index);
-  //setter creator void (unsigned long index, HTMLOptionElement? option);
+  //setter void (unsigned long index, HTMLOptionElement? option);
 
   //readonly attribute HTMLCollection selectedOptions;
   //         attribute long selectedIndex;

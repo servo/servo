@@ -7,35 +7,32 @@
 use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
+use euclid::{Point2D, Rect, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{MutableFlowUtils, EarlyAbsolutePositionInfo, OpaqueFlow};
-use flow::{self, BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
+use flow::{EarlyAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
+use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
-use layout_debug;
-use model::IntrinsicISizesContribution;
-use text;
-use wrapper::PseudoElementType;
-
-use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
+use layout_debug;
+use model::IntrinsicISizesContribution;
 use std::cmp::max;
 use std::collections::VecDeque;
-use std::fmt;
-use std::isize;
-use std::mem;
 use std::sync::Arc;
+use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
+use text;
 use unicode_bidi;
 use util;
 use util::geometry::{Au, MAX_AU, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
+use wrapper::PseudoElementType;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

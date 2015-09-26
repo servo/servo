@@ -28,15 +28,28 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
+use euclid::{Point2D, Rect, Size2D};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
+use gfx::display_list::ClippingRegion;
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use msg::compositor_msg::{LayerId, LayerType};
+use msg::constellation_msg::ConstellationChan;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
+use rustc_serialize::{Encodable, Encoder};
+use std::iter::Zip;
+use std::slice::IterMut;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
+use std::{fmt, mem, raw};
+use style::computed_values::{clear, display, empty_cells, float, position, text_align};
+use style::properties::{self, ComputedValues};
+use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -44,25 +57,9 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
-
-use euclid::{Point2D, Rect, Size2D};
-use gfx::display_list::ClippingRegion;
-use msg::compositor_msg::{LayerId, LayerType};
-use msg::constellation_msg::ConstellationChan;
-use rustc_serialize::{Encoder, Encodable};
-use std::fmt;
-use std::iter::Zip;
-use std::mem;
-use std::raw;
-use std::slice::IterMut;
-use std::sync::Arc;
-use std::sync::atomic::Ordering;
-use style::computed_values::{clear, display, empty_cells, float, position, text_align};
-use style::properties::{self, ComputedValues};
-use style::values::computed::LengthOrPercentageOrAuto;
 use util::geometry::{Au, ZERO_RECT};
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 /// Virtual methods that make up a float context.
 ///

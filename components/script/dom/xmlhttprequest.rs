@@ -2,16 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cors::CORSResponse;
+use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_origin_request};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{_empty, Json, Text};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::{InvalidState, InvalidAccess};
-use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
+use dom::bindings::error::Error::{Abort, Network, Security, Syntax, Timeout};
+use dom::bindings::error::Error::{InvalidAccess, InvalidState};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::Root;
@@ -26,47 +30,37 @@ use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use network_listener::{NetworkListener, PreInvoke};
-use script_task::ScriptTaskEventCategory::XhrEvent;
-use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
-
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
-
+use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use hyper::header::Headers;
 use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime};
-
-use js::jsapi::JS_ClearPendingException;
-use js::jsapi::{JS_ParseJSON, JSContext, RootedValue};
-use js::jsval::{JSVal, NullValue, UndefinedValue};
-
-use cors::CORSResponse;
-use cors::{allow_cross_origin_request, CORSRequest, RequestMode, AsyncCORSResponseListener};
-use net_traits::ControlMsg::Load;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
-use net_traits::{ResourceTask, ResourceCORSData, LoadData, LoadConsumer};
-use util::mem::HeapSizeOf;
-use util::str::DOMString;
-use util::task::spawn_named;
-
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsapi::JS_ClearPendingException;
+use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
+use js::jsval::{JSVal, NullValue, UndefinedValue};
+use net_traits::ControlMsg::Load;
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use net_traits::{LoadConsumer, LoadData, ResourceCORSData, ResourceTask};
+use network_listener::{NetworkListener, PreInvoke};
+use script_task::ScriptTaskEventCategory::XhrEvent;
+use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{RefCell, Cell};
+use std::cell::{Cell, RefCell};
 use std::default::Default;
-use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::sync::{Mutex, Arc};
+use std::sync::mpsc::{Sender, TryRecvError, channel};
+use std::sync::{Arc, Mutex};
 use std::thread::sleep_ms;
 use time;
 use url::{Url, UrlParser};
-
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
+use util::mem::HeapSizeOf;
+use util::str::DOMString;
+use util::task::spawn_named;
 
 pub type SendParam = StringOrURLSearchParams;
 

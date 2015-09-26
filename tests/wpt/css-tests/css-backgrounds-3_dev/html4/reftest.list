@@ -76,6 +76,7 @@ background-paint-order-001.htm == reference/background-paint-order-001-ref.htm
 background-repeat-no-repeat.htm == reference/background-repeat-no-repeat.htm
 background-repeat-repeat-x.htm == reference/background-repeat-repeat-x.htm
 background-repeat-repeat-y.htm == reference/background-repeat-repeat-y.htm
+background-repeat-round.htm == reference/background-repeat-round.htm
 background-repeat-round-roundup.htm == reference/background-repeat-round-roundup.htm
 background-repeat-space.htm == reference/background-repeat-space.htm
 background-size-002.htm == reference/background-size-002-ref.htm
@@ -193,6 +194,7 @@ border-radius-010.htm == reference/border-radius-010-ref.htm
 border-radius-011.htm == reference/border-radius-011-ref.htm
 border-radius-clipping.htm == reference/border-radius-clipping-ref.htm
 border-radius-horizontal-value-is-zero.htm == reference/border-radius-horizontal-value-is-zero-ref.htm
+border-radius-shorthand-002.htm == reference/border-radius-shorthand-002-ref.htm
 border-top-left-radius-001.htm == reference/border-radius-001-ref.htm
 border-top-left-radius-003.htm == border-top-left-radius-004.htm
 border-top-left-radius-004.htm == border-top-left-radius-003.htm
@@ -213,7 +215,7 @@ border-top-right-radius-009.htm == border-top-right-radius-007.htm
 border-top-right-radius-010.htm == reference/border-radius-001-ref.htm
 border-top-right-radius-011.htm == reference/border-radius-001-ref.htm
 border-top-right-radius-014.htm == reference/border-radius-001-ref.htm
-box-shadow-001.htm == reference/box-shadow-001-ref.htm
+box-shadow-005.htm == reference/box-shadow-005-ref.htm
 box-shadow-inset-spread-without-border-radius.htm == reference/box-shadow-inset-spread-without-border-radius.htm
 box-shadow-inset-without-border-radius.htm == reference/box-shadow-inset-without-border-radius.htm
 box-shadow-outset-spread-without-border-radius.htm == reference/box-shadow-outset-spread-without-border-radius.htm

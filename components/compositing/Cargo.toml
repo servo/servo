@@ -43,6 +43,9 @@ path = "../canvas_traits"
 [dependencies.canvas]
 path = "../canvas"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 

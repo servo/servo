@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, IS_ABSOLUTELY_POSITIONED};
-
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;

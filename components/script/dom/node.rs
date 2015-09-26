@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use core::nonzero::NonZero;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
 use dom::attr::Attr;
@@ -17,13 +18,13 @@ use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentCast, DocumentDerived, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast, ElementDerived, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase, NodeDerived};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
-use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
+use dom::bindings::error::Error::{HierarchyRequest, NotFound, Syntax};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -31,10 +32,10 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{namespace_from_domstring, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, namespace_from_domstring, reflect_dom_object};
 use dom::characterdata::{CharacterData, CharacterDataTypeId};
 use dom::comment::Comment;
-use dom::document::{Document, IsHTMLDocument, DocumentSource};
+use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator, ElementTypeId};
@@ -46,29 +47,26 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use euclid::rect::Rect;
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg};
+use libc::{self, c_void, uintptr_t};
 use parse::html::parse_html_fragment;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
-use style::properties::ComputedValues;
-use util::geometry::Au;
-use util::str::DOMString;
-use util::task_state;
-
-use core::nonzero::NonZero;
-use js::jsapi::{JSContext, JSObject, JSRuntime};
-use libc;
-use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell, Ref, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::slice::ref_slice;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
+use style::properties::ComputedValues;
+use util::geometry::Au;
+use util::str::DOMString;
+use util::task_state;
 use uuid;
 
 //
@@ -812,18 +810,17 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self.clone());
-                Ok(root.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
+                Ok(self.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
                     matches(selectors, element, None)
                 }))
             }
         }
     }
 
+    /// https://dom.spec.whatwg.org/#scope-match-a-selectors-string
     /// Get an iterator over all nodes which match a set of selectors
-    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
-    /// the iterator may be invalidated
+    /// Be careful not to do anything which may manipulate the DOM tree
+    /// whilst iterating, otherwise the iterator may be invalidated.
     #[allow(unsafe_code)]
     pub unsafe fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
@@ -833,9 +830,7 @@ impl Node {
             Err(()) => Err(Syntax),
             // Step 3.
             Ok(selectors) => {
-                let root = self.ancestors().last();
-                let root = root.r().unwrap_or(self);
-                Ok(QuerySelectorIterator::new(root.traverse_preorder(), selectors))
+                Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
             }
         }
     }
@@ -1720,7 +1715,7 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window.r(), Some(document.url()),
+                let document = Document::new(window.r(), Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 NodeCast::from_root(document)
@@ -1768,15 +1763,12 @@ impl Node {
                 let node_elem = ElementCast::to_ref(node).unwrap();
                 let copy_elem = ElementCast::to_ref(copy.r()).unwrap();
 
-                let window = document.r().window();
-                for ref attr in &*node_elem.attrs() {
-                    let attr = attr.root();
-                    let newattr =
-                        Attr::new(window.r(),
-                                  attr.r().local_name().clone(), attr.r().value().clone(),
-                                  attr.r().name().clone(), attr.r().namespace().clone(),
-                                  attr.r().prefix().clone(), Some(copy_elem));
-                    copy_elem.attrs_mut().push(JS::from_rooted(&newattr));
+                for attr in node_elem.attrs().iter().map(JS::root) {
+                    copy_elem.push_new_attribute(attr.local_name().clone(),
+                                                 attr.value().clone(),
+                                                 attr.name().clone(),
+                                                 attr.namespace().clone(),
+                                                 attr.prefix().clone());
                 }
             },
             _ => ()

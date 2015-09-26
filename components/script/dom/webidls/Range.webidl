@@ -11,11 +11,17 @@
 
 [Constructor /*, Exposed=Window */]
 interface Range {
+  [Pure]
   readonly attribute Node startContainer;
+  [Pure]
   readonly attribute unsigned long startOffset;
+  [Pure]
   readonly attribute Node endContainer;
+  [Pure]
   readonly attribute unsigned long endOffset;
+  [Pure]
   readonly attribute boolean collapsed;
+  [Pure]
   readonly attribute Node commonAncestorContainer;
 
   [Throws]
@@ -40,7 +46,7 @@ interface Range {
   const unsigned short START_TO_END = 1;
   const unsigned short END_TO_END = 2;
   const unsigned short END_TO_START = 3;
-  [Throws]
+  [Pure, Throws]
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
   // [Throws]
   // void deleteContents();
@@ -55,13 +61,15 @@ interface Range {
 
   [NewObject]
   Range cloneRange();
+  [Pure]
   void detach();
 
-  [Throws]
+  [Pure, Throws]
   boolean isPointInRange(Node node, unsigned long offset);
-  [Throws]
+  [Pure, Throws]
   short comparePoint(Node node, unsigned long offset);
 
+  [Pure]
   boolean intersectsNode(Node node);
 
   // stringifier;

@@ -167,7 +167,7 @@ impl CORSCache for BasicCORSCache {
             None => {
                 self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
                                                 request.credentials,
-                                                HeaderOrMethod::HeaderData(header_name.to_string())));
+                                                HeaderOrMethod::HeaderData(header_name.to_owned())));
                 false
             }
         }
@@ -228,13 +228,13 @@ impl CORSCache for CORSCacheSender {
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_string(), tx));
+        self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_owned(), tx));
         rx.recv().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
         let (tx, rx) = channel();
-        self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
+        self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
         rx.recv().unwrap_or(false)
     }
 

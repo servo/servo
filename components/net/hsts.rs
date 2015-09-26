@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{IncludeSubdomains, IPV4_REGEX, IPV6_REGEX};
+use net_traits::{IPV4_REGEX, IPV6_REGEX, IncludeSubdomains};
 use rustc_serialize::json::{decode};
+use std::str::{from_utf8};
 use time;
 use url::Url;
-
-use std::str::{from_utf8};
-
 use util::resource_files::read_resource_file;
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
@@ -123,7 +121,7 @@ pub fn preload_hsts_domains() -> Option<HSTSList> {
 pub fn secure_url(url: &Url) -> Url {
     if &*url.scheme == "http" {
         let mut secure_url = url.clone();
-        secure_url.scheme = "https".to_string();
+        secure_url.scheme = "https".to_owned();
         secure_url.relative_scheme_data_mut()
             .map(|scheme_data| {
                 scheme_data.default_port = Some(443);
@@ -133,4 +131,3 @@ pub fn secure_url(url: &Url) -> Url {
         url.clone()
     }
 }
-

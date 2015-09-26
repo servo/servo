@@ -16,9 +16,8 @@ use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMParser {

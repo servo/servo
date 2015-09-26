@@ -3,17 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
-
-use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError};
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 

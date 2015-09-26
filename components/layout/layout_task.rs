@@ -8,26 +8,13 @@
 #![allow(unsafe_code)]
 
 use animation;
+use azure::azure::AzColor;
+use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
 use context::{SharedLayoutContext, heap_size_of_local_context};
 use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
-use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use flow_ref::{self, FlowRef};
-use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
-use layout_debug;
-use opaque_node::OpaqueNodeMethods;
-use parallel::{self, WorkQueueData};
-use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
-use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
-use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
-use sequential;
-use wrapper::LayoutNode;
-
-use azure::azure::AzColor;
-use canvas_traits::CanvasMsg;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::Matrix4;
@@ -35,33 +22,44 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
+use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
+use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::StackingContext;
 use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
 use gfx_traits::color;
+use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
-use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
+use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
-use net_traits::{load_bytes_iter, PendingAsyncLoad};
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
+use net_traits::{PendingAsyncLoad, load_bytes_iter};
+use opaque_node::OpaqueNodeMethods;
+use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, ProfilerMetadata, profile};
+use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
+use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
+use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
-use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
+use sequential;
 use serde_json;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -69,15 +67,15 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
-use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
-use style::media_queries::{MediaType, MediaQueryList, Device};
+use style::media_queries::{Device, MediaQueryList, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_matching::Stylist;
-use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
+use style::stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
 use util::geometry::{Au, MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -87,6 +85,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
+use wrapper::LayoutNode;
 use wrapper::ThreadSafeLayoutNode;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -835,19 +834,6 @@ impl LayoutTask {
                                               traversal);
     }
 
-    /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
-    /// This is only on in debug builds.
-    #[inline(never)]
-    #[cfg(debug)]
-    fn verify_flow_tree(&self, layout_root: &mut FlowRef) {
-        let mut traversal = traversal::FlowTreeVerification;
-        layout_root.traverse_preorder(&mut traversal);
-    }
-
-    #[cfg(not(debug))]
-    fn verify_flow_tree(&self, _: &mut FlowRef) {
-    }
-
     fn process_node_geometry_request<'a>(&'a self,
                                       requested_node: TrustedNodeAddress,
                                       layout_root: &mut FlowRef,
@@ -1184,9 +1170,6 @@ impl LayoutTask {
 
             // Retrieve the (possibly rebuilt) root flow.
             rw_data.root_flow = self.try_get_layout_root((*node).clone());
-
-            // Kick off animations if any were triggered.
-            animation::process_new_animations(&mut *rw_data, self.id);
         }
 
         // Send new canvas renderers to the paint task
@@ -1328,6 +1311,9 @@ impl LayoutTask {
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = rw_data.layout_root() {
+            // Kick off animations if any were triggered, expire completed ones.
+            animation::update_animation_state(&mut *rw_data, self.id);
+
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1338,11 +1324,6 @@ impl LayoutTask {
                     flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
-
-            // Verification of the flow tree, which ensures that all nodes were either marked as
-            // leaves or as non-leaves. This becomes a no-op in release builds. (It is
-            // inconsequential to memory safety but is a useful debugging tool.)
-            self.verify_flow_tree(&mut root_flow);
 
             if opts::get().trace_layout {
                 layout_debug::begin_trace(root_flow.clone());

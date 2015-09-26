@@ -2,25 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ascii::AsciiExt;
-use std::cell::Cell;
-use std::iter::Iterator;
-use std::slice;
-use url::Url;
-
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
+use cssparser::{AtRuleType, RuleListParser};
 use encoding::EncodingRef;
-
-use cssparser::{Parser, decode_stylesheet_bytes, QualifiedRuleParser, AtRuleParser};
-use cssparser::{RuleListParser, AtRuleType};
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selectors::parser::{Selector, parse_selector_list};
 use smallvec::SmallVec;
+use std::ascii::AsciiExt;
+use std::cell::Cell;
+use std::iter::Iterator;
+use std::slice;
 use string_cache::{Atom, Namespace};
+use url::Url;
 use viewport::ViewportRule;
-
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
@@ -429,7 +426,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
             "viewport" => {
-                if ::util::prefs::get_pref("layout.viewport.enabled").unwrap_or(false) {
+                if ::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {
                     Err(())

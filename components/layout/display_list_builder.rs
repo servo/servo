@@ -12,23 +12,18 @@
 
 use azure::azure_hl::Color;
 use block::BlockFlow;
+use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
+use euclid::Matrix4;
+use euclid::{Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, HAS_LAYER, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
-use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
-use list_item::ListItemFlow;
-use model::{self, MaybeAuto, ToGfxMatrix};
-use table_cell::CollapsedBordersForCell;
-
-use canvas_traits::{CanvasMsg, FromLayoutMsg};
-use euclid::Matrix4;
-use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
+use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
@@ -36,22 +31,24 @@ use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::color;
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
-use msg::compositor_msg::{ScrollPolicy, LayerId};
+use list_item::ListItemFlow;
+use model::{self, MaybeAuto, ToGfxMatrix};
+use msg::compositor_msg::{LayerId, ScrollPolicy};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_task::UsePlaceholder;
-use std::cmp;
 use std::default::Default;
-use std::f32;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
+use std::{cmp, f32};
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position};
-use style::computed_values::{visibility, transform, transform_style};
+use style::computed_values::{transform, transform_style, visibility};
 use style::properties::style_structs::Border;
 use style::properties::{self, ComputedValues};
 use style::values::RGBA;
@@ -59,6 +56,7 @@ use style::values::computed;
 use style::values::computed::LinearGradient;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
+use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{AU_PER_PX, Au, ZERO_POINT};
@@ -2103,4 +2101,3 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
-

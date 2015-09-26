@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Vertical Text (82 tests)</h2>
+  <h2>Introduction to Vertical Text (90 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#writing-mode">3.1 Block Flow Direction: the writing-mode property</a></th></tr>
-      <!-- 68 tests -->
+      <!-- 74 tests -->
       <tr id="block-flow-direction-001-3.1" class="primary ahem">
         <td><strong>
             <a href="block-flow-direction-001.htm">block-flow-direction-001</a></strong></td>
@@ -748,22 +748,92 @@
       <tr id="table-progression-001-vlr-3.1" class="primary">
         <td><strong>
             <a href="table-progression-001-vlr.htm">table-progression-001-vlr</a></strong></td>
-        <td><a href="reference/table-progression-001-ref.htm">=</a> </td>
+        <td><a href="table-progression-001-ref.orngtml">=</a> </td>
         <td></td>
         <td>vertical-lr Table Row/Rowgroup/Cell Ordering
           <ul class="assert">
             <li>This test checks that vertical-lr tables order rows/rowgroups left to right and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
+            <li>This test checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
           </ul>
         </td>
       </tr>
       <tr id="table-progression-001-vrl-3.1" class="primary">
         <td><strong>
             <a href="table-progression-001-vrl.htm">table-progression-001-vrl</a></strong></td>
-        <td><a href="reference/table-progression-001-ref.htm">=</a> </td>
+        <td><a href="table-progression-001-ref.orngtml">=</a> </td>
         <td></td>
         <td>vertical-rl Table Row/Rowgroup/Cell Ordering
           <ul class="assert">
             <li>This test checks that vertical-rl tables order rows/rowgroups right to left and cells top-to-bottom (LTR) or bottom-to-top (RTL) per 'direction'.</li>
+            <li>This test checks that 'writing-mode' and 'direction' do not apply to table rows and row groups.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-002-vlr-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-002-vlr.htm">table-progression-002-vlr</a></strong></td>
+        <td><a href="table-progression-002-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-lr Table Column/Colgroup Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-lr tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'.</li>
+            <li>This test checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-002-vrl-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-002-vrl.htm">table-progression-002-vrl</a></strong></td>
+        <td><a href="table-progression-002-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-rl Table Column/Colgroup Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-rl tables order columns top-to-bottom (LTR) or bottom-to-top (RTL) per the table's 'direction'.</li>
+            <li>This test checks that 'writing-mode' and 'direction' do not apply to table columns and column groups.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-003-vlr-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-003-vlr.htm">table-progression-003-vlr</a></strong></td>
+        <td><a href="table-progression-001-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-lr upright orientation Table Row/Rowgroup/Cell Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-lr tables, whether LTR or RTL, order rows/rowgroups right to left and cells top-to-bottom when text-orientation is upright.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-003-vrl-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-003-vrl.htm">table-progression-003-vrl</a></strong></td>
+        <td><a href="table-progression-001-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-rl upright orientation Table Row/Rowgroup/Cell Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-rl tables, whether LTR or RTL, order rows/rowgroups right to left and cells top-to-bottom when text-orientation is upright.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-004-vlr-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-004-vlr.htm">table-progression-004-vlr</a></strong></td>
+        <td><a href="table-progression-002-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-lr upright orientation Table Column/Colgroup Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-lr tables, whether LTR or RTL, order columns top-to-bottom when text-orientation is upright.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="table-progression-004-vrl-3.1" class="primary">
+        <td><strong>
+            <a href="table-progression-004-vrl.htm">table-progression-004-vrl</a></strong></td>
+        <td><a href="table-progression-002-ref.orngtml">=</a> </td>
+        <td></td>
+        <td>vertical-rl upright orientation Table Column/Colgroup Ordering
+          <ul class="assert">
+            <li>This test checks that vertical-rl tables, whether LTR or RTL, order columns top-to-bottom when text-orientation is upright.</li>
           </ul>
         </td>
       </tr>
@@ -945,7 +1015,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#svg-writing-mode">3.1.1 SVG1.1 writing-mode Values</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="writing-mode-parsing-svg1-001-3.1.1" class="primary dom may svg script">
+        <td><strong>
+            <a href="writing-mode-parsing-svg1-001.htm">writing-mode-parsing-svg1-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS Writing Modes: parsing SVG 1.1 writing-mode values
+          <ul class="assert">
+            <li>This test asserts the parser and getComputedStyle works correctly for the SVG 1.1 writing-mode values.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="writing-mode-parsing-svg1-002-3.1.1" class="primary dom may svg script">
+        <td><strong>
+            <a href="writing-mode-parsing-svg1-002.htm">writing-mode-parsing-svg1-002</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr><abbr class="svg" title="Requires SVG support">SVG</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS Writing Modes: parsing SVG 1.1 writing-mode values
+          <ul class="assert">
+            <li>This test asserts the parser and getComputedStyle works correctly for the SVG 1.1 writing-mode values.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s3.1.1.#inline-progression-direction">
       <!-- 0 tests -->

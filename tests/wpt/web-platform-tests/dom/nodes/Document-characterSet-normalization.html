@@ -358,6 +358,8 @@ Object.keys(encodingMap).forEach(function(name) {
                        " has label " + format_value(label) + " (characterSet)");
     var t2 = async_test("Name " + format_value(name) +
                        " has label " + format_value(label) + " (inputEncoding)");
+    var t3 = async_test("Name " + format_value(name) +
+                       " has label " + format_value(label) + " (charset)");
     /*
     iframe.src = "data:text/html,<!doctype html>" +
                  '<meta charset="' + label + '">';
@@ -370,9 +372,13 @@ Object.keys(encodingMap).forEach(function(name) {
       t2.step(function() {
         assert_equals(iframe.contentDocument.inputEncoding, expected_case(name));
       });
+      t3.step(function() {
+        assert_equals(iframe.contentDocument.charset, expected_case(name));
+      });
       document.body.removeChild(iframe);
       t.done();
       t2.done();
+      t3.done();
     };
     document.body.appendChild(iframe);
   });

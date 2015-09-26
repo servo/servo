@@ -15,39 +15,39 @@
 </style>
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
-  <link rel="help" href="http://www.w3.org/TR/css-writing-modes-3/#caption-side" title="7.7 Table Caption Mappings: the caption-side keywords" />
+  <link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-direction-layout" title="7.4. Flow-Relative Mappings" />
+  <link rel="match" href="reference/ref-filled-green-100px-square.xht" />
 
   <meta content="ahem image" name="flags" />
-  <meta content="This test checks that when 'caption-side' is set to 'bottom' in a vertical-rl table and if the rendering engine does not support side captions (i.e. left and right captions in horizontal writing modes), then the caption is placed at the block-start side of the table, which is on the righthand side of such table. If the rendering engine supports side captions, then the rendering engine must place the caption at the physical bottom (logical right) side of the table box." name="assert" />
+  <meta content="This test checks that when 'caption-side' is set to 'bottom' in a vertical-rl table, then the caption is placed at the block-end side of the table, which is on the lefthand side of such table." name="assert" />
 
   <style type="text/css"><![CDATA[
-  table#test
+  div#reference-overlapped-red
+    {
+      background: url("support/pattern-rg-rg-100x100.png") no-repeat;
+      height: 100px;
+      position: absolute;
+      width: 100px;
+      z-index: -1;
+    }
+
+  table#test-overlapping-green
     {
       border-spacing: 0px;
       caption-side: bottom;
-      font: 1.5624em/1 Ahem; /* computes to 25px/25px */
+      font: 50px/1 Ahem; /* computes to 50px/50px */
       writing-mode: vertical-rl;
     }
 
   caption
     {
-      color: blue;
+      color: green;
     }
 
   td
     {
-      color: orange;
+      color: transparent;
       padding: 0px;
-    }
-
-  div.reference
-    {
-      margin-top: 1em;
-    }
-
-  img
-    {
-      vertical-align: top;
     }
   ]]></style>
 
@@ -55,18 +55,16 @@
 
  <body>
 
-  <p>Test passes if the top bi-colored rectangle has a layout identical to one of the bi-colored rectangles below it.</p>
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 
-  <table id="test">
+  <div id="reference-overlapped-red"></div>
+
+  <table id="test-overlapping-green">
     <caption>CA</caption>
     <tr>
       <td>T</td><td>D</td>
     </tr>
   </table>
-
-  <div class="reference" id="does-NOT-support-side-captions"><img src="support/swatch-orange.png" width="25" height="50" alt="Image download support must be enabled" /><img src="support/swatch-blue.png" width="25" height="50" alt="Image download support must be enabled" /></div>
-
-  <div class="reference" id="supports-side-captions"><img src="support/swatch-orange.png" width="25" height="50" alt="Image download support must be enabled" /><br /><img src="support/swatch-blue.png" width="25" height="50" alt="Image download support must be enabled" /></div>
 
  </body>
 </html>

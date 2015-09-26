@@ -7,13 +7,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use msg::constellation_msg::{Key, KeyModifiers};
-
-#[cfg(target_os = "macos")]
-use msg::constellation_msg::SUPER;
 #[cfg(not(target_os = "macos"))]
 use msg::constellation_msg::CONTROL;
-
+#[cfg(target_os = "macos")]
+use msg::constellation_msg::SUPER;
+use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::textinput::{TextInput, Selection, Lines, Direction};
 use std::borrow::ToOwned;

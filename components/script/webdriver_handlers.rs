@@ -7,21 +7,20 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLIFrameElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast, NodeCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::Root;
 use dom::node::Node;
 use dom::window::ScriptHelpers;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
-use js::jsapi::{RootedValue, HandleValue};
+use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::{PipelineId, SubpageId};
-use msg::webdriver_msg::{WebDriverJSValue, WebDriverJSError, WebDriverJSResult, WebDriverFrameId};
+use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use page::Page;
 use script_task::get_page;
-
-use ipc_channel::ipc::IpcSender;
 use std::rc::Rc;
 use url::Url;
 
@@ -183,6 +182,7 @@ pub fn handle_get_name(page: &Rc<Page>,
 pub fn handle_get_url(page: &Rc<Page>,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
-    let url = page.document().r().url();
-    reply.send(url).unwrap();
+    let document = page.document();
+    let url = document.r().url();
+    reply.send((*url).clone()).unwrap();
 }

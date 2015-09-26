@@ -17,26 +17,23 @@
 
 #![feature(start)]
 
-// The Servo engine
-extern crate servo;
-
-// The window backed by glutin
-extern crate glutin_app as app;
-extern crate time;
-extern crate env_logger;
-
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
+// The window backed by glutin
+extern crate glutin_app as app;
+extern crate env_logger;
+// The Servo engine
+extern crate servo;
+extern crate time;
 
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::net_traits::hosts;
 use servo::util::opts;
-use std::rc::Rc;
-
 #[cfg(target_os = "android")]
 use std::borrow::ToOwned;
+use std::rc::Rc;
 
 fn main() {
     env_logger::init().unwrap();

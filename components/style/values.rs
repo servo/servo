@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(non_camel_case_types)]
-
 pub use cssparser::RGBA;
-
 
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
@@ -43,14 +40,13 @@ pub type CSSFloat = f32;
 
 
 pub mod specified {
-    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
+    use cssparser::{self, CssStringWriter, Parser, ToCss, Token};
     use euclid::size::Size2D;
     use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
-    use std::fmt;
-    use std::fmt::Write;
+    use std::fmt::{self, Write};
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::CSSFloat;
@@ -279,7 +275,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         pub fn parse(input: &mut Parser) -> Result<Length, ()> {
             Length::parse_internal(input, &AllowedNumericType::All)
         }
@@ -692,7 +687,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
             LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
@@ -784,7 +778,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::All)
@@ -823,7 +816,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
             LengthOrNone::parse_internal(input, &AllowedNumericType::All)
@@ -1217,15 +1209,15 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use super::specified::{Angle, BorderStyle, Time};
-    use super::specified::AngleOrCorner;
-    use super::{specified, CSSFloat};
-    pub use cssparser::Color as CSSColor;
     use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
+    use super::specified::AngleOrCorner;
+    use super::{CSSFloat, specified};
     use url::Url;
     use util::geometry::Au;
+    pub use cssparser::Color as CSSColor;
+    pub use super::specified::{Angle, BorderStyle, Time};
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
@@ -1299,8 +1291,8 @@ pub mod computed {
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct Calc {
-        length: Option<Au>,
-        percentage: Option<CSSFloat>,
+        pub length: Option<Au>,
+        pub percentage: Option<CSSFloat>,
     }
 
     impl Calc {
@@ -1310,6 +1302,53 @@ pub mod computed {
 
         pub fn percentage(&self) -> CSSFloat {
             self.percentage.unwrap_or(0.)
+        }
+    }
+
+    impl From<LengthOrPercentage> for Calc {
+        fn from(len: LengthOrPercentage) -> Calc {
+            match len {
+                LengthOrPercentage::Percentage(this) => {
+                    Calc {
+                        length: None,
+                        percentage: Some(this),
+                    }
+                }
+                LengthOrPercentage::Length(this) => {
+                    Calc {
+                        length: Some(this),
+                        percentage: None,
+                    }
+                }
+                LengthOrPercentage::Calc(this) => {
+                    this
+                }
+            }
+        }
+    }
+
+    impl From<LengthOrPercentageOrAuto> for Option<Calc> {
+        fn from(len: LengthOrPercentageOrAuto) -> Option<Calc> {
+            match len {
+                LengthOrPercentageOrAuto::Percentage(this) => {
+                    Some(Calc {
+                        length: None,
+                        percentage: Some(this),
+                    })
+                }
+                LengthOrPercentageOrAuto::Length(this) => {
+                    Some(Calc {
+                        length: Some(this),
+                        percentage: None,
+                    })
+                }
+                LengthOrPercentageOrAuto::Calc(this) => {
+                    Some(this)
+                }
+                LengthOrPercentageOrAuto::Auto => {
+                    None
+                }
+            }
         }
     }
 

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -15,19 +16,16 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-
-use cssparser::RGBA;
-use url::{Url, UrlParser};
-use util::str::{self, DOMString};
-
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::rc::Rc;
 use time;
+use url::{Url, UrlParser};
+use util::str::{self, DOMString};
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -135,7 +133,8 @@ impl VirtualMethods for HTMLBodyElement {
             },
             (&atom!(background), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
-                    let base = document_from_node(self).url();
+                    let document = document_from_node(self);
+                    let base = document.url();
                     UrlParser::new().base_url(&base).parse(&value).ok()
                 });
             },

@@ -4,7 +4,6 @@
 
 use ipc_channel::ipc::IpcSender;
 use url::Url;
-
 use util::str::DOMString;
 
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]

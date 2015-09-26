@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use opts;
-
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use opts;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::any::Any;
 use std::collections::HashMap;

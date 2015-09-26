@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Token, Parser, Delimiter};
-use std::ascii::AsciiExt;
-
+use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
+use std::ascii::AsciiExt;
 use util::geometry::{Au, ViewportPx};
 use values::specified;
 

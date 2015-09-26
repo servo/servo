@@ -14,7 +14,6 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-
 use util::str::DOMString;
 
 #[dom_struct]

@@ -8,25 +8,24 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
+use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
+use gfx::display_list::DisplayList;
 use layout_debug;
 use model::MaybeAuto;
-use table::InternalTable;
-use table_row::{CollapsedBorder, CollapsedBorderProvenance};
-use wrapper::ThreadSafeLayoutNode;
-
-use cssparser::Color;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx::display_list::DisplayList;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style};
 use style::legacy::UnsignedIntegerAttribute;
 use style::properties::ComputedValues;
+use table::InternalTable;
+use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 #[derive(RustcEncodable)]

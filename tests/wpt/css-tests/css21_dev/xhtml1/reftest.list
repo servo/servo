@@ -3028,8 +3028,14 @@ delete-inline-in-blocks-middle-002.xht == reference/delete-inline-in-blocks-midd
 delete-inline-in-blocks-middle-003.xht == reference/delete-inline-in-blocks-middle-002-ref.xht
 descendant-display-none-001.xht == reference/ref-if-there-is-no-red.xht
 descendant-display-override-001.xht == reference/ref-if-there-is-no-red.xht
+descendant-selector-000.xht == reference/descendant-selector-000-ref.xht
+descendant-selector-001.xht == reference/descendant-selector-000-ref.xht
 descendent-selector-001.xht == reference/no-red-filler-text-ref.xht
+descendent-selector-002.xht == reference/descendent-selector-002-ref.xht
+descendent-selector-003.xht == reference/descendent-selector-002-ref.xht
+descendent-selector-004.xht == reference/descendent-selector-004-ref.xht
 descendent-selector-005.xht == reference/no-red-filler-text-ref.xht
+descendent-selector-006.xht == reference/descendent-selector-004-ref.xht
 direction-001.xht == reference/direction-001-ref.xht
 direction-002.xht == reference/direction-002-ref.xht
 direction-003.xht == reference/direction-002-ref.xht
@@ -3382,6 +3388,7 @@ floats-wrap-top-below-inline-003l.xht == reference/floats-wrap-top-below-003l-re
 floats-wrap-top-below-inline-003r.xht == reference/floats-wrap-top-below-003r-ref.xht
 floats-zero-height-wrap-001.xht == reference/floats-zero-height-wrap-001-ref.xht
 floats-zero-height-wrap-002.xht == reference/floats-zero-height-wrap-001-ref.xht
+font-003.xht == reference/font-003-ref.xht
 font-051.xht == reference/font-051-ref.xht
 font-146.xht == reference/font-146-ref.xht
 font-applies-to-001.xht == reference/font-applies-to-001-ref.xht
@@ -3529,6 +3536,9 @@ grid-float-001.xht == reference/ref-filled-green-100px-square.xht
 grid-inline-float-001.xht == reference/ref-filled-green-100px-square.xht
 grid-inline-vertical-align-001.xht == reference/ref-filled-green-100px-square.xht
 grid-vertical-align-001.xht == reference/ref-filled-green-100px-square.xht
+grouping-000.xht == reference/grouping-000-ref.xht != reference/grouping-000-notref.xht
+grouping-001.xht == reference/grouping-000-ref.xht != reference/grouping-000-notref.xht
+grouping-002.xht == reference/grouping-002-ref.xht != reference/grouping-002-notref.xht
 height-001.xht == reference/height-001-ref.xht
 height-002.xht == reference/height-001-ref.xht
 height-003.xht == reference/height-003-ref.xht
@@ -3678,11 +3688,8 @@ inline-block-alignment-003.xht == reference/inline-block-alignment-003-ref.xht
 inline-block-alignment-004.xht == reference/inline-block-alignment-002-ref.xht
 inline-block-alignment-005.xht == reference/inline-block-alignment-003-ref.xht
 inline-block-alignment-006.xht == reference/inline-block-alignment-006-ref.xht
-inline-block-alignment-007.xht == reference/inline-block-alignment-007-ref.xht
+inline-block-alignment-007.xht == reference/inline-block-alignment-006-ref.xht
 inline-block-alignment-008.xht == reference/inline-block-alignment-006-ref.xht
-inline-block-alignment-009.xht == reference/inline-block-alignment-009-ref.xht
-inline-block-alignment-010.xht == reference/inline-block-alignment-010-ref.xht
-inline-block-alignment-011.xht == reference/inline-block-alignment-007-ref.xht
 inline-block-height-001.xht == reference/inline-block-height-001-ref.xht
 inline-block-height-002.xht == reference/inline-block-height-002-ref.xht
 inline-block-non-replaced-height-001.xht == reference/height-percentage-001-ref.xht
@@ -3889,6 +3896,7 @@ left-offset-002.xht == reference/left-offset-001-ref.xht
 left-offset-003.xht == reference/left-offset-003-ref.xht
 left-offset-percentage-001.xht == reference/left-offset-percentage-001-ref.xht
 left-offset-percentage-002.xht == reference/left-offset-percentage-002-ref.xht
+left-offset-position-fixed-001.xht == reference/left-offset-position-fixed-001-ref.xht
 line-box-height-002.xht == reference/line-box-height-002-ref.xht
 line-breaking-bidi-001.xht == reference/line-breaking-bidi-001-ref.xht
 line-breaking-bidi-002.xht == reference/line-breaking-bidi-002-ref.xht
@@ -4746,8 +4754,8 @@ numbers-units-010.xht == reference/numbers-units-010-ref.xht
 numbers-units-011.xht == reference/numbers-units-011-ref.xht
 numbers-units-012.xht == reference/numbers-units-012-ref.xht
 numbers-units-013.xht == reference/numbers-units-013-ref.xht
-numbers-units-015.xht == reference/numbers-units-014-ref-a.xht
-numbers-units-015.xht == reference/numbers-units-014-ref-b.xht
+numbers-units-015.xht == reference/numbers-units-015-ref-a.xht
+numbers-units-015.xht == reference/numbers-units-015-ref-b.xht
 numbers-units-016.xht == reference/no-red-on-blank-page-ref.xht
 numbers-units-017.xht == reference/no-red-on-blank-page-ref.xht
 numbers-units-018.xht == reference/numbers-units-018-ref.xht
@@ -4775,7 +4783,10 @@ outline-color-115.xht == reference/outline-color-115-ref.xht
 outline-color-applies-to-005.xht == reference/no-red-on-blank-page-ref.xht
 outline-color-applies-to-006.xht == reference/no-red-on-blank-page-ref.xht
 outline-layout-006.xht == reference/outline-layout-006-ref.xht
-outline-style-001.xht == reference/no-red-filler-text-ref.xht
+outline-style-001.xht == reference/outline-style-001-ref.xht
+outline-style-002.xht == reference/outline-style-002-ref.xht
+outline-style-003.xht == reference/outline-style-003-ref.xht
+outline-style-004.xht == reference/outline-style-004-ref.xht
 outline-style-applies-to-005.xht == reference/no-red-on-blank-page-ref.xht
 outline-style-applies-to-006.xht == reference/no-red-on-blank-page-ref.xht
 outline-width-002.xht == reference/no-red-filler-text-ref.xht
@@ -5317,6 +5328,7 @@ right-offset-002.xht == reference/left-offset-001-ref.xht
 right-offset-003.xht == reference/right-offset-001-ref.xht
 right-offset-004.xht == reference/ref-filled-green-100px-square.xht
 right-offset-percentage-001.xht == reference/right-offset-percentage-001-ref.xht
+right-offset-position-fixed-001.xht == reference/right-offset-position-fixed-001-ref.xht
 root-box-001.xht == reference/root-box-001-ref.xht
 root-box-002.xht == reference/root-box-002-ref.xht
 root-box-003.xht == reference/root-box-003-ref.xht
@@ -5484,8 +5496,8 @@ strings-000.xht == reference/ref-this-text-should-be-green.xht
 style-attr-cascade-001.xht == reference/ref-green.xht
 style-attr-cascade-002.xht == reference/ref-green.xht
 style-attr-cascade-003.xht == reference/ref-green.xht
-style-attr-cascade-004.xht == reference/ref-green-background.xht
-style-attr-cascade-005.xht == reference/ref-green-background.xht
+style-attr-cascade-004.xht == reference/ref-white-on-green-background.xht
+style-attr-cascade-005.xht == reference/ref-white-on-green-background.xht
 style-attr-cascade-006.xht == reference/ref-green.xht
 style-attr-cascade-007.xht == reference/style-attr-cascade-007.xht
 style-attr-specificity-001.xht == reference/ref-green-on-green.xht
@@ -5622,6 +5634,7 @@ top-offset-002.xht == reference/bottom-offset-001-ref.xht
 top-offset-003.xht == reference/top-offset-003-ref.xht
 top-offset-percentage-001.xht == reference/top-offset-percentage-001-ref.xht
 top-offset-percentage-002.xht == reference/left-offset-percentage-002-ref.xht
+type-selector-001.xht == reference/type-selector-001-ref.xht
 unicode-bidi-001.xht == reference/direction-002-ref.xht
 unicode-bidi-002.xht == reference/unicode-bidi-002-ref.xht
 unicode-bidi-003.xht == reference/direction-002-ref.xht
@@ -5647,8 +5660,11 @@ units-005.xht == reference/units-005-ref.xht
 units-006.xht == reference/units-006-ref.xht
 units-008.xht == reference/units-006-ref.xht
 units-009.xht == reference/units-006-ref.xht
+universal-selector-001.xht == reference/universal-selector-001-ref.xht != reference/universal-selector-001-notref.xht
+universal-selector-002.xht == reference/universal-selector-002-ref.xht != reference/universal-selector-002-notref.xht
 universal-selector-003.xht == reference/filler-text-below-green.xht
 universal-selector-004.xht == reference/filler-text-below-green.xht
+universal-selector-005.xht == reference/universal-selector-005-ref.xht
 unterminated-string-001.xht == reference/filler-text-below-green.xht
 uri-001.xht == reference/filler-text-below-green.xht
 uri-002.xht == reference/no-red-filler-text-ref.xht

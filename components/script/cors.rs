@@ -9,27 +9,23 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
-use net_traits::{AsyncResponseListener, ResponseAction, Metadata};
+use hyper::client::Request;
+use hyper::header::{AccessControlAllowHeaders, AccessControlRequestHeaders};
+use hyper::header::{AccessControlAllowMethods, AccessControlRequestMethod};
+use hyper::header::{AccessControlAllowOrigin, AccessControlMaxAge};
+use hyper::header::{ContentType, Host};
+use hyper::header::{HeaderView, Headers};
+use hyper::method::Method;
+use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper::status::StatusClass::Success;
+use net_traits::{AsyncResponseListener, Metadata, ResponseAction};
 use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
-use time;
-use time::{now, Timespec};
-
-use hyper::client::Request;
-use hyper::header::{AccessControlMaxAge, AccessControlAllowOrigin};
-use hyper::header::{AccessControlRequestHeaders, AccessControlAllowHeaders};
-use hyper::header::{AccessControlRequestMethod, AccessControlAllowMethods};
-use hyper::header::{ContentType, Host};
-use hyper::header::{Headers, HeaderView};
-use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::status::StatusClass::Success;
-
+use time::{self, Timespec, now};
 use unicase::UniCase;
 use url::{SchemeData, Url};
 use util::mem::HeapSizeOf;

@@ -31,14 +31,13 @@ use hyper::header::ContentType;
 use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::LoadData;
-use script_task::{ScriptChan, MainThreadScriptMsg};
+use script_task::{MainThreadScriptMsg, ScriptChan};
+use std::borrow::ToOwned;
+use std::cell::Cell;
 use string_cache::Atom;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLFormElement {
@@ -188,7 +187,8 @@ impl HTMLFormElement {
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
-        let action_components = UrlParser::new().base_url(&base).parse(&action).unwrap_or(base);
+        let action_components =
+            UrlParser::new().base_url(base).parse(&action).unwrap_or((*base).clone());
         let _action = action_components.serialize();
         let scheme = action_components.scheme.clone();
         let enctype = submitter.enctype();

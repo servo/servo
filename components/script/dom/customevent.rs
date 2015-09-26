@@ -5,13 +5,13 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
+use dom::bindings::codegen::InheritTypes::{CustomEventDerived, EventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root, MutHeapJSVal};
+use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use util::str::DOMString;
 

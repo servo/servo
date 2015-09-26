@@ -10,7 +10,6 @@ use std::hash::{Hash, Hasher};
 use std::ops;
 use std::str;
 use std::str::FromStr;
-
 use util::mem::HeapSizeOf;
 
 /// Encapsulates the IDL `ByteString` type.

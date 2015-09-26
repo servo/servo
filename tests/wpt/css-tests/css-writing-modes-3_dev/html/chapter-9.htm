@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Glyph Composition (27 tests)</h2>
+  <h2>Glyph Composition (28 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.1">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-combine-upright">9.1 Horizontal-in-Vertical Composition: the text-combine-upright property</a></th></tr>
-      <!-- 22 tests -->
+      <!-- 23 tests -->
       <tr id="text-combine-upright-inherit-all-001-9.1" class="primary">
         <td><strong>
             <a href="text-combine-upright-inherit-all-001.htm">text-combine-upright-inherit-all-001</a></strong></td>
@@ -74,6 +74,28 @@
           </ul>
         </td>
       </tr>
+      <tr id="text-combine-upright-parsing-digits-001-9.1" class="primary dom script">
+        <td><strong>
+            <a href="text-combine-upright-parsing-digits-001.htm">text-combine-upright-parsing-digits-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS Writing Modes: parsing text-combine-upright for digits
+          <ul class="assert">
+            <li>text-combine-upright supports `none`, `all`, `digits`, and `digits` followed by a digit in the range from 2 to 4.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-combine-upright-parsing-digits-002-9.1" class="primary dom script">
+        <td><strong>
+            <a href="text-combine-upright-parsing-digits-002.htm">text-combine-upright-parsing-digits-002</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS Writing Modes: parsing text-combine-upright with digits plus calc() computing to valid digits
+          <ul class="assert">
+            <li>User Agents support text-combine-upright with values `digits calc(...)` if the expression inside `calc()` computes to a valid integer, which is either 2, 3, or 4.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="text-combine-upright-parsing-invalid-001-9.1" class="primary dom invalid script">
         <td><strong>
             <a href="text-combine-upright-parsing-invalid-001.htm">text-combine-upright-parsing-invalid-001</a></strong></td>
@@ -104,17 +126,6 @@
         <td>CSS Writing Modes: parsing text-combine-upright with valid values
           <ul class="assert">
             <li>text-combine-upright supports `none`, `all`, `digits`, and `digits` followed by a digit in the range from 2 to 4.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-combine-upright-parsing-valid-002-9.1" class="primary dom script">
-        <td><strong>
-            <a href="text-combine-upright-parsing-valid-002.htm">text-combine-upright-parsing-valid-002</a></strong></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSS Writing Modes: parsing text-combine-upright with digits plus calc() computing to valid digits
-          <ul class="assert">
-            <li>User Agents support text-combine-upright with values `digits calc(...)` if the expression inside `calc()` computes to a valid integer, which is either 2, 3, or 4.</li>
           </ul>
         </td>
       </tr>

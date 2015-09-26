@@ -5,15 +5,13 @@
 //! Liberally derived from the [Firefox JS implementation]
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
-use devtools_traits::DevtoolScriptControlMsg::{GetRootNode, GetDocumentElement, GetChildren};
-use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ComputedNodeLayout};
-
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
-use protocol::JsonPacketStream;
-
+use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
+use protocol::JsonPacketStream;
 use rustc_serialize::json::{self, Json, ToJson};
 use std::cell::RefCell;
 use std::collections::BTreeMap;

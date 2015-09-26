@@ -4,38 +4,35 @@
 
 //! A windowing implementation using glutin.
 
+use NestedEventLoopListener;
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
+#[cfg(feature = "window")]
+use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
+#[cfg(feature = "window")]
+use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
+#[cfg(feature = "window")]
+use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
+#[cfg(feature = "window")]
+use std::cell::{Cell, RefCell};
+#[cfg(all(feature = "headless", target_os = "linux"))]
+use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
-
-use NestedEventLoopListener;
-
-#[cfg(feature = "window")]
-use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
-#[cfg(feature = "window")]
-use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
-#[cfg(feature = "window")]
-use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
-#[cfg(feature = "window")]
-use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
 use util::opts;
-
-#[cfg(all(feature = "headless", target_os = "linux"))]
-use std::ptr;
 
 #[cfg(feature = "window")]
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;

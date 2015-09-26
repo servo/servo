@@ -16,6 +16,9 @@ path = "../util"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 features = [ "serde-serialization" ]

@@ -75,10 +75,8 @@ use dom::htmltrackelement::HTMLTrackElement;
 use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
-
-use string_cache::{Atom, QualName};
-
 use std::borrow::ToOwned;
+use string_cache::{Atom, QualName};
 
 pub fn create_element(name: QualName, prefix: Option<Atom>,
                       document: &Document, creator: ElementCreator)

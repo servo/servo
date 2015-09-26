@@ -2,20 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnErrorEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding::{ScrollToOptions, ScrollBehavior};
-use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, WindowDerived};
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, WindowDerived};
 use dom::bindings::error::Error::InvalidCharacter;
-use dom::bindings::error::{report_pending_exception, Fallible};
+use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::RootedReference;
-use dom::bindings::js::{JS, Root, MutNullableHeap};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowsingContext;
@@ -27,58 +28,54 @@ use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, TrustedNodeAddress, from_untrusted_node_address};
+use dom::node::{TrustedNodeAddress, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
+use euclid::{Point2D, Rect, Size2D};
+use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::{Evaluate2, MutableHandleValue};
+use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GC, JS_GetRuntime};
+use js::rust::CompileOptionsWrapper;
+use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
-use page::Page;
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
-use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
-use script_traits::ConstellationControlMsg;
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
-use webdriver_handlers::jsval_to_webdriver;
-
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
+use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use libc;
+use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
 use net_traits::storage_task::{StorageTask, StorageType};
-use profile_traits::mem;
-use string_cache::Atom;
-use util::geometry::{self, Au, MAX_RECT};
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
-use util::{breakpoint, opts};
-
-use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, MutableHandleValue};
-use js::jsapi::{JSContext, HandleValue};
-use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
-use js::rust::CompileOptionsWrapper;
-use js::rust::Runtime;
-use selectors::parser::PseudoElement;
-use url::Url;
-
-use libc;
 use num::traits::ToPrimitive;
-use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
+use page::Page;
+use profile_traits::mem;
+use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
+use script_task::{MainThreadScriptChan, SendableMainThreadScriptChan};
+use script_task::{MainThreadScriptMsg, ScriptChan, ScriptPort, TimerSource};
+use script_traits::ConstellationControlMsg;
+use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::io::{stdout, stderr, Write};
+use std::io::{Write, stderr, stdout};
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
+use std::sync::mpsc::{Receiver, Sender, channel};
+use string_cache::Atom;
 use time;
+use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use url::Url;
+use util::geometry::{self, Au, MAX_RECT};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::{breakpoint, opts};
+use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, HeapSizeOf)]
@@ -1101,7 +1098,7 @@ impl Window {
 
     pub fn get_url(&self) -> Url {
         let doc = self.Document();
-        doc.r().url()
+        (*doc.r().url()).clone()
     }
 
     pub fn resource_task(&self) -> ResourceTask {

@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -12,8 +13,6 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
-
-use cssparser::RGBA;
 use std::cell::Cell;
 use util::str::{self, DOMString};
 
@@ -54,6 +53,14 @@ impl HTMLTableRowElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
+}
+
+impl HTMLTableRowElementMethods for HTMLTableRowElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_setter!(SetBgColor, "bgcolor");
 }
 
 impl VirtualMethods for HTMLTableRowElement {

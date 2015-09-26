@@ -2,13 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(append)]
-#![feature(arc_unique)]
 #![feature(ascii)]
-#![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
-#![feature(box_raw)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(core)]
@@ -24,9 +20,7 @@
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(ref_slice)]
-#![feature(rc_unique)]
 #![feature(slice_patterns)]
-#![feature(str_split_at)]
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
@@ -41,16 +35,25 @@
 #![plugin(plugins)]
 
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 extern crate log;
-
-#[macro_use] extern crate bitflags;
+#[macro_use]
+extern crate profile_traits;
+#[macro_use]
+extern crate style;
+#[macro_use]
+extern crate util;
+extern crate angle;
+extern crate canvas;
+extern crate canvas_traits;
 extern crate core;
-extern crate devtools_traits;
 extern crate cssparser;
-extern crate euclid;
-extern crate html5ever;
+extern crate devtools_traits;
 extern crate encoding;
+extern crate euclid;
 extern crate fnv;
+extern crate html5ever;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
@@ -58,46 +61,35 @@ extern crate libc;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
+extern crate offscreen_gl_context;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
-extern crate serde;
-extern crate time;
-extern crate canvas;
-extern crate canvas_traits;
-extern crate rand;
-#[macro_use]
-extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
+extern crate serde;
 extern crate smallvec;
-#[macro_use]
-extern crate util;
-extern crate websocket;
-#[macro_use]
-extern crate style;
+extern crate string_cache;
+extern crate tendril;
+extern crate time;
 extern crate unicase;
 extern crate url;
 extern crate uuid;
-extern crate string_cache;
-extern crate offscreen_gl_context;
-extern crate angle;
-extern crate tendril;
-
-pub mod cors;
-pub mod document_loader;
-
-#[macro_use]
-pub mod dom;
-
-pub mod parse;
+extern crate websocket;
 
 pub mod clipboard_provider;
+pub mod cors;
 mod devtools;
+pub mod document_loader;
+#[macro_use]
+pub mod dom;
 mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
 pub mod page;
+pub mod parse;
+#[allow(unsafe_code)]
 pub mod script_task;
 pub mod textinput;
 mod timers;

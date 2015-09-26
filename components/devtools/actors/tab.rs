@@ -7,11 +7,10 @@
 //! Connection point for remote devtools that wish to investigate a particular tab's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
-
 use rustc_serialize::json;
 use std::net::TcpStream;
 

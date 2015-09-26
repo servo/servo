@@ -21,46 +21,43 @@
 
 #[macro_use]
 extern crate log;
-
 extern crate devtools_traits;
-extern crate rustc_serialize;
-extern crate ipc_channel;
-extern crate serde;
-extern crate msg;
-extern crate time;
-extern crate util;
 extern crate hyper;
+extern crate ipc_channel;
+extern crate msg;
+extern crate rustc_serialize;
+extern crate serde;
+extern crate time;
 extern crate url;
+extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::network_event::{NetworkEventActor, EventActor, ResponseStartMsg};
+use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
-use protocol::JsonPacketStream;
-
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
-use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg, LogLevel, NetworkEvent};
+use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
 use devtools_traits::{ScriptToDevtoolsControlMsg};
-use msg::constellation_msg::{PipelineId, WorkerId};
-use util::task::spawn_named;
-
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{PipelineId, WorkerId};
+use protocol::JsonPacketStream;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::error::Error;
-use std::net::{TcpListener, TcpStream, Shutdown};
-use std::sync::mpsc::{channel, Receiver, Sender, RecvError};
+use std::net::{Shutdown, TcpListener, TcpStream};
+use std::sync::mpsc::{Receiver, RecvError, Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::precise_time_ns;
+use util::task::spawn_named;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
@@ -338,9 +335,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
         match network_event {
-            NetworkEvent::HttpRequest(url, method, headers, body) => {
+            NetworkEvent::HttpRequest(httprequest) => {
                 //Store the request information in the actor
-                actor.add_request(url, method, headers, body);
+                actor.add_request(httprequest);
 
                 //Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
@@ -352,9 +349,9 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     stream.write_json_packet(&msg);
                 }
             }
-            NetworkEvent::HttpResponse(headers, status, body) => {
+            NetworkEvent::HttpResponse(httpresponse) => {
                 //Store the response information in the actor
-                actor.add_response(headers, status, body);
+                actor.add_response(httpresponse);
 
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = NetworkEventUpdateMsg {

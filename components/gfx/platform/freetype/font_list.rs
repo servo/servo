@@ -4,23 +4,21 @@
 
 #![allow(non_snake_case)]
 
-extern crate freetype;
 extern crate fontconfig;
+extern crate freetype;
 
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
 use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
+use fontconfig::fontconfig::{FcFontSetDestroy, FcMatchPattern, FcPatternCreate, FcPatternDestroy};
+use fontconfig::fontconfig::{FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString};
 use fontconfig::fontconfig::{FcObjectSetAdd, FcPatternGetInteger};
-use fontconfig::fontconfig::{FcPatternAddString, FcFontSetList, FcObjectSetCreate, FcObjectSetDestroy};
-use fontconfig::fontconfig::{FcPatternDestroy, FcFontSetDestroy, FcMatchPattern, FcPatternCreate};
-
-use util::str::c_str_to_string;
-
 use libc;
-use libc::{c_int, c_char};
+use libc::{c_char, c_int};
 use std::borrow::ToOwned;
 use std::ffi::CString;
 use std::ptr;
+use util::str::c_str_to_string;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";

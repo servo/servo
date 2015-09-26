@@ -8,24 +8,20 @@
 
 use canvas_traits::CanvasMsg;
 use context::LayoutContext;
-use floats::ClearType;
-use flow;
-use flow::Flow;
-use flow_ref::{self, FlowRef};
-use incremental::{self, RestyleDamage};
-use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
-use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
-use layout_debug;
-use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use text;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
-
 use euclid::{Point2D, Rect, Size2D};
+use floats::ClearType;
+use flow::{self, Flow};
+use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
+use incremental::{self, RestyleDamage};
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
+use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
+use layout_debug;
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
@@ -43,13 +39,15 @@ use style::computed_values::{word_break, z_index};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
+use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
 use util::geometry::{Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::{is_whitespace, slice_chars};
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -2551,4 +2549,3 @@ bitflags! {
         const HAS_LAYER = 0x01,
     }
 }
-

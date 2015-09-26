@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
-use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventMethods, KeyboardEventConstants};
+use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, KeyboardEventDerived, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
@@ -14,12 +14,11 @@ use dom::event::{Event, EventTypeId};
 use dom::uievent::{UIEvent, UIEventTypeId};
 use dom::window::Window;
 use msg::constellation_msg;
+use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
-use std::cell::{RefCell, Cell};
+use std::cell::{Cell, RefCell};
+use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
 

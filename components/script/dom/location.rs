@@ -11,7 +11,6 @@ use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
-
 use url::{Url, UrlParser};
 use util::str::DOMString;
 
@@ -58,6 +57,11 @@ impl LocationMethods for Location {
         if let Ok(url) = UrlParser::new().base_url(&base_url).parse(&url) {
             window.load_url(url);
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-location-reload
+    fn Reload(&self) {
+        self.window.root().load_url(self.get_url());
     }
 
     // https://url.spec.whatwg.org/#dom-urlutils-hash

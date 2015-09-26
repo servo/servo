@@ -5,7 +5,6 @@
 //! Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 
 use display_list::{DisplayItem, DisplayList, StackingContext};
-
 use euclid::rect::Rect;
 use euclid::{Matrix2D, Matrix4};
 use std::collections::linked_list::LinkedList;

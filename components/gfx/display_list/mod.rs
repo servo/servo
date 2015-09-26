@@ -14,25 +14,20 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-#![deny(unsafe_code)]
-
-use display_list::optimizer::DisplayListOptimizer;
-use paint_context::PaintContext;
-use self::DisplayItem::*;
-use self::DisplayItemIterator::*;
-use text::TextRun;
-use text::glyph::CharIndex;
-
 use azure::azure::AzFloat;
-use azure::azure_hl::Color;
+use azure::azure_hl::{Color, DrawTarget};
+use display_list::optimizer::DisplayListOptimizer;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::color;
 use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
 use net_traits::image::base::Image;
+use paint_context::PaintContext;
 use paint_task::PaintLayer;
+use self::DisplayItem::*;
+use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
 use std::collections::linked_list::{self, LinkedList};
 use std::fmt;
@@ -42,6 +37,8 @@ use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
 use style::properties::ComputedValues;
+use text::TextRun;
+use text::glyph::CharIndex;
 use util::cursor::Cursor;
 use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;
@@ -100,7 +97,7 @@ pub struct DisplayList {
     /// Child stacking contexts.
     pub children: LinkedList<Arc<StackingContext>>,
     /// Child PaintLayers that will be rendered on top of everything else.
-    pub layered_children: LinkedList<PaintLayer>,
+    pub layered_children: LinkedList<Arc<PaintLayer>>,
 }
 
 impl DisplayList {
@@ -116,27 +113,6 @@ impl DisplayList {
             outlines: LinkedList::new(),
             children: LinkedList::new(),
             layered_children: LinkedList::new(),
-        }
-    }
-
-    /// Sort all children by their z-index and split layered children into their own
-    /// section of the display list.
-    /// TODO(mrobinson): This should properly handle unlayered children that are on
-    /// top of layered children.
-    #[inline]
-    pub fn sort_and_layerize_children(&mut self) {
-        let mut children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-        while let Some(stacking_context) = self.children.pop_front() {
-            children.push(stacking_context);
-        }
-        children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
-
-        for stacking_context in children.into_iter() {
-            match stacking_context.layer_id {
-                Some(layer_id) => self.layered_children.push_back(
-                    PaintLayer::new(layer_id, color::transparent(), stacking_context)),
-                None => self.children.push_back(stacking_context),
-            }
         }
     }
 
@@ -239,6 +215,113 @@ impl DisplayList {
         for paint_layer in &self.layered_children {
             paint_layer.stacking_context.print_with_tree(print_tree);
         }
+    }
+
+    /// Draws the DisplayList in stacking context order according to the steps in CSS 2.1 § E.2.
+    fn draw_into_context(&self,
+                         draw_target: &DrawTarget,
+                         paint_context: &mut PaintContext,
+                         transform: &Matrix4,
+                         clip_rect: Option<&Rect<Au>>) {
+        let mut paint_subcontext = PaintContext {
+            draw_target: draw_target.clone(),
+            font_context: &mut *paint_context.font_context,
+            page_rect: paint_context.page_rect,
+            screen_rect: paint_context.screen_rect,
+            clip_rect: clip_rect.map(|clip_rect| *clip_rect),
+            transient_clip: None,
+            layer_kind: paint_context.layer_kind,
+        };
+
+        if opts::get().dump_display_list_optimized {
+            self.print(format!("Optimized display list. Tile bounds: {:?}",
+                                paint_context.page_rect));
+        }
+
+        // Set up our clip rect and transform.
+        let old_transform = paint_subcontext.draw_target.get_transform();
+        let xform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                     transform.m21, transform.m22,
+                                     transform.m41, transform.m42);
+        paint_subcontext.draw_target.set_transform(&xform_2d);
+        paint_subcontext.push_clip_if_applicable();
+
+        // Steps 1 and 2: Borders and background for the root.
+        for display_item in &self.background_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index >= 0 {
+                break
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_px() as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_px() as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 4: Block backgrounds and borders.
+        for display_item in &self.block_backgrounds_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 5: Floats.
+        for display_item in &self.floats {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
+
+        // Step 7: Content.
+        for display_item in &self.content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 8: Positioned descendants with `z-index: auto`.
+        for display_item in &self.positioned_content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 9: Positioned descendants with nonnegative, numeric z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index < 0 {
+                continue
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_px() as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_px() as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 10: Outlines.
+        for display_item in &self.outlines {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Undo our clipping and transform.
+        paint_subcontext.remove_transient_clip_if_applicable();
+        paint_subcontext.pop_clip_if_applicable();
+        paint_subcontext.draw_target.set_transform(&old_transform)
     }
 }
 
@@ -344,107 +427,11 @@ impl StackingContext {
                              clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
-        {
-            let mut paint_subcontext = PaintContext {
-                draw_target: temporary_draw_target.clone(),
-                font_context: &mut *paint_context.font_context,
-                page_rect: paint_context.page_rect,
-                screen_rect: paint_context.screen_rect,
-                clip_rect: clip_rect.map(|clip_rect| *clip_rect),
-                transient_clip: None,
-                layer_kind: paint_context.layer_kind,
-            };
 
-            if opts::get().dump_display_list_optimized {
-                display_list.print(format!("Optimized display list. Tile bounds: {:?}",
-                                           paint_context.page_rect));
-            }
-
-            // Set up our clip rect and transform.
-            let old_transform = paint_subcontext.draw_target.get_transform();
-            let xform_2d = Matrix2D::new(transform.m11, transform.m12,
-                                         transform.m21, transform.m22,
-                                         transform.m41, transform.m42);
-            paint_subcontext.draw_target.set_transform(&xform_2d);
-            paint_subcontext.push_clip_if_applicable();
-
-            // Steps 1 and 2: Borders and background for the root.
-            for display_item in &display_list.background_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 3: Positioned descendants with negative z-indices.
-            for positioned_kid in &display_list.children {
-                if positioned_kid.z_index >= 0 {
-                    break
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 4: Block backgrounds and borders.
-            for display_item in &display_list.block_backgrounds_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 5: Floats.
-            for display_item in &display_list.floats {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-
-            // Step 7: Content.
-            for display_item in &display_list.content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 8: Positioned descendants with `z-index: auto`.
-            for display_item in &display_list.positioned_content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 9: Positioned descendants with nonnegative, numeric z-indices.
-            for positioned_kid in &self.display_list.children {
-                if positioned_kid.z_index < 0 {
-                    continue
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 10: Outlines.
-            for display_item in &display_list.outlines {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Undo our clipping and transform.
-            paint_subcontext.remove_transient_clip_if_applicable();
-            paint_subcontext.pop_clip_if_applicable();
-            paint_subcontext.draw_target.set_transform(&old_transform)
-        }
+        display_list.draw_into_context(&temporary_draw_target,
+                                       paint_context,
+                                       transform,
+                                       clip_rect);
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
                                                               &self.filters,
@@ -695,8 +682,8 @@ impl StackingContextLayerCreator {
                 stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
             let child_stacking_context =
                 Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
-            stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context));
+            stacking_context.display_list.layered_children.push_back(Arc::new(
+                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context)));
             self.all_following_children_need_layers = true;
         }
     }
@@ -707,7 +694,7 @@ impl StackingContextLayerCreator {
         if let Some(layer_id) = stacking_context.layer_id {
             self.finish_building_current_layer(parent_stacking_context);
             parent_stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(layer_id, color::transparent(), stacking_context));
+                Arc::new(PaintLayer::new(layer_id, color::transparent(), stacking_context)));
 
             // We have started processing layered stacking contexts, so any stacking context that
             // we process from now on needs its own layer to ensure proper rendering order.
@@ -725,17 +712,18 @@ impl StackingContextLayerCreator {
 }
 
 /// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
-pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
-                                           -> Option<Arc<StackingContext>> {
+pub fn find_layer_with_layer_id(this: &Arc<StackingContext>,
+                                layer_id: LayerId)
+                                -> Option<Arc<PaintLayer>> {
     for kid in &this.display_list.layered_children {
-        if let Some(stacking_context) = kid.find_stacking_context_with_layer_id(layer_id) {
-            return Some(stacking_context);
+        if let Some(paint_layer) = PaintLayer::find_layer_with_layer_id(&kid, layer_id) {
+            return Some(paint_layer);
         }
     }
 
     for kid in &this.display_list.children {
-        if let Some(stacking_context) = find_stacking_context_with_layer_id(kid, layer_id) {
-            return Some(stacking_context);
+        if let Some(paint_layer) = find_layer_with_layer_id(kid, layer_id) {
+            return Some(paint_layer);
         }
     }
 

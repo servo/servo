@@ -69,6 +69,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_radius_elliptical_a.html border_radius_elliptical_ref.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
 == border_radius_shorthand_a.html border_radius_shorthand_ref.html
+== border_radius_zero_sizes_a.html border_radius_zero_sizes_ref.html
 == border_rounding_1px_invisible_issue_7184_a.html border_rounding_1px_invisible_issue_7184_ref.html
 == border_spacing_a.html border_spacing_ref.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
@@ -378,6 +379,7 @@ device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.h
 == transform_simple_a.html transform_simple_ref.html
 == transform_skew_a.html transform_skew_ref.html
 == transform_stacking_context_a.html transform_stacking_context_ref.html
+== transition_calc.html transition_calc_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
@@ -400,6 +402,9 @@ prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
 
 == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
 == webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
+== webgl-context/tex_image_2d_canvas.html webgl-context/tex_image_2d_canvas_ref.html
+== webgl-context/tex_image_2d_canvas2d.html webgl-context/tex_image_2d_canvas_ref.html
+== webgl-context/tex_image_2d_canvas_no_context.html webgl-context/tex_image_2d_canvas_no_context_ref.html
 == webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html

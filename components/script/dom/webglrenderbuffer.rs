@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::webglobject::WebGLObject;
-
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 

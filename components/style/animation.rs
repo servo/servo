@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{RGBA, Color};
+use cssparser::{Color, RGBA};
+use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
@@ -21,15 +22,13 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use values::CSSFloat;
-use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthOrPercentage, Length, Time};
-
-use euclid::point::Point2D;
 use std::cmp::Ordering;
 use std::iter::repeat;
 use util::bezier::Bezier;
 use util::geometry::Au;
+use values::CSSFloat;
+use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use values::computed::{Calc, Length, LengthOrPercentage, Time};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
@@ -514,6 +513,17 @@ impl Interpolate for Color {
     }
 }
 
+impl Interpolate for Calc {
+    #[inline]
+    fn interpolate(&self, other: &Calc, time: f64)
+                   -> Option<Calc> {
+        Some(Calc {
+            length: self.length().interpolate(&other.length(), time),
+            percentage: self.percentage().interpolate(&other.percentage(), time),
+        })
+    }
+}
+
 impl Interpolate for LengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentage, time: f64)
@@ -531,7 +541,13 @@ impl Interpolate for LengthOrPercentage {
                     Some(LengthOrPercentage::Percentage(value))
                 })
             }
-            (_, _) => None,
+            (this, other) => {
+                let this: Calc = From::from(this);
+                let other: Calc = From::from(other);
+                this.interpolate(&other, time).and_then(|value| {
+                    Some(LengthOrPercentage::Calc(value))
+                })
+            }
         }
     }
 }
@@ -556,7 +572,13 @@ impl Interpolate for LengthOrPercentageOrAuto {
             (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
                 Some(LengthOrPercentageOrAuto::Auto)
             }
-            (_, _) => None,
+            (this, other) => {
+                let this: Option<Calc> = From::from(this);
+                let other: Option<Calc> = From::from(other);
+                this.interpolate(&other, time).unwrap_or(None).and_then(|value| {
+                    Some(LengthOrPercentageOrAuto::Calc(value))
+                })
+            }
         }
     }
 }

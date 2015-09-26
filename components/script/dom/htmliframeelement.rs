@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::Error::NotSupported;
 use dom::bindings::error::{ErrorResult, Fallible};
@@ -17,32 +17,30 @@ use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId, self};
+use dom::element::{self, AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use page::IterablePage;
-
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
+use js::jsval::UndefinedValue;
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
-use string_cache::Atom;
-use util::prefs;
-use util::str::DOMString;
-
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
-use js::jsval::UndefinedValue;
+use msg::constellation_msg::{ConstellationChan, MozBrowserEvent, NavigationDirection, PipelineId, SubpageId};
+use page::IterablePage;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use string_cache::Atom;
 use url::{Url, UrlParser};
+use util::prefs;
+use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false)
+    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
 }
 
 #[derive(HeapSizeOf)]

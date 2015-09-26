@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(append)]
-#![feature(arc_unique)]
-#![feature(arc_weak)]
-#![feature(box_str)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
 #![feature(custom_derive)]
@@ -23,34 +19,30 @@
 #![plugin(plugins)]
 
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate bitflags;
-
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate profile_traits;
 #[macro_use]
 #[no_link]
 extern crate plugins as servo_plugins;
-extern crate net_traits;
-#[macro_use]
-extern crate profile_traits;
-
 #[macro_use]
 extern crate util;
-
 extern crate azure;
 extern crate canvas_traits;
 extern crate clock_ticks;
 extern crate cssparser;
 extern crate encoding;
-extern crate fnv;
 extern crate euclid;
+extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate ipc_channel;
 extern crate layout_traits;
 extern crate libc;
 extern crate msg;
+extern crate net_traits;
 extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
@@ -63,7 +55,7 @@ extern crate style;
 extern crate unicode_bidi;
 extern crate url;
 
-// Listed first because of macro definitions
+#[macro_use]
 pub mod layout_debug;
 
 pub mod animation;

@@ -6,7 +6,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLSelectElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
@@ -17,11 +17,9 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
+use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct HTMLSelectElement {

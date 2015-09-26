@@ -5,10 +5,9 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
+use cookie_rs;
 use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
-
-use cookie_rs;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};
@@ -47,7 +46,7 @@ impl Cookie {
 
         // Step 5
         match PUB_DOMAINS.iter().find(|&x| domain == *x) {
-            Some(val) if *val == url_host => domain = "".to_string(),
+            Some(val) if *val == url_host => domain = "".to_owned(),
             Some(_) => return None,
             None => {}
         }
@@ -155,7 +154,7 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure && url.scheme != "https".to_string() {
+        if self.cookie.secure && url.scheme != "https".to_owned() {
             return false;
         }
         if self.cookie.httponly && source == CookieSource::NonHTTP {

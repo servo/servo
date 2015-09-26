@@ -5,6 +5,7 @@ background-position-002.xht == reference/background-position-002-ref.xht
 c526-font-sz-001.xht == reference/c526-font-sz-001-ref.xht
 c526-font-sz-002.xht == reference/c526-font-sz-002-ref.xht
 c526-font-sz-003.xht == reference/c526-font-sz-003-ref.xht
+font-003.xht == reference/font-003-ref.xht
 font-051.xht == reference/font-051-ref.xht
 font-146.xht == reference/font-146-ref.xht
 font-applies-to-001.xht == reference/font-applies-to-001-ref.xht
@@ -121,7 +122,7 @@ font-size-122.xht == reference/font-size-122-ref.xht
 font-size-123.xht == reference/font-size-123-ref.xht
 font-size-adjust-005.xht == reference/ref-if-there-is-no-red.xht
 font-size-adjust-006.xht == reference/ref-filled-green-100px-square.xht
-font-size-adjust-007.xht == reference/ref-if-there-is-no-red.xht
+font-size-adjust-007.xht == reference/ref-filled-green-100px-square.xht
 font-size-adjust-008.xht == reference/ref-filled-green-100px-square.xht
 font-size-applies-to-016.xht == reference/no-red-on-blank-page-ref.xht
 font-style-applies-to-001.xht == reference/font-style-applies-to-001-ref.xht

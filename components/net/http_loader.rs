@@ -5,26 +5,27 @@
 
 use cookie;
 use cookie_storage::CookieStorage;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
+use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hsts::{secure_url, HSTSList, HSTSEntry};
+use hsts::{HSTSEntry, HSTSList, secure_url};
 use hyper::Error as HttpError;
-use hyper::client::{Request, Response, Pool};
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
-use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent, SetCookie};
-use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding, Header};
+use hyper::client::{Pool, Request, Response};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
+use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::{Fresh, HttpsConnector, Openssl};
-use hyper::status::{StatusCode, StatusClass};
+use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
-use net_traits::{CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
-use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
+use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{start_sending_opt, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -124,7 +125,7 @@ fn load_for_consumer(load_data: LoadData,
             send_error(url, e, start_chan)
         }
         Err(LoadError::MaxRedirects(url)) => {
-            send_error(url, "too many redirects".to_string(), start_chan)
+            send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
@@ -237,7 +238,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
                 )
             },
             Err(e) => {
-                 return Err(LoadError::Connection(url, e.description().to_string()))
+                 return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         };
 
@@ -267,13 +268,13 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         if let Some(ref data) = *body {
             match request_writer.write_all(&data) {
                 Err(e) => {
-                    return Err(LoadError::Connection(url, e.description().to_string()))
+                    return Err(LoadError::Connection(url, e.description().to_owned()))
                 }
                 _ => {}
             }
@@ -282,9 +283,9 @@ impl HttpRequest for WrappedHttpRequest {
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::ConnectionAborted(io_error.description().to_string()));
+                return Err(LoadError::ConnectionAborted(io_error.description().to_owned()));
             },
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -315,7 +316,7 @@ fn set_default_accept(headers: &mut Headers) {
     if !headers.has::<Accept>() {
         let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                             QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
@@ -374,7 +375,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
                 IncludeSubdomains::NotIncluded
             };
 
-            if let Some(entry) = HSTSEntry::new(host.to_string(), include_subdomains, Some(header.max_age)) {
+            if let Some(entry) = HSTSEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
                 info!("adding host {} to the strict transport security list", host);
                 info!("- max-age {}", header.max_age);
                 if header.include_subdomains {
@@ -447,7 +448,8 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             body: Option<Vec<u8>>) {
 
     if let Some(ref chan) = devtools_chan {
-        let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
+        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -459,7 +461,8 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              headers: Option<Headers>,
                              status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
-        let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -638,7 +641,7 @@ pub fn load<A>(load_data: LoadData,
                                 return Err(
                                     LoadError::Cors(
                                         url,
-                                        "Preflight fetch inconsistent with main fetch".to_string()));
+                                        "Preflight fetch inconsistent with main fetch".to_owned()));
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
                                 // but they don't seem necessary until credentials are implemented
@@ -667,7 +670,7 @@ pub fn load<A>(load_data: LoadData,
                     }
 
                     if redirected_to.contains(&url) {
-                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_string()));
+                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_owned()));
                     }
 
                     redirected_to.insert(doc_url.clone());

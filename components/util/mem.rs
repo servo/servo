@@ -4,7 +4,28 @@
 
 //! Data structure measurement.
 
+use azure::azure_hl::Color;
+use cssparser::Color as CSSParserColor;
+use cssparser::{RGBA, TokenSerializationType};
+use cursor::Cursor;
+use euclid::length::Length;
+use euclid::scale_factor::ScaleFactor;
+use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
+use geometry::{Au, PagePx, ViewportPx};
+use html5ever::tree_builder::QuirksMode;
+use hyper::header::ContentType;
+use hyper::http::RawStatus;
+use hyper::method::Method;
+use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+use js::jsapi::Heap;
+use js::jsval::JSVal;
+use js::rust::GCMethods;
+use layers::geometry::DevicePixel;
 use libc::{c_void, size_t};
+use logical_geometry::WritingMode;
+use rand::OsRng;
+use range::Range;
+use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
 use std::hash::Hash;
@@ -12,28 +33,6 @@ use std::mem::{size_of, transmute};
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-
-use azure::azure_hl::Color;
-use cssparser::Color as CSSParserColor;
-use cssparser::{RGBA, TokenSerializationType};
-use cursor::Cursor;
-use euclid::length::Length;
-use euclid::scale_factor::ScaleFactor;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
-use geometry::{PagePx, ViewportPx, Au};
-use html5ever::tree_builder::QuirksMode;
-use hyper::header::ContentType;
-use hyper::http::RawStatus;
-use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::GCMethods;
-use layers::geometry::DevicePixel;
-use logical_geometry::WritingMode;
-use rand::OsRng;
-use range::Range;
-use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
 use str::LengthOrPercentageOrAuto;
 use string_cache::atom::Atom;
 use string_cache::namespace::Namespace;
@@ -54,7 +53,7 @@ extern {
 
 // A wrapper for je_malloc_usable_size that handles `EMPTY` and returns `usize`.
 pub fn heap_size_of(ptr: *const c_void) -> usize {
-    if ptr == ::std::rt::heap::EMPTY as *const c_void {
+    if ptr == ::alloc::heap::EMPTY as *const c_void {
         0
     } else {
         unsafe { je_malloc_usable_size(ptr) as usize }

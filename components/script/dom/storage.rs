@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -15,7 +15,7 @@ use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use page::IterablePage;
-use script_task::{ScriptTask, MainThreadRunnable, MainThreadScriptMsg};
+use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -114,6 +114,12 @@ impl StorageMethods for Storage {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
+        vec![]
+    }
+
     // check-tidy: no specs after this line
     fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<DOMString> {
         let item = self.GetItem(name);
@@ -125,17 +131,8 @@ impl StorageMethods for Storage {
         self.SetItem(name, value);
     }
 
-    fn NamedCreator(&self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
-
     fn NamedDeleter(&self, name: DOMString) {
         self.RemoveItem(name);
-    }
-
-    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
     }
 }
 

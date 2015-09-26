@@ -6,7 +6,7 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -14,12 +14,11 @@ use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl};
-use dom::htmlformelement::{SubmittedFrom};
+use dom::htmlformelement::{FormControl, FormSubmitter};
+use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -82,6 +81,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(&self) -> DOMString {

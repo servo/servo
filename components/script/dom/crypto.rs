@@ -9,14 +9,10 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType, Type};
-
-use std::ptr;
-use std::slice;
-
-use rand::{Rng, OsRng};
+use js::jsapi::{JS_GetArrayBufferViewType, JS_GetObjectAsArrayBufferView, Type};
+use rand::{OsRng, Rng};
+use std::{ptr, slice};
 
 no_jsmanaged_fields!(OsRng);
 

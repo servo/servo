@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::{self, Color, RGBA};
 use geometry::Au;
-
-use cssparser::{self, RGBA, Color};
-
 use libc::c_char;
 use num_lib::ToPrimitive;
 use std::ascii::AsciiExt;
@@ -13,7 +11,7 @@ use std::borrow::ToOwned;
 use std::ffi::CStr;
 use std::iter::Filter;
 use std::ops::Deref;
-use std::str::{from_utf8, FromStr, Split};
+use std::str::{FromStr, Split, from_utf8};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];

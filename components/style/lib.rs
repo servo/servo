@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(arc_unique)]
 #![feature(box_syntax)]
 #![feature(box_patterns)]
 #![feature(concat_idents)]
@@ -17,53 +16,49 @@
 #![plugin(serde_macros)]
 #![plugin(plugins)]
 
-#[macro_use] extern crate log;
-#[macro_use] extern crate bitflags;
-
-extern crate fnv;
-extern crate euclid;
-extern crate serde;
-extern crate smallvec;
-extern crate url;
-
+#[macro_use]
+extern crate bitflags;
 #[macro_use]
 extern crate cssparser;
-
-#[macro_use]
-extern crate matches;
-
-extern crate encoding;
-extern crate rustc_serialize;
-extern crate string_cache;
-extern crate selectors;
-
 #[macro_use]
 extern crate lazy_static;
-
-extern crate num;
-extern crate util;
-
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate matches;
 #[macro_use]
 extern crate style_traits;
+extern crate encoding;
+extern crate euclid;
+extern crate fnv;
+extern crate num;
+extern crate rustc_serialize;
+extern crate selectors;
+extern crate serde;
+extern crate smallvec;
+extern crate string_cache;
+extern crate url;
+extern crate util;
 
+pub mod animation;
 mod custom_properties;
+pub mod font_face;
+pub mod legacy;
+pub mod media_queries;
+pub mod node;
 pub mod parser;
 pub mod selector_matching;
 pub mod stylesheets;
-#[macro_use] pub mod values;
+#[macro_use]
+#[allow(non_camel_case_types)]
+pub mod values;
+pub mod viewport;
 
 // Generated from the properties.mako.rs template by build.rs
 #[macro_use]
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
-
-pub mod animation;
-pub mod font_face;
-pub mod legacy;
-pub mod media_queries;
-pub mod node;
-pub mod viewport;
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {

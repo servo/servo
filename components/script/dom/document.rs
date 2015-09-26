@@ -18,24 +18,24 @@ use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLBaseElementCast;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
 use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLHeadElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::Error::HierarchyRequest;
-use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
+use dom::bindings::error::Error::{InvalidCharacter, NotSupported, Security};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
-use dom::bindings::js::{JS, Root, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
-use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::utils::{validate_and_extract, xml_name_type};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -46,7 +46,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbaseelement::HTMLBaseElement;
-use dom::htmlcollection::{HTMLCollection, CollectionFilter};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
@@ -56,7 +56,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, NodeTypeId, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -65,35 +65,29 @@ use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::window::{Window, ReflowReason};
-
+use dom::window::{ReflowReason, Window};
+use euclid::point::Point2D;
+use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
+use ipc_channel::ipc::{self, IpcSender};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{HitTestResponse, MouseOverResponse};
+use layout_interface::{LayoutChan, Msg};
 use layout_interface::{ReflowGoal, ReflowQueryType};
 use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent, SubpageId};
-use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
-use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
+use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
+use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
+use net_traits::{AsyncResponseTarget, Metadata, PendingAsyncLoad};
+use num::ToPrimitive;
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
-use util::str::{DOMString, split_html_space_chars};
-
-use euclid::point::Point2D;
-use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
-use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg};
-use string_cache::{Atom, QualName};
-use url::Url;
-
-use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -101,7 +95,10 @@ use std::iter::FromIterator;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::mpsc::channel;
+use string_cache::{Atom, QualName};
 use time;
+use url::Url;
+use util::str::{DOMString, split_html_space_chars};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -229,7 +226,6 @@ impl CollectionFilter for AppletsFilter {
     }
 }
 
-
 impl Document {
     #[inline]
     pub fn loader(&self) -> Ref<DocumentLoader> {
@@ -272,16 +268,16 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    pub fn url(&self) -> Url {
-        self.url.clone()
+    pub fn url<'a>(&'a self) -> &'a Url {
+        &self.url
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
-    pub fn fallback_base_url(&self) -> Url {
+    pub fn fallback_base_url<'a>(&'a self) -> Url {
         // Step 1: iframe srcdoc (#4767).
         // Step 2: about:blank with a creator browsing context.
         // Step 3.
-        self.url()
+        self.url().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url
@@ -1738,7 +1734,7 @@ impl DocumentMethods for Document {
         }
         let window = self.window.root();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
+        let _ = window.r().resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))
     }
@@ -1747,11 +1743,11 @@ impl DocumentMethods for Document {
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
         //TODO: ignore for cookie-averse Document
         let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
+        if !is_scheme_host_port_tuple(url) {
             return Err(Security);
         }
         let window = self.window.root();
-        let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
+        let _ = window.r().resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));
         Ok(())
     }
 
@@ -1851,7 +1847,7 @@ impl DocumentMethods for Document {
         collection.r().reflector().get_jsobject().get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#document
+    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
         // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
         vec![]

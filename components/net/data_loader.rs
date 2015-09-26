@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, Metadata, LoadConsumer};
-use resource_task::start_sending;
-
-use rustc_serialize::base64::FromBase64;
-
 use hyper::mime::Mime;
+use mime_classifier::MIMEClassifier;
+use net_traits::ProgressMsg::{Done, Payload};
+use net_traits::{LoadConsumer, LoadData, Metadata};
+use resource_task::start_sending;
+use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;
@@ -43,7 +41,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
         start_sending(start_chan,
-                      metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
+                      metadata).send(Done(Err("invalid data uri".to_owned()))).unwrap();
         return;
     }
 
@@ -70,7 +68,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
             Err(..) => {
-                progress_chan.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
+                progress_chan.send(Done(Err("non-base64 data uri".to_owned()))).unwrap();
             }
             Ok(data) => {
                 progress_chan.send(Payload(data)).unwrap();

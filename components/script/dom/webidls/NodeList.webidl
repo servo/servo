@@ -8,6 +8,8 @@
  */
 
 interface NodeList {
+  [Pure]
   readonly attribute unsigned long length;
+  [Pure]
   getter Node? item(unsigned long index);
 };

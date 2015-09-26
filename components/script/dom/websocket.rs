@@ -16,26 +16,26 @@ use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{reflect_dom_object, Reflectable};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
-use script_task::ScriptTaskEventCategory::WebSocketEvent;
-use script_task::{Runnable, CommonScriptMsg};
-
+use hyper::header::Host;
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
+use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
+use js::jsval::UndefinedValue;
+use libc::{uint32_t, uint8_t};
 use net_traits::hosts::replace_hosts;
+use script_task::ScriptTaskEventCategory::WebSocketEvent;
+use script_task::{CommonScriptMsg, Runnable};
+use std::borrow::ToOwned;
+use std::cell::{Cell, RefCell};
+use std::sync::{Arc, Mutex};
+use std::{ptr, slice};
 use util::str::DOMString;
 use util::task::spawn_named;
-
-use hyper::header::Host;
-use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
-use js::jsval::UndefinedValue;
-use libc::{uint8_t, uint32_t};
-use websocket::Client;
-use websocket::Message;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
@@ -45,11 +45,7 @@ use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
-
-use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
-use std::ptr;
-use std::sync::{Arc, Mutex};
+use websocket::{Client, Message};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -143,7 +139,9 @@ impl WebSocket {
         // Step 3: Potentially block access to some ports.
 
         // Step 4.
-        let protocols = protocols.as_slice();
+        let protocols: &[DOMString] = protocols
+                                      .as_ref()
+                                      .map_or(&[], |ref string| slice::ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
@@ -155,7 +153,6 @@ impl WebSocket {
 
             if protocols[i + 1..].iter().any(|p| p == protocol) {
                 return Err(Syntax);
-
             }
 
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {

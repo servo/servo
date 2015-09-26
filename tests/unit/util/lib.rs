@@ -4,9 +4,12 @@
 
 #![cfg_attr(test, feature(plugin, custom_derive, heap_api))]
 #![cfg_attr(test, plugin(plugins))]
-extern crate util;
-extern crate libc;
+#![feature(alloc)]
+
+extern crate alloc;
 extern crate euclid;
+extern crate libc;
+extern crate util;
 
 #[cfg(test)] mod cache;
 #[cfg(test)] mod logical_geometry;

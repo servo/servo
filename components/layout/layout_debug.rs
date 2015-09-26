@@ -5,17 +5,14 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-#![macro_use]
-
 use flow;
 use flow_ref::FlowRef;
 use rustc_serialize::json;
-
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::fs::File;
 use std::io::Write;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 

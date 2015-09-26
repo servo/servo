@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Visual formatting model (1246 tests)</h2>
+  <h2>Visual formatting model (1245 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -1338,7 +1338,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.2.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/visuren.html#inline-boxes">9.2.2 Inline-level elements and inline boxes</a></th></tr>
-      <!-- 22 tests -->
+      <!-- 19 tests -->
       <tr id="inline-block-alignment-002-9.2.2" class="ahem">
         <td>
             <a href="inline-block-alignment-002.htm">inline-block-alignment-002</a></td>
@@ -1397,7 +1397,7 @@
       <tr id="inline-block-alignment-007-9.2.2" class="ahem">
         <td>
             <a href="inline-block-alignment-007.htm">inline-block-alignment-007</a></td>
-        <td><a href="reference/inline-block-alignment-007-ref.htm">=</a> </td>
+        <td><a href="reference/inline-block-alignment-006-ref.htm">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>inline block alignment - alphabetical alignment with vertical layout
           <ul class="assert">
@@ -1413,39 +1413,6 @@
         <td>inline block alignment - alphabetical alignment with vertical layout
           <ul class="assert">
             <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="inline-block-alignment-009-9.2.2" class="ahem">
-        <td>
-            <a href="inline-block-alignment-009.htm">inline-block-alignment-009</a></td>
-        <td><a href="reference/inline-block-alignment-009-ref.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>inline block alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="inline-block-alignment-010-9.2.2" class="ahem">
-        <td>
-            <a href="inline-block-alignment-010.htm">inline-block-alignment-010</a></td>
-        <td><a href="reference/inline-block-alignment-010-ref.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>inline block alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-left', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="inline-block-alignment-011-9.2.2" class="ahem">
-        <td>
-            <a href="inline-block-alignment-011.htm">inline-block-alignment-011</a></td>
-        <td><a href="reference/inline-block-alignment-007-ref.htm">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>inline block alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-left', then the alphabetical baseline is used as the dominant baseline.</li>
           </ul>
         </td>
       </tr>
@@ -4869,7 +4836,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s9.3.2">+</a>
         <a href="http://www.w3.org/TR/CSS21/visuren.html#position-props">9.3.2 Box offsets: 'top', 'right', 'bottom', 'left'</a></th></tr>
-      <!-- 296 tests -->
+      <!-- 300 tests -->
       <tr id="background-position-152-9.3.2" class="image">
         <td>
             <a href="background-position-152.htm">background-position-152</a></td>
@@ -6553,6 +6520,28 @@
           </ul>
         </td>
       </tr>
+      <tr id="left-offset-position-fixed-001-9.3.2" class="primary">
+        <td><strong>
+            <a href="left-offset-position-fixed-001.htm">left-offset-position-fixed-001</a></strong></td>
+        <td><a href="reference/left-offset-position-fixed-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>left:auto offset of position:fixed box in a position:relative containing block
+          <ul class="assert">
+            <li>The 'left' box offset property, for fixed positioning, when set to 'auto' specifies the offset of the box from its 'static-position containing block'. Here, in this test, the 'static-position containing block' is #shifted-column and the containing block for #red is established by the viewport.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="left-offset-position-fixed-001-9.3.2" class="primary">
+        <td><strong>
+            <a href="left-offset-position-fixed-001.htm">left-offset-position-fixed-001</a></strong></td>
+        <td><a href="reference/left-offset-position-fixed-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>left:auto offset of position:fixed box in a position:relative containing block
+          <ul class="assert">
+            <li>The 'left' box offset property, for fixed positioning, when set to 'auto' specifies the offset of the box from its 'static-position containing block'. Here, in this test, the 'static-position containing block' is #shifted-column and the containing block for #red is established by the viewport.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="position-absolute-percentage-inherit-001-9.3.2" class="primary">
         <td><strong>
             <a href="position-absolute-percentage-inherit-001.htm">position-absolute-percentage-inherit-001</a></strong></td>
@@ -7331,6 +7320,28 @@
         <td>Right offset using percentage
           <ul class="assert">
             <li>Percentage offset values for the 'right' property are based off the width of the containing block.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="right-offset-position-fixed-001-9.3.2" class="primary">
+        <td><strong>
+            <a href="right-offset-position-fixed-001.htm">right-offset-position-fixed-001</a></strong></td>
+        <td><a href="reference/right-offset-position-fixed-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>right:auto offset of position:fixed box in an RTL position:relative containing block
+          <ul class="assert">
+            <li>The 'right' box offset property, for fixed positioning, when set to 'auto' specifies the offset of the box from its 'static-position containing block'. Here, in this test, the 'static-position containing block' is #shifted-column and the containing block for #red is established by the viewport.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="right-offset-position-fixed-001-9.3.2" class="primary">
+        <td><strong>
+            <a href="right-offset-position-fixed-001.htm">right-offset-position-fixed-001</a></strong></td>
+        <td><a href="reference/right-offset-position-fixed-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>right:auto offset of position:fixed box in an RTL position:relative containing block
+          <ul class="assert">
+            <li>The 'right' box offset property, for fixed positioning, when set to 'auto' specifies the offset of the box from its 'static-position containing block'. Here, in this test, the 'static-position containing block' is #shifted-column and the containing block for #red is established by the viewport.</li>
           </ul>
         </td>
       </tr>

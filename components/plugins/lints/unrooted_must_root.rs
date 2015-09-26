@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use rustc::ast_map;
-use rustc::lint::{Context, LintPass, LintArray};
+use rustc::front::map as ast_map;
+use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::middle::astconv_util::ast_ty_to_prim_ty;
 use rustc::middle::ty;
+use rustc_front::{hir, visit};
 use syntax::attr::AttrMetaMethods;
-use syntax::{ast, codemap, visit};
+use syntax::{ast, codemap};
 use utils::{match_def_path, unsafe_context};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -43,7 +44,7 @@ impl UnrootedPass {
 }
 
 /// Checks if a type is unrooted or contains any owned unrooted types
-fn is_unrooted_ty(cx: &Context, ty: &ty::TyS, in_new_function: bool) -> bool {
+fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool {
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
@@ -76,12 +77,15 @@ impl LintPass for UnrootedPass {
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
     }
+}
+
+impl LateLintPass for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(&mut self,
-                        cx: &Context,
-                        def: &ast::StructDef,
+                        cx: &LateContext,
+                        def: &hir::StructDef,
                         _i: ast::Ident,
-                        _gen: &ast::Generics,
+                        _gen: &hir::Generics,
                         id: ast::NodeId) {
         let item = match cx.tcx.map.get(id) {
             ast_map::Node::NodeItem(item) => item,
@@ -97,11 +101,11 @@ impl LintPass for UnrootedPass {
         }
     }
     /// All enums containing #[must_root] types must be #[must_root] themselves
-    fn check_variant(&mut self, cx: &Context, var: &ast::Variant, _gen: &ast::Generics) {
+    fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant, _gen: &hir::Generics) {
         let ref map = cx.tcx.map;
         if map.expect_item(map.get_parent(var.node.id)).attrs.iter().all(|a| !a.check_name("must_root")) {
             match var.node.kind {
-                ast::TupleVariantKind(ref vec) => {
+                hir::TupleVariantKind(ref vec) => {
                     for ty in vec {
                         ast_ty_to_prim_ty(cx.tcx, &*ty.ty).map(|t| {
                             if is_unrooted_ty(cx, t, false) {
@@ -117,8 +121,8 @@ impl LintPass for UnrootedPass {
         }
     }
     /// Function arguments that are #[must_root] types are not allowed
-    fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
-                block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
+                block: &hir::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FnKind::ItemFn(i, _, _, _, _, _) |
             visit::FnKind::Method(i, _, _) if i.name.as_str() == "new"
@@ -128,7 +132,7 @@ impl LintPass for UnrootedPass {
                 return;
             },
             visit::FnKind::ItemFn(_, _, style, _, _, _) => match style {
-                ast::Unsafety::Unsafe => return,
+                hir::Unsafety::Unsafe => return,
                 _ => ()
             },
             _ => ()
@@ -140,7 +144,7 @@ impl LintPass for UnrootedPass {
         }
 
         match block.rules {
-            ast::DefaultBlock => {
+            hir::DefaultBlock => {
                 for arg in &decl.inputs {
                     ast_ty_to_prim_ty(cx.tcx, &*arg.ty).map(|t| {
                         if is_unrooted_ty(cx, t, false) {
@@ -154,8 +158,8 @@ impl LintPass for UnrootedPass {
     }
 
     /// Trait casts from #[must_root] types are not allowed
-    fn check_expr(&mut self, cx: &Context, expr: &ast::Expr) {
-        fn require_rooted(cx: &Context, in_new_function: bool, subexpr: &ast::Expr) {
+    fn check_expr(&mut self, cx: &LateContext, expr: &hir::Expr) {
+        fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
             let ty = cx.tcx.expr_ty(&*subexpr);
             if is_unrooted_ty(cx, ty, in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,
@@ -165,7 +169,7 @@ impl LintPass for UnrootedPass {
         };
 
         match expr.node {
-            ast::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             _ => {
                 // TODO(pcwalton): Check generics with a whitelist of allowed generics.
             }
@@ -176,11 +180,11 @@ impl LintPass for UnrootedPass {
     // Catches `let` statements and assignments which store a #[must_root] value
     // Expressions which return out of blocks eventually end up in a `let` or assignment
     // statement or a function return (which will be caught when it is used elsewhere)
-    fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
+    fn check_stmt(&mut self, cx: &LateContext, s: &hir::Stmt) {
         match s.node {
-            ast::StmtDecl(_, id) |
-            ast::StmtExpr(_, id) |
-            ast::StmtSemi(_, id) if unsafe_context(&cx.tcx.map, id) => {
+            hir::StmtDecl(_, id) |
+            hir::StmtExpr(_, id) |
+            hir::StmtSemi(_, id) if unsafe_context(&cx.tcx.map, id) => {
                 return
             },
             _ => ()
@@ -188,26 +192,21 @@ impl LintPass for UnrootedPass {
 
         let expr = match s.node {
             // Catch a `let` binding
-            ast::StmtDecl(ref decl, _) => match decl.node {
-                ast::DeclLocal(ref loc) => match loc.init {
+            hir::StmtDecl(ref decl, _) => match decl.node {
+                hir::DeclLocal(ref loc) => match loc.init {
                     Some(ref e) => &**e,
                     _ => return
                 },
                 _ => return
             },
-            ast::StmtExpr(ref expr, _) => match expr.node {
+            hir::StmtExpr(ref expr, _) => match expr.node {
                 // This catches deferred `let` statements
-                ast::ExprAssign(_, ref e) |
+                hir::ExprAssign(_, ref e) |
                 // Match statements allow you to bind onto the variable later in an arm
                 // We need not check arms individually since enum/struct fields are already
                 // linted in `check_struct_def` and `check_variant`
                 // (so there is no way of destructuring out a `#[must_root]` field)
-                ast::ExprMatch(ref e, _, _) => &**e,
-                // These are able to bind local variables, but are desugared into
-                // loops and matches pre-lint so should not be encountered
-                ast::ExprForLoop(..) => unreachable!(),
-                ast::ExprIfLet(..) => unreachable!(),
-                ast::ExprWhileLet(..) => unreachable!(),
+                hir::ExprMatch(ref e, _, _) => &**e,
                 _ => return
             },
             _ => return

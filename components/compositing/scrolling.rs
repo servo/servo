@@ -5,7 +5,6 @@
 //! A timer thread that gives the painting task a little time to catch up when the user scrolls.
 
 use compositor_task::{CompositorProxy, Msg};
-
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::{Builder, sleep_ms};
 use time;

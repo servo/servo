@@ -12,17 +12,16 @@ use context::LayoutContext;
 use flow::{InorderFlowTraversal};
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use gfx::display_list::OpaqueNode;
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;
-use text::TextRunScanner;
-use wrapper::PseudoElementType;
-
-use gfx::display_list::OpaqueNode;
-use std::collections::{LinkedList, HashMap};
+use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::properties::ComputedValues;
+use text::TextRunScanner;
+use wrapper::PseudoElementType;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ];

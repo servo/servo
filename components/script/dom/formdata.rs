@@ -9,17 +9,16 @@ use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
-use util::str::DOMString;
-
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use util::str::DOMString;
 
 #[derive(JSTraceable, Clone)]
 #[must_root]

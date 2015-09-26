@@ -9,8 +9,6 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptTask`,
 //! `LayoutTask`, and `PaintTask`.
 
-use pipeline::{Pipeline, CompositionPipeline, InitialPipelineState};
-
 use canvas::canvas_paint_task::CanvasPaintTask;
 use canvas::webgl_paint_task::WebGLPaintTask;
 use canvas_traits::CanvasMsg;
@@ -31,7 +29,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
-use msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
@@ -39,6 +37,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg};
 use net_traits::{self, ResourceTask};
 use offscreen_gl_context::GLContextAttributes;
+use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
@@ -487,10 +486,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             ConstellationMsg::GetClipboardContents(sender) => {
                 let result = self.clipboard_ctx.as_ref().map_or(
-                    "".to_string(),
+                    "".to_owned(),
                     |ctx| ctx.get_contents().unwrap_or_else(|e| {
                         debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                        "".to_string()
+                        "".to_owned()
                     })
                 );
                 sender.send(result).unwrap();
@@ -906,7 +905,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                    containing_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
                                    event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false));
+        assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script task.
@@ -1388,7 +1387,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
-        if prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false) {
+        if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
             // Work around borrow checker
             let event_info = {
                 let pipeline = self.pipeline(pipeline_id);

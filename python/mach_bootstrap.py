@@ -84,7 +84,14 @@ def _activate_virtualenv(topdir):
 
     if not os.path.exists(virtualenv_path):
         virtualenv = _get_exec("virtualenv2", "virtualenv")
-        subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+
+        try:
+            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+        except subprocess.CalledProcessError:
+            sys.exit("Python virtualenv failed to execute properly.")
+        except OSError:
+            sys.exit("Please install virtualenv "
+                     "and ensure permissions prior to running mach.")
 
     activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
     execfile(activate_path, dict(__file__=activate_path))
@@ -109,7 +116,15 @@ def _activate_virtualenv(topdir):
                 continue
         except OSError:
             open(marker_path, 'w').close()
-        subprocess.check_call(["pip", "install", "-q", "-r", req_path])
+
+        try:
+            subprocess.check_call(["pip", "install", "-q", "-r", req_path])
+        except subprocess.CalledProcessError:
+            sys.exit("Pip failed to execute properly.")
+        except OSError:
+            sys.exit("Pip not found.  Please install pip and verify permissions"
+                     " prior to running mach.")
+
         os.utime(marker_path, None)
 
 

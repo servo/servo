@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, MouseEventDerived, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::{UIEvent, UIEventTypeId};
 use dom::window::Window;
@@ -171,7 +171,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if prefs::get_pref("dom.mouseevent.which.enabled").unwrap_or(false) {
+        if prefs::get_pref("dom.mouseevent.which.enabled").as_boolean().unwrap_or(false) {
             (self.button.get() + 1) as i32
         } else {
             0

@@ -2,26 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
-use dom::bindings::js::{Root, RootedReference, LayoutJS};
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
-
-use devtools_traits::AttrInfo;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
-
-use string_cache::{Atom, Namespace};
-
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use std::ops::Deref;
+use string_cache::{Atom, Namespace};
+use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {

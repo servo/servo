@@ -6,9 +6,8 @@
 use cssparser::{Parser, SourcePosition};
 use log;
 use selectors::parser::ParserContext as SelectorParserContext;
-use url::{Url, UrlParser};
-
 use stylesheets::Origin;
+use url::{Url, UrlParser};
 
 pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,

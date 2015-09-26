@@ -749,6 +749,12 @@
             "url": "/_mozilla/mozilla/parentnodes.html"
           }
         ],
+        "mozilla/preserve_wrapper_callback.html": [
+          {
+            "path": "mozilla/preserve_wrapper_callback.html",
+            "url": "/_mozilla/mozilla/preserve_wrapper_callback.html"
+          }
+        ],
         "mozilla/proxy_setter.html": [
           {
             "path": "mozilla/proxy_setter.html",

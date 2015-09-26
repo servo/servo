@@ -20,7 +20,6 @@ use dom::characterdata::CharacterDataTypeId;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::node::{Node, NodeTypeId};
-
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;

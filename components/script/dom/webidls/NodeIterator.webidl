@@ -8,7 +8,7 @@
 // Import from http://hg.mozilla.org/mozilla-central/raw-file/a5a720259d79/dom/webidl/NodeIterator.webidl
 
 interface NodeIterator {
-  [Constant]
+  [SameObject]
   readonly attribute Node root;
   [Pure]
   readonly attribute Node referenceNode;
@@ -24,5 +24,6 @@ interface NodeIterator {
   [Throws]
   Node? previousNode();
 
+  [Pure]
   void detach();
 };

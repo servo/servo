@@ -3,9 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
-use hyper::header::{Headers, Location, ContentLength};
+use hyper::header::{Headers, Location, ContentLength, Host};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::status::StatusCode;
@@ -16,7 +19,8 @@ use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpRes
 use net_traits::{LoadData, CookieSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
-use std::sync::{Arc, RwLock};
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, mpsc, RwLock};
 use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
@@ -212,6 +216,38 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
+fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+        ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
+            match net_event {
+                NetworkEvent::HttpRequest(httprequest) => {
+                    httprequest
+                },
+
+                _ => panic!("No HttpRequest Received"),
+            }
+        },
+        _ => panic!("No HttpRequest Received"),
+    }
+}
+
+fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+            ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
+            match net_event_response {
+                NetworkEvent::HttpResponse(httpresponse) => {
+                    httpresponse
+                },
+
+                _ => panic!("No HttpResponse Received"),
+            }
+        },
+        _ => panic!("No HttpResponse Received"),
+    }
+}
+
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
     let url = Url::parse("http://mozilla.com").unwrap();
@@ -232,6 +268,60 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
         }, DEFAULT_USER_AGENT.to_string());
+}
+
+#[test]
+fn test_request_and_response_data_with_network_messages() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut headers = Headers::new();
+            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+            Ok(MockRequest::new(
+                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
+            )
+        }
+    }
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    let url = Url::parse("https://mozilla.com").unwrap();
+    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
+    let mut load_data = LoadData::new(url.clone(), None);
+    let mut request_headers = Headers::new();
+    request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
+    load_data.headers = request_headers.clone();
+    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
+                                DEFAULT_USER_AGENT.to_string());
+
+    // notification received from devtools
+    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+
+    let httprequest = DevtoolsHttpRequest {
+        url: url,
+        method: Method::Get,
+        headers: request_headers,
+        body: None,
+    };
+
+    let content = "Yay!";
+    let mut response_headers = Headers::new();
+    response_headers.set(ContentLength(content.len() as u64));
+    response_headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+
+    let httpresponse = DevtoolsHttpResponse {
+        headers: Some(response_headers),
+        status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
+        body: None
+    };
+
+    assert_eq!(devhttprequest, httprequest);
+    assert_eq!(devhttpresponse, httpresponse);
 }
 
 #[test]

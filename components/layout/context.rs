@@ -6,9 +6,8 @@
 
 #![deny(unsafe_code)]
 
-use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-
 use canvas_traits::CanvasMsg;
+use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use euclid::{Rect, Size2D};
 use fnv::FnvHasher;
 use gfx::display_list::OpaqueNode;
@@ -26,7 +25,7 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::geometry::Au;
@@ -217,4 +216,3 @@ impl<'a> LayoutContext<'a> {
         }
     }
 }
-

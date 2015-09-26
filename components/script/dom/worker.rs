@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::Error::Syntax;
-use dom::bindings::error::{Fallible, ErrorResult};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -20,19 +21,15 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
-
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use script_task::{ScriptChan, Runnable};
-
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsapi::{JSContext, HandleValue, RootedValue};
+use js::jsapi::{HandleValue, JSContext, RootedValue};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
+use script_task::{Runnable, ScriptChan};
+use std::borrow::ToOwned;
+use std::sync::mpsc::{Sender, channel};
 use url::UrlParser;
 use util::str::DOMString;
-
-use std::borrow::ToOwned;
-use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
-
-use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use util::str::DOMString;
 use util::task::spawn_named;
 
@@ -173,7 +172,7 @@ impl StorageManager {
     }
 
     fn origin_as_string(&self, url: Url) -> String {
-        let mut origin = "".to_string();
+        let mut origin = "".to_owned();
         origin.push_str(&url.scheme);
         origin.push_str("://");
         url.domain().map(|domain| origin.push_str(&domain));

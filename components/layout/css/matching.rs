@@ -10,9 +10,6 @@ use animation;
 use context::SharedLayoutContext;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use smallvec::SmallVec;
-use wrapper::{LayoutElement, LayoutNode};
-
 use script::dom::characterdata::CharacterDataTypeId;
 use script::dom::node::NodeTypeId;
 use script::layout_interface::Animation;
@@ -21,6 +18,7 @@ use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectin
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::PseudoElement;
 use selectors::{Element};
+use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
@@ -28,12 +26,13 @@ use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
-use style::properties::{ComputedValues, cascade, PropertyDeclaration};
-use style::selector_matching::{Stylist, DeclarationBlock};
+use style::properties::{ComputedValues, PropertyDeclaration, cascade};
+use style::selector_matching::{DeclarationBlock, Stylist};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
+use wrapper::{LayoutElement, LayoutNode};
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,

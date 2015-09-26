@@ -8,13 +8,10 @@
 use dom::bindings::error::Error::DataClone;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::JSContext;
-use js::jsapi::JS_ReadStructuredClone;
 use js::jsapi::{HandleValue, MutableHandleValue};
-use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
-
+use js::jsapi::{JSContext, JS_ReadStructuredClone};
+use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
 use std::ptr;
 

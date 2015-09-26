@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Rect, Size2D};
+use font_template::FontTemplateDescriptor;
+use platform::font::{FontHandle, FontTable};
+use platform::font_context::FontContextHandle;
+use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
@@ -11,15 +15,10 @@ use std::str;
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
-use util::cache::HashCache;
-
-use font_template::FontTemplateDescriptor;
-use platform::font::{FontHandle, FontTable};
-use platform::font_context::FontContextHandle;
-use platform::font_template::FontTemplateData;
 use text::Shaper;
-use text::glyph::{GlyphStore, GlyphId};
+use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
+use util::cache::HashCache;
 use util::geometry::Au;
 
 // FontHandle encapsulates access to the platform's font API,

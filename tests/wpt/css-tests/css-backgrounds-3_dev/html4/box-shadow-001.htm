@@ -1,36 +1,32 @@
-<!DOCTYPE html>
-<html><head>
-    <title>CSS Test Background: Box-Shadow property</title>
-    <link href="mailto:silverman@adobe.com" rel="author" title="Marc Silverman">
-    <link href="http://www.w3.org/TR/css3-background/#the-box-shadow" rel="help">
-    <link href="reference/box-shadow-001-ref.htm" rel="match">
-    <meta content="Testing simple drop shadow with the box-shadow property" name="assert">
-    <style type="text/css">
-      #shadow-div {
-	 position: absolute;
-	 top: 50px;
-	 left: 5px;
-	 box-shadow: rgba(0,255,0,1) 10px 10px;
-	 background-color: #000;
-	 width: 144px;
-	 height: 144px;
-	 }
-	 #error {
-	 position: absolute;
-	 top: 60px;
-	 left: 15px;
-	 background-color: red;
-	 width: 144px;
-	 height: 144px;
-	 }
-    </style>
-</head>
-<body>
-    <p>The test passes if there is a green drop shadow and no red.</p>
-    <div id="error">
-    </div>
-    <div id="shadow-div">
-    </div>
-
-
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+        <title>CSS Test: Positive value of horizontal offset</title>
+        <link href="http://www.microsoft.com/" rel="author" title="Microsoft">
+        <link href="http://www.w3.org/TR/css3-background/#the-box-shadow" rel="help">
+        <meta content="internal" name="flags">
+        <meta content="A positive value for the horizontal offset of the 'box-shadow' draws a shadow that is offset to the right of the box." name="assert">
+        <style type="text/css">
+            #reference
+            {
+                width: 2in;
+                height: 1in;
+                background: red;
+                border: thin solid black;
+            }
+            div div
+            {
+                width: 1in;
+                height: 1in;
+                border: thin solid black;
+                background: white;
+                box-shadow: black 96px 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is no red visible on the page.</p>
+        <div id="reference">
+            <div></div>
+        </div>
+    
 </body></html>

@@ -18,54 +18,12 @@
   text-combine-upright: all;
 }
 
-#valid_digits {
-  text-combine-upright: digits;
-}
-
-#valid_digits_2 {
-  text-combine-upright: digits 2;
-}
-
-#valid_digits_3 {
-  text-combine-upright: digits 3;
-}
-
-#valid_digits_4 {
-  text-combine-upright: digits 4;
-}
-
-#valid_digits_positive2 {
-  text-combine-upright: digits +2;
-}
-
-#valid_digits_positive3_nospace {
-  text-combine-upright: digits+3;
-}
-
-#valid_digits_tab_4_nospace {
-  text-combine-upright: digits	4;
-}
-
-#valid_digits_lf_2_nospace {
-  text-combine-upright: digits
-2;
-}
-
-#valid_digits_tab_3 {
-  text-combine-upright: digits 	3;
-}
-
-#valid_digits_tab_lf_4_nospace {
-  text-combine-upright: digits	
-4;
-}
-
 #valid_initial {
   text-combine-upright: initial;
 }
 
 #valid_inherit_outer {
-  text-combine-upright: digits 2;
+  text-combine-upright: all;
 }
 
 #valid_inherit_inner {
@@ -73,7 +31,7 @@
 }
 
 #valid_unset_outer {
-  text-combine-upright: digits 4;
+  text-combine-upright: all;
 }
 
 #valid_unset_inner {
@@ -85,16 +43,6 @@
 
 <div id="valid_none"></div>
 <div id="valid_all"></div>
-<div id="valid_digits"></div>
-<div id="valid_digits_2"></div>
-<div id="valid_digits_3"></div>
-<div id="valid_digits_4"></div>
-<div id="valid_digits_positive2"></div>
-<div id="valid_digits_positive3_nospace"></div>
-<div id="valid_digits_tab_4_nospace"></div>
-<div id="valid_digits_lf_2_nospace"></div>
-<div id="valid_digits_tab_3"></div>
-<div id="valid_digits_tab_lf_4_nospace"></div>
 
 <div id="valid_initial"></div>
 
@@ -122,46 +70,6 @@ test(function () {
   assert_equals(getComputedValueFor('valid_all'), 'all');
 }, 'Computed value for `text-combine-upright: all` is `all`');
 
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits'), 'digits 2');
-}, 'Computed value for `text-combine-upright: digits` is `digits 2`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_2'), 'digits 2');
-}, 'Computed value for `text-combine-upright: digits 2` is `digits 2`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_3'), 'digits 3');
-}, 'Computed value for `text-combine-upright: digits 3` is `digits 3`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_4'), 'digits 4');
-}, 'Computed value for `text-combine-upright: digits 4` is `digits 4`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_positive2'), 'digits 2');
-}, 'Computed value for `text-combine-upright: digits +2` is `digits 2`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_positive3_nospace'), 'digits 3');
-}, 'Computed value for `text-combine-upright: digits+3` is `digits 3`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_tab_4_nospace'), 'digits 4');
-}, 'Computed value for `text-combine-upright: digits[TAB]4` is `digits 4`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_lf_2_nospace'), 'digits 2');
-}, 'Computed value for `text-combine-upright: digits[LF]2` is `digits 2`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_tab_3'), 'digits 3');
-}, 'Computed value for `text-combine-upright: digits [TAB]3` is `digits 3`');
-
-test(function () {
-  assert_equals(getComputedValueFor('valid_digits_tab_lf_4_nospace'), 'digits 4');
-}, 'Computed value for `text-combine-upright: digits[TAB][LF]4` is `digits 4`');
-
 
 test(function () {
   assert_equals(getComputedValueFor('valid_initial'), 'none');
@@ -169,14 +77,15 @@ test(function () {
 
 
 test(function () {
-  assert_equals(getComputedValueFor('valid_inherit_outer'), 'digits 2');
-  assert_equals(getComputedValueFor('valid_inherit_inner'), 'digits 2');
-}, 'Computed value for `text-combine-upright: inherit` is `digits 2` which is inherited from the parent element');
+  assert_equals(getComputedValueFor('valid_inherit_outer'), 'all');
+  assert_equals(getComputedValueFor('valid_inherit_inner'), 'all');
+}, 'Computed value for `text-combine-upright: inherit` is `all` which is inherited from the parent element');
 
 test(function () {
-  assert_equals(getComputedValueFor('valid_unset_outer'), 'digits 4');
-  assert_equals(getComputedValueFor('valid_unset_inner'), 'digits 4');
-}, 'Computed value for `text-combine-upright: unset` is `digits 4` which is inherited from the parent element');
+  assert_equals(getComputedValueFor('valid_unset_outer'), 'all');
+  assert_equals(getComputedValueFor('valid_unset_inner'), 'all');
+}, 'Computed value for `text-combine-upright: unset` is `all` which is inherited from the parent element');
 </script>
+
 
 </body></html>

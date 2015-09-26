@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use compositing::windowing::{WindowEvent, MouseWindowEvent};
+use errno::errno;
+use euclid::point::Point2D;
+use libc::{c_int, c_long, time_t};
 use script_traits::MouseButton;
-
 use std::fs::File;
 use std::io::Read;
 use std::mem::{size_of, transmute, zeroed};
@@ -11,13 +14,6 @@ use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::thread;
-
-use euclid::point::Point2D;
-
-use errno::errno;
-use libc::{c_int, c_long, time_t};
-
-use compositing::windowing::{WindowEvent, MouseWindowEvent};
 
 
 extern {

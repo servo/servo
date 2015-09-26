@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
@@ -9,12 +10,10 @@ use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};
-use dom::eventtarget::{EventTarget, ListenerPhase, EventListenerType};
+use dom::eventtarget::{EventListenerType, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
-
-use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 
 struct AutoDOMEventMarker {
     window: Root<Window>,

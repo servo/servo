@@ -4,6 +4,8 @@
 
 //! Element nodes.
 
+use cssparser::Color;
+use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::attr::{Attr, AttrHelpersForLayout};
@@ -18,12 +20,11 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLFontElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTableSectionElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementCast, HTMLFontElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementCast, HTMLTableElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSectionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::Error::NoModificationAllowed;
@@ -32,7 +33,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::XMLName::InvalidXMLName;
-use dom::bindings::utils::{namespace_from_domstring, xml_name_type, validate_and_extract};
+use dom::bindings::utils::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::create::create_element;
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::domrect::DOMRect;
@@ -40,53 +41,42 @@ use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlfontelement::HTMLFontElement;
-use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
-use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablerowelement::HTMLTableRowElement;
-use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
+use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
-use dom::node::{document_from_node, NodeDamage};
+use dom::node::{NodeDamage, document_from_node};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
-
-use devtools_traits::AttrInfo;
-use smallvec::VecLike;
-use style::legacy::{UnsignedIntegerAttribute, from_declaration};
-use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing, font_family};
-use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
-use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
-use util::geometry::Au;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-use cssparser::Color;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
-use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
-use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
-use selectors::matching::{matches, DeclarationBlock};
+use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
+use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
+use selectors::matching::{DeclarationBlock, matches};
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use string_cache::{Atom, Namespace, QualName};
-use url::UrlParser;
-
+use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
-use std::cell::{Ref, RefMut};
+use std::cell::Ref;
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
+use string_cache::{Atom, Namespace, QualName};
+use style::legacy::{UnsignedIntegerAttribute, from_declaration};
+use style::properties::DeclaredValue;
+use style::properties::longhands::{self, background_image, border_spacing, font_family};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::values::CSSFloat;
+use style::values::specified::{self, CSSColor, CSSRGBA};
+use url::UrlParser;
+use util::geometry::Au;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
 pub struct Element {
@@ -95,6 +85,7 @@ pub struct Element {
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
+    id_attribute: DOMRefCell<Option<Atom>>,
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
@@ -149,6 +140,7 @@ impl Element {
             attrs: DOMRefCell::new(vec!()),
             attr_list: Default::default(),
             class_list: Default::default(),
+            id_attribute: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
         }
     }
@@ -249,20 +241,15 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
-        let bgcolor = if self.is_htmlbodyelement() {
-            let this: &HTMLBodyElement = mem::transmute(self);
+        let bgcolor = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablecellelement() {
-            let this: &HTMLTableCellElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablerowelement() {
-            let this: &HTMLTableRowElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableRowElementCast::to_ref(self) {
             this.get_background_color()
-        } else if self.is_htmltablesectionelement() {
-            let this: &HTMLTableSectionElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableSectionElementCast::to_ref(self) {
             this.get_background_color()
         } else {
             None
@@ -274,8 +261,7 @@ impl RawLayoutElementHelpers for Element {
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
 
-        let background = if self.is_htmlbodyelement() {
-            let this: &HTMLBodyElement = mem::transmute(self);
+        let background = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
             this.get_background()
         } else {
             None
@@ -287,8 +273,7 @@ impl RawLayoutElementHelpers for Element {
                     background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
         }
 
-        let color = if self.is_htmlfontelement() {
-            let this: &HTMLFontElement = mem::transmute(self);
+        let color = if let Some(this) = HTMLFontElementCast::to_ref(self) {
             this.get_color()
         } else {
             None
@@ -302,8 +287,7 @@ impl RawLayoutElementHelpers for Element {
                 }))));
         }
 
-        let font_family = if self.is_htmlfontelement() {
-            let this: &HTMLFontElement = mem::transmute(self);
+        let font_family = if let Some(this) = HTMLFontElementCast::to_ref(self) {
             this.get_face()
         } else {
             None
@@ -318,8 +302,7 @@ impl RawLayoutElementHelpers for Element {
                                 font_family)])))));
         }
 
-        let cellspacing = if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        let cellspacing = if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_cellspacing()
         } else {
             None
@@ -336,13 +319,12 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let size = if self.is_htmlinputelement() {
+        let size = if let Some(this) = HTMLInputElementCast::to_ref(self) {
             // FIXME(pcwalton): More use of atoms, please!
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
             match self.get_attr_val_for_layout(&ns!(""), &atom!("type")) {
                 Some("text") | Some("password") => {
-                    let this: &HTMLInputElement = mem::transmute(self);
                     match this.get_size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
@@ -363,14 +345,11 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let width = if self.is_htmliframeelement() {
-            let this: &HTMLIFrameElement = mem::transmute(self);
+        let width = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
             this.get_width()
-        } else if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_width()
-        } else if self.is_htmltablecellelement() {
-            let this: &HTMLTableCellElement = mem::transmute(self);
+        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
             this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -393,8 +372,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let height = if self.is_htmliframeelement() {
-            let this: &HTMLIFrameElement = mem::transmute(self);
+        let height = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -417,8 +395,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let cols = if self.is_htmltextareaelement() {
-            let this: &HTMLTextAreaElement = mem::transmute(self);
+        let cols = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
             match this.get_cols_for_layout() {
                 0 => None,
                 c => Some(c as i32),
@@ -440,8 +417,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let rows = if self.is_htmltextareaelement() {
-            let this: &HTMLTextAreaElement = mem::transmute(self);
+        let rows = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
             match this.get_rows_for_layout() {
                 0 => None,
                 r => Some(r as i32),
@@ -461,8 +437,7 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let border = if self.is_htmltableelement() {
-            let this: &HTMLTableElement = mem::transmute(self);
+        let border = if let Some(this) = HTMLTableElementCast::to_ref(self) {
             this.get_border()
         } else {
             None
@@ -490,8 +465,7 @@ impl RawLayoutElementHelpers for Element {
                                                         -> Option<u32> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
-                if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
+                if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
                     this.get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
@@ -508,6 +482,7 @@ pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn id_attribute(&self) -> *const Option<Atom>;
     fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
     fn local_name(&self) -> &Atom;
     fn namespace(&self) -> &Namespace;
@@ -529,6 +504,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
         get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
+    }
+
+    #[allow(unsafe_code)]
+    fn id_attribute(&self) -> *const Option<Atom> {
+        unsafe {
+            (*self.unsafe_get()).id_attribute.borrow_for_layout()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -613,10 +595,6 @@ impl Element {
         self.attrs.borrow()
     }
 
-    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
-        self.attrs.borrow_mut()
-    }
-
     pub fn style_attribute(&self) -> &DOMRefCell<Option<PropertyDeclarationBlock>> {
         &self.style_attribute
     }
@@ -666,7 +644,9 @@ impl Element {
         }
     }
 
-    pub fn update_inline_style(&self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
+    pub fn update_inline_style(&self,
+                               property_decl: PropertyDeclaration,
+                               style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
@@ -1487,6 +1467,15 @@ impl VirtualMethods for Element {
                 NodeDamage::NodeStyleDamaged
             },
             &atom!(id) => {
+                *self.id_attribute.borrow_mut() =
+                    mutation.new_value(attr).and_then(|value| {
+                        let value = value.as_atom();
+                        if value != &atom!("") {
+                            Some(value.clone())
+                        } else {
+                            None
+                        }
+                    });
                 if node.is_in_doc() {
                     let value = attr.value().as_atom().clone();
                     match mutation {
@@ -1533,13 +1522,9 @@ impl VirtualMethods for Element {
 
         if !tree_in_doc { return; }
 
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let value = attr.value();
-            if !value.is_empty() {
-                let doc = document_from_node(self);
-                let value = Atom::from_slice(&value);
-                doc.register_named_element(self, value.to_owned());
-            }
+        if let Some(ref value) = *self.id_attribute.borrow() {
+            let doc = document_from_node(self);
+            doc.register_named_element(self, value.clone());
         }
     }
 
@@ -1550,13 +1535,9 @@ impl VirtualMethods for Element {
 
         if !tree_in_doc { return; }
 
-        if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("id")) {
-            let value = attr.value();
-            if !value.is_empty() {
-                let doc = document_from_node(self);
-                let value = Atom::from_slice(&value);
-                doc.unregister_named_element(self, value.to_owned());
-            }
+        if let Some(ref value) = *self.id_attribute.borrow() {
+            let doc = document_from_node(self);
+            doc.unregister_named_element(self, value.clone());
         }
     }
 }
@@ -1642,12 +1623,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         node.get_focus_state()
     }
     fn get_id(&self) -> Option<Atom> {
-        self.get_attribute(&ns!(""), &atom!("id")).map(|attr| {
-            match *attr.r().value() {
-                AttrValue::Atom(ref val) => val.clone(),
-                _ => panic!("`id` attribute should be AttrValue::Atom"),
-            }
-        })
+        self.id_attribute.borrow().clone()
     }
     fn get_disabled_state(&self) -> bool {
         let node = NodeCast::from_ref(&**self);

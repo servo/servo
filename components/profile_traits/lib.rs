@@ -8,7 +8,7 @@
 
 #![feature(box_syntax)]
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![plugin(plugins, serde_macros)]
 
 extern crate ipc_channel;
 extern crate serde;
@@ -16,4 +16,3 @@ extern crate serde;
 pub mod energy;
 pub mod mem;
 pub mod time;
-

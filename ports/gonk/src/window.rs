@@ -6,13 +6,23 @@
 
 use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
+use egl::egl;
+use egl::egl::EGLConfig;
+use egl::egl::EGLContext;
+use egl::egl::EGLDisplay;
+use egl::egl::EGLSurface;
+use egl::egl::EGLint;
 use euclid::point::Point2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
+use libc::c_char;
 use libc::c_int;
+use libc::c_void;
+use libc::close;
+use libc::size_t;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use std::ffi::CString;
@@ -23,18 +33,6 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
-
-use egl::egl;
-use egl::egl::EGLConfig;
-use egl::egl::EGLContext;
-use egl::egl::EGLDisplay;
-use egl::egl::EGLSurface;
-use egl::egl::EGLint;
-
-use libc::c_char;
-use libc::c_void;
-use libc::close;
-use libc::size_t;
 
 const GRALLOC_USAGE_HW_TEXTURE: c_int = 0x00000100;
 const GRALLOC_USAGE_HW_RENDER: c_int = 0x00000200;
