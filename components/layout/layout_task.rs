@@ -834,19 +834,6 @@ impl LayoutTask {
                                               traversal);
     }
 
-    /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
-    /// This is only on in debug builds.
-    #[inline(never)]
-    #[cfg(debug)]
-    fn verify_flow_tree(&self, layout_root: &mut FlowRef) {
-        let mut traversal = traversal::FlowTreeVerification;
-        layout_root.traverse_preorder(&mut traversal);
-    }
-
-    #[cfg(not(debug))]
-    fn verify_flow_tree(&self, _: &mut FlowRef) {
-    }
-
     fn process_node_geometry_request<'a>(&'a self,
                                       requested_node: TrustedNodeAddress,
                                       layout_root: &mut FlowRef,
@@ -1337,11 +1324,6 @@ impl LayoutTask {
                     flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
-
-            // Verification of the flow tree, which ensures that all nodes were either marked as
-            // leaves or as non-leaves. This becomes a no-op in release builds. (It is
-            // inconsequential to memory safety but is a useful debugging tool.)
-            self.verify_flow_tree(&mut root_flow);
 
             if opts::get().trace_layout {
                 layout_debug::begin_trace(root_flow.clone());
