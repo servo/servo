@@ -66,19 +66,20 @@ def notify_win(title, text):
 def notify_darwin(title, text):
     try:
         import Foundation
-        import objc
 
-        NSUserNotification = objc.lookUpClass("NSUserNotification")
-        NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
+        bundleDict = Foundation.NSBundle.mainBundle().infoDictionary()
+        bundleIdentifier = 'CFBundleIdentifier'
+        if bundleIdentifier not in bundleDict:
+            bundleDict[bundleIdentifier] = 'mach'
 
-        note = NSUserNotification.alloc().init()
+        note = Foundation.NSUserNotification.alloc().init()
         note.setTitle_(title)
         note.setInformativeText_(text)
 
         now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
         note.setDeliveryDate_(now)
 
-        centre = NSUserNotificationCenter.defaultUserNotificationCenter()
+        centre = Foundation.NSUserNotificationCenter.defaultUserNotificationCenter()
         centre.scheduleNotification_(note)
     except ImportError:
         raise Exception("Please make sure that the Python pyobjc module is installed!")
