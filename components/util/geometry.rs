@@ -220,6 +220,18 @@ impl Au {
         ((self.0 as f32) / (AU_PER_PX as f32) * pixels_per_px).round() / pixels_per_px
     }
 
+    /// Rounds this app unit down to the previous (left or top) pixel and returns it.
+    #[inline]
+    pub fn to_prev_px(self) -> i32 {
+        ((self.0 as f64) / (AU_PER_PX as f64)).floor() as i32
+    }
+
+    /// Rounds this app unit up to the next (right or bottom) pixel and returns it.
+    #[inline]
+    pub fn to_next_px(self) -> i32 {
+        ((self.0 as f64) / (AU_PER_PX as f64)).ceil() as i32
+    }
+
     #[inline]
     pub fn to_f32_px(self) -> f32 {
         (self.0 as f32) / (AU_PER_PX as f32)
@@ -259,4 +271,21 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
 pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
     Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
               Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
+}
+
+pub trait ExpandToPixelBoundaries {
+    fn expand_to_pixel_boundaries(&self) -> Self;
+}
+
+impl ExpandToPixelBoundaries for Rect<Au> {
+    fn expand_to_pixel_boundaries(&self) -> Rect<Au> {
+        let bottom_right = self.bottom_right();
+        let bottom_right = Point2D::new(Au::from_px(bottom_right.x.to_next_px()),
+                                       Au::from_px(bottom_right.y.to_next_px()));
+        let new_origin = Point2D::new(Au::from_px(self.origin.x.to_prev_px()),
+                                      Au::from_px(self.origin.y.to_prev_px()));
+        Rect::new(new_origin,
+                  Size2D::new(bottom_right.x - new_origin.x,
+                              bottom_right.y - new_origin.y))
+    }
 }

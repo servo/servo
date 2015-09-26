@@ -40,7 +40,7 @@ use style::properties::ComputedValues;
 use text::TextRun;
 use text::glyph::CharIndex;
 use util::cursor::Cursor;
-use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::geometry::{self, Au, ExpandToPixelBoundaries, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;
@@ -891,6 +891,15 @@ impl ClippingRegion {
             }).collect(),
         }
     }
+
+    /// Expands rectangular clipping regions to pixel boundaries to work around
+    /// subpixel positioning issue.
+    pub fn expand_to_pixel_boundaries(&self) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.expand_to_pixel_boundaries(),
+            complex: self.complex.clone(),
+        }
+    }
 }
 
 
@@ -1171,7 +1180,7 @@ impl<'a> Iterator for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        let this_clip = &self.base().clip;
+        let this_clip = &self.base().clip.expand_to_pixel_boundaries();
         match paint_context.transient_clip {
             Some(ref transient_clip) if transient_clip == this_clip => {}
             Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
