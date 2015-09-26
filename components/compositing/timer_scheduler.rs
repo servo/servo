@@ -120,7 +120,7 @@ impl TimerScheduler {
         };
 
         spawn_named("TimerScheduler".to_owned(), move || {
-            &timer_scheduler.run_event_loop();
+            timer_scheduler.run_event_loop();
         });
 
         chan
