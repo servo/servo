@@ -4,7 +4,7 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
@@ -22,7 +22,7 @@ pub struct HTMLBaseElement {
 impl HTMLBaseElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBaseElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

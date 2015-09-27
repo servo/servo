@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLMediaElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlmediaelement::HTMLMediaElement;
@@ -21,7 +20,7 @@ impl HTMLAudioElement {
                      document: &Document) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement:
-                HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLAudioElement, localName, prefix, document)
+                HTMLMediaElement::new_inherited(localName, prefix, document)
         }
     }
 

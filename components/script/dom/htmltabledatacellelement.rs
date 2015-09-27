@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTableDataCellElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLTableCellElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmltablecellelement::HTMLTableCellElement;
@@ -21,8 +20,7 @@ impl HTMLTableDataCellElement {
                      document: &Document) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
             htmltablecellelement:
-                HTMLTableCellElement::new_inherited(
-                    HTMLTableCellElementTypeId::HTMLTableDataCellElement, localName, prefix, document)
+                HTMLTableCellElement::new_inherited(localName, prefix, document)
         }
     }
 
