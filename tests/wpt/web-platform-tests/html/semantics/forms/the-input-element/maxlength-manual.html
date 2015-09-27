@@ -23,7 +23,7 @@
 
       on_event(input, 'keyup', function(event) {
           if  ((event.keyCode >= 65 && event.keyCode <= 90) ||
-                (event.keyCode >= 97 && event.keyCode <= 122)) {
+               (event.keyCode >= 97 && event.keyCode <= 122)) {
             test(function() {
               assert_equals(input.value, "inpu");
             }, 'input content should limit to maxlength')

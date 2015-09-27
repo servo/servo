@@ -16,12 +16,8 @@ fn test_from_limited_i32_should_be_an_index_error_when_value_is_less_than_0() {
 #[test]
 fn test_from_limited_i32_should_parse_a_uint_when_value_is_0_or_greater() {
     match AttrValue::from_limited_i32("1".to_owned(), 0) {
-        Ok(v) => {
-            match v {
-                AttrValue::Int(_, result) => assert_eq!(result, 1),
-                _ => panic!("expected a Int result")
-            }
-        },
-        _ => panic!("expected an successful parsing")
+        Ok(AttrValue::Int(_, result)) => assert_eq!(result, 1),
+        Ok(_) => panic!("expected a Int result"),
+        _ => panic!("expected a successful parse")
     }
 }
