@@ -5,7 +5,6 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -25,7 +24,7 @@ impl HTMLDialogElement {
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDialogElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             return_value: DOMRefCell::new("".to_owned()),
         }
     }

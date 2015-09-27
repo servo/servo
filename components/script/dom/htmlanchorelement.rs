@@ -11,8 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElemen
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, MouseEventCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -40,7 +39,7 @@ impl HTMLAnchorElement {
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }

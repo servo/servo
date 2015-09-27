@@ -1019,7 +1019,7 @@ impl Document {
         };
 
         Document {
-            node: Node::new_without_doc(NodeTypeId::Document),
+            node: Node::new_document_node(),
             window: JS::from_ref(window),
             idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
