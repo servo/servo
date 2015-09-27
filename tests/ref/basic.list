@@ -335,6 +335,7 @@ device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.h
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == style_is_in_doc.html style_is_in_doc_ref.html
+== submit_focus_a.html submit_focus_b.html
 == table_auto_width.html table_auto_width_ref.html
 == table_caption_bottom_a.html table_caption_bottom_ref.html
 == table_caption_top_a.html table_caption_top_ref.html

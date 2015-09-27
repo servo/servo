@@ -954,18 +954,20 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let insertion_point = unsafe {
                 input.get_insertion_point_for_layout()
             };
-            let text = unsafe {
-                input.get_value_for_layout()
-            };
+            if let Some(insertion_point) = insertion_point {
+                let text = unsafe {
+                    input.get_value_for_layout()
+                };
 
-            let mut character_count = 0;
-            for (character_index, _) in text.char_indices() {
-                if character_index == insertion_point.index {
-                    return Some(CharIndex(character_count))
+                let mut character_count = 0;
+                for (character_index, _) in text.char_indices() {
+                    if character_index == insertion_point.index {
+                        return Some(CharIndex(character_count))
+                    }
+                    character_count += 1
                 }
-                character_count += 1
+                return Some(CharIndex(character_count))
             }
-            return Some(CharIndex(character_count))
         }
         None
     }
