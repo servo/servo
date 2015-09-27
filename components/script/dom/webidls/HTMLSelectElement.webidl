@@ -7,7 +7,7 @@
 interface HTMLSelectElement : HTMLElement {
   //         attribute boolean autofocus;
            attribute boolean disabled;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
            attribute boolean multiple;
            attribute DOMString name;
   //         attribute boolean required;

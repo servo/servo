@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
@@ -13,6 +13,7 @@ use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -79,6 +80,11 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 
     // https://www.whatwg.org/html/#dom-fieldset-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 }
 
 impl VirtualMethods for HTMLFieldSetElement {
@@ -148,5 +154,11 @@ impl VirtualMethods for HTMLFieldSetElement {
             },
             _ => {},
         }
+    }
+}
+
+impl<'a> FormControl<'a> for &'a HTMLFieldSetElement {
+    fn to_element(self) -> &'a Element {
+        ElementCast::from_ref(self)
     }
 }
