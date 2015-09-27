@@ -206,8 +206,8 @@ impl<K: HeapSizeOf, V: HeapSizeOf, S> HeapSizeOf for HashMap<K, V, S>
 
 impl<T: HeapSizeOf + Ord> HeapSizeOf for BinaryHeap<T> {
     fn heap_size_of_children(&self) -> usize {
-        // TODO Delegate to HeapSizeOf of internal Vec? That would capture extra capacity…
-        self.iter().fold(0, |n, elem| n + elem.heap_size_of_children())
+        let vec: &Vec<T> = unsafe { transmute(self) };
+        vec.heap_size_of_children()
     }
 }
 
