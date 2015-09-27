@@ -8,8 +8,8 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
@@ -134,7 +134,7 @@ impl HTMLImageElement {
 
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
         }

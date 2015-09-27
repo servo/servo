@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -22,7 +22,7 @@ impl HTMLHeadElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLHeadElement {
         HTMLHeadElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

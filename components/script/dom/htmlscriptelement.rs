@@ -10,8 +10,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
@@ -78,7 +77,7 @@ impl HTMLScriptElement {
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),

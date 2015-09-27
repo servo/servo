@@ -5,8 +5,7 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
@@ -14,7 +13,7 @@ use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::borrow::ToOwned;
@@ -34,7 +33,8 @@ impl HTMLSelectElement {
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 

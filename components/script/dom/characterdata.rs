@@ -6,8 +6,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
@@ -26,9 +25,9 @@ pub struct CharacterData {
 }
 
 impl CharacterData {
-    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: &Document) -> CharacterData {
+    pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
-            node: Node::new_inherited(NodeTypeId::CharacterData(id), document),
+            node: Node::new_inherited(document),
             data: DOMRefCell::new(data),
         }
     }

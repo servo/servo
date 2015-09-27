@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -21,7 +20,7 @@ impl HTMLQuoteElement {
                      document: &Document) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLQuoteElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

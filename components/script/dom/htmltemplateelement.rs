@@ -6,8 +6,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTemplateElementCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
@@ -30,7 +29,7 @@ impl HTMLTemplateElement {
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             contents: MutNullableHeap::new(None),
         }
     }

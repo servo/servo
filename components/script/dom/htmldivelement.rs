@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDivElementBinding::{self, HTMLDivElementMethods};
-use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -20,7 +19,7 @@ impl HTMLDivElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDivElement {
         HTMLDivElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDivElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
