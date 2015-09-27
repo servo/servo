@@ -164,8 +164,7 @@ impl LoadData {
     }
 }
 
-/// Interface for network listeners performing all flavours of fetches. Proper network requests
-/// should be initiated from this method, based on the response provided.
+/// Interface for observing the final response for an asynchronous fetch operation.
 pub trait AsyncFetchListener {
     fn response_available(&self, response: Response);
 }

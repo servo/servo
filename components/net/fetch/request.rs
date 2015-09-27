@@ -147,11 +147,10 @@ impl Request {
         }
     }
 
-    pub fn fetch_async(&self,
+    pub fn fetch_async(self,
                        cors_flag: bool,
                        listener: Box<AsyncFetchListener + Send>) {
-        let req = self.clone();
-        spawn_named("fetch".to_owned(), move || {
+        spawn_named(format!("fetch for {:?}", self.url.serialize()), move || {
             let res = req.fetch(cors_flag);
             listener.response_available(res);
         });
