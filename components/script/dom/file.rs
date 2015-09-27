@@ -4,10 +4,11 @@
 
 use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
+use dom::bindings::codegen::InheritTypes::{BlobTypeId, FileDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::blob::{Blob, BlobTypeId};
+use dom::blob::Blob;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -16,12 +17,18 @@ pub struct File {
     name: DOMString,
 }
 
+impl FileDerived for Blob {
+    fn is_file(&self) -> bool {
+        *self.type_id() == BlobTypeId::File
+    }
+}
+
 impl File {
-    fn new_inherited(global: GlobalRef, type_: BlobTypeId,
+    fn new_inherited(global: GlobalRef,
                      _file_bits: &Blob, name: DOMString) -> File {
         File {
             //TODO: get type from the underlying filesystem instead of "".to_string()
-            blob: Blob::new_inherited(global, type_, None, ""),
+            blob: Blob::new_inherited(global, None, ""),
             name: name,
         }
         // XXXManishearth Once Blob is able to store data
@@ -29,7 +36,7 @@ impl File {
     }
 
     pub fn new(global: GlobalRef, file_bits: &Blob, name: DOMString) -> Root<File> {
-        reflect_dom_object(box File::new_inherited(global, BlobTypeId::File, file_bits, name),
+        reflect_dom_object(box File::new_inherited(global, file_bits, name),
                            global,
                            FileBinding::Wrap)
     }

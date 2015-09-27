@@ -7,15 +7,12 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use dom::bindings::conversions::get_dom_class;
+use dom::bindings::codegen::InheritTypes::EventTargetTypeId;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
-use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
-use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use fnv::FnvHasher;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject};
 use js::jsapi::{HandleObject, JSContext, RootedFunction};
@@ -28,8 +25,9 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
 use std::default::Default;
 use std::ffi::CString;
+use std::intrinsics;
+use std::ptr;
 use std::rc::Rc;
-use std::{intrinsics, ptr};
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
@@ -40,17 +38,6 @@ pub type EventHandler = EventHandlerNonNull;
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
-}
-
-#[derive(Copy, Clone)]
-pub enum EventTargetTypeId {
-    Node(NodeTypeId),
-    WebSocket,
-    Window,
-    Worker,
-    FileReader,
-    WorkerGlobalScope(WorkerGlobalScopeTypeId),
-    XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
 impl PartialEq for EventTargetTypeId {
@@ -151,14 +138,6 @@ impl EventTarget {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.clone()).collect()
         })
-    }
-
-    #[allow(unsafe_code)]
-    pub fn type_id(&self) -> &EventTargetTypeId {
-        let domclass = unsafe {
-            get_dom_class(self.reflector_.get_jsobject().get()).unwrap()
-        };
-        domclass.type_id.as_ref().unwrap()
     }
 
     pub fn dispatch_event_with_target(&self,

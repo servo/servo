@@ -318,6 +318,10 @@ class Descriptor(DescriptorProvider):
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
 
+    def getParentName(self):
+        assert self.interface.parent is not None
+        return self.interface.parent.identifier.name
+
     def isGlobal(self):
         """
         Returns true if this is the primary interface for a global object

@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
+use dom::bindings::codegen::InheritTypes::EventTargetTypeId;
+use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetTypeId;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestUploadDerived;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
-use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 
 #[dom_struct]
 pub struct XMLHttpRequestUpload {

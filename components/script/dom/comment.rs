@@ -4,14 +4,15 @@
 
 use dom::bindings::codegen::Bindings::CommentBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::CommentDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, CommentDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeTypeId};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::characterdata::{CharacterData, CharacterDataTypeId};
+use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::node::Node;
 use util::str::DOMString;
 
 /// An HTML comment.

@@ -6,13 +6,13 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{ErrorEventDerived, EventCast};
+use dom::bindings::codegen::InheritTypes::{ErrorEventDerived, EventCast, EventTypeId};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
@@ -37,9 +37,9 @@ impl ErrorEventDerived for Event {
 }
 
 impl ErrorEvent {
-    fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
+    fn new_inherited() -> ErrorEvent {
         ErrorEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(),
             message: DOMRefCell::new("".to_owned()),
             filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
@@ -49,7 +49,7 @@ impl ErrorEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<ErrorEvent> {
-        reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
+        reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
     }

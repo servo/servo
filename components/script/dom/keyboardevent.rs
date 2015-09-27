@@ -5,13 +5,14 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, KeyboardEventDerived, UIEventCast};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, KeyboardEventDerived};
+use dom::bindings::codegen::InheritTypes::{UIEventCast, UIEventTypeId};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::event::{Event, EventTypeId};
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::event::Event;
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
@@ -48,7 +49,7 @@ impl KeyboardEventDerived for Event {
 impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::KeyboardEvent),
+            uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
             key_string: RefCell::new("".to_owned()),
             code: RefCell::new("".to_owned()),
