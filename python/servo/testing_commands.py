@@ -320,6 +320,62 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
 
+    @Command('compare_dromaeo',
+             description='compare outputs of two runs of ./mach test-dromaeo command',
+             category='testing')
+    @CommandArgument('params', default=None, nargs="...",
+                     help=" filepaths of output files of two runs of dromaeo test ")
+    def compare_dromaeo(self, params):
+        prev_op_filename = params[0]
+        cur_op_filename = params[1]
+        result = {'Test': [], 'Prev_Time': [], 'Cur_Time': [], 'Difference(%)': []}
+        with open(prev_op_filename, 'r') as prev_op, open(cur_op_filename, 'r') as cur_op:
+            l1 = prev_op.readline()
+            l2 = cur_op.readline()
+
+            while ((l1.find('[dromaeo] Saving...') and l2.find('[dromaeo] Saving...'))):
+                l1 = prev_op.readline()
+                l2 = cur_op.readline()
+
+            reach = 3
+            while (reach > 0):
+                l1 = prev_op.readline()
+                l2 = cur_op.readline()
+                reach -= 1
+
+            while True:
+                l1 = prev_op.readline()
+                l2 = cur_op.readline()
+                if not l1:
+                    break
+                result['Test'].append(str(l1).split('|')[0].strip())
+                result['Prev_Time'].append(float(str(l1).split('|')[1].strip()))
+                result['Cur_Time'].append(float(str(l2).split('|')[1].strip()))
+                a = float(str(l1).split('|')[1].strip())
+                b = float(str(l2).split('|')[1].strip())
+                result['Difference(%)'].append(((b - a) / a) * 100)
+
+            width_col1 = max([len(x) for x in result['Test']])
+            width_col2 = max([len(str(x)) for x in result['Prev_Time']])
+            width_col3 = max([len(str(x)) for x in result['Cur_Time']])
+            width_col4 = max([len(str(x)) for x in result['Difference(%)']])
+
+            for p, q, r, s in zip(['Test'], ['First Run'], ['Second Run'], ['Difference(%)']):
+                print ("\033[1m" + "{}|{}|{}|{}".format(p.ljust(width_col1), q.ljust(width_col2), r.ljust(width_col3),
+                       s.ljust(width_col4)) + "\033[0m" + "\n" + "--------------------------------------------------"
+                       + "-------------------------------------------------------------------------")
+
+            for a1, b1, c1, d1 in zip(result['Test'], result['Prev_Time'], result['Cur_Time'], result['Difference(%)']):
+                if d1 > 0:
+                    print ("\033[91m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                elif d1 < 0:
+                    print ("\033[92m" + "{}|{}|{}|{}".format(a1.ljust(width_col1),
+                           str(b1).ljust(width_col2), str(c1).ljust(width_col3), str(d1).ljust(width_col4)) + "\033[0m")
+                else:
+                    print ("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
+                           str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
+
     def jquery_test_runner(self, cmd, release, dev):
         self.ensure_bootstrapped()
         base_dir = path.abspath(path.join("tests", "jquery"))
