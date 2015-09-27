@@ -19,7 +19,7 @@ interface HTMLSelectElement : HTMLElement {
   //         attribute unsigned long length;
   //getter Element? item(unsigned long index);
   //HTMLOptionElement? namedItem(DOMString name);
-  // Note: this function currently only exists for test_union.html.
+  // Note: this function currently only exists for union.html.
   void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   //void remove(); // ChildNode overload
   //void remove(long index);

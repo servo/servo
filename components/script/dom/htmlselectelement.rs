@@ -62,7 +62,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         ValidityState::new(window.r())
     }
 
-    // Note: this function currently only exists for test_union.html.
+    // Note: this function currently only exists for union.html.
     // https://html.spec.whatwg.org/multipage/#dom-select-add
     fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
