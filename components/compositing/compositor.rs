@@ -681,7 +681,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn collect_old_layers(&mut self,
                           pipeline_id: PipelineId,
-                          new_layers: &Vec<LayerProperties>) {
+                          new_layers: &[LayerProperties]) {
         let root_layer = match self.scene.root {
             Some(ref root_layer) => root_layer.clone(),
             None => return,
