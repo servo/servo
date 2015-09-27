@@ -51,6 +51,8 @@ pub struct ActiveTimers {
     ///  - a timer was added with an earlier callback time. In this case the
     ///    original timer is rescheduled when it is the next one to get called.
     expected_event_id: Cell<TimerEventId>,
+    /// The nesting level of the currently executing timer task or 0.
+    nesting_level: Cell<u32>,
 }
 
 // Holder for the various JS values associated with setTimeout
@@ -65,6 +67,7 @@ struct Timer {
     callback: TimerCallback,
     arguments: Vec<Heap<JSVal>>,
     is_interval: IsInterval,
+    nesting_level: u32,
     duration: MsDuration,
     next_call: MsDuration,
 }
@@ -124,6 +127,7 @@ impl ActiveTimers {
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
+            nesting_level: Cell::new(0),
         }
     }
 
@@ -139,12 +143,8 @@ impl ActiveTimers {
         let TimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(TimerHandle(new_handle + 1));
 
-        let min_duration = match is_interval {
-            IsInterval::NonInterval => 0,
-            IsInterval::Interval => 1,
-        };
-        let duration = cmp::max(min_duration, timeout as u32);
-
+        let timeout = cmp::max(0, timeout);
+        let duration = self.bound_duration(Length::new(timeout as u64));
         let next_call = self.base_time() + duration;
 
         let mut timer = Timer {
@@ -154,6 +154,7 @@ impl ActiveTimers {
             arguments: Vec::with_capacity(arguments.len()),
             is_interval: is_interval,
             duration: duration,
+            nesting_level: self.nesting_level.get() + 1,
             next_call: next_call,
         };
 
@@ -217,6 +218,8 @@ impl ActiveTimers {
                 timers.pop().unwrap()
             };
 
+            self.nesting_level.set(timer.nesting_level);
+
             match timer.callback.clone() {
                 TimerCallback::FunctionTimerCallback(function) => {
                     let arguments: Vec<JSVal> = timer.arguments.iter().map(|arg| arg.get()).collect();
@@ -234,9 +237,14 @@ impl ActiveTimers {
 
             if timer.is_interval == IsInterval::Interval {
                 let mut timer = timer;
-                timer.next_call = timer.next_call + timer.duration;
+
+                timer.nesting_level += 1;
+                timer.duration = self.bound_duration(timer.duration);
+                timer.next_call = base_time + timer.duration;
                 self.timers.borrow_mut().push(timer);
             }
+
+            self.nesting_level.set(0);
         }
 
         self.schedule_timer_call();
@@ -286,6 +294,16 @@ impl ActiveTimers {
 
     fn base_time(&self) -> MsDuration {
         precise_time_ms() - self.suspension_offset.get()
+    }
+
+    fn bound_duration(&self, unbounded: MsDuration) -> MsDuration {
+        let ms = if self.nesting_level.get() > 5 {
+            4
+        } else {
+            0
+        };
+
+        cmp::max(Length::new(ms), unbounded)
     }
 
     fn invalidate_expected_event_id(&self) -> TimerEventId {
