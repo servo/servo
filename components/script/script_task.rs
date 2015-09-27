@@ -887,7 +887,7 @@ impl ScriptTask {
                     },
                     MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                MixedMessage::FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
+                    MixedMessage::FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                 }

@@ -905,7 +905,7 @@ impl Window {
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
-                WindowProxyHandler(self.dom_static.windowproxy_handler.0)
+        WindowProxyHandler(self.dom_static.windowproxy_handler.0)
     }
 
     pub fn get_next_subpage_id(&self) -> SubpageId {
