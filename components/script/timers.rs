@@ -147,19 +147,24 @@ impl ActiveTimers {
 
         let next_call = self.base_time() + (duration as u64);
 
-        let timer = Timer {
+        let mut timer = Timer {
             handle: TimerHandle(new_handle),
             source: source,
             callback: callback,
-            arguments: arguments.iter().map(|arg| {
-                    let mut heap_ptr: Heap<JSVal> = Heap::default();
-                    heap_ptr.set(arg.get());
-                    heap_ptr
-                }).collect(),
+            arguments: Vec::with_capacity(arguments.len()),
             is_interval: is_interval,
             duration: duration,
             next_call: next_call,
         };
+
+        // This is a bit complicated, but this ensures that the vector's
+        // buffer isn't reallocated (and moved) after setting the Heap values
+        for _ in 0..arguments.len() {
+            timer.arguments.push(Heap::default());
+        }
+        for (i, item) in arguments.iter().enumerate() {
+            timer.arguments.get_mut(i).unwrap().set(item.get());
+        }
 
         self.timers.borrow_mut().push(timer);
         let TimerHandle(max_handle) = self.timers.borrow().peek().unwrap().handle;
