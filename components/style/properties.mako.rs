@@ -556,10 +556,14 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn derive_from_display(_: super::display::computed_value::T,
+        pub fn derive_from_display(computed_value: super::display::computed_value::T,
                                    context: &computed::Context)
                                    -> computed_value::T {
-            context.display
+            if context.is_root_element {
+                computed_value
+            } else {
+                context.display
+            }
         }
 
     </%self:longhand>
@@ -6647,7 +6651,12 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
         let box_ = Arc::make_mut(&mut style.box_);
-        box_.display = box_.display.to_computed_value(&context);
+        let computed_value = box_.display.to_computed_value(&context);
+        box_.display = computed_value;
+        box_._servo_display_for_hypothetical_box =
+            longhands::_servo_display_for_hypothetical_box::derive_from_display(
+                    computed_value,
+                    &context);
     }
 
     // The initial value of outline width may be changed at computed value time.
