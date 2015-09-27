@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
-
+use euclid::length::Length;
+use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 
 use util::mem::HeapSizeOf;
@@ -24,7 +25,6 @@ use std::collections::BinaryHeap;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use time;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
 pub struct TimerHandle(i32);
@@ -38,12 +38,12 @@ pub struct ActiveTimers {
     scheduler_chan: Sender<TimerEventRequest>,
     next_timer_handle: Cell<TimerHandle>,
     timers: DOMRefCell<BinaryHeap<Timer>>,
-    suspended_since: Cell<Option<u64>>,
+    suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
-    /// by the amount of ns the document was inactive. The current time can be
+    /// by the amount of ms the document was inactive. The current time can be
     /// offset back by this amount for a coherent time across document
     /// activations.
-    suspension_offset: Cell<u64>,
+    suspension_offset: Cell<MsDuration>,
     /// Calls to `fire_timer` with a different argument than this get ignored.
     /// They were previously scheduled and got invalidated when
     ///  - timers were suspended,
@@ -65,8 +65,8 @@ struct Timer {
     callback: TimerCallback,
     arguments: Vec<Heap<JSVal>>,
     is_interval: IsInterval,
-    duration: u32,
-    next_call: u64,
+    duration: MsDuration,
+    next_call: MsDuration,
 }
 
 // Enum allowing more descriptive values for the is_interval field
@@ -122,7 +122,7 @@ impl ActiveTimers {
             next_timer_handle: Cell::new(TimerHandle(1)),
             timers: DOMRefCell::new(BinaryHeap::new()),
             suspended_since: Cell::new(None),
-            suspension_offset: Cell::new(0),
+            suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
         }
     }
@@ -145,7 +145,7 @@ impl ActiveTimers {
         };
         let duration = cmp::max(min_duration, timeout as u32);
 
-        let next_call = self.base_time() + (duration as u64);
+        let next_call = self.base_time() + duration;
 
         let mut timer = Timer {
             handle: TimerHandle(new_handle),
@@ -234,7 +234,7 @@ impl ActiveTimers {
 
             if timer.is_interval == IsInterval::Interval {
                 let mut timer = timer;
-                timer.next_call += timer.duration as u64;
+                timer.next_call = timer.next_call + timer.duration;
                 self.timers.borrow_mut().push(timer);
             }
         }
@@ -257,7 +257,7 @@ impl ActiveTimers {
         if let Some(timer) = timers.peek() {
             let expected_event_id = self.invalidate_expected_event_id();
 
-            let delay = (timer.next_call.saturating_sub(precise_time_ms())) as u32;
+            let delay = Length::new(timer.next_call.get().saturating_sub(precise_time_ms().get()));
             let request = TimerEventRequest(self.timer_event_chan.clone(), timer.source,
                                             expected_event_id, delay);
             self.scheduler_chan.send(request).unwrap();
@@ -284,7 +284,7 @@ impl ActiveTimers {
         self.schedule_timer_call();
     }
 
-    fn base_time(&self) -> u64 {
+    fn base_time(&self) -> MsDuration {
         precise_time_ms() - self.suspension_offset.get()
     }
 
@@ -296,8 +296,3 @@ impl ActiveTimers {
         next_id
     }
 }
-
-fn precise_time_ms() -> u64 {
-    time::precise_time_ns() / (1000 * 1000)
-}
-

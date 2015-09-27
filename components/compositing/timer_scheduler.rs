@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use script_traits::{TimerEvent, TimerEventRequest};
+use euclid::length::Length;
+use script_traits::{MsDuration, precise_time_ms, TimerEvent, TimerEventRequest};
 use util::task::spawn_named;
 
 use num::traits::Saturating;
@@ -13,7 +14,6 @@ use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool};
 use std::sync::mpsc::{channel, Receiver, Select, Sender};
 use std::thread::{self, spawn, Thread};
-use time::precise_time_ns;
 
 /// A quick hack to work around the removal of [`std::old_io::timer::Timer`](
 /// http://doc.rust-lang.org/1.0.0-beta/std/old_io/timer/struct.Timer.html )
@@ -24,19 +24,18 @@ struct CancelableOneshotTimer {
 }
 
 impl CancelableOneshotTimer {
-    fn new(duration_ms: u32) -> CancelableOneshotTimer {
+    fn new(duration: MsDuration) -> CancelableOneshotTimer {
         let (tx, rx) = channel();
         let canceled = Arc::new(AtomicBool::new(false));
         let canceled_clone = canceled.clone();
 
         let thread = spawn(move || {
-            let duration_ns = (duration_ms as u64) * 1000 * 1000;
-            let due_time = precise_time_ns() + duration_ns;
+            let due_time = precise_time_ms() + duration;
 
-            let mut park_time = duration_ms;
+            let mut park_time = duration;
 
             loop {
-                thread::park_timeout_ms(park_time);
+                thread::park_timeout_ms(park_time.get() as u32);
 
                 if canceled_clone.load(atomic::Ordering::Relaxed) {
                     return;
@@ -44,12 +43,12 @@ impl CancelableOneshotTimer {
 
                 // park_timeout_ms does not guarantee parking for the
                 // given amout. We might have woken up early.
-                let current_time = precise_time_ns();
+                let current_time = precise_time_ms();
                 if current_time >= due_time {
                     let _ = tx.send(());
                     return;
                 }
-                park_time = ((due_time - current_time + 999999) / (1000 * 1000)) as u32;
+                park_time = due_time - current_time;
             }
         }).thread().clone();
 
@@ -80,7 +79,7 @@ pub struct TimerScheduler {
 
 struct ScheduledEvent {
     request: TimerEventRequest,
-    for_time: u64,
+    for_time: MsDuration,
 }
 
 impl Ord for ScheduledEvent {
@@ -127,7 +126,6 @@ impl TimerScheduler {
     }
 
     fn run_event_loop(&self) {
-        // FIXME shut down when everybody hung up
         loop {
             match self.receive_next_task() {
                 Some(Task::HandleRequest(request)) => self.handle_request(request),
@@ -168,13 +166,11 @@ impl TimerScheduler {
 
     fn handle_request(&self, request: TimerEventRequest) {
         let TimerEventRequest(_, _, _, duration) = request;
-
-        let duration = duration as u64;
-        let schedule_for = precise_time_ns() + (duration * 1000 * 1000);
+        let schedule_for = precise_time_ms() + duration;
 
         let previously_earliest = self.scheduled_events.borrow().peek()
                 .map(|scheduled| scheduled.for_time)
-                .unwrap_or(u64::max_value());
+                .unwrap_or(Length::new(u64::max_value()));
 
         self.scheduled_events.borrow_mut().push(ScheduledEvent {
             request: request,
@@ -187,7 +183,7 @@ impl TimerScheduler {
     }
 
     fn dispatch_due_events(&self) {
-        let now = precise_time_ns();
+        let now = precise_time_ms();
 
         {
             let mut events = self.scheduled_events.borrow_mut();
@@ -214,10 +210,9 @@ impl TimerScheduler {
         }
 
         *timer = next_event.map(|next_event| {
-            let delay = next_event.for_time.saturating_sub(precise_time_ns());
+            let delay = next_event.for_time.get().saturating_sub(precise_time_ms().get());
             // Round up, we'd rather be late than early…
-            let delay = (delay + 999999) / (1000 * 1000);
-            let delay = cmp::min(u32::max_value() as u64, delay) as u32;
+            let delay = Length::new((delay + 999999) / (1000 * 1000));
 
             CancelableOneshotTimer::new(delay)
         });
