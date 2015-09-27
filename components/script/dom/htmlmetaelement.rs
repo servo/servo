@@ -4,12 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLMetaElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -21,14 +19,6 @@ use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLMetaElementDerived for EventTarget {
-    fn is_htmlmetaelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)))
-    }
 }
 
 impl HTMLMetaElement {

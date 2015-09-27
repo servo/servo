@@ -11,8 +11,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeCast, WindowDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast};
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
@@ -1384,10 +1383,4 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
     });
 
     println!("{}", debug_msg);
-}
-
-impl WindowDerived for EventTarget {
-    fn is_window(&self) -> bool {
-        self.type_id() == &EventTargetTypeId::Window
-    }
 }

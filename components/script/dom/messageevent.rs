@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, MessageEventDerived};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -24,12 +24,6 @@ pub struct MessageEvent {
     data: Heap<JSVal>,
     origin: DOMString,
     lastEventId: DOMString,
-}
-
-impl MessageEventDerived for Event {
-    fn is_messageevent(&self) -> bool {
-        *self.type_id() == EventTypeId::MessageEvent
-    }
 }
 
 impl MessageEvent {

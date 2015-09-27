@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, WebGLContextEventDerived};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
@@ -24,12 +24,6 @@ impl WebGLContextEventMethods for WebGLContextEvent {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15
     fn StatusMessage(&self) -> DOMString {
         self.status_message.clone()
-    }
-}
-
-impl WebGLContextEventDerived for Event {
-    fn is_webglcontextevent(&self) -> bool {
-        *self.type_id() == EventTypeId::WebGLContextEvent
     }
 }
 

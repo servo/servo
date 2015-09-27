@@ -8,15 +8,13 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeCast};
-use dom::bindings::codegen::InheritTypes::{NodeTypeId, TextDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{RootedReference};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::node::Node;
 use util::str::DOMString;
 
@@ -24,12 +22,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct Text {
     characterdata: CharacterData,
-}
-
-impl TextDerived for EventTarget {
-    fn is_text(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::Text))
-    }
 }
 
 impl Text {

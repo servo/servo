@@ -6,13 +6,10 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLObjectElementDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
@@ -26,14 +23,6 @@ use util::str::DOMString;
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     image: DOMRefCell<Option<Arc<Image>>>,
-}
-
-impl HTMLObjectElementDerived for EventTarget {
-    fn is_htmlobjectelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)))
-    }
 }
 
 impl HTMLObjectElement {

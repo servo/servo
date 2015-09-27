@@ -8,18 +8,15 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, KeyboardEventCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
@@ -44,14 +41,6 @@ pub struct HTMLTextAreaElement {
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
-}
-
-impl HTMLTextAreaElementDerived for EventTarget {
-    fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
-    }
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {

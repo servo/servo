@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLMediaElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLVideoElementDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::HTMLMediaElementTypeId;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlmediaelement::HTMLMediaElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -16,15 +13,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement
-}
-
-impl HTMLVideoElementDerived for EventTarget {
-    fn is_htmlvideoelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(
-                                                   ElementTypeId::HTMLElement(
-                                                   HTMLElementTypeId::HTMLMediaElement(
-                                                   HTMLMediaElementTypeId::HTMLVideoElement))))
-    }
 }
 
 impl HTMLVideoElement {

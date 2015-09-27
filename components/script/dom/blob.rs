@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::InheritTypes::{BlobTypeId, FileDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -155,11 +154,5 @@ impl BlobMethods for Blob {
 
         // TODO Step 3 if Blob URL Store is implemented
 
-    }
-}
-
-impl FileDerived for Blob {
-    fn is_file(&self) -> bool {
-        *self.type_id() == BlobTypeId::File
     }
 }

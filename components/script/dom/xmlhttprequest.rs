@@ -10,8 +10,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{XMLHttpRequestDerived, XMLHttpRequestEventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 use dom::bindings::conversions::ToJSValConvertible;
@@ -24,7 +23,6 @@ use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -725,16 +723,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Option<Root<Document>> {
         self.response_xml.get_rooted()
-    }
-}
-
-
-impl XMLHttpRequestDerived for EventTarget {
-    fn is_xmlhttprequest(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequest) => true,
-            _ => false
-        }
     }
 }
 

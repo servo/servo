@@ -7,9 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLCanvasElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, MutNullableHeap, Root};
@@ -17,7 +15,6 @@ use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -54,14 +51,6 @@ pub struct HTMLCanvasElement {
 impl PartialEq for HTMLCanvasElement {
     fn eq(&self, other: &HTMLCanvasElement) -> bool {
         self as *const HTMLCanvasElement == &*other
-    }
-}
-
-impl HTMLCanvasElementDerived for EventTarget {
-    fn is_htmlcanvaselement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)))
     }
 }
 

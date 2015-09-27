@@ -8,16 +8,13 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{WorkerGlobalScopeCast, WorkerGlobalScopeTypeId};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
-use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -356,13 +353,4 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
-}
-
-impl DedicatedWorkerGlobalScopeDerived for EventTarget {
-    fn is_dedicatedworkerglobalscope(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedWorkerGlobalScope) => true,
-            _ => false
-        }
-    }
 }

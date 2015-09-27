@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, UIEventDerived};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -23,15 +23,6 @@ pub struct UIEvent {
     event: Event,
     view: MutNullableHeap<JS<Window>>,
     detail: Cell<i32>
-}
-
-impl UIEventDerived for Event {
-    fn is_uievent(&self) -> bool {
-        match *self.type_id() {
-            EventTypeId::UIEvent(_) => true,
-            _ => false
-        }
-    }
 }
 
 impl UIEvent {

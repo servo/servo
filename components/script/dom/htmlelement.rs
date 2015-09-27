@@ -10,8 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLBodyElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLHtmlElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
@@ -22,7 +21,6 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::{Node, SEQUENTIALLY_FOCUSABLE, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -44,15 +42,6 @@ pub struct HTMLElement {
 impl PartialEq for HTMLElement {
     fn eq(&self, other: &HTMLElement) -> bool {
         self as *const HTMLElement == &*other
-    }
-}
-
-impl HTMLElementDerived for EventTarget {
-    fn is_htmlelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(_))) => true,
-            _ => false
-        }
     }
 }
 

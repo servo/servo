@@ -5,13 +5,10 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTitleElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeCast, TextCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
@@ -21,14 +18,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLTitleElementDerived for EventTarget {
-    fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
-    }
 }
 
 impl HTMLTitleElement {

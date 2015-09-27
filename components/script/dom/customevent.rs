@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{CustomEventDerived, EventCast, EventTypeId};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
@@ -21,12 +21,6 @@ pub struct CustomEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     detail: MutHeapJSVal,
-}
-
-impl CustomEventDerived for Event {
-    fn is_customevent(&self) -> bool {
-        *self.type_id() == EventTypeId::CustomEvent
-    }
 }
 
 impl CustomEvent {

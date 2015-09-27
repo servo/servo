@@ -6,15 +6,13 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, CharacterDataTypeId};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeDamage};
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -25,15 +23,6 @@ use util::str::DOMString;
 pub struct CharacterData {
     node: Node,
     data: DOMRefCell<DOMString>,
-}
-
-impl CharacterDataDerived for EventTarget {
-    fn is_characterdata(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => true,
-            _ => false
-        }
-    }
 }
 
 impl CharacterData {

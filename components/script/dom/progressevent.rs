@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, ProgressEventDerived};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -19,12 +19,6 @@ pub struct ProgressEvent {
     length_computable: bool,
     loaded: u64,
     total: u64
-}
-
-impl ProgressEventDerived for Event {
-    fn is_progressevent(&self) -> bool {
-        *self.type_id() == EventTypeId::ProgressEvent
-    }
 }
 
 impl ProgressEvent {

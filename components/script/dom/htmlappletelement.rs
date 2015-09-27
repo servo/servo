@@ -5,12 +5,9 @@
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLAppletElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
@@ -20,14 +17,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLAppletElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLAppletElementDerived for EventTarget {
-    fn is_htmlappletelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)))
-    }
 }
 
 impl HTMLAppletElement {

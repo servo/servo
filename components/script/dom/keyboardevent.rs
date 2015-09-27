@@ -5,13 +5,11 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, KeyboardEventDerived};
-use dom::bindings::codegen::InheritTypes::{UIEventCast, UIEventTypeId};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
@@ -38,12 +36,6 @@ pub struct KeyboardEvent {
     is_composing: Cell<bool>,
     char_code: Cell<Option<u32>>,
     key_code: Cell<u32>,
-}
-
-impl KeyboardEventDerived for Event {
-    fn is_keyboardevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::KeyboardEvent)
-    }
 }
 
 impl KeyboardEvent {

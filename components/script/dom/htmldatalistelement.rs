@@ -4,13 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLOptionElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
@@ -19,14 +16,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLDataListElementDerived for EventTarget {
-    fn is_htmldatalistelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
-    }
 }
 
 impl HTMLDataListElement {

@@ -5,13 +5,10 @@
 use cssparser::Parser as CssParser;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLStyleElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -23,14 +20,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLStyleElementDerived for EventTarget {
-    fn is_htmlstyleelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)))
-    }
 }
 
 impl HTMLStyleElement {

@@ -5,13 +5,12 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLLegendElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -23,14 +22,6 @@ use util::str::{DOMString, StaticStringVec};
 #[dom_struct]
 pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLFieldSetElementDerived for EventTarget {
-    fn is_htmlfieldsetelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)))
-    }
 }
 
 impl HTMLFieldSetElement {

@@ -16,7 +16,7 @@ use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentDerived, DocumentTypeCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLAnchorElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLAppletElementDerived, HTMLAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLBaseElementCast, HTMLBodyElementCast};
@@ -160,12 +160,6 @@ pub struct Document {
 impl PartialEq for Document {
     fn eq(&self, other: &Document) -> bool {
         self as *const Document == &*other
-    }
-}
-
-impl DocumentDerived for EventTarget {
-    fn is_document(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Document)
     }
 }
 

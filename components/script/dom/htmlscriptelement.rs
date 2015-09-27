@@ -10,11 +10,9 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, HTMLScriptElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
@@ -23,7 +21,6 @@ use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -74,14 +71,6 @@ pub struct HTMLScriptElement {
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
     block_character_encoding: DOMRefCell<EncodingRef>,
-}
-
-impl HTMLScriptElementDerived for EventTarget {
-    fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
-    }
 }
 
 impl HTMLScriptElement {
