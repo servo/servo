@@ -4,14 +4,14 @@
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLOutputElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use util::str::DOMString;
 

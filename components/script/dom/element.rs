@@ -20,13 +20,15 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateEl
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
-use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementCast, HTMLFontElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLBodyElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFontElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementCast, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSectionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
@@ -39,15 +41,14 @@ use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::htmlcollection::HTMLCollection;
-use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmltablecellelement::HTMLTableCellElementLayoutHelpers;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{NodeDamage, document_from_node};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
@@ -104,12 +105,6 @@ impl PartialEq for Element {
     fn eq(&self, other: &Element) -> bool {
         self as *const Element == &*other
     }
-}
-
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum ElementTypeId {
-    HTMLElement(HTMLElementTypeId),
-    Element,
 }
 
 #[derive(PartialEq, HeapSizeOf)]

@@ -5,13 +5,13 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLDialogElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLDialogElementDerived, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use std::borrow::ToOwned;
 use util::str::DOMString;
 

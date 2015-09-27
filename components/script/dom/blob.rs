@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::InheritTypes::FileDerived;
+use dom::bindings::codegen::InheritTypes::{BlobTypeId, FileDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -17,17 +17,10 @@ use std::cmp::{max, min};
 use std::sync::mpsc::Sender;
 use util::str::DOMString;
 
-#[derive(JSTraceable, HeapSizeOf)]
-pub enum BlobTypeId {
-    Blob,
-    File,
-}
-
 // http://dev.w3.org/2006/webapi/FileAPI/#blob
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
-    type_: BlobTypeId,
     bytes: Option<Vec<u8>>,
     typeString: DOMString,
     global: GlobalField,
@@ -41,11 +34,10 @@ fn is_ascii_printable(string: &DOMString) -> bool {
 }
 
 impl Blob {
-    pub fn new_inherited(global: GlobalRef, type_: BlobTypeId,
+    pub fn new_inherited(global: GlobalRef,
                          bytes: Option<Vec<u8>>, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            type_: type_,
             bytes: bytes,
             typeString: typeString.to_owned(),
             global: GlobalField::from_rooted(&global),
@@ -55,7 +47,7 @@ impl Blob {
 
     pub fn new(global: GlobalRef, bytes: Option<Vec<u8>>,
                typeString: &str) -> Root<Blob> {
-        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes, typeString),
+        reflect_dom_object(box Blob::new_inherited(global, bytes, typeString),
                            global,
                            BlobBinding::Wrap)
     }
@@ -168,9 +160,6 @@ impl BlobMethods for Blob {
 
 impl FileDerived for Blob {
     fn is_file(&self) -> bool {
-        match self.type_ {
-            BlobTypeId::File => true,
-            _ => false
-        }
+        *self.type_id() == BlobTypeId::File
     }
 }

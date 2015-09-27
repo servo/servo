@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ProgressEventBinding;
 use dom::bindings::codegen::Bindings::ProgressEventBinding::ProgressEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -30,7 +30,7 @@ impl ProgressEventDerived for Event {
 impl ProgressEvent {
     fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
         ProgressEvent {
-            event: Event::new_inherited(EventTypeId::ProgressEvent),
+            event: Event::new_inherited(),
             length_computable: length_computable,
             loaded: loaded,
             total: total

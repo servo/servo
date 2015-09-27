@@ -9,21 +9,22 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementDerived, HTMLHtmlElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFrameSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLHtmlElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::element::{AttributeMutation, Element};
+use dom::eventtarget::EventTarget;
 use dom::htmlinputelement::HTMLInputElement;
-use dom::htmlmediaelement::HTMLMediaElementTypeId;
-use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeTypeId, SEQUENTIALLY_FOCUSABLE, document_from_node, window_from_node};
+use dom::node::{Node, SEQUENTIALLY_FOCUSABLE, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
 use std::borrow::ToOwned;
@@ -338,76 +339,6 @@ impl VirtualMethods for HTMLElement {
         }
         self.update_sequentially_focusable_status();
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum HTMLElementTypeId {
-    HTMLElement,
-
-    HTMLAnchorElement,
-    HTMLAppletElement,
-    HTMLAreaElement,
-    HTMLBaseElement,
-    HTMLBRElement,
-    HTMLBodyElement,
-    HTMLButtonElement,
-    HTMLCanvasElement,
-    HTMLDataElement,
-    HTMLDataListElement,
-    HTMLDialogElement,
-    HTMLDirectoryElement,
-    HTMLDListElement,
-    HTMLDivElement,
-    HTMLEmbedElement,
-    HTMLFieldSetElement,
-    HTMLFontElement,
-    HTMLFormElement,
-    HTMLFrameElement,
-    HTMLFrameSetElement,
-    HTMLHRElement,
-    HTMLHeadElement,
-    HTMLHeadingElement,
-    HTMLHtmlElement,
-    HTMLIFrameElement,
-    HTMLImageElement,
-    HTMLInputElement,
-    HTMLLabelElement,
-    HTMLLegendElement,
-    HTMLLinkElement,
-    HTMLLIElement,
-    HTMLMapElement,
-    HTMLMediaElement(HTMLMediaElementTypeId),
-    HTMLMetaElement,
-    HTMLMeterElement,
-    HTMLModElement,
-    HTMLObjectElement,
-    HTMLOListElement,
-    HTMLOptGroupElement,
-    HTMLOptionElement,
-    HTMLOutputElement,
-    HTMLParagraphElement,
-    HTMLParamElement,
-    HTMLPreElement,
-    HTMLProgressElement,
-    HTMLQuoteElement,
-    HTMLScriptElement,
-    HTMLSelectElement,
-    HTMLSourceElement,
-    HTMLSpanElement,
-    HTMLStyleElement,
-    HTMLTableElement,
-    HTMLTableCaptionElement,
-    HTMLTableCellElement(HTMLTableCellElementTypeId),
-    HTMLTableColElement,
-    HTMLTableRowElement,
-    HTMLTableSectionElement,
-    HTMLTemplateElement,
-    HTMLTextAreaElement,
-    HTMLTimeElement,
-    HTMLTitleElement,
-    HTMLTrackElement,
-    HTMLUListElement,
-    HTMLUnknownElement,
 }
 
 impl PartialEq for HTMLElementTypeId {

@@ -11,7 +11,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, WindowDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeCast, WindowDerived};
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
@@ -25,7 +26,7 @@ use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{TrustedNodeAddress, from_untrusted_node_address, window_from_node};

@@ -4,14 +4,14 @@
 
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLLabelElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, NodeTypeId};
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
