@@ -130,14 +130,15 @@ impl TimerScheduler {
         // FIXME shut down when everybody hung up
         loop {
             match self.receive_next_task() {
-                Task::HandleRequest(request) => self.handle_request(request),
-                Task::DispatchDueEvents => self.dispatch_due_events(),
+                Some(Task::HandleRequest(request)) => self.handle_request(request),
+                Some(Task::DispatchDueEvents) => self.dispatch_due_events(),
+                None => break,
             }
         }
     }
 
     #[allow(unsafe_code)]
-    fn receive_next_task(&self) -> Task {
+    fn receive_next_task(&self) -> Option<Task> {
         let port = &self.port;
         let timer = self.timer.borrow();
         let timer_port = timer.as_ref().map(|timer| timer.port());
@@ -154,14 +155,14 @@ impl TimerScheduler {
 
             let ret = sel.wait();
             if ret == scheduler_handle.id() {
-                Task::HandleRequest(port.recv().unwrap())
+                port.recv().ok().map(|req| Task::HandleRequest(req))
             } else if ret == timer_handle.id() {
-                Task::DispatchDueEvents
+                timer_port.recv().ok().map(|_| Task::DispatchDueEvents)
             } else {
                 panic!("unexpected select result!")
             }
         } else {
-            Task::HandleRequest(port.recv().unwrap())
+            port.recv().ok().map(|req| Task::HandleRequest(req))
         }
     }
 
