@@ -7,8 +7,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::TextBinding::{self, TextMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
-use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextDerived};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -27,7 +26,7 @@ pub struct Text {
 impl Text {
     fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
-            characterdata: CharacterData::new_inherited(CharacterDataTypeId::Text, text, document)
+            characterdata: CharacterData::new_inherited(text, document)
         }
     }
 

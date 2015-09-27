@@ -7,14 +7,14 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLScriptElementDerived};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLScriptElementDerived};
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -36,7 +36,8 @@ impl HTMLOptionElement {
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptionElement, localName, prefix, document),
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
         }

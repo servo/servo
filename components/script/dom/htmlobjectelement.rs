@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
@@ -31,7 +31,7 @@ impl HTMLObjectElement {
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             image: DOMRefCell::new(None),
         }
     }

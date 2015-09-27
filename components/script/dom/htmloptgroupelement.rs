@@ -5,13 +5,12 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLOptionElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
@@ -26,7 +25,8 @@ impl HTMLOptGroupElement {
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptGroupElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 

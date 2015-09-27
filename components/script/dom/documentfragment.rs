@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -28,7 +28,7 @@ impl DocumentFragment {
     /// Creates a new DocumentFragment.
     fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
-            node: Node::new_inherited(NodeTypeId::DocumentFragment, document),
+            node: Node::new_inherited(document),
         }
     }
 
