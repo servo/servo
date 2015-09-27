@@ -39,6 +39,7 @@ use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle
 use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
 use cssparser::RGBA;
 use encoding::types::EncodingRef;
+use euclid::length::Length;
 use euclid::matrix2d::Matrix2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -307,6 +308,7 @@ no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
+no_jsmanaged_fields!(Length<Unit, T>);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);

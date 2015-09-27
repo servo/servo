@@ -18,6 +18,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate serde;
+extern crate time;
 extern crate util;
 extern crate url;
 
@@ -39,6 +40,7 @@ use url::Url;
 use util::geometry::Au;
 use util::mem::HeapSizeOf;
 
+use euclid::length::Length;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 
@@ -172,8 +174,8 @@ pub enum CompositorEvent {
 /// crates that don't need to know about them.
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
 
-/// Requests a TimerEvent-Message be sent in n milliseconds, where n is the last argument.
-pub struct TimerEventRequest(pub Box<TimerEventChan + Send>, pub TimerSource, pub TimerEventId, pub u32);
+/// Requests a TimerEvent-Message be sent after the given duration.
+pub struct TimerEventRequest(pub Box<TimerEventChan + Send>, pub TimerSource, pub TimerEventId, pub MsDuration);
 
 /// Notifies the script task to fire due timers.
 /// TimerSource must be FromWindow when dispatched to ScriptTask and
@@ -200,6 +202,18 @@ pub enum TimerSource {
 /// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
 #[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub struct TimerEventId(pub u32);
+
+/// Unit of measurement.
+#[derive(Clone, Copy, HeapSizeOf)]
+pub enum Milliseconds {}
+
+/// Amount of milliseconds.
+pub type MsDuration = Length<Milliseconds, u64>;
+
+/// Returns the duration since an unspecified epoch measured in ms.
+pub fn precise_time_ms() -> MsDuration {
+    Length::new(time::precise_time_ns() / (1000 * 1000))
+}
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`
 /// crate.
