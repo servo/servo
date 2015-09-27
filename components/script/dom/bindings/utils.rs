@@ -4,6 +4,7 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
+use dom::bindings::codegen::InheritTypes::TopTypeId;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
@@ -15,7 +16,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;
-use dom::eventtarget::EventTargetTypeId;
 use dom::window;
 use js;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
@@ -156,13 +156,21 @@ pub struct DOMClass {
     /// derivedness.
     pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
 
-    /// The EventTarget type, if this is derived from an EventTarget.
-    pub type_id: Option<EventTargetTypeId>,
+    /// The type ID of that interface, if this is derived from any other interface.
+    pub type_id: TopTypeId,
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
 }
 unsafe impl Sync for DOMClass {}
+
+/// The trait that holds the type_id method of top DOM classes.
+pub trait TopDOMClass {
+    /// The type ID associated with that top DOM class.
+    type TypeId;
+    /// Return the type ID of that instance of an interface.
+    fn type_id(&self) -> &Self::TypeId;
+}
 
 /// The JSClass used for DOM object reflectors.
 #[derive(Copy)]

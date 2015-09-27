@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::EventBinding::{EventMethods};
 use dom::bindings::codegen::Bindings::StorageEventBinding;
 use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods};
-use dom::bindings::codegen::InheritTypes::{EventCast};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::{reflect_dom_object};
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
 use util::str::DOMString;
 
@@ -26,14 +26,13 @@ pub struct StorageEvent {
 
 
 impl StorageEvent {
-    pub fn new_inherited(type_id: EventTypeId,
-                         key: Option<DOMString>,
+    pub fn new_inherited(key: Option<DOMString>,
                          oldValue: Option<DOMString>,
                          newValue: Option<DOMString>,
                          url: DOMString,
                          storageArea: Option<&Storage>) -> StorageEvent {
         StorageEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(),
             key: key,
             oldValue: oldValue,
             newValue: newValue,
@@ -51,8 +50,7 @@ impl StorageEvent {
                newValue: Option<DOMString>,
                url: DOMString,
                storageArea: Option<&Storage>) -> Root<StorageEvent> {
-        let ev = reflect_dom_object(box StorageEvent::new_inherited(EventTypeId::StorageEvent,
-                                                                    key, oldValue, newValue,
+        let ev = reflect_dom_object(box StorageEvent::new_inherited(key, oldValue, newValue,
                                                                     url, storageArea),
                                     global,
                                     StorageEventBinding::Wrap);

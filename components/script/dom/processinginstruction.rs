@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::codegen::InheritTypes::ProcessingInstructionDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeTypeId, ProcessingInstructionDerived};
 use dom::bindings::js::Root;
-use dom::characterdata::{CharacterData, CharacterDataTypeId};
+use dom::bindings::utils::TopDOMClass;
+use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::node::Node;
 use util::str::DOMString;
 
 /// An HTML processing instruction node.
