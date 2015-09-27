@@ -7,15 +7,12 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCaptionElementCast, HTMLTableElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
@@ -32,14 +29,6 @@ pub struct HTMLTableElement {
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
-}
-
-impl HTMLTableElementDerived for EventTarget {
-    fn is_htmltableelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)))
-    }
 }
 
 impl HTMLTableElement {

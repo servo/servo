@@ -4,14 +4,10 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLBaseElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::js::Root;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -21,14 +17,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLBaseElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLBaseElementDerived for EventTarget {
-    fn is_htmlbaseelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)))
-    }
 }
 
 impl HTMLBaseElement {

@@ -4,10 +4,9 @@
 
 use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
-use dom::bindings::codegen::InheritTypes::{BlobTypeId, FileDerived};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{TopDOMClass, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::blob::Blob;
 use util::str::DOMString;
 
@@ -15,12 +14,6 @@ use util::str::DOMString;
 pub struct File {
     blob: Blob,
     name: DOMString,
-}
-
-impl FileDerived for Blob {
-    fn is_file(&self) -> bool {
-        *self.type_id() == BlobTypeId::File
-    }
 }
 
 impl File {

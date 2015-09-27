@@ -8,15 +8,12 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflectable, TopDOMClass};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, RawLayoutElementHelpers};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -39,13 +36,6 @@ pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
     background: DOMRefCell<Option<Url>>
-}
-
-impl HTMLBodyElementDerived for EventTarget {
-    fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLBodyElement)))
-    }
 }
 
 impl HTMLBodyElement {

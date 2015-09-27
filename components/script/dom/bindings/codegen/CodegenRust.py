@@ -5882,6 +5882,20 @@ impl %(name)sCast {
                 hierarchy[descriptor.prototypeChain[-2]].append(name)
                 # Define a `FooDerived` trait for superclasses to implement,
                 # as well as the `FooCast::to_*` methods that use it.
+                baseName = descriptor.prototypeChain[0]
+                typeIdPat = descriptor.prototypeChain[-1]
+                if upcast:
+                    typeIdPat += "(_)"
+                for base in reversed(descriptor.prototypeChain[1:-1]):
+                    typeIdPat = "%s(%sTypeId::%s)" % (base, base, typeIdPat)
+                typeIdPat = "%sTypeId::%s" % (baseName, typeIdPat)
+                args = {
+                    'baseName': baseName,
+                    'derivedTrait': name + 'Derived',
+                    'methodName': 'is_' + name.lower(),
+                    'name': name,
+                    'typeIdPat': typeIdPat,
+                }
                 allprotos.append(CGGeneric("""\
 /// Types which `%(name)s` derives from
 pub trait %(derivedTrait)s: Sized {
@@ -5919,7 +5933,16 @@ impl %(name)sCast {
     }
 }
 
-""" % {'derivedTrait': name + 'Derived', 'name': name, 'methodName': 'is_' + name.lower()}))
+impl %(derivedTrait)s for %(baseName)s {
+    fn %(methodName)s(&self) -> bool {
+        match *self.type_id() {
+            %(typeIdPat)s => true,
+            _ => false,
+        }
+    }
+}
+
+""" % args))
 
             # Implement the `FooDerived` trait for non-root superclasses by deferring to
             # the direct superclass. This leaves the implementation of the `FooDerived`

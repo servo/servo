@@ -6,12 +6,10 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLButtonElementCast, HTMLButtonElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::Root;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
@@ -41,14 +39,6 @@ enum ButtonType {
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
     button_type: Cell<ButtonType>
-}
-
-impl HTMLButtonElementDerived for EventTarget {
-    fn is_htmlbuttonelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)))
-    }
 }
 
 impl HTMLButtonElement {

@@ -5,14 +5,11 @@
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableCellElementTypeId};
 use dom::bindings::js::LayoutJS;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
@@ -28,16 +25,6 @@ pub struct HTMLTableCellElement {
     background_color: Cell<Option<RGBA>>,
     colspan: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
-}
-
-impl HTMLTableCellElementDerived for EventTarget {
-    fn is_htmltablecellelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
-            _ => false
-        }
-    }
 }
 
 impl HTMLTableCellElement {

@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLEmbedElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLEmbedElementDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::js::Root;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -16,14 +13,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLEmbedElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLEmbedElementDerived for EventTarget {
-    fn is_htmlembedelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLEmbedElement)))
-    }
 }
 
 impl HTMLEmbedElement {
