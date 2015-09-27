@@ -18,10 +18,13 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentCast, DocumentDerived, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLLegendElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase, NodeDerived};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
+use dom::bindings::codegen::InheritTypes::{DocumentCast, DocumentDerived, DocumentTypeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, ElementTypeId};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLOptGroupElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, NodeDerived, NodeTypeId};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
@@ -32,15 +35,15 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
-use dom::bindings::utils::{Reflectable, namespace_from_domstring, reflect_dom_object};
-use dom::characterdata::{CharacterData, CharacterDataTypeId};
+use dom::bindings::utils::{Reflectable, TopDOMClass};
+use dom::bindings::utils::{namespace_from_domstring, reflect_dom_object};
+use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElementTypeId;
+use dom::element::{Element, ElementCreator};
+use dom::eventtarget::EventTarget;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -277,17 +280,6 @@ impl LayoutDataRef {
     }
 }
 
-/// The different types of nodes.
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum NodeTypeId {
-    CharacterData(CharacterDataTypeId),
-    DocumentType,
-    DocumentFragment,
-    Document,
-    Element(ElementTypeId),
-}
-
-
 impl Node {
     /// Adds a new child to the end of this node's list of children.
     ///
@@ -452,7 +444,7 @@ impl Node {
         self.flags.get().contains(IS_IN_DOC)
     }
 
-    /// Returns the type ID of this node. Fails if this node is borrowed mutably.
+    /// Returns the type ID of this node.
     pub fn type_id(&self) -> NodeTypeId {
         match *self.eventtarget.type_id() {
             EventTargetTypeId::Node(type_id) => type_id,

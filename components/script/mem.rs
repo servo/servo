@@ -5,14 +5,8 @@
 //! Routines for handling measuring the memory usage of arbitrary DOM nodes.
 
 use dom::bindings::codegen::InheritTypes::*;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlmediaelement::HTMLMediaElementTypeId::HTMLAudioElement;
-use dom::htmlmediaelement::HTMLMediaElementTypeId::HTMLVideoElement;
-use dom::htmltablecellelement::HTMLTableCellElementTypeId::HTMLTableDataCellElement;
-use dom::htmltablecellelement::HTMLTableCellElementTypeId::HTMLTableHeaderCellElement;
-use dom::node::NodeTypeId;
+use dom::bindings::utils::TopDOMClass;
+use dom::eventtarget::EventTarget;
 use libc;
 use util::mem::{HeapSizeOf, heap_size_of};
 
@@ -137,10 +131,10 @@ pub fn heap_size_of_eventtarget(target: &EventTarget) -> usize {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMapElement))) =>
                 heap_size_of_self_and_children(HTMLMapElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLMediaElement(HTMLAudioElement)))) =>
+            HTMLElementTypeId::HTMLMediaElement(HTMLMediaElementTypeId::HTMLAudioElement)))) =>
                 heap_size_of_self_and_children(HTMLAudioElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLMediaElement(HTMLVideoElement)))) =>
+            HTMLElementTypeId::HTMLMediaElement(HTMLMediaElementTypeId::HTMLVideoElement)))) =>
                 heap_size_of_self_and_children(HTMLVideoElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement))) =>
@@ -203,10 +197,10 @@ pub fn heap_size_of_eventtarget(target: &EventTarget) -> usize {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCaptionElement))) =>
                 heap_size_of_self_and_children(HTMLTableCaptionElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLTableCellElement(HTMLTableDataCellElement)))) =>
+            HTMLElementTypeId::HTMLTableCellElement(HTMLTableCellElementTypeId::HTMLTableDataCellElement)))) =>
                 heap_size_of_self_and_children(HTMLTableDataCellElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-            HTMLElementTypeId::HTMLTableCellElement(HTMLTableHeaderCellElement)))) =>
+            HTMLElementTypeId::HTMLTableCellElement(HTMLTableCellElementTypeId::HTMLTableHeaderCellElement)))) =>
                 heap_size_of_self_and_children(HTMLTableHeaderCellElementCast::to_ref(target).unwrap()),
         EventTargetTypeId::Node(NodeTypeId::Element(
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement))) =>

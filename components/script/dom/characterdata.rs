@@ -6,15 +6,17 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, CharacterDataTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeDamage, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::node::{Node, NodeDamage};
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use util::str::DOMString;
@@ -155,15 +157,6 @@ impl CharacterDataMethods for CharacterData {
                                 .filter_map(ElementCast::to_root).next()
     }
 }
-
-/// The different types of CharacterData.
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum CharacterDataTypeId {
-    Comment,
-    Text,
-    ProcessingInstruction,
-}
-
 
 impl CharacterData {
     #[inline]

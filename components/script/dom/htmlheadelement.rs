@@ -3,13 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLHeadElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
+use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;

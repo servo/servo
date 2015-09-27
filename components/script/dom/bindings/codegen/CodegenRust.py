@@ -4,6 +4,8 @@
 
 # Common codegen classes.
 
+from collections import defaultdict
+
 import operator
 import re
 import string
@@ -1722,23 +1724,21 @@ class CGNamespace(CGWrapper):
         return CGNamespace(namespaces[0], inner, public=public)
 
 
-def EventTargetEnum(desc):
+def DOMClassTypeId(desc):
     protochain = desc.prototypeChain
-    if protochain[0] != "EventTarget" or desc.interface.getExtendedAttribute("Abstract"):
-        return "None"
+    if len(protochain) == 1:
+        return "::dom::bindings::codegen::InheritTypes::TopTypeId::Alone"
+    if desc.interface.getExtendedAttribute("Abstract"):
+        return "::dom::bindings::codegen::InheritTypes::TopTypeId::Abstract"
 
     inner = ""
-    name = desc.interface.identifier.name
     if desc.interface.getUserData("hasConcreteDescendant", False):
-        inner = "(::dom::%s::%sTypeId::%s)" % (name.lower(), name, name)
-    prev_proto = ""
-    for proto in reversed(protochain):
-        if prev_proto != "":
-            inner = "(::dom::%s::%sTypeId::%s%s)" % (proto.lower(), proto, prev_proto, inner)
-        prev_proto = proto
-    if inner == "":
-        return "None"
-    return "Some%s" % inner
+        name = desc.interface.identifier.name
+        inner = "(::dom::bindings::codegen::InheritTypes::%sTypeId::%s)" % (name, name)
+    reversed_protochain = list(reversed(protochain))
+    for (child, parent) in zip(reversed_protochain, reversed_protochain[1:]):
+        inner = "(::dom::bindings::codegen::InheritTypes::%sTypeId::%s%s)" % (parent, child, inner)
+    return "::dom::bindings::codegen::InheritTypes::TopTypeId::%s%s" % (protochain[0], inner)
 
 
 def DOMClass(descriptor):
@@ -1754,7 +1754,7 @@ DOMClass {
     interface_chain: [ %s ],
     native_hooks: &sNativePropertyHooks,
     type_id: %s,
-}""" % (prototypeChainString, EventTargetEnum(descriptor))
+}""" % (prototypeChainString, DOMClassTypeId(descriptor))
 
 
 class CGDOMJSClass(CGThing):
@@ -5815,12 +5815,16 @@ class GlobalGenRoots():
     def InheritTypes(config):
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
-        allprotos = [CGGeneric("use dom::types::*;\n"),
-                     CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
-                     CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
-                     CGGeneric("use dom::bindings::utils::Reflectable;\n"),
-                     CGGeneric("use js::jsapi::JSTracer;\n\n"),
-                     CGGeneric("use std::mem;\n\n")]
+        imports = [CGGeneric("use dom::types::*;\n"),
+                   CGGeneric("use dom::bindings::conversions::get_dom_class;\n"),
+                   CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
+                   CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
+                   CGGeneric("use dom::bindings::utils::{Reflectable, TopDOMClass};\n"),
+                   CGGeneric("use js::jsapi::JSTracer;\n\n"),
+                   CGGeneric("use std::mem;\n\n")]
+        allprotos = []
+        topTypes = []
+        hierarchy = defaultdict(list)
         for descriptor in descriptors:
             name = descriptor.name
             chain = descriptor.prototypeChain
@@ -5831,6 +5835,9 @@ class GlobalGenRoots():
             if upcast or downcast:
                 # Define a dummy structure to hold the cast functions.
                 allprotos.append(CGGeneric("pub struct %sCast;\n\n" % name))
+
+            if upcast and not downcast:
+                topTypes.append(name)
 
             if upcast:
                 # Define a `FooBase` trait for subclasses to implement, as well as the
@@ -5872,6 +5879,7 @@ impl %(name)sCast {
                 allprotos.append(CGGeneric("\n"))
 
             if downcast:
+                hierarchy[descriptor.prototypeChain[-2]].append(name)
                 # Define a `FooDerived` trait for superclasses to implement,
                 # as well as the `FooCast::to_*` methods that use it.
                 allprotos.append(CGGeneric("""\
@@ -5934,7 +5942,54 @@ impl %(derivedTrait)s for %(baseName)s {
 
 """ % args))
 
-        curr = CGList(allprotos)
+        def type_id_variant(name):
+            if name in hierarchy:
+                return "%s(%sTypeId)" % (name, name)
+            else:
+                return name
+
+        types = []
+        variants = [
+            CGGeneric("/// ID used by abstract interfaces.\nAbstract,"),
+            CGGeneric("/// ID used by interfaces that are not castable.\nAlone,"),
+        ]
+        variants += [
+            CGGeneric("/// ID used by interfaces that derive from %s.\n%s(%sTypeId)," % (name, name, name))
+            for name in topTypes
+        ]
+        types.append(CGWrapper(CGIndenter(CGList(variants, "\n"), 4),
+                               pre="#[derive(Clone, Copy, Debug)]\npub enum TopTypeId {\n",
+                               post="\n}\n\n"))
+
+        for base, derived in hierarchy.iteritems():
+            variants = []
+            if not config.getInterface(base).getExtendedAttribute("Abstract"):
+                variants.append(CGGeneric("    %s,\n" % base))
+            variants += [CGGeneric("    %s," % type_id_variant(name)) for name in derived]
+            derives = "Clone, Copy, Debug"
+            if base != 'EventTarget' and base != 'HTMLElement':
+                derives += ", PartialEq"
+            types.append(CGWrapper(CGList(variants, "\n"),
+                                   pre="#[derive(%s)]\npub enum %sTypeId {\n" % (derives, base),
+                                   post="\n}\n\n"))
+            if base in topTypes:
+                types.append(CGGeneric("""\
+impl TopDOMClass for %(base)s {
+    type TypeId = %(base)sTypeId;
+    fn type_id(&self) -> &%(base)sTypeId {
+        let domclass = unsafe {
+            get_dom_class(self.reflector().get_jsobject().get()).unwrap()
+        };
+        match domclass.type_id {
+            TopTypeId::%(base)s(ref type_id) => type_id,
+            _ => unreachable!(),
+        }
+    }
+}
+
+""" % {'base': base}))
+
+        curr = CGList(imports + types + allprotos)
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
