@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
-use fetch::response::{Response, ResponseMethods, ResponseType};
+use fetch::response::ResponseMethods;
 use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
 use hyper::header::{AcceptLanguage, ContentLanguage, HeaderView};
 use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
@@ -15,6 +15,7 @@ use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use url::Url;
+use util::task::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]

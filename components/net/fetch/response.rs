@@ -27,25 +27,6 @@ impl ResponseMethods for Response {
         }
     }
 
-    pub fn network_error() -> Response {
-        Response {
-            response_type: ResponseType::Error,
-            termination_reason: None,
-            url: None,
-            status: None,
-            headers: Headers::new(),
-            body: ResponseBody::Empty,
-            internal_response: None
-        }
-    }
-
-    pub fn is_network_error(&self) -> bool {
-        match self.response_type {
-            ResponseType::Error => true,
-            _ => false
-        }
-    }
-
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
