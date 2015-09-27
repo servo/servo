@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{CustomEventDerived, EventCast};
+use dom::bindings::codegen::InheritTypes::{CustomEventDerived, EventCast, EventTypeId};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use util::str::DOMString;
@@ -30,15 +30,15 @@ impl CustomEventDerived for Event {
 }
 
 impl CustomEvent {
-    fn new_inherited(type_id: EventTypeId) -> CustomEvent {
+    fn new_inherited() -> CustomEvent {
         CustomEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(),
             detail: MutHeapJSVal::new(),
         }
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<CustomEvent> {
-        reflect_dom_object(box CustomEvent::new_inherited(EventTypeId::CustomEvent),
+        reflect_dom_object(box CustomEvent::new_inherited(),
                            global,
                            CustomEventBinding::Wrap)
     }

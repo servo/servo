@@ -4,16 +4,16 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptionElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
 use util::str::DOMString;
 
 #[dom_struct]

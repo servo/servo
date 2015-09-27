@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, MessageEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
@@ -42,7 +42,7 @@ impl MessageEvent {
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
         let mut ev = box MessageEvent {
-            event: Event::new_inherited(EventTypeId::MessageEvent),
+            event: Event::new_inherited(),
             data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,

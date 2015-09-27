@@ -5,14 +5,8 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-
-#[derive(Copy, Clone, PartialEq)]
-pub enum XMLHttpRequestEventTargetTypeId {
-    XMLHttpRequest,
-    XMLHttpRequestUpload,
-}
+use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, XMLHttpRequestEventTargetDerived};
+use dom::eventtarget::EventTarget;
 
 #[dom_struct]
 pub struct XMLHttpRequestEventTarget {

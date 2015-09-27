@@ -6,16 +6,15 @@ use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementTypeId, HTMLTableRowElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::NodeTypeId;
+use dom::element::AttributeMutation;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use std::cmp::max;
@@ -23,19 +22,6 @@ use string_cache::Atom;
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
-
-#[derive(Copy, Clone, Debug)]
-pub enum HTMLTableCellElementTypeId {
-    HTMLTableDataCellElement = 0,
-    HTMLTableHeaderCellElement = 1,
-}
-
-impl PartialEq for HTMLTableCellElementTypeId {
-    #[inline]
-    fn eq(&self, other: &HTMLTableCellElementTypeId) -> bool {
-        (*self as u8) == (*other as u8)
-    }
-}
 
 #[dom_struct]
 pub struct HTMLTableCellElement {

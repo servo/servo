@@ -4,13 +4,14 @@
 
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
-use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::node::Node;
 use std::borrow::ToOwned;
 use util::str::DOMString;
 
