@@ -24,7 +24,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, ElementT
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLOptGroupElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, NodeDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, NodeTypeId};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
@@ -120,15 +120,6 @@ pub struct Node {
 impl PartialEq for Node {
     fn eq(&self, other: &Node) -> bool {
         self as *const Node == &*other
-    }
-}
-
-impl NodeDerived for EventTarget {
-    fn is_node(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(_) => true,
-            _ => false
-        }
     }
 }
 

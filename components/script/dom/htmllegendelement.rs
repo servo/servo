@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::js::Root;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -16,14 +13,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLLegendElementDerived for EventTarget {
-    fn is_htmllegendelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLegendElement)))
-    }
 }
 
 impl HTMLLegendElement {

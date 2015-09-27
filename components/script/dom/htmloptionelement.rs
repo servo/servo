@@ -7,15 +7,12 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, HTMLScriptElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextDerived};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLScriptElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
 use dom::bindings::js::Root;
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
@@ -31,14 +28,6 @@ pub struct HTMLOptionElement {
 
     /// https://html.spec.whatwg.org/multipage/#concept-option-dirtiness
     dirtiness: Cell<bool>,
-}
-
-impl HTMLOptionElementDerived for EventTarget {
-    fn is_htmloptionelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)))
-    }
 }
 
 impl HTMLOptionElement {

@@ -11,15 +11,12 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, KeyboardEventCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -103,14 +100,6 @@ impl InputActivationState {
             was_mutable: false,
             old_type: InputType::InputText
         }
-    }
-}
-
-impl HTMLInputElementDerived for EventTarget {
-    fn is_htmlinputelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)))
     }
 }
 

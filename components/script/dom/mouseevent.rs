@@ -5,12 +5,11 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, UIEventCast};
-use dom::bindings::codegen::InheritTypes::{UIEventTypeId, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
-use dom::bindings::utils::{TopDOMClass, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
@@ -33,12 +32,6 @@ pub struct MouseEvent {
     meta_key: Cell<bool>,
     button: Cell<i16>,
     related_target: MutNullableHeap<JS<EventTarget>>,
-}
-
-impl MouseEventDerived for Event {
-    fn is_mouseevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::MouseEvent)
-    }
 }
 
 impl MouseEvent {

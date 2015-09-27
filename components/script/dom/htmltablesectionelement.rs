@@ -6,14 +6,11 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableRowElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::utils::TopDOMClass;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
@@ -25,14 +22,6 @@ use util::str::{self, DOMString};
 pub struct HTMLTableSectionElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
-}
-
-impl HTMLTableSectionElementDerived for EventTarget {
-    fn is_htmltablesectionelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)))
-    }
 }
 
 impl HTMLTableSectionElement {
