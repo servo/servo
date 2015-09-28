@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
-use net_traits::{ResourceTask, load_whole_resource};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ResourceTask, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
 use platform::font_list::for_each_variation;
@@ -12,10 +14,12 @@ use platform::font_list::system_default_family;
 use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::mem;
+use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::font_face::Source;
+use url::Url;
 use util::str::LowercaseString;
 use util::task::spawn_named;
 
@@ -77,6 +81,7 @@ pub enum Command {
     GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
     AddWebFont(Atom, Source, Sender<()>),
+    AddDownloadedWebFont(LowercaseString, Url, Vec<u8>, Sender<()>),
     Exit(Sender<()>),
 }
 
@@ -89,6 +94,7 @@ pub enum Reply {
 /// font templates that are currently in use.
 struct FontCache {
     port: Receiver<Command>,
+    channel_to_self: Sender<Command>,
     generic_fonts: HashMap<LowercaseString, LowercaseString>,
     local_families: HashMap<LowercaseString, FontFamily>,
     web_families: HashMap<LowercaseString, FontFamily>,
@@ -131,25 +137,51 @@ impl FontCache {
                     match src {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
-                            let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
-                            match maybe_resource {
-                                Ok((_, bytes)) => {
-                                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
-                                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
-                                },
-                                Err(_) => {
-                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
+                            let load = PendingAsyncLoad::new(self.resource_task.clone(),
+                                                             url.clone(),
+                                                             None);
+                            let (data_sender, data_receiver) = ipc::channel().unwrap();
+                            let data_target = AsyncResponseTarget {
+                                sender: data_sender,
+                            };
+                            load.load_async(data_target);
+                            let channel_to_self = self.channel_to_self.clone();
+                            let url = (*url).clone();
+                            let bytes = Mutex::new(Vec::new());
+                            ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
+                                let response: ResponseAction = message.to().unwrap();
+                                match response {
+                                    ResponseAction::HeadersAvailable(_) |
+                                    ResponseAction::ResponseComplete(Err(_)) => {}
+                                    ResponseAction::DataAvailable(new_bytes) => {
+                                        bytes.lock().unwrap().extend(new_bytes.into_iter())
+                                    }
+                                    ResponseAction::ResponseComplete(Ok(_)) => {
+                                        let mut bytes = bytes.lock().unwrap();
+                                        let bytes = mem::replace(&mut *bytes, Vec::new());
+                                        let command =
+                                            Command::AddDownloadedWebFont(family_name.clone(),
+                                                                          url.clone(),
+                                                                          bytes,
+                                                                          result.clone());
+                                        channel_to_self.send(command).unwrap();
+                                    }
                                 }
-                            }
+                            });
                         }
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families.get_mut(&family_name).unwrap();
                             for_each_variation(&local_family_name, |path| {
                                 family.add_template(Atom::from_slice(&path), None);
                             });
+                            result.send(()).unwrap();
                         }
                     }
-                    result.send(()).unwrap();
+                }
+                Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
+                    let family = &mut self.web_families.get_mut(&family_name).unwrap();
+                    family.add_template(Atom::from_slice(&url.to_string()), Some(bytes));
+                    drop(result.send(()));
                 }
                 Command::Exit(result) => {
                     result.send(()).unwrap();
@@ -253,6 +285,7 @@ impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
         let (chan, port) = channel();
 
+        let channel_to_self = chan.clone();
         spawn_named("FontCacheTask".to_owned(), move || {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
@@ -264,6 +297,7 @@ impl FontCacheTask {
 
             let mut cache = FontCache {
                 port: port,
+                channel_to_self: channel_to_self,
                 generic_fonts: generic_fonts,
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
@@ -310,10 +344,8 @@ impl FontCacheTask {
         }
     }
 
-    pub fn add_web_font(&self, family: Atom, src: Source) {
-        let (response_chan, response_port) = channel();
-        self.chan.send(Command::AddWebFont(family, src, response_chan)).unwrap();
-        response_port.recv().unwrap();
+    pub fn add_web_font(&self, family: Atom, src: Source, sender: Sender<()>) {
+        self.chan.send(Command::AddWebFont(family, src, sender)).unwrap();
     }
 
     pub fn exit(&self) {
@@ -322,3 +354,4 @@ impl FontCacheTask {
         response_port.recv().unwrap();
     }
 }
+

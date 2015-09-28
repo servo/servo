@@ -51,6 +51,9 @@ pub enum Msg {
     /// Requests that the layout task render the next frame of all animations.
     TickAnimations,
 
+    /// Requests that the layout task reflow with a newly-loaded Web font.
+    ReflowWithNewlyLoadedWebFont,
+
     /// Updates the layout visible rects, affecting the area that display lists will be constructed
     /// for.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
@@ -75,6 +78,10 @@ pub enum Msg {
 
     /// Get the last epoch counter for this layout task.
     GetCurrentEpoch(IpcSender<Epoch>),
+
+    /// Asks the layout task whether any Web fonts have yet to load (if true, loads are pending;
+    /// false otherwise).
+    GetWebFontLoadState(IpcSender<bool>),
 
     /// Creates a new layout task.
     ///
