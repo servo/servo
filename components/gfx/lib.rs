@@ -73,6 +73,7 @@ extern crate string_cache;
 extern crate style;
 extern crate time;
 extern crate url;
+extern crate fontsan;
 
 
 pub use paint_context::PaintContext;

@@ -63,6 +63,9 @@ path = "../script_traits"
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
+[dependencies.fontsan]
+git = "https://github.com/servo/fontsan"
+
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
