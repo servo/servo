@@ -151,7 +151,7 @@ impl Request {
                        cors_flag: bool,
                        listener: Box<AsyncFetchListener + Send>) {
         spawn_named(format!("fetch for {:?}", self.url.serialize()), move || {
-            let res = req.fetch(cors_flag);
+            let res = self.fetch(cors_flag);
             listener.response_available(res);
         });
     }

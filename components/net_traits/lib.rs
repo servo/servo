@@ -12,8 +12,6 @@
 #![feature(vec_push_all)]
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
-
-#![plugin(plugins, serde_macros)]
 #![plugin(regex_macros)]
 
 #[macro_use]
