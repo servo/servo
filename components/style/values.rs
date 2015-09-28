@@ -4,6 +4,34 @@
 
 pub use cssparser::RGBA;
 
+use app_units::Au;
+use std::fmt;
+
+// This is a re-implementation of the ToCss trait in cssparser.
+// It's done here because the app_units crate shouldn't depend
+// on cssparser, and it's not possible to implement a trait when
+// both the trait and the type are defined in different crates.
+pub trait AuExtensionMethods {
+    /// Serialize `self` in CSS syntax, writing to `dest`.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
+
+    /// Serialize `self` in CSS syntax and return a string.
+    ///
+    /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
+    #[inline]
+    fn to_css_string(&self) -> String {
+        let mut s = String::new();
+        self.to_css(&mut s).unwrap();
+        s
+    }
+}
+
+impl AuExtensionMethods for Au {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}px", self.to_f64_px())
+    }
+}
+
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
@@ -40,6 +68,7 @@ pub type CSSFloat = f32;
 
 
 pub mod specified {
+    use app_units::Au;
     use cssparser::{self, CssStringWriter, Parser, ToCss, Token};
     use euclid::size::Size2D;
     use parser::ParserContext;
@@ -49,10 +78,9 @@ pub mod specified {
     use std::fmt::{self, Write};
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
+    use super::AuExtensionMethods;
     use super::CSSFloat;
     use url::Url;
-    use util::geometry::Au;
-
 
     #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct CSSColor {
@@ -1209,13 +1237,14 @@ pub mod specified {
 }
 
 pub mod computed {
+    use app_units::Au;
     use euclid::size::Size2D;
     use properties::longhands;
     use std::fmt;
+    use super::AuExtensionMethods;
     use super::specified::AngleOrCorner;
     use super::{CSSFloat, specified};
     use url::Url;
-    use util::geometry::Au;
     pub use cssparser::Color as CSSColor;
     pub use super::specified::{Angle, BorderStyle, Time};
 

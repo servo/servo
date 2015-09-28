@@ -2,16 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::ToCss;
-use euclid::num::Zero;
+use app_units::{Au, MAX_AU};
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use rustc_serialize::{Encodable, Encoder};
-use std::default::Default;
-use std::fmt;
 use std::i32;
-use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
+use std::ops::Add;
 
 // Units for use with euclid::length and euclid::scale_factor.
 
@@ -52,9 +48,6 @@ pub enum ViewportPx {}
 #[derive(RustcEncodable, Debug, Copy, Clone)]
 pub enum PagePx {}
 
-/// The number of app units in a pixel.
-pub const AU_PER_PX: i32 = 60;
-
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
@@ -65,24 +58,6 @@ pub const AU_PER_PX: i32 = 60;
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
-//
-// FIXME: Implement Au using Length and ScaleFactor instead of a custom type.
-#[derive(Clone, Copy, Hash, PartialEq, PartialOrd, Eq, Ord, Deserialize, Serialize)]
-pub struct Au(pub i32);
-
-impl Default for Au {
-    #[inline]
-    fn default() -> Au {
-        Au(0)
-    }
-}
-
-impl Zero for Au {
-    #[inline]
-    fn zero() -> Au {
-        Au(0)
-    }
-}
 
 pub static ZERO_POINT: Point2D<Au> = Point2D {
     x: Au(0),
@@ -110,136 +85,6 @@ pub static MAX_RECT: Rect<Au> = Rect {
         height: MAX_AU,
     }
 };
-
-pub const MIN_AU: Au = Au(i32::MIN);
-pub const MAX_AU: Au = Au(i32::MAX);
-
-impl Encodable for Au {
-    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
-        e.emit_f64(self.to_f64_px())
-    }
-}
-
-impl fmt::Debug for Au {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}px", self.to_f64_px())
-    }
-}
-
-impl ToCss for Au {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        write!(dest, "{}px", self.to_f64_px())
-    }
-}
-
-impl Add for Au {
-    type Output = Au;
-
-    #[inline]
-    fn add(self, other: Au) -> Au {
-        Au(self.0.wrapping_add(other.0))
-    }
-}
-
-impl Sub for Au {
-    type Output = Au;
-
-    #[inline]
-    fn sub(self, other: Au) -> Au {
-        Au(self.0.wrapping_sub(other.0))
-    }
-
-}
-
-impl Mul<i32> for Au {
-    type Output = Au;
-
-    #[inline]
-    fn mul(self, other: i32) -> Au {
-        Au(self.0.wrapping_mul(other))
-    }
-}
-
-impl Div<i32> for Au {
-    type Output = Au;
-
-    #[inline]
-    fn div(self, other: i32) -> Au {
-        Au(self.0 / other)
-    }
-}
-
-impl Rem<i32> for Au {
-    type Output = Au;
-
-    #[inline]
-    fn rem(self, other: i32) -> Au {
-        Au(self.0 % other)
-    }
-}
-
-impl Neg for Au {
-    type Output = Au;
-
-    #[inline]
-    fn neg(self) -> Au {
-        Au(-self.0)
-    }
-}
-
-impl Au {
-    /// FIXME(pcwalton): Workaround for lack of cross crate inlining of newtype structs!
-    #[inline]
-    pub fn new(value: i32) -> Au {
-        Au(value)
-    }
-
-    #[inline]
-    pub fn scale_by(self, factor: f32) -> Au {
-        Au(((self.0 as f32) * factor) as i32)
-    }
-
-    #[inline]
-    pub fn from_px(px: i32) -> Au {
-        Au((px * AU_PER_PX) as i32)
-    }
-
-    /// Rounds this app unit down to the pixel towards zero and returns it.
-    #[inline]
-    pub fn to_px(self) -> i32 {
-        self.0 / AU_PER_PX
-    }
-
-    #[inline]
-    pub fn to_nearest_px(self) -> i32 {
-        ((self.0 as f64) / (AU_PER_PX as f64)).round() as i32
-    }
-
-    #[inline]
-    pub fn to_nearest_pixel(self, pixels_per_px: f32) -> f32 {
-        ((self.0 as f32) / (AU_PER_PX as f32) * pixels_per_px).round() / pixels_per_px
-    }
-
-    #[inline]
-    pub fn to_f32_px(self) -> f32 {
-        (self.0 as f32) / (AU_PER_PX as f32)
-    }
-
-    #[inline]
-    pub fn to_f64_px(self) -> f64 {
-        (self.0 as f64) / (AU_PER_PX as f64)
-    }
-
-    #[inline]
-    pub fn from_f32_px(px: f32) -> Au {
-        Au((px * (AU_PER_PX as f32)) as i32)
-    }
-
-    #[inline]
-    pub fn from_f64_px(px: f64) -> Au {
-        Au((px * (AU_PER_PX as f64)) as i32)
-    }
-}
 
 /// Returns true if the rect contains the given point. Points on the top or left sides of the rect
 /// are considered inside the rectangle, while points on the right or bottom sides of the rect are

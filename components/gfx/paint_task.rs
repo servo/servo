@@ -4,6 +4,7 @@
 
 //! The task that handles all painting.
 
+use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
@@ -33,7 +34,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
-use util::geometry::{Au, ZERO_POINT};
+use util::geometry::ZERO_POINT;
 use util::opts;
 use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;

@@ -4,6 +4,7 @@
 
 extern crate freetype;
 
+use app_units::Au;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
@@ -24,7 +25,6 @@ use std::{mem, ptr};
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
 use text::util::{fixed_to_float, float_to_fixed};
-use util::geometry::Au;
 use util::str::c_str_to_string;
 
 fn float_to_fixed_ft(f: f64) -> i32 {

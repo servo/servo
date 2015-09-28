@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::point::Point2D;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 use simd::u32x4;
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
 use std::{fmt, mem, u16};
-use util::geometry::Au;
 use util::range::{self, EachIndex, Range, RangeIndex};
 use util::vec::*;
 

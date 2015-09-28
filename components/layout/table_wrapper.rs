@@ -13,6 +13,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
@@ -32,7 +33,6 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 
 #[derive(Copy, Clone, RustcEncodable, Debug)]

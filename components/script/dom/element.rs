@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use app_units::Au;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -75,7 +76,6 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use url::UrlParser;
-use util::geometry::Au;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]

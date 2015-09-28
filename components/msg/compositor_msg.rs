@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use azure::azure_hl::Color;
 use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, SubpageId};
 use euclid::{Matrix4, Point2D, Rect, Size2D};
@@ -9,7 +10,6 @@ use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
 use std::fmt::{self, Debug, Formatter};
-use util::geometry::Au;
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]

@@ -4,6 +4,7 @@
 
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
+use app_units::Au;
 use core::nonzero::NonZero;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
@@ -64,7 +65,6 @@ use std::slice::ref_slice;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use style::properties::ComputedValues;
-use util::geometry::Au;
 use util::str::DOMString;
 use util::task_state;
 use uuid;

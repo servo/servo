@@ -20,6 +20,7 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+extern crate app_units;
 #[macro_use]
 extern crate bitflags;
 #[macro_use]

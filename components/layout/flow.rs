@@ -25,6 +25,7 @@
 //!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 //!   similar methods.
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
@@ -57,7 +58,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use util::geometry::{Au, ZERO_RECT};
+use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 

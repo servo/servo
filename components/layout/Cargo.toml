@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "layout"
 path = "lib.rs"
 
+[dependencies.app_units]
+path = "../app_units"
+
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 
