@@ -15,11 +15,10 @@ use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
-use std::slice::SliceConcatExt;
 use string_cache::Atom;
 use style::properties::PropertyDeclaration;
 use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
-use util::str::DOMString;
+use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -50,8 +49,8 @@ macro_rules! css_properties(
 );
 
 fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
-    let strings: Vec<_> = list.iter().map(|d| d.value()).collect();
-    strings.join(" ")
+    let str_iter = list.iter().map(|d| d.value());
+    str_join(str_iter, " ")
 }
 
 impl CSSStyleDeclaration {

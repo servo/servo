@@ -18,7 +18,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
@@ -93,8 +93,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         let node = NodeCast::from_ref(self);
         let mut content = String::new();
         collect_text(&node, &mut content);
-        let v: Vec<&str> = split_html_space_chars(&content).collect();
-        v.join(" ")
+        str_join(split_html_space_chars(&content), " ")
     }
 
     // https://www.whatwg.org/html/#dom-option-text
