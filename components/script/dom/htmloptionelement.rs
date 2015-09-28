@@ -147,6 +147,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         // FIXME: as per the spec, implement 'ask for a reset'
+        // https://github.com/servo/servo/issues/7774
     }
 }
 
