@@ -5,15 +5,16 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -72,6 +73,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
     make_bool_getter!(Multiple);
@@ -152,5 +158,11 @@ impl VirtualMethods for HTMLSelectElement {
             &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
+    }
+}
+
+impl<'a> FormControl<'a> for &'a HTMLSelectElement {
+    fn to_element(self) -> &'a Element {
+        ElementCast::from_ref(self)
     }
 }

@@ -10,9 +10,10 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -92,6 +93,11 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 }
 
 impl VirtualMethods for HTMLObjectElement {
@@ -110,5 +116,11 @@ impl VirtualMethods for HTMLObjectElement {
             },
             _ => {},
         }
+    }
+}
+
+impl<'a> FormControl<'a> for &'a HTMLObjectElement {
+    fn to_element(self) -> &'a Element {
+        ElementCast::from_ref(self)
     }
 }

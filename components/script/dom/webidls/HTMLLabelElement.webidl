@@ -5,7 +5,7 @@
 
 // https://www.whatwg.org/html/#htmllabelelement
 interface HTMLLabelElement : HTMLElement {
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //         attribute DOMString htmlFor;
   //readonly attribute HTMLElement? control;
 };

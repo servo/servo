@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use util::str::DOMString;
@@ -51,5 +53,16 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
         ValidityState::new(window.r())
+    }
+
+    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
+}
+
+impl<'a> FormControl<'a> for &'a HTMLOutputElement {
+    fn to_element(self) -> &'a Element {
+        ElementCast::from_ref(self)
     }
 }

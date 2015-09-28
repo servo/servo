@@ -10,7 +10,7 @@ interface HTMLObjectElement : HTMLElement {
   //         attribute boolean typeMustMatch;
   //         attribute DOMString name;
   //         attribute DOMString useMap;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //         attribute DOMString width;
   //         attribute DOMString height;
   //readonly attribute Document? contentDocument;

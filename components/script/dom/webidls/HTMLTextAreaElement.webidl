@@ -11,7 +11,7 @@ interface HTMLTextAreaElement : HTMLElement {
              attribute unsigned long cols;
   //         attribute DOMString dirName;
            attribute boolean disabled;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //         attribute DOMString inputMode;
   //         attribute long maxLength;
   //         attribute long minLength;
