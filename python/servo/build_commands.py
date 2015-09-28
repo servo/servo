@@ -98,6 +98,7 @@ def notify(title, text):
     platforms, this function acts as a no-op."""
     platforms = {
         "linux": notify_linux,
+        "linux2": notify_linux,
         "win": notify_win,
         "darwin": notify_darwin
     }
