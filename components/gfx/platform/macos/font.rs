@@ -8,6 +8,7 @@ extern crate core_foundation;
 extern crate core_graphics;
 extern crate core_text;
 
+use app_units::Au;
 use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
@@ -25,7 +26,6 @@ use std::ptr;
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
-use util::geometry::Au;
 
 pub struct FontTable {
     data: CFData,

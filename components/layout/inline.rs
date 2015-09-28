@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::{Au, MAX_AU};
 use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
@@ -29,7 +30,7 @@ use style::properties::ComputedValues;
 use text;
 use unicode_bidi;
 use util;
-use util::geometry::{Au, MAX_AU, ZERO_RECT};
+use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};
 use wrapper::PseudoElementType;

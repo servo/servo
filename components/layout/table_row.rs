@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use cssparser::{Color, RGBA};
@@ -27,7 +28,6 @@ use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
-use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 
 /// A single row of a table.

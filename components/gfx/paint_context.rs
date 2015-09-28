@@ -4,6 +4,7 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
+use app_units::Au;
 use azure::azure::AzIntSize;
 use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{CapStyle, JoinStyle};
@@ -34,7 +35,7 @@ use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
 use text::glyph::CharIndex;
-use util::geometry::{self, Au, MAX_RECT, ZERO_POINT, ZERO_RECT};
+use util::geometry::{self, MAX_RECT, ZERO_POINT, ZERO_RECT};
 use util::opts;
 use util::range::Range;
 

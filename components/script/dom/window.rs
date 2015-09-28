@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
@@ -72,7 +73,7 @@ use string_cache::Atom;
 use time;
 use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
 use url::Url;
-use util::geometry::{self, Au, MAX_RECT};
+use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;

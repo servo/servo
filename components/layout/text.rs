@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use fragment::{Fragment, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
@@ -24,7 +25,6 @@ use style::properties::ComputedValues;
 use style::properties::style_structs::Font as FontStyle;
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
-use util::geometry::Au;
 use util::linked_list::split_off_head;
 use util::logical_geometry::{LogicalSize, WritingMode};
 use util::range::{Range, RangeIndex};

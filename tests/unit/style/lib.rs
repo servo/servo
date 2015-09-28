@@ -5,6 +5,7 @@
 #![feature(plugin)]
 #![plugin(string_cache_plugin)]
 
+extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
 extern crate selectors;

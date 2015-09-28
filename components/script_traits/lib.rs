@@ -10,6 +10,7 @@
 #![plugin(plugins, serde_macros)]
 #![deny(missing_docs)]
 
+extern crate app_units;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate ipc_channel;
@@ -21,6 +22,7 @@ extern crate serde;
 extern crate url;
 extern crate util;
 
+use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -38,7 +40,6 @@ use profile_traits::{mem, time};
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
-use util::geometry::Au;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.

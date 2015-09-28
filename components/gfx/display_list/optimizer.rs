@@ -4,12 +4,13 @@
 
 //! Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 
+use app_units::Au;
 use display_list::{DisplayItem, DisplayList, StackingContext};
 use euclid::rect::Rect;
 use euclid::{Matrix2D, Matrix4};
 use std::collections::linked_list::LinkedList;
 use std::sync::Arc;
-use util::geometry::{self, Au};
+use util::geometry;
 
 /// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {

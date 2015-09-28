@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
@@ -43,7 +44,7 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::geometry::{Au, ZERO_POINT};
+use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
 use util::str::{is_whitespace, slice_chars};
