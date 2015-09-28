@@ -524,9 +524,12 @@ impl RunMapping {
 
         // Account for `text-transform`. (Confusingly, this is not handled in "text
         // transformation" above, but we follow Gecko in the naming.)
+        let is_first_run = *start_position == 0;
         let character_count = apply_style_transform_if_necessary(&mut run_info.text,
                                                                  old_byte_length,
-                                                                 text_transform);
+                                                                 text_transform,
+                                                                 *last_whitespace,
+                                                                 is_first_run);
 
         // Record the position of the insertion point if necessary.
         if let Some(insertion_point) = insertion_point {
@@ -557,7 +560,9 @@ impl RunMapping {
 /// use graphemes instead of characters.
 fn apply_style_transform_if_necessary(string: &mut String,
                                       first_character_position: usize,
-                                      text_transform: text_transform::T)
+                                      text_transform: text_transform::T,
+                                      last_whitespace: bool,
+                                      is_first_run: bool)
                                       -> usize {
     match text_transform {
         text_transform::T::none => string[first_character_position..].chars().count(),
@@ -585,9 +590,7 @@ fn apply_style_transform_if_necessary(string: &mut String,
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
 
-            // FIXME(pcwalton): This may not always be correct in the case of something like
-            // `f<span>oo</span>`.
-            let mut capitalize_next_letter = true;
+            let mut capitalize_next_letter = is_first_run || last_whitespace;
             let mut count = 0;
             for character in original.chars() {
                 count += 1;
