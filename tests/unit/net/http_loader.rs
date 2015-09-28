@@ -133,18 +133,41 @@ impl HttpRequest for MockRequest {
 }
 
 struct AssertRequestMustHaveHeaders {
+    headers: Headers,
+    t: ResponseType
+}
+
+impl AssertRequestMustHaveHeaders {
+    fn new(t: ResponseType, headers: Headers) -> Self {
+        AssertRequestMustHaveHeaders {headers: headers, t: t }
+    }
+}
+
+impl HttpRequest for AssertRequestMustHaveHeaders {
+    type R = MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
+
+    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        assert!(self.headers.len() > 0);
+
+        response_for_request_type(self.t)
+    }
+}
+
+struct AssertRequestMustIncludeHeaders {
     expected_headers: Headers,
     request_headers: Headers,
     t: ResponseType
 }
 
-impl AssertRequestMustHaveHeaders {
+impl AssertRequestMustIncludeHeaders {
     fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        AssertRequestMustHaveHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
+        AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
 
-impl HttpRequest for AssertRequestMustHaveHeaders {
+impl HttpRequest for AssertRequestMustIncludeHeaders {
     type R = MockResponse;
 
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
@@ -152,11 +175,8 @@ impl HttpRequest for AssertRequestMustHaveHeaders {
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
-            assert_eq!(
-                self.request_headers.get_raw(header.name()).unwrap(),
-                self.expected_headers.get_raw(header.name()).unwrap()
-            )
         }
+        assert_eq!(self.request_headers, self.expected_headers);
 
         response_for_request_type(self.t)
     }
@@ -168,11 +188,11 @@ struct AssertMustHaveHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
-    type R = AssertRequestMustHaveHeaders;
+    type R = AssertRequestMustIncludeHeaders;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
         Ok(
-            AssertRequestMustHaveHeaders::new(
+            AssertRequestMustIncludeHeaders::new(
                 ResponseType::Text(self.body.clone()),
                 self.expected_headers.clone()
             )
@@ -262,7 +282,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     let mut content_length = Headers::new();
     content_length.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec("0".as_bytes())]);
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
+    let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: content_length,
@@ -581,7 +601,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
+    let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: cookie,
@@ -606,7 +626,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
+    let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
         &AssertMustHaveHeadersRequestFactory {
             expected_headers: content_len_headers,
@@ -627,7 +647,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
                                                  hsts_list,
                                                  cookie_jar,
                                                  None,
@@ -651,7 +671,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
                                                  hsts_list,
                                                  cookie_jar,
                                                  None,
@@ -674,7 +694,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
                                                  hsts_list,
                                                  cookie_jar,
                                                  None,
@@ -696,7 +716,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
                                                  hsts_list,
                                                  cookie_jar,
                                                  None,
