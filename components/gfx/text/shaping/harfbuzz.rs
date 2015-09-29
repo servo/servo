@@ -442,6 +442,21 @@ impl Shaper {
                 let character = text.char_at(char_byte_span.begin());
                 if is_bidi_control(character) {
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
+                } else if character == '\t' {
+                    // Treat tabs in pre-formatted text as a fixed number of spaces.
+                    //
+                    // TODO: Proper tab stops.
+                    const TAB_COLS: i32 = 8;
+                    let font = self.font_and_shaping_options.font;
+                    let (space_glyph_id, space_advance) = glyph_space_advance(font);
+                    let advance = Au::from_f64_px(space_advance) * TAB_COLS;
+                    let data = GlyphData::new(space_glyph_id,
+                                              advance,
+                                              Default::default(),
+                                              false,
+                                              true,
+                                              true);
+                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.begin(), &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
@@ -508,9 +523,6 @@ impl Shaper {
         // We elect to only space the two required code points.
         if character == ' ' || character == '\u{a0}' {
             advance = advance + options.word_spacing
-        } else if character == '\t' {
-            let tab_size = 8f64;
-            advance = Au::from_f64_px(tab_size * glyph_space_advance(self.font_and_shaping_options.font));
         }
 
         advance
@@ -566,7 +578,7 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
     }
 }
 
-fn glyph_space_advance(font: *mut Font) -> f64 {
+fn glyph_space_advance(font: *mut Font) -> (hb_codepoint_t, f64) {
     let space_unicode = ' ';
     let space_glyph: hb_codepoint_t;
     match unsafe { (*font).glyph_index(space_unicode) } {
@@ -576,7 +588,7 @@ fn glyph_space_advance(font: *mut Font) -> f64 {
         None => panic!("No space info")
     }
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
-    space_advance
+    (space_glyph, space_advance)
 }
 
 extern fn glyph_h_kerning_func(_: *mut hb_font_t,
