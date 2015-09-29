@@ -15,7 +15,7 @@ use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeDamage, NodeTypeId};
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use util::str::DOMString;
@@ -54,6 +54,7 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
         *self.data.borrow_mut() = data;
+        self.content_changed();
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
@@ -117,6 +118,7 @@ impl CharacterDataMethods for CharacterData {
             new_data
         };
         *self.data.borrow_mut() = new_data;
+        self.content_changed();
         // FIXME: Once we have `Range`, we should implement step 8 to step 11
         Ok(())
     }
@@ -171,7 +173,14 @@ impl CharacterData {
     }
     #[inline]
     pub fn append_data(&self, data: &str) {
-        self.data.borrow_mut().push_str(data)
+        self.data.borrow_mut().push_str(data);
+        self.content_changed();
+    }
+
+    fn content_changed(&self) {
+        let node = NodeCast::from_ref(self);
+        let document = node.owner_doc();
+        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
     }
 }
 
