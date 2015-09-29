@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use caseless::compatibility_caseless_match_str;
 use dom::activation::Activatable;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
@@ -388,9 +389,8 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other_owner == owner &&
-    // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
-        (Some(ref s1), Some(s2)) => s1 == s2 && s2 != &atom!(""),
+        (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
     }
 }
