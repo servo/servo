@@ -1336,7 +1336,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let layer_id = layer_id.unwrap();
             if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
                 layout_context.shared
-                              .canvas_layers_sender
+                              .canvas_layers_sender.lock().unwrap()
                               .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
             }
         }
@@ -1375,7 +1375,7 @@ impl FragmentDisplayListBuilding for Fragment {
         debug!("finalizing position and size of iframe for {:?},{:?}",
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
-        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
+        let ConstellationChan(ref chan) = *layout_context.shared.constellation_chan.lock().unwrap();
         chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
                                               iframe_fragment.subpage_id,
                                               iframe_rect)).unwrap();

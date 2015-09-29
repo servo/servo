@@ -22,47 +22,47 @@ use util::cursor::Cursor;
 use util::geometry::Au;
 use util::logical_geometry::WritingMode;
 
-pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>);
+pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutTaskData>>, pub ConstellationChan);
 
 impl LayoutRPC for LayoutRPCImpl {
 
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let &LayoutRPCImpl(ref rw_data, _) = self;
         let rw_data = rw_data.lock().unwrap();
-        ContentBoxResponse(rw_data.content_box_response)
+        ContentBoxResponse(rw_data.unsync.content_box_response)
     }
 
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let &LayoutRPCImpl(ref rw_data, _) = self;
         let rw_data = rw_data.lock().unwrap();
-        ContentBoxesResponse(rw_data.content_boxes_response.clone())
+        ContentBoxesResponse(rw_data.unsync.content_boxes_response.clone())
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let &LayoutRPCImpl(ref rw_data, _) = self;
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
-            client_rect: rw_data.client_rect_response
+            client_rect: rw_data.unsync.client_rect_response
         }
     }
 
     /// Retrieves the resolved value for a CSS style property.
     fn resolved_style(&self) -> ResolvedStyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let &LayoutRPCImpl(ref rw_data, _) = self;
         let rw_data = rw_data.lock().unwrap();
-        ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+        ResolvedStyleResponse(rw_data.unsync.resolved_style_response.clone())
     }
 
     /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         let resp = {
-            let &LayoutRPCImpl(ref rw_data) = self;
+            let &LayoutRPCImpl(ref rw_data, _) = self;
             let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
+            match rw_data.unsync.stacking_context {
                 None => panic!("no root stacking context!"),
                 Some(ref stacking_context) => {
                     let mut result = Vec::new();
@@ -87,9 +87,9 @@ impl LayoutRPC for LayoutRPCImpl {
         let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
         let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
         {
-            let &LayoutRPCImpl(ref rw_data) = self;
+            let &LayoutRPCImpl(ref rw_data, ref constellation_chan) = self;
             let rw_data = rw_data.lock().unwrap();
-            match rw_data.stacking_context {
+            match rw_data.unsync.stacking_context {
                 None => panic!("no root stacking context!"),
                 Some(ref stacking_context) => {
                     stacking_context.hit_test(point, &mut mouse_over_list, false);
@@ -102,7 +102,7 @@ impl LayoutRPC for LayoutRPCImpl {
             } else {
                 Cursor::DefaultCursor
             };
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+            let &ConstellationChan(ref constellation_chan) = constellation_chan;
             constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
         }
 
@@ -118,9 +118,9 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let &LayoutRPCImpl(ref rw_data, _) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.offset_parent_response.clone()
+        rw_data.unsync.offset_parent_response.clone()
     }
 }
 
@@ -289,7 +289,7 @@ pub fn process_content_box_request<'a>(requested_node: TrustedNodeAddress,
     let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
     let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    rw_data.content_box_response = match iterator.rect {
+    rw_data.unsync.content_box_response = match iterator.rect {
         Some(rect) => rect,
         None       => Rect::zero()
     };
@@ -303,5 +303,5 @@ pub fn process_content_boxes_request<'a>(requested_node: TrustedNodeAddress,
     let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    rw_data.content_boxes_response = iterator.rects;
+    rw_data.unsync.content_boxes_response = iterator.rects;
 }

@@ -2214,10 +2214,10 @@ impl Fragment {
     /// TODO(gw): This just hides the compositor layer for now. In the future
     /// it probably makes sense to provide a hint to the compositor whether
     /// the layers should be destroyed to free memory.
-    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+    pub fn remove_compositor_layers(&self, constellation_chan: &Mutex<ConstellationChan>) {
         match self.specific {
             SpecificFragmentInfo::Iframe(ref iframe_info) => {
-                let ConstellationChan(ref chan) = constellation_chan;
+                let ConstellationChan(ref chan) = *constellation_chan.lock().unwrap();
                 chan.send(Msg::FrameRect(iframe_info.pipeline_id,
                                          iframe_info.subpage_id,
                                          Rect::zero())).unwrap();
