@@ -16,8 +16,8 @@ use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::bytes::ByteBuf;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
@@ -416,7 +416,7 @@ impl PipelineId {
 }
 
 impl Serialize for PipelineId {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
         let &PipelineId(uuid) = self;
         uuid.as_bytes().serialize(serializer)
     }
