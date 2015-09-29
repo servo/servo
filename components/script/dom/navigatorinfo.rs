@@ -22,8 +22,19 @@ pub fn AppCodeName() -> DOMString {
     "Mozilla".to_owned()
 }
 
+#[cfg(target_os = "windows")]
 pub fn Platform() -> DOMString {
-    "".to_owned()
+    "Win32".to_owned()
+}
+
+#[cfg(any(target_os = "android", target_os = "linux"))]
+pub fn Platform() -> DOMString {
+    "Linux".to_owned()
+}
+
+#[cfg(target_os = "macos")]
+pub fn Platform() -> DOMString {
+    "Mac".to_owned()
 }
 
 pub fn UserAgent() -> DOMString {
