@@ -2,34 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate harfbuzz;
-
 use euclid::Point2D;
 use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
 use harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
-use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
-use harfbuzz::{RUST_hb_buffer_add_utf8};
-use harfbuzz::{RUST_hb_buffer_create, RUST_hb_font_destroy};
-use harfbuzz::{RUST_hb_buffer_destroy};
-use harfbuzz::{RUST_hb_buffer_get_glyph_infos, RUST_hb_shape};
-use harfbuzz::{RUST_hb_buffer_get_glyph_positions};
-use harfbuzz::{RUST_hb_buffer_get_length};
-use harfbuzz::{RUST_hb_buffer_set_direction};
-use harfbuzz::{RUST_hb_face_destroy};
-use harfbuzz::{RUST_hb_font_create};
-use harfbuzz::{RUST_hb_font_funcs_create};
-use harfbuzz::{RUST_hb_font_funcs_set_glyph_func};
-use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_kerning_func};
-use harfbuzz::{RUST_hb_font_set_funcs};
-use harfbuzz::{RUST_hb_font_set_ppem};
-use harfbuzz::{RUST_hb_font_set_scale};
+use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};
 use harfbuzz::{hb_bool_t};
+use harfbuzz::{hb_buffer_add_utf8};
+use harfbuzz::{hb_buffer_create, hb_font_destroy};
+use harfbuzz::{hb_buffer_destroy};
+use harfbuzz::{hb_buffer_get_glyph_infos, hb_shape};
+use harfbuzz::{hb_buffer_get_glyph_positions};
+use harfbuzz::{hb_buffer_get_length};
+use harfbuzz::{hb_buffer_set_direction, hb_buffer_set_script};
 use harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
+use harfbuzz::{hb_face_destroy};
 use harfbuzz::{hb_face_t, hb_font_t};
 use harfbuzz::{hb_feature_t};
+use harfbuzz::{hb_font_create};
+use harfbuzz::{hb_font_funcs_create};
+use harfbuzz::{hb_font_funcs_set_glyph_func};
+use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
+use harfbuzz::{hb_font_funcs_set_glyph_h_kerning_func};
+use harfbuzz::{hb_font_set_funcs};
+use harfbuzz::{hb_font_set_ppem};
+use harfbuzz::{hb_font_set_scale};
 use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
@@ -70,10 +68,10 @@ impl ShapedGlyphData {
     pub fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         unsafe {
             let mut glyph_count = 0;
-            let glyph_infos = RUST_hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
             assert!(!glyph_infos.is_null());
             let mut pos_count = 0;
-            let pos_infos = RUST_hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+            let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
             assert!(!pos_infos.is_null());
             assert!(glyph_count == pos_count);
 
@@ -151,10 +149,10 @@ impl Drop for Shaper {
     fn drop(&mut self) {
         unsafe {
             assert!(!self.hb_face.is_null());
-            RUST_hb_face_destroy(self.hb_face);
+            hb_face_destroy(self.hb_face);
 
             assert!(!self.hb_font.is_null());
-            RUST_hb_font_destroy(self.hb_font);
+            hb_font_destroy(self.hb_font);
         }
     }
 }
@@ -167,24 +165,22 @@ impl Shaper {
                 options: *options,
             };
             let hb_face: *mut hb_face_t =
-                RUST_hb_face_create_for_tables(font_table_func,
-                                          (&mut *font_and_shaping_options)
-                                            as *mut FontAndShapingOptions
-                                            as *mut c_void,
+                hb_face_create_for_tables(Some(font_table_func),
+                                          &mut *font_and_shaping_options as *mut _ as *mut c_void,
                                           None);
-            let hb_font: *mut hb_font_t = RUST_hb_font_create(hb_face);
+            let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
             let pt_size = font.actual_pt_size.to_f64_px();
-            RUST_hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
+            hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
-            RUST_hb_font_set_scale(hb_font,
-                                   Shaper::float_to_fixed(pt_size) as c_int,
-                                   Shaper::float_to_fixed(pt_size) as c_int);
+            hb_font_set_scale(hb_font,
+                              Shaper::float_to_fixed(pt_size) as c_int,
+                              Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
-            RUST_hb_font_set_funcs(hb_font, **HB_FONT_FUNCS, font as *mut Font as *mut c_void, None);
+            hb_font_set_funcs(hb_font, **HB_FONT_FUNCS, font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
@@ -212,40 +208,42 @@ impl ShaperMethods for Shaper {
     /// font.
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
-            let hb_buffer: *mut hb_buffer_t = RUST_hb_buffer_create();
-            RUST_hb_buffer_set_direction(hb_buffer, if options.flags.contains(RTL_FLAG) {
+            let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
+            hb_buffer_set_direction(hb_buffer, if options.flags.contains(RTL_FLAG) {
                 HB_DIRECTION_RTL
             } else {
                 HB_DIRECTION_LTR
             });
 
-            RUST_hb_buffer_add_utf8(hb_buffer,
-                                    text.as_ptr() as *const c_char,
-                                    text.len() as c_int,
-                                    0,
-                                    text.len() as c_int);
+            hb_buffer_set_script(hb_buffer, options.script.to_hb_script());
+
+            hb_buffer_add_utf8(hb_buffer,
+                               text.as_ptr() as *const c_char,
+                               text.len() as c_int,
+                               0,
+                               text.len() as c_int);
 
             let mut features = Vec::new();
             if options.flags.contains(IGNORE_LIGATURES_SHAPING_FLAG) {
                 features.push(hb_feature_t {
-                    _tag: LIGA,
-                    _value: 0,
-                    _start: 0,
-                    _end: RUST_hb_buffer_get_length(hb_buffer),
+                    tag: LIGA,
+                    value: 0,
+                    start: 0,
+                    end: hb_buffer_get_length(hb_buffer),
                 })
             }
             if options.flags.contains(DISABLE_KERNING_SHAPING_FLAG) {
                 features.push(hb_feature_t {
-                    _tag: KERN,
-                    _value: 0,
-                    _start: 0,
-                    _end: RUST_hb_buffer_get_length(hb_buffer),
+                    tag: KERN,
+                    value: 0,
+                    start: 0,
+                    end: hb_buffer_get_length(hb_buffer),
                 })
             }
 
-            RUST_hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
+            hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
             self.save_glyph_results(text, options, glyphs, hb_buffer);
-            RUST_hb_buffer_destroy(hb_buffer);
+            hb_buffer_destroy(hb_buffer);
         }
     }
 }
@@ -444,6 +442,21 @@ impl Shaper {
                 let character = text.char_at(char_byte_span.begin());
                 if is_bidi_control(character) {
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
+                } else if character == '\t' {
+                    // Treat tabs in pre-formatted text as a fixed number of spaces.
+                    //
+                    // TODO: Proper tab stops.
+                    const TAB_COLS: i32 = 8;
+                    let font = self.font_and_shaping_options.font;
+                    let (space_glyph_id, space_advance) = glyph_space_advance(font);
+                    let advance = Au::from_f64_px(space_advance) * TAB_COLS;
+                    let data = GlyphData::new(space_glyph_id,
+                                              advance,
+                                              Default::default(),
+                                              false,
+                                              true,
+                                              true);
+                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.begin(), &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
@@ -510,9 +523,6 @@ impl Shaper {
         // We elect to only space the two required code points.
         if character == ' ' || character == '\u{a0}' {
             advance = advance + options.word_spacing
-        } else if character == '\t' {
-            let tab_size = 8f64;
-            advance = Au::from_f64_px(tab_size * glyph_space_advance(self.font_and_shaping_options.font));
         }
 
         advance
@@ -522,12 +532,12 @@ impl Shaper {
 // Callbacks from Harfbuzz when font map and glyph advance lookup needed.
 lazy_static! {
     static ref HB_FONT_FUNCS: ptr::Unique<hb_font_funcs_t> = unsafe {
-        let hb_funcs = RUST_hb_font_funcs_create();
-        RUST_hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
-        RUST_hb_font_funcs_set_glyph_h_advance_func(
-            hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
-        RUST_hb_font_funcs_set_glyph_h_kerning_func(
-            hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
+        let hb_funcs = hb_font_funcs_create();
+        hb_font_funcs_set_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
+        hb_font_funcs_set_glyph_h_advance_func(
+            hb_funcs, Some(glyph_h_advance_func), ptr::null_mut(), None);
+        hb_font_funcs_set_glyph_h_kerning_func(
+            hb_funcs, Some(glyph_h_kerning_func), ptr::null_mut(), None);
 
         ptr::Unique::new(hb_funcs)
     };
@@ -568,7 +578,7 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
     }
 }
 
-fn glyph_space_advance(font: *mut Font) -> f64 {
+fn glyph_space_advance(font: *mut Font) -> (hb_codepoint_t, f64) {
     let space_unicode = ' ';
     let space_glyph: hb_codepoint_t;
     match unsafe { (*font).glyph_index(space_unicode) } {
@@ -578,7 +588,7 @@ fn glyph_space_advance(font: *mut Font) -> f64 {
         None => panic!("No space info")
     }
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
-    space_advance
+    (space_glyph, space_advance)
 }
 
 extern fn glyph_h_kerning_func(_: *mut hb_font_t,
@@ -620,11 +630,11 @@ extern fn font_table_func(_: *mut hb_face_t,
                 let mut blob: *mut hb_blob_t = ptr::null_mut();
                 (*font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                    blob = RUST_hb_blob_create(buf as *const c_char,
-                                               len as c_uint,
-                                               HB_MEMORY_MODE_READONLY,
-                                               font_table_ptr as *mut c_void,
-                                               destroy_blob_func);
+                    blob = hb_blob_create(buf as *const c_char,
+                                          len as c_uint,
+                                          HB_MEMORY_MODE_READONLY,
+                                          font_table_ptr as *mut c_void,
+                                          Some(destroy_blob_func));
                 });
 
                 assert!(!blob.is_null());

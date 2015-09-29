@@ -23,6 +23,7 @@ use style::computed_values::{white_space};
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font as FontStyle;
 use unicode_bidi::{is_rtl, process_text};
+use unicode_script::{get_script, Script};
 use util::geometry::Au;
 use util::linked_list::split_off_head;
 use util::logical_geometry::{LogicalSize, WritingMode};
@@ -204,8 +205,22 @@ impl TextRunScanner {
                         None => 0
                     };
 
+                    // Break the run if the new character has a different explicit script than the
+                    // previous characters.
+                    //
+                    // TODO: Special handling of paired punctuation characters.
+                    // http://www.unicode.org/reports/tr24/#Common
+                    let script = get_script(character);
+                    let compatible_script = is_compatible(script, run_info.script);
+                    if compatible_script && !is_specific(run_info.script) && is_specific(script) {
+                        run_info.script = script;
+                    }
+
                     // Now, if necessary, flush the mapping we were building up.
-                    if run_info.font_index != font_index || run_info.bidi_level != bidi_level {
+                    if run_info.font_index != font_index ||
+                       run_info.bidi_level != bidi_level ||
+                       !compatible_script
+                    {
                         if end_position > start_position {
                             mapping.flush(&mut mappings,
                                           &mut run_info,
@@ -226,6 +241,7 @@ impl TextRunScanner {
                         }
                         run_info.font_index = font_index;
                         run_info.bidi_level = bidi_level;
+                        run_info.script = script;
                     }
 
                     // Consume this character.
@@ -269,12 +285,14 @@ impl TextRunScanner {
             let options = ShapingOptions {
                 letter_spacing: letter_spacing,
                 word_spacing: word_spacing,
+                script: Script::Common,
                 flags: flags,
             };
 
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             run_info_list.into_iter().map(|run_info| {
                 let mut options = options;
+                options.script = run_info.script;
                 if is_rtl(run_info.bidi_level) {
                     options.flags.insert(RTL_FLAG);
                 }
@@ -440,6 +458,8 @@ struct RunInfo {
     character_length: usize,
     /// The bidirection embedding level of this text run.
     bidi_level: u8,
+    /// The Unicode script property of this text run.
+    script: Script,
 }
 
 impl RunInfo {
@@ -450,6 +470,7 @@ impl RunInfo {
             font_index: 0,
             character_length: 0,
             bidi_level: 0,
+            script: Script::Common,
         }
     }
 }
@@ -503,9 +524,12 @@ impl RunMapping {
 
         // Account for `text-transform`. (Confusingly, this is not handled in "text
         // transformation" above, but we follow Gecko in the naming.)
+        let is_first_run = *start_position == 0;
         let character_count = apply_style_transform_if_necessary(&mut run_info.text,
                                                                  old_byte_length,
-                                                                 text_transform);
+                                                                 text_transform,
+                                                                 *last_whitespace,
+                                                                 is_first_run);
 
         // Record the position of the insertion point if necessary.
         if let Some(insertion_point) = insertion_point {
@@ -536,7 +560,9 @@ impl RunMapping {
 /// use graphemes instead of characters.
 fn apply_style_transform_if_necessary(string: &mut String,
                                       first_character_position: usize,
-                                      text_transform: text_transform::T)
+                                      text_transform: text_transform::T,
+                                      last_whitespace: bool,
+                                      is_first_run: bool)
                                       -> usize {
     match text_transform {
         text_transform::T::none => string[first_character_position..].chars().count(),
@@ -564,9 +590,7 @@ fn apply_style_transform_if_necessary(string: &mut String,
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
 
-            // FIXME(pcwalton): This may not always be correct in the case of something like
-            // `f<span>oo</span>`.
-            let mut capitalize_next_letter = true;
+            let mut capitalize_next_letter = is_first_run || last_whitespace;
             let mut count = 0;
             for character in original.chars() {
                 count += 1;
@@ -598,4 +622,14 @@ fn apply_style_transform_if_necessary(string: &mut String,
 struct ScannedTextRun {
     run: Arc<TextRun>,
     insertion_point: Option<CharIndex>,
+}
+
+/// Can a character with script `b` continue a text run with script `a`?
+fn is_compatible(a: Script, b: Script) -> bool {
+    a == b || !is_specific(a) || !is_specific(b)
+}
+
+/// Returns true if the script is not invalid or inherited.
+fn is_specific(script: Script) -> bool {
+    script != Script::Common && script != Script::Inherited
 }

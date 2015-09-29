@@ -18,6 +18,7 @@ use style::properties::style_structs::Font as FontStyle;
 use text::Shaper;
 use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
+use unicode_script::Script;
 use util::cache::HashCache;
 use util::geometry::Au;
 
@@ -117,6 +118,8 @@ pub struct ShapingOptions {
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
     pub word_spacing: Au,
+    /// The Unicode script property of the characters in this run.
+    pub script: Script,
     /// Various flags.
     pub flags: ShapingFlags,
 }

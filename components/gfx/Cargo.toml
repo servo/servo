@@ -12,7 +12,7 @@ path = "lib.rs"
 bitflags = "0.3"
 euclid = "0.2"
 fnv = "1.0"
-harfbuzz = "0.1"
+harfbuzz-sys = "0.1"
 lazy_static = "0.1"
 libc = "0.1"
 log = "0.3"
@@ -23,6 +23,7 @@ serde_macros = "0.5"
 smallvec = "0.1"
 string_cache = "0.1"
 time = "0.1.12"
+unicode-script = { version = "0.1", features = ["harfbuzz"] }
 
 [dependencies.plugins]
 path = "../plugins"

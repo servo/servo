@@ -52,7 +52,7 @@ extern crate gfx_traits;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.
-extern crate harfbuzz;
+extern crate harfbuzz_sys as harfbuzz;
 
 extern crate ipc_channel;
 extern crate layers;
@@ -72,6 +72,7 @@ extern crate smallvec;
 extern crate string_cache;
 extern crate style;
 extern crate time;
+extern crate unicode_script;
 extern crate url;
 
 
