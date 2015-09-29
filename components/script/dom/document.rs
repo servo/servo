@@ -98,7 +98,7 @@ use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
 use time;
 use url::Url;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -1443,7 +1443,7 @@ impl DocumentMethods for Document {
             Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.r().children());
-                split_html_space_chars(&value).collect::<Vec<_>>().join(" ")
+                str_join(split_html_space_chars(&value), " ")
             },
         }
     }

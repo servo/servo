@@ -24,7 +24,6 @@
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
-#![feature(slice_concat_ext)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
