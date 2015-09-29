@@ -28,7 +28,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
@@ -69,8 +69,6 @@ pub struct NewLayoutInfo {
     pub containing_pipeline_id: PipelineId,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
-    /// Id of the new frame associated with this pipeline.
-    pub subpage_id: SubpageId,
     /// Network request data which will be initiated by the script task.
     pub load_data: LoadData,
     /// The paint channel, cast to `Box<Any>`.
@@ -125,13 +123,13 @@ pub enum ConstellationControlMsg {
     /// Notifies script task to resume all its timers
     Thaw(PipelineId),
     /// Notifies script task that a url should be loaded in this iframe.
-    Navigate(PipelineId, SubpageId, LoadData),
+    Navigate(PipelineId, PipelineId, LoadData),
     /// Requests the script task forward a mozbrowser event to an iframe it owns
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// Updates the current subpage id of a given iframe
-    UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
+    /// Updates the current pipeline id of a given iframe
+    UpdatePipelineId(PipelineId, PipelineId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    FocusIFrame(PipelineId, SubpageId),
+    FocusIFrame(PipelineId, PipelineId),
     /// Passes a webdriver command to the script task for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
@@ -182,7 +180,7 @@ pub struct InitialScriptState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
     /// The compositor.
     pub compositor: IpcSender<ScriptToCompositorMsg>,
     /// A channel with which messages can be sent to us (the script task).

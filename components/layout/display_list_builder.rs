@@ -1372,12 +1372,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                     Size2D::new(content_size.width.to_f32_px(),
                                                 content_size.height.to_f32_px()));
 
-        debug!("finalizing position and size of iframe for {:?},{:?}",
-               iframe_fragment.pipeline_id,
-               iframe_fragment.subpage_id);
+        debug!("finalizing position and size of iframe for {:?}",
+               iframe_fragment.pipeline_id);
         let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
         chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
-                                              iframe_fragment.subpage_id,
                                               iframe_rect)).unwrap();
     }
 

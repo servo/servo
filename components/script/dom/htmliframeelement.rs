@@ -28,7 +28,7 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, MozBrowserEvent, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, MozBrowserEvent, NavigationDirection, PipelineId};
 use page::IterablePage;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -57,8 +57,7 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    subpage_id: Cell<Option<SubpageId>>,
-    containing_page_pipeline_id: Cell<Option<PipelineId>>,
+    pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
 
@@ -91,12 +90,11 @@ impl HTMLIFrameElement {
         })
     }
 
-    pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
-        let old_subpage_id = self.subpage_id.get();
-        let win = window_from_node(self);
-        let subpage_id = win.r().get_next_subpage_id();
-        self.subpage_id.set(Some(subpage_id));
-        (subpage_id, old_subpage_id)
+    pub fn generate_new_pipeline_id(&self) -> (PipelineId, Option<PipelineId>) {
+        let old_pipeline_id = self.pipeline_id.get();
+        let new_pipeline_id = PipelineId::new();
+        self.pipeline_id.set(Some(new_pipeline_id));
+        (new_pipeline_id, old_pipeline_id)
     }
 
     pub fn navigate_child_browsing_context(&self, url: Url) {
@@ -108,15 +106,13 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let window = window.r();
-        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
-
-        self.containing_page_pipeline_id.set(Some(window.pipeline()));
+        let (new_pipeline_id, old_pipeline_id) = self.generate_new_pipeline_id();
 
         let ConstellationChan(ref chan) = window.constellation_chan();
         chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
                                                             window.pipeline(),
-                                                            new_subpage_id,
-                                                            old_subpage_id,
+                                                            new_pipeline_id,
+                                                            old_pipeline_id,
                                                             sandboxed)).unwrap();
 
         if mozbrowser_enabled() {
@@ -158,8 +154,8 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
-        self.subpage_id.set(Some(new_subpage_id));
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
+        self.pipeline_id.set(Some(new_pipeline_id));
     }
 
     #[allow(unsafe_code)]
@@ -190,8 +186,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
-            subpage_id: Cell::new(None),
-            containing_page_pipeline_id: Cell::new(None),
+            pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
         }
     }
@@ -204,14 +199,8 @@ impl HTMLIFrameElement {
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
     }
 
-    #[inline]
-    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
-        self.containing_page_pipeline_id.get()
-    }
-
-    #[inline]
-    pub fn subpage_id(&self) -> Option<SubpageId> {
-        self.subpage_id.get()
+    pub fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.get()
     }
 }
 
@@ -222,10 +211,9 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
             let window = window_from_node(iframe);
             let window = window.r();
 
-            let pipeline_info = Some((iframe.containing_page_pipeline_id().unwrap(),
-                                      iframe.subpage_id().unwrap()));
+            let pipeline_id = iframe.pipeline_id().unwrap();
             let ConstellationChan(ref chan) = window.constellation_chan();
-            let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+            let msg = ConstellationMsg::Navigate(Some(pipeline_id), direction);
             chan.send(msg).unwrap();
         }
 
@@ -263,13 +251,13 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
+        self.pipeline_id.get().and_then(|pipeline_id| {
             let window = window_from_node(self);
             let window = window.r();
             let children = window.page().children.borrow();
             children.iter().find(|page| {
                 let window = page.window();
-                window.r().subpage() == Some(subpage_id)
+                window.r().pipeline() == pipeline_id
             }).map(|page| page.window())
         })
     }
@@ -408,24 +396,20 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        match (self.containing_page_pipeline_id(), self.subpage_id()) {
-            (Some(containing_pipeline_id), Some(subpage_id)) => {
-                let window = window_from_node(self);
-                let window = window.r();
+        if let Some(pipeline_id) = self.pipeline_id() {
+            let window = window_from_node(self);
+            let window = window.r();
 
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::RemoveIFrame(containing_pipeline_id,
-                                                         subpage_id);
-                chan.send(msg).unwrap();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let msg = ConstellationMsg::RemoveIFrame(pipeline_id);
+            chan.send(msg).unwrap();
 
-                // Resetting the subpage id to None is required here so that
-                // if this iframe is subsequently re-added to the document
-                // the load doesn't think that it's a navigation, but instead
-                // a new iframe. Without this, the constellation gets very
-                // confused.
-                self.subpage_id.set(None);
-            }
-            _ => {}
+            // Resetting the pipeline id to None is required here so that
+            // if this iframe is subsequently re-added to the document
+            // the load doesn't think that it's a navigation, but instead
+            // a new iframe. Without this, the constellation gets very
+            // confused.
+            self.pipeline_id.set(None);
         }
     }
 }

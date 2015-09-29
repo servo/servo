@@ -26,7 +26,7 @@ use html5ever::tree_builder::{NodeOrText, TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use net_traits::{AsyncResponseListener, Metadata};
 use network_listener::PreInvoke;
 use parse::Parser;
@@ -73,8 +73,6 @@ pub struct ParserContext {
     is_image_document: Cell<bool>,
     /// The pipeline associated with this document.
     id: PipelineId,
-    /// The subpage associated with this document.
-    subpage: Option<SubpageId>,
     /// The target event loop for the response notifications.
     script_chan: Box<ScriptChan + Send>,
     /// The URL for this document.
@@ -82,13 +80,12 @@ pub struct ParserContext {
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, subpage: Option<SubpageId>, script_chan: Box<ScriptChan + Send>,
+    pub fn new(id: PipelineId, script_chan: Box<ScriptChan + Send>,
                url: Url) -> ParserContext {
         ParserContext {
             parser: RefCell::new(None),
             is_image_document: Cell::new(false),
             id: id,
-            subpage: subpage,
             script_chan: script_chan,
             url: url,
         }
@@ -99,8 +96,7 @@ impl AsyncResponseListener for ParserContext {
     fn headers_available(&self, metadata: Metadata) {
         let content_type = metadata.content_type.clone();
 
-        let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
-                                                     metadata);
+        let parser = ScriptTask::page_fetch_complete(self.id.clone(), metadata);
         let parser = match parser {
             Some(parser) => parser,
             None => return,

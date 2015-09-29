@@ -77,7 +77,7 @@ use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, PipelineId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, Metadata, PendingAsyncLoad};
@@ -865,10 +865,10 @@ impl Document {
         if htmliframeelement::mozbrowser_enabled() {
             let window = self.window.root();
 
-            if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
+            if let Some(containing_pipeline_id) = window.r().parent_pipeline() {
                 let ConstellationChan(ref chan) = window.r().constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              subpage_id,
+                                                              window.r().pipeline(),
                                                               event);
                 chan.send(event).unwrap();
             }
@@ -973,10 +973,10 @@ impl Document {
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, pipeline_id: PipelineId) -> Option<Root<HTMLIFrameElement>> {
         NodeCast::from_ref(self).traverse_preorder()
             .filter_map(HTMLIFrameElementCast::to_root)
-            .find(|node| node.r().subpage_id() == Some(subpage_id))
+            .find(|node| node.r().pipeline_id() == Some(pipeline_id))
     }
 }
 

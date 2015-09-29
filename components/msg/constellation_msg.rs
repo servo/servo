@@ -16,6 +16,8 @@ use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::bytes::ByteBuf;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
@@ -23,6 +25,7 @@ use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
+use uuid::Uuid;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 #[derive(Clone)]
@@ -45,7 +48,7 @@ pub enum IFrameSandboxState {
 #[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
 }
 
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -221,10 +224,10 @@ pub enum Msg {
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
     DOMLoad(PipelineId),
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    FrameRect(PipelineId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    ScriptLoadedURLInIFrame(Url, PipelineId, PipelineId, Option<PipelineId>, IFrameSandboxState),
+    Navigate(Option<PipelineId>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
@@ -234,7 +237,7 @@ pub enum Msg {
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
+    MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
@@ -243,8 +246,8 @@ pub enum Msg {
     /// id, or for the root frame if this is None, over a provided channel
     GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the FrameId corresponding to the document
-    /// with the provided parent pipeline id and subpage id
-    GetFrame(PipelineId, SubpageId, IpcSender<Option<FrameId>>),
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
@@ -258,7 +261,7 @@ pub enum Msg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId, SubpageId),
+    RemoveIFrame(PipelineId),
     /// Favicon detected
     NewFavicon(Url),
     /// <head> tag finished parsing
@@ -391,11 +394,8 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct WorkerId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct PipelineId(pub u32);
-
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct SubpageId(pub u32);
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, HeapSizeOf)]
+pub struct PipelineId(Uuid);
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
@@ -403,4 +403,28 @@ pub struct SubpageId(pub u32);
 pub enum PipelineExitType {
     PipelineOnly,
     Complete,
+}
+
+impl PipelineId {
+    pub fn new() -> PipelineId {
+        PipelineId(Uuid::new_v4())
+    }
+
+    pub fn nil() -> PipelineId {
+        PipelineId(Uuid::nil())
+    }
+}
+
+impl Serialize for PipelineId {
+    fn serialize<S>(&self, serializer: &mut S) -> Result<(),S::Error> where S: Serializer {
+        let &PipelineId(uuid) = self;
+        uuid.as_bytes().serialize(serializer)
+    }
+}
+
+impl Deserialize for PipelineId {
+    fn deserialize<D>(deserializer: &mut D) -> Result<PipelineId, D::Error> where D: Deserializer {
+        let bytes = try!(ByteBuf::deserialize(deserializer));
+        Ok(PipelineId(Uuid::from_bytes(&bytes).unwrap()))
+    }
 }

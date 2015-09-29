@@ -24,6 +24,7 @@ extern crate serde;
 extern crate style_traits;
 extern crate url;
 extern crate util;
+extern crate uuid;
 
 pub mod compositor_msg;
 pub mod constellation_msg;

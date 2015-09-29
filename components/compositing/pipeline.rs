@@ -13,7 +13,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
-use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId};
 use msg::constellation_msg::{LoadData, MozBrowserEvent, PipelineExitType, WindowSizeData};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -35,7 +35,7 @@ use util::prefs;
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
     pub script_chan: Sender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
@@ -68,7 +68,7 @@ pub struct InitialPipelineState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<PipelineId>,
     /// A channel to the associated constellation.
     pub constellation_chan: ConstellationChan,
     /// A channel to the compositor.
@@ -137,12 +137,11 @@ impl Pipeline {
 
         let (script_chan, script_port) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id) =
-                    state.parent_info.expect("script_pipeline != None but subpage_id == None");
+                let containing_pipeline_id =
+                    state.parent_info.expect("script_pipeline != None but parent id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: state.id,
-                    subpage_id: subpage_id,
                     load_data: state.load_data.clone(),
                     paint_chan: box layout_to_paint_chan.clone() as Box<Any + Send>,
                     failure: failure,
@@ -200,7 +199,7 @@ impl Pipeline {
     }
 
     pub fn new(id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<PipelineId>,
                script_chan: Sender<ConstellationControlMsg>,
                layout_chan: LayoutControlChan,
                chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
@@ -287,12 +286,12 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     subpage_id: SubpageId,
-                                     event: MozBrowserEvent) {
+                                    pipeline_id: PipelineId,
+                                    event: MozBrowserEvent) {
         assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                             subpage_id,
+                                                             pipeline_id,
                                                              event);
         self.script_chan.send(event).unwrap();
     }
@@ -300,7 +299,7 @@ impl Pipeline {
 
 pub struct PipelineContent {
     id: PipelineId,
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<PipelineId>,
     constellation_chan: ConstellationChan,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

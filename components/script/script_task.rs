@@ -66,7 +66,7 @@ use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
-use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
+use msg::constellation_msg::{WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
@@ -128,7 +128,7 @@ struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
     /// The parent pipeline and child subpage associated with this load, if any.
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout task associated with this pipeline.
@@ -142,7 +142,7 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           parent_info: Option<(PipelineId, SubpageId)>,
+           parent_info: Option<PipelineId>,
            layout_chan: LayoutChan,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
@@ -490,7 +490,7 @@ impl ScriptTaskFactory for ScriptTask {
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
-            let reporter_name = format!("script-reporter-{}", id.0);
+            let reporter_name = format!("script-reporter-{:?}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_task.start();
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
@@ -558,11 +558,11 @@ unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptTask {
-    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Metadata)
+    pub fn page_fetch_complete(id: PipelineId, metadata: Metadata)
                                -> Option<Root<ServoHTMLParser>> {
         SCRIPT_TASK_ROOT.with(|root| {
             let script_task = unsafe { &*root.borrow().unwrap() };
-            script_task.handle_page_fetch_complete(id, subpage, metadata)
+            script_task.handle_page_fetch_complete(id, metadata)
         })
     }
 
@@ -906,8 +906,8 @@ impl ScriptTask {
         match msg {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
-            ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
-                self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
+            ConstellationControlMsg::Navigate(pipeline_id, parent_pipeline_id, load_data) =>
+                self.handle_navigate(pipeline_id, Some(parent_pipeline_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -927,17 +927,19 @@ impl ScriptTask {
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     subpage_id,
+                                                     pipeline_id,
                                                      event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 subpage_id,
+                                                 pipeline_id,
                                                  event),
-            ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
-                                                     old_subpage_id,
-                                                     new_subpage_id) =>
-                self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
-            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
-                self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                      old_pipeline_id,
+                                                      new_pipeline_id) =>
+                self.handle_update_pipeline_id(parent_pipeline_id,
+                                               old_pipeline_id,
+                                               new_pipeline_id),
+            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, pipeline_id) =>
+                self.handle_focus_iframe_msg(containing_pipeline_id, pipeline_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
@@ -1128,7 +1130,6 @@ impl ScriptTask {
         let NewLayoutInfo {
             containing_pipeline_id,
             new_pipeline_id,
-            subpage_id,
             load_data,
             paint_chan,
             failure,
@@ -1168,7 +1169,7 @@ impl ScriptTask {
                      .unwrap();
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some(containing_pipeline_id),
                                            layout_chan, parent_window.r().window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -1313,12 +1314,12 @@ impl ScriptTask {
 
     fn handle_focus_iframe_msg(&self,
                                parent_pipeline_id: PipelineId,
-                               subpage_id: SubpageId) {
+                               pipeline_id: PipelineId) {
         let borrowed_page = self.root_page();
         let page = borrowed_page.find(parent_pipeline_id).unwrap();
 
         let doc = page.document();
-        let frame_element = doc.find_iframe(subpage_id);
+        let frame_element = doc.find_iframe(pipeline_id);
 
         if let Some(ref frame_element) = frame_element {
             let element = ElementCast::from_ref(frame_element.r());
@@ -1332,13 +1333,13 @@ impl ScriptTask {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   subpage_id: SubpageId,
+                                   pipeline_id: PipelineId,
                                    event: MozBrowserEvent) {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
             let doc = page.document();
-            doc.find_iframe(subpage_id)
+            doc.find_iframe(pipeline_id)
         });
 
         if let Some(ref frame_element) = frame_element {
@@ -1346,18 +1347,18 @@ impl ScriptTask {
         }
     }
 
-    fn handle_update_subpage_id(&self,
-                                containing_pipeline_id: PipelineId,
-                                old_subpage_id: SubpageId,
-                                new_subpage_id: SubpageId) {
+    fn handle_update_pipeline_id(&self,
+                                 parent_pipeline_id: PipelineId,
+                                 old_pipeline_id: PipelineId,
+                                 new_pipeline_id: PipelineId) {
         let borrowed_page = self.root_page();
 
-        let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
+        let frame_element = borrowed_page.find(parent_pipeline_id).and_then(|page| {
             let doc = page.document();
-            doc.find_iframe(old_subpage_id)
+            doc.find_iframe(old_pipeline_id)
         });
 
-        frame_element.r().unwrap().update_subpage_id(new_subpage_id);
+        frame_element.r().unwrap().update_pipeline_id(new_pipeline_id);
     }
 
     /// Handles a notification that reflow completed.
@@ -1401,10 +1402,10 @@ impl ScriptTask {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
+    fn handle_page_fetch_complete(&self, id: PipelineId,
                                   metadata: Metadata) -> Option<Root<ServoHTMLParser>> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
+            load.pipeline_id == id
         });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
@@ -1499,7 +1500,7 @@ impl ScriptTask {
         // existing one.
         let root_page_exists = self.page.borrow().is_some();
 
-        let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
+        let frame_element = incomplete.parent_info.and_then(|parent_id| {
             // The root page may not exist yet, if the parent of this frame
             // exists in a different script task.
             let borrowed_page = self.page.borrow();
@@ -1514,7 +1515,7 @@ impl ScriptTask {
             borrowed_page.as_ref().and_then(|borrowed_page| {
                 borrowed_page.find(parent_id).and_then(|page| {
                     let doc = page.document();
-                    doc.find_iframe(subpage_id)
+                    doc.find_iframe(incomplete.pipeline_id)
                 })
             })
         });
@@ -1524,7 +1525,7 @@ impl ScriptTask {
         if !root_page_exists {
             // We have a new root frame tree.
             *self.page.borrow_mut() = Some(page.clone());
-        } else if let Some((parent, _)) = incomplete.parent_info {
+        } else if let Some(parent) = incomplete.parent_info {
             // We have a new child frame.
             let parent_page = self.root_page();
             // TODO(gw): This find will fail when we are sharing script tasks
@@ -1781,7 +1782,10 @@ impl ScriptTask {
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
+    fn handle_navigate(&self,
+                       pipeline_id: PipelineId,
+                       parent_pipeline_id: Option<PipelineId>,
+                       load_data: LoadData) {
         // Step 8.
         {
             let nurl = &load_data.url;
@@ -1803,12 +1807,12 @@ impl ScriptTask {
             }
         }
 
-        match subpage_id {
-            Some(subpage_id) => {
+        match parent_pipeline_id {
+            Some(parent_pipeline_id) => {
                 let borrowed_page = self.root_page();
-                let iframe = borrowed_page.find(pipeline_id).and_then(|page| {
+                let iframe = borrowed_page.find(parent_pipeline_id).and_then(|page| {
                     let doc = page.document();
-                    doc.find_iframe(subpage_id)
+                    doc.find_iframe(pipeline_id)
                 });
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_child_browsing_context(load_data.url);
@@ -1853,12 +1857,11 @@ impl ScriptTask {
     /// argument until a notification is received that the fetch is complete.
     fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
         let script_chan = self.chan.clone();
         let resource_task = self.resource_task.clone();
 
-        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
+        let context = Arc::new(Mutex::new(ParserContext::new(id, script_chan.clone(),
                                                              load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = box NetworkListener {
