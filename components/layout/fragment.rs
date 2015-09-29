@@ -2160,9 +2160,12 @@ impl Fragment {
     }
 
     /// Computes the overflow rect of this fragment relative to the start of the flow.
-    pub fn compute_overflow(&self, relative_containing_block_size: &LogicalSize<Au>) -> Rect<Au> {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
+    pub fn compute_overflow(&self,
+                            relative_containing_block_size: &LogicalSize<Au>,
+                            relative_containing_block_mode: WritingMode)
+                            -> Rect<Au> {
+        let container_size =
+            relative_containing_block_size.to_physical(relative_containing_block_mode);
         let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
 
         // Relative position can cause us to draw outside our border box.

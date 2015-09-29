@@ -2126,9 +2126,10 @@ impl Flow for BlockFlow {
     }
 
     fn compute_overflow(&self) -> Rect<Au> {
-        self.fragment.compute_overflow(&self.base
-                                            .early_absolute_position_info
-                                            .relative_containing_block_size)
+        self.fragment.compute_overflow(&self.base.early_absolute_position_info
+                                                 .relative_containing_block_size,
+                                       self.base.early_absolute_position_info
+                                                .relative_containing_block_mode)
     }
 
     fn iterate_through_fragment_border_boxes(&self,

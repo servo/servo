@@ -1775,7 +1775,8 @@ impl Flow for InlineFlow {
         let mut overflow = ZERO_RECT;
         for fragment in &self.fragments.fragments {
             overflow = overflow.union(&fragment.compute_overflow(
-                    &self.base.early_absolute_position_info.relative_containing_block_size))
+                    &self.base.early_absolute_position_info.relative_containing_block_size,
+                    self.base.early_absolute_position_info.relative_containing_block_mode));
         }
         overflow
     }
