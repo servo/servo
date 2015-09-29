@@ -167,6 +167,9 @@ pub struct Opts {
 
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
+
+    /// Do not use native titlebar
+    pub no_native_titlebar: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -411,6 +414,7 @@ pub fn default_opts() -> Opts {
         disable_share_style_cache: false,
         parallel_display_list_building: false,
         exit_after_load: false,
+        no_native_titlebar: false,
     }
 }
 
@@ -451,6 +455,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
+    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -614,6 +619,7 @@ pub fn from_cmdline_args(args: &[String]) {
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
         exit_after_load: opt_match.opt_present("x"),
+        no_native_titlebar: opt_match.opt_present("b"),
     };
 
     set_defaults(opts);
