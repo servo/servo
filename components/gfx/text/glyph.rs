@@ -62,14 +62,6 @@ impl GlyphEntry {
         GlyphEntry::new(glyph_count as u32)
     }
 
-    /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
-    /// character.
-    fn missing(glyph_count: usize) -> GlyphEntry {
-        assert!(glyph_count <= u16::MAX as usize);
-
-        GlyphEntry::new(glyph_count as u32)
-    }
-
     fn is_initial(&self) -> bool {
         *self == GlyphEntry::initial()
     }
@@ -317,7 +309,6 @@ pub struct GlyphData {
     id: GlyphId,
     advance: Au,
     offset: Point2D<Au>,
-    is_missing: bool,
     cluster_start: bool,
     ligature_start: bool,
 }
@@ -327,7 +318,6 @@ impl GlyphData {
     pub fn new(id: GlyphId,
                advance: Au,
                offset: Option<Point2D<Au>>,
-               is_missing: bool,
                cluster_start: bool,
                ligature_start: bool)
             -> GlyphData {
@@ -335,7 +325,6 @@ impl GlyphData {
             id: id,
             advance: advance,
             offset: offset.unwrap_or(Point2D::zero()),
-            is_missing: is_missing,
             cluster_start: cluster_start,
             ligature_start: ligature_start,
         }
@@ -470,15 +459,13 @@ impl<'a> GlyphStore {
         debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
         debug_assert!(i < self.char_len());
 
-        let mut entry = match (data.is_missing, glyph_is_compressible) {
-            (true, _) => GlyphEntry::missing(1),
-            (false, true) => GlyphEntry::simple(data.id, data.advance),
-            (false, false) => {
-                let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
-                self.has_detailed_glyphs = true;
-                self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
-                GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
-            }
+        let mut entry = if glyph_is_compressible {
+            GlyphEntry::simple(data.id, data.advance)
+        } else {
+            let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
+            self.has_detailed_glyphs = true;
+            self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
+            GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
         };
 
         if character == ' ' {
@@ -495,22 +482,18 @@ impl<'a> GlyphStore {
         let glyph_count = data_for_glyphs.len();
 
         let first_glyph_data = data_for_glyphs[0];
-        let entry = match first_glyph_data.is_missing {
-            true  => GlyphEntry::missing(glyph_count),
-            false => {
-                let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count).map(|i| {
-                    DetailedGlyph::new(data_for_glyphs[i].id,
-                                       data_for_glyphs[i].advance,
-                                       data_for_glyphs[i].offset)
-                }).collect();
+        let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count).map(|i| {
+            DetailedGlyph::new(data_for_glyphs[i].id,
+                               data_for_glyphs[i].advance,
+                               data_for_glyphs[i].offset)
+        }).collect();
 
-                self.has_detailed_glyphs = true;
-                self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
-                GlyphEntry::complex(first_glyph_data.cluster_start,
-                                    first_glyph_data.ligature_start,
-                                    glyph_count)
-            }
-        };
+        self.has_detailed_glyphs = true;
+        self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
+
+        let entry = GlyphEntry::complex(first_glyph_data.cluster_start,
+                                        first_glyph_data.ligature_start,
+                                        glyph_count);
 
         debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
 

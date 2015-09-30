@@ -453,7 +453,6 @@ impl Shaper {
                     let data = GlyphData::new(space_glyph_id,
                                               advance,
                                               Default::default(),
-                                              false,
                                               true,
                                               true);
                     glyphs.add_glyph_for_char_index(char_idx, character, &data);
@@ -463,7 +462,6 @@ impl Shaper {
                     let data = GlyphData::new(shape.codepoint,
                                               advance,
                                               shape.offset,
-                                              false,
                                               true,
                                               true);
                     glyphs.add_glyph_for_char_index(char_idx, character, &data);
@@ -477,7 +475,6 @@ impl Shaper {
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,
                                               shape.offset,
-                                              false, // not missing
                                               true,  // treat as cluster start
                                               glyph_i > glyph_span.begin()));
                                               // all but first are ligature continuations
