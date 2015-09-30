@@ -45,6 +45,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender)
 
 pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>) {
     let url = load_data.url;
+    let context = load_data.context;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
         let metadata = Metadata::default(url.clone());
@@ -57,7 +58,7 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
                         let (res, progress_chan) = match res {
                             Ok(ReadStatus::Partial(buf)) => {
                                 let progress_chan = start_sending_sniffed(senders, metadata,
-                                                                          classifier, &buf);
+                                                                          classifier, &buf, context);
                                 progress_chan.send(Payload(buf)).unwrap();
                                 (read_all(reader, &progress_chan), progress_chan)
                             }
