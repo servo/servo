@@ -43,7 +43,7 @@ use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleRe
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -151,8 +151,6 @@ pub struct Window {
     /// page changes.
     devtools_wants_updates: Cell<bool>,
 
-    next_subpage_id: Cell<SubpageId>,
-
     /// Pending resize event, if any.
     resize_event: Cell<Option<WindowSizeData>>,
 
@@ -160,7 +158,7 @@ pub struct Window {
     id: PipelineId,
 
     /// Subpage id associated with this page, if any.
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<PipelineId>,
 
     /// Unique id for last reflow request; used for confirming completion reply.
     last_reflow_id: Cell<u32>,
@@ -257,11 +255,7 @@ impl Window {
         self.id
     }
 
-    pub fn subpage(&self) -> Option<SubpageId> {
-        self.parent_info.map(|p| p.1)
-    }
-
-    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId)> {
+    pub fn parent_pipeline(&self) -> Option<PipelineId> {
         self.parent_info
     }
 
@@ -1126,13 +1120,6 @@ impl Window {
         WindowProxyHandler(self.dom_static.windowproxy_handler.0)
     }
 
-    pub fn get_next_subpage_id(&self) -> SubpageId {
-        let subpage_id = self.next_subpage_id.get();
-        let SubpageId(id_num) = subpage_id;
-        self.next_subpage_id.set(SubpageId(id_num + 1));
-        subpage_id
-    }
-
     pub fn layout_is_idle(&self) -> bool {
         self.layout_join_port.borrow().is_none()
     }
@@ -1269,7 +1256,7 @@ impl Window {
                constellation_chan: ConstellationChan,
                layout_chan: LayoutChan,
                id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<PipelineId>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
@@ -1312,7 +1299,6 @@ impl Window {
             fragment_name: DOMRefCell::new(None),
             last_reflow_id: Cell::new(0),
             resize_event: Cell::new(None),
-            next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
             layout_join_port: DOMRefCell::new(None),
