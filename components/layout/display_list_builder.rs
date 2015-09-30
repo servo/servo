@@ -1869,15 +1869,14 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                                              self.fragments.fragments[0].node);
         }
 
-        // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
-        // and remove the check for filter presence. Further details on #5812.
-        has_stacking_context = has_stacking_context && {
-            if let SpecificFragmentInfo::Canvas(_) = self.fragments.fragments[0].specific {
-                true
-            } else {
-                !self.fragments.fragments[0].style().get_effects().filter.is_empty()
-            }
-        };
+
+        // FIXME(Savago): a SC (Stacking Context) within another SC may not be displayed.
+        // It is a bit unclear if the issue is at the Paint step or after optimizing the Display list.
+        // In such cases, we have to set has_stacking_context to false to correctly draw
+        // (but not for filtered elements).
+        if self.fragments.fragments.len() > 0 {
+            has_stacking_context = !self.fragments.fragments[0].style().get_effects().filter.is_empty();
+        }
 
         self.base.display_list_building_result = if has_stacking_context {
             DisplayListBuildingResult::StackingContext(
