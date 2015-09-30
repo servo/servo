@@ -11,7 +11,7 @@ use std::borrow::ToOwned;
 use std::ffi::CStr;
 use std::iter::{Filter, Peekable};
 use std::ops::Deref;
-use std::str::{FromStr, Split, from_utf8};
+use std::str::{CharIndices, FromStr, Split, from_utf8};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -420,4 +420,17 @@ pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
         (_, None) => panic!("slice_chars: `end` is beyond end of string"),
         (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
     }
+}
+
+// searches a character index in CharIndices
+// returns indices.count if not found
+pub fn search_index(index: usize, indices: CharIndices) -> isize {
+    let mut character_count = 0;
+    for (character_index, _) in indices {
+        if character_index == index {
+            return character_count;
+        }
+        character_count += 1
+    }
+    character_count
 }
