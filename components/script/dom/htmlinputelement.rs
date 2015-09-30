@@ -389,7 +389,6 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other_owner == owner &&
-    // TODO should be a unicode compatibility caseless match
     match (other.get_radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => canonical_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
