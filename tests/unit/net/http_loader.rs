@@ -22,7 +22,7 @@ use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net::resource_task::CancellationListener;
-use net_traits::{LoadData, CookieSource};
+use net_traits::{LoadData, CookieSource, LoadContext};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
@@ -351,7 +351,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = None;
     load_data.method = Method::Get;
 
@@ -395,7 +395,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = None;
     load_data.method = Method::Post;
 
@@ -433,7 +433,7 @@ fn test_request_and_response_data_with_network_messages() {
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
-    let mut load_data = LoadData::new(url.clone(), Some(pipeline_id));
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), Some(pipeline_id));
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
@@ -506,7 +506,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let url = url!("https://mozilla.com");
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
                                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
@@ -535,7 +535,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     }
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.method = Method::Post;
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -564,7 +564,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     }
 
     let url = url!("http://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -598,7 +598,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     }
 
     let url = url!("http://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
@@ -641,7 +641,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     }
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -672,7 +672,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 
     let url = url!("http://mozilla.com");
 
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -705,7 +705,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
 
     let url = url!("https://mozilla.com");
 
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -743,7 +743,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     assert_cookie_for_domain(cookie_jar.clone(), "http://mozilla.com", "");
 
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let _ = load::<MockRequest>(load_data,
                                 hsts_list,
@@ -760,7 +760,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let url = url!("http://mozilla.com");
 
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -806,7 +806,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(url, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let mut headers = Headers::new();
@@ -840,7 +840,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let _ = load::<MockRequest>(load_data, hsts_list,
                                 cookie_jar.clone(),
                                 None,
@@ -870,7 +870,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let load_data = LoadData::new(url!("http://mozilla.com"), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url!("http://mozilla.com"), None);
     let _ = load::<MockRequest>(load_data, hsts_list,
                                 cookie_jar.clone(),
                                 None,
@@ -901,7 +901,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(url, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     assert_cookie_for_domain(cookie_jar.clone(), "https://mozilla.com", "mozillaIs=theBest");
@@ -919,7 +919,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
     let mut content_len_headers = Headers::new();
@@ -944,7 +944,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     accept_headers.set(Accept(vec![text_html.clone()]));
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(Accept(vec![text_html.clone()]));
 
@@ -973,7 +973,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     ]));
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -996,7 +996,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
@@ -1022,7 +1022,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
 
     let url = url!("http://mozilla.com");
-    let mut load_data = LoadData::new(url.clone(), None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
@@ -1058,7 +1058,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     }
 
     let url = url!("http://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1089,7 +1089,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     }
 
     let url = url!("http://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1128,7 +1128,7 @@ fn test_load_follows_a_redirect() {
     }
 
     let url = url!("http://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1156,7 +1156,7 @@ impl HttpRequestFactory for DontConnectFactory {
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
     let url = url!("ftp://not-supported");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1176,7 +1176,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
     let url = url!("view-source:ftp://not-supported");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -1220,7 +1220,7 @@ fn test_load_errors_when_cancelled() {
     cancel_sender.send(()).unwrap();
 
     let url = url!("https://mozilla.com");
-    let load_data = LoadData::new(url.clone(), None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 

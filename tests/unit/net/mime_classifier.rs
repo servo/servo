@@ -4,6 +4,7 @@
 
 use net::mime_classifier::as_string_option;
 use net::mime_classifier::{Mp4Matcher, MIMEClassifier, ApacheBugFlag, NoSniffFlag};
+use net_traits::LoadContext;
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
@@ -55,7 +56,8 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
 
     match read_result {
         Ok(data) => {
-            let (parsed_type, parsed_subtp) = classifier.classify(no_sniff_flag,
+            let (parsed_type, parsed_subtp) = classifier.classify(LoadContext::Browsing,
+                                                                  no_sniff_flag,
                                                                   apache_bug_flag,
                                                                   &as_string_option(supplied_type),
                                                                   &data);

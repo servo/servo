@@ -70,7 +70,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use net_traits::storage_task::StorageTask;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, Metadata, ResourceTask};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceTask};
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
@@ -2003,6 +2003,7 @@ impl ScriptTask {
         }
 
         resource_task.send(ControlMsg::Load(NetLoadData {
+            context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,
             headers: Headers::new(),

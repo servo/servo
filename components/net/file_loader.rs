@@ -61,6 +61,7 @@ pub fn factory(load_data: LoadData,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url;
+    let context = load_data.context;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<PathBuf, ()> = url.to_file_path();
@@ -77,7 +78,7 @@ pub fn factory(load_data: LoadData,
                                 let mime_type = guess_mime_type(file_path.as_path());
                                 metadata.set_content_type(Some(&mime_type));
                                 let progress_chan = start_sending_sniffed(senders, metadata,
-                                                                          classifier, &buf);
+                                                                          classifier, &buf, context);
                                 progress_chan.send(Payload(buf)).unwrap();
                                 let read_result = read_all(reader, &progress_chan, &cancel_listener);
                                 if let Ok(load_result) = read_result {
@@ -94,7 +95,8 @@ pub fn factory(load_data: LoadData,
                                 if let Ok(chan) = start_sending_sniffed_opt(senders,
                                                                             metadata,
                                                                             classifier,
-                                                                            &[]) {
+                                                                            &[],
+                                                                            context) {
                                     let _ = chan.send(Done(Ok(())));
                                 }
                             }
@@ -108,7 +110,7 @@ pub fn factory(load_data: LoadData,
                         // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                         // but, we'll go for a "file not found!"
                         let url = Url::parse("about:not-found").unwrap();
-                        let load_data_404 = LoadData::new(url, None);
+                        let load_data_404 = LoadData::new(context, url, None);
                         about_loader::factory(load_data_404, senders, classifier, cancel_listener)
                     }
                 }
