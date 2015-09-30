@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use net_traits::LoadContext;
 use net_traits::image::base::{Image, load_from_memory};
 use net_traits::image_cache_task::ImageResponder;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheCommand, ImageCacheTask, ImageState};
@@ -423,7 +424,7 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource task.
-                        let load_data = LoadData::new((*ref_url).clone(), None);
+                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,

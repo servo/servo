@@ -17,6 +17,7 @@ use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
+use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
@@ -63,14 +64,16 @@ pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &[u8])
+                             classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                             context: LoadContext)
                              -> ProgressSender {
-    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
+    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body, context).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8])
+                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                                 context: LoadContext)
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
@@ -92,16 +95,18 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         }
 
         let supplied_type =
-            metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
+            metadata.content_type.as_ref().map(|&ContentType(Mime(ref toplevel, ref sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        let (toplevel, sublevel) = classifier.classify(no_sniff,
-                                                       check_for_apache_bug,
-                                                       &supplied_type,
-                                                       &partial_body);
-        let mime_tp: TopLevel = toplevel.parse().unwrap();
-        let mime_sb: SubLevel = sublevel.parse().unwrap();
-        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
+        if let Some((toplevel, sublevel)) = classifier.classify(context,
+                                                                no_sniff,
+                                                                check_for_apache_bug,
+                                                                &supplied_type,
+                                                                &partial_body) {
+            let mime_tp: TopLevel = toplevel.parse().unwrap();
+            let mime_sb: SubLevel = sublevel.parse().unwrap();
+            metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
+        }
     }
 
     start_sending_opt(start_chan, metadata)
