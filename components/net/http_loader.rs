@@ -24,7 +24,7 @@ use log;
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -107,6 +107,7 @@ fn load_for_consumer(load_data: LoadData,
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
+    let context = load_data.context.clone();
     match load::<WrappedHttpRequest>(load_data, hsts_list, cookie_jar, devtools_chan, &factory, user_agent) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
@@ -128,7 +129,7 @@ fn load_for_consumer(load_data: LoadData,
 
             let mut image = resources_dir_path();
             image.push("badcert.html");
-            let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
+            let load_data = LoadData::new(context, Url::from_file_path(&*image).unwrap(), None);
 
             file_loader::factory(load_data, start_chan, classifier)
 
@@ -136,7 +137,7 @@ fn load_for_consumer(load_data: LoadData,
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(&mut load_response, start_chan, metadata, classifier)
+            send_data(context, &mut load_response, start_chan, metadata, classifier)
         }
     }
 }
@@ -695,7 +696,8 @@ pub fn load<A>(load_data: LoadData,
     }
 }
 
-fn send_data<R: Read>(reader: &mut R,
+fn send_data<R: Read>(context: LoadContext,
+                      reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
                       classifier: Arc<MIMEClassifier>) {
@@ -704,7 +706,7 @@ fn send_data<R: Read>(reader: &mut R,
             Ok(ReadResult::Payload(buf)) => buf,
             _ => vec!(),
         };
-        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf) {
+        let p = match start_sending_sniffed_opt(start_chan, metadata, classifier, &buf, context) {
             Ok(p) => p,
             _ => return
         };

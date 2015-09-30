@@ -9,7 +9,7 @@ use net_traits::image_cache_task::ImageResponder;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheCommand, ImageCacheTask, ImageState};
 use net_traits::image_cache_task::{ImageCacheResult, ImageResponse, UsePlaceholder};
 use net_traits::load_whole_resource;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceTask, ResponseAction};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, LoadData, ResourceTask, ResponseAction};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -422,7 +422,7 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource task.
-                        let load_data = LoadData::new((*ref_url).clone(), None);
+                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
@@ -461,7 +461,7 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
         placeholder_url.push("rippy.jpg");
         let placeholder_image = match Url::from_file_path(&*placeholder_url) {
             Ok(url) => {
-                match load_whole_resource(&resource_task, url) {
+                match load_whole_resource(LoadContext::Image, &resource_task, url) {
                     Err(..) => {
                         debug!("image_cache_task: failed loading the placeholder.");
                         None
