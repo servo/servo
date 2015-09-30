@@ -465,19 +465,17 @@ impl<'a> GlyphStore {
     /// otherwise, this glyph represents multiple characters.
     pub fn add_glyph_for_char_index(&mut self,
                                     i: CharIndex,
-                                    character: Option<char>,
+                                    character: char,
                                     data: &GlyphData) {
-        fn glyph_is_compressible(data: &GlyphData) -> bool {
-            is_simple_glyph_id(data.id)
-                && is_simple_advance(data.advance)
+        let glyph_is_compressible = is_simple_glyph_id(data.id) &&
+            is_simple_advance(data.advance)
                 && data.offset == Point2D::zero()
-                && data.cluster_start  // others are stored in detail buffer
-        }
+                && data.cluster_start;  // others are stored in detail buffer
 
         debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
         debug_assert!(i < self.char_len());
 
-        let mut entry = match (data.is_missing, glyph_is_compressible(data)) {
+        let mut entry = match (data.is_missing, glyph_is_compressible) {
             (true, _) => GlyphEntry::missing(1),
             (false, true) => GlyphEntry::simple(data.id, data.advance),
             (false, false) => {
@@ -488,7 +486,7 @@ impl<'a> GlyphStore {
             }
         };
 
-        if character == Some(' ') {
+        if character == ' ' {
             entry = entry.set_char_is_space()
         }
 

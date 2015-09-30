@@ -456,7 +456,7 @@ impl Shaper {
                                               false,
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.begin(), &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
@@ -466,7 +466,7 @@ impl Shaper {
                                               false,
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
                 }
             } else {
                 // collect all glyphs to be assigned to the first character.
