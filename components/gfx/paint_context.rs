@@ -196,10 +196,14 @@ impl<'a> PaintContext<'a> {
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = draw_target_ref.create_source_surface_from_data(&image.bytes,
-                                                                            size,
-                                                                            stride as i32,
-                                                                            source_format);
+        let azure_surface = match draw_target_ref.create_source_surface_from_data(&image.bytes,
+                                                                                  size,
+                                                                                  stride as i32,
+                                                                                  source_format) {
+            Some(azure_surface) => azure_surface,
+            None => return,
+        };
+
         let source_rect = Rect::new(Point2D::new(0.0, 0.0),
                                     Size2D::new(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_nearest_azure_rect(scale);

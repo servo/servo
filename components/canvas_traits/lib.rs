@@ -286,13 +286,13 @@ pub enum FillOrStrokeStyle {
 }
 
 impl FillOrStrokeStyle {
-    pub fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Pattern {
+    pub fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
         match *self {
             FillOrStrokeStyle::Color(ref color) => {
-                Pattern::Color(ColorPattern::new(color::new(color.red,
-                                                            color.green,
-                                                            color.blue,
-                                                            color.alpha)))
+                Some(Pattern::Color(ColorPattern::new(color::new(color.red,
+                                                                 color.green,
+                                                                 color.blue,
+                                                                 color.alpha))))
             },
             FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
@@ -302,11 +302,11 @@ impl FillOrStrokeStyle {
                     }
                 }).collect();
 
-                Pattern::LinearGradient(LinearGradientPattern::new(
+                Some(Pattern::LinearGradient(LinearGradientPattern::new(
                     &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
                     &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity()))
+                    &Matrix2D::identity())))
             },
             FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
                 let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
@@ -316,25 +316,25 @@ impl FillOrStrokeStyle {
                     }
                 }).collect();
 
-                Pattern::RadialGradient(RadialGradientPattern::new(
+                Some(Pattern::RadialGradient(RadialGradientPattern::new(
                     &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
                     &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
                     radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
                     drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity()))
+                    &Matrix2D::identity())))
             },
             FillOrStrokeStyle::Surface(ref surface_style) => {
-                let source_surface = drawtarget.create_source_surface_from_data(
-                    &surface_style.surface_data,
-                    surface_style.surface_size,
-                    surface_style.surface_size.width * 4,
-                    SurfaceFormat::B8G8R8A8);
-
-                Pattern::Surface(SurfacePattern::new(
-                    source_surface.azure_source_surface,
-                    surface_style.repeat_x,
-                    surface_style.repeat_y,
-                    &Matrix2D::identity()))
+                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
+                                                           surface_style.surface_size,
+                                                           surface_style.surface_size.width * 4,
+                                                           SurfaceFormat::B8G8R8A8)
+                          .map(|source_surface| {
+                    Pattern::Surface(SurfacePattern::new(
+                        source_surface.azure_source_surface,
+                        surface_style.repeat_x,
+                        surface_style.repeat_y,
+                        &Matrix2D::identity()))
+                    })
             }
         }
     }
