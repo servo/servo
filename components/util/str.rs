@@ -329,8 +329,8 @@ pub unsafe fn c_str_to_string(s: *const c_char) -> String {
 pub fn str_join<I, T>(strs: I, join: &str) -> String
     where I: IntoIterator<Item=T>, T: AsRef<str>,
 {
-    strs.into_iter().fold(String::new(), |mut acc, s| {
-        if !acc.is_empty() { acc.push_str(join); }
+    strs.into_iter().enumerate().fold(String::new(), |mut acc, (i, s)| {
+        if i > 0 { acc.push_str(join); }
         acc.push_str(s.as_ref());
         acc
     })
