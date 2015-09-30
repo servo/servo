@@ -147,11 +147,6 @@ impl GlyphEntry {
     fn has_flag(&self, flag: u32) -> bool {
         (self.value & flag) != 0
     }
-
-    #[inline(always)]
-    fn adapt_character_flags_of_entry(&self, other: GlyphEntry) -> GlyphEntry {
-        GlyphEntry { value: self.value | other.value }
-    }
 }
 
 // Stores data for a detailed glyph, in the case that several glyphs
@@ -515,7 +510,7 @@ impl<'a> GlyphStore {
                                     first_glyph_data.ligature_start,
                                     glyph_count)
             }
-        }.adapt_character_flags_of_entry(self.entry_buffer[i.to_usize()]);
+        };
 
         debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
 
