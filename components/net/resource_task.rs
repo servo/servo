@@ -19,7 +19,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
-use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse};
+use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, LoadContext};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::sync::mpsc::{Sender, channel};
@@ -57,14 +57,16 @@ pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSe
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &[u8])
+                             classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                             context: LoadContext)
                              -> ProgressSender {
-    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
+    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body, context).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8])
+                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                                 context: LoadContext)
                                  -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
@@ -89,7 +91,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        metadata.content_type = classifier.classify(no_sniff, check_for_apache_bug, &supplied_type,
+        metadata.content_type = classifier.classify(context, no_sniff, check_for_apache_bug, &supplied_type,
                                                     &partial_body).map(|(toplevel, sublevel)| {
             let mime_tp: TopLevel = toplevel.parse().unwrap();
             let mime_sb: SubLevel = sublevel.parse().unwrap();
