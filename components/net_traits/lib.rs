@@ -35,7 +35,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
 use serde::{Deserializer, Serializer};
-use std::sync::mpsc::Receiver;
 use std::thread;
 use url::Url;
 use util::mem::HeapSizeOf;
