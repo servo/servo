@@ -28,7 +28,8 @@ use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, MozBrowserEvent, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
+use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -57,6 +58,7 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
+    pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
@@ -92,6 +94,8 @@ impl HTMLIFrameElement {
     }
 
     pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
+        self.pipeline_id.set(Some(PipelineId::new()));
+
         let old_subpage_id = self.subpage_id.get();
         let win = window_from_node(self);
         let subpage_id = win.r().get_next_subpage_id();
@@ -109,15 +113,20 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
+        let new_pipeline_id = self.pipeline_id.get().unwrap();
 
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
         let ConstellationChan(ref chan) = window.constellation_chan();
-        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
-                                                            window.pipeline(),
-                                                            new_subpage_id,
-                                                            old_subpage_id,
-                                                            sandboxed)).unwrap();
+        let load_info = IframeLoadInfo {
+            url: url,
+            containing_pipeline_id: window.pipeline(),
+            new_subpage_id: new_subpage_id,
+            old_subpage_id: old_subpage_id,
+            new_pipeline_id: new_pipeline_id,
+            sandbox: sandboxed,
+        };
+        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
 
         if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -190,6 +199,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
