@@ -542,7 +542,7 @@ impl<'a> GlyphStore {
     #[inline]
     pub fn advance_for_char_range_slow_path(&self, rang: &Range<CharIndex>) -> Au {
         self.iter_glyphs_for_char_range(rang)
-            .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+            .fold(Au(0), |advance, glyph| advance + glyph.advance())
     }
 
     #[inline]
@@ -664,11 +664,10 @@ pub struct GlyphIterator<'a> {
 impl<'a> GlyphIterator<'a> {
     // Slow path when there is a glyph range.
     #[inline(never)]
-    fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next_glyph_range(&mut self) -> Option<GlyphInfo<'a>> {
         match self.glyph_range.as_mut().unwrap().next() {
             Some(j) => {
-                Some((self.char_index,
-                    GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */)))
+                Some(GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */))
             }
             None => {
                 // No more glyphs for current character.  Try to get another.
@@ -680,8 +679,7 @@ impl<'a> GlyphIterator<'a> {
 
     // Slow path when there is a complex glyph.
     #[inline(never)]
-    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex)
-                          -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex) -> Option<GlyphInfo<'a>> {
         let glyphs = self.store.detail_store.detailed_glyphs_for_entry(i, entry.glyph_count());
         self.glyph_range = Some(range::each_index(CharIndex(0), CharIndex(glyphs.len() as isize)));
         self.next()
@@ -689,7 +687,7 @@ impl<'a> GlyphIterator<'a> {
 }
 
 impl<'a> Iterator for GlyphIterator<'a> {
-    type Item  = (CharIndex, GlyphInfo<'a>);
+    type Item  = GlyphInfo<'a>;
 
     // I tried to start with something simpler and apply FlatMap, but the
     // inability to store free variables in the FlatMap struct was problematic.
@@ -698,7 +696,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
     // slow paths, which should not be inlined, are `next_glyph_range()` and
     // `next_complex_glyph()`.
     #[inline(always)]
-    fn next(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next(&mut self) -> Option<GlyphInfo<'a>> {
         // Would use 'match' here but it borrows contents in a way that interferes with mutation.
         if self.glyph_range.is_some() {
             return self.next_glyph_range()
@@ -717,7 +715,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
         debug_assert!(i < self.store.char_len());
         let entry = self.store.entry_buffer[i.to_usize()];
         if entry.is_simple() {
-            Some((i, GlyphInfo::Simple(self.store, i)))
+            Some(GlyphInfo::Simple(self.store, i))
         } else {
             // Fall back to the slow path.
             self.next_complex_glyph(&entry, i)
