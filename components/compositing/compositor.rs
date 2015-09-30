@@ -1546,6 +1546,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.context.is_some() {
             return None
         }
+
+        // Don't composite if the target is not ready to paint.
+        match self.scene.root {
+            Some(ref root_layer) if target == CompositeTarget::Window &&
+                self.does_layer_have_outstanding_paint_messages(root_layer) =>
+                return None,
+            _ => {}
+        }
+
+
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
@@ -1610,7 +1620,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.shutdown_state = ShutdownState::ShuttingDown;
         }
 
-        // Perform the page flip. This will likely block for a while.
+        // Perform the page flip. If the GL context is configured to
+        // block until vsync, this will likely block for a while.
         self.window.present();
 
         self.last_composite_time = precise_time_ns();
