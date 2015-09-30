@@ -7,7 +7,7 @@
 
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
-use net_traits::{Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
+use net_traits::{LoadContext, Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
 use script_task::MainThreadScriptMsg;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
@@ -30,6 +30,16 @@ impl LoadType {
             LoadType::Subframe(ref url) |
             LoadType::Stylesheet(ref url) |
             LoadType::PageSource(ref url) => url,
+        }
+    }
+
+    fn to_load_context(&self) -> LoadContext {
+        match *self {
+            LoadType::Image(_) => LoadContext::Image,
+            LoadType::Script(_) => LoadContext::Script,
+            LoadType::Subframe(_)
+          | LoadType::PageSource(_) => LoadContext::Browsing,
+            LoadType::Stylesheet(_) => LoadContext::Style
         }
     }
 }
@@ -74,10 +84,11 @@ impl DocumentLoader {
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
+        let context = load.to_load_context();
         let url = load.url().clone();
         self.blocking_loads.push(load);
         let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
-        PendingAsyncLoad::new((*self.resource_task).clone(), url, pipeline)
+        PendingAsyncLoad::new(context, (*self.resource_task).clone(), url, pipeline)
     }
 
     /// Create and initiate a new network request.
@@ -89,7 +100,7 @@ impl DocumentLoader {
     /// Create, initiate, and await the response for a new network request.
     pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
         self.blocking_loads.push(load.clone());
-        let result = load_whole_resource(&self.resource_task, load.url().clone());
+        let result = load_whole_resource(load.to_load_context(), &self.resource_task, load.url().clone());
         self.finish_load(load);
         result
     }
