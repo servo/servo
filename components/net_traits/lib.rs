@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(box_raw)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
@@ -81,11 +80,6 @@ pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
     Errored
-}
-
-pub struct ResponseLoader {
-    response: Response,
-    chan: Receiver<ResponseMsg>
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
