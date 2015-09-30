@@ -62,14 +62,6 @@ impl GlyphEntry {
         GlyphEntry::new(glyph_count as u32)
     }
 
-    /// Create a GlyphEntry for the case where glyphs couldn't be found for the specified
-    /// character.
-    fn missing(glyph_count: usize) -> GlyphEntry {
-        assert!(glyph_count <= u16::MAX as usize);
-
-        GlyphEntry::new(glyph_count as u32)
-    }
-
     fn is_initial(&self) -> bool {
         *self == GlyphEntry::initial()
     }
@@ -129,8 +121,8 @@ impl GlyphEntry {
     }
 
     #[inline(always)]
-    fn set_char_is_space(&self) -> GlyphEntry {
-        GlyphEntry::new(self.value | FLAG_CHAR_IS_SPACE)
+    fn set_char_is_space(&mut self) {
+        self.value |= FLAG_CHAR_IS_SPACE;
     }
 
     fn glyph_count(&self) -> u16 {
@@ -146,11 +138,6 @@ impl GlyphEntry {
     #[inline(always)]
     fn has_flag(&self, flag: u32) -> bool {
         (self.value & flag) != 0
-    }
-
-    #[inline(always)]
-    fn adapt_character_flags_of_entry(&self, other: GlyphEntry) -> GlyphEntry {
-        GlyphEntry { value: self.value | other.value }
     }
 }
 
@@ -322,7 +309,6 @@ pub struct GlyphData {
     id: GlyphId,
     advance: Au,
     offset: Point2D<Au>,
-    is_missing: bool,
     cluster_start: bool,
     ligature_start: bool,
 }
@@ -332,7 +318,6 @@ impl GlyphData {
     pub fn new(id: GlyphId,
                advance: Au,
                offset: Option<Point2D<Au>>,
-               is_missing: bool,
                cluster_start: bool,
                ligature_start: bool)
             -> GlyphData {
@@ -340,7 +325,6 @@ impl GlyphData {
             id: id,
             advance: advance,
             offset: offset.unwrap_or(Point2D::zero()),
-            is_missing: is_missing,
             cluster_start: cluster_start,
             ligature_start: ligature_start,
         }
@@ -465,31 +449,27 @@ impl<'a> GlyphStore {
     /// otherwise, this glyph represents multiple characters.
     pub fn add_glyph_for_char_index(&mut self,
                                     i: CharIndex,
-                                    character: Option<char>,
+                                    character: char,
                                     data: &GlyphData) {
-        fn glyph_is_compressible(data: &GlyphData) -> bool {
-            is_simple_glyph_id(data.id)
-                && is_simple_advance(data.advance)
+        let glyph_is_compressible = is_simple_glyph_id(data.id) &&
+            is_simple_advance(data.advance)
                 && data.offset == Point2D::zero()
-                && data.cluster_start  // others are stored in detail buffer
-        }
+                && data.cluster_start;  // others are stored in detail buffer
 
         debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
         debug_assert!(i < self.char_len());
 
-        let mut entry = match (data.is_missing, glyph_is_compressible(data)) {
-            (true, _) => GlyphEntry::missing(1),
-            (false, true) => GlyphEntry::simple(data.id, data.advance),
-            (false, false) => {
-                let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
-                self.has_detailed_glyphs = true;
-                self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
-                GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
-            }
+        let mut entry = if glyph_is_compressible {
+            GlyphEntry::simple(data.id, data.advance)
+        } else {
+            let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
+            self.has_detailed_glyphs = true;
+            self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
+            GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
         };
 
-        if character == Some(' ') {
-            entry = entry.set_char_is_space()
+        if character == ' ' {
+            entry.set_char_is_space()
         }
 
         self.entry_buffer[i.to_usize()] = entry;
@@ -502,22 +482,18 @@ impl<'a> GlyphStore {
         let glyph_count = data_for_glyphs.len();
 
         let first_glyph_data = data_for_glyphs[0];
-        let entry = match first_glyph_data.is_missing {
-            true  => GlyphEntry::missing(glyph_count),
-            false => {
-                let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count).map(|i| {
-                    DetailedGlyph::new(data_for_glyphs[i].id,
-                                       data_for_glyphs[i].advance,
-                                       data_for_glyphs[i].offset)
-                }).collect();
+        let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count).map(|i| {
+            DetailedGlyph::new(data_for_glyphs[i].id,
+                               data_for_glyphs[i].advance,
+                               data_for_glyphs[i].offset)
+        }).collect();
 
-                self.has_detailed_glyphs = true;
-                self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
-                GlyphEntry::complex(first_glyph_data.cluster_start,
-                                    first_glyph_data.ligature_start,
-                                    glyph_count)
-            }
-        }.adapt_character_flags_of_entry(self.entry_buffer[i.to_usize()]);
+        self.has_detailed_glyphs = true;
+        self.detail_store.add_detailed_glyphs_for_entry(i, &glyphs_vec);
+
+        let entry = GlyphEntry::complex(first_glyph_data.cluster_start,
+                                        first_glyph_data.ligature_start,
+                                        glyph_count);
 
         debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
 
@@ -566,7 +542,7 @@ impl<'a> GlyphStore {
     #[inline]
     pub fn advance_for_char_range_slow_path(&self, rang: &Range<CharIndex>) -> Au {
         self.iter_glyphs_for_char_range(rang)
-            .fold(Au(0), |advance, (_, glyph)| advance + glyph.advance())
+            .fold(Au(0), |advance, glyph| advance + glyph.advance())
     }
 
     #[inline]
@@ -688,11 +664,10 @@ pub struct GlyphIterator<'a> {
 impl<'a> GlyphIterator<'a> {
     // Slow path when there is a glyph range.
     #[inline(never)]
-    fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next_glyph_range(&mut self) -> Option<GlyphInfo<'a>> {
         match self.glyph_range.as_mut().unwrap().next() {
             Some(j) => {
-                Some((self.char_index,
-                    GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */)))
+                Some(GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */))
             }
             None => {
                 // No more glyphs for current character.  Try to get another.
@@ -704,8 +679,7 @@ impl<'a> GlyphIterator<'a> {
 
     // Slow path when there is a complex glyph.
     #[inline(never)]
-    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex)
-                          -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: CharIndex) -> Option<GlyphInfo<'a>> {
         let glyphs = self.store.detail_store.detailed_glyphs_for_entry(i, entry.glyph_count());
         self.glyph_range = Some(range::each_index(CharIndex(0), CharIndex(glyphs.len() as isize)));
         self.next()
@@ -713,7 +687,7 @@ impl<'a> GlyphIterator<'a> {
 }
 
 impl<'a> Iterator for GlyphIterator<'a> {
-    type Item  = (CharIndex, GlyphInfo<'a>);
+    type Item  = GlyphInfo<'a>;
 
     // I tried to start with something simpler and apply FlatMap, but the
     // inability to store free variables in the FlatMap struct was problematic.
@@ -722,7 +696,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
     // slow paths, which should not be inlined, are `next_glyph_range()` and
     // `next_complex_glyph()`.
     #[inline(always)]
-    fn next(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
+    fn next(&mut self) -> Option<GlyphInfo<'a>> {
         // Would use 'match' here but it borrows contents in a way that interferes with mutation.
         if self.glyph_range.is_some() {
             return self.next_glyph_range()
@@ -741,7 +715,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
         debug_assert!(i < self.store.char_len());
         let entry = self.store.entry_buffer[i.to_usize()];
         if entry.is_simple() {
-            Some((i, GlyphInfo::Simple(self.store, i)))
+            Some(GlyphInfo::Simple(self.store, i))
         } else {
             // Fall back to the slow path.
             self.next_complex_glyph(&entry, i)

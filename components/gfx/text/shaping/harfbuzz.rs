@@ -453,20 +453,18 @@ impl Shaper {
                     let data = GlyphData::new(space_glyph_id,
                                               advance,
                                               Default::default(),
-                                              false,
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.begin(), &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
                     let data = GlyphData::new(shape.codepoint,
                                               advance,
                                               shape.offset,
-                                              false,
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
+                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
                 }
             } else {
                 // collect all glyphs to be assigned to the first character.
@@ -477,7 +475,6 @@ impl Shaper {
                     datas.push(GlyphData::new(shape.codepoint,
                                               shape.advance,
                                               shape.offset,
-                                              false, // not missing
                                               true,  // treat as cluster start
                                               glyph_i > glyph_span.begin()));
                                               // all but first are ligature continuations
