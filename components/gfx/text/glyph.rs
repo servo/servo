@@ -129,8 +129,8 @@ impl GlyphEntry {
     }
 
     #[inline(always)]
-    fn set_char_is_space(&self) -> GlyphEntry {
-        GlyphEntry::new(self.value | FLAG_CHAR_IS_SPACE)
+    fn set_char_is_space(&mut self) {
+        self.value |= FLAG_CHAR_IS_SPACE;
     }
 
     fn glyph_count(&self) -> u16 {
@@ -487,7 +487,7 @@ impl<'a> GlyphStore {
         };
 
         if character == ' ' {
-            entry = entry.set_char_is_space()
+            entry.set_char_is_space()
         }
 
         self.entry_buffer[i.to_usize()] = entry;
