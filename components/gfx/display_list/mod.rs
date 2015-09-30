@@ -22,7 +22,7 @@ use euclid::num::Zero;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::color;
 use libc::uintptr_t;
-use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
+use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy, SubpageLayerInfo};
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
 use paint_task::PaintLayer;
@@ -364,6 +364,9 @@ pub struct StackingContext {
 
     /// The layer id for this stacking context, if there is one.
     pub layer_id: Option<LayerId>,
+
+    /// The subpage that this stacking context represents, if there is one.
+    pub subpage_layer_info: Option<SubpageLayerInfo>,
 }
 
 impl StackingContext {
@@ -380,7 +383,8 @@ impl StackingContext {
                establishes_3d_context: bool,
                scrolls_overflow_area: bool,
                scroll_policy: ScrollPolicy,
-               layer_id: Option<LayerId>)
+               layer_id: Option<LayerId>,
+               subpage_layer_info: Option<SubpageLayerInfo>)
                -> StackingContext {
         let mut stacking_context = StackingContext {
             display_list: display_list,
@@ -395,6 +399,7 @@ impl StackingContext {
             scrolls_overflow_area: scrolls_overflow_area,
             scroll_policy: scroll_policy,
             layer_id: layer_id,
+            subpage_layer_info: subpage_layer_info,
         };
         StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
         stacking_context
@@ -416,6 +421,7 @@ impl StackingContext {
             scrolls_overflow_area: self.scrolls_overflow_area,
             scroll_policy: self.scroll_policy,
             layer_id: Some(layer_id),
+            subpage_layer_info: self.subpage_layer_info,
         }
     }
 
@@ -679,11 +685,19 @@ impl StackingContextLayerCreator {
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
             let next_layer_id =
-                stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
+                stacking_context.display_list
+                                .layered_children
+                                .back()
+                                .unwrap()
+                                .id
+                                .companion_layer_id();
             let child_stacking_context =
                 Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
-            stacking_context.display_list.layered_children.push_back(Arc::new(
-                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context)));
+            stacking_context.display_list.layered_children.push_back(
+                Arc::new(PaintLayer::new(next_layer_id,
+                                         color::transparent(),
+                                         child_stacking_context,
+                                         ScrollPolicy::Scrollable)));
             self.all_following_children_need_layers = true;
         }
     }
@@ -694,7 +708,10 @@ impl StackingContextLayerCreator {
         if let Some(layer_id) = stacking_context.layer_id {
             self.finish_building_current_layer(parent_stacking_context);
             parent_stacking_context.display_list.layered_children.push_back(
-                Arc::new(PaintLayer::new(layer_id, color::transparent(), stacking_context)));
+                Arc::new(PaintLayer::new(layer_id,
+                                         color::transparent(),
+                                         stacking_context,
+                                         ScrollPolicy::Scrollable)));
 
             // We have started processing layered stacking contexts, so any stacking context that
             // we process from now on needs its own layer to ensure proper rendering order.

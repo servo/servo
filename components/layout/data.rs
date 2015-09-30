@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use construct::{ConstructionItem, ConstructionResult};
+use construct::ConstructionResult;
 use incremental::RestyleDamage;
-use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
 use script::dom::node::SharedLayoutData;
 use std::sync::Arc;
@@ -62,30 +61,6 @@ bitflags! {
 pub struct LayoutDataWrapper {
     pub shared_data: SharedLayoutData,
     pub data: Box<PrivateLayoutData>,
-}
-
-impl LayoutDataWrapper {
-    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
-        match self.data.flow_construction_result {
-            ConstructionResult::None => {}
-            ConstructionResult::Flow(ref flow_ref, _) => {
-                flow_ref.remove_compositor_layers(constellation_chan);
-            }
-            ConstructionResult::ConstructionItem(ref construction_item) => {
-                match *construction_item {
-                    ConstructionItem::InlineFragments(ref inline_fragments) => {
-                        for fragment in &inline_fragments.fragments.fragments {
-                            fragment.remove_compositor_layers(constellation_chan.clone());
-                        }
-                    }
-                    ConstructionItem::Whitespace(..) => {}
-                    ConstructionItem::TableColumnFragment(ref fragment) => {
-                        fragment.remove_compositor_layers(constellation_chan.clone());
-                    }
-                }
-            }
-        }
-    }
 }
 
 #[allow(dead_code, unsafe_code)]

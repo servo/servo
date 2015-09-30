@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl;
-use compositor::IOCompositor;
+use compositor::{IOCompositor, RemovedPipelineInfo};
 use euclid::length::Length;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::Rect;
@@ -12,7 +12,7 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, SubpageId};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
@@ -42,6 +42,9 @@ pub struct CompositorData {
     /// The scroll offset originating from this scrolling root. This allows scrolling roots
     /// to track their current scroll position even while their content_offset does not change.
     pub scroll_offset: TypedPoint2D<LayerPixel, f32>,
+
+    /// The pipeline ID and subpage ID of this layer, if it represents a subpage.
+    pub subpage_info: Option<(PipelineId, SubpageId)>,
 }
 
 impl CompositorData {
@@ -58,6 +61,9 @@ impl CompositorData {
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
             scroll_offset: Point2D::typed(0., 0.),
+            subpage_info: layer_properties.subpage_layer_info.map(|subpage_layer_info| {
+                (subpage_layer_info.pipeline_id, subpage_layer_info.subpage_id)
+            }),
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
@@ -96,14 +102,6 @@ pub trait CompositorLayer {
                                                   compositor: &mut IOCompositor<Window>,
                                                   pipeline_id: PipelineId)
                                                   where Window: WindowMethods;
-
-    /// Traverses the existing layer hierarchy and removes any layers that
-    /// currently exist but which are no longer required.
-    fn collect_old_layers<Window>(&self,
-                                  compositor: &mut IOCompositor<Window>,
-                                  pipeline_id: PipelineId,
-                                  new_layers: &[LayerProperties])
-                                  where Window: WindowMethods;
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
@@ -149,6 +147,17 @@ pub trait CompositorLayer {
 
     /// Return the pipeline id associated with this layer.
     fn pipeline_id(&self) -> PipelineId;
+}
+
+pub trait RcCompositorLayer {
+    /// Traverses the existing layer hierarchy and removes any layers that
+    /// currently exist but which are no longer required.
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &[LayerProperties],
+                                  pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                                  where Window: WindowMethods;
 }
 
 #[derive(Copy, PartialEq, Clone, Debug)]
@@ -279,43 +288,6 @@ impl CompositorLayer for Layer<CompositorData> {
         }
     }
 
-    fn collect_old_layers<Window>(&self,
-                                  compositor: &mut IOCompositor<Window>,
-                                  pipeline_id: PipelineId,
-                                  new_layers: &[LayerProperties])
-                                  where Window: WindowMethods {
-        // Traverse children first so that layers are removed
-        // bottom up - allowing each layer being removed to properly
-        // clean up any tiles it owns.
-        for kid in &*self.children() {
-            kid.collect_old_layers(compositor, pipeline_id, new_layers);
-        }
-
-        // Retain child layers that also exist in the new layer list.
-        self.children().retain(|child| {
-            let extra_data = child.extra_data.borrow();
-
-            // Never remove root layers or layers from other pipelines.
-            if pipeline_id != extra_data.pipeline_id ||
-               extra_data.id == LayerId::null() {
-                true
-            } else {
-                // Keep this layer if it exists in the new layer list.
-                let keep_layer = new_layers.iter().any(|properties| {
-                    properties.id == extra_data.id
-                });
-
-                // When removing a layer, clear any tiles and surfaces
-                // associated with the layer.
-                if !keep_layer {
-                    child.clear_all_tiles(compositor);
-                }
-
-                keep_layer
-            }
-        });
-    }
-
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
@@ -403,8 +375,11 @@ impl CompositorLayer for Layer<CompositorData> {
                 MouseUpEvent(button, event_point),
         };
 
-        let pipeline = compositor.pipeline(self.pipeline_id());
-        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
+            pipeline.script_chan
+                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
+                    .unwrap();
+        }
     }
 
     fn send_mouse_move_event<Window>(&self,
@@ -412,8 +387,11 @@ impl CompositorLayer for Layer<CompositorData> {
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
-        let pipeline = compositor.pipeline(self.pipeline_id());
-        let _ = pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
+            pipeline.script_chan
+                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
+                    .unwrap();
+        }
     }
 
     fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -443,3 +421,97 @@ impl CompositorLayer for Layer<CompositorData> {
         self.extra_data.borrow().pipeline_id
     }
 }
+
+impl RcCompositorLayer for Rc<Layer<CompositorData>> {
+    fn collect_old_layers<Window>(&self,
+                                  compositor: &mut IOCompositor<Window>,
+                                  pipeline_id: PipelineId,
+                                  new_layers: &[LayerProperties],
+                                  pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                                  where Window: WindowMethods {
+        fn find_root_layer_for_pipeline(layer: &Rc<Layer<CompositorData>>, pipeline_id: PipelineId)
+                                        -> Option<Rc<Layer<CompositorData>>> {
+            let extra_data = layer.extra_data.borrow();
+            if extra_data.pipeline_id == pipeline_id {
+                return Some((*layer).clone())
+            }
+
+            for kid in &*layer.children() {
+                if let Some(layer) = find_root_layer_for_pipeline(kid, pipeline_id) {
+                    return Some(layer.clone())
+                }
+            }
+            None
+        }
+
+        fn collect_old_layers_for_pipeline<Window>(
+                layer: &Layer<CompositorData>,
+                compositor: &mut IOCompositor<Window>,
+                pipeline_id: PipelineId,
+                new_layers: &[LayerProperties],
+                pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                where Window: WindowMethods {
+            // Traverse children first so that layers are removed
+            // bottom up - allowing each layer being removed to properly
+            // clean up any tiles it owns.
+            for kid in &*layer.children() {
+                collect_old_layers_for_pipeline(kid,
+                                                compositor,
+                                                pipeline_id,
+                                                new_layers,
+                                                pipelines_removed);
+            }
+
+            // Retain child layers that also exist in the new layer list.
+            layer.children().retain(|child| {
+                let extra_data = child.extra_data.borrow();
+                if pipeline_id == extra_data.pipeline_id {
+                    // Never remove our own root layer.
+                    if extra_data.id == LayerId::null() {
+                        return true
+                    }
+
+                    // Keep this layer if it exists in the new layer list.
+                    return new_layers.iter().any(|properties| properties.id == extra_data.id);
+                }
+
+                if let Some(ref subpage_info_for_this_layer) = extra_data.subpage_info {
+                    for layer_properties in new_layers.iter() {
+                        // Keep this layer if a reference to it exists.
+                        if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
+                            if subpage_layer_info.pipeline_id == subpage_info_for_this_layer.0 &&
+                                    subpage_layer_info.subpage_id ==
+                                    subpage_info_for_this_layer.1 {
+                                return true
+                            }
+                        }
+                    }
+
+                    pipelines_removed.push(RemovedPipelineInfo {
+                        parent_pipeline_id: subpage_info_for_this_layer.0,
+                        parent_subpage_id: subpage_info_for_this_layer.1,
+                        child_pipeline_id: extra_data.pipeline_id,
+                    });
+                }
+
+                // When removing a layer, clear any tiles and surfaces associated with the layer.
+                child.clear_all_tiles(compositor);
+                false
+            });
+        }
+
+        // First, find the root layer with the given pipeline ID.
+        let root_layer = match find_root_layer_for_pipeline(self, pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => return,
+        };
+
+        // Then collect all old layers underneath that layer.
+        collect_old_layers_for_pipeline(&root_layer,
+                                        compositor,
+                                        pipeline_id,
+                                        new_layers,
+                                        pipelines_removed);
+    }
+}
+

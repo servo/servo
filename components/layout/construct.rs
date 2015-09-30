@@ -285,15 +285,6 @@ impl<'a> FlowConstructor<'a> {
     fn set_flow_construction_result(&self,
                                     node: &ThreadSafeLayoutNode,
                                     result: ConstructionResult) {
-        if let ConstructionResult::None = result {
-            let mut layout_data_ref = node.mutate_layout_data();
-            let layout_data = layout_data_ref.as_mut().expect("no layout data");
-            layout_data.remove_compositor_layers(self.layout_context
-                                                     .shared
-                                                     .constellation_chan
-                                                     .clone());
-        }
-
         node.set_flow_construction_result(result);
     }
 

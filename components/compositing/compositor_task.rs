@@ -5,14 +5,14 @@
 //! Communication with the compositor task.
 
 use compositor;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Point2D, Size2D};
 use headless;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
-use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
+use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId, SubpageId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use png;
 use profile_traits::mem;
@@ -64,7 +64,10 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
     while let Ok(msg) = receiver.recv() {
         match msg {
             ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth) => {
-                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _smooth));
+                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id,
+                                                               layer_id,
+                                                               point,
+                                                               _smooth));
             }
 
             ScriptToCompositorMsg::GetClientWindow(send) => {
@@ -165,8 +168,6 @@ pub enum Msg {
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
     InitializeLayersForPipeline(PipelineId, Epoch, Vec<LayerProperties>),
-    /// Alerts the compositor that the specified layer's rect has changed.
-    SetLayerRect(PipelineId, LayerId, Rect<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
     /// Requests that the compositor assign the painted buffers to the given layers.
@@ -216,6 +217,12 @@ pub enum Msg {
     MoveTo(Point2D<i32>),
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
+    /// A pipeline was shut down.
+    PipelineExited(PipelineId),
+    /// The layer for a subpage should be created. The first two IDs are the IDs of the *parent*
+    /// pipeline and subpage, respectively, while the last ID is the pipeline ID of the subpage
+    /// itself (or `None` if it has shut down).
+    CreateLayerForSubpage(PipelineId, SubpageId, Option<PipelineId>),
 }
 
 impl Debug for Msg {
@@ -225,7 +232,6 @@ impl Debug for Msg {
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
-            Msg::SetLayerRect(..) => write!(f, "SetLayerRect"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
@@ -250,6 +256,8 @@ impl Debug for Msg {
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
+            Msg::PipelineExited(..) => write!(f, "PipelineExited"),
+            Msg::CreateLayerForSubpage(..) => write!(f, "CreateLayerForSubpage"),
         }
     }
 }

@@ -637,7 +637,7 @@ impl LayoutTask {
                 unsafe {
                     self.handle_reap_layout_data(dead_layout_data)
                 }
-            },
+            }
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
@@ -724,8 +724,7 @@ impl LayoutTask {
                                   info.layout_shutdown_chan);
     }
 
-    /// Enters a quiescent state in which no new messages except for
-    /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNow` is
+    /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
     fn prepare_to_exit<'a>(&'a self,
                            response_chan: Sender<()>,
@@ -1099,6 +1098,7 @@ impl LayoutTask {
                 flow::mut_base(flow_ref::deref_mut(layout_root))
                     .display_list_building_result
                     .add_to(&mut *display_list);
+
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                 let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
@@ -1112,11 +1112,8 @@ impl LayoutTask {
                                                                      true,
                                                                      false,
                                                                      ScrollPolicy::Scrollable,
-                                                                     Some(layer_id)));
-                let paint_layer = PaintLayer::new(layer_id,
-                                                  root_background_color,
-                                                  stacking_context.clone());
-
+                                                                     Some(layer_id),
+                                                                     None));
                 if opts::get().dump_display_list {
                     stacking_context.print("DisplayList".to_owned());
                 }
@@ -1124,7 +1121,12 @@ impl LayoutTask {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context);
+                rw_data.stacking_context = Some(stacking_context.clone());
+
+                let paint_layer = PaintLayer::new(layout_root.layer_id(),
+                                                  root_background_color,
+                                                  stacking_context,
+                                                  ScrollPolicy::Scrollable);
 
                 debug!("Layout done!");
 
@@ -1489,8 +1491,7 @@ impl LayoutTask {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
-        let layout_data_wrapper: LayoutDataWrapper = transmute(layout_data);
-        layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());
+        let _: LayoutDataWrapper = transmute(layout_data);
     }
 
     /// Returns profiling information which is passed to the time profiler.
