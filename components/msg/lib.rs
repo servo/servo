@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(custom_derive, plugin)]
+#![feature(const_fn)]
 #![plugin(serde_macros, plugins)]
 
 #[macro_use]
@@ -24,7 +25,6 @@ extern crate serde;
 extern crate style_traits;
 extern crate url;
 extern crate util;
-extern crate uuid;
 
 pub mod compositor_msg;
 pub mod constellation_msg;

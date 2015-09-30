@@ -16,8 +16,8 @@ use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
-use serde::bytes::ByteBuf;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserializer, Serializer};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
@@ -25,7 +25,6 @@ use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
-use uuid::Uuid;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 #[derive(Clone)]
@@ -388,14 +387,56 @@ pub enum NavigationDirection {
     Back,
 }
 
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineNamespaceId(pub u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineIndex(u32);
+
+pub struct PipelineIdNamespace {
+    id: PipelineNamespaceId,
+    next_index: PipelineIndex,
+}
+
+impl PipelineIdNamespace {
+    pub fn install(namespace_id: PipelineNamespaceId) {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.borrow_mut();
+            assert!(namespace.is_none());
+
+            *namespace = Some(PipelineIdNamespace {
+                id: namespace_id,
+                next_index: PipelineIndex(1),
+            });
+        });
+    }
+
+    fn next(&mut self) -> PipelineId {
+        let pipeline_id = PipelineId {
+            namespace_id: self.id,
+            index: self.next_index,
+        };
+
+        let PipelineIndex(current_index) = self.next_index;
+        self.next_index = PipelineIndex(current_index + 1);
+
+        pipeline_id
+    }
+}
+
+thread_local!(pub static PIPELINE_NAMESPACE: RefCell<Option<PipelineIdNamespace>> = RefCell::new(None));
+
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub struct FrameId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct WorkerId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, HeapSizeOf)]
-pub struct PipelineId(Uuid);
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineId {
+    namespace_id: PipelineNamespaceId,
+    index: PipelineIndex
+}
 
 // The type of pipeline exit. During complete shutdowns, pipelines do not have to
 // release resources automatically released on process termination.
@@ -407,24 +448,17 @@ pub enum PipelineExitType {
 
 impl PipelineId {
     pub fn new() -> PipelineId {
-        PipelineId(Uuid::new_v4())
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.borrow_mut();
+            let mut namespace = namespace.as_mut().expect("No namespace set for this thread!");
+            namespace.next()
+        })
     }
 
     pub fn nil() -> PipelineId {
-        PipelineId(Uuid::nil())
-    }
-}
-
-impl Serialize for PipelineId {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        let &PipelineId(uuid) = self;
-        uuid.as_bytes().serialize(serializer)
-    }
-}
-
-impl Deserialize for PipelineId {
-    fn deserialize<D>(deserializer: &mut D) -> Result<PipelineId, D::Error> where D: Deserializer {
-        let bytes = try!(ByteBuf::deserialize(deserializer));
-        Ok(PipelineId(Uuid::from_bytes(&bytes).unwrap()))
+        PipelineId {
+            namespace_id: PipelineNamespaceId(0),
+            index: PipelineIndex(0),
+        }
     }
 }

@@ -14,7 +14,7 @@ use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory};
 use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId};
-use msg::constellation_msg::{LoadData, MozBrowserEvent, PipelineExitType, WindowSizeData};
+use msg::constellation_msg::{LoadData, MozBrowserEvent, PipelineExitType, PipelineNamespaceId, WindowSizeData};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -96,6 +96,8 @@ pub struct InitialPipelineState {
     pub script_chan: Option<Sender<ConstellationControlMsg>>,
     /// Information about the page to load.
     pub load_data: LoadData,
+    /// The namespace ID to use for creating new pipeline IDs.
+    pub pipeline_namespace_id: PipelineNamespaceId,
 }
 
 impl Pipeline {
@@ -193,6 +195,7 @@ impl Pipeline {
             pipeline_port: pipeline_port,
             paint_shutdown_chan: paint_shutdown_chan,
             layout_shutdown_chan: layout_shutdown_chan,
+            pipeline_namespace_id: state.pipeline_namespace_id,
         };
 
         (pipeline, pipeline_content)
@@ -321,6 +324,7 @@ pub struct PipelineContent {
     paint_shutdown_chan: Sender<()>,
     pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
     layout_shutdown_chan: Sender<()>,
+    pipeline_namespace_id: PipelineNamespaceId,
 }
 
 impl PipelineContent {
@@ -353,6 +357,7 @@ impl PipelineContent {
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             devtools_chan: self.devtools_chan,
             window_size: self.window_size,
+            pipeline_namespace_id: self.pipeline_namespace_id,
         }, &layout_pair, self.load_data.clone());
 
         LayoutTaskFactory::create(None::<&mut LTF>,

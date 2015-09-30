@@ -29,7 +29,7 @@ use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
+use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -205,6 +205,8 @@ pub struct InitialScriptState {
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
     pub window_size: Option<WindowSizeData>,
+    /// The ID of the namespace to use when creating pipeline IDs.
+    pub pipeline_namespace_id: PipelineNamespaceId,
 }
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`

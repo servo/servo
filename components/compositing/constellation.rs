@@ -30,6 +30,7 @@ use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, WindowSizeData};
+use msg::constellation_msg::{PipelineNamespaceId, PipelineIdNamespace};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -129,6 +130,9 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    /// Next namespace id for pipeline id generation,
+    next_namespace_id: PipelineNamespaceId,
 }
 
 /// State needed to construct a constellation.
@@ -271,7 +275,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
+                next_namespace_id: PipelineNamespaceId(1),
             };
+            PipelineIdNamespace::install(PipelineNamespaceId(0));
             constellation.run();
         });
         constellation_chan
@@ -311,7 +317,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 script_chan: script_channel,
                 load_data: load_data,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
+                pipeline_namespace_id: self.next_namespace_id,
             });
+
+        let PipelineNamespaceId(namespace_id) = self.next_namespace_id;
+        self.next_namespace_id = PipelineNamespaceId(namespace_id + 1);
 
         // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
         // the content process and call this over there.

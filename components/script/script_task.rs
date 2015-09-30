@@ -66,7 +66,7 @@ use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
-use msg::constellation_msg::{WindowSizeData, WorkerId};
+use msg::constellation_msg::{PipelineIdNamespace, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
@@ -467,6 +467,7 @@ impl ScriptTaskFactory for ScriptTask {
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
+        let pipeline_namespace_id = state.pipeline_namespace_id;
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
@@ -479,6 +480,7 @@ impl ScriptTaskFactory for ScriptTask {
             let script_task = ScriptTask::new(state,
                                               script_port,
                                               chan);
+            PipelineIdNamespace::install(pipeline_namespace_id);
 
             SCRIPT_TASK_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_task as *const _);
