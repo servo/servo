@@ -81,18 +81,19 @@ class MachCommands(CommandBase):
         suites = OrderedDict([
             ("tidy", {}),
             ("ref", {"kwargs": {"kind": render_mode},
-                     "path": path.abspath(path.join("tests", "ref")),
+                     "paths": [path.abspath(path.join("tests", "ref"))],
                      "include_arg": "name"}),
             ("wpt", {"kwargs": {"release": release},
-                     "path": path.abspath(path.join("tests", "wpt", "web-platform-tests")),
+                     "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
+                               path.abspath(path.join("tests", "wpt", "mozilla"))],
                      "include_arg": "include"}),
             ("css", {"kwargs": {"release": release},
-                     "path": path.abspath(path.join("tests", "wpt", "css-tests")),
+                     "paths": [path.abspath(path.join("tests", "wpt", "css-tests"))],
                      "include_arg": "include"}),
             ("unit", {}),
         ])
 
-        suites_by_prefix = {v["path"]: k for k, v in suites.iteritems() if "path" in v}
+        suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
 
         selected_suites = OrderedDict()
 
