@@ -57,6 +57,7 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
+    pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
@@ -92,6 +93,8 @@ impl HTMLIFrameElement {
     }
 
     pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
+        self.pipeline_id.set(Some(PipelineId::new()));
+
         let old_subpage_id = self.subpage_id.get();
         let win = window_from_node(self);
         let subpage_id = win.r().get_next_subpage_id();
@@ -117,6 +120,7 @@ impl HTMLIFrameElement {
                                                             window.pipeline(),
                                                             new_subpage_id,
                                                             old_subpage_id,
+                                                            self.pipeline_id.get().unwrap(),
                                                             sandboxed)).unwrap();
 
         if mozbrowser_enabled() {
@@ -190,6 +194,7 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement:
                 HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),

@@ -15,6 +15,7 @@ use ipc_channel::ipc::IpcSender;
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
 use png::Image;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
@@ -222,7 +223,7 @@ pub enum Msg {
     DOMLoad(PipelineId),
     FrameSize(PipelineId, SubpageId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
+    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, PipelineId, IFrameSandboxState),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),
@@ -393,8 +394,67 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct WorkerId(pub u32);
 
+pub struct PipelineIdNamespace {
+    id: PipelineNamespaceId,
+    next_index: PipelineIndex,
+}
+
+impl PipelineIdNamespace {
+    pub fn install(namespace_id: PipelineNamespaceId) {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.borrow_mut();
+            assert!(namespace.is_none());
+
+            *namespace = Some(PipelineIdNamespace {
+                id: namespace_id,
+                next_index: PipelineIndex(1),
+            });
+        });
+    }
+
+    fn next(&mut self) -> PipelineId {
+        let pipeline_id = PipelineId {
+            namespace_id: self.id,
+            index: self.next_index,
+        };
+
+        let PipelineIndex(current_index) = self.next_index;
+        self.next_index = PipelineIndex(current_index + 1);
+
+        pipeline_id
+    }
+}
+
+thread_local!(pub static PIPELINE_NAMESPACE: RefCell<Option<PipelineIdNamespace>> = RefCell::new(None));
+
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct PipelineId(pub u32);
+pub struct PipelineNamespaceId(pub u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineIndex(u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineId {
+    namespace_id: PipelineNamespaceId,
+    index: PipelineIndex
+}
+
+impl PipelineId {
+    pub fn new() -> PipelineId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.borrow_mut();
+            let mut namespace = namespace.as_mut().expect("No namespace set for this thread!");
+            namespace.next()
+        })
+    }
+
+    pub fn nil() -> PipelineId {
+        PipelineId {
+            namespace_id: PipelineNamespaceId(0),
+            index: PipelineIndex(0),
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageId(pub u32);

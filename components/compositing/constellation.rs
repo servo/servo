@@ -28,6 +28,7 @@ use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{PipelineIdNamespace, PipelineNamespaceId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
@@ -101,8 +102,8 @@ pub struct Constellation<LTF, STF> {
     /// ID of the root frame.
     root_frame_id: Option<FrameId>,
 
-    /// The next free ID to assign to a pipeline.
-    next_pipeline_id: PipelineId,
+    /// The next free ID to assign to a pipeline ID namespace.
+    next_pipeline_namespace_id: PipelineNamespaceId,
 
     /// The next free ID to assign to a frame.
     next_frame_id: FrameId,
@@ -260,7 +261,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
-                next_pipeline_id: PipelineId(0),
+                next_pipeline_namespace_id: PipelineNamespaceId(1),
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 focus_pipeline_id: None,
@@ -284,6 +285,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webgl_paint_tasks: Vec::new(),
                 subpage_id_senders: HashMap::new(),
             };
+            let namespace_id = constellation.next_pipeline_namespace_id();
+            PipelineIdNamespace::install(namespace_id);
             constellation.run();
         });
         constellation_chan
@@ -298,17 +301,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
+    fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
+        let namespace_id = self.next_pipeline_namespace_id;
+        let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
+        *i += 1;
+        namespace_id
+    }
+
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
+                    pipeline_id: PipelineId,
                     parent_info: Option<(PipelineId, SubpageId)>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<Sender<ConstellationControlMsg>>,
-                    load_data: LoadData)
-                    -> PipelineId {
-        let pipeline_id = self.next_pipeline_id;
-        let PipelineId(ref mut i) = self.next_pipeline_id;
-        *i += 1;
-
+                    load_data: LoadData) {
         let spawning_paint_only = script_channel.is_some();
         let (pipeline, mut pipeline_content) =
             Pipeline::create::<LTF, STF>(InitialPipelineState {
@@ -327,6 +333,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 script_chan: script_channel,
                 load_data: load_data,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
+                pipeline_namespace_id: self.next_pipeline_namespace_id(),
             });
 
         // TODO(pcwalton): In multiprocess mode, send that `PipelineContent` instance over to
@@ -339,7 +346,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
-        pipeline_id
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes
@@ -409,6 +415,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                       source_pipeline_id,
                                                       new_subpage_id,
                                                       old_subpage_id,
+                                                      new_pipeline_id,
                                                       sandbox) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        source_pipeline_id,
@@ -418,6 +425,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                             source_pipeline_id,
                                                             new_subpage_id,
                                                             old_subpage_id,
+                                                            new_pipeline_id,
                                                             sandbox);
             }
             ConstellationMsg::SetCursor(cursor) => {
@@ -597,19 +605,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         debug!("creating replacement pipeline for about:failure");
 
         let window_size = self.pipeline(pipeline_id).size;
-        let new_pipeline_id =
-            self.new_pipeline(parent_info,
-                              window_size,
-                              None,
-                              LoadData::new(Url::parse("about:failure").unwrap()));
+        let new_pipeline_id = PipelineId::new();
+        self.new_pipeline(new_pipeline_id,
+                          parent_info,
+                          window_size,
+                          None,
+                          LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
     }
 
     fn handle_init_load(&mut self, url: Url) {
         let window_size = self.window_size.visible_viewport;
-        let root_pipeline_id =
-            self.new_pipeline(None, Some(window_size), None, LoadData::new(url.clone()));
+        let root_pipeline_id = PipelineId::nil();
+        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(CompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -651,6 +660,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                               containing_pipeline_id: PipelineId,
                                               new_subpage_id: SubpageId,
                                               old_subpage_id: Option<SubpageId>,
+                                              new_pipeline_id: PipelineId,
                                               sandbox: IFrameSandboxState) {
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
@@ -683,10 +693,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let window_size = old_pipeline_id.and_then(|old_pipeline_id| {
             self.pipeline(old_pipeline_id).size
         });
-        let new_pipeline_id = self.new_pipeline(Some((containing_pipeline_id, new_subpage_id)),
-                                                window_size,
-                                                script_chan,
-                                                LoadData::new(url));
+        self.new_pipeline(new_pipeline_id,
+                          Some((containing_pipeline_id, new_subpage_id)),
+                          window_size,
+                          script_chan,
+                          LoadData::new(url));
 
         self.subpage_map.insert((containing_pipeline_id, new_subpage_id), new_pipeline_id);
 
@@ -756,7 +767,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
                 // Create the new pipeline
                 let window_size = self.pipeline(source_id).size;
-                let new_pipeline_id = self.new_pipeline(None, window_size, None, load_data);
+                let new_pipeline_id = PipelineId::new();
+                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptTask that will suspend all timers
