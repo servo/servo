@@ -11,6 +11,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
 use profile_traits::time;
+use util::opts;
 use windowing::WindowEvent;
 
 /// Starts the compositor, which listens for messages on the specified port.
@@ -45,9 +46,10 @@ impl NullCompositor {
         {
             let ConstellationChan(ref chan) = compositor.constellation_chan;
             chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
-                initial_viewport: Size2D::typed(640_f32, 480_f32),
-                visible_viewport: Size2D::typed(640_f32, 480_f32),
-                device_pixel_ratio: ScaleFactor::new(1.0),
+                initial_viewport: Size2D::typed(800_f32, 600_f32),
+                visible_viewport: Size2D::typed(800_f32, 600_f32),
+                device_pixel_ratio:
+                    ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
             })).unwrap();
         }
 
