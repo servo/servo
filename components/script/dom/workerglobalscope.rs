@@ -22,7 +22,7 @@ use js::jsapi::{HandleValue, JSAutoRequest, JSContext};
 use js::rust::Runtime;
 use msg::constellation_msg::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
-use net_traits::{ResourceTask, load_whole_resource};
+use net_traits::{LoadContext, ResourceTask, load_whole_resource};
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
@@ -204,7 +204,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         }
 
         for url in urls {
-            let (url, source) = match load_whole_resource(&self.resource_task, url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_task, url, None) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

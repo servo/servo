@@ -7,7 +7,7 @@
 
 use msg::constellation_msg::PipelineId;
 use net_traits::AsyncResponseTarget;
-use net_traits::{PendingAsyncLoad, ResourceTask};
+use net_traits::{PendingAsyncLoad, ResourceTask, LoadContext};
 use std::sync::Arc;
 use url::Url;
 
@@ -28,6 +28,15 @@ impl LoadType {
             LoadType::Subframe(ref url) |
             LoadType::Stylesheet(ref url) |
             LoadType::PageSource(ref url) => url,
+        }
+    }
+
+    fn to_load_context(&self) -> LoadContext {
+        match *self {
+            LoadType::Image(_) => LoadContext::Image,
+            LoadType::Script(_) => LoadContext::Script,
+            LoadType::Subframe(_) | LoadType::PageSource(_) => LoadContext::Browsing,
+            LoadType::Stylesheet(_) => LoadContext::Style
         }
     }
 }
@@ -67,9 +76,10 @@ impl DocumentLoader {
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
+        let context = load.to_load_context();
         let url = load.url().clone();
         self.blocking_loads.push(load);
-        PendingAsyncLoad::new((*self.resource_task).clone(), url, self.pipeline)
+        PendingAsyncLoad::new(context, (*self.resource_task).clone(), url, self.pipeline)
     }
 
     /// Create and initiate a new network request.
@@ -77,7 +87,6 @@ impl DocumentLoader {
         let pending = self.prepare_async_load(load);
         pending.load_async(listener)
     }
-
 
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: LoadType) {

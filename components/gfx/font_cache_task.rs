@@ -5,7 +5,7 @@
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ResourceTask, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceTask, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
 use platform::font_list::for_each_variation;
@@ -139,7 +139,8 @@ impl FontCache {
                     match src {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
-                            let load = PendingAsyncLoad::new(self.resource_task.clone(),
+                            let load = PendingAsyncLoad::new(LoadContext::Font,
+                                                             self.resource_task.clone(),
                                                              url.clone(),
                                                              None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();

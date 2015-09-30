@@ -126,6 +126,21 @@ pub mod image {
     pub mod base;
 }
 
+/// A loading context, for context-specific sniffing, as defined in
+/// https://mimesniff.spec.whatwg.org/#context-specific-sniffing
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum LoadContext {
+    Browsing,
+    Image,
+    AudioVideo,
+    Plugin,
+    Style,
+    Script,
+    Font,
+    TextTrack,
+    CacheManifest,
+}
+
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
@@ -139,10 +154,11 @@ pub struct LoadData {
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub pipeline_id: Option<PipelineId>,
+    pub context: LoadContext,
 }
 
 impl LoadData {
-    pub fn new(url: Url, id: Option<PipelineId>) -> LoadData {
+    pub fn new(context: LoadContext, url: Url, id: Option<PipelineId>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -151,6 +167,7 @@ impl LoadData {
             data: None,
             cors: None,
             pipeline_id: id,
+            context: context
         }
     }
 }
@@ -248,6 +265,7 @@ pub struct PendingAsyncLoad {
     url: Url,
     pipeline: Option<PipelineId>,
     guard: PendingLoadGuard,
+    context: LoadContext,
 }
 
 struct PendingLoadGuard {
@@ -269,20 +287,21 @@ impl Drop for PendingLoadGuard {
 }
 
 impl PendingAsyncLoad {
-    pub fn new(resource_task: ResourceTask, url: Url, pipeline: Option<PipelineId>)
+    pub fn new(context: LoadContext, resource_task: ResourceTask, url: Url, pipeline: Option<PipelineId>)
                -> PendingAsyncLoad {
         PendingAsyncLoad {
             resource_task: resource_task,
             url: url,
             pipeline: pipeline,
             guard: PendingLoadGuard { loaded: false, },
+            context: context
         }
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
-        let load_data = LoadData::new(self.url, self.pipeline);
+        let load_data = LoadData::new(self.context, self.url, self.pipeline);
         let consumer = LoadConsumer::Listener(listener);
         self.resource_task.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
     }
@@ -378,10 +397,13 @@ pub enum ProgressMsg {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
+pub fn load_whole_resource(context: LoadContext,
+                           resource_task: &ResourceTask,
+                           url: Url,
+                           pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
+    resource_task.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 

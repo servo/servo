@@ -88,7 +88,11 @@ pub fn load(load_data: LoadData,
 
     let mut metadata = Metadata::default(url);
     metadata.set_content_type(content_type.as_ref());
-    if let Ok(chan) = start_sending_sniffed_opt(start_chan, metadata, classifier, &bytes) {
+    if let Ok(chan) = start_sending_sniffed_opt(start_chan,
+                                                metadata,
+                                                classifier,
+                                                &bytes,
+                                                load_data.context) {
         let _ = chan.send(Payload(bytes));
         let _ = chan.send(Done(Ok(())));
     }

@@ -58,6 +58,7 @@ pub fn factory(load_data: LoadData,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url;
+    let context = load_data.context;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<PathBuf, ()> = url.to_file_path();
@@ -72,7 +73,7 @@ pub fn factory(load_data: LoadData,
                             Ok(ReadStatus::Partial(buf)) => {
                                 let metadata = Metadata::default(url);
                                 let progress_chan = start_sending_sniffed(senders, metadata,
-                                                                          classifier, &buf);
+                                                                          classifier, &buf, context);
                                 progress_chan.send(Payload(buf)).unwrap();
                                 let read_result = read_all(reader, &progress_chan, &cancel_listener);
                                 if let Ok(load_result) = read_result {
@@ -87,7 +88,8 @@ pub fn factory(load_data: LoadData,
                                 if let Ok(chan) = start_sending_sniffed_opt(senders,
                                                                             metadata,
                                                                             classifier,
-                                                                            &[]) {
+                                                                            &[],
+                                                                            context) {
                                     let _ = chan.send(Done(Ok(())));
                                 }
                             }
