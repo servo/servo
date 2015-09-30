@@ -323,6 +323,121 @@ impl DisplayList {
         paint_subcontext.pop_clip_if_applicable();
         paint_subcontext.draw_target.set_transform(&old_transform)
     }
+
+    pub fn hit_test(&self,
+                    point: Point2D<Au>,
+                    result: &mut Vec<DisplayItemMetadata>,
+                    topmost_only: bool) {
+        fn hit_test_in_list<'a, I>(point: Point2D<Au>,
+                                   result: &mut Vec<DisplayItemMetadata>,
+                                   topmost_only: bool,
+                                   iterator: I)
+                                   where I: Iterator<Item=&'a DisplayItem> {
+            for item in iterator {
+                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
+                // test elements with `border-radius`, for example.
+                if !item.base().clip.might_intersect_point(&point) {
+                    // Clipped out.
+                    continue
+                }
+                if !geometry::rect_contains_point(item.bounds(), point) {
+                    // Can't possibly hit.
+                    continue
+                }
+                if item.base().metadata.pointing.is_none() {
+                    // `pointer-events` is `none`. Ignore this item.
+                    continue
+                }
+
+                if let DisplayItem::BorderClass(ref border) = *item {
+                    // If the point is inside the border, it didn't hit the border!
+                    let interior_rect =
+                        Rect::new(
+                            Point2D::new(border.base.bounds.origin.x +
+                                         border.border_widths.left,
+                                         border.base.bounds.origin.y +
+                                         border.border_widths.top),
+                            Size2D::new(border.base.bounds.size.width -
+                                            (border.border_widths.left +
+                                             border.border_widths.right),
+                                        border.base.bounds.size.height -
+                                            (border.border_widths.top +
+                                             border.border_widths.bottom)));
+                    if geometry::rect_contains_point(interior_rect, point) {
+                        continue
+                    }
+                }
+
+                // We found a hit!
+                result.push(item.base().metadata);
+                if topmost_only {
+                    return
+                }
+            }
+        }
+
+        // Layers are positioned on top of this layer should get a shot at the hit test first.
+        for layer in self.layered_children.iter().rev() {
+            layer.stacking_context.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Iterate through display items in reverse stacking order. Steps here refer to the
+        // painting steps in CSS 2.1 Appendix E.
+        //
+        // Step 10: Outlines.
+        hit_test_in_list(point, result, topmost_only, self.outlines.iter().rev());
+        if topmost_only && !result.is_empty() {
+            return
+        }
+
+        // Steps 9 and 8: Positioned descendants with nonnegative z-indices.
+        for kid in self.children.iter().rev() {
+            if kid.z_index < 0 {
+                continue
+            }
+            kid.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Steps 8, 7, 5, and 4: Positioned content, content, floats, and block backgrounds and
+        // borders.
+        //
+        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
+        for display_list in &[
+            &self.positioned_content,
+            &self.content,
+            &self.floats,
+            &self.block_backgrounds_and_borders,
+        ] {
+            hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        for kid in self.children.iter().rev() {
+            if kid.z_index >= 0 {
+                continue
+            }
+            kid.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Steps 2 and 1: Borders and background for the root.
+        hit_test_in_list(point,
+                         result,
+                         topmost_only,
+                         self.background_and_borders.iter().rev())
+
+    }
 }
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
@@ -495,128 +610,18 @@ impl StackingContext {
     /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
     /// into the list. `result` must be empty upon entry to this function.
     pub fn hit_test(&self,
-                    mut point: Point2D<Au>,
+                    point: Point2D<Au>,
                     result: &mut Vec<DisplayItemMetadata>,
                     topmost_only: bool) {
-        fn hit_test_in_list<'a, I>(point: Point2D<Au>,
-                                   result: &mut Vec<DisplayItemMetadata>,
-                                   topmost_only: bool,
-                                   iterator: I)
-                                   where I: Iterator<Item=&'a DisplayItem> {
-            for item in iterator {
-                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
-                // test elements with `border-radius`, for example.
-                if !item.base().clip.might_intersect_point(&point) {
-                    // Clipped out.
-                    continue
-                }
-                if !geometry::rect_contains_point(item.bounds(), point) {
-                    // Can't possibly hit.
-                    continue
-                }
-                if item.base().metadata.pointing.is_none() {
-                    // `pointer-events` is `none`. Ignore this item.
-                    continue
-                }
-                match *item {
-                    DisplayItem::BorderClass(ref border) => {
-                        // If the point is inside the border, it didn't hit the border!
-                        let interior_rect =
-                            Rect::new(
-                                Point2D::new(border.base.bounds.origin.x +
-                                             border.border_widths.left,
-                                             border.base.bounds.origin.y +
-                                             border.border_widths.top),
-                                Size2D::new(border.base.bounds.size.width -
-                                                (border.border_widths.left +
-                                                 border.border_widths.right),
-                                            border.base.bounds.size.height -
-                                                (border.border_widths.top +
-                                                 border.border_widths.bottom)));
-                        if geometry::rect_contains_point(interior_rect, point) {
-                            continue
-                        }
-                    }
-                    _ => {}
-                }
-
-                // We found a hit!
-                result.push(item.base().metadata);
-                if topmost_only {
-                    return
-                }
-            }
-        }
-
         // Convert the point into stacking context local space
-        point = point - self.bounds.origin;
+        let point = point - self.bounds.origin;
 
         debug_assert!(!topmost_only || result.is_empty());
         let inv_transform = self.transform.invert();
         let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                      point.y.to_f32_px()));
-        point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
-
-        // Layers are positioned on top of this layer should get a shot at the hit test first.
-        for layer in self.display_list.layered_children.iter().rev() {
-            layer.stacking_context.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Iterate through display items in reverse stacking order. Steps here refer to the
-        // painting steps in CSS 2.1 Appendix E.
-        //
-        // Step 10: Outlines.
-        hit_test_in_list(point, result, topmost_only, self.display_list.outlines.iter().rev());
-        if topmost_only && !result.is_empty() {
-            return
-        }
-
-        // Steps 9 and 8: Positioned descendants with nonnegative z-indices.
-        for kid in self.display_list.children.iter().rev() {
-            if kid.z_index < 0 {
-                continue
-            }
-            kid.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Steps 8, 7, 5, and 4: Positioned content, content, floats, and block backgrounds and
-        // borders.
-        //
-        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-        for display_list in &[
-            &self.display_list.positioned_content,
-            &self.display_list.content,
-            &self.display_list.floats,
-            &self.display_list.block_backgrounds_and_borders,
-        ] {
-            hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Step 3: Positioned descendants with negative z-indices.
-        for kid in self.display_list.children.iter().rev() {
-            if kid.z_index >= 0 {
-                continue
-            }
-            kid.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Steps 2 and 1: Borders and background for the root.
-        hit_test_in_list(point,
-                         result,
-                         topmost_only,
-                         self.display_list.background_and_borders.iter().rev())
+        let point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
+        self.display_list.hit_test(point, result, topmost_only)
     }
 
     pub fn print(&self, title: String) {
