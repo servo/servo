@@ -271,7 +271,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                           ScaleFactor::new(1.0),
                     initial_viewport: opts::get().initial_window_size.as_f32() *
                         ScaleFactor::new(1.0),
-                    device_pixel_ratio: ScaleFactor::new(1.0),
+                    device_pixel_ratio:
+                        ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
                 },
                 phantom: PhantomData,
                 clipboard_ctx: if state.supports_clipboard {
