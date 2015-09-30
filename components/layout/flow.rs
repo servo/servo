@@ -44,8 +44,8 @@ use parallel::FlowParallelInfo;
 use rustc_serialize::{Encodable, Encoder};
 use std::iter::Zip;
 use std::slice::IterMut;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
 use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, text_align};
 use style::properties::{self, ComputedValues};
@@ -373,7 +373,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
 
     /// Remove any compositor layers associated with this flow
-    fn remove_compositor_layers(&self, _: ConstellationChan) {}
+    fn remove_compositor_layers(&self, _: &Mutex<ConstellationChan>) {}
 }
 
 // Base access

@@ -7,7 +7,7 @@ use incremental::RestyleDamage;
 use msg::constellation_msg::ConstellationChan;
 use parallel::DomParallelInfo;
 use script::dom::node::SharedLayoutData;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use style::properties::ComputedValues;
 
 /// Data that layout associates with a node.
@@ -65,7 +65,7 @@ pub struct LayoutDataWrapper {
 }
 
 impl LayoutDataWrapper {
-    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
+    pub fn remove_compositor_layers(&self, constellation_chan: &Mutex<ConstellationChan>) {
         match self.data.flow_construction_result {
             ConstructionResult::None => {}
             ConstructionResult::Flow(ref flow_ref, _) => {

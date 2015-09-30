@@ -19,13 +19,13 @@ use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
 use net_traits::image_cache_task::{UsePlaceholder};
-use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
+use script::layout_interface::{Animation, ReflowGoal};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::geometry::Au;
@@ -63,8 +63,9 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
             }
             context
         } else {
+            let font_cache_task = shared_layout_context.font_cache_task.lock().unwrap().clone();
             let context = Rc::new(LocalLayoutContext {
-                font_context: RefCell::new(FontContext::new(shared_layout_context.font_cache_task.clone())),
+                font_context: RefCell::new(FontContext::new(font_cache_task)),
                 applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
                 style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             });
@@ -75,12 +76,12 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
 }
 
 /// Layout information shared among all workers. This must be thread-safe.
-pub struct SharedLayoutContext {
+pub struct SharedLayoutContext<'a> {
     /// The shared image cache task.
     pub image_cache_task: ImageCacheTask,
 
     /// A channel for the image cache to send responses to.
-    pub image_cache_sender: ImageCacheChan,
+    pub image_cache_sender: Mutex<ImageCacheChan>,
 
     /// The current screen size.
     pub screen_size: Size2D<Au>,
@@ -89,18 +90,13 @@ pub struct SharedLayoutContext {
     pub screen_size_changed: bool,
 
     /// A channel up to the constellation.
-    pub constellation_chan: ConstellationChan,
-
-    /// A channel up to the layout task.
-    pub layout_chan: LayoutChan,
+    pub constellation_chan: Mutex<ConstellationChan>,
 
     /// Interface to the font cache task.
-    pub font_cache_task: FontCacheTask,
+    pub font_cache_task: Mutex<FontCacheTask>,
 
     /// The CSS selector stylist.
-    ///
-    /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: *const Stylist,
+    pub stylist: &'a Stylist,
 
     /// The root node at which we're starting the layout.
     pub reflow_root: Option<OpaqueNode>,
@@ -114,10 +110,10 @@ pub struct SharedLayoutContext {
 
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
-    pub new_animations_sender: Sender<Animation>,
+    pub new_animations_sender: Mutex<Sender<Animation>>,
 
     /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
-    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
@@ -129,20 +125,8 @@ pub struct SharedLayoutContext {
     pub goal: ReflowGoal,
 }
 
-// FIXME(#6569) This implementations is unsound:
-// XXX UNSOUND!!! for image_cache_task
-// XXX UNSOUND!!! for image_cache_sender
-// XXX UNSOUND!!! for constellation_chan
-// XXX UNSOUND!!! for layout_chan
-// XXX UNSOUND!!! for font_cache_task
-// XXX UNSOUND!!! for stylist
-// XXX UNSOUND!!! for new_animations_sender
-// XXX UNSOUND!!! for canvas_layers_sender
-#[allow(unsafe_code)]
-unsafe impl Sync for SharedLayoutContext {}
-
 pub struct LayoutContext<'a> {
-    pub shared: &'a SharedLayoutContext,
+    pub shared: &'a SharedLayoutContext<'a>,
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
@@ -203,8 +187,8 @@ impl<'a> LayoutContext<'a> {
                     }
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {
-                        self.shared.image_cache_task
-                            .request_image(url, self.shared.image_cache_sender.clone(), None);
+                        let sender = self.shared.image_cache_sender.lock().unwrap().clone();
+                        self.shared.image_cache_task.request_image(url, sender, None);
                         None
                     }
                     // Image has been requested, is still pending. Return no image
