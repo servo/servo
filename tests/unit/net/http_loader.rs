@@ -139,7 +139,7 @@ struct AssertRequestMustHaveHeaders {
 
 impl AssertRequestMustHaveHeaders {
     fn new(t: ResponseType, headers: Headers) -> Self {
-        AssertRequestMustHaveHeaders {headers: headers, t: t }
+        AssertRequestMustHaveHeaders { headers: headers, t: t }
     }
 }
 
