@@ -4,11 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -61,8 +60,4 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLOutputElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLOutputElement {}
