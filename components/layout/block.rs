@@ -27,6 +27,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
@@ -60,7 +61,7 @@ use style::computed_values::{position, text_align, transform, transform_style};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use util::geometry::{Au, MAX_AU, MAX_RECT};
+use util::geometry::MAX_RECT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use wrapper::PseudoElementType;

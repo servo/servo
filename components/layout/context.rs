@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use canvas_traits::CanvasMsg;
 use css::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use euclid::{Rect, Size2D};
@@ -28,7 +29,6 @@ use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
 use style::selector_matching::Stylist;
 use url::Url;
-use util::geometry::Au;
 use util::mem::HeapSizeOf;
 use util::opts;
 

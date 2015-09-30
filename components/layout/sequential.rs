@@ -4,6 +4,7 @@
 
 //! Implements sequential traversals over the DOM and flow trees.
 
+use app_units::Au;
 use context::{LayoutContext, SharedLayoutContext};
 use euclid::point::Point2D;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
@@ -16,7 +17,7 @@ use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{BubbleISizes, ConstructFlows, RecalcStyleForNode};
 use traversal::{BuildDisplayList, ComputeAbsolutePositions};
 use traversal::{PostorderDomTraversal, PreorderDomTraversal};
-use util::geometry::{Au, ZERO_POINT};
+use util::geometry::ZERO_POINT;
 use util::opts;
 use wrapper::LayoutNode;
 

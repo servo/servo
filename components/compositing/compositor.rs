@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy};
 use compositor_task::{CompositorReceiver, InitialCompositorState, Msg};
@@ -46,7 +47,7 @@ use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
-use util::geometry::{Au, PagePx, ScreenPx, ViewportPx};
+use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 

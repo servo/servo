@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
@@ -28,7 +29,6 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{TableRowFlow};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_wrapper::TableLayout;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use azure::azure_hl::BackendType;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 use azure::scaled_font::FontInfo;
@@ -28,7 +29,6 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use util::cache::HashCache;
-use util::geometry::Au;
 use util::mem::HeapSizeOf;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]

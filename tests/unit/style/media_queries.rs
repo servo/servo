@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::size::Size2D;
 use std::borrow::ToOwned;
 use style::media_queries::*;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
 use style::values::specified;
 use url::Url;
-use util::geometry::Au;
 
 
 fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
 use font_template::FontTemplateDescriptor;
 use platform::font::{FontHandle, FontTable};
@@ -20,7 +21,6 @@ use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use unicode_script::Script;
 use util::cache::HashCache;
-use util::geometry::Au;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables

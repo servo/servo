@@ -1,0 +1,10 @@
+[package]
+name = "app_units"
+version = "0.1.0"
+authors = ["The Servo Project Developers"]
+
+[dependencies]
+serde = "0.6"
+serde_macros = "0.5"
+rustc-serialize = "0.3"
+euclid = "0.2"

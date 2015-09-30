@@ -7,6 +7,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
@@ -22,7 +23,6 @@ use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::properties::ComputedValues;
 use text;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
 

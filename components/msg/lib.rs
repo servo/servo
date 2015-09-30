@@ -5,6 +5,7 @@
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros, plugins)]
 
+extern crate app_units;
 #[macro_use]
 extern crate bitflags;
 extern crate azure;

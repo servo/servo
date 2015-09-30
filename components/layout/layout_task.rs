@@ -8,6 +8,7 @@
 #![allow(unsafe_code)]
 
 use animation;
+use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
@@ -78,8 +79,9 @@ use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_matching::Stylist;
 use style::stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
+use style::values::AuExtensionMethods;
 use url::Url;
-use util::geometry::{Au, MAX_RECT, ZERO_POINT};
+use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;

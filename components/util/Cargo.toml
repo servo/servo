@@ -41,6 +41,9 @@ features = [ "serde_serialization" ]
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
+[dependencies.app_units]
+path = "../app_units"
+
 [dependencies]
 log = "0.3"
 bitflags = "0.3"

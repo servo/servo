@@ -4,6 +4,7 @@
 
 //! Data structure measurement.
 
+use app_units::Au;
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
 use cssparser::{RGBA, TokenSerializationType};
@@ -11,7 +12,7 @@ use cursor::Cursor;
 use euclid::length::Length;
 use euclid::scale_factor::ScaleFactor;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
-use geometry::{Au, PagePx, ViewportPx};
+use geometry::{PagePx, ViewportPx};
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;

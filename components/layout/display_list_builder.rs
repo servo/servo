@@ -10,6 +10,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
 use block::BlockFlow;
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
@@ -56,7 +57,7 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{AU_PER_PX, Au, ZERO_POINT};
+use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use util::range::Range;

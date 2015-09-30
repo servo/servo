@@ -14,6 +14,7 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
+use app_units::Au;
 use azure::azure::AzFloat;
 use azure::azure_hl::{Color, DrawTarget};
 use display_list::optimizer::DisplayListOptimizer;
@@ -40,7 +41,7 @@ use style::properties::ComputedValues;
 use text::TextRun;
 use text::glyph::CharIndex;
 use util::cursor::Cursor;
-use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::geometry::{self, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;

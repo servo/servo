@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use cssparser::Color;
@@ -23,7 +24,6 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::properties::ComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
-use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use wrapper::ThreadSafeLayoutNode;
 

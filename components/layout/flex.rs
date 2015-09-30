@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::FlexFlowDisplayListBuilding;
@@ -30,7 +31,6 @@ use style::computed_values::{flex_direction, float};
 use style::properties::ComputedValues;
 use style::properties::style_structs;
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 use util::opts;
 
