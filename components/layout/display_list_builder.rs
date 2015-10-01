@@ -25,7 +25,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayIte
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
+use gfx::display_list::{GradientStop, ImageDisplayItem, LayerInfo, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
@@ -1279,32 +1279,6 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        let canvas_or_iframe = match self.specific {
-            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
-            _ => false
-        };
-
-        // There are three situations that need layers: when the fragment has the HAS_LAYER
-        // flag, when this is a canvas or iframe fragment, and when we are building a layer
-        // tree for overflow scrolling.
-        let layer_id = if mode == StackingContextCreationMode::InnerScrollWrapper {
-            Some(self.layer_id_for_overflow_scroll())
-        } else if self.flags.contains(HAS_LAYER) || canvas_or_iframe {
-            Some(self.layer_id())
-        } else {
-            None
-        };
-
-        // If it's a canvas we must propagate the layer and the renderer to the paint task.
-        if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
-            let layer_id = layer_id.unwrap();
-            if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
-                layout_context.shared
-                              .canvas_layers_sender
-                              .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
-            }
-        }
-
         let subpage_layer_info = match self.specific {
             SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
                 let border_padding = self.border_padding.to_physical(self.style().writing_mode);
@@ -1316,6 +1290,34 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             _ => None,
         };
+
+        let canvas_or_iframe = match self.specific {
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
+            _ => false
+        };
+
+        // There are three situations that need layers: when the fragment has the HAS_LAYER
+        // flag, when this is a canvas or iframe fragment, and when we are building a layer
+        // tree for overflow scrolling.
+        let layer_info = if mode == StackingContextCreationMode::InnerScrollWrapper {
+            Some(LayerInfo::new(self.layer_id_for_overflow_scroll(),
+                                scroll_policy,
+                                subpage_layer_info))
+        } else if self.flags.contains(HAS_LAYER) || canvas_or_iframe {
+            Some(LayerInfo::new(self.layer_id(), scroll_policy, subpage_layer_info))
+        } else {
+            None
+        };
+
+        // If it's a canvas we must propagate the layer and the renderer to the paint task.
+        if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
+            let layer_id = layer_info.unwrap().layer_id;
+            if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
+                layout_context.shared
+                              .canvas_layers_sender
+                              .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
+            }
+        }
 
         let scrolls_overflow_area = mode == StackingContextCreationMode::OuterScrollWrapper;
         let transform_style = self.style().get_used_transform_style();
@@ -1332,9 +1334,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       perspective,
                                       establishes_3d_context,
                                       scrolls_overflow_area,
-                                      scroll_policy,
-                                      layer_id,
-                                      subpage_layer_info))
+                                      layer_info))
     }
 
     fn clipping_region_for_children(&self,

@@ -8,7 +8,7 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
-use display_list::{self, StackingContext};
+use display_list::{self, LayerInfo, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -19,7 +19,7 @@ use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
-use msg::compositor_msg::{ScrollPolicy};
+use msg::compositor_msg::{ScrollPolicy, SubpageLayerInfo};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::PipelineExitType;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
@@ -51,20 +51,36 @@ pub struct PaintLayer {
     pub stacking_context: Arc<StackingContext>,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+    /// The subpage that this layer represents, if there is one.
+    pub subpage_layer_info: Option<SubpageLayerInfo>,
 }
 
 impl PaintLayer {
     /// Creates a new `PaintLayer`.
-    pub fn new(id: LayerId,
+    pub fn new(layer_info: LayerInfo,
                background_color: Color,
-               stacking_context: Arc<StackingContext>,
-               scroll_policy: ScrollPolicy)
+               stacking_context: Arc<StackingContext>)
                -> PaintLayer {
         PaintLayer {
-            id: id,
+            id: layer_info.layer_id,
             background_color: background_color,
             stacking_context: stacking_context,
-            scroll_policy: scroll_policy,
+            scroll_policy: layer_info.scroll_policy,
+            subpage_layer_info: layer_info.subpage_layer_info,
+        }
+    }
+
+    /// Creates a new `PaintLayer` with a stacking context.
+    pub fn new_with_stacking_context(layer_info: LayerInfo,
+                                     stacking_context: Arc<StackingContext>,
+                                     background_color: Color)
+                                     -> PaintLayer {
+         PaintLayer {
+            id: layer_info.layer_id,
+            background_color: background_color,
+            stacking_context: stacking_context,
+            scroll_policy: layer_info.scroll_policy,
+            subpage_layer_info: layer_info.subpage_layer_info,
         }
     }
 
@@ -382,12 +398,12 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                 parent_id: parent_id,
                 rect: layer_position,
                 background_color: paint_layer.background_color,
-                scroll_policy: paint_layer.stacking_context.scroll_policy,
+                scroll_policy: paint_layer.scroll_policy,
                 transform: transform,
                 perspective: perspective,
                 establishes_3d_context: paint_layer.stacking_context.establishes_3d_context,
                 scrolls_overflow_area: paint_layer.stacking_context.scrolls_overflow_area,
-                subpage_layer_info: paint_layer.stacking_context.subpage_layer_info,
+                subpage_layer_info: paint_layer.subpage_layer_info,
             });
 
             // When there is a new layer, the transforms and origin are handled by the compositor,

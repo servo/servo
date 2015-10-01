@@ -27,8 +27,7 @@ use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUti
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::StackingContext;
-use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
+use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
@@ -1119,7 +1118,6 @@ impl LayoutTask {
                     .add_to(&mut *display_list);
 
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
@@ -1130,8 +1128,6 @@ impl LayoutTask {
                                                                      Matrix4::identity(),
                                                                      true,
                                                                      false,
-                                                                     ScrollPolicy::Scrollable,
-                                                                     Some(layer_id),
                                                                      None));
                 if opts::get().dump_display_list {
                     stacking_context.print("DisplayList".to_owned());
@@ -1142,10 +1138,12 @@ impl LayoutTask {
 
                 rw_data.stacking_context = Some(stacking_context.clone());
 
-                let paint_layer = PaintLayer::new(layout_root.layer_id(),
-                                                  root_background_color,
-                                                  stacking_context,
-                                                  ScrollPolicy::Scrollable);
+                let layer_info = LayerInfo::new(layout_root.layer_id(),
+                                                ScrollPolicy::Scrollable,
+                                                None);
+                let paint_layer = PaintLayer::new_with_stacking_context(layer_info,
+                                                                        stacking_context,
+                                                                        root_background_color);
 
                 debug!("Layout done!");
 
