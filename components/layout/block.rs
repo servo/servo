@@ -51,7 +51,7 @@ use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{IntrinsicISizes, MarginCollapseInfo};
-use msg::compositor_msg::{LayerId, LayerType};
+use msg::compositor_msg::LayerId;
 use rustc_serialize::{Encodable, Encoder};
 use std::cmp::{max, min};
 use std::fmt;
@@ -64,7 +64,6 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
-use wrapper::PseudoElementType;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
@@ -2077,16 +2076,11 @@ impl Flow for BlockFlow {
     }
 
     fn layer_id(&self) -> LayerId {
-        let layer_type = match self.fragment.pseudo {
-            PseudoElementType::Normal => LayerType::FragmentBody,
-            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
-            PseudoElementType::After(_) => LayerType::AfterPseudoContent
-        };
-        LayerId::new_of_type(layer_type, self.fragment.node.id() as usize)
+        self.fragment.layer_id()
     }
 
     fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::OverflowScroll, self.fragment.node.id() as usize)
+        self.fragment.layer_id_for_overflow_scroll()
     }
 
     fn is_absolute_containing_block(&self) -> bool {

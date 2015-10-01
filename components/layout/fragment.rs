@@ -23,6 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
+use msg::compositor_msg::{LayerId, LayerType};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
@@ -2423,6 +2424,19 @@ impl Fragment {
                 }
             }
         }
+    }
+
+    pub fn layer_id(&self) -> LayerId {
+        let layer_type = match self.pseudo {
+            PseudoElementType::Normal => LayerType::FragmentBody,
+            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
+            PseudoElementType::After(_) => LayerType::AfterPseudoContent
+        };
+        LayerId::new_of_type(layer_type, self.node.id() as usize)
+    }
+
+    pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
     }
 }
 

@@ -35,7 +35,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use msg::compositor_msg::{LayerId, ScrollPolicy, SubpageLayerInfo};
+use msg::compositor_msg::{ScrollPolicy, SubpageLayerInfo};
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_task::UsePlaceholder;
 use std::default::Default;
@@ -64,12 +64,6 @@ use util::range::Range;
 
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
-
-/// Whether a stacking context needs a layer or not.
-pub enum StackingContextLayerNecessity {
-    Always(LayerId, ScrollPolicy),
-    IfCanvasOrIframe(LayerId),
-}
 
 /// The results of display list building for a single flow.
 pub enum DisplayListBuildingResult {
@@ -258,7 +252,7 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               needs_layer: StackingContextLayerNecessity,
+                               scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
 }
@@ -1172,7 +1166,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               needs_layer: StackingContextLayerNecessity,
+                               scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
         let border_box = match mode {
@@ -1285,24 +1279,23 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        // Ensure every canvas or iframe has a layer.
-        let (scroll_policy, layer_id) = match needs_layer {
-            StackingContextLayerNecessity::Always(layer_id, scroll_policy) => {
-                (scroll_policy, Some(layer_id))
-            }
-            StackingContextLayerNecessity::IfCanvasOrIframe(layer_id) => {
-                // FIXME(pcwalton): So so bogus :(
-                match self.specific {
-                    SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => {
-                        (ScrollPolicy::Scrollable, Some(layer_id))
-                    }
-                    _ => (ScrollPolicy::Scrollable, None),
-                }
-            }
+        let canvas_or_iframe = match self.specific {
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
+            _ => false
         };
 
-        // If it's a canvas we must propagate the layer and the renderer to the paint
-        // task
+        // There are three situations that need layers: when the fragment has the HAS_LAYER
+        // flag, when this is a canvas or iframe fragment, and when we are building a layer
+        // tree for overflow scrolling.
+        let layer_id = if mode == StackingContextCreationMode::InnerScrollWrapper {
+            Some(self.layer_id_for_overflow_scroll())
+        } else if self.flags.contains(HAS_LAYER) || canvas_or_iframe {
+            Some(self.layer_id())
+        } else {
+            None
+        };
+
+        // If it's a canvas we must propagate the layer and the renderer to the paint task.
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
             let layer_id = layer_id.unwrap();
             if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
@@ -1586,27 +1579,19 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                border_painting_mode,
                                                background_border_level);
 
-        self.base.display_list_building_result = if self.fragment.flags.contains(HAS_LAYER) {
+        self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             let scroll_policy = if self.is_fixed() {
                 ScrollPolicy::FixedPosition
             } else {
                 ScrollPolicy::Scrollable
             };
 
-            let stacking_context = self.fragment.create_stacking_context(
-                &self.base,
-                display_list,
-                layout_context,
-                StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
-                StackingContextCreationMode::Normal);
-            DisplayListBuildingResult::StackingContext(stacking_context)
-        } else if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
                 self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
+                    scroll_policy,
                     StackingContextCreationMode::Normal))
         } else {
             match self.fragment.style.get_box().position {
@@ -1671,22 +1656,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             }
         };
 
-        if !self.fragment.flags.contains(HAS_LAYER) {
-            if !self.fragment.establishes_stacking_context() {
-                display_list.form_pseudo_stacking_context_for_positioned_content();
-                self.base.display_list_building_result =
-                    DisplayListBuildingResult::Normal(display_list);
-            } else {
-                self.base.display_list_building_result =
-                    DisplayListBuildingResult::StackingContext(
-                        self.fragment.create_stacking_context(
-                            &self.base,
-                            display_list,
-                            layout_context,
-                            StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
-                            StackingContextCreationMode::Normal));
-            }
-            return
+        if !self.fragment.flags.contains(HAS_LAYER) && !self.fragment.establishes_stacking_context() {
+            display_list.form_pseudo_stacking_context_for_positioned_content();
+            self.base.display_list_building_result =
+                DisplayListBuildingResult::Normal(display_list);
+            return;
         }
 
         // If we got here, then we need a new layer.
@@ -1696,40 +1670,33 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-        let stacking_context_creation_mode = if outer_display_list_for_overflow_scroll.is_some() {
-            StackingContextCreationMode::InnerScrollWrapper
-        } else {
-            StackingContextCreationMode::Normal
-        };
-
-        let layer_id = if outer_display_list_for_overflow_scroll.is_some() {
-            self.layer_id_for_overflow_scroll()
-        } else {
-            self.layer_id()
-        };
-        let stacking_context = self.fragment.create_stacking_context(
-            &self.base,
-            display_list,
-            layout_context,
-            StackingContextLayerNecessity::Always(layer_id, scroll_policy),
-            stacking_context_creation_mode);
-
-        let outermost_stacking_context = match outer_display_list_for_overflow_scroll {
-            Some(mut outer_display_list_for_overflow_scroll) => {
-                outer_display_list_for_overflow_scroll.children.push_back(stacking_context);
-
+        let stacking_context = match outer_display_list_for_overflow_scroll {
+            Some(mut outer_display_list) => {
+                outer_display_list.children.push_back(self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    scroll_policy,
+                    StackingContextCreationMode::InnerScrollWrapper));
                 self.fragment.create_stacking_context(
                     &self.base,
-                    outer_display_list_for_overflow_scroll,
+                    outer_display_list,
                     layout_context,
-                    StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
+                    scroll_policy,
                     StackingContextCreationMode::OuterScrollWrapper)
             }
-            None => stacking_context,
+            None => {
+                self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    scroll_policy,
+                    StackingContextCreationMode::Normal)
+            }
         };
 
         self.base.display_list_building_result =
-            DisplayListBuildingResult::StackingContext(outermost_stacking_context)
+            DisplayListBuildingResult::StackingContext(stacking_context)
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1744,12 +1711,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(
-                    &self.base,
-                    display_list,
-                    layout_context,
-                    StackingContextLayerNecessity::IfCanvasOrIframe(self.layer_id()),
-                    StackingContextCreationMode::Normal))
+                self.fragment.create_stacking_context(&self.base,
+                                                      display_list,
+                                                      layout_context,
+                                                      ScrollPolicy::Scrollable,
+                                                      StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1852,8 +1818,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::Always(self.layer_id(),
-                                                          ScrollPolicy::Scrollable),
+                    ScrollPolicy::Scrollable,
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)
