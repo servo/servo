@@ -12,9 +12,6 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
-[dependencies.app_units]
-path = "../app_units"
-
 [dependencies.plugins]
 path = "../plugins"
 
@@ -74,6 +71,7 @@ version = "0.6"
 features = [ "serde-serialization" ]
 
 [dependencies]
+app_units = "0.1"
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"

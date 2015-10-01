@@ -41,10 +41,8 @@ features = [ "serde_serialization" ]
 [dependencies.selectors]
 git = "https://github.com/servo/rust-selectors"
 
-[dependencies.app_units]
-path = "../app_units"
-
 [dependencies]
+app_units = "0.1"
 log = "0.3"
 bitflags = "0.3"
 html5ever = { version = "0.2.1", features = ["unstable"] }

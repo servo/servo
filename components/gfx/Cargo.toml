@@ -9,6 +9,7 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
+app_units = "0.1"
 bitflags = "0.3"
 euclid = "0.2"
 fnv = "1.0"
@@ -24,9 +25,6 @@ smallvec = "0.1"
 string_cache = "0.1"
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
-
-[dependencies.app_units]
-path = "../app_units"
 
 [dependencies.plugins]
 path = "../plugins"

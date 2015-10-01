@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "script_traits"
 path = "lib.rs"
 
-[dependencies.app_units]
-path = "../app_units"
-
 [dependencies.msg]
 path = "../msg"
 
@@ -36,6 +33,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
+app_units = "0.1"
 libc = "0.1"
 euclid = "0.2"
 serde = "0.6"
