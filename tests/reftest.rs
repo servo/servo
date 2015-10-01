@@ -48,11 +48,10 @@ fn main() {
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    let (render_mode_string, base_path, testname) = match harness_args {
-        [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
-        [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
-        [ref render_mode_string, ref base_path, ref testname, ..] =>
-            (render_mode_string, base_path, Some(testname.clone())),
+    let (render_mode_string, base_path, testnames) = match harness_args {
+        [ref render_mode_string, ref base_path, testnames..] =>
+            (render_mode_string, base_path, testnames),
+        _ => panic!("USAGE: cpu|gpu base_path [testname ...]"),
     };
 
     let mut render_mode = match &**render_mode_string {
@@ -79,7 +78,8 @@ fn main() {
         match maybe_extension {
             Some(extension) => {
                 if extension == OsStr::new("list") && file.is_file() {
-                    let mut tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
+                    let len = all_tests.len();
+                    let mut tests = parse_lists(&file, testnames, servo_args, render_mode, len);
                     println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.append(&mut tests);
                 }
@@ -89,7 +89,7 @@ fn main() {
     }
 
     let test_opts = TestOpts {
-        filter: testname,
+        filter: None,
         run_ignored: false,
         logfile: None,
         run_tests: true,
@@ -165,7 +165,12 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: usize) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &Path,
+               filters: &[String],
+               servo_args: &[String],
+               render_mode: RenderMode,
+               id_offset: usize)
+               -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let contents = {
         let mut f = File::open(file).unwrap();
@@ -254,7 +259,9 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             pixel_ratio: pixel_ratio,
         };
 
-        tests.push(make_test(reftest));
+        if filters.is_empty() || filters.iter().any(|pattern| reftest.name.contains(pattern)) {
+            tests.push(make_test(reftest));
+        }
     }
     tests
 }
