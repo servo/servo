@@ -10,7 +10,7 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -119,8 +119,4 @@ impl VirtualMethods for HTMLObjectElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLObjectElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLObjectElement {}

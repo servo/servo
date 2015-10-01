@@ -633,11 +633,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLInputElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLInputElement {}
 
 impl Activatable for HTMLInputElement {
     fn as_element<'b>(&'b self) -> &'b Element {

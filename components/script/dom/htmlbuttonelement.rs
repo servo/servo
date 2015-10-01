@@ -191,11 +191,7 @@ impl VirtualMethods for HTMLButtonElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLButtonElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLButtonElement {}
 
 impl<'a> Activatable for &'a HTMLButtonElement {
     fn as_element<'b>(&'b self) -> &'b Element {

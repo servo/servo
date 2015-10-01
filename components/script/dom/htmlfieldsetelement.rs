@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLLegendElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
@@ -157,8 +157,4 @@ impl VirtualMethods for HTMLFieldSetElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLFieldSetElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLFieldSetElement {}

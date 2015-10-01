@@ -4,11 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -54,8 +53,4 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLLabelElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLLabelElement {}

@@ -15,9 +15,11 @@ use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
+use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -515,10 +517,10 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormControl<'a> : Copy + Sized {
+pub trait FormControl: ElementBase + Reflectable {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
-    fn form_owner(self) -> Option<Root<HTMLFormElement>> {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
         // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
         let elem = self.to_element();
         let owner = elem.get_string_attribute(&atom!("form"));
@@ -544,12 +546,12 @@ pub trait FormControl<'a> : Copy + Sized {
         None
     }
 
-    fn get_form_attribute<InputFn, OwnerFn>(self,
+    fn get_form_attribute<InputFn, OwnerFn>(&self,
                                             attr: &Atom,
                                             input: InputFn,
                                             owner: OwnerFn)
                                             -> DOMString
-        where InputFn: Fn(Self) -> DOMString,
+        where InputFn: Fn(&Self) -> DOMString,
               OwnerFn: Fn(&HTMLFormElement) -> DOMString
     {
         if self.to_element().has_attribute(attr) {
@@ -559,7 +561,9 @@ pub trait FormControl<'a> : Copy + Sized {
         }
     }
 
-    fn to_element(self) -> &'a Element;
+    fn to_element(&self) -> &Element {
+        ElementCast::from_ref(self)
+    }
 }
 
 impl VirtualMethods for HTMLFormElement {

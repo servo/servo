@@ -15,7 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -363,11 +363,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLTextAreaElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLTextAreaElement {}
 
 pub struct ChangeEventRunnable {
     element: Trusted<HTMLTextAreaElement>,

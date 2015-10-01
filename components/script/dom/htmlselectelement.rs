@@ -5,13 +5,13 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
@@ -161,8 +161,4 @@ impl VirtualMethods for HTMLSelectElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLSelectElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLSelectElement {}
