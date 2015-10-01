@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "msg"
 path = "lib.rs"
 
-[dependencies.app_units]
-path = "../app_units"
-
 [dependencies.util]
 path = "../util"
 
@@ -48,6 +45,7 @@ features = ["texture_surface"]
 path = "../plugins"
 
 [dependencies]
+app_units = "0.1"
 bitflags = "0.3"
 rustc-serialize = "0.3.4"
 euclid = "0.2"

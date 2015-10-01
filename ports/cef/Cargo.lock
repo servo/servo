@@ -64,6 +64,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "app_units"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_macros 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "aster"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -215,6 +226,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
@@ -538,6 +550,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "gfx"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
@@ -549,7 +562,7 @@ dependencies = [
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
- "harfbuzz 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "harfbuzz-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -570,6 +583,7 @@ dependencies = [
  "string_cache 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -685,11 +699,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "harfbuzz"
-version = "0.1.2"
+name = "harfbuzz-sys"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -879,6 +894,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
@@ -910,6 +926,7 @@ dependencies = [
  "string_cache_plugin 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "unicode-bidi 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1032,6 +1049,7 @@ dependencies = [
 name = "msg"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
@@ -1369,6 +1387,7 @@ name = "script"
 version = "0.0.1"
 dependencies = [
  "angle 0.1.0 (git+https://github.com/ecoal95/angle?branch=servo)",
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
@@ -1411,6 +1430,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
@@ -1606,6 +1626,7 @@ dependencies = [
 name = "style"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1721,6 +1742,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicode-script"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "harfbuzz-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "unreachable"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1752,6 +1781,7 @@ dependencies = [
 name = "util"
 version = "0.0.1"
 dependencies = [
+ "app_units 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",

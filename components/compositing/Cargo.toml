@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "compositing"
 path = "lib.rs"
 
-[dependencies.app_units]
-path = "../app_units"
-
 [dependencies.gfx]
 path = "../gfx"
 
@@ -74,6 +71,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
+app_units = "0.1"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
