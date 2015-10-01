@@ -90,7 +90,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#befed8e71a7e66027905546e2057404edb0532f4"
+source = "git+https://github.com/servo/rust-azure#f517e08c00fcd0249f031ac1f976e18b57f3da60"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -872,7 +872,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.1.0"
-source = "git+https://github.com/pcwalton/ipc-channel#63a7b00deb5296ff890cc2c7964e039dbd7aeb13"
+source = "git+https://github.com/pcwalton/ipc-channel#5e71fe6a1831e61e01ec8580bd3c3280b25d6054"
 dependencies = [
  "bincode 0.4.0 (git+https://github.com/TyOverby/bincode)",
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
