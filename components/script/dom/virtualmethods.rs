@@ -20,6 +20,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLMetaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
@@ -177,6 +178,10 @@ pub fn vtable_for<'a>(node: &'a Node) -> &'a (VirtualMethods + 'a) {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             let element = HTMLLinkElementCast::to_ref(node).unwrap();
+            element as &'a (VirtualMethods + 'a)
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
+            let element = HTMLMetaElementCast::to_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
