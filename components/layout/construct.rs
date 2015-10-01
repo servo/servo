@@ -1375,11 +1375,17 @@ impl<'a> FlowConstructor<'a> {
                             // FIXME(pcwalton): Fragment restyle damage too?
                             flow_ref.repair_style_and_bubble_inline_sizes(&style);
                         }
-                        SpecificFragmentInfo::ScannedText(_) |
+                        SpecificFragmentInfo::ScannedText(_) => {
+                            // Text fragments in ConstructionResult haven't been scanned yet
+                            unreachable!()
+                        }
+                        SpecificFragmentInfo::GeneratedContent(_) |
                         SpecificFragmentInfo::UnscannedText(_) => {
-                            properties::modify_style_for_text(&mut style);
-                            properties::modify_style_for_replaced_content(&mut style);
-                            fragment.repair_style(&style);
+                            // We can't repair this unscanned text; we need to update the
+                            // scanned text fragments.
+                            //
+                            // TODO: Add code to find and repair the ScannedText fragments?
+                            return false
                         }
                         _ => {
                             if node.is_replaced_content() {
