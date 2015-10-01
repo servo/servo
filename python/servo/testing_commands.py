@@ -175,12 +175,13 @@ class MachCommands(CommandBase):
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
 
+        args = ["cargo", "test"]
         for crate in packages:
-            result = subprocess.call(
-                ["cargo", "test", "-p", "%s_tests" % crate] + test_patterns,
-                env=self.build_env(), cwd=self.servo_crate())
-            if result != 0:
-                return result
+            args += ["-p", "%s_tests" % crate]
+        args += test_patterns
+        result = subprocess.call(args, env=self.build_env(), cwd=self.servo_crate())
+        if result != 0:
+            return result
 
     @Command('test-ref',
              description='Run the reference tests',
