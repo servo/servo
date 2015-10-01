@@ -133,27 +133,30 @@ impl HttpRequest for MockRequest {
 }
 
 struct AssertRequestMustHaveHeaders {
-    headers: Headers,
+    expected_headers: Headers,
+    request_headers: Headers,
     t: ResponseType
 }
 
 impl AssertRequestMustHaveHeaders {
-    fn new(t: ResponseType, headers: Headers) -> Self {
-        AssertRequestMustHaveHeaders { headers: headers, t: t }
+    fn new(t: ResponseType, expected_headers: Headers) -> Self {
+        AssertRequestMustHaveHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
 
 impl HttpRequest for AssertRequestMustHaveHeaders {
     type R = MockResponse;
 
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        assert!(self.headers.len() > 0);
+        for header in self.expected_headers.iter() {
+            assert!(self.request_headers.get_raw(header.name()).is_some());
+        }
+        assert_eq!(self.request_headers, self.expected_headers);
 
         response_for_request_type(self.t)
     }
-}
 
 struct AssertRequestMustIncludeHeaders {
     expected_headers: Headers,
@@ -176,7 +179,6 @@ impl HttpRequest for AssertRequestMustIncludeHeaders {
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
         }
-        assert_eq!(self.request_headers, self.expected_headers);
 
         response_for_request_type(self.t)
     }
@@ -601,12 +603,11 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
-            expected_headers: cookie,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
+                                                    &AssertMustHaveHeadersRequestFactory {
+                                                        expected_headers: cookie,
+                                                        body: <[_]>::to_vec(&*load_data.data.unwrap())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -626,12 +627,11 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
-            expected_headers: content_len_headers,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar,
+                                                    None, &AssertMustHaveHeadersRequestFactory {
+                                                            expected_headers: content_len_headers,
+                                                            body: <[_]>::to_vec(&*load_data.data.unwrap())
+                                                        }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -648,13 +648,13 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                    expected_headers: accept_headers,
-                                                    body: <[_]>::to_vec("Yay!".as_bytes())
-                                                }, DEFAULT_USER_AGENT.to_string());
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustHaveHeadersRequestFactory {
+                                                        expected_headers: accept_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -672,13 +672,13 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustHaveHeadersRequestFactory {
+                                                        expected_headers: accept_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -695,13 +695,13 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_encoding_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustHaveHeadersRequestFactory {
+                                                        expected_headers: accept_encoding_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -717,13 +717,13 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_encoding_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustHaveHeadersRequestFactory {
+                                                        expected_headers: accept_encoding_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
