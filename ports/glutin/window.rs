@@ -88,6 +88,7 @@ impl Window {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_decorations(!opts::get().no_native_titlebar)
+                            .with_vsync()
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
                             .with_gl(Window::gl_version())
                             .with_visibility(is_foreground)
