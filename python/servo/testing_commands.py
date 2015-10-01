@@ -10,6 +10,7 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import re
 import sys
 import os
 import os.path as path
@@ -90,7 +91,9 @@ class MachCommands(CommandBase):
             ("css", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "css-tests"))],
                      "include_arg": "include"}),
-            ("unit", {}),
+            ("unit", {"kwargs": {},
+                      "paths": [path.abspath(path.join("tests", "unit"))],
+                      "include_arg": "test_name"})
         ])
 
         suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
@@ -138,7 +141,7 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('--package', '-p', default=None, help="Specific package to test")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
-                     help="Only run tests that match this pattern")
+                     help="Only run tests that match this pattern or file path")
     def test_unit(self, test_name=None, package=None):
         if test_name is None:
             test_name = []
@@ -146,13 +149,35 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
 
         if package:
-            packages = [package]
+            packages = {package}
         else:
-            packages = os.listdir(path.join(self.context.topdir, "tests", "unit"))
+            packages = set()
+
+        test_patterns = []
+        for test in test_name:
+            # add package if 'tests/unit/<package>'
+            match = re.search("tests/unit/(\\w+)/?$", test)
+            if match:
+                packages.add(match.group(1))
+            # add package & test if '<package>/<test>', 'tests/unit/<package>/<test>.rs', or similar
+            elif re.search("\\w/\\w", test):
+                tokens = test.split("/")
+                packages.add(tokens[-2])
+                test_prefix = tokens[-1]
+                if test_prefix.endswith(".rs"):
+                    test_prefix = test_prefix[:-3]
+                test_prefix += "::"
+                test_patterns.append(test_prefix)
+            # add test as-is otherwise
+            else:
+                test_patterns.append(test)
+
+        if not packages:
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
 
         for crate in packages:
             result = subprocess.call(
-                ["cargo", "test", "-p", "%s_tests" % crate] + test_name,
+                ["cargo", "test", "-p", "%s_tests" % crate] + test_patterns,
                 env=self.build_env(), cwd=self.servo_crate())
             if result != 0:
                 return result
