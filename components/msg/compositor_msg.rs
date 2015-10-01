@@ -50,9 +50,9 @@ pub struct LayerId(
     LayerType,
     /// The identifier for this layer's fragment, derived from the fragment memory address.
     usize,
-    /// Whether or not this layer is a companion layer, synthesized to ensure that
+    /// An index for identifying companion layers, synthesized to ensure that
     /// content on top of this layer's fragment has the proper rendering order.
-    bool
+    usize
 );
 
 impl Debug for LayerId {
@@ -65,30 +65,23 @@ impl Debug for LayerId {
             LayerType::AfterPseudoContent => "-AfterPseudoContent",
         };
 
-        let companion_string = if companion {
-            "-companion"
-        } else {
-            ""
-        };
-
-        write!(f, "{}{}{}", id, type_string, companion_string)
+        write!(f, "{}{}-{}", id, type_string, companion)
     }
 }
 
 impl LayerId {
     /// FIXME(#2011, pcwalton): This is unfortunate. Maybe remove this in the future.
     pub fn null() -> LayerId {
-        LayerId(LayerType::FragmentBody, 0, false)
+        LayerId(LayerType::FragmentBody, 0, 0)
     }
 
     pub fn new_of_type(layer_type: LayerType, fragment_id: usize) -> LayerId {
-        LayerId(layer_type, fragment_id, false)
+        LayerId(layer_type, fragment_id, 0)
     }
 
     pub fn companion_layer_id(&self) -> LayerId {
         let LayerId(layer_type, id, companion) = *self;
-        assert!(!companion);
-        LayerId(layer_type, id, true)
+        LayerId(layer_type, id, companion + 1)
     }
 }
 
@@ -172,7 +165,7 @@ pub enum ScriptToCompositorMsg {
 }
 
 /// Subpage (i.e. iframe)-specific information about each layer.
-#[derive(Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageLayerInfo {
     /// The ID of the pipeline.
     pub pipeline_id: PipelineId,
