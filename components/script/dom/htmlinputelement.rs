@@ -31,7 +31,6 @@ use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::i32;
 use string_cache::Atom;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
