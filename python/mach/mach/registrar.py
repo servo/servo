@@ -61,6 +61,11 @@ class MachRegistrar(object):
         if handler.pass_context and not context:
             raise Exception('mach command class requires context.')
 
+        if context:
+            prerun = getattr(context, 'pre_dispatch_handler', None)
+            if prerun:
+                prerun(context, handler, args=kwargs)
+
         if handler.pass_context:
             instance = cls(context)
         else:

@@ -92,7 +92,6 @@ class CommandAction(argparse.Action):
         elif values:
             command = values[0].lower()
             args = values[1:]
-
             if command == 'help':
                 if args and args[0] not in ['-h', '--help']:
                     # Make sure args[0] is indeed a command.
@@ -102,8 +101,17 @@ class CommandAction(argparse.Action):
                 sys.exit(0)
             elif '-h' in args or '--help' in args:
                 # -h or --help is in the command arguments.
-                self._handle_command_help(parser, command)
-                sys.exit(0)
+                if '--' in args:
+                    # -- is in command arguments
+                    if '-h' in args[:args.index('--')] or '--help' in args[:args.index('--')]:
+                        # Honor -h or --help only if it appears before --
+                        self._handle_command_help(parser, command)
+                        sys.exit(0)
+                else:
+                    self._handle_command_help(parser, command)
+                    sys.exit(0)
+
+
         else:
             raise NoCommandError()
 
@@ -172,13 +180,19 @@ class CommandAction(argparse.Action):
             'usage': usage,
         }
 
+        remainder = None
+
         if handler.parser:
             subparser = handler.parser
             subparser.context = self._context
+            for arg in subparser._actions[:]:
+                if arg.nargs == argparse.REMAINDER:
+                    subparser._actions.remove(arg)
+                    remainder = (arg.dest,), {'default': arg.default,
+                                              'nargs': arg.nargs,
+                                              'help': arg.help}
         else:
             subparser = argparse.ArgumentParser(**parser_args)
-
-        remainder = None
 
         for arg in handler.arguments:
             # Remove our group keyword; it's not needed here.
@@ -230,7 +244,7 @@ class CommandAction(argparse.Action):
                 setattr(command_namespace, name, extra)
             else:
                 setattr(command_namespace, name, options.get('default', []))
-        elif extra:
+        elif extra and handler.cls.__name__ != 'DeprecatedCommands':
             raise UnrecognizedArgumentError(command, extra)
 
     def _handle_main_help(self, parser, verbose):
