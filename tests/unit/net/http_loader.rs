@@ -150,13 +150,11 @@ impl HttpRequest for AssertRequestMustHaveHeaders {
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        for header in self.expected_headers.iter() {
-            assert!(self.request_headers.get_raw(header.name()).is_some());
-        }
         assert_eq!(self.request_headers, self.expected_headers);
 
         response_for_request_type(self.t)
     }
+}
 
 struct AssertRequestMustIncludeHeaders {
     expected_headers: Headers,
@@ -166,6 +164,7 @@ struct AssertRequestMustIncludeHeaders {
 
 impl AssertRequestMustIncludeHeaders {
     fn new(t: ResponseType, expected_headers: Headers) -> Self {
+        assert!(expected_headers.len() != 0);
         AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
     }
 }
@@ -178,6 +177,10 @@ impl HttpRequest for AssertRequestMustIncludeHeaders {
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
+            assert_eq!(
+                self.request_headers.get_raw(header.name()).unwrap(),
+                self.expected_headers.get_raw(header.name()).unwrap()
+            )
         }
 
         response_for_request_type(self.t)
