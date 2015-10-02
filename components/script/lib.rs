@@ -47,6 +47,7 @@ extern crate util;
 extern crate angle;
 extern crate canvas;
 extern crate canvas_traits;
+extern crate caseless;
 extern crate core;
 extern crate cssparser;
 extern crate devtools_traits;
