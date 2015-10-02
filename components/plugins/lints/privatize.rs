@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
-use rustc::middle::def_id::DefId;
 use rustc_front::hir;
 use syntax::ast;
 use syntax::attr::AttrMetaMethods;
@@ -27,16 +26,16 @@ impl LateLintPass for PrivatizePass {
     fn check_struct_def(&mut self,
                         cx: &LateContext,
                         def: &hir::StructDef,
-                        _i: ast::Ident,
+                        _n: ast::Name,
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
-        if cx.tcx.has_attr(DefId::local(id), "privatize") {
+        if cx.tcx.has_attr(cx.tcx.map.local_def_id(id), "privatize") {
             for field in &def.fields {
                 match field.node {
-                    hir::StructField_ { kind: hir::NamedField(ident, visibility), .. } if visibility == hir::Public => {
+                    hir::StructField_ { kind: hir::NamedField(name, visibility), .. } if visibility == hir::Public => {
                         cx.span_lint(PRIVATIZE, field.span,
                                      &format!("Field {} is public where only private fields are allowed",
-                                              ident.name));
+                                              name));
                     }
                     _ => {}
                 }
