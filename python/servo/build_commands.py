@@ -35,7 +35,7 @@ def notify_linux(title, text):
         bus = dbus.SessionBus()
         notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
         method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
-        method(title, 0, "", text, "", [], [], -1)
+        method(title, 0, "", text, "", [], {"transient": True}, -1)
     except:
         raise Exception("Please make sure that the Python dbus module is installed!")
 
