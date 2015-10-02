@@ -1466,8 +1466,9 @@ impl BlockFlow {
 
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
-            // TODO(#2018, pcwalton): Do this in the cascade instead.
-            flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone());
+            // TODO(#2265, pcwalton): Do this in the cascade instead.
+            let containing_block_text_align = self.fragment.style().get_inheritedtext().text_align;
+            flow::mut_base(kid).flags.set_text_align(containing_block_text_align);
 
             // Handle `text-indent` on behalf of any inline children that we have. This is
             // necessary because any percentages are relative to the containing block, which only
@@ -2276,9 +2277,6 @@ pub trait ISizeAndMarginsComputer {
             (_, box_sizing::T::content_box) => {}
         }
 
-        // The text alignment of a block flow is the text alignment of its box's style.
-        block.base.flags.set_text_align(style.get_inheritedtext().text_align);
-
         let margin = style.logical_margin();
         let position = style.logical_position();
 
@@ -2442,6 +2440,7 @@ pub trait ISizeAndMarginsComputer {
         // Check for direction of parent flow (NOT Containing Block)
         let block_mode = block.base.writing_mode;
         let container_mode = block.base.block_container_writing_mode;
+        let block_align = block.base.flags.text_align();
 
         // FIXME (mbrubeck): Handle vertical writing modes.
         let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();
@@ -2472,9 +2471,6 @@ pub trait ISizeAndMarginsComputer {
                  MaybeAuto::Specified(margin_end)) => {
                     // servo_left, servo_right, and servo_center are used to implement
                     // the "align descendants" rule in HTML5 § 14.2.
-                    // FIXME(#7301): block_align is supposed to be the text-align of the
-                    // parent, not the current node.
-                    let block_align = input.text_align;
                     if block_align == text_align::T::servo_center {
                         // Ignore any existing margins, and make the inline-start and
                         // inline-end margins equal.
