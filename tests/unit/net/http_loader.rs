@@ -16,6 +16,7 @@ use net_traits::{ResourceTask, ControlMsg, CookieSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use url::Url;
+use util::opts::default_opts;
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
     let mut headers = Headers::new();
@@ -82,12 +83,11 @@ fn redirect_to(host: String) -> MockResponse {
     )
 }
 
-fn redirect_with_headers(host: String, initial_headers: Headers) -> MockResponse {
-    let mut new_headers = initial_headers.clone();
-    new_headers.set(Location(host.to_string()));
+fn redirect_with_headers(host: String, headers: &mut Headers) -> MockResponse {
+    headers.set(Location(host.to_string()));
 
     MockResponse::new(
-        new_headers,
+        headers.clone(),
         StatusCode::MovedPermanently,
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
         <[_]>::to_vec("".as_bytes())
@@ -117,8 +117,8 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
         },
-        ResponseType::RedirectWithHeaders(location, headers) => {
-            Ok(redirect_with_headers(location, headers))
+        ResponseType::RedirectWithHeaders(location, mut headers) => {
+            Ok(redirect_with_headers(location, &mut headers))
         }
         ResponseType::Text(b) => {
             Ok(respond_with(b))
@@ -687,7 +687,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
     struct Factory;
 
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(default_opts().user_agent, None);
     resource_mgr.send(ControlMsg::SetCookiesForUrl(url_x.clone(),
         "mozillaIsNot=dotCom".to_string(),
         CookieSource::HTTP)).unwrap();
@@ -788,7 +788,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         }
     }
 
-    let resource_mgr = new_resource_task("Test-agent".to_string(), None);
+    let resource_mgr = new_resource_task(default_opts().user_agent, None);
     let load_data = LoadData::new(Url::parse("http://mozilla.org/initial/").unwrap(), None);
 
     match load::<AssertRequestMustHaveHeaders>(load_data, resource_mgr, None, &Factory) {
