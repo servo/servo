@@ -5,7 +5,11 @@
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
+use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
@@ -78,6 +82,20 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan");
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
+    fn CellIndex(&self) -> i32 {
+        let self_node = NodeCast::from_ref(self);
+
+        let parent_children = match self_node.GetParentNode() {
+            Some(ref parent_node) if parent_node.is_htmltablerowelement() => parent_node.children(),
+            _ => return -1,
+        };
+
+        parent_children.filter(|c| c.is_htmltablecellelement())
+                       .position(|c| c.r() == self_node)
+                       .map(|p| p as i32).unwrap_or(-1)
+    }
 }
 
 
