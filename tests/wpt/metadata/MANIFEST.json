@@ -17744,6 +17744,10 @@
         "url": "/html/semantics/tabular-data/the-tbody-element/insertRow.html"
       },
       {
+        "path": "html/semantics/tabular-data/the-tr-element/cells.html",
+        "url": "/html/semantics/tabular-data/the-tr-element/cells.html"
+      },
+      {
         "path": "html/semantics/tabular-data/the-tr-element/deleteCell.html",
         "url": "/html/semantics/tabular-data/the-tr-element/deleteCell.html"
       },
