@@ -83,11 +83,11 @@ fn redirect_to(host: String) -> MockResponse {
     )
 }
 
-fn redirect_with_headers(host: String, headers: &mut Headers) -> MockResponse {
+fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     headers.set(Location(host.to_string()));
 
     MockResponse::new(
-        headers.clone(),
+        headers,
         StatusCode::MovedPermanently,
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
         <[_]>::to_vec("".as_bytes())
@@ -117,8 +117,8 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
         },
-        ResponseType::RedirectWithHeaders(location, mut headers) => {
-            Ok(redirect_with_headers(location, &mut headers))
+        ResponseType::RedirectWithHeaders(location, headers) => {
+            Ok(redirect_with_headers(location, headers))
         }
         ResponseType::Text(b) => {
             Ok(respond_with(b))
@@ -702,30 +702,19 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 let mut expected_headers_x = Headers::new();
-                expected_headers_x.set_raw(
-                    "Cookie".to_owned(),
+                expected_headers_x.set_raw("Cookie".to_owned(),
                     vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
 
-                Ok(
-                    AssertRequestMustHaveHeaders::new(
-                        ResponseType::Redirect("http://mozilla.org".to_string()),
-                        expected_headers_x
-                        )
-                    )
+                Ok(AssertRequestMustHaveHeaders::new(
+                    ResponseType::Redirect("http://mozilla.org".to_string()), expected_headers_x))
             } else if url.domain().unwrap() == "mozilla.org" {
                 let mut expected_headers_y = Headers::new();
                 expected_headers_y.set_raw(
                     "Cookie".to_owned(),
                     vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-                Ok(
-                    AssertRequestMustHaveHeaders::new(
-                        ResponseType::Text(
-                            <[_]>::to_vec("Yay!".as_bytes())
-                        ),
-                        expected_headers_y
-                    )
-                )
+                Ok(AssertRequestMustHaveHeaders::new(
+                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())), expected_headers_y))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -755,33 +744,21 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             if url.path().unwrap()[0] == "initial" {
                 let expected_initial_headers = Headers::new();
                 let mut initial_answer_headers = Headers::new();
-                initial_answer_headers.set_raw(
-                    "set-cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
-                    );
+                initial_answer_headers.set_raw("set-cookie".to_owned(),
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-                Ok(
-                    AssertRequestMustHaveHeaders::new(
-                        ResponseType::RedirectWithHeaders(
-                            "http://mozilla.org/subsequent/".to_string(),
-                            initial_answer_headers),
-                        expected_initial_headers
-                        )
-                    )
+                Ok(AssertRequestMustHaveHeaders::new(
+                    ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_string(),
+                        initial_answer_headers),
+                    expected_initial_headers))
             } else if url.path().unwrap()[0] == "subsequent" {
                 let mut expected_subsequent_headers = Headers::new();
                 expected_subsequent_headers.set_raw("Cookie".to_owned(),
-                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]
-                    );
+                    vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-                Ok(
-                    AssertRequestMustHaveHeaders::new(
-                        ResponseType::Text(
-                            <[_]>::to_vec("Yay!".as_bytes())
-                        ),
-                        expected_subsequent_headers
-                    )
-                )
+                Ok(AssertRequestMustHaveHeaders::new(
+                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())),
+                    expected_subsequent_headers))
             } else {
                 panic!("unexpected host {:?}", url)
             }
