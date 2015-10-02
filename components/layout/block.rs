@@ -2470,20 +2470,26 @@ pub trait ISizeAndMarginsComputer {
                 (MaybeAuto::Specified(margin_start),
                  MaybeAuto::Specified(inline_size),
                  MaybeAuto::Specified(margin_end)) => {
-                    match (input.text_align, parent_has_same_direction) {
-                        (text_align::T::servo_center, _) => {
-                            // This is used for `<center>` and friends per HTML5 § 14.3.3. Make the
-                            // inline-start and inline-end margins equal per HTML5 § 14.2.
-                            let margin = (available_inline_size - inline_size).scale_by(0.5);
-                            (margin, inline_size, margin)
-                        }
-                        (_, true) => {
-                            // Ignore the end margin.
+                    // servo_left, servo_right, and servo_center are used to implement
+                    // the "align descendants" rule in HTML5 § 14.2.
+                    // FIXME(#7301): block_align is supposed to be the text-align of the
+                    // parent, not the current node.
+                    let block_align = input.text_align;
+                    if block_align == text_align::T::servo_center {
+                        // Ignore any existing margins, and make the inline-start and
+                        // inline-end margins equal.
+                        let margin = (available_inline_size - inline_size).scale_by(0.5);
+                        (margin, inline_size, margin)
+                    } else {
+                        let ignore_end_margin = match block_align {
+                            text_align::T::servo_left => block_mode.is_bidi_ltr(),
+                            text_align::T::servo_right => !block_mode.is_bidi_ltr(),
+                            _ => parent_has_same_direction,
+                        };
+                        if ignore_end_margin {
                             (margin_start, inline_size, available_inline_size -
                              (margin_start + inline_size))
-                        }
-                        (_, false) => {
-                            // Ignore the start margin.
+                        } else {
                             (available_inline_size - (margin_end + inline_size),
                              inline_size,
                              margin_end)

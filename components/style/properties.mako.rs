@@ -2020,6 +2020,8 @@ pub mod longhands {
                 center("center") => 4,
                 justify("justify") => 5,
                 servo_center("-servo-center") => 6,
+                servo_left("-servo-left") => 7,
+                servo_right("-servo-right") => 8,
             }
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
