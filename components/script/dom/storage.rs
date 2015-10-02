@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
@@ -82,14 +83,19 @@ impl StorageMethods for Storage {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
-    fn SetItem(&self, name: DOMString, value: DOMString) {
+    fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
-        let (changed, old_value) = receiver.recv().unwrap();
-        if changed {
-            self.broadcast_change_notification(Some(name), old_value, Some(value));
+        match receiver.recv().unwrap() {
+            Err(_) => Err(Error::QuotaExceeded),
+            Ok((changed, old_value)) => {
+              if changed {
+                  self.broadcast_change_notification(Some(name), old_value, Some(value));
+              }
+              Ok(())
+            }
         }
     }
 
@@ -129,8 +135,8 @@ impl StorageMethods for Storage {
         item
     }
 
-    fn NamedSetter(&self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
+    fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {
+        self.SetItem(name, value)
     }
 
     fn NamedDeleter(&self, name: DOMString) {
