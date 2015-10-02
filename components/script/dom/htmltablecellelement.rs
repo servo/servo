@@ -4,8 +4,16 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::HTMLTableRowElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTableCellElementDerived;
+use dom::bindings::codegen::InheritTypes::HTMLTableRowElementCast;
+use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -77,6 +85,21 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan");
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
+    fn CellIndex(&self) -> i32 {
+        if let Some(tr) = NodeCast::from_ref(self).GetParentNode() {
+            if let Some(tr) = HTMLTableRowElementCast::to_root(tr) {
+                let this = Some(Root::from_ref(ElementCast::from_ref(self)));
+                for i in 0..tr.Cells().Length() {
+                    if tr.Cells().Item(i) == this {
+                        return i as i32;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
 }
 
 
