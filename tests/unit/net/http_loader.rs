@@ -8,9 +8,11 @@ use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
-use hyper::header::{Headers, Location, ContentLength, Host};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, Encoding, Headers, Host, Location, Quality};
+use hyper::header::{QualityItem, qitem, UserAgent};
 use hyper::http::RawStatus;
 use hyper::method::Method;
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -193,6 +195,25 @@ struct AssertMustHaveHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
+    type R = AssertRequestMustHaveHeaders;
+
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
+        Ok(
+            AssertRequestMustHaveHeaders::new(
+                ResponseType::Text(self.body.clone()),
+                self.expected_headers.clone()
+            )
+        )
+    }
+}
+
+
+struct AssertMustIncludeHeadersRequestFactory {
+    expected_headers: Headers,
+    body: Vec<u8>
+}
+
+impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
     type R = AssertRequestMustIncludeHeaders;
 
     fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
@@ -274,6 +295,38 @@ fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -
 }
 
 #[test]
+fn test_check_default_headers_loaded_in_every_request() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = None;
+    load_data.method = Method::Post;
+
+    let mut headers = Headers::new();
+
+    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
+    headers.set(ContentLength(0 as u64));
+    headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+    let accept = Accept(vec![
+                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                            ]);
+    headers.set(accept);
+    headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
+                                                &AssertMustHaveHeadersRequestFactory {
+                                                    expected_headers: headers,
+                                                    body: <[_]>::to_vec(&[])
+                                                }, DEFAULT_USER_AGENT.to_string());
+}
+
+#[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
     let url = Url::parse("http://mozilla.com").unwrap();
 
@@ -289,7 +342,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
 
     let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
+        &AssertMustIncludeHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
         }, DEFAULT_USER_AGENT.to_string());
@@ -607,7 +660,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
-                                                    &AssertMustHaveHeadersRequestFactory {
+                                                    &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: cookie,
                                                         body: <[_]>::to_vec(&*load_data.data.unwrap())
                                                     }, DEFAULT_USER_AGENT.to_string());
@@ -631,7 +684,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar,
-                                                    None, &AssertMustHaveHeadersRequestFactory {
+                                                    None, &AssertMustIncludeHeadersRequestFactory {
                                                             expected_headers: content_len_headers,
                                                             body: <[_]>::to_vec(&*load_data.data.unwrap())
                                                         }, DEFAULT_USER_AGENT.to_string());
@@ -654,7 +707,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
                                                     hsts_list,
                                                     cookie_jar,
                                                     None,
-                                                    &AssertMustHaveHeadersRequestFactory {
+                                                    &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
                                                     }, DEFAULT_USER_AGENT.to_string());
@@ -678,7 +731,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
                                                     hsts_list,
                                                     cookie_jar,
                                                     None,
-                                                    &AssertMustHaveHeadersRequestFactory {
+                                                    &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
                                                     }, DEFAULT_USER_AGENT.to_string());
@@ -701,7 +754,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
                                                     hsts_list,
                                                     cookie_jar,
                                                     None,
-                                                    &AssertMustHaveHeadersRequestFactory {
+                                                    &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_encoding_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
                                                     }, DEFAULT_USER_AGENT.to_string());
@@ -723,7 +776,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     hsts_list,
                                                     cookie_jar,
                                                     None,
-                                                    &AssertMustHaveHeadersRequestFactory {
+                                                    &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: accept_encoding_headers,
                                                         body: <[_]>::to_vec("Yay!".as_bytes())
                                                     }, DEFAULT_USER_AGENT.to_string());
