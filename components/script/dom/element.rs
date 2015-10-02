@@ -874,8 +874,8 @@ impl Element {
     }
 
     pub fn set_attribute(&self, name: &Atom, value: AttrValue) {
-        assert!(&**name == name.to_ascii_lowercase());
-        assert!(!name.contains(":"));
+        debug_assert!(&**name == name.to_ascii_lowercase());
+        debug_assert!(!name.contains(":"));
 
         self.set_first_matching_attribute(
             name.clone(), value, name.clone(), ns!(""), None,
@@ -970,13 +970,13 @@ impl Element {
     }
 
     pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         let value = AttrValue::from_atomic(value);
         self.set_attribute(local_name, value);
     }
 
     pub fn has_attribute(&self, local_name: &Atom) -> bool {
-        assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
+        debug_assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(JS::root).any(|attr| {
             attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
@@ -992,7 +992,7 @@ impl Element {
     }
 
     pub fn get_url_attribute(&self, local_name: &Atom) -> DOMString {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
             return "".to_owned();
         }
@@ -1017,7 +1017,7 @@ impl Element {
         }
     }
     pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value));
     }
 
@@ -1031,17 +1031,17 @@ impl Element {
     }
 
     pub fn set_tokenlist_attribute(&self, local_name: &Atom, value: DOMString) {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
     }
 
     pub fn set_atomic_tokenlist_attribute(&self, local_name: &Atom, tokens: Vec<Atom>) {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens));
     }
 
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
-        assert!(local_name.chars().all(|ch| {
+        debug_assert!(local_name.chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
         let attribute = self.get_attribute(&ns!(""), local_name);
@@ -1056,8 +1056,9 @@ impl Element {
             None => default,
         }
     }
+
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
-        assert!(&**local_name == local_name.to_ascii_lowercase());
+        debug_assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 }

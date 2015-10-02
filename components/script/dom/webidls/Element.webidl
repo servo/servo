@@ -43,7 +43,9 @@ interface Element : Node {
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
+  [Pure]
   boolean hasAttribute(DOMString name);
+  [Pure]
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
   [Pure, Throws]
@@ -52,8 +54,11 @@ interface Element : Node {
   [Pure, Throws]
   boolean matches(DOMString selectors);
 
+  [Pure]
   HTMLCollection getElementsByTagName(DOMString localName);
+  [Pure]
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
+  [Pure]
   HTMLCollection getElementsByClassName(DOMString classNames);
 };
 
