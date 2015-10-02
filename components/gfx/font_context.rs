@@ -325,6 +325,7 @@ impl PartialEq for LayoutFontGroupCacheKey {
             self.pointer.font_stretch == other.pointer.font_stretch &&
             self.pointer.font_style == other.pointer.font_style &&
             self.pointer.font_weight as u16 == other.pointer.font_weight as u16 &&
+            self.pointer.font_variant == other.pointer.font_variant &&
             self.size == other.size
     }
 }
