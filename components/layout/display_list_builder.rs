@@ -1717,6 +1717,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                       ScrollPolicy::Scrollable,
                                                       StackingContextCreationMode::Normal))
         } else {
+            match self.fragment.style.get_box().position {
+                position::T::static_ => {}
+                _ => {
+                    display_list.form_pseudo_stacking_context_for_positioned_content();
+                }
+            }
             DisplayListBuildingResult::Normal(display_list)
         }
     }
