@@ -113,6 +113,7 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == float_intrinsic_width_a.html float_intrinsic_width_ref.html
 == float_overflow_area_a.html float_overflow_area_ref.html
+== float_positioned_pseudo_stacking_context.html float_positioned_pseudo_stacking_context_ref.html
 == float_right_intrinsic_width_a.html float_right_intrinsic_width_ref.html
 == float_table_a.html float_table_ref.html
 == float_under_top_margin_a.html float_under_top_margin_ref.html
