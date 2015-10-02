@@ -47,6 +47,15 @@ On Arch Linux:
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu
 ```
 
+On Gentoo Linux:
+
+```sh
+sudo emerge net-misc/curl media-libs/freeglut \
+    media-libs/freetype media-libs/mesa dev-util/gperf \
+    dev-python/virtualenv dev-python/pip dev-libs/openssl \
+    x11-libs/libXmu media-libs/glu x11-base/xorg-server
+```
+
 Cross-compilation for Android:
 
 Pre-installed Android tools are needed. See wiki for
