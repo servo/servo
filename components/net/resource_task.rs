@@ -19,10 +19,10 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
-use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse};
+use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::{Sender, TryRecvError, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
 use util::opts;
@@ -166,8 +166,8 @@ impl ResourceChannelManager {
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
-                ControlMsg::Load(load_data, consumer) => {
-                    self.resource_manager.load(load_data, consumer)
+                ControlMsg::Load(load_data, consumer, opt_sender) => {
+                    self.resource_manager.load(load_data, consumer, opt_sender)
                 }
                 ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source)
@@ -177,10 +177,39 @@ impl ResourceChannelManager {
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
+                ControlMsg::Cancel(res_id) => {
+                    let cancel_sender = self.resource_manager.cancel_load_vector[res_id];
+                    cancel_sender.send(CancelLoad).unwrap();
+                    self.resource_manager.cancel_load_vector.remove(res_id);
+                }
                 ControlMsg::Exit => {
                     break
                 }
             }
+        }
+    }
+}
+
+pub struct CancelLoad;
+
+pub enum LoadResult {
+    Cancelled,
+    Finished,
+}
+
+pub struct CancellationListener(Option<Receiver<CancelLoad>>);
+
+impl CancellationListener {
+    pub fn is_cancelled(&self) -> bool {
+        match self.0 {
+            Some(ref receiver) => match receiver.try_recv() {
+                Ok(_) => true,
+                Err(err) => match err {
+                    TryRecvError::Disconnected => true,     // sender has been destroyed
+                    TryRecvError::Empty => false,
+                },
+            },
+            None => true,       // channel doesn't exist!
         }
     }
 }
@@ -192,6 +221,8 @@ pub struct ResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     hsts_list: Arc<RwLock<HSTSList>>,
     connector: Arc<Pool<Connector>>,
+    cancel_load_vector: Vec<Sender<CancelLoad>>,
+    next_resource_id: ResourceId,
 }
 
 impl ResourceManager {
@@ -205,11 +236,11 @@ impl ResourceManager {
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
             connector: create_http_connector(),
+            cancel_load_vector: Vec::new(),
+            next_resource_id: ResourceId(0),
         }
     }
-}
 
-impl ResourceManager {
     fn set_cookies_for_url(&mut self, request: Url, cookie_list: String, source: CookieSource) {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
@@ -223,22 +254,39 @@ impl ResourceManager {
         }
     }
 
-    fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
+    fn load(&mut self,
+            load_data: LoadData,
+            consumer: LoadConsumer,
+            opt_sender: Option<Sender<ResourceId>>) {
 
-        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-            box move |load_data, senders, classifier, _user_agent| {
-                factory(load_data, senders, classifier)
+        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
+                        -> Box<FnBox(LoadData,
+                                     LoadConsumer,
+                                     Arc<MIMEClassifier>,
+                                     CancellationListener,
+                                     String) + Send> {
+            box move |load_data, senders, classifier, cancel_listener, _user_agent| {
+                factory(load_data, senders, classifier, cancel_listener)
             }
         }
 
+        let cancel_receiver = opt_sender.map(|sender| {
+            sender.send(resoure_id).unwrap();
+            let (cancel_sender, cancel_receiver) = channel();
+            self.cancel_load_vector.push(Some(cancel_sender));
+            self.next_resource_id.0 += 1;
+            cancel_receiver
+        });
+
+        let cancel_listener = CancellationListener(cancel_receiver);
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
                 http_loader::factory(self.hsts_list.clone(),
                                      self.cookie_storage.clone(),
                                      self.devtools_chan.clone(),
-                                     self.connector.clone()),
+                                     self.connector.clone(),
+                                     cancel_listener),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
@@ -250,6 +298,10 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.call_box((load_data, consumer, self.mime_classifier.clone(), self.user_agent.clone()));
+        loader.call_box((load_data,
+                         consumer,
+                         self.mime_classifier.clone(),
+                         cancel_listener,
+                         self.user_agent.clone()));
     }
 }
