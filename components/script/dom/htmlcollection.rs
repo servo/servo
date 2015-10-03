@@ -22,7 +22,7 @@ pub trait CollectionFilter : JSTraceable {
 
 #[derive(JSTraceable)]
 #[must_root]
-pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
+pub struct Collection(pub JS<Node>, pub Box<CollectionFilter + 'static>);
 
 #[dom_struct]
 pub struct HTMLCollection {
@@ -32,7 +32,7 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    fn new_inherited(collection: Collection) -> HTMLCollection {
+    pub fn new_inherited(collection: Collection) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             collection: collection,
