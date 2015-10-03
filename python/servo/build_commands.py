@@ -134,6 +134,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--dev', '-d',
                      action='store_true',
                      help='Build in development mode')
+    @CommandArgument('--headless',
+                     default=None,
+                     action='store_true',
+                     help='Enable headless mode (OSMesa)')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -155,7 +159,7 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None):
+              features=None, headless=False, android=None, verbose=False, debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
         features = features or []
@@ -203,9 +207,13 @@ class MachCommands(CommandBase):
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
-        if is_headless_build():
-            opts += ["--no-default-features"]
-            features += ["headless"]
+        if headless:
+            if sys.platform.startswith("linux"):
+                opts += ["--no-default-features"]
+                features += ["headless"]
+            else:
+                print("Headless mode (OSMesa) is not supported on your platform.")
+                print("Building without headless mode.")
 
         if android:
             features += ["android_glue"]
