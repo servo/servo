@@ -35,7 +35,8 @@ const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
-    background: DOMRefCell<Option<Url>>
+    background: DOMRefCell<Option<Url>>,
+    text_color: Cell<Option<RGBA>>,
 }
 
 impl HTMLBodyElementDerived for EventTarget {
@@ -54,7 +55,8 @@ impl HTMLBodyElement {
                                                     prefix,
                                                     document),
             background_color: Cell::new(None),
-            background: DOMRefCell::new(None)
+            background: DOMRefCell::new(None),
+            text_color: Cell::new(None),
         }
     }
 
@@ -73,6 +75,12 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
     make_setter!(SetBgColor, "bgcolor");
 
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    make_getter!(Text);
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    make_setter!(SetText, "text");
+
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
         let win = window_from_node(self);
@@ -90,6 +98,10 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 impl HTMLBodyElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+
+    pub fn get_color(&self) -> Option<RGBA> {
+        self.text_color.get()
     }
 
     #[allow(unsafe_code)]
@@ -128,6 +140,11 @@ impl VirtualMethods for HTMLBodyElement {
         match (attr.local_name(), mutation) {
             (&atom!(bgcolor), _) => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
+                    str::parse_legacy_color(&value).ok()
+                }));
+            },
+            (&atom!(text), _) => {
+                self.text_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
