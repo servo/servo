@@ -11,7 +11,7 @@ HTMLBodyElement implements WindowEventHandlers;
 
 // https://www.whatwg.org/html/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
-  //[TreatNullAs=EmptyString] attribute DOMString text;
+    [TreatNullAs=EmptyString] attribute DOMString text;
   //[TreatNullAs=EmptyString] attribute DOMString link;
   //[TreatNullAs=EmptyString] attribute DOMString vLink;
   //[TreatNullAs=EmptyString] attribute DOMString aLink;
