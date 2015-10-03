@@ -299,6 +299,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         let color = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_color()
+        } else if let Some(this) = HTMLBodyElementCast::to_ref(self) {
+            // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
+            (*this.unsafe_get()).get_color()
         } else {
             None
         };

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
@@ -28,6 +29,7 @@ pub enum AttrValue {
     UInt(DOMString, u32),
     Atom(Atom),
     Length(DOMString, Option<Length>),
+    Color(DOMString, Option<RGBA>),
 }
 
 impl AttrValue {
@@ -98,6 +100,18 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `Color` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `Color`
+    pub fn as_color(&self) -> Option<&RGBA> {
+        match *self {
+            AttrValue::Color(_, ref color) => color.as_ref(),
+            _ => panic!("Color not found"),
+        }
+    }
+
     /// Assumes the `AttrValue` is a `Length` and returns its value
     ///
     /// ## Panics
@@ -134,7 +148,8 @@ impl Deref for AttrValue {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) |
-                AttrValue::Length(ref value, _) => &value,
+                AttrValue::Length(ref value, _) |
+                AttrValue::Color(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
     }
