@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLContextEvent "webglcontextcreationerror" event</title>
+<script>
+  var canvas = document.createElement('canvas');
+
+  canvas.addEventListener("webglcontextcreationerror", function(e) {
+    console.log("Error: " + e.statusMessage);
+    console.log("Event is WebGLContextEvent: " + (e.__proto__ === WebGLContextEvent.prototype));
+  }, false);
+
+  // Antialising actually is not supported and thus triggers the error event
+  var gl = canvas.getContext('webgl', { antialiasing: true });
+
+  gl && console.log("WebGLContext creation succeeded, please update this test!");
+</script>

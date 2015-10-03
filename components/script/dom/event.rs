@@ -36,7 +36,8 @@ pub enum EventTypeId {
     StorageEvent,
     UIEvent(UIEventTypeId),
     ErrorEvent,
-    CloseEvent
+    CloseEvent,
+    WebGLContextEvent,
 }
 
 #[derive(PartialEq, HeapSizeOf)]

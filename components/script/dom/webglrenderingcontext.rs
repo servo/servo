@@ -8,16 +8,18 @@ use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::event::{EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{NodeDamage, window_from_node};
 use dom::webglbuffer::WebGLBuffer;
+use dom::webglcontextevent::WebGLContextEvent;
 use dom::webglframebuffer::WebGLFramebuffer;
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
@@ -115,6 +117,15 @@ impl WebGLRenderingContext {
                                                WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
+                let event = WebGLContextEvent::new(global, "webglcontextcreationerror".to_owned(),
+                                                   EventBubbles::DoesNotBubble,
+                                                   EventCancelable::Cancelable,
+                                                   msg);
+
+                let event = EventCast::from_ref(event.r());
+                let target = EventTargetCast::from_ref(canvas);
+
+                event.fire(target);
                 None
             }
         }
