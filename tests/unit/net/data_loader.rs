@@ -47,7 +47,11 @@ fn empty_invalid() {
 
 #[test]
 fn plain() {
-    assert_parse("data:,hello%20world", None, None, Some(b"hello world".iter().map(|&x| x).collect()));
+    assert_parse(
+        "data:,hello%20world",
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
+                              vec!((Attr::Charset, Value::Ext("us-ascii".to_owned())))))),
+        Some("US-ASCII".to_owned()), Some(b"hello world".iter().map(|&x| x).collect()));
 }
 
 #[test]
@@ -69,8 +73,23 @@ fn plain_charset() {
 }
 
 #[test]
+fn plain_only_charset() {
+    assert_parse(
+        "data:;charset=utf-8,hello",
+        Some(ContentType(Mime(TopLevel::Text,
+                              SubLevel::Plain,
+                              vec!((Attr::Charset, Value::Utf8))))),
+        Some("utf-8".to_string()), Some(b"hello".iter().map(|&x| x).collect()));
+}
+
+#[test]
 fn base64() {
-    assert_parse("data:;base64,C62+7w==", None, None, Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
+    assert_parse(
+        "data:;base64,C62+7w==",
+        Some(ContentType(Mime(TopLevel::Text,
+                              SubLevel::Plain,
+                              vec!((Attr::Charset, Value::Ext("us-ascii".to_owned())))))),
+        Some("US-ASCII".to_owned()), Some(vec!(0x0B, 0xAD, 0xBE, 0xEF)));
 }
 
 #[test]
