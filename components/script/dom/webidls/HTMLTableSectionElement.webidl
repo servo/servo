@@ -6,8 +6,10 @@
 // https://www.whatwg.org/html/#htmltablesectionelement
 interface HTMLTableSectionElement : HTMLElement {
   readonly attribute HTMLCollection rows;
-  //HTMLElement insertRow(optional long index = -1);
-  //void deleteRow(long index);
+  [Throws]
+  HTMLElement insertRow(optional long index = -1);
+  [Throws]
+  void deleteRow(long index);
 
   // also has obsolete members
 };
