@@ -21,6 +21,9 @@ pub enum StorageTaskMsg {
     /// gets the name of the key at the specified index in the associated storage data
     Key(IpcSender<Option<DOMString>>, Url, StorageType, u32),
 
+    /// Gets the available keys in the associated storage data
+    Keys(IpcSender<Vec<DOMString>>, Url, StorageType),
+
     /// gets the value associated with the given key in the associated storage data
     GetItem(IpcSender<Option<DOMString>>, Url, StorageType, DOMString),
 
