@@ -15,10 +15,15 @@ input[type="checkbox"]:indeterminate::before { content: "-"; }
 input[type="radio"]::before { display: inline-block; border: solid currentcolor 1px; content: ""; padding: 0; width: 1em; height: 1em; border-radius: 50%; text-align: center; }
 input[type="radio"]:checked::before { content: "●"; line-height: 1em; }
 
-select                  { border-style: solid; border-width: 1px; padding: 0.25em 0.5em; border-radius: 6px; background: white; }
-select::after           { content: ""; display: inline-block; border-width: 5.2px 3px 0 3px; border-style: solid; border-color: currentcolor transparent transparent transparent; margin-left: 0.5em; }
-option                  { display: none !important }
-option[selected]        { display: inline !important }
+select                        { border-style: solid; border-width: 1px; background: white; }
+select[multiple]              { padding: 0em 0.25em; }
+select:not([multiple])        { padding: 0.25em 0.5em; border-radius: 6px; }
+select:not([multiple])::after { content: ""; display: inline-block; border-width: 5.2px 3px 0 3px; border-style: solid; border-color: currentcolor transparent transparent transparent; margin-left: 0.5em; }
+select:not([multiple]) option           { display: none !important; }
+select:not([multiple]) option[selected] { display: inline !important; }
+select[multiple] option                 { display: block !important; }
+select[multiple] option[selected]       { background-color: grey; color: white; }
+select[multiple]:focus option[selected] { background-color: darkblue; }
 
 td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }
