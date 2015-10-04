@@ -43,4 +43,12 @@ test(function () {
   });
 }, "HTMLTableSectionElement deleteRow(-2)");
 
+test(function () {
+  assert_equals(tbody.rows.length, 1);
+  tbody.deleteRow(-1);
+  assert_equals(tbody.rows.length, 0);
+  tbody.deleteRow(-1);
+  assert_equals(tbody.rows.length, 0);
+}, "HTMLTableSectionElement deleteRow(-1) with no rows");
+
 </script>
