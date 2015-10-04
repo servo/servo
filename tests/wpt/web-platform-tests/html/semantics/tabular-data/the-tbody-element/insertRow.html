@@ -36,6 +36,12 @@ test(function () {
 }, "HTMLTableSectionElement insertRow()");
 
 test(function () {
+  var trEle = tbody.insertRow(tbody.rows.length);
+  assert_equals(tbody.rows[tbody.rows.length - 1], trEle);
+  assert_equals(tbody.rows.length, 5);
+}, "HTMLTableSectionElement insertRow(rows.length)");
+
+test(function () {
   assert_throws("IndexSizeError", function () {
     tbody.insertRow(-2);
   });
