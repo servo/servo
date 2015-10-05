@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use legacy::PresentationalHintSynthesis;
-use media_queries::Device;
+use media_queries::{Device, MediaType};
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{RestyleHint, StateDependencySet};
@@ -63,6 +63,9 @@ pub struct Stylist {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
 
+    // Viewport constraints based on the current device.
+    viewport_constraints: Option<ViewportConstraints>,
+
     // If true, a stylesheet has been added or the device has
     // changed, and the stylist needs to be updated.
     is_dirty: bool,
@@ -83,6 +86,7 @@ impl Stylist {
     pub fn new(device: Device) -> Stylist {
         let stylist = Stylist {
             stylesheets: vec!(),
+            viewport_constraints: None,
             device: device,
             is_dirty: true,
 
@@ -99,14 +103,6 @@ impl Stylist {
     #[inline]
     pub fn stylesheets(&self) -> &[Stylesheet] {
         &self.stylesheets
-    }
-
-    pub fn constrain_viewport(&self) -> Option<ViewportConstraints> {
-        let cascaded_rule = self.stylesheets.iter()
-            .flat_map(|s| s.effective_rules(&self.device).viewport())
-            .cascade();
-
-        ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule)
     }
 
     pub fn update(&mut self) -> bool {
@@ -187,13 +183,28 @@ impl Stylist {
         self.state_deps.compute_hint(element, current_state, state_change)
     }
 
-    pub fn set_device(&mut self, device: Device) {
+    pub fn set_device(&mut self, mut device: Device) {
+        let cascaded_rule = self.stylesheets.iter()
+            .flat_map(|s| s.effective_rules(&self.device).viewport())
+            .cascade();
+
+        self.viewport_constraints = ViewportConstraints::maybe_new(self.device.viewport_size, &cascaded_rule);
+        if let Some(ref constraints) = self.viewport_constraints {
+            device = Device::new(MediaType::Screen, constraints.size);
+        }
         let is_dirty = self.is_dirty || self.stylesheets.iter()
             .flat_map(|stylesheet| stylesheet.rules().media())
             .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
 
         self.device = device;
         self.is_dirty |= is_dirty;
+    }
+
+    pub fn get_viewport_constraints(&self) -> Option<ViewportConstraints> {
+        match self.viewport_constraints {
+            Some(ref constraints) => Some(constraints.clone()),
+            None => None
+        }
     }
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
