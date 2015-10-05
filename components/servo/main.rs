@@ -49,7 +49,7 @@ fn main() {
     let window = if opts::get().headless {
         None
     } else {
-        Some(app::create_window(std::ptr::null_mut()))
+        Some(app::create_window(None))
     };
 
     // Our wrapper around `Browser` that also implements some
