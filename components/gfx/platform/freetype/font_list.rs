@@ -150,3 +150,10 @@ pub fn last_resort_font_families() -> Vec<String> {
 pub fn last_resort_font_families() -> Vec<String> {
     vec!("Roboto".to_owned())
 }
+
+#[cfg(target_os = "windows")]
+pub fn last_resort_font_families() -> Vec<String> {
+    vec!(
+        "Arial".to_owned()
+    )
+}
