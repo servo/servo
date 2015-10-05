@@ -7,8 +7,13 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
+#[cfg(windows)]
+extern crate kernel32;
+
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use libc::usleep;
+#[cfg(not(windows))]
+use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -92,6 +97,20 @@ fn next_power_of_two(mut v: u32) -> u32 {
     v
 }
 
+#[cfg(not(windows))]
+fn sleep_microseconds(usec: u32) {
+    unsafe {
+        usleep(usec);
+    }
+}
+
+#[cfg(windows)]
+fn sleep_microseconds(_: u32) {
+    unsafe {
+        kernel32::Sleep(0);
+    }
+}
+
 impl<QueueData: Sync, WorkData: Send> WorkerThread<QueueData, WorkData> {
     /// The main logic. This function starts up the worker and listens for
     /// messages.
@@ -151,9 +170,8 @@ impl<QueueData: Sync, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                     }
                                 }
 
-                                unsafe {
-                                    usleep(back_off_sleep as u32);
-                                }
+                                sleep_microseconds(back_off_sleep);
+
                                 back_off_sleep += BACKOFF_INCREMENT_IN_US;
                                 i = 0
                             } else {
