@@ -488,7 +488,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
-                let img = self.composite_specific_target(CompositeTarget::WindowAndPng);
+                let res = self.composite_specific_target(CompositeTarget::WindowAndPng);
+                let img = res.unwrap_or(None);
                 reply.send(img).unwrap();
             }
 
@@ -1544,28 +1545,41 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite(&mut self) {
         let target = self.composite_target;
-        self.composite_specific_target(target);
+        let composited = self.composite_specific_target(target);
+        if composited.is_ok() &&
+            (opts::get().output_file.is_some() || opts::get().exit_after_load) {
+            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
+            let ConstellationChan(ref chan) = self.constellation_chan;
+            chan.send(ConstellationMsg::Exit).unwrap();
+            self.shutdown_state = ShutdownState::ShuttingDown;
+        }
     }
 
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Option<png::Image> {
+    /// Composite either to the screen or to a png image or both.
+    /// Returns Ok if composition was performed or Err if it was not possible to composite
+    /// for some reason. If CompositeTarget is Window or Png no image data is returned;
+    /// in the latter case the image is written directly to a file. If CompositeTarget
+    /// is WindowAndPng Ok(Some(png::Image)) is returned.
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<png::Image>, ()> {
+
         if !self.context.is_some() {
-            return None
+            return Err(())
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
-            return None
+            return Err(())
         }
 
         match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
                 if !self.is_ready_to_paint_image_output() {
-                    return None
+                    return Err(())
                 }
             }
             CompositeTarget::Window => {
                 if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
-                    return None
+                    return Err(())
                 }
             }
         }
@@ -1609,13 +1623,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         };
 
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
-            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::Exit).unwrap();
-            self.shutdown_state = ShutdownState::ShuttingDown;
-        }
-
         // Perform the page flip. This will likely block for a while.
         self.window.present();
 
@@ -1624,7 +1631,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::NoCompositingNecessary;
         self.process_pending_scroll_events();
         self.process_animations();
-        rv
+
+        Ok(rv)
     }
 
     fn draw_png(&self,
