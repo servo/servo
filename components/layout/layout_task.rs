@@ -75,7 +75,7 @@ use style::computed_values::{self, filter, mix_blend_mode};
 use style::media_queries::{Device, MediaQueryList, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
-use style::selector_matching::Stylist;
+use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use style::values::AuExtensionMethods;
 use style::viewport::ViewportRule;
@@ -377,8 +377,8 @@ impl LayoutTask {
 
         let stylist = box Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        for user_or_user_agent_stylesheet in stylist.stylesheets() {
-            add_font_face_rules(user_or_user_agent_stylesheet,
+        for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
+            add_font_face_rules(stylesheet,
                                 &stylist.device,
                                 &font_cache_task,
                                 &font_cache_sender,
