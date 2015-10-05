@@ -1,0 +1,17 @@
+<!doctype html>
+<title>Link with onclick form submit and href navigation </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe name="test"></iframe>
+<form target="test" action="click.html"></form>
+<a target="test" onclick="document.forms[0].submit()" href="href.html">Test</a>
+<script>
+var t = async_test();
+t.step(function() {document.links[0].click()});
+onmessage = t.step_func(
+  function(e) {
+    assert_equals(e.data, "href");
+    t.done();
+  });
+</script>

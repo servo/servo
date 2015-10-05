@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Running defer script in window.close()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test(undefined, {timeout:4000});
+t.step(function() {
+  var w = window.open("close_script_defer-1.html");
+  w.document.open()
+  w.document.write("<script defer src='callback.js'><\/script>")
+  setTimeout(function() {
+    w.close();
+  }, 1000);
+})
+setTimeout(function() {t.done();}, 1000)
+callback = t.step(function() {assert_unreached()})
+</script>

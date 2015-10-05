@@ -1,0 +1,22 @@
+<!doctype html>
+<iframe></iframe>
+<script>
+var t = opener.t;
+
+onload = t.step_func(function() {
+  setTimeout(t.step_func(function() {
+     var history_length = history.length;
+     var iframe = document.getElementsByTagName("iframe")[0];
+     iframe.onload = t.step_func(function() {
+       setTimeout(t.step_func(function() {
+         opener.assert_equals(history.length, history_length + 1, "History length before iframe removal");
+         document.body.innerHTML = "";
+         opener.assert_equals(history.length, history_length, "History length after iframe removal");
+         t.done();
+         window.close();
+       }), 100);
+     });
+     iframe.src = "discard_iframe_history_1-2.html";
+  }), 100);
+});
+</script>

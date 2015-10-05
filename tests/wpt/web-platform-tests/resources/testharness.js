@@ -1106,7 +1106,7 @@ policies and contribution forms [3].
     function _assert_inherits(name) {
         return function (object, property_name, description)
         {
-            assert(typeof object === "object",
+            assert(typeof object === "object" || typeof object === "function",
                    name, description,
                    "provided value is not an object");
 

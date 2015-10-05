@@ -1,0 +1,47 @@
+<!doctype html>
+<title>Restoring window.name on cross-origin history traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<pre id="step_log"></pre>
+<iframe id="test"></iframe>
+<script>
+
+var t = async_test(undefined, {timeout:10000});
+var f = document.getElementById("test");
+var l = document.getElementById("step_log");
+var navigated = false;
+
+log = function(t) {l.textContent += ("\n" + t)}
+
+var steps = [
+  function() {f.src = "browsing_context_name-1.html"},
+  function() {
+                var navigated = true;
+                assert_equals(f.contentWindow.name, "test", "Initial load");
+                setTimeout(next, 0);
+              },
+  function() {f.src = "browsing_context_name-3.html"},
+  function() {
+                var navigated = true;
+                assert_equals(f.contentWindow.name, "test3", "Initial load");
+                setTimeout(next, 0);
+              },
+  function() {f.src = f.src.replace("http://", "http://www.").replace("browsing_context_name-3", "browsing_context_name-2");},
+  function() {
+               setTimeout(next, 0);
+             },
+  function() {history.go(-2); setTimeout(next, 500)},
+  function() {
+               assert_equals(f.contentWindow.name, "test3", "After navigation");
+               t.done();
+             }
+].map(function(x) {return t.step_func(function() {log("Step " + step); x()})});
+
+var step = 0;
+next = t.step_func(function() {steps[step++]()});
+
+f.onload=next;
+
+onload = setTimeout(next, 0);
+</script>

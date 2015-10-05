@@ -214,8 +214,7 @@
                     ret.idlType = type() || error("Error parsing generic type " + value);
                     all_ws();
                     if (!consume(OTHER, ">")) error("Unterminated generic type " + value);
-                    all_ws();
-                    if (consume(OTHER, "?")) ret.nullable = true;
+                    type_suffix(ret);
                     return ret;
                 }
                 else {
@@ -331,8 +330,25 @@
             all_ws();
             var eq = consume(OTHER, "=");
             if (eq) {
+                var rhs;
                 all_ws();
-                ret.rhs = consume(ID);
+                if (rhs = consume(ID)) {
+                  ret.rhs = rhs
+                }
+                else if (consume(OTHER, "(")) {
+                    // [Exposed=(Window,Worker)]
+                    rhs = [];
+                    var id = consume(ID);
+                    if (id) {
+                      rhs = [id.value];
+                    }
+                    identifiers(rhs);
+                    consume(OTHER, ")") || error("Unexpected token in extended attribute argument list or type pair");
+                    ret.rhs = {
+                        type: "identifier-list",
+                        value: rhs
+                    };
+                }
                 if (!ret.rhs) return error("No right hand side to extended attribute assignment");
             }
             all_ws();
@@ -379,6 +395,10 @@
                 var def = const_value();
                 if (def) {
                     return def;
+                }
+                else if (consume(OTHER, "[")) {
+                    if (!consume(OTHER, "]")) error("Default sequence value must be empty");
+                    return { type: "sequence", value: [] };
                 }
                 else {
                     var str = consume(STR) || error("No value for default");
@@ -562,7 +582,7 @@
                 return ret;
             }
             else if (consume(ID, "stringifier")) {
-                ret.stringifier = true;
+                ret.stringifier = true;-
                 all_ws();
                 if (consume(OTHER, ";")) return ret;
                 ret.idlType = return_type();
@@ -667,6 +687,69 @@
             }
             return ret;
         };
+
+        var iterable_type = function() {
+            if (consume(ID, "iterable")) return "iterable";
+            else if (consume(ID, "legacyiterable")) return "legacyiterable";
+            else if (consume(ID, "maplike")) return "maplike";
+            else if (consume(ID, "setlike")) return "setlike";
+            else return;
+        }
+
+        var readonly_iterable_type = function() {
+            if (consume(ID, "maplike")) return "maplike";
+            else if (consume(ID, "setlike")) return "setlike";
+            else return;
+        }
+
+        var iterable = function (store) {
+            all_ws(store, "pea");
+            var grabbed = [],
+                ret = {type: null, idlType: null, readonly: false};
+            if (consume(ID, "readonly")) {
+                ret.readonly = true;
+                grabbed.push(last_token);
+                var w = all_ws();
+                if (w) grabbed.push(w);
+            }
+            var consumeItType = ret.readonly ? readonly_iterable_type : iterable_type;
+
+            var ittype = consumeItType();
+            if (!ittype) {
+                tokens = grabbed.concat(tokens);
+                return;
+            }
+
+            var secondTypeRequired = ittype === "maplike";
+            var secondTypeAllowed = secondTypeRequired || ittype === "iterable";
+            ret.type = ittype;
+            if (ret.type !== 'maplike' && ret.type !== 'setlike')
+                delete ret.readonly;
+            all_ws();
+            if (consume(OTHER, "<")) {
+                ret.idlType = type() || error("Error parsing " + ittype + " declaration");
+                all_ws();
+                if (secondTypeAllowed) {
+                    var type2 = null;
+                    if (consume(OTHER, ",")) {
+                        all_ws();
+                        type2 = type();
+                        all_ws();                        
+                    }
+                    if (type2)
+                        ret.idlType = [ret.idlType, type2];
+                    else if (secondTypeRequired)
+                        error("Missing second type argument in " + ittype + " declaration");
+                }
+                if (!consume(OTHER, ">")) error("Unterminated " + ittype + " declaration");
+                all_ws();
+                if (!consume(OTHER, ";")) error("Missing semicolon after " + ittype + " declaration");
+            }
+            else
+                error("Error parsing " + ittype + " declaration");
+
+            return ret;            
+        }        
         
         var interface_ = function (isPartial, store) {
             all_ws(isPartial ? null : store, "pea");
@@ -698,7 +781,9 @@
                     ret.members.push(cnt);
                     continue;
                 }
-                var mem = serialiser(store ? mems : null) ||
+                var mem = (opt.allowNestedTypedefs && typedef(store ? mems : null)) ||
+                          iterable(store ? mems : null) ||
+                          serialiser(store ? mems : null) ||
                           attribute(store ? mems : null) ||
                           operation(store ? mems : null) ||
                           error("Unknown member");
@@ -741,15 +826,19 @@
                 }
                 var ea = extended_attrs(store ? mems : null);
                 all_ws(store ? mems : null, "pea");
+                var required = consume(ID, "required");
                 var typ = type() || error("No type for dictionary member");
                 all_ws();
                 var name = consume(ID) || error("No name for dictionary member");
+                var dflt = default_();
+                if (required && dflt) error("Required member must not have a default");
                 ret.members.push({
                     type:       "field"
                 ,   name:       name.value
+                ,   required:   !!required
                 ,   idlType:    typ
                 ,   extAttrs:   ea
-                ,   "default":  default_()
+                ,   "default":  dflt
                 });
                 all_ws();
                 consume(OTHER, ";") || error("Unterminated dictionary member");
@@ -818,7 +907,6 @@
                 all_ws(store ? vals : null);
                 if (consume(OTHER, "}")) {
                     all_ws();
-                    if (saw_comma) error("Trailing comma in enum");
                     consume(OTHER, ";") || error("No semicolon after enum");
                     return ret;
                 }

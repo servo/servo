@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Traverse the history when a history entry is written in the load event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  var t = async_test();
+  started = false;
+  pages = []
+  timer = null;
+  start_test_wait = t.step_func(
+    function() {
+      clearTimeout(timer);
+      timer = setTimeout(t.step_func(
+        function() {
+          try {
+            //The pass condition here is based on the idea that the spec is wrong and browsers are right
+            assert_array_equals(pages, [2, 3, 1], "Pages opened durning history navigation");
+            t.done();
+          } finally {
+           // win.close();
+          }
+        }
+      ), 500);
+    }
+  );
+  t.step(function() {win = window.open("history_entry.html?urls=traverse_the_history_write_onload_1-1.html");
+});
+</script>

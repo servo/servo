@@ -1,0 +1,14 @@
+<!doctype html>
+<title>beforeunload event order</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+events = [];
+onload = t.step_func(function() {
+  assert_array_equals(events, ["before src change", "beforeunload", "after src change"]);
+  t.done();
+})
+</script>
+<iframe src="001-1.html"></iframe>

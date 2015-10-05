@@ -127,7 +127,7 @@ onload = function() {
 
   t('src removed', function(img) {
     img.removeAttribute('src');
-  }, 'error');
+  }, 'timeout');
 
   t('srcset set', function(img) {
     img.srcset = '/images/green-2x2.png';
@@ -139,19 +139,19 @@ onload = function() {
 
   t('srcset removed', function(img) {
     img.removeAttribute('srcset');
-  }, 'error');
+  }, 'timeout');
 
   t('sizes set', function(img) {
     img.sizes = '';
-  }, 'error');
+  }, 'timeout');
 
   t('sizes changed', function(img) {
     img.sizes = ' ';
-  }, 'error');
+  }, 'timeout');
 
   t('sizes removed', function(img) {
     img.removeAttribute('sizes');
-  }, 'error');
+  }, 'timeout');
 
   t('src set to same value', function(img) {
     img.src = '/images/green-2x2.png';
@@ -159,43 +159,43 @@ onload = function() {
 
   t('crossorigin absent to empty', function(img) {
     img.crossOrigin = '';
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin absent to anonymous', function(img) {
     img.crossOrigin = 'anonymous';
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin absent to use-credentials', function(img) {
     img.crossOrigin = 'use-credentials';
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin empty to absent', function(img) {
     img.removeAttribute('crossorigin');
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin empty to use-credentials', function(img) {
     img.crossOrigin = 'use-credentials';
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin anonymous to absent', function(img) {
     img.removeAttribute('crossorigin');
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin anonymous to use-credentials', function(img) {
     img.crossOrigin = 'use-credentials';
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin use-credentials to absent', function(img) {
     img.removeAttribute('crossorigin');
-  }, 'error');
+  }, 'timeout');
 
   t('crossorigin use-credentials to empty', function(img) {
     img.crossOrigin = '';
-  });
+  }, 'timeout');
 
   t('crossorigin use-credentials to anonymous', function(img) {
     img.crossOrigin = 'anonymous';
-  });
+  }, 'timeout');
 
   t('inserted into picture', function(img) {
     img.nextSibling.appendChild(img);

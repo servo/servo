@@ -1,0 +1,17 @@
+<!doctype html>
+<title>document.location</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var doc = document.implementation.createHTMLDocument("");
+  assert_equals(doc.location, null);
+}, "document not in a browsing context");
+
+test(function() {
+  assert_equals(document.location, location);
+}, "document.location equals window.location");
+
+</script>
+
