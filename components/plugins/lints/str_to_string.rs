@@ -24,7 +24,7 @@ impl LateLintPass for StrToStringPass {
     fn check_expr(&mut self, cx: &LateContext, expr: &hir::Expr) {
         match expr.node {
             hir::ExprMethodCall(ref method, _, ref args)
-                if method.node.name.as_str() == "to_string"
+                if method.node.as_str() == "to_string"
                 && is_str(cx, &*args[0]) => {
                 cx.span_lint(STR_TO_STRING, expr.span,
                              "str.to_owned() is more efficient than str.to_string(), please use it instead");

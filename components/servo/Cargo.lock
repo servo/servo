@@ -84,7 +84,7 @@ dependencies = [
 
 [[package]]
 name = "aster"
-version = "0.4.7"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -815,10 +815,10 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "html5ever_macros 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever_macros 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "html5ever_macros"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1324,7 +1324,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.10 (git+https://github.com/Manishearth/rust-tenacious)",
+ "tenacious 0.0.11 (git+https://github.com/Manishearth/rust-tenacious)",
 ]
 
 [[package]]
@@ -1392,10 +1392,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quasi_codegen"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1403,7 +1403,7 @@ name = "quasi_macros"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "quasi_codegen 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_codegen 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1473,7 +1473,7 @@ dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
@@ -1558,7 +1558,7 @@ name = "serde_codegen"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi_macros 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1763,8 +1763,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.10"
-source = "git+https://github.com/Manishearth/rust-tenacious#f02b78715ac10ddad67116448ea9697b5a03dfaa"
+version = "0.0.11"
+source = "git+https://github.com/Manishearth/rust-tenacious#f9916c35fd76fdbe984659ab3ce30d752739f114"
 
 [[package]]
 name = "tendril"
@@ -1860,7 +1860,7 @@ dependencies = [
  "cssparser 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "html5ever 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "html5ever 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",

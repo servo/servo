@@ -84,7 +84,7 @@ impl LateLintPass for UnrootedPass {
     fn check_struct_def(&mut self,
                         cx: &LateContext,
                         def: &hir::StructDef,
-                        _i: ast::Ident,
+                        _n: ast::Name,
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
         let item = match cx.tcx.map.get(id) {
@@ -124,10 +124,10 @@ impl LateLintPass for UnrootedPass {
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
                 block: &hir::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
-            visit::FnKind::ItemFn(i, _, _, _, _, _) |
-            visit::FnKind::Method(i, _, _) if i.name.as_str() == "new"
-                                           || i.name.as_str() == "new_inherited"
-                                           || i.name.as_str() == "new_initialized" => {
+            visit::FnKind::ItemFn(n, _, _, _, _, _) |
+            visit::FnKind::Method(n, _, _) if n.as_str() == "new"
+                                           || n.as_str() == "new_inherited"
+                                           || n.as_str() == "new_initialized" => {
                 self.in_new_function = true;
                 return;
             },
