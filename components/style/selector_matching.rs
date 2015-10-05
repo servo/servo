@@ -24,6 +24,36 @@ use viewport::{MaybeNew, ViewportRuleCascade};
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
 
+lazy_static! {
+    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
+        let mut stylesheets = vec!();
+        // FIXME: presentational-hints.css should be at author origin with zero specificity.
+        //        (Does it make a difference?)
+        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
+            match read_resource_file(&[filename]) {
+                Ok(res) => {
+                    let ua_stylesheet = Stylesheet::from_bytes(
+                        &res,
+                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
+                        None,
+                        None,
+                        Origin::UserAgent);
+                    stylesheets.push(ua_stylesheet);
+                }
+                Err(..) => {
+                    error!("Failed to load UA stylesheet {}!", filename);
+                    process::exit(1);
+                }
+            }
+        }
+        for &(ref contents, ref url) in &opts::get().user_stylesheets {
+            stylesheets.push(Stylesheet::from_bytes(
+                &contents, url.clone(), None, None, Origin::User));
+        }
+        stylesheets
+    };
+}
+
 pub struct Stylist {
     // List of stylesheets (including all media rules)
     stylesheets: Vec<Stylesheet>,
@@ -46,7 +76,7 @@ pub struct Stylist {
 impl Stylist {
     #[inline]
     pub fn new(device: Device) -> Stylist {
-        let mut stylist = Stylist {
+        let stylist = Stylist {
             stylesheets: vec!(),
             device: device,
             is_dirty: true,
@@ -57,29 +87,6 @@ impl Stylist {
             rules_source_order: 0,
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
-        // FIXME: presentational-hints.css should be at author origin with zero specificity.
-        //        (Does it make a difference?)
-        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-            match read_resource_file(&[filename]) {
-                Ok(res) => {
-                    let ua_stylesheet = Stylesheet::from_bytes(
-                        &res,
-                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
-                        None,
-                        None,
-                        Origin::UserAgent);
-                    stylist.add_stylesheet(ua_stylesheet);
-                }
-                Err(..) => {
-                    error!("Stylist::new() failed at loading {}!", filename);
-                    process::exit(1);
-                }
-            }
-        }
-        for &(ref contents, ref url) in &opts::get().user_stylesheets {
-            stylist.add_stylesheet(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User));
-        }
         stylist
     }
 
@@ -103,7 +110,7 @@ impl Stylist {
             self.after_map = PerPseudoElementSelectorMap::new();
             self.rules_source_order = 0;
 
-            for stylesheet in &self.stylesheets {
+            for stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter().chain(&self.stylesheets) {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
                     Origin::UserAgent => (
                         &mut self.element_map.user_agent,
