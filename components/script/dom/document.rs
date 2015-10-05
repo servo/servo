@@ -25,9 +25,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElem
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::Error::HierarchyRequest;
-use dom::bindings::error::Error::{InvalidCharacter, NotSupported, Security};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -1265,7 +1263,7 @@ impl DocumentMethods for Document {
     fn CreateElement(&self, mut local_name: DOMString) -> Fallible<Root<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
         if self.is_html_document {
             local_name.make_ascii_lowercase();
@@ -1288,7 +1286,7 @@ impl DocumentMethods for Document {
     fn CreateAttribute(&self, local_name: DOMString) -> Fallible<Root<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         let window = self.window.root();
@@ -1332,12 +1330,12 @@ impl DocumentMethods for Document {
             Fallible<Root<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(&target) == InvalidXMLName {
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 2.
         if data.contains("?>") {
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 3.
@@ -1348,7 +1346,7 @@ impl DocumentMethods for Document {
     fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
-            return Err(NotSupported);
+            return Err(Error::NotSupported);
         }
 
         // Step 2.
@@ -1364,7 +1362,7 @@ impl DocumentMethods for Document {
     fn AdoptNode(&self, node: &Node) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
-            return Err(NotSupported);
+            return Err(Error::NotSupported);
         }
 
         // Step 2.
@@ -1392,7 +1390,7 @@ impl DocumentMethods for Document {
                 KeyboardEvent::new_uninitialized(window.r()))),
             "messageevent" => Ok(EventCast::from_root(
                 MessageEvent::new_uninitialized(GlobalRef::Window(window.r())))),
-            _ => Err(NotSupported)
+            _ => Err(Error::NotSupported)
         }
     }
 
@@ -1535,14 +1533,14 @@ impl DocumentMethods for Document {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
-            None => return Err(HierarchyRequest),
+            None => return Err(Error::HierarchyRequest),
         };
 
         let node = NodeCast::from_ref(new_body);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {}
-            _ => return Err(HierarchyRequest)
+            _ => return Err(Error::HierarchyRequest)
         }
 
         // Step 2.
@@ -1561,7 +1559,7 @@ impl DocumentMethods for Document {
             },
 
             // Step 4.
-            (None, _) => return Err(HierarchyRequest),
+            (None, _) => return Err(Error::HierarchyRequest),
 
             // Step 5.
             (Some(ref root), &None) => {
@@ -1730,7 +1728,7 @@ impl DocumentMethods for Document {
         //TODO: return empty string for cookie-averse Document
         let url = self.url();
         if !is_scheme_host_port_tuple(&url) {
-            return Err(Security);
+            return Err(Error::Security);
         }
         let window = self.window.root();
         let (tx, rx) = ipc::channel().unwrap();
@@ -1744,7 +1742,7 @@ impl DocumentMethods for Document {
         //TODO: ignore for cookie-averse Document
         let url = self.url();
         if !is_scheme_host_port_tuple(url) {
-            return Err(Security);
+            return Err(Error::Security);
         }
         let window = self.window.root();
         let _ = window.r().resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));

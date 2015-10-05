@@ -5,8 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::Error::{InvalidCharacter, Syntax};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -46,8 +45,8 @@ impl DOMTokenList {
 
     fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
-            "" => Err(Syntax),
-            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
+            "" => Err(Error::Syntax),
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
             slice => Ok(Atom::from_slice(slice))
         }
     }

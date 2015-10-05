@@ -14,8 +14,6 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRe
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::{Abort, Network, Security, Syntax, Timeout};
-use dom::bindings::error::Error::{InvalidAccess, InvalidState};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::Root;
@@ -94,7 +92,7 @@ pub enum XHRProgress {
     Loading(GenerationId, ByteString),
     /// Loading is done
     Done(GenerationId),
-    /// There was an error (only Abort, Timeout or Network is used)
+    /// There was an error (only Error::Abort, Error::Timeout or Error::Network is used)
     Errored(GenerationId, Error),
 }
 
@@ -209,8 +207,8 @@ impl XMLHttpRequest {
                 if response.network_error {
                     let mut context = self.xhr.lock().unwrap();
                     let xhr = context.xhr.root();
-                    xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Network));
-                    *context.sync_status.borrow_mut() = Some(Err(Network));
+                    xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
+                    *context.sync_status.borrow_mut() = Some(Err(Error::Network));
                     return;
                 }
 
@@ -315,12 +313,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 2
         match maybe_method {
             // Step 4
-            Some(Method::Connect) | Some(Method::Trace) => Err(Security),
-            Some(Method::Extension(ref t)) if &**t == "TRACK" => Err(Security),
+            Some(Method::Connect) | Some(Method::Trace) => Err(Error::Security),
+            Some(Method::Extension(ref t)) if &**t == "TRACK" => Err(Error::Security),
             Some(parsed_method) => {
                 // Step 3
                 if !method.is_token() {
-                    return Err(Syntax)
+                    return Err(Error::Syntax)
                 }
 
                 *self.request_method.borrow_mut() = parsed_method;
@@ -329,13 +327,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let base = self.global.root().r().get_url();
                 let parsed_url = match UrlParser::new().base_url(&base).parse(&url) {
                     Ok(parsed) => parsed,
-                    Err(_) => return Err(Syntax) // Step 7
+                    Err(_) => return Err(Error::Syntax) // Step 7
                 };
                 // XXXManishearth Do some handling of username/passwords
                 if self.sync.get() {
                     // FIXME: This should only happen if the global environment is a document environment
                     if self.timeout.get() != 0 || self.with_credentials.get() || self.response_type.get() != _empty {
-                        return Err(InvalidAccess)
+                        return Err(Error::InvalidAccess)
                     }
                 }
                 // abort existing requests
@@ -356,7 +354,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             // This includes cases where as_str() returns None, and when is_token() returns false,
             // both of which indicate invalid extension method names
-            _ => Err(Syntax), // Step 3
+            _ => Err(Error::Syntax), // Step 3
         }
     }
 
@@ -370,10 +368,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
     fn SetRequestHeader(&self, name: ByteString, mut value: ByteString) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(InvalidState); // Step 1, 2
+            return Err(Error::InvalidState); // Step 1, 2
         }
         if !name.is_token() || !value.is_field_value() {
-            return Err(Syntax); // Step 3, 4
+            return Err(Error::Syntax); // Step 3, 4
         }
         let name_lower = name.to_lower();
         let name_str = match name_lower.as_str() {
@@ -393,7 +391,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     _ => s
                 }
             },
-            None => return Err(Syntax)
+            None => return Err(Error::Syntax)
         };
 
         debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), value.as_str());
@@ -426,7 +424,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn SetTimeout(&self, timeout: u32) -> ErrorResult {
         if self.sync.get() {
             // FIXME: Not valid for a worker environment
-            Err(InvalidAccess)
+            Err(Error::InvalidAccess)
         } else {
             self.timeout.set(timeout);
             if self.send_flag.get() {
@@ -456,10 +454,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         match self.ready_state.get() {
             XMLHttpRequestState::HeadersReceived |
             XMLHttpRequestState::Loading |
-            XMLHttpRequestState::Done => Err(InvalidState),
-            _ if self.send_flag.get() => Err(InvalidState),
+            XMLHttpRequestState::Done => Err(Error::InvalidState),
+            _ if self.send_flag.get() => Err(Error::InvalidState),
             _ => match self.global.root() {
-                GlobalRoot::Window(_) if self.sync.get() => Err(InvalidAccess),
+                GlobalRoot::Window(_) if self.sync.get() => Err(Error::InvalidAccess),
                 _ => {
                     self.with_credentials.set(with_credentials);
                     Ok(())
@@ -476,7 +474,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-send()-method
     fn Send(&self, data: Option<SendParam>) -> ErrorResult {
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(InvalidState); // Step 1, 2
+            return Err(Error::InvalidState); // Step 1, 2
         }
 
         let data = match *self.request_method.borrow() {
@@ -613,7 +611,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
            state == XMLHttpRequestState::HeadersReceived ||
            state == XMLHttpRequestState::Loading {
             let gen_id = self.generation_id.get();
-            self.process_partial_response(XHRProgress::Errored(gen_id, Abort));
+            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort));
             // If open was called in one of the handlers invoked by the
             // above call then we should terminate the abort sequence
             if self.generation_id.get() != gen_id {
@@ -665,8 +663,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => {}
         }
         match self.ready_state.get() {
-            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(InvalidState),
-            _ if self.sync.get() => Err(InvalidAccess),
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Err(Error::InvalidState),
+            _ if self.sync.get() => Err(Error::InvalidAccess),
             _ => {
                 self.response_type.set(response_type);
                 Ok(())
@@ -720,7 +718,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     _ => Ok("".to_owned())
                 }
             },
-            _ => Err(InvalidState)
+            _ => Err(Error::InvalidState)
         }
     }
 
@@ -763,8 +761,8 @@ impl XMLHttpRequest {
             match metadata.headers {
                 Some(ref h) if allow_cross_origin_request(req, h) => {},
                 _ => {
-                    self.process_partial_response(XHRProgress::Errored(gen_id, Network));
-                    return Err(Network);
+                    self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                    return Err(Error::Network);
                 }
             }
         }
@@ -788,8 +786,8 @@ impl XMLHttpRequest {
                 Ok(())
             },
             Err(_) => {
-                self.process_partial_response(XHRProgress::Errored(gen_id, Network));
-                Err(Network)
+                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                Err(Error::Network)
             }
         }
     }
@@ -892,8 +890,8 @@ impl XMLHttpRequest {
                 return_if_fetch_was_terminated!();
 
                 let errormsg = match e {
-                    Abort => "abort",
-                    Timeout => "timeout",
+                    Error::Abort => "abort",
+                    Error::Timeout => "timeout",
                     _ => "error",
                 };
 
@@ -968,7 +966,7 @@ impl XMLHttpRequest {
                 let this = *self;
                 let xhr = this.xhr.root();
                 if xhr.r().ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Timeout));
+                    xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
                 }
             }
         }
@@ -1068,8 +1066,8 @@ impl XMLHttpRequest {
             Err(_) => {
                 // Happens in case of cross-origin non-http URIs
                 self.process_partial_response(XHRProgress::Errored(
-                    self.generation_id.get(), Network));
-                return Err(Network);
+                    self.generation_id.get(), Error::Network));
+                return Err(Error::Network);
             }
             Ok(req) => req,
         };

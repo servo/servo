@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMe
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::{InvalidAccess, Syntax};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -146,15 +145,15 @@ impl WebSocket {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
             if protocol.is_empty() {
-                return Err(Syntax);
+                return Err(Error::Syntax);
             }
 
             if protocols[i + 1..].iter().any(|p| p == protocol) {
-                return Err(Syntax);
+                return Err(Error::Syntax);
             }
 
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
-                return Err(Syntax);
+                return Err(Error::Syntax);
             }
         }
 
