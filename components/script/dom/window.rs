@@ -293,7 +293,7 @@ impl Window {
 
 // https://www.whatwg.org/html/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
-    // "The btoa() method must throw an Error::InvalidCharacter exception if
+    // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
     if input.chars().any(|c: char| c > '\u{FF}') {
@@ -337,13 +337,13 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 
     // "If the length of input divides by 4 leaving a remainder of 1,
-    //  throw an Error::InvalidCharacter exception and abort these steps."
+    //  throw an InvalidCharacterError exception and abort these steps."
     if input.len() % 4 == 1 {
         return Err(Error::InvalidCharacter)
     }
 
     // "If input contains a character that is not in the following list of
-    //  characters and character ranges, throw an Error::InvalidCharacter
+    //  characters and character ranges, throw an InvalidCharacterError
     //  exception and abort these steps:
     //
     //  U+002B PLUS SIGN (+)
