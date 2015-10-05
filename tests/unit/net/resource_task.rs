@@ -11,13 +11,16 @@ use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
 
-#[test]
+
+// Disabled, per https://github.com/sfackler/rust-openssl/issues/281
+//#[test]
 fn test_exit() {
     let resource_task = new_resource_task("".to_owned(), None);
     resource_task.send(ControlMsg::Exit).unwrap();
 }
 
-#[test]
+// Disabled, per https://github.com/sfackler/rust-openssl/issues/281
+//#[test]
 fn test_bad_scheme() {
     let resource_task = new_resource_task("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
