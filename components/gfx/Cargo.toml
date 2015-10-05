@@ -86,6 +86,9 @@ git = "https://github.com/servo/rust-fontconfig"
 [target.arm-linux-androideabi.dependencies.fontconfig]
 git = "https://github.com/servo/rust-fontconfig"
 
+[target.x86_64-pc-windows-gnu.dependencies.fontconfig]
+git = "https://github.com/servo/rust-fontconfig"
+
 [target.i686-unknown-linux-gnu.dependencies.freetype]
 git = "https://github.com/servo/rust-freetype"
 
@@ -99,6 +102,9 @@ git = "https://github.com/servo/rust-freetype"
 git = "https://github.com/servo/rust-freetype"
 
 [target.arm-linux-androideabi.dependencies.freetype]
+git = "https://github.com/servo/rust-freetype"
+
+[target.x86_64-pc-windows-gnu.dependencies.freetype]
 git = "https://github.com/servo/rust-freetype"
 
 [target.x86_64-apple-darwin.dependencies.core-text]

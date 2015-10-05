@@ -11,7 +11,7 @@
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(hashmap_hasher)]
-#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(heap_api))]
+#![cfg_attr(any(target_os = "linux", target_os = "android", target_os = "windows"), feature(heap_api))]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(str_char)]
@@ -62,11 +62,11 @@ extern crate canvas_traits;
 // shapers. For now, however, this is a hard dependency.
 extern crate harfbuzz;
 
-// Linux and Android-specific library dependencies
-#[cfg(any(target_os = "linux", target_os = "android"))]
+// Platforms that use Freetype/Fontconfig
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 extern crate fontconfig;
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 extern crate freetype;
 
 // Mac OS-specific library dependencies

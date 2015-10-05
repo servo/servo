@@ -4,9 +4,6 @@
 
 #![allow(non_snake_case)]
 
-extern crate freetype;
-extern crate fontconfig;
-
 use fontconfig::fontconfig::{FcChar8, FcResultMatch, FcSetSystem};
 use fontconfig::fontconfig::{FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute};
 use fontconfig::fontconfig::{FcDefaultSubstitute, FcFontMatch, FcNameParse, FcPatternGetString};
@@ -149,4 +146,11 @@ pub fn last_resort_font_families() -> Vec<String> {
 #[cfg(target_os = "android")]
 pub fn last_resort_font_families() -> Vec<String> {
     vec!("Roboto".to_owned())
+}
+
+#[cfg(target_os = "windows")]
+pub fn get_last_resort_font_families() -> Vec<String> {
+    vec!(
+        "Arial".to_owned()
+    )
 }
