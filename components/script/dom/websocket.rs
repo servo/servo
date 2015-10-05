@@ -76,7 +76,6 @@ pub struct WebSocket {
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
-    data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
     binary_type: Cell<BinaryType>,
 }
 
@@ -116,7 +115,6 @@ impl WebSocket {
             clean_close: Cell::new(true),
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
-            data: DOMRefCell::new("".to_owned()),
             binary_type: Cell::new(BinaryType::Blob),
         }
 
