@@ -20,7 +20,7 @@ define_css_keyword_enum!(Orientation:
                          "landscape" => Landscape);
 
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct ViewportConstraints {
     pub size: TypedSize2D<ViewportPx, f32>,
 
