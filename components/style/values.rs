@@ -66,6 +66,8 @@ macro_rules! define_numbered_css_keyword_enum {
 
 pub type CSSFloat = f32;
 
+pub const FONT_MEDIUM_PX: i32 = 16;
+
 
 pub mod specified {
     use app_units::Au;
@@ -79,7 +81,7 @@ pub mod specified {
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::AuExtensionMethods;
-    use super::CSSFloat;
+    use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
 
     #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
@@ -293,6 +295,24 @@ pub mod specified {
     const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
     const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
+        // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+        pub fn from_str(s: &str) -> Option<Length> {
+            Some(match_ignore_ascii_case! { s,
+                "xx-small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 5),
+                "x-small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 4),
+                "small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 8 / 9),
+                "medium" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX)),
+                "large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 6 / 5),
+                "x-large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 2),
+                "xx-large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 2),
+
+                // https://github.com/servo/servo/issues/3423#issuecomment-56321664
+                "smaller" => Length::FontRelative(FontRelativeLength::Em(0.85)),
+                "larger" => Length::FontRelative(FontRelativeLength::Em(1.2))
+                _ => return None
+            })
+        }
+
         #[inline]
         fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
             match try!(input.next()) {

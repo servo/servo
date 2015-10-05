@@ -7,5 +7,5 @@
 interface HTMLFontElement : HTMLElement {
   [TreatNullAs=EmptyString] attribute DOMString color;
   attribute DOMString face;
-  //                          attribute DOMString size;
+  attribute DOMString size;
 };
