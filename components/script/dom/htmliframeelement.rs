@@ -112,6 +112,7 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
+        let new_pipeline_id = self.pipeline_id.get().unwrap();
 
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
@@ -120,7 +121,7 @@ impl HTMLIFrameElement {
                                                             window.pipeline(),
                                                             new_subpage_id,
                                                             old_subpage_id,
-                                                            self.pipeline_id.get().unwrap(),
+                                                            new_pipeline_id,
                                                             sandboxed)).unwrap();
 
         if mozbrowser_enabled() {

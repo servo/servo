@@ -183,7 +183,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     canvas_map: HashMap::new()
                 };
 
-                let reporter_name = format!("paint-reporter-{:?}", id);
+                let reporter_name = format!("paint-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
                     paint_task.start();
                 }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);

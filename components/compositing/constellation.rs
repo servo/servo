@@ -28,7 +28,7 @@ use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
 use msg::constellation_msg::{IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineIdNamespace, PipelineNamespaceId};
+use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
@@ -286,7 +286,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 subpage_id_senders: HashMap::new(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
-            PipelineIdNamespace::install(namespace_id);
+            PipelineNamespace::install(namespace_id);
             constellation.run();
         });
         constellation_chan
