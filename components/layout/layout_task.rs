@@ -1072,7 +1072,7 @@ impl LayoutTask {
                     flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
-                    if rw_data.stylist.constrain_viewport().is_some() {
+                    if rw_data.stylist.get_viewport_constraints().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
                         root_flow.overflow.size
@@ -1155,14 +1155,12 @@ impl LayoutTask {
             let device = Device::new(MediaType::Screen, initial_viewport);
             rw_data.stylist.set_device(device);
 
-            if let Some(constraints) = rw_data.stylist.constrain_viewport() {
+            if let Some(constraints) = rw_data.stylist.get_viewport_constraints() {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
                 rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
                                                   Au::from_f32_px(constraints.size.height.get()));
-                let device = Device::new(MediaType::Screen, constraints.size);
-                rw_data.stylist.set_device(device);
 
                 // let the constellation know about the viewport constraints
                 let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
