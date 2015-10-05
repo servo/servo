@@ -303,12 +303,10 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = None;
-    load_data.method = Method::Post;
+    load_data.method = Method::Get;
 
     let mut headers = Headers::new();
-
     headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
-    headers.set(ContentLength(0 as u64));
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
@@ -318,6 +316,18 @@ fn test_check_default_headers_loaded_in_every_request() {
                             ]);
     headers.set(accept);
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+
+    // Testing for method.GET
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list.clone(), cookie_jar.clone(), None,
+                                                &AssertMustHaveHeadersRequestFactory {
+                                                    expected_headers: headers.clone(),
+                                                    body: <[_]>::to_vec(&[])
+                                                }, DEFAULT_USER_AGENT.to_string());
+
+    // Testing for method.POST
+    load_data.method = Method::Post;
+
+    headers.set(ContentLength(0 as u64));
 
     let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
                                                 &AssertMustHaveHeadersRequestFactory {
