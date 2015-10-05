@@ -242,7 +242,7 @@ impl CanvasRenderingContext2D {
                 let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
-                // then throw an Error::InvalidStateError exception
+                // then throw an Error::InvalidState exception
                 let (image_data, image_size) = match self.fetch_image_data(&image_element) {
                     Some((mut data, size)) => {
                         // Pixels come from cache in BGRA order and drawImage expects RGBA so we

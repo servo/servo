@@ -795,7 +795,7 @@ impl XMLHttpRequest {
     fn process_partial_response(&self, progress: XHRProgress) {
         let msg_id = progress.generation_id();
 
-        // Error::Aborts processing if abort() or open() was called
+        // Aborts processing if abort() or open() was called
         // (including from one of the event handlers called below)
         macro_rules! return_if_fetch_was_terminated(
             () => (
@@ -885,7 +885,7 @@ impl XMLHttpRequest {
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
-                // XXXManishearth set response to Error::NetworkError
+                // XXXManishearth set response to Error::Network
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
 
