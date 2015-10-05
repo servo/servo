@@ -77,10 +77,12 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_spacing_fixed_layout_a.html border_spacing_ref.html
 == border_style_none_a.html border_style_none_b.html
 == borders_a.html borders_b.html
+== box_shadow_bg.html box_shadow_bg_ref.html
 != box_shadow_blur_a.html box_shadow_blur_ref.html
 == box_shadow_border_box_a.html box_shadow_border_box_ref.html
 == box_shadow_default_color_a.html box_shadow_default_color_ref.html
 == box_shadow_inset_a.html box_shadow_inset_ref.html
+== box_shadow_inset_bg.html box_shadow_inset_bg_ref.html
 == box_shadow_inset_parsing_a.html box_shadow_inset_parsing_ref.html
 == box_shadow_paint_order_a.html box_shadow_paint_order_ref.html
 == box_shadow_spread_a.html box_shadow_spread_ref.html
