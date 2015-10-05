@@ -516,14 +516,14 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn has_class(&self, name: &Atom) -> bool {
         unsafe {
-            (*self.element.unsafe_get()).has_class_for_layout(name)
+            self.element.has_class_for_layout(name)
         }
     }
 
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
-            match (*self.element.unsafe_get()).get_classes_for_layout() {
+            match self.element.get_classes_for_layout() {
                 None => {}
                 Some(ref classes) => {
                     for class in *classes {
@@ -572,13 +572,13 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
-            (*self.element.unsafe_get()).synthesize_presentational_hints_for_legacy_attributes(hints);
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
         }
     }
 
     fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
-            (*self.element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+            self.element.get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
 
@@ -840,7 +840,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let elem: Option<LayoutJS<Element>> = ElementCast::to_layout_js(self.get_jsmanaged());
             match elem {
                 Some(element) => {
-                    (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+                    element.get_unsigned_integer_attribute_for_layout(attribute)
                 }
                 None => panic!("not an element!")
             }

@@ -163,14 +163,6 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                       -> Option<&'a str>;
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str>;
-    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
-    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
-    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
-
-    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
-    unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
-                                                        -> Option<u32>;
 }
 
 #[inline]
@@ -215,42 +207,74 @@ impl RawLayoutElementHelpers for Element {
             }
         }).collect()
     }
+}
 
+pub trait LayoutElementHelpers {
+    #[allow(unsafe_code)]
+    unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom) -> Option<Atom>;
+    #[allow(unsafe_code)]
+    unsafe fn has_class_for_layout(&self, name: &Atom) -> bool;
+    #[allow(unsafe_code)]
+    unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]>;
+
+    #[allow(unsafe_code)]
+    unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+    #[allow(unsafe_code)]
+    unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
+                                                        -> Option<u32>;
+    #[allow(unsafe_code)]
+    unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+    #[allow(unsafe_code)]
+    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
+    fn id_attribute(&self) -> *const Option<Atom>;
+    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
+    fn local_name(&self) -> &Atom;
+    fn namespace(&self) -> &Namespace;
+    fn get_checked_state_for_layout(&self) -> bool;
+    fn get_indeterminate_state_for_layout(&self) -> bool;
+}
+
+impl LayoutElementHelpers for LayoutJS<Element> {
+    #[allow(unsafe_code)]
     #[inline]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
-        get_attr_for_layout(self, namespace, name).and_then(|attr| {
+        get_attr_for_layout(&*self.unsafe_get(), namespace, name).and_then(|attr| {
             attr.value_atom_forever()
         })
     }
 
+    #[allow(unsafe_code)]
     #[inline]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
-        get_attr_for_layout(self, &ns!(""), &atom!("class")).map_or(false, |attr| {
+        get_attr_for_layout(&*self.unsafe_get(), &ns!(""), &atom!("class")).map_or(false, |attr| {
             attr.value_tokens_forever().unwrap().iter().any(|atom| atom == name)
         })
     }
 
+    #[allow(unsafe_code)]
     #[inline]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
-        get_attr_for_layout(self, &ns!(""), &atom!("class")).map(|attr| {
+        get_attr_for_layout(&*self.unsafe_get(), &ns!(""), &atom!("class")).map(|attr| {
             attr.value_tokens_forever().unwrap()
         })
     }
 
+    #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
-        let bgcolor = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
-            this.get_background_color()
-        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
-            this.get_background_color()
-        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
-            this.get_background_color()
-        } else if let Some(this) = HTMLTableRowElementCast::to_ref(self) {
-            this.get_background_color()
-        } else if let Some(this) = HTMLTableSectionElementCast::to_ref(self) {
-            this.get_background_color()
+        let bgcolor = if let Some(this) = HTMLBodyElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background_color()
+        } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background_color()
+        } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background_color()
+        } else if let Some(this) = HTMLTableRowElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background_color()
+        } else if let Some(this) = HTMLTableSectionElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background_color()
         } else {
             None
         };
@@ -261,8 +285,8 @@ impl RawLayoutElementHelpers for Element {
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
 
-        let background = if let Some(this) = HTMLBodyElementCast::to_ref(self) {
-            this.get_background()
+        let background = if let Some(this) = HTMLBodyElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_background()
         } else {
             None
         };
@@ -273,8 +297,8 @@ impl RawLayoutElementHelpers for Element {
                     background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
         }
 
-        let color = if let Some(this) = HTMLFontElementCast::to_ref(self) {
-            this.get_color()
+        let color = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_color()
         } else {
             None
         };
@@ -287,8 +311,8 @@ impl RawLayoutElementHelpers for Element {
                 }))));
         }
 
-        let font_family = if let Some(this) = HTMLFontElementCast::to_ref(self) {
-            this.get_face()
+        let font_family = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_face()
         } else {
             None
         };
@@ -302,8 +326,8 @@ impl RawLayoutElementHelpers for Element {
                                 font_family)])))));
         }
 
-        let font_size = if let Some(this) = HTMLFontElementCast::to_ref(self) {
-            this.get_size()
+        let font_size = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_size()
         } else {
             None
         };
@@ -315,8 +339,8 @@ impl RawLayoutElementHelpers for Element {
                         font_size::SpecifiedValue(font_size)))))
         }
 
-        let cellspacing = if let Some(this) = HTMLTableElementCast::to_ref(self) {
-            this.get_cellspacing()
+        let cellspacing = if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_cellspacing()
         } else {
             None
         };
@@ -332,13 +356,13 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let size = if let Some(this) = HTMLInputElementCast::to_ref(self) {
+        let size = if let Some(this) = HTMLInputElementCast::to_layout_js(self) {
             // FIXME(pcwalton): More use of atoms, please!
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
-            match self.get_attr_val_for_layout(&ns!(""), &atom!("type")) {
+            match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("type")) {
                 Some("text") | Some("password") => {
-                    match this.get_size_for_layout() {
+                    match (*this.unsafe_get()).get_size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
                     }
@@ -358,12 +382,12 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let width = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
-            this.get_width()
-        } else if let Some(this) = HTMLTableElementCast::to_ref(self) {
-            this.get_width()
-        } else if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
-            this.get_width()
+        let width = if let Some(this) = HTMLIFrameElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_width()
+        } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_width()
+        } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -385,8 +409,8 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let height = if let Some(this) = HTMLIFrameElementCast::to_ref(self) {
-            this.get_height()
+        let height = if let Some(this) = HTMLIFrameElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -408,8 +432,8 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let cols = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
-            match this.get_cols_for_layout() {
+        let cols = if let Some(this) = HTMLTextAreaElementCast::to_layout_js(self) {
+            match (*this.unsafe_get()).get_cols_for_layout() {
                 0 => None,
                 c => Some(c as i32),
             }
@@ -430,8 +454,8 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let rows = if let Some(this) = HTMLTextAreaElementCast::to_ref(self) {
-            match this.get_rows_for_layout() {
+        let rows = if let Some(this) = HTMLTextAreaElementCast::to_layout_js(self) {
+            match (*this.unsafe_get()).get_rows_for_layout() {
                 0 => None,
                 r => Some(r as i32),
             }
@@ -450,8 +474,8 @@ impl RawLayoutElementHelpers for Element {
         }
 
 
-        let border = if let Some(this) = HTMLTableElementCast::to_ref(self) {
-            this.get_border()
+        let border = if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+            (*this.unsafe_get()).get_border()
         } else {
             None
         };
@@ -473,13 +497,14 @@ impl RawLayoutElementHelpers for Element {
         }
     }
 
+    #[allow(unsafe_code)]
     unsafe fn get_unsigned_integer_attribute_for_layout(&self,
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
-                if let Some(this) = HTMLTableCellElementCast::to_ref(self) {
-                    this.get_colspan()
+                if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+                    (*this.unsafe_get()).get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
                     // elements.
@@ -488,22 +513,7 @@ impl RawLayoutElementHelpers for Element {
             }
         }
     }
-}
 
-pub trait LayoutElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
-    fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
-    fn local_name(&self) -> &Atom;
-    fn namespace(&self) -> &Namespace;
-    fn get_checked_state_for_layout(&self) -> bool;
-    fn get_indeterminate_state_for_layout(&self) -> bool;
-}
-
-impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
