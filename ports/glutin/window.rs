@@ -84,7 +84,7 @@ pub struct Window {
 impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               parent: glutin::WindowID) -> Rc<Window> {
+               parent: Option<glutin::WindowID>) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
@@ -119,7 +119,9 @@ impl Window {
     }
 
     pub fn platform_window(&self) -> glutin::WindowID {
-        unsafe { self.window.platform_window() }
+        unsafe {
+            glutin::WindowID::new(self.window.platform_window())
+        }
     }
 
     fn nested_window_resize(width: u32, height: u32) {
@@ -286,7 +288,7 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn handle_next_event(&self) -> bool {
         let event = self.window.wait_events().next().unwrap();
         let mut close = self.handle_window_event(event);
@@ -716,7 +718,7 @@ pub struct Window {
 impl Window {
     pub fn new(_is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               _parent: glutin::WindowID) -> Rc<Window> {
+               _parent: Option<glutin::WindowID>) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
