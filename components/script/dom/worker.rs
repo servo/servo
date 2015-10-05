@@ -7,8 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::error::Error::Syntax;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -68,7 +67,7 @@ impl Worker {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url()).parse(&script_url) {
             Ok(url) => url,
-            Err(_) => return Err(Syntax),
+            Err(_) => return Err(Error::Syntax),
         };
 
         let resource_task = global.resource_task();

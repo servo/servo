@@ -8,8 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::conversions::get_dom_class;
-use dom::bindings::error::Error::InvalidState;
-use dom::bindings::error::{Fallible, report_pending_exception};
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
@@ -333,7 +332,7 @@ impl EventTargetMethods for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
     fn DispatchEvent(&self, event: &Event) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
-            return Err(InvalidState);
+            return Err(Error::InvalidState);
         }
         event.set_trusted(false);
         Ok(self.dispatch_event(event))

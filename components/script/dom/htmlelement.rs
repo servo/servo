@@ -12,8 +12,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementDerived, HTMLHtmlElementDerived};
-use dom::bindings::error::Error::Syntax;
-use dom::bindings::error::ErrorResult;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
@@ -289,7 +288,7 @@ impl HTMLElement {
         if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
-            return Err(Syntax);
+            return Err(Error::Syntax);
         }
         let element = ElementCast::from_ref(self);
         element.set_custom_attribute(to_snake_case(name), value)

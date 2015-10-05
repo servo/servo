@@ -12,8 +12,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, WindowDerived};
-use dom::bindings::error::Error::InvalidCharacter;
-use dom::bindings::error::{Fallible, report_pending_exception};
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::RootedReference;
@@ -294,11 +293,11 @@ impl Window {
 
 // https://www.whatwg.org/html/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
-    // "The btoa() method must throw an InvalidCharacterError exception if
+    // "The btoa() method must throw an Error::InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
     if input.chars().any(|c: char| c > '\u{FF}') {
-        Err(InvalidCharacter)
+        Err(Error::InvalidCharacter)
     } else {
         // "Otherwise, the user agent must convert that argument to a
         //  sequence of octets whose nth octet is the eight-bit
@@ -338,25 +337,25 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 
     // "If the length of input divides by 4 leaving a remainder of 1,
-    //  throw an InvalidCharacterError exception and abort these steps."
+    //  throw an Error::InvalidCharacterError exception and abort these steps."
     if input.len() % 4 == 1 {
-        return Err(InvalidCharacter)
+        return Err(Error::InvalidCharacter)
     }
 
     // "If input contains a character that is not in the following list of
-    //  characters and character ranges, throw an InvalidCharacterError
+    //  characters and character ranges, throw an Error::InvalidCharacterError
     //  exception and abort these steps:
     //
     //  U+002B PLUS SIGN (+)
     //  U+002F SOLIDUS (/)
     //  Alphanumeric ASCII characters"
     if input.chars().any(|c| c != '+' && c != '/' && !c.is_alphanumeric()) {
-        return Err(InvalidCharacter)
+        return Err(Error::InvalidCharacter)
     }
 
     match input.from_base64() {
         Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
-        Err(..) => Err(InvalidCharacter)
+        Err(..) => Err(Error::InvalidCharacter)
     }
 }
 

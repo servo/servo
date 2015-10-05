@@ -9,8 +9,7 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::Error::IndexSize;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
@@ -69,7 +68,7 @@ impl CharacterDataMethods for CharacterData {
         let data_from_offset = match find_utf16_code_unit_offset(&data, offset) {
             Some(offset_bytes) => &data[offset_bytes..],
             // Step 2.
-            None => return Err(IndexSize)
+            None => return Err(Error::IndexSize)
         };
         let substring = match find_utf16_code_unit_offset(data_from_offset, count) {
             // Steps 3.
@@ -102,7 +101,7 @@ impl CharacterDataMethods for CharacterData {
             let (prefix, data_from_offset) = match find_utf16_code_unit_offset(&data, offset) {
                 Some(offset_bytes) => data.split_at(offset_bytes),
                 // Step 2.
-                None => return Err(IndexSize)
+                None => return Err(Error::IndexSize)
             };
             let suffix = match find_utf16_code_unit_offset(data_from_offset, count) {
                 // Steps 3.
