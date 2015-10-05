@@ -8,12 +8,32 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio, exit};
 
+#[cfg(windows)]
+fn find_python() -> String {
+    if Command::new("python27.exe").arg("--version").output().is_ok() {
+        return "python27.exe".to_owned();
+    }
 
-fn main() {
-    let python = if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
+    if Command::new("python.exe").arg("--version").output().is_ok() {
+        return "python.exe".to_owned();
+    }
+
+    panic!("Can't find python (tried python27.exe and python.exe)! Try fixing PATH or setting the PYTHON env var");
+}
+
+#[cfg(not(windows))]
+fn find_python() -> String {
+    if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
         "python2.7"
     } else {
         "python"
+    }.to_owned()
+}
+
+fn main() {
+    let python = match env::var("PYTHON") {
+        Ok(python_path) => python_path,
+        Err(_) => find_python(),
     };
     let style = Path::new(file!()).parent().unwrap();
     let mako = style.join("Mako-0.9.1.zip");
