@@ -150,6 +150,9 @@ pub struct Opts {
     /// Dumps the display list after optimization (post layout, at painting time).
     pub dump_display_list_optimized: bool,
 
+    /// Dumps the layer tree when it changes.
+    pub dump_layer_tree: bool,
+
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
 
@@ -204,6 +207,9 @@ pub struct DebugOptions {
 
     /// Print optimized display list (at paint time).
     pub dump_display_list_optimized: bool,
+
+    /// Print the layer tree whenever it changes.
+    pub dump_layer_tree: bool,
 
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
@@ -264,6 +270,7 @@ impl DebugOptions {
                 "dump-display-list" => debug_options.dump_display_list = true,
                 "dump-display-list-json" => debug_options.dump_display_list_json = true,
                 "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
+                "dump-layer-tree" => debug_options.dump_layer_tree = true,
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
@@ -406,6 +413,7 @@ pub fn default_opts() -> Opts {
         dump_display_list: false,
         dump_display_list_json: false,
         dump_display_list_optimized: false,
+        dump_layer_tree: false,
         relayout_event: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
@@ -613,6 +621,7 @@ pub fn from_cmdline_args(args: &[String]) {
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,
         dump_display_list_optimized: debug_options.dump_display_list_optimized,
+        dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         validate_display_list_geometry: debug_options.validate_display_list_geometry,
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
