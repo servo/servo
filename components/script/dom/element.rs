@@ -45,6 +45,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmltablecellelement::HTMLTableCellElementLayoutHelpers;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
@@ -270,7 +271,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_background_color()
         } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else if let Some(this) = HTMLTableRowElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_background_color()
         } else if let Some(this) = HTMLTableSectionElementCast::to_layout_js(self) {
@@ -387,7 +388,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_width()
         } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-            (*this.unsafe_get()).get_width()
+            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -504,7 +505,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
                 if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-                    (*this.unsafe_get()).get_colspan()
+                    this.get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
                     // elements.
