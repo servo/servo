@@ -29235,8 +29235,19 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
-    "items": {},
+    "deleted": [
+      "dom/collections/storage-supported-property-names.html"
+    ],
+    "items": {
+      "testharness": {
+        "webstorage/storage_supported_property_names.html": [
+          {
+            "path": "webstorage/storage_supported_property_names.html",
+            "url": "/webstorage/storage_supported_property_names.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
