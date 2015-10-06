@@ -17,12 +17,13 @@ use std::iter::Iterator;
 use std::slice;
 use string_cache::{Atom, Namespace};
 use url::Url;
+use util::mem::HeapSizeOf;
 use viewport::ViewportRule;
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
 /// http://dev.w3.org/csswg/css-cascade/#cascading-origins
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
 pub enum Origin {
     /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-ua
     UserAgent,
@@ -35,7 +36,7 @@ pub enum Origin {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
@@ -44,7 +45,7 @@ pub struct Stylesheet {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub enum CSSRule {
     Charset(String),
     Namespace(Option<String>, Namespace),
@@ -54,7 +55,7 @@ pub enum CSSRule {
     Viewport(ViewportRule),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
@@ -67,7 +68,7 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub declarations: PropertyDeclarationBlock,

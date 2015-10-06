@@ -8,15 +8,16 @@ use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
 use std::ascii::AsciiExt;
 use util::geometry::ViewportPx;
+use util::mem::HeapSizeOf;
 use values::specified;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct MediaQueryList {
     pub media_queries: Vec<MediaQuery>
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -59,20 +60,20 @@ impl<T: Ord> Range<T> {
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media1
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 pub enum Expression {
     /// http://dev.w3.org/csswg/mediaqueries-3/#width
     Width(Range<specified::Length>),
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub enum Qualifier {
     Only,
     Not,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct MediaQuery {
     pub qualifier: Option<Qualifier>,
     pub media_type: MediaQueryType,
@@ -91,20 +92,20 @@ impl MediaQuery {
 }
 
 /// http://dev.w3.org/csswg/mediaqueries-3/#media0
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
 pub enum MediaType {
     Screen,
     Print,
     Unknown,
 }
 
-#[derive(Debug)]
+#[derive(Debug, HeapSizeOf)]
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<ViewportPx, f32>,
