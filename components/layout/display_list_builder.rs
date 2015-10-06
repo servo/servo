@@ -668,6 +668,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        box_shadow.offset_y)),
                               box_shadow.blur_radius,
                               box_shadow.spread_radius);
+
+            // TODO(pcwalton): Multiple border radii; elliptical border radii.
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -679,6 +681,9 @@ impl FragmentDisplayListBuilding for Fragment {
                 offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
+                border_radius: model::specified_border_radius(style.get_border()
+                                                                   .border_top_left_radius,
+                                                              absolute_bounds.size.width).width,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
@@ -1503,6 +1508,7 @@ impl FragmentDisplayListBuilding for Fragment {
             offset: ZERO_POINT,
             blur_radius: blur_radius,
             spread_radius: Au(0),
+            border_radius: Au(0),
             clip_mode: BoxShadowClipMode::None,
         }))
     }
@@ -2034,3 +2040,4 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
+
