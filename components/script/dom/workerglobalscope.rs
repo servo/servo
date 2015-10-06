@@ -5,13 +5,14 @@
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::console::Console;
 use dom::crypto::Crypto;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
@@ -295,7 +296,7 @@ impl WorkerGlobalScope {
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.script_chan(),
             None => panic!("need to implement a sender for SharedWorker"),
@@ -304,7 +305,7 @@ impl WorkerGlobalScope {
 
     pub fn pipeline(&self) -> PipelineId {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.pipeline(),
             None => panic!("need to add a pipeline for SharedWorker"),
@@ -313,7 +314,7 @@ impl WorkerGlobalScope {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.new_script_pair(),
             None => panic!("need to implement creating isolated event loops for SharedWorker"),
@@ -322,7 +323,7 @@ impl WorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         let dedicated =
-            DedicatedWorkerGlobalScopeCast::to_ref(self);
+            self.downcast::<DedicatedWorkerGlobalScope>();
         match dedicated {
             Some(dedicated) => dedicated.process_event(msg),
             None => panic!("need to implement processing single events for SharedWorker"),

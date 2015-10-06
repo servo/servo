@@ -8,11 +8,10 @@ use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker, T
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::jsstring_to_str;
+use dom::bindings::conversions::{Castable, FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::element::Element;
 use dom::node::Node;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
@@ -60,7 +59,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSen
     let page = get_page(&*page, pipeline);
     let document = page.document();
 
-    let node = NodeCast::from_ref(document.r());
+    let node = document.upcast::<Node>();
     reply.send(node.summarize()).unwrap();
 }
 
@@ -69,14 +68,14 @@ pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply:
     let document = page.document();
     let document_element = document.r().GetDocumentElement().unwrap();
 
-    let node = NodeCast::from_ref(document_element.r());
+    let node = document_element.upcast::<Node>();
     reply.send(node.summarize()).unwrap();
 }
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Root<Node> {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    let node = NodeCast::from_ref(document.r());
+    let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
         if candidate.r().get_unique_id() == node_id {
@@ -100,7 +99,7 @@ pub fn handle_get_layout(page: &Rc<Page>,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
-    let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
+    let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
@@ -154,7 +153,7 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
                                node_id: String,
                                modifications: Vec<Modification>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
-    let elem = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
+    let elem = node.downcast::<Element>().expect("should be getting layout of element");
 
     for modification in &modifications {
         match modification.newValue {

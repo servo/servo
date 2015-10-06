@@ -14,19 +14,9 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{DocumentDerived, DocumentTypeCast, ElementCast};
-use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLAnchorElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLAppletElementDerived, HTMLAreaElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLBaseElementCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLEmbedElementDerived, HTMLFormElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, HTMLHtmlElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
@@ -45,13 +35,20 @@ use dom::element::{Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget};
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlappletelement::HTMLAppletElement;
+use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbaseelement::HTMLBaseElement;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement};
+use dom::htmlembedelement::HTMLEmbedElement;
+use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::{self, HTMLIFrameElement};
+use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
@@ -167,7 +164,7 @@ impl PartialEq for Document {
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlimageelement()
+        elem.is::<HTMLImageElement>()
     }
 }
 
@@ -175,7 +172,7 @@ impl CollectionFilter for ImagesFilter {
 struct EmbedsFilter;
 impl CollectionFilter for EmbedsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlembedelement()
+        elem.is::<HTMLEmbedElement>()
     }
 }
 
@@ -183,7 +180,7 @@ impl CollectionFilter for EmbedsFilter {
 struct LinksFilter;
 impl CollectionFilter for LinksFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        (elem.is_htmlanchorelement() || elem.is_htmlareaelement()) &&
+        (elem.is::<HTMLAnchorElement>() || elem.is::<HTMLAreaElement>()) &&
             elem.has_attribute(&atom!("href"))
     }
 }
@@ -192,7 +189,7 @@ impl CollectionFilter for LinksFilter {
 struct FormsFilter;
 impl CollectionFilter for FormsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlformelement()
+        elem.is::<HTMLFormElement>()
     }
 }
 
@@ -200,7 +197,7 @@ impl CollectionFilter for FormsFilter {
 struct ScriptsFilter;
 impl CollectionFilter for ScriptsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlscriptelement()
+        elem.is::<HTMLScriptElement>()
     }
 }
 
@@ -208,7 +205,7 @@ impl CollectionFilter for ScriptsFilter {
 struct AnchorsFilter;
 impl CollectionFilter for AnchorsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlanchorelement() && elem.has_attribute(&atom!("href"))
+        elem.is::<HTMLAnchorElement>() && elem.has_attribute(&atom!("href"))
     }
 }
 
@@ -216,7 +213,7 @@ impl CollectionFilter for AnchorsFilter {
 struct AppletsFilter;
 impl CollectionFilter for AppletsFilter {
     fn filter(&self, elem: &Element, _root: &Node) -> bool {
-        elem.is_htmlappletelement()
+        elem.is::<HTMLAppletElement>()
     }
 }
 
@@ -290,10 +287,10 @@ impl Document {
     /// Refresh the cached first base element in the DOM.
     /// https://github.com/w3c/web-platform-tests/issues/2122
     pub fn refresh_base_element(&self) {
-        let base = NodeCast::from_ref(self)
+        let base = self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(HTMLBaseElementCast::to_root)
-            .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
+            .filter_map(Root::downcast::<HTMLBaseElement>)
+            .filter(|element| element.upcast::<Element>().has_attribute(&atom!("href")))
             .next();
         self.base_element.set(base.r());
     }
@@ -383,7 +380,7 @@ impl Document {
                               id: Atom) {
         debug!("Adding named element to document {:p}: {:p} id={}", self, element, id);
         assert!({
-            let node = NodeCast::from_ref(element);
+            let node = element.upcast::<Node>();
             node.is_in_doc()
         });
         assert!(!id.is_empty());
@@ -400,11 +397,11 @@ impl Document {
             Occupied(entry) => {
                 let elements = entry.into_mut();
 
-                let new_node = NodeCast::from_ref(element);
+                let new_node = element.upcast::<Node>();
                 let mut head: usize = 0;
-                let root = NodeCast::from_ref(root.r());
+                let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
-                    if let Some(elem) = ElementCast::to_ref(node.r()) {
+                    if let Some(elem) = node.downcast::<Element>() {
                         if (*elements)[head].root().r() == elem {
                             head += 1;
                         }
@@ -424,16 +421,16 @@ impl Document {
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
         self.GetElementById(fragid.to_owned()).or_else(|| {
             let check_anchor = |&node: &&HTMLAnchorElement| {
-                let elem = ElementCast::from_ref(node);
+                let elem = node.upcast::<Element>();
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
                     &**attr.r().value() == fragid
                 })
             };
-            let doc_node = NodeCast::from_ref(self);
+            let doc_node = self.upcast::<Node>();
             doc_node.traverse_preorder()
-                    .filter_map(HTMLAnchorElementCast::to_root)
+                    .filter_map(Root::downcast::<HTMLAnchorElement>)
                     .find(|node| check_anchor(&node.r()))
-                    .map(ElementCast::from_root)
+                    .map(Root::upcast::<Element>)
         })
     }
 
@@ -443,7 +440,7 @@ impl Document {
             Some(root) => root,
             None => return None,
         };
-        let root = NodeCast::from_ref(root);
+        let root = root.upcast::<Node>();
         let address = match self.window.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
@@ -460,7 +457,7 @@ impl Document {
             Some(root) => root,
             None => return vec!(),
         };
-        let root = NodeCast::from_ref(root);
+        let root = root.upcast::<Node>();
         match self.window.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => node_address,
             Err(()) => vec!(),
@@ -474,7 +471,7 @@ impl Document {
         let event = Event::new(GlobalRef::Window(&self.window), "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(self);
+        let target = self.upcast::<EventTarget>();
         let _ = event.r().fire(target);
     }
 
@@ -542,7 +539,7 @@ impl Document {
     }
 
     pub fn dirty_all_nodes(&self) {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         for node in root.traverse_preorder() {
             node.r().dirty(NodeDamage::OtherNodeDamage)
         }
@@ -565,18 +562,18 @@ impl Document {
             None => return,
         };
 
-        let el = match ElementCast::to_ref(node.r()) {
+        let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
             None => {
                 let parent = node.r().GetParentNode();
-                match parent.and_then(ElementCast::to_root) {
+                match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return,
                 }
             },
         };
 
-        let node = NodeCast::from_ref(el.r());
+        let node = el.upcast::<Node>();
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let  MouseEventType::Click = mouse_event_type {
@@ -601,7 +598,7 @@ impl Document {
                                     false, false, false, false,
                                     0i16,
                                     None);
-        let event = EventCast::from_ref(event.r());
+        let event = event.upcast::<Event>();
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
         event.set_trusted(true);
@@ -609,7 +606,7 @@ impl Document {
         match mouse_event_type {
             MouseEventType::Click => el.authentic_click_activation(event),
             _ =>  {
-                let target = EventTargetCast::from_ref(node);
+                let target = node.upcast::<EventTarget>();
                 event.fire(target);
             },
         }
@@ -639,7 +636,7 @@ impl Document {
                                           false, false, false, false,
                                           0i16,
                                           None);
-        let event = EventCast::from_ref(mouse_event.r());
+        let event = mouse_event.upcast::<Event>();
         event.fire(target);
     }
 
@@ -653,8 +650,8 @@ impl Document {
         for node_address in &mouse_over_addresses {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
             mouse_over_targets.push(node.r().inclusive_ancestors()
-                                            .find(|node| node.r().is_element())
-                                            .map(|node| JS::from_ref(ElementCast::to_ref(node.r()).unwrap()))
+                                            .find(|node| node.is::<Element>())
+                                            .map(|node| JS::from_ref(node.downcast::<Element>().unwrap()))
                                             .unwrap());
         };
 
@@ -667,7 +664,7 @@ impl Document {
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
 
-                    let target = EventTargetCast::from_ref(target_ref);
+                    let target = target_ref.upcast::<EventTarget>();
 
                     self.fire_mouse_event(point, &target, "mouseout".to_owned());
                 }
@@ -681,7 +678,7 @@ impl Document {
             if !target.get_hover_state() {
                 target.set_hover_state(true);
 
-                let target = EventTargetCast::from_ref(*target);
+                let target = target.upcast::<EventTarget>();
 
                 self.fire_mouse_event(point, target, "mouseover".to_owned());
 
@@ -693,7 +690,7 @@ impl Document {
             let top_most_node =
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
-            let target = EventTargetCast::from_ref(top_most_node.r());
+            let target = top_most_node.upcast::<EventTarget>();
             self.fire_mouse_event(point, target, "mousemove".to_owned());
         }
 
@@ -716,9 +713,9 @@ impl Document {
         let body = self.GetBody();
 
         let target = match (&focused, &body) {
-            (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
-            (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
-            (&None, &None) => EventTargetCast::from_ref(&*self.window),
+            (&Some(ref focused), _) => focused.upcast::<EventTarget>(),
+            (&None, &Some(ref body)) => body.upcast::<EventTarget>(),
+            (&None, &None) => self.window.upcast::<EventTarget>(),
         };
 
         let ctrl = modifiers.contains(CONTROL);
@@ -741,7 +738,7 @@ impl Document {
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code);
-        let event = EventCast::from_ref(keyevent.r());
+        let event = keyevent.upcast::<Event>();
         event.fire(target);
         let mut prevented = event.DefaultPrevented();
 
@@ -754,7 +751,7 @@ impl Document {
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0);
-            let ev = EventCast::from_ref(event.r());
+            let ev = event.upcast::<Event>();
             ev.fire(target);
             prevented = ev.DefaultPrevented();
             // TODO: if keypress event is canceled, prevent firing input events
@@ -771,7 +768,7 @@ impl Document {
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
         match key {
             Key::Space if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<&Element> = ElementCast::to_ref(target);
+                let maybe_elem: Option<&Element> = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
                     if let Some(a) = el.as_maybe_activatable() {
                         a.synthetic_click_activation(ctrl, alt, shift, meta);
@@ -779,7 +776,7 @@ impl Document {
                 }
             }
             Key::Enter if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<&Element> = ElementCast::to_ref(target);
+                let maybe_elem: Option<&Element> = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
                     if let Some(a) = el.as_maybe_activatable() {
                         a.implicit_submission(ctrl, alt, shift, meta);
@@ -800,18 +797,18 @@ impl Document {
             match nodes.into_iter().next().unwrap() {
                 NodeOrString::eNode(node) => Ok(node),
                 NodeOrString::eString(string) => {
-                    Ok(NodeCast::from_root(self.CreateTextNode(string)))
+                    Ok(Root::upcast::<Node>(self.CreateTextNode(string)))
                 },
             }
         } else {
-            let fragment = NodeCast::from_root(self.CreateDocumentFragment());
+            let fragment = Root::upcast::<Node>(self.CreateDocumentFragment());
             for node in nodes {
                 match node {
                     NodeOrString::eNode(node) => {
                         try!(fragment.r().AppendChild(node.r()));
                     },
                     NodeOrString::eString(string) => {
-                        let node = NodeCast::from_root(self.CreateTextNode(string));
+                        let node = Root::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
                         fragment.r().AppendChild(node.r()).unwrap();
@@ -823,17 +820,17 @@ impl Document {
     }
 
     pub fn get_body_attribute(&self, local_name: &Atom) -> DOMString {
-        match self.GetBody().and_then(HTMLBodyElementCast::to_root) {
+        match self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
             Some(ref body) => {
-                ElementCast::from_ref(body.r()).get_string_attribute(local_name)
+                body.upcast::<Element>().get_string_attribute(local_name)
             },
             None => "".to_owned()
         }
     }
 
     pub fn set_body_attribute(&self, local_name: &Atom, value: DOMString) {
-        if let Some(ref body) = self.GetBody().and_then(HTMLBodyElementCast::to_root) {
-            ElementCast::from_ref(body.r()).set_string_attribute(local_name, value);
+        if let Some(ref body) = self.GetBody().and_then(Root::downcast::<HTMLBodyElement>) {
+            body.upcast::<Element>().set_string_attribute(local_name, value);
         }
     }
 
@@ -943,8 +940,8 @@ impl Document {
 
     /// Find an iframe element in the document.
     pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
-        NodeCast::from_ref(self).traverse_preorder()
-            .filter_map(HTMLIFrameElementCast::to_root)
+        self.upcast::<Node>().traverse_preorder()
+            .filter_map(Root::downcast::<HTMLIFrameElement>)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
 }
@@ -1061,7 +1058,7 @@ impl Document {
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap);
         {
-            let node = NodeCast::from_ref(document.r());
+            let node = document.upcast::<Node>();
             node.set_owner_doc(document.r());
         }
         document
@@ -1069,7 +1066,7 @@ impl Document {
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
         let doc = self.GetDocumentElement();
-        let maybe_node = doc.r().map(NodeCast::from_ref);
+        let maybe_node = doc.r().map(Castable::upcast::<Node>);
         let iter = maybe_node.iter().flat_map(|node| node.traverse_preorder())
                              .filter(|node| callback(node.r()));
         NodeList::new_simple_list(&self.window, iter)
@@ -1078,7 +1075,7 @@ impl Document {
     fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
         self.GetDocumentElement()
             .r()
-            .and_then(HTMLHtmlElementCast::to_ref)
+            .and_then(Castable::downcast::<HTMLHtmlElement>)
             .map(Root::from_ref)
     }
 
@@ -1102,7 +1099,7 @@ impl Document {
 
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
@@ -1134,7 +1131,7 @@ impl DocumentMethods for Document {
         match self.get_focused_element() {
             Some(element) => Some(element),     // Step 3. and 4.
             None => match self.GetBody() {      // Step 5.
-                Some(body) => Some(ElementCast::from_root(body)),
+                Some(body) => Some(Root::upcast::<Element>(body)),
                 None => self.GetDocumentElement(),
             }
         }
@@ -1189,32 +1186,32 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.children()
-            .filter_map(|c| DocumentTypeCast::to_ref(c.r()).map(Root::from_ref))
+            .filter_map(|c| c.downcast::<DocumentType>().map(Root::from_ref))
             .next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Root<Element>> {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name(&self.window, NodeCast::from_ref(self), tag_name)
+        HTMLCollection::by_tag_name(&self.window, self.upcast::<Node>(), tag_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name_ns(&self.window, NodeCast::from_ref(self), tag_name, maybe_ns)
+        HTMLCollection::by_tag_name_ns(&self.window, self.upcast::<Node>(), tag_name, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_class_name(&self.window, NodeCast::from_ref(self), classes)
+        HTMLCollection::by_class_name(&self.window, self.upcast::<Node>(), classes)
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -1307,7 +1304,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-importnode
     fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
         // Step 1.
-        if node.is_document() {
+        if node.is::<Document>() {
             return Err(Error::NotSupported);
         }
 
@@ -1323,7 +1320,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
     fn AdoptNode(&self, node: &Node) -> Fallible<Root<Node>> {
         // Step 1.
-        if node.is_document() {
+        if node.is::<Document>() {
             return Err(Error::NotSupported);
         }
 
@@ -1338,17 +1335,17 @@ impl DocumentMethods for Document {
     fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
-            "uievents" | "uievent" => Ok(EventCast::from_root(
+            "uievents" | "uievent" => Ok(Root::upcast::<Event>(
                 UIEvent::new_uninitialized(&self.window))),
-            "mouseevents" | "mouseevent" => Ok(EventCast::from_root(
+            "mouseevents" | "mouseevent" => Ok(Root::upcast::<Event>(
                 MouseEvent::new_uninitialized(&self.window))),
-            "customevent" => Ok(EventCast::from_root(
+            "customevent" => Ok(Root::upcast::<Event>(
                 CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
                 GlobalRef::Window(&self.window))),
-            "keyboardevent" | "keyevents" => Ok(EventCast::from_root(
+            "keyboardevent" | "keyevents" => Ok(Root::upcast::<Event>(
                 KeyboardEvent::new_uninitialized(&self.window))),
-            "messageevent" => Ok(EventCast::from_root(
+            "messageevent" => Ok(Root::upcast::<Event>(
                 MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ => Err(Error::NotSupported)
         }
@@ -1384,15 +1381,15 @@ impl DocumentMethods for Document {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
                 // Step 1.
-                NodeCast::from_ref(root.r()).child_elements().find(|node| {
+                root.upcast::<Node>().child_elements().find(|node| {
                     node.r().namespace() == &ns!(SVG) &&
                     node.r().local_name() == &atom!("title")
-                }).map(NodeCast::from_root)
+                }).map(Root::upcast::<Node>)
             } else {
                 // Step 2.
-                NodeCast::from_ref(root.r())
-                         .traverse_preorder()
-                         .find(|node| node.r().is_htmltitleelement())
+                root.upcast::<Node>()
+                    .traverse_preorder()
+                    .find(|node| node.r().is::<HTMLTitleElement>())
             }
         });
 
@@ -1415,25 +1412,25 @@ impl DocumentMethods for Document {
 
         let elem = if root.r().namespace() == &ns!(SVG) &&
                        root.r().local_name() == &atom!("svg") {
-            let elem = NodeCast::from_ref(root.r()).child_elements().find(|node| {
+            let elem = root.upcast::<Node>().child_elements().find(|node| {
                 node.r().namespace() == &ns!(SVG) &&
                 node.r().local_name() == &atom!("title")
             });
             match elem {
-                Some(elem) => NodeCast::from_root(elem),
+                Some(elem) => Root::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(ns!(SVG), atom!("title"));
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
-                    NodeCast::from_ref(root.r())
-                             .AppendChild(NodeCast::from_ref(elem.r()))
-                             .unwrap()
+                    root.upcast::<Node>()
+                        .AppendChild(elem.upcast::<Node>())
+                        .unwrap()
                 }
             }
         } else if root.r().namespace() == &ns!(HTML) {
-            let elem = NodeCast::from_ref(root.r())
-                                .traverse_preorder()
-                                .find(|node| node.r().is_htmltitleelement());
+            let elem = root.upcast::<Node>()
+                           .traverse_preorder()
+                           .find(|node| node.r().is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
                 None => {
@@ -1442,9 +1439,9 @@ impl DocumentMethods for Document {
                             let name = QualName::new(ns!(HTML), atom!("title"));
                             let elem = Element::create(name, None, self,
                                                        ElementCreator::ScriptCreated);
-                            NodeCast::from_ref(head.r())
-                                     .AppendChild(NodeCast::from_ref(elem.r()))
-                                     .unwrap()
+                            head.upcast::<Node>()
+                                .AppendChild(elem.upcast::<Node>())
+                                .unwrap()
                         },
                         None => return,
                     }
@@ -1460,9 +1457,9 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
-            let node = NodeCast::from_ref(root.r());
+            let node = root.upcast::<Node>();
             node.children()
-                .filter_map(|c| HTMLHeadElementCast::to_ref(c.r()).map(Root::from_ref))
+                .filter_map(|c| c.downcast::<HTMLHeadElement>().map(Root::from_ref))
                 .next()
         })
     }
@@ -1475,7 +1472,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
-            let node = NodeCast::from_ref(root.r());
+            let node = root.upcast::<Node>();
             node.children().find(|child| {
                 match child.r().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
@@ -1483,7 +1480,7 @@ impl DocumentMethods for Document {
                     _ => false
                 }
             }).map(|node| {
-                Root::from_ref(HTMLElementCast::to_ref(node.r()).unwrap())
+                Root::from_ref(node.downcast::<HTMLElement>().unwrap())
             })
         })
     }
@@ -1496,7 +1493,7 @@ impl DocumentMethods for Document {
             None => return Err(Error::HierarchyRequest),
         };
 
-        let node = NodeCast::from_ref(new_body);
+        let node = new_body.upcast::<Node>();
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {}
@@ -1512,9 +1509,9 @@ impl DocumentMethods for Document {
         match (self.get_html_element(), &old_body) {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
-                let root = NodeCast::from_ref(root.r());
-                let child = NodeCast::from_ref(child.r());
-                let new_body = NodeCast::from_ref(new_body);
+                let root = root.upcast::<Node>();
+                let child = child.upcast::<Node>();
+                let new_body = new_body.upcast::<Node>();
                 assert!(root.ReplaceChild(new_body, child).is_ok())
             },
 
@@ -1523,8 +1520,8 @@ impl DocumentMethods for Document {
 
             // Step 5.
             (Some(ref root), &None) => {
-                let root = NodeCast::from_ref(root.r());
-                let new_body = NodeCast::from_ref(new_body);
+                let root = root.upcast::<Node>();
+                let new_body = new_body.upcast::<Node>();
                 assert!(root.AppendChild(new_body).is_ok());
             }
         }
@@ -1534,7 +1531,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> Root<NodeList> {
         self.create_node_list(|node| {
-            let element = match ElementCast::to_ref(node) {
+            let element = match node.downcast::<Element>() {
                 Some(element) => element,
                 None => return false,
             };
@@ -1550,7 +1547,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> Root<HTMLCollection> {
         self.images.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box ImagesFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1559,7 +1556,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> Root<HTMLCollection> {
         self.embeds.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box EmbedsFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1573,7 +1570,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> Root<HTMLCollection> {
         self.links.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box LinksFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1582,7 +1579,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> Root<HTMLCollection> {
         self.forms.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box FormsFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1591,7 +1588,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> Root<HTMLCollection> {
         self.scripts.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box ScriptsFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1600,7 +1597,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> Root<HTMLCollection> {
         self.anchors.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box AnchorsFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1610,7 +1607,7 @@ impl DocumentMethods for Document {
     fn Applets(&self) -> Root<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
-            let root = NodeCast::from_ref(self);
+            let root = self.upcast::<Node>();
             let filter = box AppletsFilter;
             HTMLCollection::create(&self.window, root, filter)
         })
@@ -1623,43 +1620,43 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
-        HTMLCollection::children(&self.window, NodeCast::from_ref(self))
+        HTMLCollection::children(&self.window, self.upcast::<Node>())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).child_elements().next()
+        self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
+        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        NodeCast::from_ref(self).child_elements().count() as u32
+        self.upcast::<Node>().child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
     fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).prepend(nodes)
+        self.upcast::<Node>().prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
     fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).append(nodes)
+        self.upcast::<Node>().append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
 
@@ -1716,7 +1713,7 @@ impl DocumentMethods for Document {
         }
         impl CollectionFilter for NamedElementFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                filter_by_name(&self.name, NodeCast::from_ref(elem))
+                filter_by_name(&self.name, elem.upcast::<Node>())
             }
         }
         // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
@@ -1725,7 +1722,7 @@ impl DocumentMethods for Document {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
                 _ => return false,
             };
-            let elem = match ElementCast::to_ref(node) {
+            let elem = match node.downcast::<Element>() {
                 Some(elem) => elem,
                 None => return false,
             };
@@ -1767,7 +1764,7 @@ impl DocumentMethods for Document {
             }
         }
         let name = Atom::from_slice(&name);
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         {
             // Step 1.
             let mut elements = root.traverse_preorder().filter(|node| {
@@ -1849,7 +1846,7 @@ impl DocumentProgressHandler {
         let event = Event::new(GlobalRef::Window(window), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let doctarget = EventTargetCast::from_ref(document.r());
+        let doctarget = document.upcast::<EventTarget>();
         let _ = doctarget.DispatchEvent(event.r());
 
         window.reflow(ReflowGoal::ForDisplay,
@@ -1868,8 +1865,8 @@ impl DocumentProgressHandler {
         let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let wintarget = EventTargetCast::from_ref(window);
-        let doctarget = EventTargetCast::from_ref(document.r());
+        let wintarget = window.upcast::<EventTarget>();
+        let doctarget = document.upcast::<EventTarget>();
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
@@ -1881,7 +1878,7 @@ impl DocumentProgressHandler {
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
-            let target = EventTargetCast::from_ref(frame_element);
+            let target = frame_element.upcast::<EventTarget>();
             event.r().fire(target);
         };
 

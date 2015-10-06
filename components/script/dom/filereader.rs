@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -13,7 +13,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
@@ -325,8 +325,8 @@ impl FileReader {
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
 
-        let target = EventTargetCast::from_ref(self);
-        let event = EventCast::from_ref(progressevent.r());
+        let target = self.upcast::<EventTarget>();
+        let event = progressevent.upcast::<Event>();
         event.fire(target);
     }
 

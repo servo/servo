@@ -6,12 +6,13 @@ use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use std::cmp::max;
@@ -56,14 +57,16 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
     fn CellIndex(&self) -> i32 {
-        let self_node = NodeCast::from_ref(self);
+        let self_node = self.upcast::<Node>();
 
         let parent_children = match self_node.GetParentNode() {
-            Some(ref parent_node) if parent_node.is_htmltablerowelement() => parent_node.children(),
+            Some(ref parent_node) if parent_node.is::<HTMLTableRowElement>() => {
+                parent_node.children()
+            },
             _ => return -1,
         };
 
-        parent_children.filter(|c| c.is_htmltablecellelement())
+        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
                        .position(|c| c.r() == self_node)
                        .map(|p| p as i32).unwrap_or(-1)
     }
@@ -99,7 +102,7 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
 
 impl VirtualMethods for HTMLTableCellElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 

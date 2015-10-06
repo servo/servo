@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
@@ -50,20 +50,20 @@ impl HTMLTableSectionElement {
 struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is_htmltablerowelement()
-            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+        elem.is::<HTMLTableRowElement>()
+            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
 impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> Root<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
+        HTMLCollection::create(&window_from_node(self), self.upcast::<Node>(), box RowsFilter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
     fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLElement>> {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
             || self.Rows(),
@@ -72,17 +72,17 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
     fn DeleteRow(&self, index: i32) -> ErrorResult {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.delete_cell_or_row(
             index,
             || self.Rows(),
-            |n| n.is_htmltablerowelement())
+            |n| n.is::<HTMLTableRowElement>())
     }
 }
 
 impl VirtualMethods for HTMLTableSectionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
