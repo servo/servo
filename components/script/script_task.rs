@@ -66,6 +66,7 @@ use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
+use msg::constellation_msg::{PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
@@ -468,6 +469,8 @@ impl ScriptTaskFactory for ScriptTask {
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
+            PipelineNamespace::install(state.pipeline_namespace_id);
+
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan);
@@ -490,7 +493,7 @@ impl ScriptTaskFactory for ScriptTask {
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
-            let reporter_name = format!("script-reporter-{}", id.0);
+            let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_task.start();
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);

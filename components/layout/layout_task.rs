@@ -277,7 +277,7 @@ impl LayoutTaskFactory for LayoutTask {
                                              time_profiler_chan,
                                              mem_profiler_chan.clone());
 
-                let reporter_name = format!("layout-reporter-{}", id.0);
+                let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
                     layout.start();
                 }, reporter_name, layout_chan.0, Msg::CollectReports);
