@@ -9,20 +9,21 @@ use properties::longhands::font_family::parse_one_family;
 use std::ascii::AsciiExt;
 use string_cache::Atom;
 use url::{Url, UrlParser};
+use util::mem::HeapSizeOf;
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Source {
     Url(UrlSource),
     Local(Atom),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, HeapSizeOf, PartialEq, Eq)]
 pub struct FontFaceRule {
     pub family: Atom,
     pub sources: Vec<Source>,
