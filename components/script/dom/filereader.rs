@@ -6,8 +6,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::error::Error::InvalidState;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -341,7 +340,7 @@ impl FileReader {
         let global = root.r();
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(InvalidState);
+            return Err(Error::InvalidState);
         }
         // Step 2
         if blob.IsClosed() {

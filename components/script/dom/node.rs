@@ -25,8 +25,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, NodeBase,
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
-use dom::bindings::error::Error::{HierarchyRequest, NotFound, Syntax};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
@@ -807,7 +806,7 @@ impl Node {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
-            Err(()) => Err(Syntax),
+            Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(ref selectors) => {
                 Ok(self.traverse_preorder().filter_map(ElementCast::to_root).find(|element| {
@@ -827,7 +826,7 @@ impl Node {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
             // Step 2.
-            Err(()) => Err(Syntax),
+            Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
                 Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
@@ -1432,18 +1431,18 @@ impl Node {
             NodeTypeId::Document |
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => (),
-            _ => return Err(HierarchyRequest)
+            _ => return Err(Error::HierarchyRequest)
         }
 
         // Step 2.
         if node.is_inclusive_ancestor_of(parent) {
-            return Err(HierarchyRequest);
+            return Err(Error::HierarchyRequest);
         }
 
         // Step 3.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
-                return Err(NotFound);
+                return Err(Error::NotFound);
             }
         }
 
@@ -1451,19 +1450,19 @@ impl Node {
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => {
                 if parent.is_document() {
-                    return Err(HierarchyRequest);
+                    return Err(Error::HierarchyRequest);
                 }
             },
             NodeTypeId::DocumentType => {
                 if !parent.is_document() {
-                    return Err(HierarchyRequest);
+                    return Err(Error::HierarchyRequest);
                 }
             },
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(_) |
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => (),
-            NodeTypeId::Document => return Err(HierarchyRequest)
+            NodeTypeId::Document => return Err(Error::HierarchyRequest)
         }
 
         // Step 6.
@@ -1475,35 +1474,35 @@ impl Node {
                     if node.children()
                            .any(|c| c.r().is_text())
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     match node.child_elements().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
                             if !parent.child_elements().is_empty() {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
                                 if child.inclusively_following_siblings()
                                     .any(|child| child.r().is_doctype()) {
-                                        return Err(HierarchyRequest);
+                                        return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
                         // Step 6.1.1(a)
-                        _ => return Err(HierarchyRequest),
+                        _ => return Err(Error::HierarchyRequest),
                     }
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
                     if !parent.child_elements().is_empty() {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
                         if child.inclusively_following_siblings()
                             .any(|child| child.r().is_doctype()) {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                         }
                     }
                 },
@@ -1512,7 +1511,7 @@ impl Node {
                     if parent.children()
                              .any(|c| c.r().is_doctype())
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     match child {
                         Some(child) => {
@@ -1520,12 +1519,12 @@ impl Node {
                                      .take_while(|c| c.r() != child)
                                      .any(|c| c.r().is_element())
                             {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                             }
                         },
                         None => {
                             if !parent.child_elements().is_empty() {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                             }
                         },
                     }
@@ -1647,8 +1646,8 @@ impl Node {
     fn pre_remove(child: &Node, parent: &Node) -> Fallible<Root<Node>> {
         // Step 1.
         match child.GetParentNode() {
-            Some(ref node) if node.r() != parent => return Err(NotFound),
-            None => return Err(NotFound),
+            Some(ref node) if node.r() != parent => return Err(Error::NotFound),
+            None => return Err(Error::NotFound),
             _ => ()
         }
 
@@ -2070,25 +2069,25 @@ impl NodeMethods for Node {
             NodeTypeId::Document |
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => (),
-            _ => return Err(HierarchyRequest)
+            _ => return Err(Error::HierarchyRequest)
         }
 
         // Step 2.
         if node.is_inclusive_ancestor_of(self) {
-            return Err(HierarchyRequest);
+            return Err(Error::HierarchyRequest);
         }
 
         // Step 3.
         if !self.is_parent_of(child) {
-            return Err(NotFound);
+            return Err(Error::NotFound);
         }
 
         // Step 4-5.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) if self.is_document() =>
-                return Err(HierarchyRequest),
-            NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
-            NodeTypeId::Document => return Err(HierarchyRequest),
+                return Err(Error::HierarchyRequest),
+            NodeTypeId::DocumentType if !self.is_document() => return Err(Error::HierarchyRequest),
+            NodeTypeId::Document => return Err(Error::HierarchyRequest),
             _ => ()
         }
 
@@ -2101,7 +2100,7 @@ impl NodeMethods for Node {
                     if node.children()
                            .any(|c| c.is_text())
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     match node.child_elements().count() {
                         0 => (),
@@ -2109,27 +2108,27 @@ impl NodeMethods for Node {
                         1 => {
                             if self.child_elements()
                                    .any(|c| NodeCast::from_ref(c.r()) != child) {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                             }
                             if child.following_siblings()
                                     .any(|child| child.is_doctype()) {
-                                return Err(HierarchyRequest);
+                                return Err(Error::HierarchyRequest);
                             }
                         },
                         // Step 6.1.1(a)
-                        _ => return Err(HierarchyRequest)
+                        _ => return Err(Error::HierarchyRequest)
                     }
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
                     if self.child_elements()
                            .any(|c| NodeCast::from_ref(c.r()) != child) {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     if child.following_siblings()
                             .any(|child| child.is_doctype())
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
@@ -2138,13 +2137,13 @@ impl NodeMethods for Node {
                            .any(|c| c.is_doctype() &&
                                 c.r() != child)
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                     if self.children()
                            .take_while(|c| c.r() != child)
                            .any(|c| c.is_element())
                     {
-                        return Err(HierarchyRequest);
+                        return Err(Error::HierarchyRequest);
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),

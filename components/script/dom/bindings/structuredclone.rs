@@ -5,8 +5,7 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use dom::bindings::error::Error::DataClone;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{HandleValue, MutableHandleValue};
@@ -34,7 +33,7 @@ impl StructuredCloneData {
         };
         if result == 0 {
             unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
+            return Err(Error::DataClone);
         }
         Ok(StructuredCloneData {
             data: data,

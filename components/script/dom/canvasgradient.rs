@@ -6,8 +6,7 @@ use canvas_traits::{CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding;
 use dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
-use dom::bindings::error::Error::{IndexSize, Syntax};
-use dom::bindings::error::ErrorResult;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -47,12 +46,12 @@ impl CanvasGradientMethods for CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
     fn AddColorStop(&self, offset: Finite<f64>, color: String) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
-            return Err(IndexSize);
+            return Err(Error::IndexSize);
         }
 
         let color = match parse_color(&color) {
             Ok(color) => color,
-            _ => return Err(Syntax)
+            _ => return Err(Error::Syntax)
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {

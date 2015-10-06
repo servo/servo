@@ -10,8 +10,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::NotSupported;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
@@ -242,7 +241,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
         Ok(())
     } else {
         debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 }
 
@@ -339,12 +338,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
     fn Reload(&self, _hardReload: bool) -> Fallible<()> {
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
     fn Stop(&self) -> Fallible<()> {
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
