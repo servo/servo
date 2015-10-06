@@ -5,54 +5,75 @@
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{AttributeMutation, Element};
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use encoding::EncodingRef;
+use encoding::all::UTF_8;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use script_traits::StylesheetLoadResponder;
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
+use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::cell::{Cell, RefCell};
 use std::default::Default;
+use std::mem;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use style::media_queries::parse_media_query_list;
-use url::UrlParser;
+use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::stylesheets::{Origin, Stylesheet};
+use url::{Url, UrlParser};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+
+no_jsmanaged_fields!(Stylesheet);
 
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
+    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+
+    /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
+    parser_inserted: Cell<bool>,
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLLinkElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
+                     creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            stylesheet: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString,
                prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLLinkElement> {
-        let element = HTMLLinkElement::new_inherited(localName, prefix, document);
+               document: &Document,
+               creator: ElementCreator) -> Root<HTMLLinkElement> {
+        let element = HTMLLinkElement::new_inherited(localName, prefix, document, creator);
         Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
+    }
+
+    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+        self.stylesheet.borrow().clone()
     }
 }
 
@@ -64,7 +85,7 @@ fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
     })
 }
 
-fn is_stylesheet(value: &Option<String>) -> bool {
+fn string_is_stylesheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
             value.split(HTML_SPACE_CHARACTERS)
@@ -101,14 +122,14 @@ impl VirtualMethods for HTMLLinkElement {
         let rel = get_attr(ElementCast::from_ref(self), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
-                if is_stylesheet(&rel) {
+                if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
                     self.handle_favicon_url(&attr.value());
                 }
             },
             &atom!(media) => {
-                if is_stylesheet(&rel) {
+                if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 }
             },
@@ -135,7 +156,7 @@ impl VirtualMethods for HTMLLinkElement {
             let href = get_attr(element, &atom!("href"));
 
             match (rel, href) {
-                (ref rel, Some(ref href)) if is_stylesheet(rel) => {
+                (ref rel, Some(ref href)) if string_is_stylesheet(rel) => {
                     self.handle_stylesheet_url(href);
                 }
                 (ref rel, Some(ref href)) if is_favicon(rel) => {
@@ -165,13 +186,35 @@ impl HTMLLinkElement {
                 let mut css_parser = CssParser::new(&mq_str);
                 let media = parse_media_query_list(&mut css_parser);
 
+                // TODO we don't really even need to load this if mq does not match
                 let doc = window.Document();
-                let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
-                let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
+                let script_chan = window.script_chan();
+                let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
 
-                let pending = doc.r().prepare_async_load(LoadType::Stylesheet(url.clone()));
-                let LayoutChan(ref layout_chan) = window.layout_chan();
-                layout_chan.send(Msg::LoadStylesheet(url, media, pending, box load_dispatcher)).unwrap();
+                let context = Arc::new(Mutex::new(StylesheetContext {
+                    elem: elem,
+                    media: RefCell::new(Some(media)),
+                    data: RefCell::new(vec!()),
+                    metadata: RefCell::new(None),
+                    url: url.clone(),
+                }));
+
+                let (action_sender, action_receiver) = ipc::channel().unwrap();
+                let listener = NetworkListener {
+                    context: context,
+                    script_chan: script_chan,
+                };
+                let response_target = AsyncResponseTarget {
+                    sender: action_sender,
+                };
+                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                    listener.notify(message.to().unwrap());
+                });
+
+                if self.parser_inserted.get() {
+                    doc.r().increment_script_blocking_stylesheet_count();
+                }
+                doc.r().load_async(LoadType::Stylesheet(url), response_target);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
@@ -188,6 +231,62 @@ impl HTMLLinkElement {
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
+    }
+}
+
+/// The context required for asynchronously loading an external stylesheet.
+struct StylesheetContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLLinkElement>,
+    media: RefCell<Option<MediaQueryList>>,
+    /// The response body received to date.
+    data: RefCell<Vec<u8>>,
+    /// The response metadata received to date.
+    metadata: RefCell<Option<Metadata>>,
+    /// The initial URL requested.
+    url: Url,
+}
+
+impl PreInvoke for StylesheetContext {}
+
+impl AsyncResponseListener for StylesheetContext {
+    fn headers_available(&self, metadata: Metadata) {
+        *self.metadata.borrow_mut() = Some(metadata);
+    }
+
+    fn data_available(&self, payload: Vec<u8>) {
+        let mut payload = payload;
+        self.data.borrow_mut().append(&mut payload);
+    }
+
+    fn response_complete(&self, _status: Result<(), String>) {
+        let data = mem::replace(&mut *self.data.borrow_mut(), vec!());
+        let metadata = self.metadata.borrow_mut().take().unwrap();
+        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+        let environment_encoding = UTF_8 as EncodingRef;
+        let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
+        let final_url = metadata.final_url;
+        let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
+                                               Some(environment_encoding), Origin::Author);
+        let media = self.media.borrow_mut().take().unwrap();
+        sheet.set_media(Some(media));
+        let sheet = Arc::new(sheet);
+
+        let elem = self.elem.root();
+        let elem = elem.r();
+        let document = document_from_node(elem);
+        let document = document.r();
+
+        let win = window_from_node(elem);
+        let LayoutChan(ref layout_chan) = win.r().layout_chan();
+        layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
+
+        *elem.stylesheet.borrow_mut() = Some(sheet);
+        document.invalidate_stylesheets();
+        if elem.parser_inserted.get() {
+            document.decrement_script_blocking_stylesheet_count();
+        }
+        document.finish_load(LoadType::Stylesheet(self.url.clone()));
     }
 }
 
@@ -246,28 +345,4 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
-}
-
-pub struct StylesheetLoadDispatcher {
-    elem: Trusted<HTMLLinkElement>,
-}
-
-impl StylesheetLoadDispatcher {
-    pub fn new(elem: Trusted<HTMLLinkElement>) -> StylesheetLoadDispatcher {
-        StylesheetLoadDispatcher {
-            elem: elem,
-        }
-    }
-}
-
-impl StylesheetLoadResponder for StylesheetLoadDispatcher {
-    fn respond(self: Box<StylesheetLoadDispatcher>) {
-        let elem = self.elem.root();
-        let window = window_from_node(elem.r());
-        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(elem.r());
-        event.r().fire(target);
-    }
 }

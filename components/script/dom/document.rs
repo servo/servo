@@ -24,7 +24,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLEmbedElementDerived, HTMLFormElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, HTMLHtmlElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLLinkElementCast, HTMLMetaElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLStyleElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -94,8 +96,10 @@ use std::default::Default;
 use std::iter::FromIterator;
 use std::ptr;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
+use style::stylesheets::Stylesheet;
 use time;
 use url::Url;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -127,6 +131,8 @@ pub struct Document {
     scripts: MutNullableHeap<JS<HTMLCollection>>,
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
+    stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
+    stylesheets_changed: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_triggered: Cell<bool>,
@@ -136,15 +142,15 @@ pub struct Document {
     focused: MutNullableHeap<JS<Element>>,
     /// The script element that is currently executing.
     current_script: MutNullableHeap<JS<HTMLScriptElement>>,
-    /// https://html.spec.whatwg.org/#pending-parsing-blocking-script
+    /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pending_parsing_blocking_script: MutNullableHeap<JS<HTMLScriptElement>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
-    /// https://html.spec.whatwg.org/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
+    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     deferred_scripts: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
-    /// https://html.spec.whatwg.org/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
+    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     asap_in_order_scripts_list: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
-    /// https://html.spec.whatwg.org/#set-of-scripts-that-will-execute-as-soon-as-possible
+    /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
     asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
@@ -882,6 +888,17 @@ impl Document {
         count_cell.set(count_cell.get() - 1);
     }
 
+    pub fn invalidate_stylesheets(&self) {
+        self.stylesheets_changed.set(true);
+        *self.stylesheets.borrow_mut() = None;
+    }
+
+    pub fn get_and_reset_stylesheets_changed(&self) -> bool {
+        let changed = self.stylesheets_changed.get();
+        self.stylesheets_changed.set(false);
+        changed
+    }
+
     pub fn set_pending_parsing_blocking_script(&self, script: Option<&HTMLScriptElement>) {
         assert!(self.get_pending_parsing_blocking_script().is_none() || script.is_none());
         self.pending_parsing_blocking_script.set(script.map(JS::from_ref));
@@ -1208,6 +1225,8 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            stylesheets: DOMRefCell::new(None),
+            stylesheets_changed: Cell::new(false),
             ready_state: Cell::new(ready_state),
             domcontentloaded_triggered: Cell::new(domcontentloaded_triggered),
             possibly_focused: Default::default(),
@@ -1273,6 +1292,28 @@ impl Document {
             .r()
             .and_then(HTMLHtmlElementCast::to_ref)
             .map(Root::from_ref)
+    }
+
+    pub fn get_stylesheets(&self) -> Vec<Arc<Stylesheet>> {
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        if stylesheets.is_none() {
+            let new_stylesheets: Vec<Arc<Stylesheet>> = NodeCast::from_ref(self)
+                .traverse_preorder()
+                .filter_map(|node| {
+                    if let Some(node) = HTMLStyleElementCast::to_ref(node.r()) {
+                        node.get_stylesheet()
+                    } else if let Some(node) = HTMLLinkElementCast::to_ref(node.r()) {
+                        node.get_stylesheet()
+                    } else if let Some(node) = HTMLMetaElementCast::to_ref(node.r()) {
+                        node.get_stylesheet()
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            *stylesheets = Some(new_stylesheets);
+        };
+        stylesheets.clone().unwrap()
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document

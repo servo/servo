@@ -362,7 +362,7 @@ impl HTMLScriptElement {
         self.ready_to_be_parser_executed.get()
     }
 
-    /// https://html.spec.whatwg.org/#execute-the-script-block
+    /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
     pub fn execute(&self) {
         assert!(self.ready_to_be_parser_executed.get());
 

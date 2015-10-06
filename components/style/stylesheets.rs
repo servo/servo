@@ -41,6 +41,8 @@ pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Vec<CSSRule>,
+    /// List of media associated with the Stylesheet, if any.
+    pub media: Option<MediaQueryList>,
     pub origin: Origin,
 }
 
@@ -132,6 +134,23 @@ impl Stylesheet {
         Stylesheet {
             origin: origin,
             rules: rules,
+            media: None,
+        }
+    }
+
+    /// Set the MediaQueryList associated with the style-sheet.
+    pub fn set_media(&mut self, media: Option<MediaQueryList>) {
+        self.media = media;
+    }
+
+    /// Returns whether the style-sheet applies for the current device depending
+    /// on the associated MediaQueryList.
+    ///
+    /// Always true if no associated MediaQueryList exists.
+    pub fn is_effective_for_device(&self, device: &Device) -> bool {
+        match self.media {
+            Some(ref media) => media.evaluate(device),
+            None => true
         }
     }
 
