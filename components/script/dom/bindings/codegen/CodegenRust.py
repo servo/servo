@@ -2246,20 +2246,24 @@ class CGIDLInterface(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        replacer = {
-            'type': self.descriptor.name,
-            'depth': self.descriptor.interface.inheritanceDepth(),
-        }
-        return string.Template("""\
-impl IDLInterface for ${type} {
-    fn get_prototype_id() -> PrototypeList::ID {
-        PrototypeList::ID::${type}
-    }
-    fn get_prototype_depth() -> usize {
-        ${depth}
+        interface = self.descriptor.interface
+        name = self.descriptor.name
+        if (interface.getUserData("hasConcreteDescendant", False) or
+                interface.getUserData("hasProxyDescendant", False)):
+            depth = len(self.descriptor.prototypeChain)
+            check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth - 1, name)
+        elif self.descriptor.proxy:
+            check = "class as *const _ == &Class as *const _"
+        else:
+            check = "class as *const _ == &Class.dom_class as *const _"
+        return """\
+impl IDLInterface for %(name)s {
+    #[inline]
+    fn derives(class: &'static DOMClass) -> bool {
+        %(check)s
     }
 }
-""").substitute(replacer)
+""" % {'check': check, 'name': name}
 
 
 class CGAbstractExternMethod(CGAbstractMethod):
@@ -5820,7 +5824,7 @@ class GlobalGenRoots():
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
         imports = [CGGeneric("use dom::types::*;\n"),
-                   CGGeneric("use dom::bindings::conversions::get_dom_class;\n"),
+                   CGGeneric("use dom::bindings::conversions::{IDLInterface, get_dom_class};\n"),
                    CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                    CGGeneric("use dom::bindings::utils::Reflectable;\n"),
@@ -5886,18 +5890,11 @@ impl %(name)sCast {
                 # Define a `FooDerived` trait for superclasses to implement,
                 # as well as the `FooCast::to_*` methods that use it.
                 baseName = descriptor.prototypeChain[0]
-                typeIdPat = descriptor.prototypeChain[-1]
-                if upcast:
-                    typeIdPat += "(_)"
-                for base in reversed(descriptor.prototypeChain[1:-1]):
-                    typeIdPat = "%s(%sTypeId::%s)" % (base, base, typeIdPat)
-                typeIdPat = "%sTypeId::%s" % (baseName, typeIdPat)
                 args = {
                     'baseName': baseName,
                     'derivedTrait': name + 'Derived',
                     'methodName': 'is_' + name.lower(),
                     'name': name,
-                    'typeIdPat': typeIdPat,
                 }
                 allprotos.append(CGGeneric("""\
 /// Types which `%(name)s` derives from
@@ -5938,10 +5935,10 @@ impl %(name)sCast {
 
 impl %(derivedTrait)s for %(baseName)s {
     fn %(methodName)s(&self) -> bool {
-        match *self.type_id() {
-            %(typeIdPat)s => true,
-            _ => false,
-        }
+        let dom_class = unsafe {
+            get_dom_class(self.reflector().get_jsobject().get()).unwrap()
+        };
+        %(name)s::derives(dom_class)
     }
 }
 

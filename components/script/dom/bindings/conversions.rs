@@ -33,7 +33,6 @@
 //! | union types             | `T`                              |
 
 use core::nonzero::NonZero;
-use dom::bindings::codegen::PrototypeList;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -101,14 +100,10 @@ impl_as!(u32, u32);
 impl_as!(i64, i64);
 impl_as!(u64, u64);
 
-/// A trait to retrieve the constants necessary to check if a `JSObject`
-/// implements a given interface.
+/// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
-    /// Returns the prototype ID.
-    fn get_prototype_id() -> PrototypeList::ID;
-    /// Returns the prototype depth, i.e., the number of interfaces this
-    /// interface inherits from.
-    fn get_prototype_depth() -> usize;
+    /// Returns whether the given DOM class derives that interface.
+    fn derives(&'static DOMClass) -> bool;
 }
 
 /// A trait to convert Rust types to `JSVal`s.
@@ -666,9 +661,10 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not an object for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub unsafe fn private_from_proto_chain(mut obj: *mut JSObject,
-                                       proto_id: u16, proto_depth: u16)
-                                       -> Result<*const libc::c_void, ()> {
+#[inline]
+pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F)
+                                          -> Result<*const libc::c_void, ()>
+                                          where F: Fn(&'static DOMClass) -> bool {
     let dom_class = try!(get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             debug!("found wrapper");
@@ -687,7 +683,7 @@ pub unsafe fn private_from_proto_chain(mut obj: *mut JSObject,
         }
     }));
 
-    if dom_class.interface_chain[proto_depth as usize] as u16 == proto_id {
+    if proto_check(dom_class) {
         debug!("good prototype");
         Ok(private_from_reflector(obj))
     } else {
@@ -705,10 +701,8 @@ pub unsafe fn private_from_proto_chain(mut obj: *mut JSObject,
 pub fn native_from_reflector_jsmanaged<T>(obj: *mut JSObject) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
-    let proto_id = <T as IDLInterface>::get_prototype_id() as u16;
-    let proto_depth = <T as IDLInterface>::get_prototype_depth() as u16;
     unsafe {
-        private_from_proto_chain(obj, proto_id, proto_depth).map(|obj| {
+        private_from_proto_check(obj, T::derives).map(|obj| {
             Root::new(NonZero::new(obj as *const T))
         })
     }
