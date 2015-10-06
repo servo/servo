@@ -39,7 +39,6 @@ use net_traits::storage_task::StorageTask;
 use profile_traits::{mem, time};
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
-use url::Url;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -85,13 +84,6 @@ pub struct NewLayoutInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
     pub layout_shutdown_chan: Sender<()>,
-}
-
-/// `StylesheetLoadResponder` is used to notify a responder that a style sheet
-/// has loaded.
-pub trait StylesheetLoadResponder {
-    /// Respond to a loaded style sheet.
-    fn respond(self: Box<Self>);
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
@@ -140,8 +132,6 @@ pub enum ConstellationControlMsg {
     /// Notifies the script task that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
-    /// Notifies script that a stylesheet has finished loading.
-    StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
     GetCurrentState(Sender<ScriptState>, PipelineId),
 }

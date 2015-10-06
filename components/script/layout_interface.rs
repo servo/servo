@@ -16,32 +16,24 @@ use msg::compositor_msg::Epoch;
 use msg::compositor_msg::LayerId;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
-use net_traits::PendingAsyncLoad;
 use net_traits::image_cache_task::ImageCacheTask;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
+use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use std::any::Any;
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::animation::PropertyAnimation;
-use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
-use style::viewport::ViewportRule;
 use url::Url;
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheet(Stylesheet, MediaQueryList),
-
-    /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder + Send>),
-
-    /// Adds a @viewport rule (translated from a <META name="viewport"> element) to the document.
-    AddMetaViewport(ViewportRule),
+    AddStylesheet(Arc<Stylesheet>),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,
@@ -175,6 +167,10 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document_root: TrustedNodeAddress,
+    /// The document's list of stylesheets.
+    pub document_stylesheets: Vec<Arc<Stylesheet>>,
+    /// Whether the document's stylesheets have changed since the last script reflow.
+    pub stylesheets_changed: bool,
     /// The channel through which messages can be sent back to the script task.
     pub script_chan: Sender<ConstellationControlMsg>,
     /// The current window size.
