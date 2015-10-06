@@ -8,13 +8,14 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
-use display_list::{self, LayerInfo, StackingContext};
+use display_list::{DisplayList, LayerInfo, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
+use gfx_traits::color;
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -40,6 +41,12 @@ use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum PaintLayerContents {
+    StackingContext(Arc<StackingContext>),
+    DisplayList(Arc<DisplayList>),
+}
+
 /// Information about a hardware graphics layer that layout sends to the painting task.
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct PaintLayer {
@@ -47,8 +54,10 @@ pub struct PaintLayer {
     pub id: LayerId,
     /// The color of the background in this layer. Used for unpainted content.
     pub background_color: Color,
-    /// The stacking context that represents the content of this layer.
-    pub stacking_context: Arc<StackingContext>,
+    /// The content of this layer, which is either a stacking context or a display list.
+    pub contents: PaintLayerContents,
+    /// The layer's boundaries in the parent layer's coordinate system.
+    pub bounds: Rect<Au>,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
     /// The subpage that this layer represents, if there is one.
@@ -56,29 +65,33 @@ pub struct PaintLayer {
 }
 
 impl PaintLayer {
-    /// Creates a new `PaintLayer`.
-    pub fn new(layer_info: LayerInfo,
-               background_color: Color,
-               stacking_context: Arc<StackingContext>)
-               -> PaintLayer {
-        PaintLayer {
-            id: layer_info.layer_id,
-            background_color: background_color,
-            stacking_context: stacking_context,
-            scroll_policy: layer_info.scroll_policy,
-            subpage_layer_info: layer_info.subpage_layer_info,
-        }
-    }
-
     /// Creates a new `PaintLayer` with a stacking context.
     pub fn new_with_stacking_context(layer_info: LayerInfo,
                                      stacking_context: Arc<StackingContext>,
                                      background_color: Color)
                                      -> PaintLayer {
-         PaintLayer {
+        let bounds = Rect::new(stacking_context.bounds.origin + stacking_context.overflow.origin,
+                               stacking_context.overflow.size);
+        PaintLayer {
             id: layer_info.layer_id,
             background_color: background_color,
-            stacking_context: stacking_context,
+            contents: PaintLayerContents::StackingContext(stacking_context),
+            bounds: bounds,
+            scroll_policy: layer_info.scroll_policy,
+            subpage_layer_info: layer_info.subpage_layer_info,
+        }
+    }
+
+    /// Creates a new `PaintLayer` with a display list.
+    pub fn new_with_display_list(layer_info: LayerInfo,
+                                 display_list: DisplayList)
+                                 -> PaintLayer {
+        let bounds = display_list.calculate_bounding_rect();
+        PaintLayer {
+            id: layer_info.layer_id,
+            background_color: color::transparent(),
+            contents: PaintLayerContents::DisplayList(Arc::new(display_list)),
+            bounds: bounds,
             scroll_policy: layer_info.scroll_policy,
             subpage_layer_info: layer_info.subpage_layer_info,
         }
@@ -91,7 +104,80 @@ impl PaintLayer {
             return Some(this.clone());
         }
 
-        display_list::find_layer_with_layer_id(&this.stacking_context, layer_id)
+        match this.contents {
+            PaintLayerContents::StackingContext(ref stacking_context) =>
+                stacking_context.display_list.find_layer_with_layer_id(layer_id),
+            PaintLayerContents::DisplayList(ref display_list) =>
+                display_list.find_layer_with_layer_id(layer_id),
+        }
+    }
+
+    fn build_layer_properties(&self,
+                              parent_origin: &Point2D<Au>,
+                              transform: &Matrix4,
+                              perspective: &Matrix4,
+                              parent_id: Option<LayerId>)
+                              -> LayerProperties {
+        let layer_boundaries = Rect::new(
+            Point2D::new((parent_origin.x + self.bounds.min_x()).to_nearest_px() as f32,
+                         (parent_origin.y + self.bounds.min_y()).to_nearest_px() as f32),
+            Size2D::new(self.bounds.size.width.to_nearest_px() as f32,
+                        self.bounds.size.height.to_nearest_px() as f32));
+
+        let (transform,
+             perspective,
+             establishes_3d_context,
+             scrolls_overflow_area) = match self.contents {
+            PaintLayerContents::StackingContext(ref stacking_context) => {
+                (transform.mul(&stacking_context.transform),
+                 perspective.mul(&stacking_context.perspective),
+                 stacking_context.establishes_3d_context,
+                 stacking_context.scrolls_overflow_area)
+            },
+            PaintLayerContents::DisplayList(_) => {
+                (*transform, *perspective, false, false)
+            }
+        };
+
+        LayerProperties {
+            id: self.id,
+            parent_id: parent_id,
+            rect: layer_boundaries,
+            background_color: self.background_color,
+            scroll_policy: self.scroll_policy,
+            transform: transform,
+            perspective: perspective,
+            establishes_3d_context: establishes_3d_context,
+            scrolls_overflow_area: scrolls_overflow_area,
+            subpage_layer_info: self.subpage_layer_info,
+        }
+    }
+
+    // The origin for child layers might be somewhere other than the layer origin,
+    // since layer boundaries are expanded to include overflow.
+    pub fn origin_for_child_layers(&self) -> Point2D<Au> {
+        match self.contents {
+            PaintLayerContents::StackingContext(ref stacking_context) =>
+                -stacking_context.overflow.origin,
+            PaintLayerContents::DisplayList(_) => Point2D::zero(),
+        }
+    }
+
+    pub fn display_list_origin(&self) -> Point2D<f32> {
+        // The layer's bounds start at the overflow origin, but display items are
+        // positioned relative to the stacking context counds, so we need to
+        // offset by the overflow rect (which will be in the coordinate system of
+        // the stacking context bounds).
+        match self.contents {
+            PaintLayerContents::StackingContext(ref stacking_context) => {
+                Point2D::new(stacking_context.overflow.origin.x.to_f32_px(),
+                             stacking_context.overflow.origin.y.to_f32_px())
+
+            },
+            PaintLayerContents::DisplayList(_) => {
+                Point2D::new(self.bounds.origin.x.to_f32_px(), self.bounds.origin.y.to_f32_px())
+            }
+        }
     }
 }
 
@@ -372,59 +458,37 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
         fn build_from_paint_layer(properties: &mut Vec<LayerProperties>,
                                   paint_layer: &Arc<PaintLayer>,
-                                  page_position: &Point2D<Au>,
+                                  parent_origin: &Point2D<Au>,
                                   transform: &Matrix4,
                                   perspective: &Matrix4,
                                   parent_id: Option<LayerId>) {
-            let transform = transform.mul(&paint_layer.stacking_context.transform);
-            let perspective = perspective.mul(&paint_layer.stacking_context.perspective);
 
-            let overflow_size = Size2D::new(
-                paint_layer.stacking_context.overflow.size.width.to_nearest_px() as f32,
-                paint_layer.stacking_context.overflow.size.height.to_nearest_px() as f32);
+            properties.push(paint_layer.build_layer_properties(parent_origin,
+                                                               transform,
+                                                               perspective,
+                                                               parent_id));
 
-            // Layers start at the top left of their overflow rect, as far as the info
-            // we give to the compositor is concerned.
-            let overflow_relative_page_position = *page_position +
-                                                  paint_layer.stacking_context.bounds.origin +
-                                                  paint_layer.stacking_context.overflow.origin;
-            let layer_position = Rect::new(
-                Point2D::new(overflow_relative_page_position.x.to_nearest_px() as f32,
-                             overflow_relative_page_position.y.to_nearest_px() as f32),
-                overflow_size);
-
-            properties.push(LayerProperties {
-                id: paint_layer.id,
-                parent_id: parent_id,
-                rect: layer_position,
-                background_color: paint_layer.background_color,
-                scroll_policy: paint_layer.scroll_policy,
-                transform: transform,
-                perspective: perspective,
-                establishes_3d_context: paint_layer.stacking_context.establishes_3d_context,
-                scrolls_overflow_area: paint_layer.stacking_context.scrolls_overflow_area,
-                subpage_layer_info: paint_layer.subpage_layer_info,
-            });
-
-            // When there is a new layer, the transforms and origin are handled by the compositor,
-            // so the new transform and perspective matrices are just the identity.
-            continue_walking_stacking_context(properties,
-                                              &paint_layer.stacking_context,
-                                              &-paint_layer.stacking_context.overflow.origin,
-                                              &Matrix4::identity(),
-                                              &Matrix4::identity(),
-                                              Some(paint_layer.id));
+            if let PaintLayerContents::StackingContext(ref context) = paint_layer.contents {
+                // When there is a new layer, the transforms and origin are handled by the compositor,
+                // so the new transform and perspective matrices are just the identity.
+                continue_walking_stacking_context(properties,
+                                                  &context,
+                                                  &paint_layer.origin_for_child_layers(),
+                                                  &Matrix4::identity(),
+                                                  &Matrix4::identity(),
+                                                  Some(paint_layer.id));
+            }
         }
 
         fn build_from_stacking_context(properties: &mut Vec<LayerProperties>,
                                        stacking_context: &Arc<StackingContext>,
-                                       page_position: &Point2D<Au>,
+                                       parent_origin: &Point2D<Au>,
                                        transform: &Matrix4,
                                        perspective: &Matrix4,
                                        parent_id: Option<LayerId>) {
             continue_walking_stacking_context(properties,
                                               stacking_context,
-                                              &(stacking_context.bounds.origin + *page_position),
+                                              &(stacking_context.bounds.origin + *parent_origin),
                                               &transform.mul(&stacking_context.transform),
                                               &perspective.mul(&stacking_context.perspective),
                                               parent_id);
@@ -432,14 +496,14 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
 
         fn continue_walking_stacking_context(properties: &mut Vec<LayerProperties>,
                                              stacking_context: &Arc<StackingContext>,
-                                             page_position: &Point2D<Au>,
+                                             parent_origin: &Point2D<Au>,
                                              transform: &Matrix4,
                                              perspective: &Matrix4,
                                              parent_id: Option<LayerId>) {
             for kid in stacking_context.display_list.children.iter() {
                 build_from_stacking_context(properties,
                                             &kid,
-                                            &page_position,
+                                            &parent_origin,
                                             &transform,
                                             &perspective,
                                             parent_id)
@@ -448,7 +512,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
             for kid in stacking_context.display_list.layered_children.iter() {
                 build_from_paint_layer(properties,
                                        &kid,
-                                       &page_position,
+                                       &parent_origin,
                                        &transform,
                                        &perspective,
                                        parent_id)
@@ -605,7 +669,6 @@ impl WorkerThread {
                                scale: f32,
                                layer_kind: LayerKind)
                                -> Box<LayerBuffer> {
-        let stacking_context = &paint_layer.stacking_context;
         let size = Size2D::new(tile.screen_rect.size.width as i32,
                                tile.screen_rect.size.height as i32);
         let mut buffer = self.create_layer_buffer(&mut tile, scale);
@@ -623,15 +686,10 @@ impl WorkerThread {
                 layer_kind: layer_kind,
             };
 
-            // Apply a translation to start at the boundaries of the stacking context, since the
-            // layer's origin starts at its overflow rect's origin.
-            let tile_bounds = tile.page_rect.translate(
-                &Point2D::new(stacking_context.overflow.origin.x.to_f32_px(),
-                              stacking_context.overflow.origin.y.to_f32_px()));
-
             // Apply the translation to paint the tile we want.
             let matrix = Matrix4::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
+            let tile_bounds = tile.page_rect.translate(&paint_layer.display_list_origin());
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
                                           -tile_bounds.origin.y as AzFloat,
                                           0.0);
@@ -644,11 +702,24 @@ impl WorkerThread {
                           None,
                           self.time_profiler_sender.clone(),
                           || {
-                stacking_context.optimize_and_draw_into_context(&mut paint_context,
-                                                                &matrix,
-                                                                None);
+                match paint_layer.contents {
+                    PaintLayerContents::StackingContext(ref stacking_context) => {
+                        stacking_context.optimize_and_draw_into_context(&mut paint_context,
+                                                                        &matrix,
+                                                                        None);
+                    }
+                    PaintLayerContents::DisplayList(ref display_list) => {
+                        paint_context.remove_transient_clip_if_applicable();
+                        let draw_target = paint_context.draw_target.clone();
+                        display_list.draw_into_context(&draw_target,
+                                                       &mut paint_context,
+                                                       &matrix,
+                                                       None);
+                    }
+                }
+
                 paint_context.draw_target.flush();
-                    });
+            });
 
             if opts::get().show_debug_parallel_paint {
                 // Overlay a transparent solid color to identify the thread that
