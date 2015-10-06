@@ -76,6 +76,51 @@ impl OpaqueNode {
     }
 }
 
+/// LayerInfo is used to store PaintLayer metadata during DisplayList construction.
+/// It is also used for tracking LayerIds when creating layers to preserve ordering when
+/// layered DisplayItems should render underneath unlayered DisplayItems.
+#[derive(Clone, Copy, Debug, HeapSizeOf, Deserialize, Serialize)]
+pub struct LayerInfo {
+    /// The base LayerId of this layer.
+    pub layer_id: LayerId,
+
+    /// The scroll policy of this layer.
+    pub scroll_policy: ScrollPolicy,
+
+    /// The subpage that this layer represents, if there is one.
+    pub subpage_layer_info: Option<SubpageLayerInfo>,
+
+    /// The id for the next layer in the sequence. This is used for synthesizing
+    /// layers for content that needs to be displayed on top of this layer.
+    pub next_layer_id: LayerId,
+}
+
+impl LayerInfo {
+    pub fn new(id: LayerId,
+               scroll_policy: ScrollPolicy,
+               subpage_layer_info: Option<SubpageLayerInfo>)
+               -> LayerInfo {
+        LayerInfo {
+            layer_id: id,
+            scroll_policy: scroll_policy,
+            subpage_layer_info: subpage_layer_info,
+            next_layer_id: id.companion_layer_id(),
+        }
+    }
+
+    fn next(&mut self) -> LayerInfo {
+        let new_layer_info = LayerInfo::new(self.next_layer_id, self.scroll_policy, None);
+        self.next_layer_id = self.next_layer_id.companion_layer_id();
+        new_layer_info
+    }
+
+    fn next_with_scroll_policy(&mut self, scroll_policy: ScrollPolicy) -> LayerInfo {
+        let mut new_layer_info = self.next();
+        new_layer_info.scroll_policy = scroll_policy;
+        new_layer_info
+    }
+}
+
 /// Display items that make up a stacking context. "Steps" here refer to the steps in CSS 2.1
 /// Appendix E.
 ///
@@ -474,15 +519,8 @@ pub struct StackingContext {
     /// Whether this stacking context scrolls its overflow area.
     pub scrolls_overflow_area: bool,
 
-    /// The scrolling policy of this stacking context, if it is promoted
-    /// to a layer.
-    pub scroll_policy: ScrollPolicy,
-
-    /// The layer id for this stacking context, if there is one.
-    pub layer_id: Option<LayerId>,
-
-    /// The subpage that this stacking context represents, if there is one.
-    pub subpage_layer_info: Option<SubpageLayerInfo>,
+    /// The layer info for this stacking context, if there is any.
+    pub layer_info: Option<LayerInfo>,
 }
 
 impl StackingContext {
@@ -498,9 +536,7 @@ impl StackingContext {
                perspective: Matrix4,
                establishes_3d_context: bool,
                scrolls_overflow_area: bool,
-               scroll_policy: ScrollPolicy,
-               layer_id: Option<LayerId>,
-               subpage_layer_info: Option<SubpageLayerInfo>)
+               layer_info: Option<LayerInfo>)
                -> StackingContext {
         let mut stacking_context = StackingContext {
             display_list: display_list,
@@ -513,16 +549,14 @@ impl StackingContext {
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
-            scroll_policy: scroll_policy,
-            layer_id: layer_id,
-            subpage_layer_info: subpage_layer_info,
+            layer_info: layer_info,
         };
         StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
         stacking_context
     }
 
     pub fn create_layered_child(&self,
-                                layer_id: LayerId,
+                                layer_info: LayerInfo,
                                 display_list: Box<DisplayList>) -> StackingContext {
         StackingContext {
             display_list: display_list,
@@ -535,9 +569,7 @@ impl StackingContext {
             perspective: Matrix4::identity(),
             establishes_3d_context: false,
             scrolls_overflow_area: self.scrolls_overflow_area,
-            scroll_policy: self.scroll_policy,
-            layer_id: Some(layer_id),
-            subpage_layer_info: self.subpage_layer_info,
+            layer_info: Some(layer_info),
         }
     }
 
@@ -569,7 +601,7 @@ impl StackingContext {
 
         // If a layer is being used, the transform for this layer
         // will be handled by the compositor.
-        let transform = match self.layer_id {
+        let transform = match self.layer_info {
             Some(..) => *transform,
             None => transform.mul(&self.transform),
         };
@@ -631,30 +663,37 @@ impl StackingContext {
     }
 
     fn print_with_tree(&self, print_tree: &mut PrintTree) {
-        if self.layer_id.is_some() {
+        if self.layer_info.is_some() {
             print_tree.new_level(format!("Layered StackingContext at {:?} with overflow {:?}:",
-                                             self.bounds,
-                                             self.overflow));
+                                         self.bounds,
+                                         self.overflow));
         } else {
             print_tree.new_level(format!("StackingContext at {:?} with overflow {:?}:",
-                                             self.bounds,
-                                             self.overflow));
+                                         self.bounds,
+                                         self.overflow));
         }
         self.display_list.print_with_tree(print_tree);
         print_tree.end_level();
+    }
+
+    fn scroll_policy(&self) -> ScrollPolicy {
+        match self.layer_info {
+            Some(ref layer_info) => layer_info.scroll_policy,
+            None => ScrollPolicy::Scrollable,
+        }
     }
 }
 
 struct StackingContextLayerCreator {
     display_list_for_next_layer: Option<Box<DisplayList>>,
-    all_following_children_need_layers: bool,
+    next_layer_info: Option<LayerInfo>,
 }
 
 impl StackingContextLayerCreator {
     fn new() -> StackingContextLayerCreator {
         StackingContextLayerCreator {
             display_list_for_next_layer: None,
-            all_following_children_need_layers: false,
+            next_layer_info: None,
         }
     }
 
@@ -673,55 +712,56 @@ impl StackingContextLayerCreator {
         // FIXME(#7566, mrobinson): This should properly handle unlayered children that are on
         // top of unlayered children which have child stacking contexts with layers.
         for child_stacking_context in sorted_children.into_iter() {
-            if state.stacking_context_needs_layer(&child_stacking_context) {
-                state.add_stacking_context(child_stacking_context, stacking_context);
-            } else {
-                stacking_context.display_list.children.push_back(child_stacking_context);
-            }
+            state.add_stacking_context(child_stacking_context, stacking_context);
         }
         state.finish_building_current_layer(stacking_context);
     }
 
     #[inline]
-    fn stacking_context_needs_layer(&mut self, stacking_context: &Arc<StackingContext>) -> bool {
-        self.all_following_children_need_layers || stacking_context.layer_id.is_some()
+    fn all_following_children_need_layers(&self) -> bool {
+        self.next_layer_info.is_some()
     }
 
     #[inline]
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
-            let next_layer_id =
-                stacking_context.display_list
-                                .layered_children
-                                .back()
-                                .unwrap()
-                                .id
-                                .companion_layer_id();
+            let layer_info = self.next_layer_info.take().unwrap();
             let child_stacking_context =
-                Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
+                Arc::new(stacking_context.create_layered_child(layer_info.clone(), display_list));
             stacking_context.display_list.layered_children.push_back(
-                Arc::new(PaintLayer::new(next_layer_id,
+                Arc::new(PaintLayer::new(layer_info,
                                          color::transparent(),
-                                         child_stacking_context,
-                                         ScrollPolicy::Scrollable)));
-            self.all_following_children_need_layers = true;
+                                         child_stacking_context)));
         }
     }
 
+    #[inline]
     fn add_stacking_context(&mut self,
                             stacking_context: Arc<StackingContext>,
                             parent_stacking_context: &mut StackingContext) {
-        if let Some(layer_id) = stacking_context.layer_id {
+        if self.all_following_children_need_layers() || stacking_context.layer_info.is_some() {
+            self.add_layered_stacking_context(stacking_context, parent_stacking_context);
+            return;
+        }
+
+        parent_stacking_context.display_list.children.push_back(stacking_context);
+    }
+
+    fn add_layered_stacking_context(&mut self,
+                                    stacking_context: Arc<StackingContext>,
+                                    parent_stacking_context: &mut StackingContext) {
+        let layer_info = stacking_context.layer_info.clone();
+        if let Some(mut layer_info) = layer_info {
             self.finish_building_current_layer(parent_stacking_context);
-            parent_stacking_context.display_list.layered_children.push_back(
-                Arc::new(PaintLayer::new(layer_id,
-                                         color::transparent(),
-                                         stacking_context,
-                                         ScrollPolicy::Scrollable)));
 
             // We have started processing layered stacking contexts, so any stacking context that
             // we process from now on needs its own layer to ensure proper rendering order.
-            self.all_following_children_need_layers = true;
+            self.next_layer_info =
+                Some(layer_info.next_with_scroll_policy(parent_stacking_context.scroll_policy()));
+            parent_stacking_context.display_list.layered_children.push_back(
+                Arc::new(PaintLayer::new_with_stacking_context(layer_info,
+                                                               stacking_context,
+                                                               color::transparent())));
             return;
         }
 
