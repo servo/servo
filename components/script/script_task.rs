@@ -20,7 +20,7 @@
 use devtools;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use document_loader::{DocumentLoader, LoadType};
+use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
@@ -1001,10 +1001,6 @@ impl ScriptTask {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
-            ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
-                responder.respond();
-                self.handle_resource_loaded(id, LoadType::Stylesheet(url));
-            }
             ConstellationControlMsg::GetCurrentState(sender, pipeline_id) => {
                 let state = self.handle_get_current_state(pipeline_id);
                 sender.send(state).unwrap();
@@ -1151,13 +1147,6 @@ impl ScriptTask {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
-    }
-
-    /// Handle a request to load a page in a new child frame of an existing page.
-    fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
-        let page = get_page(&self.root_page(), pipeline);
-        let doc = page.document();
-        doc.finish_load(load);
     }
 
     /// Get the current state of a given pipeline.
