@@ -8,14 +8,14 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -225,7 +225,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetWidth(&self, width: u32) {
-        let elem = ElementCast::from_ref(self);
+        let elem = self.upcast::<Element>();
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
@@ -236,7 +236,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(&self, height: u32) {
-        let elem = ElementCast::from_ref(self);
+        let elem = self.upcast::<Element>();
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
@@ -264,7 +264,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
 impl VirtualMethods for HTMLCanvasElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let element: &HTMLElement = HTMLElementCast::from_ref(self);
+        let element: &HTMLElement = self.upcast::<HTMLElement>();
         Some(element as &VirtualMethods)
     }
 

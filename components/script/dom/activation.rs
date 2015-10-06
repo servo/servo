@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::conversions::Castable;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -45,12 +45,12 @@ pub trait Activatable {
         // Step 4
         // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
         let win = window_from_node(element);
-        let target = EventTargetCast::from_ref(element);
+        let target = element.upcast::<EventTarget>();
         let mouse = MouseEvent::new(win.r(), "click".to_owned(),
                                     EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None);
-        let event = EventCast::from_ref(mouse.r());
+        let event = mouse.upcast::<Event>();
         event.fire(target);
 
         // Step 5

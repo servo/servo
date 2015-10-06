@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
@@ -70,7 +70,7 @@ impl CustomEventMethods for CustomEvent {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: HandleValue) {
-        let event = EventCast::from_ref(self);
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }

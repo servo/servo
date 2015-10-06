@@ -5,11 +5,12 @@
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
@@ -42,7 +43,7 @@ impl HTMLAreaElement {
 
 impl VirtualMethods for HTMLAreaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -58,7 +59,7 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+            DOMTokenList::new(self.upcast::<Element>(), &atom!("rel"))
         })
     }
 }

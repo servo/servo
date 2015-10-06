@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::{EventMethods};
 use dom::bindings::codegen::Bindings::StorageEventBinding;
 use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods};
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
@@ -55,7 +55,7 @@ impl StorageEvent {
                                     global,
                                     StorageEventBinding::Wrap);
         {
-            let event = EventCast::from_ref(ev.r());
+            let event = ev.upcast::<Event>();
             event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
         ev

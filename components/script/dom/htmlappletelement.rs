@@ -5,7 +5,7 @@
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAppletElementBinding::HTMLAppletElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -48,7 +48,7 @@ impl HTMLAppletElementMethods for HTMLAppletElement {
 
 impl VirtualMethods for HTMLAppletElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

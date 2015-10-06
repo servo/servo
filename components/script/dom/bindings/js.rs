@@ -24,6 +24,7 @@
 //!
 
 use core::nonzero::NonZero;
+use dom::bindings::conversions::{Castable, DerivedFrom};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -34,6 +35,7 @@ use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 use std::cell::UnsafeCell;
 use std::default::Default;
+use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use util::mem::HeapSizeOf;
@@ -117,6 +119,24 @@ impl<T: Reflectable> JSTraceable for JS<T> {
 #[allow_unrooted_interior]
 pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
+}
+
+impl<T: Castable> LayoutJS<T> {
+    /// Cast a DOM object root upwards to one of the interfaces it derives from.
+    pub fn upcast<U>(&self) -> LayoutJS<U> where U: Castable, T: DerivedFrom<U> {
+        unsafe { mem::transmute_copy(self) }
+    }
+
+    /// Cast a DOM object downwards to one of the interfaces it might implement.
+    pub fn downcast<U>(&self) -> Option<LayoutJS<U>> where U: DerivedFrom<T> {
+        unsafe {
+            if (*self.unsafe_get()).is::<U>() {
+                Some(mem::transmute_copy(self))
+            } else {
+                None
+            }
+        }
+    }
 }
 
 impl<T: Reflectable> LayoutJS<T> {
@@ -445,6 +465,22 @@ pub struct Root<T: Reflectable> {
     ptr: NonZero<*const T>,
     /// List that ensures correct dynamic root ordering
     root_list: *const RootCollection,
+}
+
+impl<T: Castable> Root<T> {
+    /// Cast a DOM object root upwards to one of the interfaces it derives from.
+    pub fn upcast<U>(root: Root<T>) -> Root<U> where U: Castable, T: DerivedFrom<U> {
+        unsafe { mem::transmute(root) }
+    }
+
+    /// Cast a DOM object root downwards to one of the interfaces it might implement.
+    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>> where U: DerivedFrom<T> {
+        if root.is::<U>() {
+            Some(unsafe { mem::transmute(root) })
+        } else {
+            None
+        }
+    }
 }
 
 impl<T: Reflectable> Root<T> {

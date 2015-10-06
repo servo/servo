@@ -6,10 +6,10 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventInit;
 use dom::bindings::codegen::Bindings::WebGLContextEventBinding::WebGLContextEventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use util::str::DOMString;
@@ -46,7 +46,7 @@ impl WebGLContextEvent {
                         WebGLContextEventBinding::Wrap);
 
         {
-            let parent = EventCast::from_ref(event.r());
+            let parent = event.upcast::<Event>();
             parent.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         }
 

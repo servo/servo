@@ -5,9 +5,10 @@
 use cssparser::Parser as CssParser;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -39,8 +40,8 @@ impl HTMLStyleElement {
     }
 
     pub fn parse_own_css(&self) {
-        let node = NodeCast::from_ref(self);
-        let element = ElementCast::from_ref(self);
+        let node = self.upcast::<Node>();
+        let element = self.upcast::<Element>();
         assert!(node.is_in_doc());
 
         let win = window_from_node(node);
@@ -64,7 +65,7 @@ impl HTMLStyleElement {
 
 impl VirtualMethods for HTMLStyleElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -72,7 +73,7 @@ impl VirtualMethods for HTMLStyleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if node.is_in_doc() {
             self.parse_own_css();
         }

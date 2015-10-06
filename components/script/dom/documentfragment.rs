@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -48,14 +48,14 @@ impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
+        HTMLCollection::children(window.r(), self.upcast::<Node>())
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let id = Atom::from_slice(&id);
-        node.traverse_preorder().filter_map(ElementCast::to_root).find(|descendant| {
+        node.traverse_preorder().filter_map(Root::downcast::<Element>).find(|descendant| {
             match descendant.get_attribute(&ns!(""), &atom!(id)) {
                 None => false,
                 Some(attr) => *attr.value().as_atom() == id,
@@ -65,38 +65,38 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).child_elements().next()
+        self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
+        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        NodeCast::from_ref(self).child_elements().count() as u32
+        self.upcast::<Node>().child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
     fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).prepend(nodes)
+        self.upcast::<Node>().prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
     fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).append(nodes)
+        self.upcast::<Node>().append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
 }

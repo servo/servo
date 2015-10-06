@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::eventtarget::EventTarget;
 
 #[dom_struct]

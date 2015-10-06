@@ -5,9 +5,9 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
+use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
@@ -39,12 +39,12 @@ impl HTMLTitleElement {
 impl HTMLTitleElementMethods for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let mut content = String::new();
         for child in node.children() {
-            let text: Option<&Text> = TextCast::to_ref(child.r());
+            let text: Option<&Text> = child.downcast::<Text>();
             match text {
-                Some(text) => content.push_str(&CharacterDataCast::from_ref(text).data()),
+                Some(text) => content.push_str(&text.upcast::<CharacterData>().data()),
                 None => (),
             }
         }
@@ -53,14 +53,14 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.SetTextContent(Some(value))
     }
 }
 
 impl VirtualMethods for HTMLTitleElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -68,14 +68,14 @@ impl VirtualMethods for HTMLTitleElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
     }
 
     fn bind_to_tree(&self, is_in_doc: bool) {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if is_in_doc {
             let document = node.owner_doc();
             document.r().title_changed();

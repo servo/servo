@@ -23,9 +23,7 @@ use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use document_loader::{DocumentLoader, LoadType, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, EventTargetCast, NodeCast};
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::conversions::{Castable, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
 use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
@@ -35,8 +33,9 @@ use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
 use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::Element;
-use dom::event::{EventBubbles, EventCancelable};
-use dom::node::{NodeDamage, window_from_node};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
@@ -1256,12 +1255,12 @@ impl ScriptTask {
                 let current_url = it_page.document().url().serialize();
                 urls.push(current_url.clone());
 
-                for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
-                    let target = EventTargetCast::from_ref(&*child);
+                for child in it_page.document().upcast::<Node>().traverse_preorder() {
+                    let target = child.upcast::<EventTarget>();
                     dom_tree_size += heap_size_of_self_and_children(target);
                 }
                 let window = it_page.window();
-                let target = EventTargetCast::from_ref(&*window);
+                let target = window.upcast::<EventTarget>();
                 dom_tree_size += heap_size_of_self_and_children(target);
 
                 reports.push(Report {
@@ -1324,7 +1323,7 @@ impl ScriptTask {
         let frame_element = doc.find_iframe(subpage_id);
 
         if let Some(ref frame_element) = frame_element {
-            let element = ElementCast::from_ref(frame_element.r());
+            let element = frame_element.upcast::<Element>();
             doc.r().begin_focus_transaction();
             doc.r().request_focus(element);
             doc.r().commit_focus_transaction(FocusType::Parent);
@@ -1626,7 +1625,7 @@ impl ScriptTask {
                                      DocumentSource::FromParser,
                                      loader);
 
-        let frame_element = frame_element.r().map(ElementCast::from_ref);
+        let frame_element = frame_element.r().map(Castable::upcast::<Element>);
         window.r().init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
@@ -1673,7 +1672,7 @@ impl ScriptTask {
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &Element) {
-        let node = NodeCast::from_ref(node);
+        let node = node.upcast::<Node>();
         let rect = node.get_bounding_content_box();
         let point = Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
@@ -1732,7 +1731,7 @@ impl ScriptTask {
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if NodeCast::from_ref(target.root().r()).is_anchor_element() {
+                        if target.upcast::<Node>().is_anchor_element() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1744,7 +1743,7 @@ impl ScriptTask {
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
                     let target = target.root();
-                    if NodeCast::from_ref(target.r()).is_anchor_element() {
+                    if target.upcast::<Node>().is_anchor_element() {
                         let status = target.r().get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
@@ -1845,9 +1844,9 @@ impl ScriptTask {
                                    "resize".to_owned(), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
-        let event = EventCast::from_ref(uievent.r());
+        let event = uievent.upcast::<Event>();
 
-        let wintarget = EventTargetCast::from_ref(window.r());
+        let wintarget = window.upcast::<EventTarget>();
         event.fire(wintarget);
     }
 
@@ -1906,7 +1905,7 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
         document.r().disarm_reflow_timeout();
-        document.r().content_changed(NodeCast::from_ref(document.r()),
+        document.r().content_changed(document.upcast::<Node>(),
                                      NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
