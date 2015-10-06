@@ -173,7 +173,7 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("label")      => make!(HTMLLabelElement),
         atom!("legend")     => make!(HTMLLegendElement),
         atom!("li")         => make!(HTMLLIElement),
-        atom!("link")       => make!(HTMLLinkElement),
+        atom!("link")       => make!(HTMLLinkElement, creator),
         // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
         atom!("listing")    => make!(HTMLPreElement),
         atom!("main")       => make!(HTMLElement),

@@ -25,6 +25,7 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent);
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
+        media: None,
         rules: vec![
             CSSRule::Namespace(None, ns!(HTML)),
             CSSRule::Style(StyleRule {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser as CssParser;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::conversions::Castable;
@@ -10,9 +11,10 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
-use dom::node::{ChildrenMutation, Node, window_from_node};
+use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
+use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::stylesheets::{Origin, Stylesheet};
 use util::str::DOMString;
@@ -20,6 +22,7 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HTMLStyleElement {
     htmlelement: HTMLElement,
+    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 }
 
 impl HTMLStyleElement {
@@ -27,7 +30,8 @@ impl HTMLStyleElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLStyleElement {
         HTMLStyleElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            stylesheet: DOMRefCell::new(None),
         }
     }
 
@@ -53,13 +57,23 @@ impl HTMLStyleElement {
             Some(a) => String::from(&**a.r().value()),
             None => String::new(),
         };
-        let mut css_parser = CssParser::new(&mq_str);
-        let media = parse_media_query_list(&mut css_parser);
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = Stylesheet::from_str(&data, url, Origin::Author);
+        let mut sheet = Stylesheet::from_str(&data, url, Origin::Author);
+        let mut css_parser = CssParser::new(&mq_str);
+        let media = parse_media_query_list(&mut css_parser);
+        sheet.set_media(Some(media));
+        let sheet = Arc::new(sheet);
+
         let LayoutChan(ref layout_chan) = win.layout_chan();
-        layout_chan.send(Msg::AddStylesheet(sheet, media)).unwrap();
+        layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
+        *self.stylesheet.borrow_mut() = Some(sheet);
+        let doc = document_from_node(self);
+        doc.r().invalidate_stylesheets();
+    }
+
+    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+        self.stylesheet.borrow().clone()
     }
 }
 

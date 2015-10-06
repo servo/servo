@@ -917,6 +917,8 @@ impl Window {
             debug_reflow_events(&goal, &query_type, &reason);
         }
 
+        let stylesheets_changed = document.r().get_and_reset_stylesheets_changed();
+
         // Send new document and relevant styles to layout.
         let reflow = box ScriptReflow {
             reflow_info: Reflow {
@@ -924,6 +926,8 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document_root: root.to_trusted_node_address(),
+            document_stylesheets: document.r().get_stylesheets(),
+            stylesheets_changed: stylesheets_changed,
             window_size: window_size,
             script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
