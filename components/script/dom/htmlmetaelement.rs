@@ -2,25 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLMetaElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, document_from_node};
 use dom::virtualmethods::VirtualMethods;
-use layout_interface::{LayoutChan, Msg};
 use std::ascii::AsciiExt;
+use std::sync::Arc;
+use style::stylesheets::{CSSRule, Origin, Stylesheet};
 use style::viewport::ViewportRule;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
+    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
 }
 
 impl HTMLMetaElementDerived for EventTarget {
@@ -36,7 +39,8 @@ impl HTMLMetaElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMetaElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMetaElement, localName, prefix, document),
+            stylesheet: DOMRefCell::new(None),
         }
     }
 
@@ -48,6 +52,10 @@ impl HTMLMetaElement {
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
 
+    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+        self.stylesheet.borrow().clone()
+    }
+
     fn process_attributes(&self) {
         let element = ElementCast::from_ref(self);
         if let Some(name) = element.get_attribute(&ns!(""), &atom!("name")).r() {
@@ -55,23 +63,25 @@ impl HTMLMetaElement {
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
             match name {
-                "viewport" => self.translate_viewport(),
+                "viewport" => self.apply_viewport(),
                 _ => {}
             }
         }
     }
 
-    fn translate_viewport(&self) {
+    fn apply_viewport(&self) {
         let element = ElementCast::from_ref(self);
         if let Some(content) = element.get_attribute(&ns!(""), &atom!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    let node = NodeCast::from_ref(self);
-                    let win = window_from_node(node);
-                    let LayoutChan(ref layout_chan) = win.r().layout_chan();
-
-                    layout_chan.send(Msg::AddMetaViewport(translated_rule)).unwrap();
+                    *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
+                        rules: vec![CSSRule::Viewport(translated_rule)],
+                        origin: Origin::Author,
+                        media: None,
+                    }));
+                    let doc = document_from_node(self);
+                    doc.r().invalidate_stylesheets();
                 }
             }
         }

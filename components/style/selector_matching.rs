@@ -54,9 +54,28 @@ lazy_static! {
     };
 }
 
+lazy_static! {
+    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
+        match read_resource_file(&["quirks-mode.css"]) {
+            Ok(res) => {
+                Stylesheet::from_bytes(
+                    &res,
+                    Url::parse("chrome:///quirks-mode.css").unwrap(),
+                    None,
+                    None,
+                    Origin::UserAgent)
+            },
+            Err(..) => {
+                error!("Stylist failed to load 'quirks-mode.css'!");
+                process::exit(1);
+            }
+        }
+    };
+}
+
 pub struct Stylist {
     // List of stylesheets (including all media rules)
-    stylesheets: Vec<Stylesheet>,
+    // stylesheets: Vec<Stylesheet>,
 
     // Device that the stylist is currently evaluating against.
     pub device: Device,
@@ -64,9 +83,11 @@ pub struct Stylist {
     // Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
 
-    // If true, a stylesheet has been added or the device has
-    // changed, and the stylist needs to be updated.
-    is_dirty: bool,
+    // If true, the quirks-mode stylesheet is applied.
+    quirks_mode: bool,
+
+    // If true, the device has changed, and the stylist needs to be updated.
+    is_device_dirty: bool,
 
     // The current selector maps, after evaluating media
     // rules against the current device.
@@ -80,10 +101,10 @@ impl Stylist {
     #[inline]
     pub fn new(device: Device) -> Stylist {
         let stylist = Stylist {
-            stylesheets: vec!(),
             viewport_constraints: None,
             device: device,
-            is_dirty: true,
+            is_device_dirty: true,
+            quirks_mode: false,
 
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
@@ -94,79 +115,90 @@ impl Stylist {
         stylist
     }
 
-    #[inline]
-    pub fn stylesheets(&self) -> &[Stylesheet] {
-        &self.stylesheets
-    }
+    pub fn update<'a>(&mut self, doc_stylesheets: &'a[&Stylesheet],
+                      stylesheets_changed: bool) -> bool {
+        if !(self.is_device_dirty || stylesheets_changed) {
+            return false;
+        }
+        self.element_map = PerPseudoElementSelectorMap::new();
+        self.before_map = PerPseudoElementSelectorMap::new();
+        self.after_map = PerPseudoElementSelectorMap::new();
+        self.rules_source_order = 0;
 
-    pub fn update(&mut self) -> bool {
-        if self.is_dirty {
-            self.element_map = PerPseudoElementSelectorMap::new();
-            self.before_map = PerPseudoElementSelectorMap::new();
-            self.after_map = PerPseudoElementSelectorMap::new();
-            self.rules_source_order = 0;
-
-            for stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter().chain(&self.stylesheets) {
-                let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-                    Origin::UserAgent => (
-                        &mut self.element_map.user_agent,
-                        &mut self.before_map.user_agent,
-                        &mut self.after_map.user_agent,
-                    ),
-                    Origin::Author => (
-                        &mut self.element_map.author,
-                        &mut self.before_map.author,
-                        &mut self.after_map.author,
-                    ),
-                    Origin::User => (
-                        &mut self.element_map.user,
-                        &mut self.before_map.user,
-                        &mut self.after_map.user,
-                    ),
-                };
-                let mut rules_source_order = self.rules_source_order;
-
-                // Take apart the StyleRule into individual Rules and insert
-                // them into the SelectorMap of that priority.
-                macro_rules! append(
-                    ($style_rule: ident, $priority: ident) => {
-                        if $style_rule.declarations.$priority.len() > 0 {
-                            for selector in &$style_rule.selectors {
-                                let map = match selector.pseudo_element {
-                                    None => &mut element_map,
-                                    Some(PseudoElement::Before) => &mut before_map,
-                                    Some(PseudoElement::After) => &mut after_map,
-                                };
-                                map.$priority.insert(Rule {
-                                        selector: selector.compound_selectors.clone(),
-                                        declarations: DeclarationBlock {
-                                            specificity: selector.specificity,
-                                            declarations: $style_rule.declarations.$priority.clone(),
-                                            source_order: rules_source_order,
-                                        },
-                                });
-                            }
-                        }
-                    };
-                );
-
-                for style_rule in stylesheet.effective_rules(&self.device).style() {
-                    append!(style_rule, normal);
-                    append!(style_rule, important);
-                    rules_source_order += 1;
-                }
-                self.rules_source_order = rules_source_order;
-            }
-
-            self.is_dirty = false;
-            return true;
+        for ref stylesheet in USER_OR_USER_AGENT_STYLESHEETS.iter() {
+            self.add_stylesheet(&stylesheet);
         }
 
-        false
+        if self.quirks_mode {
+            self.add_stylesheet(&QUIRKS_MODE_STYLESHEET);
+        }
+
+        for ref stylesheet in doc_stylesheets.iter() {
+            self.add_stylesheet(stylesheet);
+        }
+
+        self.is_device_dirty = false;
+        true
     }
 
-    pub fn set_device(&mut self, mut device: Device) {
-        let cascaded_rule = self.stylesheets.iter()
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
+        let device = &self.device;
+        if !stylesheet.is_effective_for_device(device) {
+            return;
+        }
+        let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
+            Origin::UserAgent => (
+                &mut self.element_map.user_agent,
+                &mut self.before_map.user_agent,
+                &mut self.after_map.user_agent,
+            ),
+            Origin::Author => (
+                &mut self.element_map.author,
+                &mut self.before_map.author,
+                &mut self.after_map.author,
+            ),
+            Origin::User => (
+                &mut self.element_map.user,
+                &mut self.before_map.user,
+                &mut self.after_map.user,
+            ),
+        };
+        let mut rules_source_order = self.rules_source_order;
+
+        // Take apart the StyleRule into individual Rules and insert
+        // them into the SelectorMap of that priority.
+        macro_rules! append(
+            ($style_rule: ident, $priority: ident) => {
+                if $style_rule.declarations.$priority.len() > 0 {
+                    for selector in &$style_rule.selectors {
+                        let map = match selector.pseudo_element {
+                            None => &mut element_map,
+                            Some(PseudoElement::Before) => &mut before_map,
+                            Some(PseudoElement::After) => &mut after_map,
+                        };
+                        map.$priority.insert(Rule {
+                                selector: selector.compound_selectors.clone(),
+                                declarations: DeclarationBlock {
+                                    specificity: selector.specificity,
+                                    declarations: $style_rule.declarations.$priority.clone(),
+                                    source_order: rules_source_order,
+                                },
+                        });
+                    }
+                }
+            };
+        );
+
+        for style_rule in stylesheet.effective_rules(&self.device).style() {
+            append!(style_rule, normal);
+            append!(style_rule, important);
+            rules_source_order += 1;
+        }
+        self.rules_source_order = rules_source_order;
+    }
+
+    pub fn set_device(&mut self, mut device: Device, stylesheets: &[&Stylesheet]) {
+        let cascaded_rule = stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
 
@@ -174,12 +206,12 @@ impl Stylist {
         if let Some(ref constraints) = self.viewport_constraints {
             device = Device::new(MediaType::Screen, constraints.size);
         }
-        let is_dirty = self.is_dirty || self.stylesheets.iter()
+        let is_device_dirty = self.is_device_dirty || stylesheets.iter()
             .flat_map(|stylesheet| stylesheet.rules().media())
             .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
 
         self.device = device;
-        self.is_dirty |= is_dirty;
+        self.is_device_dirty |= is_device_dirty;
     }
 
     pub fn get_viewport_constraints(&self) -> Option<ViewportConstraints> {
@@ -189,26 +221,8 @@ impl Stylist {
         }
     }
 
-    pub fn add_quirks_mode_stylesheet(&mut self) {
-        match read_resource_file(&["quirks-mode.css"]) {
-            Ok(res) => {
-            self.add_stylesheet(Stylesheet::from_bytes(
-                &res,
-                Url::parse("chrome:///quirks-mode.css").unwrap(),
-                None,
-                None,
-                Origin::UserAgent));
-            }
-            Err(..) => {
-                error!("Stylist::add_quirks_mode_stylesheet() failed at loading 'quirks-mode.css'!");
-                process::exit(1);
-            }
-        }
-    }
-
-    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
-        self.stylesheets.push(stylesheet);
-        self.is_dirty = true;
+    pub fn set_quirks_mode(&mut self, enabled: bool) {
+        self.quirks_mode = enabled;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -227,7 +241,7 @@ impl Stylist {
                                         -> bool
                                         where E: Element + TElementAttributes,
                                               V: VecLike<DeclarationBlock> {
-        assert!(!self.is_dirty);
+        assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
 
@@ -294,8 +308,8 @@ impl Stylist {
         shareable
     }
 
-    pub fn is_dirty(&self) -> bool {
-        self.is_dirty
+    pub fn is_device_dirty(&self) -> bool {
+        self.is_device_dirty
     }
 }
 
