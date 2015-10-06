@@ -223,6 +223,14 @@ class CommandBase(object):
     def build_env(self, gonk=False, hosts_file_path=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
+        if sys.platform == "win32" and type(env['PATH']) == unicode:
+            # On win32, the virtualenv's activate_this.py script sometimes ends up
+            # turning os.environ['PATH'] into a unicode string.  This doesn't work
+            # for passing env vars in to a process, so we force it back to ascii.
+            # We don't use UTF8 since that won't be correct anyway; if you actually
+            # have unicode stuff in your path, all this PATH munging would have broken
+            # it in any case.
+            env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
         extra_lib = []
         if not self.config["tools"]["system-rust"] \
