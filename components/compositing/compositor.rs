@@ -49,6 +49,7 @@ use time::{precise_time_ns, precise_time_s};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
+use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 const BUFFER_MAP_SIZE: usize = 10000000;
@@ -389,6 +390,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 self.send_buffer_requests_for_all_layers();
+                self.dump_layer_tree();
             }
 
             (Msg::GetNativeDisplay(chan),
@@ -876,6 +878,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.pending_subpages.insert(subpage_pipeline_id);
             }
         }
+
+        self.dump_layer_tree();
     }
 
     fn send_window_size(&self) {
@@ -1573,6 +1577,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
+            self.dump_layer_tree();
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
                 origin: Point2D::zero(),
@@ -1750,28 +1755,63 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     #[allow(dead_code)]
     fn dump_layer_tree(&self) {
+        if !opts::get().dump_layer_tree {
+            return;
+        }
+
+        let mut print_tree = PrintTree::new("Layer tree".to_owned());
         if let Some(ref layer) = self.scene.root {
-            println!("Layer tree:");
-            self.dump_layer_tree_with_indent(&**layer, 0);
+            self.dump_layer_tree_layer(&**layer, &mut print_tree);
         }
     }
 
     #[allow(dead_code)]
-    fn dump_layer_tree_with_indent(&self, layer: &Layer<CompositorData>, level: u32) {
-        let mut indentation = String::new();
-        for _ in 0..level {
-            indentation.push_str("  ");
-        }
+    fn dump_layer_tree_layer(&self, layer: &Layer<CompositorData>, print_tree: &mut PrintTree) {
+        let data = layer.extra_data.borrow();
+        let layer_string = if data.id == LayerId::null() {
+            format!("Root Layer (pipeline={})", data.pipeline_id)
+        } else {
+            "Layer".to_owned()
+        };
 
-        println!("{}Layer {:x}: {:?} @ {:?} masks to bounds: {:?} establishes 3D context: {:?}",
-                 indentation,
-                 layer as *const _ as usize,
-                 layer.extra_data,
-                 *layer.bounds.borrow(),
-                 *layer.masks_to_bounds.borrow(),
-                 layer.establishes_3d_context);
-        for kid in &*layer.children() {
-            self.dump_layer_tree_with_indent(&**kid, level + 1)
+        let masks_string = if *layer.masks_to_bounds.borrow() {
+            " (masks children)"
+        } else {
+            ""
+        };
+
+        let establishes_3d_context_string = if layer.establishes_3d_context {
+            " (3D context)"
+        } else {
+            ""
+        };
+
+        let fixed_string = if data.scroll_policy == ScrollPolicy::FixedPosition {
+            " (fixed)"
+        } else {
+            ""
+        };
+
+        let layer_string = format!("{} ({:?}) ({},{} at {},{}){}{}{}",
+                                   layer_string,
+                                   layer.extra_data.borrow().id,
+                                   (*layer.bounds.borrow()).size.to_untyped().width,
+                                   (*layer.bounds.borrow()).size.to_untyped().height,
+                                   (*layer.bounds.borrow()).origin.to_untyped().x,
+                                   (*layer.bounds.borrow()).origin.to_untyped().y,
+                                   masks_string,
+                                   establishes_3d_context_string,
+                                   fixed_string);
+
+        let children = layer.children();
+        if !children.is_empty() {
+            print_tree.new_level(layer_string);
+            for kid in &*children {
+                self.dump_layer_tree_layer(&**kid, print_tree);
+            }
+            print_tree.end_level();
+        } else {
+            print_tree.add_item(layer_string);
         }
     }
 }
