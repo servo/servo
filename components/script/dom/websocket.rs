@@ -278,8 +278,7 @@ impl WebSocketMethods for WebSocket {
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
-        let parsed_data = data.unwrap_or_else(|| USVString(String::new())).0;
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(parsed_data));
+        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.unwrap().0));
         Ok(())
     }
 
