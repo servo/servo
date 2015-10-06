@@ -229,7 +229,43 @@ impl HTMLFormElement {
             win.r().pipeline(), load_data)).unwrap();
     }
 
-    pub fn get_form_dataset<'b>(&self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
+    fn get_unclean_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
+        let node = NodeCast::from_ref(self);
+        // TODO: This is an incorrect way of getting controls owned
+        //       by the form, but good enough until html5ever lands
+        node.traverse_preorder().filter_map(|child| {
+            if child.r().get_disabled_state() {
+                return None;
+            }
+            if child.r().ancestors()
+                        .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
+                return None;
+            }
+            match child.r().type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
+                    match element {
+                        HTMLElementTypeId::HTMLInputElement => {
+                            let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
+                            input.get_form_datum(submitter)
+                        }
+                        HTMLElementTypeId::HTMLButtonElement |
+                        HTMLElementTypeId::HTMLSelectElement |
+                        HTMLElementTypeId::HTMLObjectElement |
+                        HTMLElementTypeId::HTMLTextAreaElement => {
+                            // Unimplemented
+                            None
+                        }
+                        _ => None
+                    }
+                }
+                _ => None
+            }
+        }).collect()
+        // TODO: Handle `dirnames` (needs directionality support)
+        //       https://html.spec.whatwg.org/multipage/#the-directionality
+    }
+
+    pub fn get_form_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
@@ -262,88 +298,9 @@ impl HTMLFormElement {
             buf
         }
 
-        let node = NodeCast::from_ref(self);
-        // TODO: This is an incorrect way of getting controls owned
-        //       by the form, but good enough until html5ever lands
-        let data_set = node.traverse_preorder().filter_map(|child| {
-            if child.r().get_disabled_state() {
-                return None;
-            }
-            if child.r().ancestors()
-                        .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
-                return None;
-            }
-            // XXXManishearth don't include it if it is a button but not the submitter
-            match child.r().type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                    let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
-                    let ty = input.Type();
-                    let name = input.Name();
-                    match &*ty {
-                        "radio" | "checkbox" => {
-                            if !input.Checked() || name.is_empty() {
-                                return None;
-                            }
-                        },
-                        "image" => (),
-                        _ => {
-                            if name.is_empty() {
-                                return None;
-                            }
-                        }
-                    }
-
-                    let mut value = input.Value();
-                    let is_submitter = match submitter {
-                        Some(FormSubmitter::InputElement(s)) => {
-                            input == s
-                        },
-                        _ => false
-                    };
-                    match &*ty {
-                        "image" => None, // Unimplemented
-                        "radio" | "checkbox" => {
-                            if value.is_empty() {
-                                value = "on".to_owned();
-                            }
-                            Some(FormDatum {
-                                ty: ty,
-                                name: name,
-                                value: value
-                            })
-                        },
-                        // Discard buttons which are not the submitter
-                        "submit" | "button" | "reset" if !is_submitter => None,
-                        "file" => None, // Unimplemented
-                        _ => Some(FormDatum {
-                            ty: ty,
-                            name: name,
-                            value: value
-                        })
-                    }
-                }
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
-                    // Unimplemented
-                    None
-                }
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-                    // Unimplemented
-                    None
-                }
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
-                    // Unimplemented
-                    None
-                }
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    // Unimplemented
-                    None
-                }
-                _ => None
-            }
-        });
-        // TODO: Handle `dirnames` (needs directionality support)
-        //       https://html.spec.whatwg.org/multipage/#the-directionality
-        let mut ret: Vec<FormDatum> = data_set.collect();
+        let mut ret = self.get_unclean_dataset(submitter);
+        // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+        // Step 4
         for datum in &mut ret {
             match &*datum.ty {
                 "file" | "textarea" => (),
