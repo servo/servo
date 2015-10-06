@@ -1,0 +1,31 @@
+<!doctype html>
+<title>beforeunload event fires on history navigation back</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+beforeunload_fired = false;
+var t = async_test();
+
+var base_count = 0;
+
+onload = function() {setTimeout(t.step_func(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+  iframe.onload = t.step_func(function() {
+    iframe.onload = null;
+    history.go(-1);
+  });
+
+  iframe.src = "beforeunload-on-history-back-1.html";
+}), 100)};
+
+base_show = t.step_func(function() {
+  base_count++;
+  if (base_count > 1) {
+    assert_true(beforeunload_fired);
+    t.done();
+  }
+});
+
+</script>
+<iframe src="base.html"></iframe>

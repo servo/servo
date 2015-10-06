@@ -1,0 +1,6 @@
+// Extracted from http://www.w3.org/TR/2015/WD-service-workers-20150205/
+
+[Global=(Worker,ServiceWorker), Exposed=ServiceWorker]
+interface ServiceWorkerGlobalScope : WorkerGlobalScope {
+  
+};

@@ -1,0 +1,42 @@
+<!doctype html>
+<title>Retaining window.name on history traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<pre id="step_log"></pre>
+<iframe id="test"></iframe>
+<script>
+
+var t = async_test(undefined, {timeout:10000});
+var f = document.getElementById("test");
+var l = document.getElementById("step_log");
+var navigated = false;
+
+log = function(t) {l.textContent += ("\n" + t)}
+
+var steps = [
+  function() {f.src = "browsing_context_name-1.html"},
+  function() {
+                var navigated = true;
+                assert_equals(f.contentWindow.name, "test", "Initial load");
+                setTimeout(next, 0);
+              },
+  function() {f.src = "browsing_context_name-2.html"; setTimeout(next, 500)},
+  function() {
+               assert_equals(f.contentWindow.name, "test1");
+               setTimeout(next, 0);
+             },
+  function() {history.back(); setTimeout(next, 500)},
+  function() {
+               assert_equals(f.contentWindow.name, "test1", "After navigation");
+               t.done();
+             }
+].map(function(x) {return t.step_func(function() {log("Step " + step); x()})});
+
+var step = 0;
+next = t.step_func(function() {steps[step++]()});
+
+f.onload=next;
+
+onload = setTimeout(next, 0);
+</script>

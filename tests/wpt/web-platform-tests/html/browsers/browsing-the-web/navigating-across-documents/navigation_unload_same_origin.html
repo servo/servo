@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Same-origin navigation started from unload handler</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="navigation_unload_same_origin-1.html"></iframe>
+<script>
+var t = async_test();
+onload = t.step_func(function() {
+  var iframe = document.getElementsByTagName("iframe")[0];
+  var new_src = iframe.src.replace(/[^\/\.]*\.html/, "001-2.html");
+  iframe.src = new_src;
+});
+
+onmessage = t.step_func(function(e) {
+  assert_equals(e.data, "001-3");
+  t.done();
+});
+
+</script>

@@ -274,6 +274,8 @@ class GitTree(object):
         :param branch: Branch name to use
         :param force: Force-checkout
         """
+        assert rev is not None
+
         args = []
         if branch:
             branches = [ref[len("refs/heads/"):] for sha1, ref in self.list_refs()

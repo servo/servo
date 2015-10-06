@@ -1,0 +1,30 @@
+[
+    {
+        "type": "interface",
+        "name": "ServiceWorkerGlobalScope",
+        "partial": false,
+        "members": [],
+        "inheritance": "WorkerGlobalScope",
+        "extAttrs": [
+            {
+                "name": "Global",
+                "arguments": null,
+                "rhs": {
+                    "type": "identifier-list",
+                    "value": [
+                        "Worker",
+                        "ServiceWorker"
+                    ]
+                }
+            },
+            {
+                "name": "Exposed",
+                "arguments": null,
+                "rhs": {
+                    "type": "identifier",
+                    "value": "ServiceWorker"
+                }
+            }
+        ]
+    }
+]

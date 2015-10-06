@@ -1,0 +1,7 @@
+interface MapLike {
+	maplike<long, float>;
+};
+
+interface ReadOnlyMapLike {
+	readonly maplike<long, float>;
+};

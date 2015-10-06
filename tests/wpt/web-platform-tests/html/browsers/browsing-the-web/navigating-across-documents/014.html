@@ -1,0 +1,21 @@
+<!doctype html>
+<title> Link with javascript onclick form submission script order </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe id="test" name="test"></iframe>
+<form action="javascript:parent.events.push('submit')"></form>
+<a target="test" onclick="document.forms[0].submit()">Test</a>
+<script>
+var t = async_test(undefined, {timeout:4000});
+var events = [];
+t.step(function() {
+  document.getElementsByTagName("a")[0].click();
+  events.push('after script');
+});
+onload = t.step_func(function() {
+  //assuming the order is sync
+  assert_array_equals(events, ['javascript', 'after script']);
+  t.done();
+});
+</script>

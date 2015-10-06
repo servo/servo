@@ -26,7 +26,7 @@ t.step(function() {
     t.done();
   }),
   t.step_func(function (error) {
-    assert_equals(error.name, "PermissionDeniedError", "Permission denied error returned");
+    assert_equals(error.name, "SecurityError", "SecurityError returned");
     assert_equals(error.constraintName, null, "constraintName attribute not set for permission denied");
     t.done();
   }));

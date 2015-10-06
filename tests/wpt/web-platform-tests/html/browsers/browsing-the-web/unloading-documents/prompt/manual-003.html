@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Prompt when beforeunload is canceled</title>
+<script>
+addEventListener("beforeunload",
+function(e) {e.preventDefault()},
+false);
+</script>
+<p>When clicking the button below, you should get a prompt asking if you want to unload the document</p>
+<form method="get" action="next.html">
+<input type="submit" value="Click here">
+</form>
