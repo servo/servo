@@ -18,10 +18,11 @@ use std::str::Chars;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
 use util::geometry::ViewportPx;
+use util::mem::HeapSizeOf;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
 pub enum ViewportDescriptor {
     MinWidth(ViewportLength),
     MaxWidth(ViewportLength),
@@ -133,7 +134,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
 pub struct ViewportDescriptorDeclaration {
     pub origin: Origin,
     pub descriptor: ViewportDescriptor,
@@ -228,7 +229,7 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct ViewportRule {
     pub declarations: Vec<ViewportDescriptorDeclaration>
 }
