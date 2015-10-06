@@ -67,6 +67,8 @@ html/box-sizing-content-box-002.htm	51e63ae5f8b3a40e56096e7daa86265f8684e9a8	?
 xhtml1/box-sizing-content-box-002.xht	51e63ae5f8b3a40e56096e7daa86265f8684e9a8	?
 html/box-sizing-content-box-003.htm	397bec8981e201e663ea97b4b265aa45fff08bd5	?
 xhtml1/box-sizing-content-box-003.xht	397bec8981e201e663ea97b4b265aa45fff08bd5	?
+html/box-sizing-padding-box-block-001.htm	4e8dd583111bef378efaa8d0cf705160aeb90481	?
+xhtml1/box-sizing-padding-box-block-001.xht	4e8dd583111bef378efaa8d0cf705160aeb90481	?
 html/box-sizing-replaced-001.htm	a8e28589639906e9ad2c23f3875a1b84b9edc2c3	?
 xhtml1/box-sizing-replaced-001.xht	a8e28589639906e9ad2c23f3875a1b84b9edc2c3	?
 html/box-sizing-replaced-002.htm	d4148a5cae7298ba17c8257c328e4f622edfc689	?
@@ -371,14 +373,14 @@ html/outline-offset-001.htm	465df8192fe5ee54660d205d9d3f271ef84c1788	?
 xhtml1/outline-offset-001.xht	465df8192fe5ee54660d205d9d3f271ef84c1788	?
 html/outline-offset.htm	21bd9169e501282f6ddc905cf0b066f9dd730e5b	?
 xhtml1/outline-offset.xht	21bd9169e501282f6ddc905cf0b066f9dd730e5b	?
-html/outline-style-001.htm	9b6764e372cceab67dda037ff6138d0e911b1dec	?
-xhtml1/outline-style-001.xht	9b6764e372cceab67dda037ff6138d0e911b1dec	?
-html/outline-style-002.htm	695fbf49c18c77abfca3e5c42c9359ab9afdf1f1	?
-xhtml1/outline-style-002.xht	695fbf49c18c77abfca3e5c42c9359ab9afdf1f1	?
-html/outline-style-003.htm	c26ebdb81d867b5d1d8ff893a632b8c738c934b7	?
-xhtml1/outline-style-003.xht	c26ebdb81d867b5d1d8ff893a632b8c738c934b7	?
-html/outline-style-004.htm	7027b5a477a5790afef0521288df069305856abc	?
-xhtml1/outline-style-004.xht	7027b5a477a5790afef0521288df069305856abc	?
+html/outline-style-011.htm	23252c963318135cd2b9a9591741c77f5372fb79	?
+xhtml1/outline-style-011.xht	23252c963318135cd2b9a9591741c77f5372fb79	?
+html/outline-style-012.htm	0c82cbd1d2692d211242ea93142a58407ccb4b03	?
+xhtml1/outline-style-012.xht	0c82cbd1d2692d211242ea93142a58407ccb4b03	?
+html/outline-style-013.htm	d5914561233854207699be98d528a8be2dbf0bf2	?
+xhtml1/outline-style-013.xht	d5914561233854207699be98d528a8be2dbf0bf2	?
+html/outline-style-014.htm	3e3ee5a78b0992797f164d84f553cf5b2edf26a7	?
+xhtml1/outline-style-014.xht	3e3ee5a78b0992797f164d84f553cf5b2edf26a7	?
 html/resize-001.htm	c5ba9263cd9037be70dfbe252816bdf56d94d8d5	?
 xhtml1/resize-001.xht	c5ba9263cd9037be70dfbe252816bdf56d94d8d5	?
 html/resize-002.htm	5cb1f8083e06e1cdf3a2112feea46a60f6d7d89f	?
@@ -402,3 +404,5 @@ html/text-overflow-003.htm	dac3b5119c015760b3e5eb87122680eca10725c0	?
 xhtml1/text-overflow-003.xht	dac3b5119c015760b3e5eb87122680eca10725c0	?
 html/text-overflow-004.htm	5b424a1f63abc03cd51ca922704756c93961d2eb	?
 xhtml1/text-overflow-004.xht	5b424a1f63abc03cd51ca922704756c93961d2eb	?
+html/text-overflow.htm	c562ce91178f5299098b5a5340f4aa188abf51e2	?
+xhtml1/text-overflow.xht	c562ce91178f5299098b5a5340f4aa188abf51e2	?
