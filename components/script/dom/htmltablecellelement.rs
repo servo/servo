@@ -6,6 +6,7 @@ use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::js::LayoutJS;
 use dom::document::Document;
 use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -80,17 +81,30 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 }
 
 
-impl HTMLTableCellElement {
-    pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
+pub trait HTMLTableCellElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_colspan(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
+
+#[allow(unsafe_code)]
+impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
+    fn get_background_color(&self) -> Option<RGBA> {
+        unsafe {
+            (*self.unsafe_get()).background_color.get()
+        }
     }
 
-    pub fn get_colspan(&self) -> Option<u32> {
-        self.colspan.get()
+    fn get_colspan(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).colspan.get()
+        }
     }
 
-    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
-        self.width.get()
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.unsafe_get()).width.get()
+        }
     }
 }
 
