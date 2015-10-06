@@ -20,13 +20,14 @@
     </style>
 </head>
 <body>
-    <p>3 square images fill out border.</p>
+    <p>3 rectangular images fill out border.</p>
     
     <!-- PAGE CONTENT -->
     <div class="flexbox">
-        <img src="support/solidblue.png" />
-        <img src="support/solidblue.png" />
-        <img src="support/solidblue.png" />
+        <!-- It is important that there is no linebreak between the <img> tags.
+             The line break would be rendered as whitespace, breaking the test.
+          -->
+        <img src="../support/solidblue.png" /><img src="../support/solidblue.png" /><img src="../support/solidblue.png" />
     </div>
     
 

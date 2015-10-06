@@ -4,10 +4,11 @@
   <title>CSS Test: Selectors: Adjacent selectors with the universal selector</title>
   <link rel="author" title="Gabriele Romanato" href="mailto:gabriele.romanato@gmail.com">
   <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#adjacent-selectors">
+  <link rel="match" href="reference/adjacent-000-ref.htm">
   <meta name="flags" content="">
   <meta name="assert" content="Browsers should apply each rule to the adjacent element when combined with the universal selector">
 <style type="text/css">
-body > p {color: silver}
+body > p {color: gray}
 
 body > p + * {color: purple}
 p + p + *  {color: black}
