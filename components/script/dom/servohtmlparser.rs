@@ -8,7 +8,6 @@
 use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
-use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -49,7 +48,7 @@ impl Sink {
             NodeOrText::AppendText(t) => {
                 let doc = self.document.root();
                 let text = Text::new(t.into(), &doc);
-                NodeCast::from_root(text)
+                Root::upcast::<Node>(text)
             }
         }
     }

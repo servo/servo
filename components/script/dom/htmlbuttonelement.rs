@@ -6,14 +6,14 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
@@ -83,7 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(&self) -> DOMString {
-        let elem = ElementCast::from_ref(self);
+        let elem = self.upcast::<Element>();
         let mut ty = elem.get_string_attribute(&atom!("type"));
         ty.make_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/#attr-button-type
@@ -136,7 +136,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
 impl VirtualMethods for HTMLButtonElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -144,7 +144,7 @@ impl VirtualMethods for HTMLButtonElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let node = self.upcast::<Node>();
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {}
                     AttributeMutation::Set(None) => {
@@ -167,7 +167,7 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.check_ancestors_disabled_state_for_form_control();
     }
 
@@ -176,8 +176,8 @@ impl VirtualMethods for HTMLButtonElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
+        let node = self.upcast::<Node>();
+        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
             node.check_disabled_attribute();
@@ -189,12 +189,12 @@ impl FormControl for HTMLButtonElement {}
 
 impl<'a> Activatable for &'a HTMLButtonElement {
     fn as_element<'b>(&'b self) -> &'b Element {
-        ElementCast::from_ref(*self)
+        self.upcast::<Element>()
     }
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        let node = NodeCast::from_ref(*self);
+        let node = self.upcast::<Node>();
         !(node.get_disabled_state())
     }
 
@@ -226,9 +226,9 @@ impl<'a> Activatable for &'a HTMLButtonElement {
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self);
-        let node = NodeCast::from_ref(doc.r());
+        let node = doc.upcast::<Node>();
         let owner = self.form_owner();
-        let elem = ElementCast::from_ref(*self);
+        let elem = self.upcast::<Element>();
         if owner.is_none() || elem.click_in_progress() {
             return;
         }
@@ -236,7 +236,7 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         // and only then performing actions which may modify the DOM tree
         unsafe {
             node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
-                .filter_map(HTMLButtonElementCast::to_root)
+                .filter_map(Root::downcast::<HTMLButtonElement>)
                 .find(|r| r.r().form_owner() == owner)
                 .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }

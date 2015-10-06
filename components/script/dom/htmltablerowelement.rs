@@ -6,13 +6,14 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableDataCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
@@ -23,8 +24,8 @@ use util::str::{self, DOMString};
 struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is_htmltableheadercellelement() || elem.is_htmltabledatacellelement())
-            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>())
+            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
@@ -70,14 +71,14 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
-            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+            HTMLCollection::create(window.r(), self.upcast::<Node>(), filter)
         })
     }
 }
 
 impl VirtualMethods for HTMLTableRowElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 

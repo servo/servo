@@ -8,21 +8,22 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
-use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, ElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLScriptElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{NodeTypeId, ProcessingInstructionCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
+use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
+use dom::htmlformelement::HTMLFormElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::node::{document_from_node, window_from_node};
+use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{FragmentContext, ServoHTMLParser};
 use encoding::types::Encoding;
@@ -45,15 +46,15 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn get_document(&mut self) -> JS<Node> {
         let doc = self.document.root();
-        let node = NodeCast::from_ref(doc.r());
+        let node = doc.upcast::<Node>();
         JS::from_ref(node)
     }
 
     fn get_template_contents(&self, target: JS<Node>) -> JS<Node> {
         let target = target.root();
-        let template = HTMLTemplateElementCast::to_ref(&*target)
+        let template = target.downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
-        JS::from_ref(NodeCast::from_ref(&*template.Content()))
+        JS::from_ref(template.Content().upcast::<Node>())
     }
 
     fn same_node(&self, x: JS<Node>, y: JS<Node>) -> bool {
@@ -62,7 +63,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn elem_name(&self, target: JS<Node>) -> QualName {
         let node: Root<Node> = target.root();
-        let elem = ElementCast::to_ref(node.r())
+        let elem = node.downcast::<Element>()
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
             ns: elem.namespace().clone(),
@@ -80,14 +81,14 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             elem.r().set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
 
-        let node = NodeCast::from_ref(elem.r());
+        let node = elem.upcast::<Node>();
         JS::from_ref(node)
     }
 
     fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
         let doc = self.document.root();
         let comment = Comment::new(text.into(), doc.r());
-        let node = NodeCast::from_root(comment);
+        let node = Root::upcast::<Node>(comment);
         JS::from_rooted(&node)
     }
 
@@ -126,17 +127,17 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
                                   system_id: StrTendril) {
         let doc = self.document.root();
-        let doc_node = NodeCast::from_ref(doc.r());
+        let doc_node = doc.upcast::<Node>();
         let doctype = DocumentType::new(
             name.into(), Some(public_id.into()), Some(system_id.into()), doc.r());
-        let node: Root<Node> = NodeCast::from_root(doctype);
+        let node: Root<Node> = Root::upcast::<Node>(doctype);
 
         assert!(doc_node.AppendChild(node.r()).is_ok());
     }
 
     fn add_attrs_if_missing(&mut self, target: JS<Node>, attrs: Vec<Attribute>) {
         let node: Root<Node> = target.root();
-        let elem = ElementCast::to_ref(node.r())
+        let elem = node.downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, attr.value.into(), None);
@@ -152,13 +153,13 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
         let node: Root<Node> = node.root();
-        let script: Option<&HTMLScriptElement> = HTMLScriptElementCast::to_ref(node.r());
+        let script: Option<&HTMLScriptElement> = node.downcast::<HTMLScriptElement>();
         script.map(|script| script.mark_already_started());
     }
 
     fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
         let node: Root<Node> = node.root();
-        let script: Option<&HTMLScriptElement> = HTMLScriptElementCast::to_ref(node.r());
+        let script: Option<&HTMLScriptElement> = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             return script.prepare();
         }
@@ -183,7 +184,7 @@ impl<'a> Serializable for &'a Node {
         let node = *self;
         match (traversal_scope, node.type_id()) {
             (_, NodeTypeId::Element(..)) => {
-                let elem = ElementCast::to_ref(node).unwrap();
+                let elem = node.downcast::<Element>().unwrap();
                 let name = QualName::new(elem.namespace().clone(),
                                          elem.local_name().clone());
                 if traversal_scope == IncludeNode {
@@ -201,9 +202,9 @@ impl<'a> Serializable for &'a Node {
                     try!(serializer.start_elem(name.clone(), attr_refs));
                 }
 
-                let children = if let Some(tpl) = HTMLTemplateElementCast::to_ref(node) {
+                let children = if let Some(tpl) = node.downcast::<HTMLTemplateElement>() {
                     // https://github.com/w3c/DOM-Parsing/issues/1
-                    NodeCast::from_ref(&*tpl.Content()).children()
+                    tpl.Content().upcast::<Node>().children()
                 } else {
                     node.children()
                 };
@@ -228,23 +229,23 @@ impl<'a> Serializable for &'a Node {
             (ChildrenOnly, _) => Ok(()),
 
             (IncludeNode, NodeTypeId::DocumentType) => {
-                let doctype = DocumentTypeCast::to_ref(node).unwrap();
+                let doctype = node.downcast::<DocumentType>().unwrap();
                 serializer.write_doctype(&doctype.name())
             },
 
             (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => {
-                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                let cdata = node.downcast::<CharacterData>().unwrap();
                 serializer.write_text(&cdata.data())
             },
 
             (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) => {
-                let cdata = CharacterDataCast::to_ref(node).unwrap();
+                let cdata = node.downcast::<CharacterData>().unwrap();
                 serializer.write_comment(&cdata.data())
             },
 
             (IncludeNode, NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) => {
-                let pi = ProcessingInstructionCast::to_ref(node).unwrap();
-                let data = CharacterDataCast::from_ref(pi).data();
+                let pi = node.downcast::<ProcessingInstruction>().unwrap();
+                let data = pi.upcast::<CharacterData>().data();
                 serializer.write_processing_instruction(&pi.target(), &data)
             },
 
@@ -295,7 +296,7 @@ pub fn parse_html_fragment(context_node: &Node,
 
     // Step 11.
     let form = context_node.inclusive_ancestors()
-                           .find(|element| element.r().is_htmlformelement());
+                           .find(|element| element.r().is::<HTMLFormElement>());
     let fragment_context = FragmentContext {
         context_elem: context_node,
         form_elem: form.r(),
@@ -304,7 +305,7 @@ pub fn parse_html_fragment(context_node: &Node,
 
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element");
-    let root_node = NodeCast::from_ref(root_element.r());
+    let root_node = root_element.upcast::<Node>();
     for child in root_node.children() {
         output.AppendChild(child.r()).unwrap();
     }

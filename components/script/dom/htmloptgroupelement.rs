@@ -5,11 +5,12 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLOptionElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
@@ -49,7 +50,7 @@ impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
 
 impl VirtualMethods for HTMLOptGroupElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -65,11 +66,11 @@ impl VirtualMethods for HTMLOptGroupElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                let node = NodeCast::from_ref(self);
+                let node = self.upcast::<Node>();
                 node.set_disabled_state(disabled_state);
                 node.set_enabled_state(!disabled_state);
                 let options = node.children().filter(|child| {
-                    child.is_htmloptionelement()
+                    child.is::<HTMLOptionElement>()
                 });
                 if disabled_state {
                     for option in options {

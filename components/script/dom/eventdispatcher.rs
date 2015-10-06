@@ -5,7 +5,7 @@
 use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
@@ -148,9 +148,9 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     event.set_dispatching(true);
 
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
-    if let Some(target_node) = NodeCast::to_ref(target) {
+    if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
-            let ancestor_target = EventTargetCast::from_ref(ancestor.r());
+            let ancestor_target = ancestor.upcast::<EventTarget>();
             chain.push(JS::from_ref(ancestor_target))
         }
     }
@@ -161,7 +161,7 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     let target = event.GetTarget();
     match target {
         Some(ref target) => {
-            let node: Option<&Node> = NodeCast::to_ref(target.r());
+            let node: Option<&Node> = target.downcast::<Node>();
             match node {
                 Some(node) => {
                     let vtable = vtable_for(&node);

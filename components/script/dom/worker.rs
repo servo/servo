@@ -6,7 +6,7 @@ use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -115,7 +115,7 @@ impl Worker {
         let worker = address.root();
 
         let global = worker.r().global.root();
-        let target = EventTargetCast::from_ref(worker.r());
+        let target = worker.upcast::<EventTarget>();
         let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
         let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
@@ -126,7 +126,7 @@ impl Worker {
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
         let global = worker.r().global.root();
-        let target = EventTargetCast::from_ref(worker.r());
+        let target = worker.upcast::<EventTarget>();
 
         let event = Event::new(global.r(),
                                "error".to_owned(),
@@ -140,11 +140,11 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let target = EventTargetCast::from_ref(worker.r());
+        let target = worker.upcast::<EventTarget>();
         let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
-        let event = EventCast::from_ref(errorevent.r());
+        let event = errorevent.upcast::<Event>();
         event.fire(target);
     }
 }

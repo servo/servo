@@ -8,15 +8,15 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -74,7 +74,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         };
 
         // Mark the node dirty
-        let node = NodeCast::from_ref(element.r());
+        let node = element.upcast::<Node>();
         let document = document_from_node(node);
         document.r().content_changed(node, NodeDamage::OtherNodeDamage);
 
@@ -85,7 +85,7 @@ impl Runnable for ImageResponseHandlerRunnable {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let event = event.r();
-        let target = EventTargetCast::from_ref(node);
+        let target = node.upcast::<EventTarget>();
         event.fire(target);
 
         // Trigger reflow
@@ -97,7 +97,7 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let document = node.owner_doc();
         let window = document.r().window();
         let window = window.r();
@@ -205,33 +205,33 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     fn SetIsMap(&self, is_map: bool) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         element.set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, width: u32) {
-        let elem = ElementCast::from_ref(self);
+        let elem = self.upcast::<Element>();
         elem.set_uint_attribute(&atom!("width"), width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, height: u32) {
-        let elem = ElementCast::from_ref(self);
+        let elem = self.upcast::<Element>();
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
@@ -300,7 +300,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
 impl VirtualMethods for HTMLImageElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 

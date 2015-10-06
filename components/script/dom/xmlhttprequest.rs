@@ -10,10 +10,9 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::Root;
@@ -23,6 +22,7 @@ use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -494,7 +494,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         if !self.sync.get() {
             // Step 8
             let upload_target = self.upload.root();
-            let event_target = EventTargetCast::from_ref(upload_target.r());
+            let event_target = upload_target.upcast::<EventTarget>();
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -738,7 +738,7 @@ impl XMLHttpRequest {
                                "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
-        let target = EventTargetCast::from_ref(self);
+        let target = self.upcast::<EventTarget>();
         event.r().fire(target);
     }
 
@@ -923,11 +923,11 @@ impl XMLHttpRequest {
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
-            EventTargetCast::from_ref(upload_target.r())
+            upload_target.upcast::<EventTarget>()
         } else {
-            EventTargetCast::from_ref(self)
+            self.upcast::<EventTarget>()
         };
-        let event = EventCast::from_ref(progressevent.r());
+        let event = progressevent.upcast::<Event>();
         event.fire(target);
     }
 

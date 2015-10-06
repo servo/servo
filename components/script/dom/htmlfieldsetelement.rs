@@ -5,15 +5,15 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLLegendElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmllegendelement::HTMLLegendElement;
 use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -56,7 +56,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let filter = box ElementsFilter;
         let window = window_from_node(node);
         HTMLCollection::create(window.r(), node, filter)
@@ -82,7 +82,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 
 impl VirtualMethods for HTMLFieldSetElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
+        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
         Some(htmlelement as &VirtualMethods)
     }
 
@@ -98,14 +98,14 @@ impl VirtualMethods for HTMLFieldSetElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                let node = NodeCast::from_ref(self);
+                let node = self.upcast::<Node>();
                 node.set_disabled_state(disabled_state);
                 node.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
                         true
-                    } else if node.is_htmllegendelement() {
+                    } else if node.is::<HTMLLegendElement>() {
                         found_legend = true;
                         false
                     } else {

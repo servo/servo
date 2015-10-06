@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
@@ -59,7 +59,7 @@ impl ErrorEvent {
                error: HandleValue) -> Root<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global);
         {
-            let event = EventCast::from_ref(ev.r());
+            let event = ev.upcast::<Event>();
             event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                             cancelable == EventCancelable::Cancelable);
             *ev.message.borrow_mut() = message;

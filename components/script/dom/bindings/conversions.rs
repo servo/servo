@@ -55,6 +55,7 @@ use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
 use std::borrow::ToOwned;
+use std::mem;
 use std::rc::Rc;
 use std::{char, ptr, slice};
 use util::str::DOMString;
@@ -105,6 +106,36 @@ pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(&'static DOMClass) -> bool;
 }
+
+/// A trait to hold the cast functions of IDL interfaces that either derive
+/// or are derived from other interfaces.
+pub trait Castable: IDLInterface + Reflectable + Sized {
+    /// Check whether a DOM object implements one of its deriving interfaces.
+    fn is<T>(&self) -> bool where T: DerivedFrom<Self> {
+        let class = unsafe {
+            get_dom_class(self.reflector().get_jsobject().get()).unwrap()
+        };
+        T::derives(class)
+    }
+
+    /// Cast a DOM object upwards to one of the interfaces it derives from.
+    fn upcast<T>(&self) -> &T where T: Castable, Self: DerivedFrom<T> {
+        unsafe { mem::transmute(self) }
+    }
+
+    /// Cast a DOM object downwards to one of the interfaces it might implement.
+    fn downcast<T>(&self) -> Option<&T> where T: DerivedFrom<Self> {
+        if self.is::<T>() {
+            Some(unsafe { mem::transmute(self) })
+        } else {
+            None
+        }
+    }
+}
+
+/// A trait to mark an IDL interface as deriving from another one.
+#[rustc_on_unimplemented = "The IDL interface `{Self}` is not derived from `{T}`."]
+pub trait DerivedFrom<T: Castable>: Castable {}
 
 /// A trait to convert Rust types to `JSVal`s.
 pub trait ToJSValConvertible {

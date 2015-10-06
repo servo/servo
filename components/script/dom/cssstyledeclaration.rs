@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, StylePriority};
-use dom::node::{NodeDamage, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::window::Window;
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
@@ -75,7 +75,7 @@ impl CSSStyleDeclaration {
 
     fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
         let owner = self.owner.root();
-        let node = NodeCast::from_ref(owner.r());
+        let node = owner.upcast::<Node>();
         if !node.is_in_doc() {
             // TODO: Node should be matched against the style rules of this window.
             // Firefox is currently the only browser to implement this.
@@ -90,7 +90,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
         let owner = self.owner.root();
-        let elem = ElementCast::from_ref(owner.r());
+        let elem = owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
             Some(ref declarations) => declarations.normal.len() + declarations.important.len(),
             None => 0
@@ -102,7 +102,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn Item(&self, index: u32) -> DOMString {
         let index = index as usize;
         let owner = self.owner.root();
-        let elem = ElementCast::from_ref(owner.r());
+        let elem = owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
         let result = style_attribute.as_ref().and_then(|declarations| {
             if index > declarations.normal.len() {
@@ -233,7 +233,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
+        let element = owner.upcast::<Element>();
 
         // Step 8
         for decl in declarations {
@@ -242,7 +242,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let document = document_from_node(element);
-        let node = NodeCast::from_ref(element);
+        let node = element.upcast::<Node>();
         document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
@@ -267,7 +267,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         let owner = self.owner.root();
-        let element = ElementCast::from_ref(owner.r());
+        let element = owner.upcast::<Element>();
 
         // Step 5 & 6
         match longhands_from_shorthand(&property) {
@@ -276,7 +276,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let document = document_from_node(element);
-        let node = NodeCast::from_ref(element);
+        let node = element.upcast::<Node>();
         document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
@@ -300,7 +300,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let value = self.GetPropertyValue(property.clone());
 
         let owner = self.owner.root();
-        let elem = ElementCast::from_ref(owner.r());
+        let elem = owner.upcast::<Element>();
 
         match longhands_from_shorthand(&property) {
             // Step 4
