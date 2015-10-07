@@ -239,7 +239,7 @@ pub enum Msg {
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
     DOMLoad(PipelineId),
-    FrameSize(PipelineId, SubpageId, Size2D<f32>),
+    FrameSize(PipelineId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
     ScriptLoadedURLInIFrame(IframeLoadInfo),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
@@ -291,9 +291,6 @@ pub enum Msg {
                          IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
-    /// Requests that the pipeline ID of the subpage identified by a (pipeline ID, subpage ID)
-    /// pair be sent to the compositor via a `CreateLayerForSubpage` message.
-    PrepareForSubpageLayerCreation(PipelineId, SubpageId),
 }
 
 #[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
@@ -463,12 +460,12 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct PipelineIndex(u32);
+pub struct PipelineIndex(pub u32);
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineId {
-    namespace_id: PipelineNamespaceId,
-    index: PipelineIndex
+    pub namespace_id: PipelineNamespaceId,
+    pub index: PipelineIndex
 }
 
 impl PipelineId {

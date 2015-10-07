@@ -12,7 +12,7 @@ use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
-use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId, SubpageId};
+use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use png;
 use profile_traits::mem;
@@ -219,10 +219,6 @@ pub enum Msg {
     ResizeTo(Size2D<u32>),
     /// A pipeline was shut down.
     PipelineExited(PipelineId),
-    /// The layer for a subpage should be created. The first two IDs are the IDs of the *parent*
-    /// pipeline and subpage, respectively, while the last ID is the pipeline ID of the subpage
-    /// itself (or `None` if it has shut down).
-    CreateLayerForSubpage(PipelineId, SubpageId, Option<PipelineId>),
 }
 
 impl Debug for Msg {
@@ -257,7 +253,6 @@ impl Debug for Msg {
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
-            Msg::CreateLayerForSubpage(..) => write!(f, "CreateLayerForSubpage"),
         }
     }
 }

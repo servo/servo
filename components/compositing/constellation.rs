@@ -408,9 +408,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // The compositor discovered the size of a subframe. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
-            ConstellationMsg::FrameSize(pipeline_id, subpage_id, size) => {
+            ConstellationMsg::FrameSize(pipeline_id, size) => {
                 debug!("constellation got frame size message");
-                self.handle_frame_size_msg(pipeline_id, subpage_id, &Size2D::from_untyped(&size));
+                self.handle_frame_size_msg(pipeline_id, &Size2D::from_untyped(&size));
             }
             ConstellationMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
@@ -541,12 +541,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got NodeStatus message");
                 self.compositor_proxy.send(CompositorMsg::Status(message));
             }
-            ConstellationMsg::PrepareForSubpageLayerCreation(pipeline_id, subpage_id) => {
-                self.compositor_proxy.send(CompositorMsg::CreateLayerForSubpage(
-                        pipeline_id,
-                        subpage_id,
-                        self.subpage_map.get(&(pipeline_id, subpage_id)).map(|x| *x)))
-            }
         }
         true
     }
@@ -617,23 +611,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_frame_size_msg(&mut self,
-                             containing_pipeline_id: PipelineId,
-                             subpage_id: SubpageId,
+                             pipeline_id: PipelineId,
                              size: &TypedSize2D<PagePx, f32>) {
         // Store the new rect inside the pipeline
-        let (pipeline_id, script_chan) = {
+        let script_chan = {
             // Find the pipeline that corresponds to this rectangle. It's possible that this
             // pipeline may have already exited before we process this message, so just
             // early exit if that occurs.
-            let pipeline_id = self.subpage_map
-                                  .get(&(containing_pipeline_id, subpage_id))
-                                  .map(|id| *id);
-            let pipeline = match pipeline_id {
-                Some(pipeline_id) => self.mut_pipeline(pipeline_id),
+            match self.pipelines.get_mut(&pipeline_id) {
+                Some(pipeline) => {
+                    pipeline.size = Some(*size);
+                    pipeline.script_chan.clone()
+                }
                 None => return,
-            };
-            pipeline.size = Some(*size);
-            (pipeline.id, pipeline.script_chan.clone())
+            }
         };
 
         script_chan.send(ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {

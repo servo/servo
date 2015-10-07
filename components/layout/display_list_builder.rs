@@ -1289,7 +1289,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 let border_padding = self.border_padding.to_physical(self.style().writing_mode);
                 Some(SubpageLayerInfo {
                     pipeline_id: iframe_fragment_info.pipeline_id,
-                    subpage_id: iframe_fragment_info.subpage_id,
                     origin: Point2D::new(border_padding.left, border_padding.top),
                 })
             }
