@@ -186,10 +186,6 @@ impl Browser {
     pub fn request_title_for_main_frame(&self) {
         self.compositor.title_for_main_frame()
     }
-
-    pub fn shutdown(mut self) {
-        self.compositor.shutdown();
-    }
 }
 
 fn create_constellation(opts: opts::Opts,

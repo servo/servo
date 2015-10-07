@@ -155,9 +155,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
 
-    /// Has a Quit event been seen?
-    has_seen_quit_event: bool,
-
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
@@ -309,7 +306,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             mem_profiler_chan: state.mem_profiler_chan,
             fragment_point: None,
             last_composite_time: 0,
-            has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
@@ -329,25 +325,48 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
+    pub fn start_shutting_down(&mut self) {
+        debug!("Compositor sending Exit message to Constellation");
+        let ConstellationChan(ref constellation_channel) = self.constellation_chan;
+        constellation_channel.send(ConstellationMsg::Exit).unwrap();
+
+        self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
+
+        self.shutdown_state = ShutdownState::ShuttingDown;
+    }
+
+    pub fn finish_shutting_down(&mut self) {
+        debug!("Compositor received message that constellation shutdown is complete");
+
+        // Clear out the compositor layers so that painting tasks can destroy the buffers.
+        if let Some(ref root_layer) = self.scene.root {
+            root_layer.forget_all_tiles();
+        }
+
+        // Drain compositor port, sometimes messages contain channels that are blocking
+        // another task from finishing (i.e. SetFrameTree).
+        while self.port.try_recv_compositor_msg().is_some() {}
+
+        // Tell the profiler, memory profiler, and scrolling timer to shut down.
+        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+        self.scrolling_timer.shutdown();
+
+        self.shutdown_state = ShutdownState::FinishedShuttingDown;
+    }
+
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) =>
                 panic!("compositor shouldn't be handling messages after shutting down"),
 
-            (Msg::Exit(chan), _) => {
-                debug!("shutting down the constellation");
-                let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ConstellationMsg::Exit).unwrap();
-                chan.send(()).unwrap();
-
-                self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
-
-                self.shutdown_state = ShutdownState::ShuttingDown;
+            (Msg::Exit(channel), _) => {
+                self.start_shutting_down();
+                channel.send(()).unwrap();
             }
 
             (Msg::ShutdownComplete, _) => {
-                debug!("constellation completed shutdown");
-                self.shutdown_state = ShutdownState::FinishedShuttingDown;
+                self.finish_shutting_down();
                 return false;
             }
 
@@ -1010,12 +1029,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::Quit => {
-                if !self.has_seen_quit_event {
-                    self.has_seen_quit_event = true;
-                    debug!("shutting down the constellation for WindowEvent::Quit");
-                    let ConstellationChan(ref chan) = self.constellation_chan;
-                    chan.send(ConstellationMsg::Exit).unwrap();
-                    self.shutdown_state = ShutdownState::ShuttingDown;
+                if self.shutdown_state == ShutdownState::NotShuttingDown {
+                    debug!("Shutting down the constellation for WindowEvent::Quit");
+                    self.start_shutting_down();
                 }
             }
         }
@@ -1495,10 +1511,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let composited = self.composite_specific_target(target);
         if composited.is_ok() &&
             (opts::get().output_file.is_some() || opts::get().exit_after_load) {
-            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::Exit).unwrap();
-            self.shutdown_state = ShutdownState::ShuttingDown;
+            debug!("Shutting down the Constellation after generating an output file or exit flag specified");
+            self.start_shutting_down();
         }
     }
 
@@ -1807,9 +1821,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            // We have exited the compositor and passing window
-            // messages to script may crash.
-            debug!("Exiting the compositor due to a request from script.");
             return false;
         }
 
@@ -1856,23 +1867,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
                 break
             }
         }
-    }
-
-    fn shutdown(&mut self) {
-        // Clear out the compositor layers so that painting tasks can destroy the buffers.
-        match self.scene.root {
-            None => {}
-            Some(ref layer) => layer.forget_all_tiles(),
-        }
-
-        // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetFrameTree).
-        while self.port.try_recv_compositor_msg().is_some() {}
-
-        // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
-        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
-        self.scrolling_timer.shutdown();
     }
 
     fn pinch_zoom_level(&self) -> f32 {
