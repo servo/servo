@@ -70,7 +70,11 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Size);
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    make_setter!(SetSize, "size");
+    fn SetSize(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        let length = parse_length(&value);
+        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+    }
 }
 
 impl VirtualMethods for HTMLFontElement {
@@ -100,7 +104,7 @@ impl VirtualMethods for HTMLFontElement {
         match name {
             &atom!("face") => AttrValue::from_atomic(value),
             &atom!("size") => {
-                let length = parse_legacy_font_size(&value).and_then(|parsed| specified::Length::from_str(&parsed));
+                let length = parse_length(&value);
                 AttrValue::Length(value, length)
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
@@ -132,4 +136,8 @@ impl HTMLFontElement {
                 .cloned()
         }
     }
+}
+
+fn parse_length(value: &str) -> Option<specified::Length> {
+    parse_legacy_font_size(&value).and_then(|parsed| specified::Length::from_str(&parsed))
 }
