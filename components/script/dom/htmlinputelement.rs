@@ -21,7 +21,7 @@ use dom::element::{AttributeMutation, Element, ElementTypeId, RawLayoutElementHe
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormControl, FormSubmitter, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormSubmitter, HTMLFormElement, FormDatum};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, NodeTypeId};
@@ -406,6 +406,44 @@ impl HTMLInputElement {
         if self.Checked() {
             broadcast_radio_checked(self, group);
         }
+    }
+
+    pub fn get_form_datum<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Option<FormDatum> {
+        let ty = self.Type();
+        let name = self.Name();
+        let is_submitter = match submitter {
+            Some(FormSubmitter::InputElement(s)) => {
+                self == s
+            },
+            _ => false
+        };
+
+        match &*ty {
+            "submit" | "button" | "reset" if !is_submitter => return None,
+            "radio" | "checkbox" => {
+                if !self.Checked() || name.is_empty() {
+                    return None;
+                }
+            },
+            "image" | "file" => return None, // Unimplemented
+            _ => {
+                if name.is_empty() {
+                    return None;
+                }
+            }
+        }
+
+        let mut value = self.Value();
+        if ty == "radio" || ty == "checkbox" {
+            if value.is_empty() {
+                value = "on".to_owned();
+            }
+        }
+        Some(FormDatum {
+            ty: ty,
+            name: name,
+            value: value
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
