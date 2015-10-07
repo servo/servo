@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
@@ -14,6 +15,7 @@ use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -45,6 +47,53 @@ impl HTMLSelectElement {
                document: &Document) -> Root<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    pub fn ask_for_reset(&self) {
+        if self.Multiple() {
+            return;
+        }
+
+        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
+        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+
+        let node = self.upcast::<Node>();
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            if opt.Selected() {
+                opt.set_selectedness(false);
+                last_selected = Some(Root::from_ref(opt.r()));
+            }
+            let element =  opt.upcast::<Element>();
+            if first_enabled.is_none() && !element.get_disabled_state() {
+                first_enabled = Some(Root::from_ref(opt.r()));
+            }
+        }
+
+        if last_selected.is_none() {
+            if self.display_size() == 1 {
+                // select the first enabled element
+                if let Some(first_opt) = first_enabled {
+                    first_opt.set_selectedness(true);
+                }
+            }
+        } else {
+            // >= 1 selected, reselect last one
+            last_selected.unwrap().set_selectedness(true);
+        }
+    }
+
+   // https://html.spec.whatwg.org/multipage/#concept-select-size
+   fn display_size(&self) -> u32 {
+        if self.Size() == 0 {
+            if self.Multiple() {
+                4
+            } else {
+                1
+            }
+        } else {
+            self.Size()
+        }
     }
 }
 
