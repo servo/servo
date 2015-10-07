@@ -7,13 +7,12 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast, NodeCast, TextDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{Element, AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
@@ -61,19 +60,18 @@ impl HTMLOptionElement {
     }
 }
 
-fn collect_text(node: &&Node, value: &mut DOMString) {
-    let elem = ElementCast::to_ref(*node).unwrap();
-    let svg_script = *elem.namespace() == ns!(SVG) && elem.local_name() == &atom!("script");
-    let html_script = node.is_htmlscriptelement();
+fn collect_text(element: &Element, value: &mut DOMString) {
+    let svg_script = *element.namespace() == ns!(SVG) && element.local_name() == &atom!("script");
+    let html_script = element.is_htmlscriptelement();
     if svg_script || html_script {
         return;
     } else {
-        for child in node.children() {
+        for child in NodeCast::from_ref(element).children() {
             if child.r().is_text() {
                 let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
                 value.push_str(&characterdata.Data());
-            } else if child.is_element() {
-                collect_text(&child.r(), value);
+            } else if let Some(element_child) = ElementCast::to_ref(&*child) {
+                collect_text(element_child, value);
             }
         }
     }
@@ -91,9 +89,9 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://www.whatwg.org/html/#dom-option-text
     fn Text(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let mut content = String::new();
-        collect_text(&node, &mut content);
+        collect_text(element, &mut content);
         str_join(split_html_space_chars(&content), " ")
     }
 
