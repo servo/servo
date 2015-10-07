@@ -147,9 +147,7 @@ impl CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        let canvas = self.canvas.root();
-        let node = canvas.upcast::<Node>();
-        node.dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_transform(&self) {

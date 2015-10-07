@@ -431,7 +431,7 @@ impl Runnable for ConnectionEstablishedTask {
         let event = Event::new(global.r(), "open".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.fire(ws.upcast::<EventTarget>());
+        event.fire(ws.upcast());
     }
 }
 
@@ -455,8 +455,7 @@ impl Runnable for CloseTask {
                                    "error".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
-            let target = ws.upcast::<EventTarget>();
-            event.r().fire(target);
+            event.fire(ws.upcast());
         }
         let rsn = ws.reason.borrow();
         let rsn_clone = rsn.clone();
@@ -470,9 +469,7 @@ impl Runnable for CloseTask {
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           rsn_clone);
-        let target = ws.upcast::<EventTarget>();
-        let event = close_event.upcast::<Event>();
-        event.fire(target);
+        close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
 
@@ -521,7 +518,6 @@ impl Runnable for MessageReceivedTask {
             },
         }
 
-        let target = ws.upcast::<EventTarget>();
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+        MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
     }
 }

@@ -57,8 +57,7 @@ impl HTMLMetaElement {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    let node = self.upcast::<Node>();
-                    let win = window_from_node(node);
+                    let win = window_from_node(self);
                     let LayoutChan(ref layout_chan) = win.r().layout_chan();
 
                     layout_chan.send(Msg::AddMetaViewport(translated_rule)).unwrap();
@@ -84,8 +83,7 @@ impl HTMLMetaElementMethods for HTMLMetaElement {
 
 impl VirtualMethods for HTMLMetaElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

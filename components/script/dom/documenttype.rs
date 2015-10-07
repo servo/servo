@@ -98,7 +98,6 @@ impl DocumentTypeMethods for DocumentType {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = self.upcast::<Node>();
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 }

@@ -48,7 +48,7 @@ impl Sink {
             NodeOrText::AppendText(t) => {
                 let doc = self.document.root();
                 let text = Text::new(t.into(), &doc);
-                Root::upcast::<Node>(text)
+                Root::upcast(text)
             }
         }
     }

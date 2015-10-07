@@ -226,8 +226,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetWidth(&self, width: u32) {
-        let elem = self.upcast::<Element>();
-        elem.set_uint_attribute(&atom!("width"), width)
+        self.upcast::<Element>().set_uint_attribute(&atom!("width"), width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
@@ -237,8 +236,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(&self, height: u32) {
-        let elem = self.upcast::<Element>();
-        elem.set_uint_attribute(&atom!("height"), height)
+        self.upcast::<Element>().set_uint_attribute(&atom!("height"), height)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
@@ -265,8 +263,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
 impl VirtualMethods for HTMLCanvasElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(element as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -368,9 +368,9 @@ impl<'a> Iterator for QuerySelectorIterator {
         // TODO(cgaebel): Is it worth it to build a bloom filter here
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
-            if let Some(element) = Root::downcast::<Element>(node) {
+            if let Some(element) = Root::downcast(node) {
                 if matches(selectors, &element, None) {
-                    return Some(Root::upcast::<Node>(element))
+                    return Some(Root::upcast(element));
                 }
             }
             None
@@ -774,7 +774,7 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(ref selectors) => {
-                Ok(self.traverse_preorder().filter_map(Root::downcast::<Element>).find(|element| {
+                Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
                     matches(selectors, element, None)
                 }))
             }
@@ -844,12 +844,7 @@ impl Node {
     }
 
     pub fn child_elements(&self) -> ChildElementIterator {
-        fn to_temporary(node: Root<Node>) -> Option<Root<Element>> {
-            Root::downcast::<Element>(node)
-        }
-        self.children()
-            .filter_map(to_temporary as fn(_) -> _)
-            .peekable()
+        self.children().filter_map(Root::downcast as fn(_) -> _).peekable()
     }
 
     pub fn remove_self(&self) {
@@ -880,18 +875,10 @@ impl Node {
             name: "".to_owned(),
             publicId: "".to_owned(),
             systemId: "".to_owned(),
-
-            attrs: {
-                let e: Option<&Element> = self.downcast::<Element>();
-                match e {
-                    Some(element) => element.summarize(),
-                    None => vec!(),
-                }
-            },
+            attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
 
             isDocumentElement:
                 self.owner_doc()
-                    .r()
                     .GetDocumentElement()
                     .map(|elem| elem.upcast::<Node>() == self)
                     .unwrap_or(false),
@@ -903,12 +890,10 @@ impl Node {
 
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
-        let context_node: &Node = self.upcast::<Node>();
         let context_document = document_from_node(self);
         let fragment = DocumentFragment::new(context_document.r());
         if context_document.r().is_html_document() {
-            let fragment_node = fragment.upcast::<Node>();
-            parse_html_fragment(context_node, markup, fragment_node);
+            parse_html_fragment(self.upcast(), markup, fragment.upcast());
         } else {
             // FIXME: XML case
             unimplemented!();
@@ -1660,7 +1645,7 @@ impl Node {
         // XXXabinader: clone() for each node as trait?
         let copy: Root<Node> = match node.type_id() {
             NodeTypeId::DocumentType => {
-                let doctype: &DocumentType = node.downcast::<DocumentType>().unwrap();
+                let doctype = node.downcast::<DocumentType>().unwrap();
                 let doctype = DocumentType::new(doctype.name().clone(),
                                                 Some(doctype.public_id().clone()),
                                                 Some(doctype.system_id().clone()), document.r());
@@ -1761,8 +1746,7 @@ impl Node {
     pub fn collect_text_contents<T: Iterator<Item=Root<Node>>>(iterator: T) -> String {
         let mut content = String::new();
         for node in iterator {
-            let text = node.downcast::<Text>();
-            match text {
+            match node.downcast::<Text>() {
                 Some(text) => content.push_str(&text.upcast::<CharacterData>().Data()),
                 None => (),
             }
@@ -1819,7 +1803,7 @@ impl Node {
                     // Step 3.
                     None => ns!(""),
                     // Step 4.
-                    Some(parent) => Node::locate_namespace(parent.upcast::<Node>(), prefix)
+                    Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
                 }
             },
             NodeTypeId::Document => {
@@ -1828,7 +1812,7 @@ impl Node {
                     None => ns!(""),
                     // Step 2.
                     Some(document_element) => {
-                        Node::locate_namespace(document_element.upcast::<Node>(), prefix)
+                        Node::locate_namespace(document_element.upcast(), prefix)
                     }
                 }
             },
@@ -1838,7 +1822,7 @@ impl Node {
                      // Step 1.
                      None => ns!(""),
                      // Step 2.
-                     Some(parent) => Node::locate_namespace(parent.upcast::<Node>(), prefix)
+                     Some(parent) => Node::locate_namespace(parent.upcast(), prefix)
                  }
         }
     }
@@ -1869,19 +1853,15 @@ impl NodeMethods for Node {
     fn NodeName(&self) -> DOMString {
         match self.type_id() {
             NodeTypeId::Element(..) => {
-                let elem: &Element = self.downcast::<Element>().unwrap();
-                elem.TagName()
+                self.downcast::<Element>().unwrap().TagName()
             }
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => "#text".to_owned(),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                let processing_instruction: &ProcessingInstruction =
-                    self.downcast::<ProcessingInstruction>().unwrap();
-                processing_instruction.Target()
+                self.downcast::<ProcessingInstruction>().unwrap().Target()
             }
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => "#comment".to_owned(),
             NodeTypeId::DocumentType => {
-                let doctype: &DocumentType = self.downcast::<DocumentType>().unwrap();
-                doctype.name().clone()
+                self.downcast::<DocumentType>().unwrap().name().clone()
             },
             NodeTypeId::DocumentFragment => "#document-fragment".to_owned(),
             NodeTypeId::Document => "#document".to_owned()
@@ -1911,7 +1891,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-parentelement
     fn GetParentElement(&self) -> Option<Root<Element>> {
-        self.GetParentNode().and_then(Root::downcast::<Element>)
+        self.GetParentNode().and_then(Root::downcast)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-haschildnodes
@@ -1952,7 +1932,7 @@ impl NodeMethods for Node {
     fn GetNodeValue(&self) -> Option<DOMString> {
         match self.type_id() {
             NodeTypeId::CharacterData(..) => {
-                let chardata: &CharacterData = self.downcast::<CharacterData>().unwrap();
+                let chardata = self.downcast::<CharacterData>().unwrap();
                 Some(chardata.Data())
             }
             _ => {
@@ -1980,7 +1960,7 @@ impl NodeMethods for Node {
                 Some(content)
             }
             NodeTypeId::CharacterData(..) => {
-                let characterdata: &CharacterData = self.downcast::<CharacterData>().unwrap();
+                let characterdata = self.downcast::<CharacterData>().unwrap();
                 Some(characterdata.Data())
             }
             NodeTypeId::DocumentType |
@@ -2000,15 +1980,14 @@ impl NodeMethods for Node {
                 let node = if value.is_empty() {
                     None
                 } else {
-                    let document = self.owner_doc();
-                    Some(Root::upcast::<Node>(document.r().CreateTextNode(value)))
+                    Some(Root::upcast(self.owner_doc().CreateTextNode(value)))
                 };
 
                 // Step 3.
                 Node::replace_all(node.r(), self);
             }
             NodeTypeId::CharacterData(..) => {
-                let characterdata: &CharacterData = self.downcast::<CharacterData>().unwrap();
+                let characterdata = self.downcast::<CharacterData>().unwrap();
                 characterdata.SetData(value);
 
                 // Notify the document that the content of this node is different
@@ -2075,8 +2054,7 @@ impl NodeMethods for Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.child_elements()
-                                   .any(|c| c.upcast::<Node>() != child) {
+                            if self.child_elements().any(|c| c.upcast::<Node>() != child) {
                                 return Err(Error::HierarchyRequest);
                             }
                             if child.following_siblings()
@@ -2178,14 +2156,13 @@ impl NodeMethods for Node {
         for child in self.children() {
             match child.downcast::<Text>() {
                 Some(text) => {
-                    let characterdata: &CharacterData = text.upcast::<CharacterData>();
+                    let characterdata = text.upcast::<CharacterData>();
                     if characterdata.Length() == 0 {
                         Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                     } else {
                         match prev_text {
                             Some(ref text_node) => {
-                                let prev_characterdata =
-                                    text_node.upcast::<CharacterData>();
+                                let prev_characterdata = text_node.upcast::<CharacterData>();
                                 prev_characterdata.append_data(&**characterdata.data());
                                 Node::remove(&*child, self, SuppressObserver::Unsuppressed);
                             },
@@ -2213,34 +2190,34 @@ impl NodeMethods for Node {
     // https://dom.spec.whatwg.org/#dom-node-isequalnode
     fn IsEqualNode(&self, maybe_node: Option<&Node>) -> bool {
         fn is_equal_doctype(node: &Node, other: &Node) -> bool {
-            let doctype: &DocumentType = node.downcast::<DocumentType>().unwrap();
-            let other_doctype: &DocumentType = other.downcast::<DocumentType>().unwrap();
+            let doctype = node.downcast::<DocumentType>().unwrap();
+            let other_doctype = other.downcast::<DocumentType>().unwrap();
             (*doctype.name() == *other_doctype.name()) &&
             (*doctype.public_id() == *other_doctype.public_id()) &&
             (*doctype.system_id() == *other_doctype.system_id())
         }
         fn is_equal_element(node: &Node, other: &Node) -> bool {
-            let element: &Element = node.downcast::<Element>().unwrap();
-            let other_element: &Element = other.downcast::<Element>().unwrap();
+            let element = node.downcast::<Element>().unwrap();
+            let other_element = other.downcast::<Element>().unwrap();
             (*element.namespace() == *other_element.namespace()) &&
             (*element.prefix() == *other_element.prefix()) &&
             (*element.local_name() == *other_element.local_name()) &&
             (element.attrs().len() == other_element.attrs().len())
         }
         fn is_equal_processinginstruction(node: &Node, other: &Node) -> bool {
-            let pi: &ProcessingInstruction = node.downcast::<ProcessingInstruction>().unwrap();
-            let other_pi: &ProcessingInstruction = other.downcast::<ProcessingInstruction>().unwrap();
+            let pi = node.downcast::<ProcessingInstruction>().unwrap();
+            let other_pi = other.downcast::<ProcessingInstruction>().unwrap();
             (*pi.target() == *other_pi.target()) &&
             (*pi.upcast::<CharacterData>().data() == *other_pi.upcast::<CharacterData>().data())
         }
         fn is_equal_characterdata(node: &Node, other: &Node) -> bool {
-            let characterdata: &CharacterData = node.downcast::<CharacterData>().unwrap();
-            let other_characterdata: &CharacterData = other.downcast::<CharacterData>().unwrap();
+            let characterdata = node.downcast::<CharacterData>().unwrap();
+            let other_characterdata = other.downcast::<CharacterData>().unwrap();
             *characterdata.data() == *other_characterdata.data()
         }
         fn is_equal_element_attrs(node: &Node, other: &Node) -> bool {
-            let element: &Element = node.downcast::<Element>().unwrap();
-            let other_element: &Element = other.downcast::<Element>().unwrap();
+            let element = node.downcast::<Element>().unwrap();
+            let other_element = other.downcast::<Element>().unwrap();
             assert!(element.attrs().len() == other_element.attrs().len());
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attrs = element.attrs();
@@ -2368,7 +2345,9 @@ impl NodeMethods for Node {
 
         // Step 2.
         match self.type_id() {
-            NodeTypeId::Element(..) => self.downcast::<Element>().unwrap().lookup_prefix(namespace),
+            NodeTypeId::Element(..) => {
+                self.downcast::<Element>().unwrap().lookup_prefix(namespace)
+            },
             NodeTypeId::Document => {
                 self.downcast::<Document>().unwrap().GetDocumentElement().and_then(|element| {
                     element.r().lookup_prefix(namespace)
@@ -2417,8 +2396,7 @@ pub struct TrustedNodeAddress(pub *const c_void);
 unsafe impl Send for TrustedNodeAddress {}
 
 pub fn document_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Document> {
-    let node: &Node = derived.upcast::<Node>();
-    node.owner_doc()
+    derived.upcast().owner_doc()
 }
 
 pub fn window_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Window> {
@@ -2428,8 +2406,7 @@ pub fn window_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root
 
 impl VirtualMethods for Node {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let eventtarget: &EventTarget = self.upcast::<EventTarget>();
-        Some(eventtarget as &VirtualMethods)
+        Some(self.upcast::<EventTarget>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

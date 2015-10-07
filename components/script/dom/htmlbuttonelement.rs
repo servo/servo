@@ -83,8 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(&self) -> DOMString {
-        let elem = self.upcast::<Element>();
-        let mut ty = elem.get_string_attribute(&atom!("type"));
+        let mut ty = self.upcast::<Element>().get_string_attribute(&atom!("type"));
         ty.make_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/#attr-button-type
         match &*ty {
@@ -136,8 +135,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
 impl VirtualMethods for HTMLButtonElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -167,8 +165,7 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = self.upcast::<Node>();
-        node.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Node>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -188,14 +185,13 @@ impl VirtualMethods for HTMLButtonElement {
 impl FormControl for HTMLButtonElement {}
 
 impl<'a> Activatable for &'a HTMLButtonElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
-        self.upcast::<Element>()
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        let node = self.upcast::<Node>();
-        !(node.get_disabled_state())
+        !self.upcast::<Node>().get_disabled_state()
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
@@ -228,8 +224,7 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         let doc = document_from_node(*self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
-        let elem = self.upcast::<Element>();
-        if owner.is_none() || elem.click_in_progress() {
+        if owner.is_none() || self.upcast::<Element>().click_in_progress() {
             return;
         }
         // This is safe because we are stopping after finding the first element

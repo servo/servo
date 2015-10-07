@@ -89,8 +89,7 @@ fn is_favicon(value: &Option<String>) -> bool {
 
 impl VirtualMethods for HTMLLinkElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -98,7 +97,7 @@ impl VirtualMethods for HTMLLinkElement {
         if !self.upcast::<Node>().is_in_doc() || mutation == AttributeMutation::Removed {
             return;
         }
-        let rel = get_attr(self.upcast::<Element>(), &atom!(rel));
+        let rel = get_attr(self.upcast(), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
                 if is_stylesheet(&rel) {
@@ -129,7 +128,7 @@ impl VirtualMethods for HTMLLinkElement {
         }
 
         if tree_in_doc {
-            let element = self.upcast::<Element>();
+            let element = self.upcast();
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
@@ -224,9 +223,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
-        self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast::<Element>(), &atom!("rel"))
-        })
+        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &atom!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset
@@ -267,7 +264,6 @@ impl StylesheetLoadResponder for StylesheetLoadDispatcher {
         let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let target = elem.upcast::<EventTarget>();
-        event.r().fire(target);
+        event.fire(elem.upcast::<EventTarget>());
     }
 }

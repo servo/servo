@@ -353,7 +353,6 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner();
     let doc = document_from_node(broadcaster);
-    let doc_node = doc.upcast::<Node>();
 
     // This function is a workaround for lifetime constraint difficulties.
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
@@ -361,8 +360,8 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
         // There is no DOM tree manipulation here, so this is safe
         let iter = unsafe {
             doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                .filter_map(Root::downcast::<HTMLInputElement>)
-                .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r())
+                    .filter_map(Root::downcast)
+                    .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r)
         };
         for ref r in iter {
             if r.r().Checked() {
@@ -371,7 +370,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
         }
     }
 
-    do_broadcast(doc_node, broadcaster, owner.r(), group)
+    do_broadcast(doc.upcast(), broadcaster, owner.r(), group)
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
@@ -391,8 +390,7 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
 impl HTMLInputElement {
     fn force_relayout(&self) {
         let doc = document_from_node(self);
-        let node = self.upcast::<Node>();
-        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage)
     }
 
     fn radio_group_updated(&self, group: Option<&Atom>) {
@@ -442,8 +440,8 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#radio-button-group
     fn get_radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
-        let elem = self.upcast::<Element>();
-        elem.get_attribute(&ns!(""), &atom!("name"))
+        self.upcast::<Element>()
+            .get_attribute(&ns!(""), &atom!("name"))
             .map(|name| name.value().as_atom().clone())
     }
 
@@ -471,8 +469,7 @@ impl HTMLInputElement {
     fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        let node = self.upcast::<Node>();
-        !(node.get_disabled_state() || self.ReadOnly())
+        !(self.upcast::<Node>().get_disabled_state() || self.ReadOnly())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
@@ -494,8 +491,7 @@ impl HTMLInputElement {
 
 impl VirtualMethods for HTMLInputElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -595,8 +591,7 @@ impl VirtualMethods for HTMLInputElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = self.upcast::<Node>();
-        node.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Node>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -628,13 +623,11 @@ impl VirtualMethods for HTMLInputElement {
 
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(self);
-            doc.r().request_focus(self.upcast::<Element>());
+            document_from_node(self).request_focus(self.upcast());
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
-                let keyevent: Option<&KeyboardEvent> = event.downcast::<KeyboardEvent>();
-                keyevent.map(|keyevent| {
+                if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
                     // This can't be inlined, as holding on to textinput.borrow_mut()
                     // during self.implicit_submission will cause a panic.
                     let action = self.textinput.borrow_mut().handle_keydown(keyevent);
@@ -655,7 +648,7 @@ impl VirtualMethods for HTMLInputElement {
                         }
                         Nothing => (),
                     }
-                });
+                }
         }
     }
 }
@@ -663,8 +656,8 @@ impl VirtualMethods for HTMLInputElement {
 impl FormControl for HTMLInputElement {}
 
 impl Activatable for HTMLInputElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
-        self.upcast::<Element>()
+    fn as_element(&self) -> &Element {
+        self.upcast()
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -715,10 +708,9 @@ impl Activatable for HTMLInputElement {
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = unsafe {
                         doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                                .filter_map(Root::downcast::<HTMLInputElement>)
+                                .filter_map(Root::downcast)
                                 .find(|r| {
-                                    in_same_group(r.r(), owner.r(), group.as_ref()) &&
-                                    r.r().Checked()
+                                    in_same_group(&r, owner.r(), group.as_ref()) && r.Checked()
                                 })
                     };
                     cache.checked_radio = checked_member.r().map(JS::from_ref);
@@ -814,19 +806,19 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(self);
+                    let target = self.upcast();
+
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "input".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = self.upcast::<EventTarget>();
-                    event.r().fire(target);
+                    event.fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable);
-                    let target = self.upcast::<EventTarget>();
-                    event.r().fire(target);
+                    event.fire(target);
                 }
             },
             _ => ()
@@ -844,8 +836,7 @@ impl Activatable for HTMLInputElement {
             Some(ref f) => f
         };
 
-        let elem = self.upcast::<Element>();
-        if elem.click_in_progress() {
+        if self.upcast::<Element>().click_in_progress() {
             return;
         }
         // This is safe because we are stopping after finding the first element

@@ -292,9 +292,8 @@ impl Document {
         let base = self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLBaseElement>)
-            .filter(|element| element.upcast::<Element>().has_attribute(&atom!("href")))
-            .next();
-        self.base_element.set(base.map(|element| JS::from_ref(&*element)));
+            .find(|element| element.upcast::<Element>().has_attribute(&atom!("href")));
+        self.base_element.set(base.as_ref().map(JS::from_rooted));
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -384,10 +383,7 @@ impl Document {
                               element: &Element,
                               id: Atom) {
         debug!("Adding named element to document {:p}: {:p} id={}", self, element, id);
-        assert!({
-            let node = element.upcast::<Node>();
-            node.is_in_doc()
-        });
+        assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 
         let mut idmap = self.idmap.borrow_mut();
@@ -406,7 +402,7 @@ impl Document {
                 let mut head: usize = 0;
                 let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
-                    if let Some(elem) = node.downcast::<Element>() {
+                    if let Some(elem) = node.downcast() {
                         if (*elements)[head].root().r() == elem {
                             head += 1;
                         }
@@ -425,7 +421,7 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
         self.GetElementById(fragid.to_owned()).or_else(|| {
-            let check_anchor = |&node: &&HTMLAnchorElement| {
+            let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
                     &**attr.r().value() == fragid
@@ -433,9 +429,9 @@ impl Document {
             };
             let doc_node = self.upcast::<Node>();
             doc_node.traverse_preorder()
-                    .filter_map(Root::downcast::<HTMLAnchorElement>)
-                    .find(|node| check_anchor(&node.r()))
-                    .map(Root::upcast::<Element>)
+                    .filter_map(Root::downcast)
+                    .find(|node| check_anchor(&node))
+                    .map(Root::upcast)
         })
     }
 
@@ -621,7 +617,7 @@ impl Document {
         match mouse_event_type {
             MouseEventType::Click => el.authentic_click_activation(event),
             _ =>  {
-                let target = node.upcast::<EventTarget>();
+                let target = node.upcast();
                 event.fire(target);
             },
         }
@@ -678,7 +674,7 @@ impl Document {
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
 
-                    let target = target_ref.upcast::<EventTarget>();
+                    let target = target_ref.upcast();
 
                     self.fire_mouse_event(point, &target, "mouseout".to_owned());
                 }
@@ -692,7 +688,7 @@ impl Document {
             if !target.get_hover_state() {
                 target.set_hover_state(true);
 
-                let target = target.upcast::<EventTarget>();
+                let target = target.upcast();
 
                 self.fire_mouse_event(point, target, "mouseover".to_owned());
 
@@ -704,7 +700,7 @@ impl Document {
             let top_most_node =
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
-            let target = top_most_node.upcast::<EventTarget>();
+            let target = top_most_node.upcast();
             self.fire_mouse_event(point, target, "mousemove".to_owned());
         }
 
@@ -729,9 +725,9 @@ impl Document {
         let body = self.GetBody();
 
         let target = match (&focused, &body) {
-            (&Some(ref focused), _) => focused.upcast::<EventTarget>(),
-            (&None, &Some(ref body)) => body.upcast::<EventTarget>(),
-            (&None, &None) => window.upcast::<EventTarget>(),
+            (&Some(ref focused), _) => focused.upcast(),
+            (&None, &Some(ref body)) => body.upcast(),
+            (&None, &None) => window.upcast(),
         };
 
         let ctrl = modifiers.contains(CONTROL);
@@ -784,7 +780,7 @@ impl Document {
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
         match key {
             Key::Space if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<&Element> = target.downcast::<Element>();
+                let maybe_elem = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
                     if let Some(a) = el.as_maybe_activatable() {
                         a.synthetic_click_activation(ctrl, alt, shift, meta);
@@ -792,7 +788,7 @@ impl Document {
                 }
             }
             Key::Enter if !prevented && state == KeyState::Released => {
-                let maybe_elem: Option<&Element> = target.downcast::<Element>();
+                let maybe_elem = target.downcast::<Element>();
                 if let Some(el) = maybe_elem {
                     if let Some(a) = el.as_maybe_activatable() {
                         a.implicit_submission(ctrl, alt, shift, meta);
@@ -811,7 +807,7 @@ impl Document {
             match nodes.into_iter().next().unwrap() {
                 NodeOrString::eNode(node) => Ok(node),
                 NodeOrString::eString(string) => {
-                    Ok(Root::upcast::<Node>(self.CreateTextNode(string)))
+                    Ok(Root::upcast(self.CreateTextNode(string)))
                 },
             }
         } else {
@@ -965,7 +961,8 @@ impl Document {
 
     /// Find an iframe element in the document.
     pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
-        self.upcast::<Node>().traverse_preorder()
+        self.upcast::<Node>()
+            .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
@@ -1099,10 +1096,7 @@ impl Document {
     }
 
     fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
-        self.GetDocumentElement()
-            .r()
-            .and_then(Castable::downcast::<HTMLHtmlElement>)
-            .map(Root::from_ref)
+        self.GetDocumentElement().and_then(Root::downcast)
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
@@ -1157,7 +1151,7 @@ impl DocumentMethods for Document {
         match self.get_focused_element() {
             Some(element) => Some(element),     // Step 3. and 4.
             None => match self.GetBody() {      // Step 5.
-                Some(body) => Some(Root::upcast::<Element>(body)),
+                Some(body) => Some(Root::upcast(body)),
                 None => self.GetDocumentElement(),
             }
         }
@@ -1214,36 +1208,32 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        let node = self.upcast::<Node>();
-        node.children()
-            .filter_map(|c| c.downcast::<DocumentType>().map(Root::from_ref))
-            .next()
+        self.upcast::<Node>().children().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Root<Element>> {
-        let node = self.upcast::<Node>();
-        node.child_elements().next()
+        self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name(window.r(), self.upcast::<Node>(), tag_name)
+        HTMLCollection::by_tag_name(window.r(), self.upcast(), tag_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name_ns(window.r(), self.upcast::<Node>(), tag_name, maybe_ns)
+        HTMLCollection::by_tag_name_ns(window.r(), self.upcast(), tag_name, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = self.window.root();
 
-        HTMLCollection::by_class_name(window.r(), self.upcast::<Node>(), classes)
+        HTMLCollection::by_class_name(window.r(), self.upcast(), classes)
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -1371,19 +1361,20 @@ impl DocumentMethods for Document {
 
         interface.make_ascii_lowercase();
         match &*interface {
-            "uievents" | "uievent" => Ok(Root::upcast::<Event>(
-                UIEvent::new_uninitialized(window.r()))),
-            "mouseevents" | "mouseevent" => Ok(Root::upcast::<Event>(
-                MouseEvent::new_uninitialized(window.r()))),
-            "customevent" => Ok(Root::upcast::<Event>(
-                CustomEvent::new_uninitialized(GlobalRef::Window(window.r())))),
-            "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
-                GlobalRef::Window(window.r()))),
-            "keyboardevent" | "keyevents" => Ok(Root::upcast::<Event>(
-                KeyboardEvent::new_uninitialized(window.r()))),
-            "messageevent" => Ok(Root::upcast::<Event>(
-                MessageEvent::new_uninitialized(GlobalRef::Window(window.r())))),
-            _ => Err(Error::NotSupported)
+            "uievents" | "uievent" =>
+                Ok(Root::upcast(UIEvent::new_uninitialized(&window))),
+            "mouseevents" | "mouseevent" =>
+                Ok(Root::upcast(MouseEvent::new_uninitialized(&window))),
+            "customevent" =>
+                Ok(Root::upcast(CustomEvent::new_uninitialized(GlobalRef::Window(&window)))),
+            "htmlevents" | "events" | "event" =>
+                Ok(Event::new_uninitialized(GlobalRef::Window(&window))),
+            "keyboardevent" | "keyevents" =>
+                Ok(Root::upcast(KeyboardEvent::new_uninitialized(&window))),
+            "messageevent" =>
+                Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&window)))),
+            _ =>
+                Err(Error::NotSupported),
         }
     }
 
@@ -1425,7 +1416,7 @@ impl DocumentMethods for Document {
                 // Step 2.
                 root.upcast::<Node>()
                     .traverse_preorder()
-                    .find(|node| node.r().is::<HTMLTitleElement>())
+                    .find(|node| node.is::<HTMLTitleElement>())
             }
         });
 
@@ -1459,7 +1450,7 @@ impl DocumentMethods for Document {
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
                     root.upcast::<Node>()
-                        .AppendChild(elem.upcast::<Node>())
+                        .AppendChild(elem.upcast())
                         .unwrap()
                 }
             }
@@ -1476,7 +1467,7 @@ impl DocumentMethods for Document {
                             let elem = Element::create(name, None, self,
                                                        ElementCreator::ScriptCreated);
                             head.upcast::<Node>()
-                                .AppendChild(elem.upcast::<Node>())
+                                .AppendChild(elem.upcast())
                                 .unwrap()
                         },
                         None => return,
@@ -1493,10 +1484,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
-            let node = root.upcast::<Node>();
-            node.children()
-                .filter_map(|c| c.downcast::<HTMLHeadElement>().map(Root::from_ref))
-                .next()
+            root.upcast::<Node>().children().filter_map(Root::downcast).next()
         })
     }
 
@@ -1515,9 +1503,7 @@ impl DocumentMethods for Document {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
                 }
-            }).map(|node| {
-                Root::from_ref(node.downcast::<HTMLElement>().unwrap())
-            })
+            }).map(|node| Root::downcast(node).unwrap())
         })
     }
 
@@ -1546,9 +1532,7 @@ impl DocumentMethods for Document {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
                 let root = root.upcast::<Node>();
-                let child = child.upcast::<Node>();
-                let new_body = new_body.upcast::<Node>();
-                assert!(root.ReplaceChild(new_body, child).is_ok())
+                root.ReplaceChild(new_body.upcast(), child.upcast()).unwrap();
             },
 
             // Step 4.
@@ -1557,8 +1541,7 @@ impl DocumentMethods for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                let new_body = new_body.upcast::<Node>();
-                assert!(root.AppendChild(new_body).is_ok());
+                root.AppendChild(new_body.upcast()).unwrap();
             }
         }
         Ok(())
@@ -1584,9 +1567,8 @@ impl DocumentMethods for Document {
     fn Images(&self) -> Root<HTMLCollection> {
         self.images.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box ImagesFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1594,9 +1576,8 @@ impl DocumentMethods for Document {
     fn Embeds(&self) -> Root<HTMLCollection> {
         self.embeds.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box EmbedsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1609,9 +1590,8 @@ impl DocumentMethods for Document {
     fn Links(&self) -> Root<HTMLCollection> {
         self.links.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box LinksFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1619,9 +1599,8 @@ impl DocumentMethods for Document {
     fn Forms(&self) -> Root<HTMLCollection> {
         self.forms.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box FormsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1629,9 +1608,8 @@ impl DocumentMethods for Document {
     fn Scripts(&self) -> Root<HTMLCollection> {
         self.scripts.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box ScriptsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1639,9 +1617,8 @@ impl DocumentMethods for Document {
     fn Anchors(&self) -> Root<HTMLCollection> {
         self.anchors.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box AnchorsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1650,9 +1627,8 @@ impl DocumentMethods for Document {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
             let window = self.window.root();
-            let root = self.upcast::<Node>();
             let filter = box AppletsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -1666,7 +1642,7 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::children(window.r(), self.upcast::<Node>())
+        HTMLCollection::children(window.r(), self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -1676,7 +1652,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
+        self.upcast::<Node>().rev_children().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
@@ -1761,7 +1737,7 @@ impl DocumentMethods for Document {
         }
         impl CollectionFilter for NamedElementFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                filter_by_name(&self.name, elem.upcast::<Node>())
+                filter_by_name(&self.name, elem.upcast())
             }
         }
         // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
@@ -1913,9 +1889,8 @@ impl DocumentProgressHandler {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
-        let doctarget = document.upcast::<EventTarget>();
         event.r().set_trusted(true);
-        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
+        let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         let window_ref = window.r();
         let browsing_context = window_ref.browsing_context();
@@ -1926,8 +1901,7 @@ impl DocumentProgressHandler {
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
-            let target = frame_element.upcast::<EventTarget>();
-            event.r().fire(target);
+            event.r().fire(frame_element.upcast());
         });
 
         document.r().notify_constellation_load();

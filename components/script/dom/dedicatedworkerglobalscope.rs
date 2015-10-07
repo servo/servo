@@ -15,7 +15,6 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
-use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -289,7 +288,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
-                let target = self.upcast::<EventTarget>();
+                let target = self.upcast();
                 let _ar = JSAutoRequest::new(scope.get_cx());
                 let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
@@ -323,7 +322,7 @@ impl DedicatedWorkerGlobalScope {
     fn handle_event(&self, event: MixedMessage) {
         match event {
             MixedMessage::FromDevtools(msg) => {
-                let global_ref = GlobalRef::Worker(self.upcast::<WorkerGlobalScope>());
+                let global_ref = GlobalRef::Worker(self.upcast());
                 match msg {
                     DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
                         devtools::handle_evaluate_js(&global_ref, string, sender),

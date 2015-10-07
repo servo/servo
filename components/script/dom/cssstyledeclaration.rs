@@ -242,7 +242,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let document = document_from_node(element);
-        let node = element.upcast::<Node>();
+        let node = element.upcast();
         document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
@@ -276,7 +276,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let document = document_from_node(element);
-        let node = element.upcast::<Node>();
+        let node = element.upcast();
         document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }

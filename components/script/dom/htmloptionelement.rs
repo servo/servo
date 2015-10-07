@@ -64,7 +64,7 @@ fn collect_text(element: &Element, value: &mut DOMString) {
         if child.is::<Text>() {
             let characterdata = child.downcast::<CharacterData>().unwrap();
             value.push_str(&characterdata.Data());
-        } else if let Some(element_child) = child.downcast::<Element>() {
+        } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
         }
     }
@@ -76,22 +76,19 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem = self.upcast::<Element>();
-        elem.set_bool_attribute(&atom!("disabled"), disabled)
+        self.upcast::<Element>().set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let element = self.upcast::<Element>();
         let mut content = String::new();
-        collect_text(element, &mut content);
+        collect_text(self.upcast(), &mut content);
         str_join(split_html_space_chars(&content), " ")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
-        let node = self.upcast::<Node>();
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
@@ -144,8 +141,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
 impl VirtualMethods for HTMLOptionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -190,8 +186,7 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = self.upcast::<Node>();
-        node.check_parent_disabled_state_for_option();
+        self.upcast::<Node>().check_parent_disabled_state_for_option();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {

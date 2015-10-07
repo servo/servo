@@ -45,7 +45,7 @@ pub trait Activatable {
         // Step 4
         // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
         let win = window_from_node(element);
-        let target = element.upcast::<EventTarget>();
+        let target = element.upcast();
         let mouse = MouseEvent::new(win.r(), "click".to_owned(),
                                     EventBubbles::DoesNotBubble, EventCancelable::NotCancelable, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,

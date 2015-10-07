@@ -56,10 +56,9 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node = self.upcast::<Node>();
         let filter = box ElementsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
@@ -82,8 +81,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 
 impl VirtualMethods for HTMLFieldSetElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

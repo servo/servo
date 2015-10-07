@@ -86,7 +86,7 @@ impl UIEventMethods for UIEvent {
                    cancelable: bool,
                    view: Option<&Window>,
                    detail: i32) {
-        let event: &Event = self.upcast::<Event>();
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }

@@ -112,8 +112,7 @@ impl HTMLBodyElement {
 
 impl VirtualMethods for HTMLBodyElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(element as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

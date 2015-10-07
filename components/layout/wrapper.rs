@@ -44,12 +44,12 @@ use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementT
 use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
 use script::dom::bindings::conversions::Castable;
 use script::dom::bindings::js::LayoutJS;
-use script::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
+use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::element::Element;
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmliframeelement::HTMLIFrameElement;
-use script::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
+use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
@@ -358,7 +358,7 @@ impl<'le> LayoutElement<'le> {
 
     pub fn as_node(&self) -> LayoutNode<'le> {
         LayoutNode {
-            node: self.element.upcast::<Node>(),
+            node: self.element.upcast(),
             chain: PhantomData,
         }
     }
@@ -377,7 +377,7 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
 impl<'le> ::selectors::Element for LayoutElement<'le> {
     fn parent_element(&self) -> Option<LayoutElement<'le>> {
         unsafe {
-            self.element.upcast::<Node>().parent_node_ref().and_then(as_element)
+            self.element.upcast().parent_node_ref().and_then(as_element)
         }
     }
 
@@ -422,7 +422,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         self.as_node().children().all(|node| match node.type_id() {
             NodeTypeId::Element(..) => false,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
-                node.node.downcast::<CharacterData>().unwrap().data_for_layout().is_empty()
+                node.node.downcast().unwrap().data_for_layout().is_empty()
             },
             _ => true
         })
@@ -466,20 +466,17 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_hover_state(&self) -> bool {
-        let node = self.element.upcast::<Node>();
-        node.get_hover_state_for_layout()
+        self.element.upcast().get_hover_state_for_layout()
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
-        let node = self.element.upcast::<Node>();
-        node.get_focus_state_for_layout()
+        self.element.upcast().get_focus_state_for_layout()
     }
 
     #[inline]
     fn get_active_state(&self) -> bool {
-        let node = self.element.upcast::<Node>();
-        node.get_active_state_for_layout()
+        self.element.upcast().get_active_state_for_layout()
     }
 
     #[inline]
@@ -491,14 +488,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_disabled_state(&self) -> bool {
-        let node = self.element.upcast::<Node>();
-        node.get_disabled_state_for_layout()
+        self.element.upcast().get_disabled_state_for_layout()
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
-        let node = self.element.upcast::<Node>();
-        node.get_enabled_state_for_layout()
+        self.element.upcast().get_enabled_state_for_layout()
     }
 
     #[inline]
@@ -700,7 +695,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
-            let element = match self.get_jsmanaged().downcast::<Element>() {
+            let element = match self.get_jsmanaged().downcast() {
                 Some(e) => e.unsafe_get(),
                 None => panic!("not an element")
             };
@@ -791,12 +786,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_ignorable_whitespace(&self) -> bool {
         unsafe {
-            let text: LayoutJS<Text> = match self.get_jsmanaged().downcast::<Text>() {
+            let text: LayoutJS<Text> = match self.get_jsmanaged().downcast() {
                 Some(text) => text,
                 None => return false
             };
 
-            if !is_whitespace(text.upcast::<CharacterData>().data_for_layout()) {
+            if !is_whitespace(text.upcast().data_for_layout()) {
                 return false
             }
 
@@ -815,7 +810,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_value(&self) -> String {
         unsafe {
-            let input: Option<LayoutJS<HTMLInputElement>> = self.get_jsmanaged().downcast::<HTMLInputElement>();
+            let input: Option<LayoutJS<HTMLInputElement>> = self.get_jsmanaged().downcast();
             match input {
                 Some(input) => input.get_value_for_layout(),
                 None => panic!("not an input element!")
@@ -825,7 +820,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_size(&self) -> u32 {
         unsafe {
-            match self.get_jsmanaged().downcast::<HTMLInputElement>() {
+            match self.get_jsmanaged().downcast() {
                 Some(input) => input.get_size_for_layout(),
                 None => panic!("not an input element!")
             }
@@ -835,8 +830,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
-            let elem: Option<LayoutJS<Element>> = self.get_jsmanaged().downcast::<Element>();
-            match elem {
+            match self.get_jsmanaged().downcast::<Element>() {
                 Some(element) => {
                     element.get_unsigned_integer_attribute_for_layout(attribute)
                 }
@@ -921,20 +915,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         let this = unsafe { self.get_jsmanaged() };
-        let text = this.downcast::<Text>();
-        if let Some(text) = text {
+        if let Some(text) = this.downcast::<Text>() {
             let data = unsafe {
-                text.upcast::<CharacterData>().data_for_layout().to_owned()
+                text.upcast().data_for_layout().to_owned()
             };
             return TextContent::Text(data);
         }
-        let input = this.downcast::<HTMLInputElement>();
-        if let Some(input) = input {
+        if let Some(input) = this.downcast::<HTMLInputElement>() {
             let data = unsafe { input.get_value_for_layout() };
             return TextContent::Text(data);
         }
-        let area = this.downcast::<HTMLTextAreaElement>();
-        if let Some(area) = area {
+        if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
             let data = unsafe { area.get_value_for_layout() };
             return TextContent::Text(data);
         }
@@ -947,7 +938,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let this = unsafe {
             self.get_jsmanaged()
         };
-        let input = this.downcast::<HTMLInputElement>();
+        let input = this.downcast();
         if let Some(input) = input {
             let insertion_point = unsafe {
                 input.get_insertion_point_for_layout()
@@ -975,7 +966,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// FIXME(pcwalton): Don't copy URLs.
     pub fn image_url(&self) -> Option<Url> {
         unsafe {
-            self.get_jsmanaged().downcast::<HTMLImageElement>()
+            self.get_jsmanaged().downcast()
                 .expect("not an image!")
                 .image_url()
         }
@@ -983,28 +974,28 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn canvas_renderer_id(&self) -> Option<usize> {
         unsafe {
-            let canvas_element = self.get_jsmanaged().downcast::<HTMLCanvasElement>();
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.and_then(|elem| elem.get_renderer_id())
         }
     }
 
     pub fn canvas_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         unsafe {
-            let canvas_element = self.get_jsmanaged().downcast::<HTMLCanvasElement>();
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.and_then(|elem| elem.get_ipc_renderer())
         }
     }
 
     pub fn canvas_width(&self) -> u32 {
         unsafe {
-            let canvas_element = self.get_jsmanaged().downcast::<HTMLCanvasElement>();
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.unwrap().get_canvas_width()
         }
     }
 
     pub fn canvas_height(&self) -> u32 {
         unsafe {
-            let canvas_element = self.get_jsmanaged().downcast::<HTMLCanvasElement>();
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.unwrap().get_canvas_height()
         }
     }

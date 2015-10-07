@@ -738,8 +738,7 @@ impl XMLHttpRequest {
                                "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
-        let target = self.upcast::<EventTarget>();
-        event.r().fire(target);
+        event.fire(self.upcast());
     }
 
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
@@ -923,12 +922,11 @@ impl XMLHttpRequest {
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
-            upload_target.upcast::<EventTarget>()
+            upload_target.upcast()
         } else {
-            self.upcast::<EventTarget>()
+            self.upcast()
         };
-        let event = progressevent.upcast::<Event>();
-        event.fire(target);
+        progressevent.upcast::<Event>().fire(target);
     }
 
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {

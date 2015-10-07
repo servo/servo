@@ -34,7 +34,6 @@ use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
@@ -1256,12 +1255,10 @@ impl ScriptTask {
                 urls.push(current_url.clone());
 
                 for child in it_page.document().upcast::<Node>().traverse_preorder() {
-                    let target = child.upcast::<EventTarget>();
-                    dom_tree_size += heap_size_of_self_and_children(target);
+                    dom_tree_size += heap_size_of_self_and_children(&*child);
                 }
                 let window = it_page.window();
-                let target = window.upcast::<EventTarget>();
-                dom_tree_size += heap_size_of_self_and_children(target);
+                dom_tree_size += heap_size_of_self_and_children(&*window);
 
                 reports.push(Report {
                     path: path![format!("url({})", current_url), "dom-tree"],
@@ -1323,9 +1320,8 @@ impl ScriptTask {
         let frame_element = doc.find_iframe(subpage_id);
 
         if let Some(ref frame_element) = frame_element {
-            let element = frame_element.upcast::<Element>();
             doc.r().begin_focus_transaction();
-            doc.r().request_focus(element);
+            doc.r().request_focus(frame_element.upcast());
             doc.r().commit_focus_transaction(FocusType::Parent);
         }
     }
@@ -1625,7 +1621,7 @@ impl ScriptTask {
                                      DocumentSource::FromParser,
                                      loader);
 
-        let frame_element = frame_element.r().map(Castable::upcast::<Element>);
+        let frame_element = frame_element.r().map(Castable::upcast);
         window.r().init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
@@ -1671,9 +1667,8 @@ impl ScriptTask {
         }
     }
 
-    fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: &Element) {
-        let node = node.upcast::<Node>();
-        let rect = node.get_bounding_content_box();
+    fn scroll_fragment_point(&self, pipeline_id: PipelineId, element: &Element) {
+        let rect = element.upcast::<Node>().get_bounding_content_box();
         let point = Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
         // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
         // Really what needs to happen is that this needs to go through layout to ask which
@@ -1845,10 +1840,7 @@ impl ScriptTask {
                                    "resize".to_owned(), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
-        let event = uievent.upcast::<Event>();
-
-        let wintarget = window.upcast::<EventTarget>();
-        event.fire(wintarget);
+        uievent.upcast::<Event>().fire(window.upcast());
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
@@ -1906,7 +1898,7 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
         document.r().disarm_reflow_timeout();
-        document.r().content_changed(document.upcast::<Node>(),
+        document.r().content_changed(document.upcast(),
                                      NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
         window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);

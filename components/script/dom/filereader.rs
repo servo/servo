@@ -324,10 +324,7 @@ impl FileReader {
         let progressevent = ProgressEvent::new(global.r(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
-
-        let target = self.upcast::<EventTarget>();
-        let event = progressevent.upcast::<Event>();
-        event.fire(target);
+        progressevent.upcast::<Event>().fire(self.upcast());
     }
 
     fn terminate_ongoing_reading(&self) {

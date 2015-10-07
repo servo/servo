@@ -64,7 +64,7 @@ impl VirtualMethods for HTMLTemplateElement {
         // Step 1.
         let doc = document_from_node(self).appropriate_template_contents_owner_document();
         // Step 2.
-        Node::adopt(self.Content().upcast::<Node>(), &doc);
+        Node::adopt(self.Content().upcast(), &doc);
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext
@@ -79,7 +79,7 @@ impl VirtualMethods for HTMLTemplateElement {
         // Steps 2-3.
         let copy_contents = Root::upcast::<Node>(copy.Content());
         let copy_contents_doc = copy_contents.owner_doc();
-        for child in Root::upcast::<Node>(self.Content()).children() {
+        for child in self.Content().upcast::<Node>().children() {
             let copy_child = Node::clone(
                 &child, Some(&copy_contents_doc), CloneChildrenFlag::CloneChildren);
             copy_contents.AppendChild(&copy_child).unwrap();
