@@ -74,4 +74,19 @@ test(function() {
   option.appendChild(document.createTextNode("text"));
   assert_equals(option.text, "text");
 }, "option.text should work if the option is in a MathML script element");
+
+test(function() {
+  var option = document.createElement("option");
+  option.appendChild(document.createTextNode("te"));
+  option.appendChild(document.createComment("comment"));
+  option.appendChild(document.createTextNode("xt"));
+  assert_equals(option.text, "text");
+}, "option.text should ignore comment children");
+test(function() {
+  var option = document.createElement("option");
+  option.appendChild(document.createTextNode("te"));
+  option.appendChild(document.createProcessingInstruction("target", "data"));
+  option.appendChild(document.createTextNode("xt"));
+  assert_equals(option.text, "text");
+}, "option.text should ignore PI children");
 </script>

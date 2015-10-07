@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::ElementDerived;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast, NodeCast, TextDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
@@ -71,7 +72,7 @@ fn collect_text(node: &&Node, value: &mut DOMString) {
             if child.r().is_text() {
                 let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
                 value.push_str(&characterdata.Data());
-            } else {
+            } else if child.is_element() {
                 collect_text(&child.r(), value);
             }
         }
