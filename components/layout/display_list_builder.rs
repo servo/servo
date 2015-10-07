@@ -971,14 +971,14 @@ impl FragmentDisplayListBuilding for Fragment {
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
                 for node in inline_context.nodes.iter().rev() {
-                    self.build_display_list_for_box_shadow_if_applicable(
+                    self.build_display_list_for_background_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
                         level,
                         &stacking_relative_border_box,
                         &clip);
-                    self.build_display_list_for_background_if_applicable(
+                    self.build_display_list_for_box_shadow_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
@@ -1008,13 +1008,13 @@ impl FragmentDisplayListBuilding for Fragment {
             }
 
             if !self.is_scanned_text_fragment() {
-                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
+                self.build_display_list_for_background_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
                                                                      &stacking_relative_border_box,
                                                                      &clip);
-                self.build_display_list_for_background_if_applicable(&*self.style,
+                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
