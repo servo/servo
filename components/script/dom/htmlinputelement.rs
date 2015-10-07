@@ -396,27 +396,27 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
 }
 
 impl HTMLInputElement {
-    pub fn force_relayout(&self) {
+    fn force_relayout(&self) {
         let doc = document_from_node(self);
         let node = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
-    pub fn radio_group_updated(&self, group: Option<&Atom>) {
+    fn radio_group_updated(&self, group: Option<&Atom>) {
         if self.Checked() {
             broadcast_radio_checked(self, group);
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
-    pub fn get_radio_group_name(&self) -> Option<Atom> {
+    fn get_radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         let elem = ElementCast::from_ref(self);
         elem.get_attribute(&ns!(""), &atom!("name"))
             .map(|name| name.value().as_atom().clone())
     }
 
-    pub fn update_checked_state(&self, checked: bool, dirty: bool) {
+    fn update_checked_state(&self, checked: bool, dirty: bool) {
         self.checked.set(checked);
 
         if dirty {
@@ -432,16 +432,12 @@ impl HTMLInputElement {
         //TODO: dispatch change event
     }
 
-    pub fn get_size(&self) -> u32 {
-        self.size.get()
-    }
-
     pub fn get_indeterminate_state(&self) -> bool {
         self.indeterminate.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    pub fn mutable(&self) -> bool {
+    fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         let node = NodeCast::from_ref(self);
