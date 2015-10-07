@@ -65,14 +65,14 @@ fn collect_text(element: &Element, value: &mut DOMString) {
     let html_script = element.is_htmlscriptelement();
     if svg_script || html_script {
         return;
-    } else {
-        for child in NodeCast::from_ref(element).children() {
-            if child.r().is_text() {
-                let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
-                value.push_str(&characterdata.Data());
-            } else if let Some(element_child) = ElementCast::to_ref(&*child) {
-                collect_text(element_child, value);
-            }
+    }
+
+    for child in NodeCast::from_ref(element).children() {
+        if child.r().is_text() {
+            let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
+            value.push_str(&characterdata.Data());
+        } else if let Some(element_child) = ElementCast::to_ref(&*child) {
+            collect_text(element_child, value);
         }
     }
 }
