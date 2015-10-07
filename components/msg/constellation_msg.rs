@@ -307,30 +307,30 @@ pub enum AnimationState {
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
 #[derive(Deserialize, Serialize)]
 pub enum MozBrowserEvent {
-    /// Sent when the scroll position within a browser <iframe> changes.
+    /// Sent when the scroll position within a browser `<iframe>` changes.
     AsyncScroll,
-    /// Sent when window.close() is called within a browser <iframe>.
+    /// Sent when window.close() is called within a browser `<iframe>`.
     Close,
-    /// Sent when a browser <iframe> tries to open a context menu. This allows
-    /// handling <menuitem> element available within the browser <iframe>'s content.
+    /// Sent when a browser `<iframe>` tries to open a context menu. This allows
+    /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
-    /// Sent when an error occurred while trying to load content within a browser <iframe>.
+    /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
     Error,
-    /// Sent when the favicon of a browser <iframe> changes.
+    /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange,
-    /// Sent when the browser <iframe> has finished loading all its assets.
+    /// Sent when the browser `<iframe>` has finished loading all its assets.
     LoadEnd,
-    /// Sent when the browser <iframe> starts to load a new page.
+    /// Sent when the browser `<iframe>` starts to load a new page.
     LoadStart,
-    /// Sent when a browser <iframe>'s location changes.
+    /// Sent when a browser `<iframe>`'s location changes.
     LocationChange(String),
-    /// Sent when window.open() is called within a browser <iframe>.
+    /// Sent when window.open() is called within a browser `<iframe>`.
     OpenWindow,
-    /// Sent when the SSL state changes within a browser <iframe>.
+    /// Sent when the SSL state changes within a browser `<iframe>`.
     SecurityChange,
-    /// Sent when alert(), confirm(), or prompt() is called within a browser <iframe>.
+    /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
     ShowModalPrompt,
-    /// Sent when the document.title changes within a browser <iframe>.
+    /// Sent when the document.title changes within a browser `<iframe>`.
     TitleChange(String),
     /// Sent when an HTTP authentification is requested.
     UsernameAndPasswordRequired,
