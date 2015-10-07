@@ -63,9 +63,7 @@ impl TextMethods for Text {
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.
-            parent.r().InsertBefore(new_node.upcast::<Node>(),
-                                    node.GetNextSibling().r())
-                  .unwrap();
+            parent.InsertBefore(new_node.upcast(), node.GetNextSibling().r()).unwrap();
             // TODO: Ranges.
         }
         // Step 8.

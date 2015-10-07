@@ -116,8 +116,7 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
                                reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match page.document().r().QuerySelector(selector.clone()) {
         Ok(node) => {
-            let result = node.map(|x| x.upcast::<Node>().get_unique_id());
-            Ok(result)
+            Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
         }
         Err(_) => Err(())
     }).unwrap();
@@ -172,8 +171,7 @@ pub fn handle_get_name(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(node) => {
-            let element = node.downcast::<Element>().unwrap();
-            Ok(element.TagName())
+            Ok(node.downcast::<Element>().unwrap().TagName())
         },
         None => Err(())
     }).unwrap();

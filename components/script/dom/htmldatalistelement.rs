@@ -48,9 +48,8 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
                 elem.is::<HTMLOptionElement>()
             }
         }
-        let node = self.upcast::<Node>();
         let filter = box HTMLDataListOptionsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 }

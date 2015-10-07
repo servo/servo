@@ -72,7 +72,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
-            HTMLCollection::create(window.r(), self.upcast::<Node>(), filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
     }
 
@@ -97,8 +97,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
 
 impl VirtualMethods for HTMLTableRowElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -189,13 +189,12 @@ impl MouseEventMethods for MouseEvent {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<&EventTarget>) {
-        let event: &Event = self.upcast::<Event>();
-        if event.dispatching() {
+        if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        let uievent: &UIEvent = self.upcast::<UIEvent>();
-        uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+        self.upcast::<UIEvent>()
+            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);
         self.screen_y.set(screenYArg);
         self.client_x.set(clientXArg);

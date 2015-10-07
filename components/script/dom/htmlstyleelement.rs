@@ -65,16 +65,14 @@ impl HTMLStyleElement {
 
 impl VirtualMethods for HTMLStyleElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = self.upcast::<Node>();
-        if node.is_in_doc() {
+        if self.upcast::<Node>().is_in_doc() {
             self.parse_own_css();
         }
     }

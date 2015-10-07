@@ -14,7 +14,6 @@ use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{Node, NodeDamage, window_from_node};
@@ -121,7 +120,7 @@ impl WebGLRenderingContext {
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
                                                    msg);
-                event.upcast::<Event>().fire(canvas.upcast::<EventTarget>());
+                event.upcast::<Event>().fire(canvas.upcast());
                 None
             }
         }
@@ -153,9 +152,7 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        let canvas = self.canvas.root();
-        let node = canvas.upcast::<Node>();
-        node.dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 

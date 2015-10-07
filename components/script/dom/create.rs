@@ -89,11 +89,11 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
     macro_rules! make(
         ($ctor:ident) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document);
-            Root::upcast::<Element>(obj)
+            Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
-            Root::upcast::<Element>(obj)
+            Root::upcast(obj)
         })
     );
 

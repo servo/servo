@@ -56,8 +56,7 @@ impl HTMLAnchorElement {
 
 impl VirtualMethods for HTMLAnchorElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -71,20 +70,18 @@ impl VirtualMethods for HTMLAnchorElement {
 impl HTMLAnchorElementMethods for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn Text(&self) -> DOMString {
-        let node = self.upcast::<Node>();
-        node.GetTextContent().unwrap()
+        self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn SetText(&self, value: DOMString) {
-        let node = self.upcast::<Node>();
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast::<Element>(), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &atom!("rel"))
         })
     }
 

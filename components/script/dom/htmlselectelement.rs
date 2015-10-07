@@ -101,8 +101,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
 impl VirtualMethods for HTMLSelectElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -128,8 +127,7 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let el = self.upcast::<Element>();
-        el.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
