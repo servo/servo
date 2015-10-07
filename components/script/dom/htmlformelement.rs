@@ -229,21 +229,18 @@ impl HTMLFormElement {
             win.r().pipeline(), load_data)).unwrap();
     }
 
-
-    // TODO: This is an incorrect way of getting controls owned
-    //       by the form, but good enough until html5ever lands
     fn get_unclean_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
         let node = NodeCast::from_ref(self);
-        // TODO: Handle `dirnames` (needs directionality support)
-        //       https://html.spec.whatwg.org/multipage/#the-directionality
+        // TODO: This is an incorrect way of getting controls owned
+        //       by the form, but good enough until html5ever lands
         node.traverse_preorder().filter_map(|child| {
             if child.r().get_disabled_state() {
                 return None;
             }
             if child.r().ancestors()
-                .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
-                    return None;
-                }
+                        .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
+                return None;
+            }
             match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
                     match element {
@@ -264,6 +261,8 @@ impl HTMLFormElement {
                 _ => None
             }
         }).collect()
+        // TODO: Handle `dirnames` (needs directionality support)
+        //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
     pub fn get_form_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {

@@ -434,23 +434,16 @@ impl HTMLInputElement {
         }
 
         let mut value = self.Value();
-        match &*ty {
-            "radio" | "checkbox" => {
-                if value.is_empty() {
-                    value = "on".to_owned();
-                }
-                Some(FormDatum {
-                    ty: ty,
-                    name: name,
-                    value: value
-                })
-            },
-            _ => Some(FormDatum {
-                ty: ty,
-                name: name,
-                value: value
-            })
+        if (ty == "radio") | (ty == "checkbox") {
+            if value.is_empty() {
+                value = "on".to_owned();
+            }
         }
+        Some(FormDatum {
+            ty: ty,
+            name: name,
+            value: value
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
