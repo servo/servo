@@ -17914,6 +17914,10 @@
         "url": "/html/semantics/forms/the-select-element/select-remove.html"
       },
       {
+        "path": "html/semantics/forms/the-select-element/select-ask-for-reset.html",
+        "url": "/html/semantics/forms/the-select-element/select-ask-for-reset.html"
+      },
+      {
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html",
         "url": "/html/semantics/forms/the-textarea-element/textarea-type.html"
       },

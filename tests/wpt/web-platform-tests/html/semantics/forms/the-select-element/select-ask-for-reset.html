@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLSelectElement ask for reset</title>
+<link rel="author" title="Dongie Agnir" href="dongie.agnir@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+test(function() {
+  var select = makeSelect(5);
+
+  select.children[4].selected = true;
+  unselectedExcept(select, 4);
+
+  select.children[4].remove();
+  unselectedExcept(select, 0); // remove selected node, should default to first
+
+  select.children[3].selected = true;
+
+  select.children[0].remove();
+  unselectedExcept(select, 2); // last node still selected
+}, "ask for reset on node remove, non multiple.");
+
+test(function() {
+  var select = makeSelect(3);
+  select.children[1].selected = true;
+
+  var opt4 = document.createElement("option");
+  opt4.selected = true;
+  select.appendChild(opt4); // 2 options selected
+  unselectedExcept(select, 3); // last should remain selected
+
+  var opt5 = document.createElement("option");
+  select.appendChild(opt5);
+
+  unselectedExcept(select, 3); // no change in selected element
+  }, "ask for reset on node insert, non multiple.");
+
+test(function() {
+  var select = makeSelect(3);
+
+  select.children[2].selected = true;
+  select.children[2].selected = false; // none selected
+  unselectedExcept(select, 0);
+
+  // disable first so option at index 1 is first eligible
+  select.children[0].disabled = true;
+  select.children[2].selected = true;
+  select.children[2].selected = false; // none selected
+  unselectedExcept(select, 1);
+}, "change selectedness of option, non multiple.");
+
+
+function unselectedExcept(sel, opt) {
+  for (var i = 0; i < sel.children.length; ++i) {
+    if (i != opt) {
+      assert_false(sel.children[i].selected, "option should not be selected.");
+    }
+    if (opt != null) {
+      assert_true(sel.children[opt].selected, "option should be selected.");
+    }
+  }
+}
+
+function makeSelect(n) {
+  var sel = document.createElement("select");
+  for (var i = 0; i < n; ++i) {
+    opt = document.createElement("option");
+    sel.appendChild(opt);
+  }
+  return sel;
+}
+</script>

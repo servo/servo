@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLOptionElementCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
@@ -13,6 +15,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -44,6 +47,42 @@ impl HTMLSelectElement {
                document: &Document) -> Root<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    pub fn ask_for_reset(&self) {
+        if self.Multiple() {
+            return;
+        }
+
+        let mut num_selected = 0;
+        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
+        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+
+        let node = NodeCast::from_ref(self);
+        for opt in node.traverse_preorder().filter_map(HTMLOptionElementCast::to_root) {
+            if opt.Selected() {
+                opt.set_selectedness(false);
+                num_selected += 1;
+                last_selected = Some(Root::from_ref(opt.r()));
+            }
+            let element =  ElementCast::from_ref(opt.r());
+            if first_enabled.is_none() && !element.get_disabled_state() {
+                first_enabled = Some(Root::from_ref(opt.r()));
+            }
+        }
+
+        if num_selected == 0 {
+            if self.Size() <= 1 {
+                // select the first enabled element
+                if let Some(first_opt) = first_enabled {
+                    first_opt.set_selectedness(true);
+                }
+            }
+        } else {
+            // multiple options were selected, reselect last one
+            last_selected.unwrap().set_selectedness(true);
+        }
     }
 }
 

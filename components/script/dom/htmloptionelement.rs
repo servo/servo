@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLScriptElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLSelectElementCast, NodeCast, TextDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
@@ -49,6 +49,10 @@ impl HTMLOptionElement {
                document: &Document) -> Root<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
+    }
+
+    pub fn set_selectedness(&self, selected: bool) {
+        self.selectedness.set(selected);
     }
 }
 
@@ -136,8 +140,10 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
-        // FIXME: as per the spec, implement 'ask for a reset'
-        // https://github.com/servo/servo/issues/7774
+        if let Some(select) = NodeCast::from_ref(self).ancestors()
+            .filter_map(HTMLSelectElementCast::to_root).next() {
+                select.ask_for_reset();
+        }
     }
 }
 
