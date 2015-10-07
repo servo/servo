@@ -4982,8 +4982,9 @@ class CGRegisterProtos(CGAbstractMethod):
 
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
+        docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True)
+                                  unsafe=True, pub=True, docs=docs)
         self.descriptors = descriptors
 
     def definition_body(self):
