@@ -80,20 +80,13 @@ impl DOMImplementationMethods for DOMImplementation {
             let doc_node = doc.upcast::<Node>();
 
             // Step 4.
-            match maybe_doctype {
-                None => (),
-                Some(ref doctype) => {
-                    let doc_type = doctype.upcast::<Node>();
-                    assert!(doc_node.AppendChild(doc_type).is_ok())
-                }
+            if let Some(doc_type) = maybe_doctype {
+                doc_node.AppendChild(doc_type.upcast()).unwrap();
             }
 
             // Step 5.
-            match maybe_elem {
-                None => (),
-                Some(ref elem) => {
-                    assert!(doc_node.AppendChild(elem.upcast::<Node>()).is_ok())
-                }
+            if let Some(ref elem) = maybe_elem {
+                doc_node.AppendChild(elem.upcast()).unwrap();
             }
         }
 
@@ -117,7 +110,7 @@ impl DOMImplementationMethods for DOMImplementation {
             // Step 3.
             let doc_node = doc.upcast::<Node>();
             let doc_type = DocumentType::new("html".to_owned(), None, None, doc.r());
-            assert!(doc_node.AppendChild(doc_type.upcast::<Node>()).is_ok());
+            doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
         {
@@ -125,13 +118,13 @@ impl DOMImplementationMethods for DOMImplementation {
             let doc_node = doc.upcast::<Node>();
             let doc_html = Root::upcast::<Node>(
                 HTMLHtmlElement::new("html".to_owned(), None, doc.r()));
-            assert!(doc_node.AppendChild(doc_html.r()).is_ok());
+            doc_node.AppendChild(&doc_html).unwrap();
 
             {
                 // Step 5.
                 let doc_head = Root::upcast::<Node>(
                     HTMLHeadElement::new("head".to_owned(), None, doc.r()));
-                assert!(doc_html.r().AppendChild(doc_head.r()).is_ok());
+                doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
                 match title {
@@ -140,18 +133,18 @@ impl DOMImplementationMethods for DOMImplementation {
                         // Step 6.1.
                         let doc_title = Root::upcast::<Node>(
                             HTMLTitleElement::new("title".to_owned(), None, doc.r()));
-                        assert!(doc_head.r().AppendChild(doc_title.r()).is_ok());
+                        doc_head.AppendChild(&doc_title).unwrap();
 
                         // Step 6.2.
                         let title_text = Text::new(title_str, doc.r());
-                        assert!(doc_title.r().AppendChild(title_text.upcast::<Node>()).is_ok());
+                        doc_title.AppendChild(title_text.upcast()).unwrap();
                     }
                 }
             }
 
             // Step 7.
             let doc_body = HTMLBodyElement::new("body".to_owned(), None, doc.r());
-            assert!(doc_html.r().AppendChild(doc_body.upcast::<Node>()).is_ok());
+            doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 
         // Step 8.

@@ -58,7 +58,7 @@ impl CollectionFilter for RowsFilter {
 impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> Root<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), self.upcast::<Node>(), box RowsFilter)
+        HTMLCollection::create(&window_from_node(self), self.upcast(), box RowsFilter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
@@ -82,8 +82,7 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
 
 impl VirtualMethods for HTMLTableSectionElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

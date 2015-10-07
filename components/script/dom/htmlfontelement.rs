@@ -71,8 +71,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
 impl VirtualMethods for HTMLFontElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -35,7 +35,6 @@ use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
-use dom::eventtarget::EventTarget;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
@@ -544,8 +543,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
-        let node = self.upcast::<Node>();
-        node.owner_doc_for_layout().is_html_document_for_layout()
+        self.upcast::<Node>().owner_doc_for_layout().is_html_document_for_layout()
     }
 
     #[allow(unsafe_code)]
@@ -623,8 +621,7 @@ pub enum StylePriority {
 
 impl Element {
     pub fn html_element_in_html_document(&self) -> bool {
-        let node = self.upcast::<Node>();
-        self.namespace == ns!(HTML) && node.is_in_html_doc()
+        self.namespace == ns!(HTML) && self.upcast::<Node>().is_in_html_doc()
     }
 
     pub fn local_name(&self) -> &Atom {
@@ -784,9 +781,8 @@ impl Element {
     }
 
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
-        let node = self.upcast::<Node>();
         let mut writer = vec![];
-        match serialize(&mut writer, &node,
+        match serialize(&mut writer, &self.upcast::<Node>(),
                         SerializeOpts {
                             traversal_scope: traversal_scope,
                             .. Default::default()
@@ -798,10 +794,7 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#root-element
     pub fn get_root_element(&self) -> Root<Element> {
-        let node = self.upcast::<Node>();
-        node.inclusive_ancestors()
-            .filter_map(Root::downcast::<Element>)
-            .last()
+        self.upcast::<Node>().inclusive_ancestors().filter_map(Root::downcast).last()
             .expect("We know inclusive_ancestors will return `self` which is an element")
     }
 
@@ -889,8 +882,7 @@ impl Element {
         let attr = Attr::new(&window, local_name, value, name, namespace, prefix, Some(self));
         self.attrs.borrow_mut().push(JS::from_rooted(&attr));
         if in_empty_ns {
-            vtable_for(self.upcast::<Node>()).attribute_mutated(
-                &attr, AttributeMutation::Set(None));
+            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
         }
     }
 
@@ -974,8 +966,7 @@ impl Element {
     pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == ns!("") {
-            vtable_for(&self.upcast::<Node>())
-                .parse_plain_attribute(local_name, value)
+            vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
             AttrValue::String(value)
         }
@@ -1001,20 +992,15 @@ impl Element {
             let attr = (*self.attrs.borrow())[idx].root();
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
-            let node = self.upcast::<Node>();
             if attr.namespace() == &ns!("") {
-                vtable_for(node).attribute_mutated(&attr, AttributeMutation::Removed);
+                vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Removed);
             }
             attr
         })
     }
 
     pub fn has_class(&self, name: &Atom) -> bool {
-        let quirks_mode = {
-            let node = self.upcast::<Node>();
-            let owner_doc = node.owner_doc();
-            owner_doc.r().quirks_mode()
-        };
+        let quirks_mode = document_from_node(self).quirks_mode();
         let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
@@ -1175,14 +1161,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> Root<NamedNodeMap> {
-        self.attr_list.or_init(|| {
-            let doc = {
-                let node = self.upcast::<Node>();
-                node.owner_doc()
-            };
-            let window = doc.r().window();
-            NamedNodeMap::new(window, self)
-        })
+        self.attr_list.or_init(|| NamedNodeMap::new(&window_from_node(self), self))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
@@ -1277,27 +1256,26 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name(window.r(), self.upcast::<Node>(), localname)
+        HTMLCollection::by_tag_name(window.r(), self.upcast(), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name_ns(window.r(), self.upcast::<Node>(), localname, maybe_ns)
+        HTMLCollection::by_tag_name_ns(window.r(), self.upcast(), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_class_name(window.r(), self.upcast::<Node>(), classes)
+        HTMLCollection::by_class_name(window.r(), self.upcast(), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self) -> Root<DOMRectList> {
         let win = window_from_node(self);
-        let node = self.upcast::<Node>();
-        let raw_rects = node.get_content_boxes();
+        let raw_rects = self.upcast::<Node>().get_content_boxes();
         let rects = raw_rects.iter().map(|rect| {
             DOMRect::new(GlobalRef::Window(win.r()),
                          rect.origin.x.to_f64_px(),
@@ -1311,8 +1289,7 @@ impl ElementMethods for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
-        let node = self.upcast::<Node>();
-        let rect = node.get_bounding_content_box();
+        let rect = self.upcast::<Node>().get_bounding_content_box();
         DOMRect::new(GlobalRef::Window(win.r()),
                      rect.origin.x.to_f64_px(),
                      rect.origin.y.to_f64_px(),
@@ -1322,26 +1299,22 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(&self) -> i32 {
-        let node = self.upcast::<Node>();
-        node.get_client_rect().origin.y
+        self.upcast::<Node>().get_client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
     fn ClientLeft(&self) -> i32 {
-        let node = self.upcast::<Node>();
-        node.get_client_rect().origin.x
+        self.upcast::<Node>().get_client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
-        let node = self.upcast::<Node>();
-        node.get_client_rect().size.width
+        self.upcast::<Node>().get_client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
-        let node = self.upcast::<Node>();
-        node.get_client_rect().size.height
+        self.upcast::<Node>().get_client_rect().size.height
     }
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
@@ -1358,11 +1331,11 @@ impl ElementMethods for Element {
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-            Root::upcast::<Node>(template.Content())
+            Root::upcast(template.Content())
         } else {
             Root::from_ref(context_node)
         };
-        Node::replace_all(Some(frag.upcast::<Node>()), &target);
+        Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
     }
 
@@ -1393,7 +1366,7 @@ impl ElementMethods for Element {
                 let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
                                                 None, context_document.r(),
                                                 ElementCreator::ScriptCreated);
-                Root::upcast::<Node>(body_elem)
+                Root::upcast(body_elem)
             },
             _ => context_node.GetParentNode().unwrap()
         };
@@ -1401,27 +1374,24 @@ impl ElementMethods for Element {
         // Step 5.
         let frag = try!(parent.r().parse_fragment(value));
         // Step 6.
-        try!(context_parent.r().ReplaceChild(frag.upcast::<Node>(),
-                                             context_node));
+        try!(context_parent.ReplaceChild(frag.upcast(), context_node));
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
     fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().preceding_siblings()
-                             .filter_map(Root::downcast::<Element>).next()
+        self.upcast::<Node>().preceding_siblings().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings()
-                             .filter_map(Root::downcast::<Element>).next()
+        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::children(window.r(), self.upcast::<Node>())
+        HTMLCollection::children(window.r(), self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -1478,8 +1448,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = self.upcast::<Node>();
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-element-matches
@@ -1513,8 +1482,7 @@ impl ElementMethods for Element {
 
 impl VirtualMethods for Element {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let node: &Node = self.upcast::<Node>();
-        Some(node as &VirtualMethods)
+        Some(self.upcast::<Node>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -1620,15 +1588,15 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn last_child_element(&self) -> Option<Root<Element>> {
-        self.node.rev_children().filter_map(Root::downcast::<Element>).next()
+        self.node.rev_children().filter_map(Root::downcast).next()
     }
 
     fn prev_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.preceding_siblings().filter_map(Root::downcast::<Element>).next()
+        self.node.preceding_siblings().filter_map(Root::downcast).next()
     }
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings().filter_map(Root::downcast::<Element>).next()
+        self.node.following_siblings().filter_map(Root::downcast).next()
     }
 
     fn is_root(&self) -> bool {
@@ -1701,15 +1669,13 @@ impl<'a> ::selectors::Element for Root<Element> {
         Element::get_enabled_state(self)
     }
     fn get_checked_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = self.downcast::<HTMLInputElement>();
-        match input_element {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = self.downcast::<HTMLInputElement>();
-        match input_element {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
@@ -1729,8 +1695,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         }
     }
     fn has_servo_nonzero_border(&self) -> bool {
-        let table_element: Option<&HTMLTableElement> = self.downcast::<HTMLTableElement>();
-        match table_element {
+        match self.downcast::<HTMLTableElement>() {
             None => false,
             Some(this) => {
                 match this.get_border() {
@@ -1774,8 +1739,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
 impl Element {
     pub fn as_maybe_activatable<'a>(&'a self) -> Option<&'a (Activatable + 'a)> {
-        let node = self.upcast::<Node>();
-        let element = match node.type_id() {
+        let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element = self.downcast::<HTMLInputElement>().unwrap();
                 Some(element as &'a (Activatable + 'a))
@@ -1798,13 +1762,11 @@ impl Element {
     }
 
     pub fn click_in_progress(&self) -> bool {
-        let node = self.upcast::<Node>();
-        node.get_flag(CLICK_IN_PROGRESS)
+        self.upcast::<Node>().get_flag(CLICK_IN_PROGRESS)
     }
 
     pub fn set_click_in_progress(&self, click: bool) {
-        let node = self.upcast::<Node>();
-        node.set_flag(CLICK_IN_PROGRESS, click)
+        self.upcast::<Node>().set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
@@ -1838,7 +1800,7 @@ impl Element {
         // the script can generate more click events from the handler)
         assert!(!self.click_in_progress());
 
-        let target = self.upcast::<EventTarget>();
+        let target = self.upcast();
         // Step 2 (requires canvas support)
         // Step 3
         self.set_click_in_progress(true);

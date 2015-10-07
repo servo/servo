@@ -115,7 +115,7 @@ impl Worker {
         let worker = address.root();
 
         let global = worker.r().global.root();
-        let target = worker.upcast::<EventTarget>();
+        let target = worker.upcast();
         let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
         let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
@@ -126,13 +126,11 @@ impl Worker {
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
         let worker = address.root();
         let global = worker.r().global.root();
-        let target = worker.upcast::<EventTarget>();
-
         let event = Event::new(global.r(),
                                "error".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.r().fire(target);
+        event.fire(worker.upcast());
     }
 
     pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
@@ -140,12 +138,10 @@ impl Worker {
         let worker = address.root();
         let global = worker.r().global.root();
         let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
-        let target = worker.upcast::<EventTarget>();
         let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());
-        let event = errorevent.upcast::<Event>();
-        event.fire(target);
+        errorevent.upcast::<Event>().fire(worker.upcast());
     }
 }
 

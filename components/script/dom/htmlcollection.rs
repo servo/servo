@@ -154,7 +154,7 @@ impl HTMLCollection {
         struct ElementChildFilter;
         impl CollectionFilter for ElementChildFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
-                root.is_parent_of(elem.upcast::<Node>())
+                root.is_parent_of(elem.upcast())
             }
         }
         HTMLCollection::create(window, root, box ElementChildFilter)
@@ -186,8 +186,8 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
         let filter = self.filter;
         let root = self.root.r();
         self.node_iter.by_ref()
-                      .filter_map(Root::downcast::<Element>)
-                      .filter(|element| filter.filter(element.r(), root))
+                      .filter_map(Root::downcast)
+                      .filter(|element| filter.filter(&element, root))
                       .next()
     }
 }

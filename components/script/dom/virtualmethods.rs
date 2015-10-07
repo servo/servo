@@ -123,131 +123,97 @@ pub trait VirtualMethods {
 pub fn vtable_for(node: &Node) -> &VirtualMethods {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-            let element = node.downcast::<HTMLAnchorElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLAnchorElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)) => {
             node.downcast::<HTMLAppletElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
-            let element = node.downcast::<HTMLAreaElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLAreaElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)) => {
-            let element = node.downcast::<HTMLBaseElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLBaseElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
-            let element = node.downcast::<HTMLBodyElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLBodyElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
-            let element = node.downcast::<HTMLButtonElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLButtonElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
-            let element = node.downcast::<HTMLCanvasElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLCanvasElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
-            let element = node.downcast::<HTMLFieldSetElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLFieldSetElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)) => {
-            let element = node.downcast::<HTMLFontElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLFontElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
-            let element = node.downcast::<HTMLFormElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLFormElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
-            let element = node.downcast::<HTMLHeadElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLHeadElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
-            let element = node.downcast::<HTMLImageElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLImageElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
-            let element = node.downcast::<HTMLIFrameElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLIFrameElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-            let element = node.downcast::<HTMLInputElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLInputElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
-            let element = node.downcast::<HTMLLinkElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLLinkElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
-            let element = node.downcast::<HTMLMetaElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLMetaElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
-            let element = node.downcast::<HTMLObjectElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLObjectElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
-            let element = node.downcast::<HTMLOptGroupElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLOptGroupElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
-            let element = node.downcast::<HTMLOptionElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLOptionElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
-            let element = node.downcast::<HTMLScriptElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLScriptElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-            let element = node.downcast::<HTMLSelectElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLSelectElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
-            let element = node.downcast::<HTMLStyleElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLStyleElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
-            let element =
-                node.downcast::<HTMLTableElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTableElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_))) => {
-            let element =
-                node.downcast::<HTMLTableCellElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTableCellElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
-            let element =
-                node.downcast::<HTMLTableRowElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTableRowElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)) => {
-            let element =
-                node.downcast::<HTMLTableSectionElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTableSectionElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
             node.downcast::<HTMLTemplateElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-            let element = node.downcast::<HTMLTextAreaElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTextAreaElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
-            let element =
-                node.downcast::<HTMLTitleElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLTitleElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::Element) => {
-            let element = node.downcast::<Element>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<Element>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(_) => {
-            let element = node.downcast::<HTMLElement>().unwrap();
-            element as &VirtualMethods
+            node.downcast::<HTMLElement>().unwrap() as &VirtualMethods
         }
         _ => {
             node as &VirtualMethods

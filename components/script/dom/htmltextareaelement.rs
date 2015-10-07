@@ -169,14 +169,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(&self) -> DOMString {
-        let node = self.upcast::<Node>();
-        node.GetTextContent().unwrap()
+        self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(&self, value: DOMString) {
-        let node = self.upcast::<Node>();
-        node.SetTextContent(Some(value));
+        self.upcast::<Node>().SetTextContent(Some(value));
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
@@ -218,8 +216,7 @@ impl HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     fn force_relayout(&self) {
         let doc = document_from_node(self);
-        let node = self.upcast::<Node>();
-        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage)
     }
 
     fn dispatch_change_event(&self) {
@@ -230,15 +227,13 @@ impl HTMLTextAreaElement {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 
-        let target = self.upcast::<EventTarget>();
-        target.dispatch_event(event.r());
+        self.upcast::<EventTarget>().dispatch_event(&event);
     }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -279,8 +274,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let el = self.upcast::<Element>();
-        el.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -298,7 +292,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -323,11 +317,9 @@ impl VirtualMethods for HTMLTextAreaElement {
         if &*event.Type() == "click" && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(self);
-            doc.r().request_focus(self.upcast::<Element>());
+            document_from_node(self).request_focus(self.upcast());
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
-            let keyevent: Option<&KeyboardEvent> = event.downcast::<KeyboardEvent>();
-            keyevent.map(|kevent| {
+            if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
@@ -351,7 +343,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                     KeyReaction::Nothing => (),
                 }
-            });
+            }
         }
     }
 }

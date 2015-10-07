@@ -162,41 +162,37 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().SetOnload(listener)
         } else {
-            let target = self.upcast::<EventTarget>();
-            target.set_event_handler_common("load", listener)
+            self.upcast::<EventTarget>().set_event_handler_common("load", listener)
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        let maybe_input: Option<&HTMLInputElement> = self.downcast::<HTMLInputElement>();
-        if let Some(i) = maybe_input {
+        if let Some(i) = self.downcast::<HTMLInputElement>() {
             if i.Disabled() {
                 return;
             }
         }
-        let element = self.upcast::<Element>();
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
-        element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
+        self.upcast::<Element>()
+            .as_maybe_activatable()
+            .map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
     fn Focus(&self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let element = self.upcast::<Element>();
         let document = document_from_node(self);
-        let document = document.r();
         document.begin_focus_transaction();
-        document.request_focus(element);
+        document.request_focus(self.upcast());
         document.commit_focus_transaction(FocusType::Element);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        let el = self.upcast::<Element>();
-        if !el.get_focus_state() {
+        if !self.upcast::<Element>().get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
@@ -286,29 +282,25 @@ impl HTMLElement {
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Error::Syntax);
         }
-        let element = self.upcast::<Element>();
-        element.set_custom_attribute(to_snake_case(name), value)
+        self.upcast::<Element>().set_custom_attribute(to_snake_case(name), value)
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        let element = self.upcast::<Element>();
         let local_name = Atom::from_slice(&to_snake_case(local_name));
-        element.get_attribute(&ns!(""), &local_name).map(|attr| {
+        self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
             (**attr.r().value()).to_owned()
         })
     }
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
-        let element = self.upcast::<Element>();
         let local_name = Atom::from_slice(&to_snake_case(local_name));
-        element.remove_attribute(&ns!(""), &local_name);
+        self.upcast::<Element>().remove_attribute(&ns!(""), &local_name);
     }
 }
 
 impl VirtualMethods for HTMLElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &Element = self.upcast::<Element>();
-        Some(element as &VirtualMethods)
+        Some(self.upcast::<Element>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

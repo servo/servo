@@ -39,13 +39,10 @@ impl HTMLTitleElement {
 impl HTMLTitleElementMethods for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        let node = self.upcast::<Node>();
         let mut content = String::new();
-        for child in node.children() {
-            let text: Option<&Text> = child.downcast::<Text>();
-            match text {
-                Some(text) => content.push_str(&text.upcast::<CharacterData>().data()),
-                None => (),
+        for child in self.upcast::<Node>().children() {
+            if let Some(text) = child.downcast::<Text>() {
+                content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
         content
@@ -53,15 +50,13 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
-        let node = self.upcast::<Node>();
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 }
 
 impl VirtualMethods for HTMLTitleElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {

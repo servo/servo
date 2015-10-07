@@ -793,8 +793,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
 
 impl Window {
     pub fn clear_js_runtime(&self) {
-        let document = self.Document();
-        document.upcast::<Node>().teardown();
+        self.Document().upcast::<Node>().teardown();
 
         // The above code may not catch all DOM objects
         // (e.g. DOM objects removed from the tree that haven't
@@ -835,9 +834,7 @@ impl Window {
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let node = e.upcast::<Node>();
-                let content_size = node.get_bounding_content_box();
-
+                let content_size = e.upcast::<Node>().get_bounding_content_box();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
                 (xfinite.max(0.0f64).min(content_width - width),
@@ -1055,7 +1052,7 @@ impl Window {
         let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = from_untrusted_node_address(js_runtime.rt(), parent_node_address);
-            Root::downcast::<Element>(node)
+            Root::downcast(node)
         });
         (element, response.rect)
     }

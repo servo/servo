@@ -762,13 +762,12 @@ impl KeyboardEventMethods for KeyboardEvent {
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        let event = self.upcast::<Event>();
-        if event.dispatching() {
+        if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        let uievent = self.upcast::<UIEvent>();
-        uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
+        self.upcast::<UIEvent>()
+            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key_string.borrow_mut() = keyArg;
         self.location.set(locationArg);
         self.repeat.set(repeat);

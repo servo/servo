@@ -16,7 +16,6 @@ use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -74,9 +73,8 @@ impl Runnable for ImageResponseHandlerRunnable {
         };
 
         // Mark the node dirty
-        let node = element.upcast::<Node>();
-        let document = document_from_node(node);
-        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
+        let document = document_from_node(&*element);
+        document.content_changed(element.upcast(), NodeDamage::OtherNodeDamage);
 
         // Fire image.onload
         let window = window_from_node(document.r());
@@ -84,9 +82,7 @@ impl Runnable for ImageResponseHandlerRunnable {
                                "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let event = event.r();
-        let target = node.upcast::<EventTarget>();
-        event.fire(target);
+        event.fire(element.upcast());
 
         // Trigger reflow
         window.r().add_pending_reflow();
@@ -97,8 +93,7 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
-        let node = self.upcast::<Node>();
-        let document = node.owner_doc();
+        let document = document_from_node(self);
         let window = document.r().window();
         let image_cache = window.image_cache_task();
         match value {
@@ -204,8 +199,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     fn SetIsMap(&self, is_map: bool) {
-        let element = self.upcast::<Element>();
-        element.set_string_attribute(&atom!("ismap"), is_map.to_string())
+        self.upcast::<Element>().set_string_attribute(&atom!("ismap"), is_map.to_string())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
@@ -217,8 +211,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, width: u32) {
-        let elem = self.upcast::<Element>();
-        elem.set_uint_attribute(&atom!("width"), width)
+        self.upcast::<Element>().set_uint_attribute(&atom!("width"), width)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
@@ -230,8 +223,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, height: u32) {
-        let elem = self.upcast::<Element>();
-        elem.set_uint_attribute(&atom!("height"), height)
+        self.upcast::<Element>().set_uint_attribute(&atom!("height"), height)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
@@ -299,8 +291,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
 impl VirtualMethods for HTMLImageElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

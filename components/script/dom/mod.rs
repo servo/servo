@@ -151,8 +151,8 @@
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
 //! fn f(element: &Element) {
-//!     let base: &Node = element.upcast::<Node>();
-//!     let derived: Option<&HTMLElement> = element.downcast::<HTMLElement>();
+//!     let base = element.upcast::<Node>();
+//!     let derived = element.downcast::<HTMLElement>();
 //! }
 //! ```
 //!

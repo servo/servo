@@ -52,25 +52,18 @@ impl HTMLTableElement {
 impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
-        let node = self.upcast::<Node>();
-        node.children()
-            .filter_map(|c| {
-                c.downcast::<HTMLTableCaptionElement>().map(Root::from_ref)
-            })
-            .next()
+        self.upcast::<Node>().children().filter_map(Root::downcast).next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
-        let node = self.upcast::<Node>();
-
         if let Some(ref caption) = self.GetCaption() {
             caption.upcast::<Node>().remove_self();
         }
 
         if let Some(caption) = new_caption {
-            assert!(node.InsertBefore(caption.upcast::<Node>(),
-                                      node.GetFirstChild().as_ref().map(|n| n.r())).is_ok());
+            let node = self.upcast::<Node>();
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().r()).unwrap();
         }
     }
 
@@ -86,7 +79,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 caption
             }
         };
-        Root::upcast::<HTMLElement>(caption)
+        Root::upcast(caption)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
@@ -107,10 +100,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 .filter_map(Root::downcast::<Element>)
                 .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody"));
         let reference_element =
-            last_tbody.and_then(|t| Root::upcast::<Node>(t).GetNextSibling());
+            last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        assert!(node.InsertBefore(tbody.upcast::<Node>(),
-                                  reference_element.r()).is_ok());
+        node.InsertBefore(tbody.upcast(), reference_element.r()).unwrap();
         tbody
     }
 
@@ -142,8 +134,7 @@ impl HTMLTableElement {
 
 impl VirtualMethods for HTMLTableElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -78,8 +78,7 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned());
-        let event = messageevent.upcast::<Event>();
-        event.fire(target);
+        messageevent.upcast::<Event>().fire(target);
     }
 }
 

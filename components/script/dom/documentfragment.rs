@@ -48,7 +48,7 @@ impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::children(window.r(), self.upcast::<Node>())
+        HTMLCollection::children(&window, self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -90,13 +90,11 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
-        let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        self.upcast::<Node>().query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
-        let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        self.upcast::<Node>().query_selector_all(selectors)
     }
 }

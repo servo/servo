@@ -15,7 +15,6 @@ use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeMutation, Element};
 use dom::event::Event;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -148,9 +147,7 @@ impl HTMLIFrameElement {
                                                 true,
                                                 true,
                                                 detail.handle());
-            let target = self.upcast::<EventTarget>();
-            let event = custom_event.upcast::<Event>();
-            event.fire(target);
+            custom_event.upcast::<Event>().fire(self.upcast());
         }
     }
 
@@ -161,7 +158,7 @@ impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(self.upcast::<Element>(),
+            element::get_attr_for_layout(self.upcast(),
                                          &ns!(""),
                                          &atom!("width")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -172,7 +169,7 @@ impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(self.upcast::<Element>(),
+            element::get_attr_for_layout(self.upcast(),
                                          &ns!(""),
                                          &atom!("height")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -227,8 +224,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
     if iframe.Mozbrowser() {
-        let node = iframe.upcast::<Node>();
-        if node.is_in_doc() {
+        if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
             let window = window.r();
 
@@ -249,26 +245,22 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
 impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn Src(&self) -> DOMString {
-        let element = self.upcast::<Element>();
-        element.get_string_attribute(&atom!("src"))
+        self.upcast::<Element>().get_string_attribute(&atom!("src"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn SetSrc(&self, src: DOMString) {
-        let element = self.upcast::<Element>();
-        element.set_url_attribute(&atom!("src"), src)
+        self.upcast::<Element>().set_url_attribute(&atom!("src"), src)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DOMString {
-        let element = self.upcast::<Element>();
-        element.get_string_attribute(&atom!("sandbox"))
+        self.upcast::<Element>().get_string_attribute(&atom!("sandbox"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn SetSandbox(&self, sandbox: DOMString) {
-        let element = self.upcast::<Element>();
-        element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
+        self.upcast::<Element>().set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
@@ -360,8 +352,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
 impl VirtualMethods for HTMLIFrameElement {
     fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

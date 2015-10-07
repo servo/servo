@@ -150,8 +150,7 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     let mut chain: RootedVec<JS<EventTarget>> = RootedVec::new();
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
-            let ancestor_target = ancestor.upcast::<EventTarget>();
-            chain.push(JS::from_ref(ancestor_target))
+            chain.push(JS::from_ref(ancestor.upcast()));
         }
     }
 
@@ -161,13 +160,9 @@ pub fn dispatch_event(target: &EventTarget, pseudo_target: Option<&EventTarget>,
     let target = event.GetTarget();
     match target {
         Some(ref target) => {
-            let node: Option<&Node> = target.downcast::<Node>();
-            match node {
-                Some(node) => {
-                    let vtable = vtable_for(&node);
-                    vtable.handle_event(event);
-                }
-                None => {}
+            if let Some(node) = target.downcast::<Node>() {
+                let vtable = vtable_for(&node);
+                vtable.handle_event(event);
             }
         }
         None => {}

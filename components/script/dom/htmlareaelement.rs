@@ -10,7 +10,6 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
@@ -42,9 +41,8 @@ impl HTMLAreaElement {
 }
 
 impl VirtualMethods for HTMLAreaElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = self.upcast::<HTMLElement>();
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -59,7 +57,7 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(self.upcast::<Element>(), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &atom!("rel"))
         })
     }
 }

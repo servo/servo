@@ -17,7 +17,6 @@ use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmldatalistelement::HTMLDataListElement;
 use dom::htmlelement::HTMLElement;
@@ -163,8 +162,7 @@ impl HTMLFormElement {
                                "submit".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
-        let target = self.upcast::<EventTarget>();
-        event.r().fire(target);
+        event.fire(self.upcast());
         if event.r().DefaultPrevented() {
             return;
         }
@@ -316,21 +314,17 @@ impl HTMLFormElement {
                                "reset".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
-        let target = self.upcast::<EventTarget>();
-        event.r().fire(target);
+        event.fire(self.upcast());
         if event.r().DefaultPrevented() {
             return;
         }
 
-        let node = self.upcast::<Node>();
-
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
-        for child in node.traverse_preorder() {
+        for child in self.upcast::<Node>().traverse_preorder() {
             match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                    let input = child.downcast::<HTMLInputElement>().unwrap();
-                    input.reset()
+                    child.downcast::<HTMLInputElement>().unwrap().reset();
                 }
                 // TODO HTMLKeygenElement unimplemented
                 //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
@@ -342,8 +336,7 @@ impl HTMLFormElement {
                     {}
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    let textarea = child.downcast::<HTMLTextAreaElement>().unwrap();
-                    textarea.reset()
+                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
@@ -484,13 +477,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
                 _ => ()
             }
         }
-        let node = elem.upcast::<Node>();
-        for ancestor in node.ancestors() {
-            if let Some(ancestor) = ancestor.downcast::<HTMLFormElement>() {
-                return Some(Root::from_ref(ancestor))
-            }
-        }
-        None
+        elem.upcast::<Node>().ancestors().filter_map(Root::downcast).next()
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(&self,
@@ -509,7 +496,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     }
 
     fn to_element(&self) -> &Element {
-        self.upcast::<Element>()
+        self.upcast()
     }
 }
 
