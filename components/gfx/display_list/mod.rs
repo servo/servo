@@ -279,6 +279,8 @@ impl DisplayList {
             layer_kind: paint_context.layer_kind,
         };
 
+        let pixels_per_px = paint_subcontext.screen_pixels_per_px();
+
         if opts::get().dump_display_list_optimized {
             self.print(format!("Optimized display list. Tile bounds: {:?}",
                                 paint_context.page_rect));
@@ -306,11 +308,11 @@ impl DisplayList {
                 transform.translate(positioned_kid.bounds
                                                   .origin
                                                   .x
-                                                  .to_nearest_px() as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
                                     positioned_kid.bounds
                                                   .origin
                                                   .y
-                                                  .to_nearest_px() as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
                                     0.0);
             positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                           &new_transform,
@@ -348,11 +350,11 @@ impl DisplayList {
                 transform.translate(positioned_kid.bounds
                                                   .origin
                                                   .x
-                                                  .to_nearest_px() as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
                                     positioned_kid.bounds
                                                   .origin
                                                   .y
-                                                  .to_nearest_px() as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
                                     0.0);
             positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                           &new_transform,
