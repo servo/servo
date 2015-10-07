@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
@@ -12,7 +14,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement};
 use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -44,6 +46,24 @@ impl HTMLSelectElement {
                document: &Document) -> Root<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
+    }
+
+    pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
+        let node = NodeCast::from_ref(self);
+        if self.Name().is_empty() {
+            return;
+        }
+        for child in node.traverse_preorder() {
+            if let Some(option) = HTMLOptionElementCast::to_ref(child.r()) {
+                if option.Selected() && child.get_enabled_state() {
+                    data_set.push(FormDatum {
+                        ty: self.Type(),
+                        name: self.Name(),
+                        value: option.Value()
+                    });
+                }
+            }
+        }
     }
 }
 
