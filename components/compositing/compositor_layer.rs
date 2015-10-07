@@ -472,7 +472,9 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                     }
 
                     // Keep this layer if it exists in the new layer list.
-                    return new_layers.iter().any(|properties| properties.id == extra_data.id);
+                    if new_layers.iter().any(|properties| properties.id == extra_data.id) {
+                        return true
+                    }
                 }
 
                 if let Some(ref subpage_info_for_this_layer) = extra_data.subpage_info {
