@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLOptionElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
@@ -15,6 +16,7 @@ use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -53,6 +55,42 @@ impl HTMLSelectElement {
                document: &Document) -> Root<HTMLSelectElement> {
         let element = HTMLSelectElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#ask-for-a-reset
+    pub fn ask_for_reset(&self) {
+        if self.Multiple() {
+            return;
+        }
+
+        let mut num_selected = 0;
+        let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
+        let mut last_selected: Option<Root<HTMLOptionElement>> = None;
+
+        let node = NodeCast::from_ref(self);
+        for opt in node.traverse_preorder().filter_map(HTMLOptionElementCast::to_root) {
+            if opt.r().Selected() {
+                opt.r().SetSelected(false);
+                num_selected += 1;
+                last_selected = Some(Root::from_ref(opt.r()));
+            }
+            let c = NodeCast::from_ref(opt.r());
+            if !first_enabled.is_some() && !c.get_disabled_state() {
+                first_enabled = Some(Root::from_ref(opt.r()));
+            }
+        }
+
+        if num_selected == 0 {
+            if self.Size() == 1 {
+                // select the first enabled element
+                if let Some(first_opt) = first_enabled {
+                    first_opt.r().SetSelected(true);
+                }
+            }
+        } else {
+            // multiple options were selected, reselect last one
+            last_selected.unwrap().r().SetSelected(true);
+        }
     }
 }
 
