@@ -821,6 +821,12 @@
             "url": "/_mozilla/mozilla/union.html"
           }
         ],
+        "mozilla/webgl_context_creation_error.html": [
+          {
+            "path": "mozilla/webgl_context_creation_error.html",
+            "url": "/_mozilla/mozilla/webgl_context_creation_error.html"
+          }
+        ],
         "mozilla/websocket_connection_fail.html": [
           {
             "path": "mozilla/websocket_connection_fail.html",

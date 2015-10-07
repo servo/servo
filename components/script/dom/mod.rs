@@ -335,6 +335,7 @@ pub mod validitystate;
 pub mod virtualmethods;
 pub mod webglactiveinfo;
 pub mod webglbuffer;
+pub mod webglcontextevent;
 pub mod webglframebuffer;
 pub mod webglobject;
 pub mod webglprogram;
