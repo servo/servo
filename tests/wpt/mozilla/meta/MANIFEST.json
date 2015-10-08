@@ -111,6 +111,18 @@
             "url": "/_mozilla/css/absolute_table.html"
           }
         ],
+        "css/absolute_z_index_auto_paint_order_a.html": [
+          {
+            "path": "css/absolute_z_index_auto_paint_order_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_z_index_auto_paint_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1014,6 +1026,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_table.html"
+        }
+      ],
+      "css/absolute_z_index_auto_paint_order_a.html": [
+        {
+          "path": "css/absolute_z_index_auto_paint_order_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_z_index_auto_paint_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
         }
       ],
       "css/background.html": [
