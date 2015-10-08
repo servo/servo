@@ -31,7 +31,6 @@ extern crate gleam;
 extern crate glutin_app;
 extern crate js;
 extern crate layers;
-extern crate png;
 extern crate rustc_unicode;
 extern crate script;
 extern crate script_traits;

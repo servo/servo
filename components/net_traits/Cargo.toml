@@ -7,10 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "net_traits"
 path = "lib.rs"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-features = [ "serde-serialization" ]
-
 [dependencies.util]
 path = "../util"
 
@@ -37,6 +33,7 @@ path = "../plugins"
 [dependencies]
 log = "0.3"
 euclid = "0.2"
+image = "0.3.14"
 regex = "0.1.33"
 regex_macros = "0.1.19"
 serde = "0.6"
