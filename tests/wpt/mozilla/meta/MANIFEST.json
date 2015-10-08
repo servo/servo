@@ -159,6 +159,18 @@
             "url": "/_mozilla/css/alpha_png_a.html"
           }
         ],
+        "css/anon_block_inherit_a.html": [
+          {
+            "path": "css/anon_block_inherit_a.html",
+            "references": [
+              [
+                "/_mozilla/css/anon_block_inherit_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/anon_block_inherit_a.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1110,6 +1122,18 @@
             ]
           ],
           "url": "/_mozilla/css/alpha_png_a.html"
+        }
+      ],
+      "css/anon_block_inherit_a.html": [
+        {
+          "path": "css/anon_block_inherit_a.html",
+          "references": [
+            [
+              "/_mozilla/css/anon_block_inherit_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/anon_block_inherit_a.html"
         }
       ],
       "css/background.html": [
