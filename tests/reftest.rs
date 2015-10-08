@@ -21,10 +21,10 @@ extern crate util;
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{PathExt, File, walk_dir};
-use std::io::{self, Read, Result};
+use std::io::{self, Read, Result, Write};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::process::{Command, Stdio};
+use std::process::{Command};
 use std::thread::sleep_ms;
 use test::run_tests_console;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
@@ -284,8 +284,6 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
     let mut command = Command::new(&servo_path());
     command
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .args(&reftest.servo_args[..])
         .arg("--user-stylesheet").arg(util::resource_files::resources_dir_path().join("ahem.css"))
         // Allows pixel perfect rendering of Ahem font and the HTML canvas for reftests.
@@ -317,11 +315,24 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         command.arg("--device-pixel-ratio");
         command.arg(pixel_ratio.to_string());
     }
-    let retval = match command.status() {
-        Ok(status) => status,
+    let (exit_status, stderr, stdout) = match command.output() {
+        Ok(output) => (output.status, output.stderr, output.stdout),
         Err(e) => panic!("failed to execute process: {}", e),
     };
-    assert!(retval.success());
+
+    if !stdout.is_empty() {
+        let stdout_filename = format!("/tmp/servo-reftest-{:06}-{}-stdout.txt", reftest.id, side);
+        let mut stdout_file = File::create(stdout_filename).unwrap();
+        stdout_file.write_all(&stdout[..]).unwrap();
+    }
+
+    if !stderr.is_empty() {
+        let stderr_filename = format!("/tmp/servo-reftest-{:06}-{}-stderr.txt", reftest.id, side);
+        let mut stderr_file = File::create(stderr_filename).unwrap();
+        stderr_file.write_all(&stderr[..]).unwrap();
+    }
+
+    assert!(exit_status.success());
 
     let image = png::load_png(&png_filename).unwrap();
     let rgba8_bytes = match image.pixels {
