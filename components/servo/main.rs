@@ -75,11 +75,6 @@ fn main() {
     };
 
     maybe_unregister_glutin_resize_handler(&window);
-
-    let BrowserWrapper {
-        browser
-    } = browser;
-    browser.shutdown();
 }
 
 fn maybe_register_glutin_resize_handler(window: &Option<Rc<app::window::Window>>,

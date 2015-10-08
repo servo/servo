@@ -98,9 +98,4 @@ fn main() {
             break
         }
     }
-
-    let BrowserWrapper {
-        browser
-    } = browser;
-    browser.shutdown();
 }
