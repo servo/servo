@@ -147,6 +147,18 @@
             "url": "/_mozilla/css/alpha_gif_a.html"
           }
         ],
+        "css/alpha_png_a.html": [
+          {
+            "path": "css/alpha_png_a.html",
+            "references": [
+              [
+                "/_mozilla/css/alpha_png_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/alpha_png_a.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1086,6 +1098,18 @@
             ]
           ],
           "url": "/_mozilla/css/alpha_gif_a.html"
+        }
+      ],
+      "css/alpha_png_a.html": [
+        {
+          "path": "css/alpha_png_a.html",
+          "references": [
+            [
+              "/_mozilla/css/alpha_png_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/alpha_png_a.html"
         }
       ],
       "css/background.html": [
