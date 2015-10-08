@@ -36,7 +36,7 @@ use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{NodeDamage, window_from_node};
 use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
@@ -406,7 +406,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
+    mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: RefCell<HashSet<PipelineId>>,
@@ -1718,7 +1718,7 @@ impl ScriptTask {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
 
-                let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+                let mut prev_mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
                 for target in &*self.mouse_over_targets.borrow_mut() {
                     prev_mouse_over_targets.push(target.clone());
                 }
@@ -1732,7 +1732,7 @@ impl ScriptTask {
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if target.root().r().is_anchor_element() {
+                        if NodeCast::from_ref(target.root().r()).is_anchor_element() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1744,9 +1744,8 @@ impl ScriptTask {
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
                     let target = target.root();
-                    if target.r().is_anchor_element() {
-                        let element = ElementCast::to_ref(target.r()).unwrap();
-                        let status = element.get_attribute(&ns!(""), &atom!("href"))
+                    if NodeCast::from_ref(target.r()).is_anchor_element() {
+                        let status = target.r().get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.r().url();
