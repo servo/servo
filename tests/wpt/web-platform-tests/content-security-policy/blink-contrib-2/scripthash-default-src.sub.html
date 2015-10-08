@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>script-hash allowed from default-src</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    
+    <script>done();</script>
+    </head>
+
+    <body>
+    <div id="log"></div>
+    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
+    </body>
+</html>

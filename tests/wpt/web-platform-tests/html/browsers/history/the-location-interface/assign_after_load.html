@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Assignment to location after document is completely loaded</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe></iframe>
+<script>
+var t = async_test();
+var history_length;
+
+onload = t.step_func(function() {
+  setTimeout(function() {
+    history_length = history.length;
+    document.getElementsByTagName("iframe")[0].src = "assign_after_load-1.html";
+  }, 100);
+});
+
+do_test = t.step_func(function() {
+    assert_equals(history.length, history_length + 2);
+    t.done();
+});
+
+</script>

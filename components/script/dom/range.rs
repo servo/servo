@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextCast, TextDerived};
-use dom::bindings::error::Error::HierarchyRequest;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
@@ -117,7 +116,7 @@ impl Range {
 
         // Step 12.
         if contained_children.iter().any(|n| n.is_doctype()) {
-            return Err(HierarchyRequest);
+            return Err(Error::HierarchyRequest);
         }
 
         Ok((first_contained_child, last_contained_child, contained_children))
@@ -597,7 +596,7 @@ impl RangeMethods for Range {
         match start_node.type_id() {
             // Handled under step 2.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
-            NodeTypeId::CharacterData(_) => return Err(HierarchyRequest),
+            NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
             _ => ()
         }
 
@@ -608,7 +607,7 @@ impl RangeMethods for Range {
                 let parent = match start_node.GetParentNode() {
                     Some(parent) => parent,
                     // Step 1.
-                    None => return Err(HierarchyRequest)
+                    None => return Err(Error::HierarchyRequest)
                 };
                 // Step 5.
                 (Some(Root::from_ref(start_node.r())), parent)

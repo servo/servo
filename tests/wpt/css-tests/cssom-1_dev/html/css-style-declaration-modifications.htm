@@ -14,8 +14,8 @@
 {
   "CSSStyleDeclaration_accessible": {
     "help": ["http://www.w3.org/TR/cssom/#the-cssstylesheet-interface",
-             "http://www.w3.org/TR/cssom/#the-cssrulelist-sequence",
-             "http://www.w3.org/TR/cssom/#css-style-rule-rule-set"],
+             "http://www.w3.org/TR/cssom/#the-cssrulelist-interface",
+             "http://www.w3.org/TR/cssom/#the-cssstylerule-interface"],
     "assert": "Can access CSSStyleDeclaration through CSSOM"
   },
   "read": { "assert": "initial property values are correct" },
@@ -46,8 +46,8 @@
        declaration = styleElement.sheet.cssRules.item(0).style;
      }, "CSSStyleDeclaration_accessible",
      {  help: [ "http://www.w3.org/TR/cssom/#the-cssstylesheet-interface",
-                "http://www.w3.org/TR/cssom/#the-cssrulelist-sequence",
-                "http://www.w3.org/TR/cssom/#css-style-rule-rule-set" ],
+                "http://www.w3.org/TR/cssom/#the-cssrulelist-interface",
+                "http://www.w3.org/TR/cssom/#the-cssstylerule-interface" ],
         assert: "Can access CSSStyleDeclaration through CSSOM" });
 
     test(function() {        

@@ -615,15 +615,16 @@ impl Handler {
             sleep_ms(interval)
         }
 
-        if img.is_none() {
-            return Err(WebDriverError::new(ErrorStatus::Timeout,
-                                           "Taking screenshot timed out"));
-        }
+        let mut img = match img {
+            Some(img) => img,
+            None => return Err(WebDriverError::new(ErrorStatus::Timeout,
+                                                   "Taking screenshot timed out")),
+        };
 
-        let img_vec = match png::to_vec(&mut img.unwrap()) {
-           Ok(x) => x,
-           Err(_) => return Err(WebDriverError::new(ErrorStatus::UnknownError,
-                                                    "Taking screenshot failed"))
+        let img_vec = match png::to_vec(&mut img) {
+            Ok(x) => x,
+            Err(_) => return Err(WebDriverError::new(ErrorStatus::UnknownError,
+                                                     "Taking screenshot failed"))
         };
         let config = Config {
             char_set: CharacterSet::Standard,

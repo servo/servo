@@ -1,0 +1,6 @@
+<!doctype html>
+<form action="child_navigates_parent_submit-3.html" target="_parent"></form>
+<script>
+parent.parent.postMessage("inner", "*");
+document.forms[0].submit()
+</script>

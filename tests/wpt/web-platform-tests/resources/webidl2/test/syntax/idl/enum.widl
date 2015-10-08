@@ -6,3 +6,5 @@ interface Meal {
 
   void initialize(MealType type, float size);
 };
+
+enum AltMealType { "rice", "noodles", "other", };

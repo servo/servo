@@ -15,8 +15,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::Error::{IndexSize, InvalidState, Syntax};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
@@ -252,7 +251,7 @@ impl CanvasRenderingContext2D {
                         let size = Size2D::new(size.width as f64, size.height as f64);
                         (data, size)
                     },
-                    None => return Err(InvalidState),
+                    None => return Err(Error::InvalidState),
                 };
                 let dw = dw.unwrap_or(image_size.width);
                 let dh = dh.unwrap_or(image_size.height);
@@ -272,7 +271,7 @@ impl CanvasRenderingContext2D {
                   dx: f64, dy: f64, dw: Option<f64>, dh: Option<f64>) -> Fallible<()> {
         // 1. Check the usability of the image argument
         if !canvas.is_valid() {
-            return Err(InvalidState)
+            return Err(Error::InvalidState)
         }
 
         let canvas_size = canvas.get_size();
@@ -286,7 +285,7 @@ impl CanvasRenderingContext2D {
         let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(IndexSize)
+            return Err(Error::IndexSize)
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
@@ -297,7 +296,7 @@ impl CanvasRenderingContext2D {
         } else { // Source and target canvases are different
             let context = match canvas.get_or_init_2d_context() {
                 Some(context) => context,
-                None => return Err(InvalidState),
+                None => return Err(Error::InvalidState),
             };
 
             let renderer = context.r().get_ipc_renderer();
@@ -326,7 +325,7 @@ impl CanvasRenderingContext2D {
         let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size, sx, sy, sw, sh, dx, dy, dw, dh);
 
         if !is_rect_valid(source_rect) || !is_rect_valid(dest_rect) {
-            return Err(IndexSize)
+            return Err(Error::IndexSize)
         }
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
@@ -715,7 +714,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         if r < 0.0 {
-            return Err(IndexSize);
+            return Err(Error::IndexSize);
         }
 
         let msg = CanvasMsg::Canvas2d(
@@ -733,7 +732,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return Ok(());
         }
         if r < 0.0 {
-            return Err(IndexSize);
+            return Err(Error::IndexSize);
         }
 
         let msg = CanvasMsg::Canvas2d(
@@ -839,7 +838,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData(&self, sw: Finite<f64>, sh: Finite<f64>) -> Fallible<Root<ImageData>> {
         if *sw == 0.0 || *sh == 0.0 {
-            return Err(IndexSize)
+            return Err(Error::IndexSize)
         }
 
         let sw = cmp::max(1, sw.abs().to_u32().unwrap());
@@ -864,7 +863,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let mut sh = *sh;
 
         if sw == 0.0 || sh == 0.0 {
-            return Err(IndexSize)
+            return Err(Error::IndexSize)
         }
 
         if sw < 0.0 {
@@ -935,7 +934,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                             x1: Finite<f64>, y1: Finite<f64>, r1: Finite<f64>)
                             -> Fallible<Root<CanvasGradient>> {
         if *r0 < 0. || *r1 < 0. {
-            return Err(IndexSize);
+            return Err(Error::IndexSize);
         }
 
         Ok(CanvasGradient::new(self.global.root().r(),
@@ -954,7 +953,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 // then throw an InvalidStateError exception
                 match self.fetch_image_data(&image_element) {
                     Some((data, size)) => (data, size),
-                    None => return Err(InvalidState),
+                    None => return Err(Error::InvalidState),
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
@@ -963,7 +962,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
                 match canvas.fetch_all_data() {
                     Some((data, size)) => (data, size),
-                    None => return Err(InvalidState),
+                    None => return Err(Error::InvalidState),
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(context) => {
@@ -973,7 +972,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
                 match canvas.fetch_all_data() {
                     Some((data, size)) => (data, size),
-                    None => return Err(InvalidState),
+                    None => return Err(Error::InvalidState),
                 }
             },
         };
@@ -984,7 +983,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                                          image_size,
                                          rep));
         }
-        return Err(Syntax);
+        return Err(Error::Syntax);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth

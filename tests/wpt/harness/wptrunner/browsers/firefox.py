@@ -53,8 +53,14 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True
-    if run_info_data["debug"] and kwargs["timeout_multiplier"] is None:
-        executor_kwargs["timeout_multiplier"] = 3
+    if kwargs["timeout_multiplier"] is None:
+        if kwargs["gecko_e10s"] and test_type == "reftest":
+            if run_info_data["debug"]:
+                executor_kwargs["timeout_multiplier"] = 4
+            else:
+                executor_kwargs["timeout_multiplier"] = 2
+        elif run_info_data["debug"]:
+            executor_kwargs["timeout_multiplier"] = 3
     return executor_kwargs
 
 

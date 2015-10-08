@@ -30,7 +30,7 @@ use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use png;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
@@ -49,6 +49,7 @@ use time::{precise_time_ns, precise_time_s};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
+use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 const BUFFER_MAP_SIZE: usize = 10000000;
@@ -154,19 +155,12 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
 
-    /// Has a Quit event been seen?
-    has_seen_quit_event: bool,
-
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
 
     /// A data structure to cache unused NativeSurfaces.
     surface_map: SurfaceMap,
-
-    /// Information about subpage layers that are pending. The keys in this map are the
-    /// pipeline/subpage IDs of the parent.
-    pending_subpage_layers: HashMap<(PipelineId, SubpageId), PendingSubpageLayerInfo>,
 
     /// Pipeline IDs of subpages that the compositor has seen in a layer tree but which have not
     /// yet been painted.
@@ -312,10 +306,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             mem_profiler_chan: state.mem_profiler_chan,
             fragment_point: None,
             last_composite_time: 0,
-            has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
-            pending_subpage_layers: HashMap::new(),
             pending_subpages: HashSet::new(),
         }
     }
@@ -333,25 +325,48 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
+    pub fn start_shutting_down(&mut self) {
+        debug!("Compositor sending Exit message to Constellation");
+        let ConstellationChan(ref constellation_channel) = self.constellation_chan;
+        constellation_channel.send(ConstellationMsg::Exit).unwrap();
+
+        self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
+
+        self.shutdown_state = ShutdownState::ShuttingDown;
+    }
+
+    pub fn finish_shutting_down(&mut self) {
+        debug!("Compositor received message that constellation shutdown is complete");
+
+        // Clear out the compositor layers so that painting tasks can destroy the buffers.
+        if let Some(ref root_layer) = self.scene.root {
+            root_layer.forget_all_tiles();
+        }
+
+        // Drain compositor port, sometimes messages contain channels that are blocking
+        // another task from finishing (i.e. SetFrameTree).
+        while self.port.try_recv_compositor_msg().is_some() {}
+
+        // Tell the profiler, memory profiler, and scrolling timer to shut down.
+        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+        self.scrolling_timer.shutdown();
+
+        self.shutdown_state = ShutdownState::FinishedShuttingDown;
+    }
+
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) =>
                 panic!("compositor shouldn't be handling messages after shutting down"),
 
-            (Msg::Exit(chan), _) => {
-                debug!("shutting down the constellation");
-                let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ConstellationMsg::Exit).unwrap();
-                chan.send(()).unwrap();
-
-                self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
-
-                self.shutdown_state = ShutdownState::ShuttingDown;
+            (Msg::Exit(channel), _) => {
+                self.start_shutting_down();
+                channel.send(()).unwrap();
             }
 
             (Msg::ShutdownComplete, _) => {
-                debug!("constellation completed shutdown");
-                self.shutdown_state = ShutdownState::FinishedShuttingDown;
+                self.finish_shutting_down();
                 return false;
             }
 
@@ -389,6 +404,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 self.send_buffer_requests_for_all_layers();
+                self.dump_layer_tree();
             }
 
             (Msg::GetNativeDisplay(chan),
@@ -486,7 +502,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
-                let img = self.composite_specific_target(CompositeTarget::WindowAndPng);
+                let res = self.composite_specific_target(CompositeTarget::WindowAndPng);
+                let img = res.unwrap_or(None);
                 reply.send(img).unwrap();
             }
 
@@ -517,15 +534,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.head_parsed();
             }
 
-            (Msg::CreateLayerForSubpage(parent_pipeline_id,
-                                        parent_subpage_id,
-                                        subpage_pipeline_id),
-             ShutdownState::NotShuttingDown) => {
-                 self.create_layer_for_subpage(parent_pipeline_id,
-                                               parent_subpage_id,
-                                               subpage_pipeline_id);
-            }
-
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
                 let mut reports = vec![];
                 let name = "compositor-task";
@@ -546,11 +554,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::PipelineExited(pipeline_id), _) => {
                 self.pending_subpages.remove(&pipeline_id);
-
-                // FIXME(pcwalton): This is a total hack. But it'll get complicated to do this
-                // properly, since we need to get rid of the pending subpage layers if either the
-                // parent or the child layer goes away.
-                self.pending_subpage_layers.clear();
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -713,9 +716,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         root_layer.collect_old_layers(self, pipeline_id, new_layers, &mut pipelines_removed);
 
         for pipeline_removed in pipelines_removed.into_iter() {
-            self.pending_subpage_layers.remove(&(pipeline_removed.parent_pipeline_id,
-                                                 pipeline_removed.parent_subpage_id));
-            self.pending_subpages.remove(&pipeline_removed.child_pipeline_id);
+            self.pending_subpages.remove(&pipeline_removed);
         }
     }
 
@@ -829,53 +830,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     scrolls_overflow_area: true,
                 };
 
-                // We need to map from the (pipeline ID, subpage ID) pair to the pipeline ID of
-                // the subpage itself. The constellation is the source of truth for that
-                // information, so go ask it. In the meantime, store the information in the list of
-                // pending subpage layers.
-                self.pending_subpage_layers.insert((pipeline_id, subpage_layer_info.subpage_id),
-                                                   PendingSubpageLayerInfo {
-                    subpage_layer_properties: subpage_layer_properties,
-                    container_layer_id: layer_properties.id,
-                });
-                self.constellation_chan.0.send(ConstellationMsg::PrepareForSubpageLayerCreation(
-                        pipeline_id,
-                        subpage_layer_info.subpage_id)).unwrap();
-            }
-
-            parent_layer.add_child(new_layer.clone());
-        }
-    }
-
-    fn create_layer_for_subpage(&mut self,
-                                parent_pipeline_id: PipelineId,
-                                parent_subpage_id: SubpageId,
-                                subpage_pipeline_id: Option<PipelineId>) {
-        let subpage_pipeline_id = match subpage_pipeline_id {
-            Some(subpage_pipeline_id) => subpage_pipeline_id,
-            None => return,
-        };
-        if let Some(PendingSubpageLayerInfo {
-            subpage_layer_properties,
-            container_layer_id
-        }) = self.pending_subpage_layers.remove(&(parent_pipeline_id, parent_subpage_id)) {
-            if let Some(container_layer) =
-                    self.find_layer_with_pipeline_and_layer_id(parent_pipeline_id,
-                                                               container_layer_id) {
                 let wants_scroll_events = if subpage_layer_properties.scrolls_overflow_area {
                     WantsScrollEventsFlag::WantsScrollEvents
                 } else {
                     WantsScrollEventsFlag::DoesntWantScrollEvents
                 };
-                let subpage_layer = CompositorData::new_layer(subpage_pipeline_id,
+                let subpage_layer = CompositorData::new_layer(subpage_layer_info.pipeline_id,
                                                               subpage_layer_properties,
                                                               wants_scroll_events,
-                                                              container_layer.tile_size);
+                                                              new_layer.tile_size);
                 *subpage_layer.masks_to_bounds.borrow_mut() = true;
-                container_layer.add_child(subpage_layer);
-                self.pending_subpages.insert(subpage_pipeline_id);
+                new_layer.add_child(subpage_layer);
+                self.pending_subpages.insert(subpage_layer_info.pipeline_id);
             }
+
+            parent_layer.add_child(new_layer.clone());
         }
+
+        self.dump_layer_tree();
     }
 
     fn send_window_size(&self) {
@@ -901,7 +873,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::FrameSize(subpage_layer_info.pipeline_id,
-                                              subpage_layer_info.subpage_id,
                                               layer_properties.rect.size)).unwrap();
     }
 
@@ -1058,12 +1029,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             WindowEvent::Quit => {
-                if !self.has_seen_quit_event {
-                    self.has_seen_quit_event = true;
-                    debug!("shutting down the constellation for WindowEvent::Quit");
-                    let ConstellationChan(ref chan) = self.constellation_chan;
-                    chan.send(ConstellationMsg::Exit).unwrap();
-                    self.shutdown_state = ShutdownState::ShuttingDown;
+                if self.shutdown_state == ShutdownState::NotShuttingDown {
+                    debug!("Shutting down the constellation for WindowEvent::Quit");
+                    self.start_shutting_down();
                 }
             }
         }
@@ -1495,7 +1463,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
-                if self.pending_subpage_layers.len() > 0 || self.pending_subpages.len() > 0 {
+                if self.pending_subpages.len() > 0 {
                     return false
                 }
 
@@ -1540,28 +1508,39 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite(&mut self) {
         let target = self.composite_target;
-        self.composite_specific_target(target);
+        let composited = self.composite_specific_target(target);
+        if composited.is_ok() &&
+            (opts::get().output_file.is_some() || opts::get().exit_after_load) {
+            debug!("Shutting down the Constellation after generating an output file or exit flag specified");
+            self.start_shutting_down();
+        }
     }
 
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Option<png::Image> {
+    /// Composite either to the screen or to a png image or both.
+    /// Returns Ok if composition was performed or Err if it was not possible to composite
+    /// for some reason. If CompositeTarget is Window or Png no image data is returned;
+    /// in the latter case the image is written directly to a file. If CompositeTarget
+    /// is WindowAndPng Ok(Some(png::Image)) is returned.
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<png::Image>, ()> {
+
         if !self.context.is_some() {
-            return None
+            return Err(())
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
-            return None
+            return Err(())
         }
 
         match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
                 if !self.is_ready_to_paint_image_output() {
-                    return None
+                    return Err(())
                 }
             }
             CompositeTarget::Window => {
                 if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
-                    return None
+                    return Err(())
                 }
             }
         }
@@ -1573,6 +1552,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         profile(ProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
+            self.dump_layer_tree();
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
                 origin: Point2D::zero(),
@@ -1604,13 +1584,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         };
 
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
-            debug!("shutting down the constellation (after generating an output file or exit flag specified)");
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::Exit).unwrap();
-            self.shutdown_state = ShutdownState::ShuttingDown;
-        }
-
         // Perform the page flip. This will likely block for a while.
         self.window.present();
 
@@ -1619,7 +1592,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composition_request = CompositionRequest::NoCompositingNecessary;
         self.process_pending_scroll_events();
         self.process_animations();
-        rv
+
+        Ok(rv)
     }
 
     fn draw_png(&self,
@@ -1750,28 +1724,63 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     #[allow(dead_code)]
     fn dump_layer_tree(&self) {
+        if !opts::get().dump_layer_tree {
+            return;
+        }
+
+        let mut print_tree = PrintTree::new("Layer tree".to_owned());
         if let Some(ref layer) = self.scene.root {
-            println!("Layer tree:");
-            self.dump_layer_tree_with_indent(&**layer, 0);
+            self.dump_layer_tree_layer(&**layer, &mut print_tree);
         }
     }
 
     #[allow(dead_code)]
-    fn dump_layer_tree_with_indent(&self, layer: &Layer<CompositorData>, level: u32) {
-        let mut indentation = String::new();
-        for _ in 0..level {
-            indentation.push_str("  ");
-        }
+    fn dump_layer_tree_layer(&self, layer: &Layer<CompositorData>, print_tree: &mut PrintTree) {
+        let data = layer.extra_data.borrow();
+        let layer_string = if data.id == LayerId::null() {
+            format!("Root Layer (pipeline={})", data.pipeline_id)
+        } else {
+            "Layer".to_owned()
+        };
 
-        println!("{}Layer {:x}: {:?} @ {:?} masks to bounds: {:?} establishes 3D context: {:?}",
-                 indentation,
-                 layer as *const _ as usize,
-                 layer.extra_data,
-                 *layer.bounds.borrow(),
-                 *layer.masks_to_bounds.borrow(),
-                 layer.establishes_3d_context);
-        for kid in &*layer.children() {
-            self.dump_layer_tree_with_indent(&**kid, level + 1)
+        let masks_string = if *layer.masks_to_bounds.borrow() {
+            " (masks children)"
+        } else {
+            ""
+        };
+
+        let establishes_3d_context_string = if layer.establishes_3d_context {
+            " (3D context)"
+        } else {
+            ""
+        };
+
+        let fixed_string = if data.scroll_policy == ScrollPolicy::FixedPosition {
+            " (fixed)"
+        } else {
+            ""
+        };
+
+        let layer_string = format!("{} ({:?}) ({},{} at {},{}){}{}{}",
+                                   layer_string,
+                                   layer.extra_data.borrow().id,
+                                   (*layer.bounds.borrow()).size.to_untyped().width,
+                                   (*layer.bounds.borrow()).size.to_untyped().height,
+                                   (*layer.bounds.borrow()).origin.to_untyped().x,
+                                   (*layer.bounds.borrow()).origin.to_untyped().y,
+                                   masks_string,
+                                   establishes_3d_context_string,
+                                   fixed_string);
+
+        let children = layer.children();
+        if !children.is_empty() {
+            print_tree.new_level(layer_string);
+            for kid in &*children {
+                self.dump_layer_tree_layer(&**kid, print_tree);
+            }
+            print_tree.end_level();
+        } else {
+            print_tree.add_item(layer_string);
         }
     }
 }
@@ -1812,9 +1821,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
-            // We have exited the compositor and passing window
-            // messages to script may crash.
-            debug!("Exiting the compositor due to a request from script.");
             return false;
         }
 
@@ -1863,23 +1869,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
     }
 
-    fn shutdown(&mut self) {
-        // Clear out the compositor layers so that painting tasks can destroy the buffers.
-        match self.scene.root {
-            None => {}
-            Some(ref layer) => layer.forget_all_tiles(),
-        }
-
-        // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetFrameTree).
-        while self.port.try_recv_compositor_msg().is_some() {}
-
-        // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
-        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
-        self.scrolling_timer.shutdown();
-    }
-
     fn pinch_zoom_level(&self) -> f32 {
         self.viewport_zoom.get() as f32
     }
@@ -1914,16 +1903,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-
-struct PendingSubpageLayerInfo {
-    subpage_layer_properties: LayerProperties,
-    container_layer_id: LayerId,
-}
-
-#[derive(Copy, Clone)]
-pub struct RemovedPipelineInfo {
-    pub parent_pipeline_id: PipelineId,
-    pub parent_subpage_id: SubpageId,
-    pub child_pipeline_id: PipelineId,
-}
-

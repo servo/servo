@@ -2064,10 +2064,12 @@ class CGAbstractMethod(CGThing):
     If templateArgs is not None it should be a list of strings containing
     template arguments, and the function will be templatized using those
     arguments.
+
+    docs is None or documentation for the method in a string.
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, pub=False, templateArgs=None,
-                 unsafe=False):
+                 unsafe=False, docs=None):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2078,6 +2080,7 @@ class CGAbstractMethod(CGThing):
         self.templateArgs = templateArgs
         self.pub = pub
         self.unsafe = unsafe
+        self.docs = docs
 
     def _argstring(self):
         return ', '.join([a.declare() for a in self.args])
@@ -2086,6 +2089,13 @@ class CGAbstractMethod(CGThing):
         if self.templateArgs is None:
             return ''
         return '<%s>\n' % ', '.join(self.templateArgs)
+
+    def _docs(self):
+        if self.docs is None:
+            return ''
+
+        lines = self.docs.splitlines()
+        return ''.join('/// %s\n' % line for line in lines)
 
     def _decorators(self):
         decorators = []
@@ -2118,8 +2128,9 @@ class CGAbstractMethod(CGThing):
                          post=self.definition_epilogue()).define()
 
     def definition_prologue(self):
-        return "%sfn %s%s(%s)%s {\n" % (self._decorators(), self.name, self._template(),
-                                        self._argstring(), self._returnType())
+        return "%s%sfn %s%s(%s)%s {\n" % (self._docs(), self._decorators(),
+                                          self.name, self._template(),
+                                          self._argstring(), self._returnType())
 
     def definition_epilogue(self):
         return "\n}\n"
@@ -4971,8 +4982,9 @@ class CGRegisterProtos(CGAbstractMethod):
 
 class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
+        docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True)
+                                  unsafe=True, pub=True, docs=docs)
         self.descriptors = descriptors
 
     def definition_body(self):

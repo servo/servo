@@ -36,7 +36,8 @@ class ServoWebDriverProtocol(Protocol):
 
         session_started = False
         try:
-            self.session = webdriver.Session(self.host, self.port)
+            self.session = webdriver.Session(self.host, self.port,
+                                             extension=webdriver.ServoExtensions)
             self.session.start()
         except:
             self.logger.warning(
@@ -81,6 +82,11 @@ class ServoWebDriverProtocol(Protocol):
             except Exception as e:
                 self.logger.error(traceback.format_exc(e))
                 break
+
+    def on_environment_change(self, old_environment, new_environment):
+        #Unset all the old prefs
+        self.session.extension.reset_prefs(*old_environment.get("prefs", {}).keys())
+        self.session.extension.set_prefs(new_environment.get("prefs", {}))
 
 
 class ServoWebDriverRun(object):

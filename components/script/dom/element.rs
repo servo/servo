@@ -28,9 +28,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSec
 use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::Error::NoModificationAllowed;
-use dom::bindings::error::Error::{InvalidCharacter, Syntax};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -45,6 +43,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmltablecellelement::HTMLTableCellElementLayoutHelpers;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
@@ -270,7 +269,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_background_color()
         } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-            (*this.unsafe_get()).get_background_color()
+            this.get_background_color()
         } else if let Some(this) = HTMLTableRowElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_background_color()
         } else if let Some(this) = HTMLTableSectionElementCast::to_layout_js(self) {
@@ -387,7 +386,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
             (*this.unsafe_get()).get_width()
         } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-            (*this.unsafe_get()).get_width()
+            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -504,7 +503,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
                 if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
-                    (*this.unsafe_get()).get_colspan()
+                    this.get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
                     // elements.
@@ -909,7 +908,7 @@ impl Element {
     pub fn set_custom_attribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
         match xml_name_type(&name) {
-            InvalidXMLName => return Err(InvalidCharacter),
+            InvalidXMLName => return Err(Error::InvalidCharacter),
             _ => {}
         }
 
@@ -1174,7 +1173,7 @@ impl ElementMethods for Element {
                     value: DOMString) -> ErrorResult {
         // Step 1.
         if xml_name_type(&name) == InvalidXMLName {
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 2.
@@ -1341,7 +1340,7 @@ impl ElementMethods for Element {
 
         let parent = match context_parent.r().type_id() {
             // Step 3.
-            NodeTypeId::Document => return Err(NoModificationAllowed),
+            NodeTypeId::Document => return Err(Error::NoModificationAllowed),
 
             // Step 4.
             NodeTypeId::DocumentFragment => {
@@ -1440,7 +1439,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         match parse_author_origin_selector_list_from_str(&selectors) {
-            Err(()) => Err(Syntax),
+            Err(()) => Err(Error::Syntax),
             Ok(ref selectors) => {
                 Ok(matches(selectors, &Root::from_ref(self), None))
             }
@@ -1450,7 +1449,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         match parse_author_origin_selector_list_from_str(&selectors) {
-            Err(()) => Err(Syntax),
+            Err(()) => Err(Error::Syntax),
             Ok(ref selectors) => {
                 let root = NodeCast::from_ref(self);
                 for element in root.inclusive_ancestors() {

@@ -49,7 +49,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data, **kw
 
 
 def env_options():
-    return {"host": "web-platform.test",
+    return {"host": "127.0.0.1",
+            "external_host": "web-platform.test",
             "bind_hostname": "true",
             "testharnessreport": "testharnessreport-servodriver.js",
             "supports_debugger": True}

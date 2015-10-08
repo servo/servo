@@ -1,0 +1,14 @@
+<!doctype html>
+1
+<script>
+function f() {
+  opener.postMessage("original", "*");
+  setTimeout(function () {
+    document.open();
+    document.write("<!doctype html>2<script>opener.postMessage('written', '*');<\/script>");
+    document.close();
+  }), 100;
+}
+
+window.onload = f
+</script>

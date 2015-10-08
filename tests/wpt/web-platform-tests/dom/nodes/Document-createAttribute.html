@@ -7,20 +7,37 @@
 <script src=productions.js></script>
 <div id=log>
 <script>
+var xml_document;
+setup(function() {
+  xml_document = document.implementation.createDocument(null, null, null);
+});
+
 invalid_names.forEach(function(name) {
   test(function() {
     assert_throws("INVALID_CHARACTER_ERR", function() {
       document.createAttribute(name, "test");
     });
-  }, "createAttribute(" + format_value(name) + ")");
+  }, "HTML document.createAttribute(" + format_value(name) + ")");
+
+  test(function() {
+    assert_throws("INVALID_CHARACTER_ERR", function() {
+      xml_document.createAttribute(name, "test");
+    });
+  }, "XML document.createAttribute(" + format_value(name) + ")");
 });
 
 var tests = ["title", "TITLE", null, undefined];
 tests.forEach(function(name) {
   test(function() {
     var attribute = document.createAttribute(name);
+    attr_is(attribute, "", String(name).toLowerCase(), null, null, String(name).toLowerCase());
+    assert_equals(attribute.ownerElement, null);
+  }, "HTML document.createAttribute(" + format_value(name) + ")");
+
+  test(function() {
+    var attribute = xml_document.createAttribute(name);
     attr_is(attribute, "", String(name), null, null, String(name));
     assert_equals(attribute.ownerElement, null);
-  }, "createAttribute(" + format_value(name) + ")");
+  }, "XML document.createAttribute(" + format_value(name) + ")");
 });
 </script>

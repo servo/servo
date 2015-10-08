@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Object Model  Level 1 CR Test Suite</h1>
-  <h2>CSS (18 tests)</h2>
+  <h2>CSS (20 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -37,7 +37,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.1">+</a>
         <a href="http://www.w3.org/TR/cssom/#css-style-sheets">6.1 CSS Style Sheets</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="style-sheet-interfaces-001-6.1" class="primary dom script">
+        <td><strong>
+            <a href="style-sheet-interfaces-001.htm">style-sheet-interfaces-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM StyleSheet Initial Values
+          <ul class="assert">
+            <li>StyleSheet and CSSStyleSheet objects have the properties specified in their interfaces</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.1.#concept-css-style-sheet-alternate-flag">
       <!-- 0 tests -->
@@ -141,7 +152,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.2">+</a>
         <a href="http://www.w3.org/TR/cssom/#css-style-sheet-collections">6.2 CSS Style Sheet Collections</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="ttwf-cssom-doc-ext-load-count-6.2" class="dom script">
+        <td>
+            <a href="ttwf-cssom-doc-ext-load-count.htm">ttwf-cssom-doc-ext-load-count</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM - Extensions to the Document Interface: StyleSheetList length reflects dynamically loaded and unloaded sheets
+          <ul class="assert">
+            <li>The styleSheets length attribute must reflect the number of sheets at page load and after dynamically</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ttwf-cssom-doc-ext-load-tree-order-6.2" class="dom script">
+        <td>
+            <a href="ttwf-cssom-doc-ext-load-tree-order.htm">ttwf-cssom-doc-ext-load-tree-order</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM - Extensions to the Document Interface: Stylesheet header load order
+          <ul class="assert">
+            <li>Document's style sheets created from HTTP Link headers are first in list and loaded in header order</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.2.#add-a-css-style-sheet">
       <!-- 0 tests -->
@@ -192,7 +225,40 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.2.2">+</a>
         <a href="http://www.w3.org/TR/cssom/#the-stylesheetlist-interface">6.2.2 The StyleSheetList Interface</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 3 tests -->
+      <tr id="ttwf-cssom-doc-ext-load-count-6.2.2" class="dom script">
+        <td>
+            <a href="ttwf-cssom-doc-ext-load-count.htm">ttwf-cssom-doc-ext-load-count</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM - Extensions to the Document Interface: StyleSheetList length reflects dynamically loaded and unloaded sheets
+          <ul class="assert">
+            <li>The styleSheets length attribute must reflect the number of sheets at page load and after dynamically</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ttwf-cssom-doc-ext-load-tree-order-6.2.2" class="dom script">
+        <td>
+            <a href="ttwf-cssom-doc-ext-load-tree-order.htm">ttwf-cssom-doc-ext-load-tree-order</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM - Extensions to the Document Interface: Stylesheet header load order
+          <ul class="assert">
+            <li>Document's style sheets created from HTTP Link headers are first in list and loaded in header order</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ttwf-cssom-document-extension-6.2.2" class="dom script">
+        <td>
+            <a href="ttwf-cssom-document-extension.htm">ttwf-cssom-document-extension</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM - Extensions to the Document Interface: StyleSheetList length is 0 when no sheets loaded
+          <ul class="assert">
+            <li>The styleSheets attribute must return a StyleSheetList sequence representing the document style sheets.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.2.2.#dom-stylesheetlist-item">
       <!-- 0 tests -->
@@ -391,7 +457,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.4.1">+</a>
         <a href="http://www.w3.org/TR/cssom/#the-cssrulelist-interface">6.4.1 The CSSRuleList Interface</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="index-003-6.4.1" class="primary dom script">
+        <td><strong>
+            <a href="index-003.htm">index-003</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSS OM: CSS Values
+          <ul class="assert">
+            <li>Testing Serialization of Style Rules</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.4.1.#cssrulelist">
       <!-- 0 tests -->
@@ -484,7 +561,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.4.3">+</a>
         <a href="http://www.w3.org/TR/cssom/#the-cssstylerule-interface">6.4.3 The CSSStyleRule Interface</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="cssstylerule-6.4.3" class="dom script">
+        <td>
+            <a href="cssstylerule.htm">cssstylerule</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM CSSRule CSSStyleRule interface
+          <ul class="assert">
+            <li>All properties for this CSSStyleRule instance of CSSRule are initialized correctly</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.4.3.#concept-declarations-specified-order">
       <!-- 0 tests -->
@@ -514,7 +602,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s6.4.5">+</a>
         <a href="http://www.w3.org/TR/cssom/#the-cssimportrule-interface">6.4.5 The CSSImportRule Interface</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="cssimportrule-6.4.5" class="dom script">
+        <td>
+            <a href="cssimportrule.htm">cssimportrule</a></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM CSSRule CSSImportRule interface
+          <ul class="assert">
+            <li>All properties for this CSSImportRule instance of CSSRule are initialized correctly</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s6.4.5.#cssimportrule">
       <!-- 0 tests -->

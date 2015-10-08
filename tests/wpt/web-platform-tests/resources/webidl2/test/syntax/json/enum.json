@@ -101,5 +101,15 @@
         ],
         "inheritance": null,
         "extAttrs": []
+    },
+    {
+        "type": "enum",
+        "name": "AltMealType",
+        "values": [
+            "rice",
+            "noodles",
+            "other"
+        ],
+        "extAttrs": []
     }
 ]

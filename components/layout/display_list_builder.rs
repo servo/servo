@@ -25,7 +25,7 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayIte
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
+use gfx::display_list::{GradientStop, ImageDisplayItem, LayerInfo, LineDisplayItem};
 use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
@@ -668,6 +668,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        box_shadow.offset_y)),
                               box_shadow.blur_radius,
                               box_shadow.spread_radius);
+
+            // TODO(pcwalton): Multiple border radii; elliptical border radii.
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -679,6 +681,9 @@ impl FragmentDisplayListBuilding for Fragment {
                 offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
+                border_radius: model::specified_border_radius(style.get_border()
+                                                                   .border_top_left_radius,
+                                                              absolute_bounds.size.width).width,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
@@ -966,14 +971,14 @@ impl FragmentDisplayListBuilding for Fragment {
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
                 for node in inline_context.nodes.iter().rev() {
-                    self.build_display_list_for_box_shadow_if_applicable(
+                    self.build_display_list_for_background_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
                         level,
                         &stacking_relative_border_box,
                         &clip);
-                    self.build_display_list_for_background_if_applicable(
+                    self.build_display_list_for_box_shadow_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
@@ -1003,13 +1008,13 @@ impl FragmentDisplayListBuilding for Fragment {
             }
 
             if !self.is_scanned_text_fragment() {
-                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
+                self.build_display_list_for_background_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
                                                                      &stacking_relative_border_box,
                                                                      &clip);
-                self.build_display_list_for_background_if_applicable(&*self.style,
+                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
@@ -1279,6 +1284,17 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
+        let subpage_layer_info = match self.specific {
+            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
+                let border_padding = self.border_padding.to_physical(self.style().writing_mode);
+                Some(SubpageLayerInfo {
+                    pipeline_id: iframe_fragment_info.pipeline_id,
+                    origin: Point2D::new(border_padding.left, border_padding.top),
+                })
+            }
+            _ => None,
+        };
+
         let canvas_or_iframe = match self.specific {
             SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
             _ => false
@@ -1287,35 +1303,25 @@ impl FragmentDisplayListBuilding for Fragment {
         // There are three situations that need layers: when the fragment has the HAS_LAYER
         // flag, when this is a canvas or iframe fragment, and when we are building a layer
         // tree for overflow scrolling.
-        let layer_id = if mode == StackingContextCreationMode::InnerScrollWrapper {
-            Some(self.layer_id_for_overflow_scroll())
+        let layer_info = if mode == StackingContextCreationMode::InnerScrollWrapper {
+            Some(LayerInfo::new(self.layer_id_for_overflow_scroll(),
+                                scroll_policy,
+                                subpage_layer_info))
         } else if self.flags.contains(HAS_LAYER) || canvas_or_iframe {
-            Some(self.layer_id())
+            Some(LayerInfo::new(self.layer_id(), scroll_policy, subpage_layer_info))
         } else {
             None
         };
 
         // If it's a canvas we must propagate the layer and the renderer to the paint task.
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
-            let layer_id = layer_id.unwrap();
+            let layer_id = layer_info.unwrap().layer_id;
             if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
                 layout_context.shared
                               .canvas_layers_sender
                               .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
             }
         }
-
-        let subpage_layer_info = match self.specific {
-            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
-                let border_padding = self.border_padding.to_physical(self.style().writing_mode);
-                Some(SubpageLayerInfo {
-                    pipeline_id: iframe_fragment_info.pipeline_id,
-                    subpage_id: iframe_fragment_info.subpage_id,
-                    origin: Point2D::new(border_padding.left, border_padding.top),
-                })
-            }
-            _ => None,
-        };
 
         let scrolls_overflow_area = mode == StackingContextCreationMode::OuterScrollWrapper;
         let transform_style = self.style().get_used_transform_style();
@@ -1332,9 +1338,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       perspective,
                                       establishes_3d_context,
                                       scrolls_overflow_area,
-                                      scroll_policy,
-                                      layer_id,
-                                      subpage_layer_info))
+                                      layer_info))
     }
 
     fn clipping_region_for_children(&self,
@@ -1503,6 +1507,7 @@ impl FragmentDisplayListBuilding for Fragment {
             offset: ZERO_POINT,
             blur_radius: blur_radius,
             spread_radius: Au(0),
+            border_radius: Au(0),
             clip_mode: BoxShadowClipMode::None,
         }))
     }
@@ -2034,3 +2039,4 @@ pub enum StackingContextCreationMode {
     OuterScrollWrapper,
     InnerScrollWrapper,
 }
+

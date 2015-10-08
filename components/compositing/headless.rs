@@ -69,6 +69,14 @@ impl CompositorEventListener for NullCompositor {
 
             Msg::ShutdownComplete => {
                 debug!("constellation completed shutdown");
+
+                // Drain compositor port, sometimes messages contain channels that are blocking
+                // another task from finishing (i.e. SetIds)
+                while self.port.try_recv_compositor_msg().is_some() {}
+
+                self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+                self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
                 return false
             }
 
@@ -124,21 +132,11 @@ impl CompositorEventListener for NullCompositor {
             Msg::ReturnUnusedNativeSurfaces(..) => {}
             Msg::CollectMemoryReports(..) => {}
             Msg::PipelineExited(..) => {}
-            Msg::CreateLayerForSubpage(..) => {}
         }
         true
     }
 
     fn repaint_synchronously(&mut self) {}
-
-    fn shutdown(&mut self) {
-        // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetIds)
-        while self.port.try_recv_compositor_msg().is_some() {}
-
-        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
-        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
-    }
 
     fn pinch_zoom_level(&self) -> f32 {
         1.0
