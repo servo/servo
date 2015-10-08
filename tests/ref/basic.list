@@ -9,19 +9,9 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== abs_rel_explicit_height.html abs_rel_explicit_height_ref.html
-== absolute_hypothetical_with_intervening_inline_block_a.html absolute_hypothetical_with_intervening_inline_block_ref.html
-== absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
-== absolute_table.html absolute_table_ref.html
-== absolute_z_index_auto_paint_order_a.html absolute_z_index_auto_paint_order_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
-== after_block_iteration.html after_block_iteration_ref.html
-== alpha_gif_a.html alpha_gif_b.html
-== alpha_png_a.html alpha_png_b.html
-== anon_block_inherit_a.html anon_block_inherit_b.html
 flaky_cpu == append_style_a.html append_style_b.html
-== attr_exists_selector.html attr_exists_selector_ref.html
 == attr_selector_case_sensitivity.html attr_selector_case_sensitivity_ref.html
 == background_clip_a.html background_clip_ref.html
 == background_external_stylesheet.html background_ref.html

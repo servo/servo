@@ -27,6 +27,18 @@
             "url": "/_mozilla/css/abs_float_pref_width.html"
           }
         ],
+        "css/abs_rel_explicit_height.html": [
+          {
+            "path": "css/abs_rel_explicit_height.html",
+            "references": [
+              [
+                "/_mozilla/css/abs_rel_explicit_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/abs_rel_explicit_height.html"
+          }
+        ],
         "css/absolute_clipping_of_own_contents.html": [
           {
             "path": "css/absolute_clipping_of_own_contents.html",
@@ -61,6 +73,114 @@
               ]
             ],
             "url": "/_mozilla/css/absolute_hypothetical_float.html"
+          }
+        ],
+        "css/absolute_hypothetical_with_intervening_inline_block_a.html": [
+          {
+            "path": "css/absolute_hypothetical_with_intervening_inline_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
+          }
+        ],
+        "css/absolute_inline_containing_block_a.html": [
+          {
+            "path": "css/absolute_inline_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_inline_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+          }
+        ],
+        "css/absolute_table.html": [
+          {
+            "path": "css/absolute_table.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_table.html"
+          }
+        ],
+        "css/absolute_z_index_auto_paint_order_a.html": [
+          {
+            "path": "css/absolute_z_index_auto_paint_order_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_z_index_auto_paint_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
+          }
+        ],
+        "css/after_block_iteration.html": [
+          {
+            "path": "css/after_block_iteration.html",
+            "references": [
+              [
+                "/_mozilla/css/after_block_iteration_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/after_block_iteration.html"
+          }
+        ],
+        "css/alpha_gif_a.html": [
+          {
+            "path": "css/alpha_gif_a.html",
+            "references": [
+              [
+                "/_mozilla/css/alpha_gif_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/alpha_gif_a.html"
+          }
+        ],
+        "css/alpha_png_a.html": [
+          {
+            "path": "css/alpha_png_a.html",
+            "references": [
+              [
+                "/_mozilla/css/alpha_png_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/alpha_png_a.html"
+          }
+        ],
+        "css/anon_block_inherit_a.html": [
+          {
+            "path": "css/anon_block_inherit_a.html",
+            "references": [
+              [
+                "/_mozilla/css/anon_block_inherit_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/anon_block_inherit_a.html"
+          }
+        ],
+        "css/attr_exists_selector.html": [
+          {
+            "path": "css/attr_exists_selector.html",
+            "references": [
+              [
+                "/_mozilla/css/attr_exists_selector_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/attr_exists_selector.html"
           }
         ],
         "css/background.html": [
@@ -884,6 +1004,18 @@
           "url": "/_mozilla/css/abs_float_pref_width.html"
         }
       ],
+      "css/abs_rel_explicit_height.html": [
+        {
+          "path": "css/abs_rel_explicit_height.html",
+          "references": [
+            [
+              "/_mozilla/css/abs_rel_explicit_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/abs_rel_explicit_height.html"
+        }
+      ],
       "css/absolute_clipping_of_own_contents.html": [
         {
           "path": "css/absolute_clipping_of_own_contents.html",
@@ -918,6 +1050,114 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_hypothetical_float.html"
+        }
+      ],
+      "css/absolute_hypothetical_with_intervening_inline_block_a.html": [
+        {
+          "path": "css/absolute_hypothetical_with_intervening_inline_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
+        }
+      ],
+      "css/absolute_inline_containing_block_a.html": [
+        {
+          "path": "css/absolute_inline_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_inline_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+        }
+      ],
+      "css/absolute_table.html": [
+        {
+          "path": "css/absolute_table.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_table.html"
+        }
+      ],
+      "css/absolute_z_index_auto_paint_order_a.html": [
+        {
+          "path": "css/absolute_z_index_auto_paint_order_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_z_index_auto_paint_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
+        }
+      ],
+      "css/after_block_iteration.html": [
+        {
+          "path": "css/after_block_iteration.html",
+          "references": [
+            [
+              "/_mozilla/css/after_block_iteration_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/after_block_iteration.html"
+        }
+      ],
+      "css/alpha_gif_a.html": [
+        {
+          "path": "css/alpha_gif_a.html",
+          "references": [
+            [
+              "/_mozilla/css/alpha_gif_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/alpha_gif_a.html"
+        }
+      ],
+      "css/alpha_png_a.html": [
+        {
+          "path": "css/alpha_png_a.html",
+          "references": [
+            [
+              "/_mozilla/css/alpha_png_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/alpha_png_a.html"
+        }
+      ],
+      "css/anon_block_inherit_a.html": [
+        {
+          "path": "css/anon_block_inherit_a.html",
+          "references": [
+            [
+              "/_mozilla/css/anon_block_inherit_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/anon_block_inherit_a.html"
+        }
+      ],
+      "css/attr_exists_selector.html": [
+        {
+          "path": "css/attr_exists_selector.html",
+          "references": [
+            [
+              "/_mozilla/css/attr_exists_selector_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/attr_exists_selector.html"
         }
       ],
       "css/background.html": [
@@ -966,6 +1206,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/stacking_context_rtl.html": [
+        {
+          "path": "css/stacking_context_rtl.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_context_rtl-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_context_rtl.html"
         }
       ],
       "css/word-spacing.html": [
