@@ -89,8 +89,8 @@ impl StorageMethods for Storage {
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
         match receiver.recv().unwrap() {
-            None => Err(Error::QuotaExceeded),
-            Some((changed, old_value)) => {
+            Err(_) => Err(Error::QuotaExceeded),
+            Ok((changed, old_value)) => {
               if changed {
                   self.broadcast_change_notification(Some(name), old_value, Some(value));
               }

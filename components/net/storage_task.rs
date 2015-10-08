@@ -12,6 +12,8 @@ use url::Url;
 use util::str::DOMString;
 use util::task::spawn_named;
 
+const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+
 pub trait StorageTaskFactory {
     fn new() -> Self;
 }
@@ -31,7 +33,6 @@ struct StorageManager {
     port: IpcReceiver<StorageTaskMsg>,
     session_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
     local_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
-    quota_size_limit: usize,
 }
 
 impl StorageManager {
@@ -40,7 +41,6 @@ impl StorageManager {
             port: port,
             session_data: HashMap::new(),
             local_data: HashMap::new(),
-            quota_size_limit: 5 * 1024 * 1024,
         }
     }
 }
@@ -108,24 +108,25 @@ impl StorageManager {
                     .map(|key| key.clone())).unwrap();
     }
 
-    /// Sends Some(old_value) in case there was a previous value with the same key name but with different
-    /// value name, otherwise sends None
+    /// Sends Ok(changed, Some(old_value)) in case there was a previous
+    /// value with the same key name but with different value name
+    /// otherwise sends Err(()) to indicate that the operation would result in
+    /// exceeding the quota limit
     fn set_item(&mut self,
-                sender: IpcSender<Option<(bool, Option<DOMString>)>>,
+                sender: IpcSender<Result<(bool, Option<DOMString>), ()>>,
                 url: Url,
                 storage_type: StorageType,
                 name: DOMString,
                 value: DOMString) {
         let origin = self.origin_as_string(url);
 
-        let current_quota_size = {
+        let current_total_size = {
             let local_data = self.select_data(StorageType::Local);
             let session_data = self.select_data(StorageType::Session);
             let local_data_size = local_data.get(&origin).map_or(0, |&(total, _)| total);
             let session_data_size = session_data.get(&origin).map_or(0, |&(total, _)| total);
             local_data_size + session_data_size
         };
-        let quota_size_limit = self.quota_size_limit;
 
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
@@ -133,25 +134,25 @@ impl StorageManager {
         }
 
         let message = data.get_mut(&origin).map(|&mut (ref mut total, ref mut entry)| {
-            let new_quota_size = if entry.contains_key(&name) {
-                let old_value_size = entry.get(&name).unwrap().len();
-                current_quota_size + value.len() - old_value_size
+            let mut new_total_size = current_total_size + value.as_bytes().len();
+            if let Some(old_value) = entry.get(&name) {
+                new_total_size -= old_value.as_bytes().len();
             } else {
-                current_quota_size + name.len() + value.len()
-            };
-
-            if new_quota_size > quota_size_limit {
-                return None;
+                new_total_size += name.as_bytes().len();
             }
 
-            let (new_total, message) = entry.insert(name.clone(), value.clone()).map_or(
-                (*total + name.len() + value.len(), Some((true, None))),
+            if new_total_size > QUOTA_SIZE_LIMIT {
+                return Err(());
+            }
+
+            let message = entry.insert(name.clone(), value.clone()).map_or(
+                Ok((true, None)),
                 |old| if old == value {
-                    (*total, Some((false, None)))
+                    Ok((false, None))
                 } else {
-                    (*total + value.len() - old.len(), Some((true, Some(old))))
+                    Ok((true, Some(old)))
                 });
-            *total = new_total;
+            *total = new_total_size;
             message
         }).unwrap();
         sender.send(message).unwrap();
@@ -179,7 +180,7 @@ impl StorageManager {
         let data = self.select_data_mut(storage_type);
         let old_value = data.get_mut(&origin).and_then(|&mut (ref mut total, ref mut entry)| {
             entry.remove(&name).and_then(|old| {
-                *total -= name.len() + old.len();
+                *total -= name.as_bytes().len() + old.as_bytes().len();
                 Some(old)
             })
         });

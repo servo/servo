@@ -25,7 +25,7 @@ pub enum StorageTaskMsg {
     GetItem(IpcSender<Option<DOMString>>, Url, StorageType, DOMString),
 
     /// sets the value of the given key in the associated storage data
-    SetItem(IpcSender<Option<(bool, Option<DOMString>)>>, Url, StorageType, DOMString, DOMString),
+    SetItem(IpcSender<Result<(bool, Option<DOMString>), ()>>, Url, StorageType, DOMString, DOMString),
 
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(IpcSender<Option<DOMString>>, Url, StorageType, DOMString),
