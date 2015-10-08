@@ -1014,10 +1014,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
     pub fn iframe_pipeline_id(&self) -> PipelineId {
+        use script::dom::htmliframeelement::HTMLIFrameElementLayoutMethods;
         unsafe {
             let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
                 .expect("not an iframe element!");
-            (*iframe_element.unsafe_get()).pipeline_id().unwrap()
+            iframe_element.pipeline_id().unwrap()
         }
     }
 }
