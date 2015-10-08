@@ -123,6 +123,18 @@
             "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
           }
         ],
+        "css/after_block_iteration.html": [
+          {
+            "path": "css/after_block_iteration.html",
+            "references": [
+              [
+                "/_mozilla/css/after_block_iteration_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/after_block_iteration.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1038,6 +1050,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
+        }
+      ],
+      "css/after_block_iteration.html": [
+        {
+          "path": "css/after_block_iteration.html",
+          "references": [
+            [
+              "/_mozilla/css/after_block_iteration_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/after_block_iteration.html"
         }
       ],
       "css/background.html": [
