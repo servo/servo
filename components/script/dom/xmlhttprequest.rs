@@ -724,7 +724,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-responsexml-attribute
     fn GetResponseXML(&self) -> Option<Root<Document>> {
-        self.response_xml.get().map(Root::from_rooted)
+        self.response_xml.get_rooted()
     }
 }
 

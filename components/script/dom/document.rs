@@ -290,7 +290,7 @@ impl Document {
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
-        self.base_element.get().map(Root::from_rooted)
+        self.base_element.get_rooted()
     }
 
     /// Refresh the cached first base element in the DOM.
@@ -498,7 +498,7 @@ impl Document {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     pub fn get_focused_element(&self) -> Option<Root<Element>> {
-        self.focused.get().map(Root::from_rooted)
+        self.focused.get_rooted()
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
@@ -519,14 +519,14 @@ impl Document {
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
-        if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
+        if let Some(ref elem) = self.focused.get_rooted() {
             let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(false);
         }
 
         self.focused.set(self.possibly_focused.get());
 
-        if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
+        if let Some(ref elem) = self.focused.get_rooted() {
             let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(true);
 
@@ -967,7 +967,7 @@ impl Document {
     }
 
     pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
-        self.current_parser.get().map(Root::from_rooted)
+        self.current_parser.get_rooted()
     }
 
     /// Find an iframe element in the document.
@@ -1509,7 +1509,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/#dom-document-currentscript
     fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
-        self.current_script.get().map(Root::from_rooted)
+        self.current_script.get_rooted()
     }
 
     // https://html.spec.whatwg.org/#dom-document-body
