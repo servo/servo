@@ -9,7 +9,6 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== absolute_hypothetical_with_intervening_inline_block_a.html absolute_hypothetical_with_intervening_inline_block_ref.html
 == absolute_inline_containing_block_a.html absolute_inline_containing_block_ref.html
 == absolute_table.html absolute_table_ref.html
 == absolute_z_index_auto_paint_order_a.html absolute_z_index_auto_paint_order_ref.html
