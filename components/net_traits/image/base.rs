@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSharedMemory;
+use piston_image;
 use png;
-use stb_image::image as stb_image2;
+use std::error::Error;
 use std::mem;
 use util::mem::HeapSizeOf;
 use util::vec::byte_swap;
@@ -82,41 +83,45 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
             Err(_err) => None,
         }
     } else {
-        // For non-png images, we use stb_image
-        // Can't remember why we do this. Maybe it's what cairo wants
-        static FORCE_DEPTH: usize = 4;
-
-        match stb_image2::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-            stb_image2::LoadResult::ImageU8(mut image) => {
-                assert!(image.depth == 4);
-                // handle gif separately because the alpha-channel has to be premultiplied
-                if is_gif(buffer) {
-                    byte_swap_and_premultiply(&mut image.data);
-                } else {
-                    byte_swap(&mut image.data);
-                }
+        match piston_image::load_from_memory(buffer) {
+            Ok(piston_image::DynamicImage::ImageLuma8(image)) => {
                 Some(Image {
-                    width: image.width as u32,
-                    height: image.height as u32,
-                    format: PixelFormat::RGBA8,
-                    bytes: IpcSharedMemory::from_bytes(&image.data[..]),
+                    width: image.width(),
+                    height: image.height(),
+                    format: PixelFormat::K8,
+                    bytes: IpcSharedMemory::from_bytes(&*image),
                 })
             }
-            stb_image2::LoadResult::ImageF32(_image) => {
-                debug!("HDR images not implemented");
-                None
+            Ok(piston_image::DynamicImage::ImageLumaA8(image)) => {
+                Some(Image {
+                    width: image.width(),
+                    height: image.height(),
+                    format: PixelFormat::KA8,
+                    bytes: IpcSharedMemory::from_bytes(&*image),
+                })
             }
-            stb_image2::LoadResult::Error(e) => {
-                debug!("stb_image failed: {}", e);
+            Ok(piston_image::DynamicImage::ImageRgb8(mut image)) => {
+                byte_swap(&mut *image);
+                Some(Image {
+                    width: image.width(),
+                    height: image.height(),
+                    format: PixelFormat::RGB8,
+                    bytes: IpcSharedMemory::from_bytes(&*image),
+                })
+            }
+            Ok(piston_image::DynamicImage::ImageRgba8(mut image)) => {
+                byte_swap_and_premultiply(&mut *image);
+                Some(Image {
+                    width: image.width(),
+                    height: image.height(),
+                    format: PixelFormat::RGBA8,
+                    bytes: IpcSharedMemory::from_bytes(&*image),
+                })
+            }
+            Err(e) => {
+                debug!("Image decoding error: {}", e.description());
                 None
             }
         }
-    }
-}
-
-fn is_gif(buffer: &[u8]) -> bool {
-    match buffer {
-        [b'G', b'I', b'F', b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
-        _ => false
     }
 }

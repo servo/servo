@@ -17,9 +17,6 @@ path = "../util"
 [dependencies.msg]
 path = "../msg"
 
-[dependencies.stb_image]
-git = "https://github.com/servo/rust-stb-image"
-
 [dependencies.hyper]
 version = "0.6"
 features = [ "serde-serialization" ]
@@ -37,6 +34,7 @@ path = "../plugins"
 [dependencies]
 log = "0.3"
 euclid = "0.2"
+image = "0.3.14"
 regex = "0.1.33"
 regex_macros = "0.1.19"
 serde = "0.6"
