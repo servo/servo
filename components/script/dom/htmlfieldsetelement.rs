@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
@@ -106,8 +106,9 @@ impl VirtualMethods for HTMLFieldSetElement {
                     AttributeMutation::Removed => false,
                 };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(disabled_state);
-                node.set_enabled_state(!disabled_state);
+                let el = ElementCast::from_ref(self);
+                el.set_disabled_state(disabled_state);
+                el.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
@@ -142,13 +143,15 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 if disabled_state {
                     for field in fields {
-                        field.set_disabled_state(true);
-                        field.set_enabled_state(false);
+                        let el = ElementCast::to_ref(field.r()).unwrap();
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     }
                 } else {
                     for field in fields {
-                        field.check_disabled_attribute();
-                        field.check_ancestors_disabled_state_for_form_control();
+                        let el = ElementCast::to_ref(field.r()).unwrap();
+                        el.check_disabled_attribute();
+                        el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },

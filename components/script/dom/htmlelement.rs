@@ -199,8 +199,8 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        let node = NodeCast::from_ref(self);
-        if !node.get_focus_state() {
+        let el = ElementCast::from_ref(self);
+        if !el.get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps

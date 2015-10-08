@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLOptionElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -75,19 +75,22 @@ impl VirtualMethods for HTMLOptGroupElement {
                     AttributeMutation::Removed => false,
                 };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(disabled_state);
-                node.set_enabled_state(!disabled_state);
+                let el = ElementCast::from_ref(self);
+                el.set_disabled_state(disabled_state);
+                el.set_enabled_state(!disabled_state);
                 let options = node.children().filter(|child| {
                     child.is_htmloptionelement()
-                });
+                }).map(|child| Root::from_ref(HTMLOptionElementCast::to_ref(child.r()).unwrap()));
                 if disabled_state {
                     for option in options {
-                        option.set_disabled_state(true);
-                        option.set_enabled_state(false);
+                        let el = ElementCast::from_ref(option.r());
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     }
                 } else {
                     for option in options {
-                        option.check_disabled_attribute();
+                        let el = ElementCast::from_ref(option.r());
+                        el.check_disabled_attribute();
                     }
                 }
             },
