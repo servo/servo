@@ -135,12 +135,6 @@ bitflags! {
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
-        #[doc = "Specifies whether this node is in hover state."]
-        const IN_HOVER_STATE = 0x02,
-        #[doc = "Specifies whether this node is in disabled state."]
-        const IN_DISABLED_STATE = 0x04,
-        #[doc = "Specifies whether this node is in enabled state."]
-        const IN_ENABLED_STATE = 0x08,
         #[doc = "Specifies whether this node _must_ be reflowed regardless of style differences."]
         const HAS_CHANGED = 0x10,
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
@@ -157,8 +151,6 @@ bitflags! {
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
         const CLICK_IN_PROGRESS = 0x100,
-        #[doc = "Specifies whether this node has the focus."]
-        const IN_FOCUS_STATE = 0x200,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 0x400,
@@ -174,16 +166,6 @@ impl NodeFlags {
         let dirty = HAS_CHANGED | IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS;
         match type_id {
             NodeTypeId::Document => IS_IN_DOC | dirty,
-            // The following elements are enabled by default.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
-            //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMenuItemElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) =>
-                IN_ENABLED_STATE | dirty,
             _ => dirty,
         }
     }
@@ -504,49 +486,6 @@ impl Node {
         }
 
         self.flags.set(flags);
-    }
-
-    pub fn get_hover_state(&self) -> bool {
-        self.get_flag(IN_HOVER_STATE)
-    }
-
-    pub fn set_hover_state(&self, state: bool) {
-        self.set_flag(IN_HOVER_STATE, state);
-        self.dirty(NodeDamage::NodeStyleDamaged);
-    }
-
-    pub fn get_focus_state(&self) -> bool {
-        self.get_flag(IN_FOCUS_STATE)
-    }
-
-    pub fn set_focus_state(&self, state: bool) {
-        self.set_flag(IN_FOCUS_STATE, state);
-        self.dirty(NodeDamage::NodeStyleDamaged);
-    }
-
-    pub fn get_active_state(&self) -> bool {
-        self.get_flag(IN_ACTIVE_STATE)
-    }
-
-    pub fn set_active_state(&self, state: bool) {
-        self.set_flag(IN_ACTIVE_STATE, state);
-        self.dirty(NodeDamage::NodeStyleDamaged);
-    }
-
-    pub fn get_disabled_state(&self) -> bool {
-        self.get_flag(IN_DISABLED_STATE)
-    }
-
-    pub fn set_disabled_state(&self, state: bool) {
-        self.set_flag(IN_DISABLED_STATE, state)
-    }
-
-    pub fn get_enabled_state(&self) -> bool {
-        self.get_flag(IN_ENABLED_STATE)
-    }
-
-    pub fn set_enabled_state(&self, state: bool) {
-        self.set_flag(IN_ENABLED_STATE, state)
     }
 
     pub fn get_has_changed(&self) -> bool {
@@ -1007,12 +946,6 @@ pub trait LayoutNodeHelpers {
     unsafe fn layout_data(&self) -> Ref<Option<LayoutData>>;
     unsafe fn layout_data_mut(&self) -> RefMut<Option<LayoutData>>;
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData>;
-
-    fn get_hover_state_for_layout(&self) -> bool;
-    fn get_focus_state_for_layout(&self) -> bool;
-    fn get_active_state_for_layout(&self) -> bool;
-    fn get_disabled_state_for_layout(&self) -> bool;
-    fn get_enabled_state_for_layout(&self) -> bool;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1107,42 +1040,6 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     #[allow(unsafe_code)]
     unsafe fn layout_data_unchecked(&self) -> *const Option<LayoutData> {
         (*self.unsafe_get()).layout_data.borrow_unchecked()
-    }
-
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_hover_state_for_layout(&self) -> bool {
-        unsafe {
-            self.get_flag(IN_HOVER_STATE)
-        }
-    }
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_focus_state_for_layout(&self) -> bool {
-        unsafe {
-            self.get_flag(IN_FOCUS_STATE)
-        }
-    }
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_active_state_for_layout(&self) -> bool {
-        unsafe {
-            self.get_flag(IN_ACTIVE_STATE)
-        }
-    }
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_disabled_state_for_layout(&self) -> bool {
-        unsafe {
-            self.get_flag(IN_DISABLED_STATE)
-        }
-    }
-    #[inline]
-    #[allow(unsafe_code)]
-    fn get_enabled_state_for_layout(&self) -> bool {
-        unsafe {
-            self.get_flag(IN_ENABLED_STATE)
-        }
     }
 }
 
@@ -2489,15 +2386,16 @@ impl VirtualMethods for Node {
 }
 
 
-impl Node {
+impl Element {
     pub fn check_ancestors_disabled_state_for_form_control(&self) {
+        let node = NodeCast::from_ref(self);
         if self.get_disabled_state() { return; }
-        for ancestor in self.ancestors() {
+        for ancestor in node.ancestors() {
             let ancestor = ancestor;
             let ancestor = ancestor.r();
             if !ancestor.is_htmlfieldsetelement() { continue; }
-            if !ancestor.get_disabled_state() { continue; }
-            if ancestor.is_parent_of(self) {
+            if !ElementCast::to_ref(ancestor).unwrap().get_disabled_state() { continue; }
+            if ancestor.is_parent_of(node) {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
                 return;
@@ -2507,7 +2405,7 @@ impl Node {
             {
                 Some(ref legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if self.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                    if node.ancestors().any(|ancestor| ancestor == *legend) { continue; }
                 },
                 None => ()
             }
@@ -2519,8 +2417,9 @@ impl Node {
 
     pub fn check_parent_disabled_state_for_option(&self) {
         if self.get_disabled_state() { return; }
-        if let Some(ref parent) = self.GetParentNode() {
-            if parent.r().is_htmloptgroupelement() && parent.r().get_disabled_state() {
+        let node = NodeCast::from_ref(self);
+        if let Some(ref parent) = node.GetParentNode() {
+            if parent.r().is_htmloptgroupelement() && ElementCast::to_ref(parent.r()).unwrap().get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
             }
@@ -2528,8 +2427,7 @@ impl Node {
     }
 
     pub fn check_disabled_attribute(&self) {
-        let elem = ElementCast::to_ref(self).unwrap();
-        let has_disabled_attrib = elem.has_attribute(&atom!("disabled"));
+        let has_disabled_attrib = self.has_attribute(&atom!("disabled"));
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
     }

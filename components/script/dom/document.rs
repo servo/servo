@@ -520,15 +520,13 @@ impl Document {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
-            let node = NodeCast::from_ref(elem.r());
-            node.set_focus_state(false);
+            elem.set_focus_state(false)
         }
 
         self.focused.set(self.possibly_focused.get());
 
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
-            let node = NodeCast::from_ref(elem.r());
-            node.set_focus_state(true);
+            elem.set_focus_state(true);
 
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
@@ -597,7 +595,7 @@ impl Document {
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let  MouseEventType::Click = mouse_event_type {
-            if node.click_event_filter_by_disabled_state() {
+            if el.click_event_filter_by_disabled_state() {
                 return;
             }
 
@@ -665,15 +663,16 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>) {
+                               prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mut mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+        let mut mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
         for node_address in &mouse_over_addresses {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
             mouse_over_targets.push(node.r().inclusive_ancestors()
                                             .find(|node| node.r().is_element())
-                                            .map(|node| JS::from_rooted(&node)).unwrap());
+                                            .map(|node| JS::from_ref(ElementCast::to_ref(node.r()).unwrap()))
+                                            .unwrap());
         };
 
         // Remove hover from any elements in the previous list that are no longer
@@ -1131,9 +1130,10 @@ impl Document {
 }
 
 
-impl Node {
+impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
-        match self.type_id() {
+        let node = NodeCast::from_ref(self);
+        match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
             // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
