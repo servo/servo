@@ -12,9 +12,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLScriptElementDer
 use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
-use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
+use dom::node::{Node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -36,7 +36,7 @@ impl HTMLOptionElement {
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
-                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             selectedness: Cell::new(false),
             dirtiness: Cell::new(false),
@@ -151,16 +151,16 @@ impl VirtualMethods for HTMLOptionElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let el = ElementCast::from_ref(self);
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        node.set_disabled_state(true);
-                        node.set_enabled_state(false);
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     },
                     AttributeMutation::Removed => {
-                        node.set_disabled_state(false);
-                        node.set_enabled_state(true);
-                        node.check_parent_disabled_state_for_option();
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_parent_disabled_state_for_option();
                     }
                 }
             },
@@ -189,8 +189,8 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_parent_disabled_state_for_option();
+        let el = ElementCast::from_ref(self);
+        el.check_parent_disabled_state_for_option();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -199,10 +199,11 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         let node = NodeCast::from_ref(self);
+        let el = ElementCast::from_ref(self);
         if node.GetParentNode().is_some() {
-            node.check_parent_disabled_state_for_option();
+            el.check_parent_disabled_state_for_option();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 }

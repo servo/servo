@@ -48,8 +48,8 @@ use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTex
 use script::dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
-use script::dom::element::Element;
-use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::element;
+use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
@@ -468,20 +468,17 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_hover_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_hover_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_focus_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
     }
 
     #[inline]
     fn get_active_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_active_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
     }
 
     #[inline]
@@ -493,14 +490,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_disabled_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_disabled_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_enabled_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
     }
 
     #[inline]
