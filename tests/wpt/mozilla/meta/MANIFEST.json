@@ -99,6 +99,18 @@
             "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
           }
         ],
+        "css/absolute_table.html": [
+          {
+            "path": "css/absolute_table.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_table.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -990,6 +1002,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+        }
+      ],
+      "css/absolute_table.html": [
+        {
+          "path": "css/absolute_table.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_table.html"
         }
       ],
       "css/background.html": [
