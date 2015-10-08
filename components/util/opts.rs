@@ -309,6 +309,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
     print_option("dump-display-list-optimized", "Print optimized display list (at paint time).");
+    print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
