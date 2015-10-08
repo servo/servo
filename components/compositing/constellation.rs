@@ -135,10 +135,6 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
-
-    /// A list of senders that are waiting to be notified whenever a pipeline or subpage ID comes
-    /// in.
-    subpage_id_senders: HashMap<(PipelineId, SubpageId), Vec<IpcSender<PipelineId>>>,
 }
 
 /// State needed to construct a constellation.
@@ -284,7 +280,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
-                subpage_id_senders: HashMap::new(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -678,14 +673,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
-
-        // If anyone is waiting to know the pipeline ID, send that information now.
-        if let Some(subpage_id_senders) = self.subpage_id_senders.remove(&(load_info.containing_pipeline_id,
-                                                                           load_info.new_subpage_id)) {
-            for subpage_id_sender in subpage_id_senders.into_iter() {
-                subpage_id_sender.send(load_info.new_pipeline_id).unwrap();
-            }
-        }
 
         self.push_pending_frame(load_info.new_pipeline_id, old_pipeline_id);
     }
