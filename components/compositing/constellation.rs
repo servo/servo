@@ -512,9 +512,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 self.compositor_proxy.send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
             }
-            ConstellationMsg::RemoveIFrame(containing_pipeline_id, subpage_id) => {
+            ConstellationMsg::RemoveIFrame(pipeline_id) => {
                 debug!("constellation got remove iframe message");
-                self.handle_remove_iframe_msg(containing_pipeline_id, subpage_id);
+                self.handle_remove_iframe_msg(pipeline_id);
             }
             ConstellationMsg::NewFavicon(url) => {
                 debug!("constellation got new favicon message");
@@ -947,10 +947,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.focus_parent_pipeline(pipeline_id);
     }
 
-    fn handle_remove_iframe_msg(&mut self,
-                                containing_pipeline_id: PipelineId,
-                                subpage_id: SubpageId) {
-        let pipeline_id = self.find_subpage(containing_pipeline_id, subpage_id).id;
+    fn handle_remove_iframe_msg(&mut self, pipeline_id: PipelineId) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|id| *id);
         match frame_id {
             Some(frame_id) => {
