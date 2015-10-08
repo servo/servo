@@ -17744,6 +17744,10 @@
         "url": "/html/semantics/forms/the-input-element/week.html"
       },
       {
+        "path": "html/semantics/forms/the-input-element/maxlength.html",
+        "url": "/html/semantics/forms/the-input-element/maxlength.html"
+      },
+      {
         "path": "html/semantics/forms/the-label-element/label-attributes.html",
         "url": "/html/semantics/forms/the-label-element/label-attributes.html"
       },
