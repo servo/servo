@@ -431,24 +431,21 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        match (self.containing_page_pipeline_id(), self.subpage_id()) {
-            (Some(containing_pipeline_id), Some(subpage_id)) => {
-                let window = window_from_node(self);
-                let window = window.r();
+        if let Some(pipeline_id) = self.pipeline_id.get() {
+            let window = window_from_node(self);
+            let window = window.r();
 
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::RemoveIFrame(containing_pipeline_id,
-                                                         subpage_id);
-                chan.send(msg).unwrap();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let msg = ConstellationMsg::RemoveIFrame(pipeline_id);
+            chan.send(msg).unwrap();
 
-                // Resetting the subpage id to None is required here so that
-                // if this iframe is subsequently re-added to the document
-                // the load doesn't think that it's a navigation, but instead
-                // a new iframe. Without this, the constellation gets very
-                // confused.
-                self.subpage_id.set(None);
-            }
-            _ => {}
+            // Resetting the subpage id to None is required here so that
+            // if this iframe is subsequently re-added to the document
+            // the load doesn't think that it's a navigation, but instead
+            // a new iframe. Without this, the constellation gets very
+            // confused.
+            self.subpage_id.set(None);
+            self.pipeline_id.set(None);
         }
     }
 }

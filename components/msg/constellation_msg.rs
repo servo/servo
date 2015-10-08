@@ -276,7 +276,7 @@ pub enum Msg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId, SubpageId),
+    RemoveIFrame(PipelineId),
     /// Favicon detected
     NewFavicon(Url),
     /// <head> tag finished parsing
