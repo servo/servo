@@ -77,10 +77,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
@@ -88,56 +85,27 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    fn Type(&self) -> DOMString {
-        let elem = ElementCast::from_ref(self);
-        let mut ty = elem.get_string_attribute(&atom!("type"));
-        ty.make_ascii_lowercase();
-        // https://html.spec.whatwg.org/multipage/#attr-button-type
-        match &*ty {
-            "reset" | "button" | "menu" => ty,
-            _ => "submit".to_owned()
-        }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-button-type
-    make_setter!(SetType, "type");
+    make_enumerated_getter_setter!(Type, SetType, "submit", ("reset") | ("button") | ("menu"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
-    make_url_or_base_getter!(FormAction);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-formaction
-    make_setter!(SetFormAction, "formaction");
+    make_url_or_base_getter_setter!(FormAction, SetFormAction);
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_enumerated_getter!(
-        FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-formenctype
-    make_setter!(SetFormEnctype, "formenctype");
+    make_enumerated_getter_setter!(FormEnctype, SetFormEnctype,
+                                   "application/x-www-form-urlencoded",
+                                   ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-formmethod
-    make_setter!(SetFormMethod, "formmethod");
+    make_enumerated_getter_setter!(FormMethod, SetFormMethod, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
-    make_getter!(FormTarget);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-formtarget
-    make_setter!(SetFormTarget, "formtarget");
+    make_getter_setter!(FormTarget, SetFormTarget);
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_setter!(SetName, "name");
+    make_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
-    make_getter!(Value);
-
-    // https://html.spec.whatwg.org/multipage/#dom-button-value
-    make_setter!(SetValue, "value");
+    make_getter_setter!(Value, SetValue);
 }
 
 impl VirtualMethods for HTMLButtonElement {

@@ -229,10 +229,7 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
 
 impl HTMLInputElementMethods for HTMLInputElement {
     // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
@@ -240,10 +237,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
-    make_bool_getter!(DefaultChecked, "checked");
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
-    make_bool_setter!(SetDefaultChecked, "checked");
+    make_bool_getter_setter!(DefaultChecked, SetDefaultChecked, "checked");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
@@ -256,28 +250,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
-    make_bool_getter!(ReadOnly);
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-readonly
-    make_bool_setter!(SetReadOnly, "readonly");
+    make_bool_getter_setter!(ReadOnly, SetReadOnly);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-size
-    make_uint_getter!(Size, "size", DEFAULT_INPUT_SIZE);
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-size
-    make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
+    make_limited_uint_getter_setter!(Size, SetSize, "size", DEFAULT_INPUT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_enumerated_getter!(Type, "text", ("hidden") | ("search") | ("tel") |
-                                  ("url") | ("email") | ("password") |
-                                  ("datetime") | ("date") | ("month") |
-                                  ("week") | ("time") | ("datetime-local") |
-                                  ("number") | ("range") | ("color") |
-                                  ("checkbox") | ("radio") | ("file") |
-                                  ("submit") | ("image") | ("reset") | ("button"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_setter!(SetType, "type");
+    make_enumerated_getter_setter!(Type, SetType, "text", ("hidden") | ("search") | ("tel") |
+                                                          ("url") | ("email") | ("password") |
+                                                          ("datetime") | ("date") | ("month") |
+                                                          ("week") | ("time") | ("datetime-local") |
+                                                          ("number") | ("range") | ("color") |
+                                                          ("checkbox") | ("radio") | ("file") |
+                                                          ("submit") | ("image") | ("reset") | ("button"));
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
@@ -292,47 +277,27 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
-    make_getter!(DefaultValue, "value");
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-defaultvalue
-    make_setter!(SetDefaultValue, "value");
+    make_getter_setter!(DefaultValue, SetDefaultValue, "value");
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_atomic_setter!(SetName, "name");
+    make_atomic_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
-    make_getter!(Placeholder);
-
-    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
-    make_setter!(SetPlaceholder, "placeholder");
+    make_getter_setter!(Placeholder, SetPlaceholder);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
-    make_url_or_base_getter!(FormAction);
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-formaction
-    make_setter!(SetFormAction, "formaction");
+    make_url_or_base_getter_setter!(FormAction, SetFormAction);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
-    make_enumerated_getter!(
-        FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-formenctype
-    make_setter!(SetFormEnctype, "formenctype");
+    make_enumerated_getter_setter!(FormEnctype, SetFormEnctype,
+                                   "application/x-www-form-urlencoded",
+                                   ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
-    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-formmethod
-    make_setter!(SetFormMethod, "formmethod");
+    make_enumerated_getter_setter!(FormMethod, SetFormMethod, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
-    make_getter!(FormTarget);
-
-    // https://html.spec.whatwg.org/multipage/#dom-input-formtarget
-    make_setter!(SetFormTarget, "formtarget");
+    make_getter_setter!(FormTarget, SetFormTarget);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {

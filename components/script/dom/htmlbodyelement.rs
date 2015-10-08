@@ -68,10 +68,7 @@ impl HTMLBodyElement {
 
 impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
-    make_getter!(BgColor, "bgcolor");
-
-    // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
-    make_setter!(SetBgColor, "bgcolor");
+    make_getter_setter!(BgColor, SetBgColor);
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {

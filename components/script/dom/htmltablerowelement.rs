@@ -75,10 +75,7 @@ impl HTMLTableRowElement {
 
 impl HTMLTableRowElementMethods for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
-    make_getter!(BgColor);
-
-    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
-    make_setter!(SetBgColor, "bgcolor");
+    make_getter_setter!(BgColor, SetBgColor);
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-cells
     fn Cells(&self) -> Root<HTMLCollection> {

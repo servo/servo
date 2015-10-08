@@ -82,28 +82,18 @@ impl HTMLFormElement {
 
 impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
-    make_getter!(AcceptCharset, "accept-charset");
-
-    // https://html.spec.whatwg.org/multipage/#dom-form-acceptcharset
-    make_setter!(SetAcceptCharset, "accept-charset");
+    make_getter_setter!(AcceptCharset, SetAcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
-    make_url_or_base_getter!(Action);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-action
-    make_setter!(SetAction, "action");
+    make_url_or_base_getter_setter!(Action, SetAction);
 
     // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "on", ("off"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-form-autocomplete
-    make_setter!(SetAutocomplete, "autocomplete");
+    make_enumerated_getter_setter!(Autocomplete, SetAutocomplete, "on", ("off"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
-    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-enctype
-    make_setter!(SetEnctype, "enctype");
+    make_enumerated_getter_setter!(Enctype, SetEnctype,
+                                   "application/x-www-form-urlencoded",
+                                   ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-encoding
     fn Encoding(&self) -> DOMString {
@@ -116,28 +106,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_enumerated_getter!(Method, "get", ("post") | ("dialog"));
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-method
-    make_setter!(SetMethod, "method");
+    make_enumerated_getter_setter!(Method, SetMethod, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/#dom-form-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#dom-form-name
-    make_atomic_setter!(SetName, "name");
+    make_atomic_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
-    make_bool_getter!(NoValidate);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-novalidate
-    make_bool_setter!(SetNoValidate, "novalidate");
+    make_bool_getter_setter!(NoValidate, SetNoValidate);
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-target
-    make_getter!(Target);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fs-target
-    make_setter!(SetTarget, "target");
+    make_getter_setter!(Target, SetTarget);
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {

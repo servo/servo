@@ -69,10 +69,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
@@ -80,22 +77,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-multiple
-    make_bool_getter!(Multiple);
-
-    // https://html.spec.whatwg.org/multipage/#dom-select-multiple
-    make_bool_setter!(SetMultiple, "multiple");
+    make_bool_getter_setter!(Multiple, SetMultiple);
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#dom-fe-name
-    make_setter!(SetName, "name");
+    make_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-size
-    make_uint_getter!(Size, "size", DEFAULT_SELECT_SIZE);
-
-    // https://html.spec.whatwg.org/multipage/#dom-select-size
-    make_uint_setter!(SetSize, "size", DEFAULT_SELECT_SIZE);
+    make_uint_getter_setter!(Size, SetSize, "size", DEFAULT_SELECT_SIZE);
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(&self) -> DOMString {

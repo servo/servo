@@ -118,16 +118,10 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // constraints
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
-    make_uint_getter!(Cols, "cols", DEFAULT_COLS);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
-    make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
+    make_limited_uint_getter_setter!(Cols, SetCols, "cols", DEFAULT_COLS);
 
     // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
@@ -135,40 +129,22 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#attr-fe-name
-    make_setter!(SetName, "name");
+    make_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
-    make_getter!(Placeholder);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
-    make_setter!(SetPlaceholder, "placeholder");
+    make_getter_setter!(Placeholder, SetPlaceholder);
 
     // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
-    make_bool_getter!(ReadOnly);
-
-    // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
-    make_bool_setter!(SetReadOnly, "readonly");
+    make_bool_getter_setter!(ReadOnly, SetReadOnly);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-required
-    make_bool_getter!(Required);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-required
-    make_bool_setter!(SetRequired, "required");
+    make_bool_getter_setter!(Required, SetRequired);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
-    make_uint_getter!(Rows, "rows", DEFAULT_ROWS);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-rows
-    make_limited_uint_setter!(SetRows, "rows", DEFAULT_ROWS);
+    make_limited_uint_getter_setter!(Rows, SetRows, "rows", DEFAULT_ROWS);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
-    make_getter!(Wrap);
-
-    // https://html.spec.whatwg.org/multipage/#dom-textarea-wrap
-    make_setter!(SetWrap, "wrap");
+    make_getter_setter!(Wrap, SetWrap);
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
     fn Type(&self) -> DOMString {

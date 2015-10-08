@@ -55,25 +55,22 @@ impl HTMLFontElement {
 
 impl HTMLFontElementMethods for HTMLFontElement {
     // https://html.spec.whatwg.org/multipage/#dom-font-color
-    make_getter!(Color, "color");
-
-    // https://html.spec.whatwg.org/multipage/#dom-font-color
-    make_setter!(SetColor, "color");
+    make_getter_setter!(Color, SetColor);
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_getter!(Face);
-
-    // https://html.spec.whatwg.org/multipage/#dom-font-face
-    make_atomic_setter!(SetFace, "face");
+    make_atomic_getter_setter!(Face, SetFace);
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    make_getter!(Size);
+    fn Size(&self) -> DOMString {
+        let element = ElementCast::from_ref(self);
+        element.get_string_attribute(&atom!("size"))
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
         let element = ElementCast::from_ref(self);
         let length = parse_length(&value);
-        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
     }
 }
 

@@ -236,6 +236,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     fn SetWidth(&self, width: u32) {
+        // FIXME: This needs to cap width at 2147483647.
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
@@ -247,6 +248,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(&self, height: u32) {
+        // FIXME: This needs to cap height at 2147483647.
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }

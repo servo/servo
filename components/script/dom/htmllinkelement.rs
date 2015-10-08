@@ -202,34 +202,20 @@ impl HTMLLinkElement {
 
 impl HTMLLinkElementMethods for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-href
-    make_url_getter!(Href);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-href
-    make_setter!(SetHref, "href");
+    make_url_getter_setter!(Href, SetHref);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    make_getter!(Rel);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    make_setter!(SetRel, "rel");
+    // FIXME: This should be make_tokenlist_getter_setter.
+    make_getter_setter!(Rel, SetRel);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
-    make_getter!(Media);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-media
-    make_setter!(SetMedia, "media");
+    make_getter_setter!(Media, SetMedia);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
-    make_getter!(Hreflang);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
-    make_setter!(SetHreflang, "hreflang");
+    make_getter_setter!(Hreflang, SetHreflang);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-type
-    make_getter!(Type);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-type
-    make_setter!(SetType, "type");
+    make_getter_setter!(Type, SetType);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
@@ -239,22 +225,13 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset
-    make_getter!(Charset);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-charset
-    make_setter!(SetCharset, "charset");
+    make_getter_setter!(Charset, SetCharset);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rev
-    make_getter!(Rev);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-rev
-    make_setter!(SetRev, "rev");
+    make_getter_setter!(Rev, SetRev);
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
-    make_getter!(Target);
-
-    // https://html.spec.whatwg.org/multipage/#dom-link-target
-    make_setter!(SetTarget, "target");
+    make_getter_setter!(Target, SetTarget);
 }
 
 pub struct StylesheetLoadDispatcher {
