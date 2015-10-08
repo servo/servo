@@ -340,14 +340,17 @@ fn check_reftest(reftest: Reftest) {
     let (left_width, left_height, left_bytes) = capture(&reftest, 0);
     let (right_width, right_height, right_bytes) = capture(&reftest, 1);
 
-    assert_eq!(left_width, right_width);
-    assert_eq!(left_height, right_height);
+    // TODO(gw): This is a workaround for https://github.com/servo/servo/issues/7730
+    if !reftest.is_flaky {
+        assert_eq!(left_width, right_width);
+        assert_eq!(left_height, right_height);
 
-    let left_all_white = left_bytes.iter().all(|&p| p == 255);
-    let right_all_white = right_bytes.iter().all(|&p| p == 255);
+        let left_all_white = left_bytes.iter().all(|&p| p == 255);
+        let right_all_white = right_bytes.iter().all(|&p| p == 255);
 
-    if left_all_white && right_all_white {
-        panic!("Both renderings are empty")
+        if left_all_white && right_all_white {
+            panic!("Both renderings are empty")
+        }
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
