@@ -87,6 +87,18 @@
             "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
           }
         ],
+        "css/absolute_inline_containing_block_a.html": [
+          {
+            "path": "css/absolute_inline_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_inline_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -966,6 +978,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
+        }
+      ],
+      "css/absolute_inline_containing_block_a.html": [
+        {
+          "path": "css/absolute_inline_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_inline_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
         }
       ],
       "css/background.html": [
