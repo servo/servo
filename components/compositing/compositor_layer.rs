@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl;
-use compositor::{IOCompositor, RemovedPipelineInfo};
+use compositor::IOCompositor;
 use euclid::length::Length;
 use euclid::point::{Point2D, TypedPoint2D};
 use euclid::rect::Rect;
@@ -12,7 +12,7 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId};
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
@@ -43,8 +43,8 @@ pub struct CompositorData {
     /// to track their current scroll position even while their content_offset does not change.
     pub scroll_offset: TypedPoint2D<LayerPixel, f32>,
 
-    /// The pipeline ID and subpage ID of this layer, if it represents a subpage.
-    pub subpage_info: Option<(PipelineId, SubpageId)>,
+    /// The pipeline ID of this layer, if it represents a subpage.
+    pub subpage_info: Option<PipelineId>,
 }
 
 impl CompositorData {
@@ -62,7 +62,7 @@ impl CompositorData {
             painted_epoch: Epoch(0),
             scroll_offset: Point2D::typed(0., 0.),
             subpage_info: layer_properties.subpage_layer_info.map(|subpage_layer_info| {
-                (subpage_layer_info.pipeline_id, subpage_layer_info.subpage_id)
+                subpage_layer_info.pipeline_id
             }),
         };
 
@@ -156,7 +156,7 @@ pub trait RcCompositorLayer {
                                   compositor: &mut IOCompositor<Window>,
                                   pipeline_id: PipelineId,
                                   new_layers: &[LayerProperties],
-                                  pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                                  pipelines_removed: &mut Vec<PipelineId>)
                                   where Window: WindowMethods;
 }
 
@@ -427,7 +427,7 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                                   compositor: &mut IOCompositor<Window>,
                                   pipeline_id: PipelineId,
                                   new_layers: &[LayerProperties],
-                                  pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                                  pipelines_removed: &mut Vec<PipelineId>)
                                   where Window: WindowMethods {
         fn find_root_layer_for_pipeline(layer: &Rc<Layer<CompositorData>>, pipeline_id: PipelineId)
                                         -> Option<Rc<Layer<CompositorData>>> {
@@ -449,7 +449,7 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                 compositor: &mut IOCompositor<Window>,
                 pipeline_id: PipelineId,
                 new_layers: &[LayerProperties],
-                pipelines_removed: &mut Vec<RemovedPipelineInfo>)
+                pipelines_removed: &mut Vec<PipelineId>)
                 where Window: WindowMethods {
             // Traverse children first so that layers are removed
             // bottom up - allowing each layer being removed to properly
@@ -477,23 +477,17 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                     }
                 }
 
-                if let Some(ref subpage_info_for_this_layer) = extra_data.subpage_info {
+                if let Some(layer_pipeline_id) = extra_data.subpage_info {
                     for layer_properties in new_layers.iter() {
                         // Keep this layer if a reference to it exists.
                         if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
-                            if subpage_layer_info.pipeline_id == subpage_info_for_this_layer.0 &&
-                                    subpage_layer_info.subpage_id ==
-                                    subpage_info_for_this_layer.1 {
+                            if subpage_layer_info.pipeline_id == layer_pipeline_id {
                                 return true
                             }
                         }
                     }
 
-                    pipelines_removed.push(RemovedPipelineInfo {
-                        parent_pipeline_id: subpage_info_for_this_layer.0,
-                        parent_subpage_id: subpage_info_for_this_layer.1,
-                        child_pipeline_id: extra_data.pipeline_id,
-                    });
+                    pipelines_removed.push(extra_data.pipeline_id);
                 }
 
                 // When removing a layer, clear any tiles and surfaces associated with the layer.

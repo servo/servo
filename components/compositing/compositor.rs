@@ -30,7 +30,7 @@ use msg::compositor_msg::{LayerProperties, ScrollPolicy};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use png;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
@@ -164,10 +164,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// A data structure to cache unused NativeSurfaces.
     surface_map: SurfaceMap,
-
-    /// Information about subpage layers that are pending. The keys in this map are the
-    /// pipeline/subpage IDs of the parent.
-    pending_subpage_layers: HashMap<(PipelineId, SubpageId), PendingSubpageLayerInfo>,
 
     /// Pipeline IDs of subpages that the compositor has seen in a layer tree but which have not
     /// yet been painted.
@@ -316,7 +312,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             has_seen_quit_event: false,
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
-            pending_subpage_layers: HashMap::new(),
             pending_subpages: HashSet::new(),
         }
     }
@@ -520,15 +515,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.head_parsed();
             }
 
-            (Msg::CreateLayerForSubpage(parent_pipeline_id,
-                                        parent_subpage_id,
-                                        subpage_pipeline_id),
-             ShutdownState::NotShuttingDown) => {
-                 self.create_layer_for_subpage(parent_pipeline_id,
-                                               parent_subpage_id,
-                                               subpage_pipeline_id);
-            }
-
             (Msg::CollectMemoryReports(reports_chan), ShutdownState::NotShuttingDown) => {
                 let mut reports = vec![];
                 let name = "compositor-task";
@@ -549,11 +535,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::PipelineExited(pipeline_id), _) => {
                 self.pending_subpages.remove(&pipeline_id);
-
-                // FIXME(pcwalton): This is a total hack. But it'll get complicated to do this
-                // properly, since we need to get rid of the pending subpage layers if either the
-                // parent or the child layer goes away.
-                self.pending_subpage_layers.clear();
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -716,9 +697,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         root_layer.collect_old_layers(self, pipeline_id, new_layers, &mut pipelines_removed);
 
         for pipeline_removed in pipelines_removed.into_iter() {
-            self.pending_subpage_layers.remove(&(pipeline_removed.parent_pipeline_id,
-                                                 pipeline_removed.parent_subpage_id));
-            self.pending_subpages.remove(&pipeline_removed.child_pipeline_id);
+            self.pending_subpages.remove(&pipeline_removed);
         }
     }
 
@@ -832,52 +811,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     scrolls_overflow_area: true,
                 };
 
-                // We need to map from the (pipeline ID, subpage ID) pair to the pipeline ID of
-                // the subpage itself. The constellation is the source of truth for that
-                // information, so go ask it. In the meantime, store the information in the list of
-                // pending subpage layers.
-                self.pending_subpage_layers.insert((pipeline_id, subpage_layer_info.subpage_id),
-                                                   PendingSubpageLayerInfo {
-                    subpage_layer_properties: subpage_layer_properties,
-                    container_layer_id: layer_properties.id,
-                });
-                self.constellation_chan.0.send(ConstellationMsg::PrepareForSubpageLayerCreation(
-                        pipeline_id,
-                        subpage_layer_info.subpage_id)).unwrap();
-            }
-
-            parent_layer.add_child(new_layer.clone());
-        }
-    }
-
-    fn create_layer_for_subpage(&mut self,
-                                parent_pipeline_id: PipelineId,
-                                parent_subpage_id: SubpageId,
-                                subpage_pipeline_id: Option<PipelineId>) {
-        let subpage_pipeline_id = match subpage_pipeline_id {
-            Some(subpage_pipeline_id) => subpage_pipeline_id,
-            None => return,
-        };
-        if let Some(PendingSubpageLayerInfo {
-            subpage_layer_properties,
-            container_layer_id
-        }) = self.pending_subpage_layers.remove(&(parent_pipeline_id, parent_subpage_id)) {
-            if let Some(container_layer) =
-                    self.find_layer_with_pipeline_and_layer_id(parent_pipeline_id,
-                                                               container_layer_id) {
                 let wants_scroll_events = if subpage_layer_properties.scrolls_overflow_area {
                     WantsScrollEventsFlag::WantsScrollEvents
                 } else {
                     WantsScrollEventsFlag::DoesntWantScrollEvents
                 };
-                let subpage_layer = CompositorData::new_layer(subpage_pipeline_id,
+                let subpage_layer = CompositorData::new_layer(subpage_layer_info.pipeline_id,
                                                               subpage_layer_properties,
                                                               wants_scroll_events,
-                                                              container_layer.tile_size);
+                                                              new_layer.tile_size);
                 *subpage_layer.masks_to_bounds.borrow_mut() = true;
-                container_layer.add_child(subpage_layer);
-                self.pending_subpages.insert(subpage_pipeline_id);
+                new_layer.add_child(subpage_layer);
+                self.pending_subpages.insert(subpage_layer_info.pipeline_id);
             }
+
+            parent_layer.add_child(new_layer.clone());
         }
 
         self.dump_layer_tree();
@@ -906,7 +854,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::FrameSize(subpage_layer_info.pipeline_id,
-                                              subpage_layer_info.subpage_id,
                                               layer_properties.rect.size)).unwrap();
     }
 
@@ -1500,7 +1447,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
-                if self.pending_subpage_layers.len() > 0 || self.pending_subpages.len() > 0 {
+                if self.pending_subpages.len() > 0 {
                     return false
                 }
 
@@ -1962,16 +1909,3 @@ pub enum CompositingReason {
     /// The window has been zoomed.
     Zoom,
 }
-
-struct PendingSubpageLayerInfo {
-    subpage_layer_properties: LayerProperties,
-    container_layer_id: LayerId,
-}
-
-#[derive(Copy, Clone)]
-pub struct RemovedPipelineInfo {
-    pub parent_pipeline_id: PipelineId,
-    pub parent_subpage_id: SubpageId,
-    pub child_pipeline_id: PipelineId,
-}
-

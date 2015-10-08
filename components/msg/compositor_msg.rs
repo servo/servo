@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use azure::azure_hl::Color;
-use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, SubpageId};
+use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use euclid::{Matrix4, Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
@@ -169,8 +169,6 @@ pub enum ScriptToCompositorMsg {
 pub struct SubpageLayerInfo {
     /// The ID of the pipeline.
     pub pipeline_id: PipelineId,
-    /// The ID of the subpage.
-    pub subpage_id: SubpageId,
     /// The offset of the subpage within this layer (to account for borders).
     pub origin: Point2D<Au>,
 }

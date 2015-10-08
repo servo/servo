@@ -37,7 +37,7 @@ use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
 use incremental::RestyleDamage;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
@@ -1011,14 +1011,13 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
-    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+    pub fn iframe_pipeline_id(&self) -> PipelineId {
         unsafe {
             let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
                 .expect("not an iframe element!");
-            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
-             (*iframe_element.unsafe_get()).subpage_id().unwrap())
+            (*iframe_element.unsafe_get()).pipeline_id().unwrap()
         }
     }
 }

@@ -124,7 +124,6 @@ impl CompositorEventListener for NullCompositor {
             Msg::ReturnUnusedNativeSurfaces(..) => {}
             Msg::CollectMemoryReports(..) => {}
             Msg::PipelineExited(..) => {}
-            Msg::CreateLayerForSubpage(..) => {}
         }
         true
     }

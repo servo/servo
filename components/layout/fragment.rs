@@ -24,7 +24,7 @@ use ipc_channel::ipc::IpcSender;
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::compositor_msg::{LayerId, LayerType};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
@@ -578,17 +578,14 @@ impl ReplacedImageFragmentInfo {
 pub struct IframeFragmentInfo {
     /// The pipeline ID of this iframe.
     pub pipeline_id: PipelineId,
-    /// The subpage ID of this iframe.
-    pub subpage_id: SubpageId,
 }
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
     pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
-        let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
+        let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
-            subpage_id: subpage_id,
         }
     }
 
