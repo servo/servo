@@ -436,6 +436,7 @@ impl VirtualMethods for HTMLIFrameElement {
             // a new iframe. Without this, the constellation gets very
             // confused.
             self.subpage_id.set(None);
+            self.pipeline_id.set(None);
         }
     }
 }
