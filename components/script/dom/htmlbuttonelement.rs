@@ -10,13 +10,13 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, H
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
-use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
+use dom::node::{Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -47,7 +47,7 @@ impl HTMLButtonElement {
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
-                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             //TODO: implement button_type in attribute_mutated
             button_type: Cell::new(ButtonType::ButtonSubmit)
@@ -144,17 +144,17 @@ impl VirtualMethods for HTMLButtonElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let el = ElementCast::from_ref(self);
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {}
                     AttributeMutation::Set(None) => {
-                        node.set_disabled_state(true);
-                        node.set_enabled_state(false);
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     },
                     AttributeMutation::Removed => {
-                        node.set_disabled_state(false);
-                        node.set_enabled_state(true);
-                        node.check_ancestors_disabled_state_for_form_control();
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },
@@ -167,8 +167,8 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_ancestors_disabled_state_for_form_control();
+        let el = ElementCast::from_ref(self);
+        el.check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -177,10 +177,11 @@ impl VirtualMethods for HTMLButtonElement {
         }
 
         let node = NodeCast::from_ref(self);
+        let el = ElementCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
-            node.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 }
@@ -194,8 +195,8 @@ impl<'a> Activatable for &'a HTMLButtonElement {
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        let node = NodeCast::from_ref(*self);
-        !(node.get_disabled_state())
+        let el = ElementCast::from_ref(*self);
+        !(el.get_disabled_state())
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
