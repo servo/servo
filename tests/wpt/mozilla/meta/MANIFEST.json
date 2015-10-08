@@ -171,6 +171,18 @@
             "url": "/_mozilla/css/anon_block_inherit_a.html"
           }
         ],
+        "css/attr_exists_selector.html": [
+          {
+            "path": "css/attr_exists_selector.html",
+            "references": [
+              [
+                "/_mozilla/css/attr_exists_selector_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/attr_exists_selector.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1134,6 +1146,18 @@
             ]
           ],
           "url": "/_mozilla/css/anon_block_inherit_a.html"
+        }
+      ],
+      "css/attr_exists_selector.html": [
+        {
+          "path": "css/attr_exists_selector.html",
+          "references": [
+            [
+              "/_mozilla/css/attr_exists_selector_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/attr_exists_selector.html"
         }
       ],
       "css/background.html": [
