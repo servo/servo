@@ -11,7 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
-== alpha_gif_a.html alpha_gif_b.html
 == alpha_png_a.html alpha_png_b.html
 == anon_block_inherit_a.html anon_block_inherit_b.html
 flaky_cpu == append_style_a.html append_style_b.html

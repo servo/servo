@@ -135,6 +135,18 @@
             "url": "/_mozilla/css/after_block_iteration.html"
           }
         ],
+        "css/alpha_gif_a.html": [
+          {
+            "path": "css/alpha_gif_a.html",
+            "references": [
+              [
+                "/_mozilla/css/alpha_gif_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/alpha_gif_a.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1062,6 +1074,18 @@
             ]
           ],
           "url": "/_mozilla/css/after_block_iteration.html"
+        }
+      ],
+      "css/alpha_gif_a.html": [
+        {
+          "path": "css/alpha_gif_a.html",
+          "references": [
+            [
+              "/_mozilla/css/alpha_gif_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/alpha_gif_a.html"
         }
       ],
       "css/background.html": [
