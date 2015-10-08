@@ -202,6 +202,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "color_quant"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "compositing"
 version = "0.0.1"
 dependencies = [
@@ -398,6 +403,14 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "enum_primitive"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "env_logger"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -552,6 +565,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "gif"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lzw 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "gl_common"
 version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,6 +601,11 @@ dependencies = [
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "glob"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "glx"
@@ -699,6 +726,19 @@ dependencies = [
  "typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "image"
+version = "0.3.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enum_primitive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gif 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "png 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -873,6 +913,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "lzw"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "mac"
 version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -979,11 +1024,11 @@ version = "0.0.1"
 dependencies = [
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "plugins 0.0.1",
- "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex_macros 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1141,6 +1186,17 @@ dependencies = [
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
  "serde 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "png"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "flate2 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1437,7 +1493,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e2518aa044397894b"
+source = "git+https://github.com/servo/rust-stb-image#a6831a4e0ce78ec7393d6e9c5b3a26f2f4dc4249"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
