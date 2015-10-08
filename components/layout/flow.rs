@@ -656,14 +656,6 @@ static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_001
 static TEXT_ALIGN_SHIFT: usize = 11;
 
 impl FlowFlags {
-    /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
-    ///
-    /// FIXME(#2265, pcwalton): It would be cleaner and faster to make this a derived CSS property
-    /// `-servo-text-align-in-effect`.
-    pub fn propagate_text_alignment_from_parent(&mut self, parent_flags: FlowFlags) {
-        self.set_text_align_override(parent_flags);
-    }
-
     #[inline]
     pub fn text_align(self) -> text_align::T {
         text_align::T::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
@@ -673,11 +665,6 @@ impl FlowFlags {
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
                 FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
-    }
-
-    #[inline]
-    pub fn set_text_align_override(&mut self, parent: FlowFlags) {
-        self.insert(parent & TEXT_ALIGN);
     }
 
     #[inline]

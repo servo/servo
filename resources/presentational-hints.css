@@ -7,12 +7,9 @@ https://html.spec.whatwg.org/multipage/#presentational-hints
 
 pre[wrap] { white-space: pre-wrap; }
 
-/*
-FIXME: also "align descendants"
-https://html.spec.whatwg.org/multipage/#align-descendants
-*/
-div[align=left i] { text-align: left; }
-div[align=right i] { text-align: right; }
+div[align=left i] { text-align: -servo-left; }
+div[align=right i] { text-align: -servo-right; }
+div[align=center i], div[align=middle i] { text-align: -servo-center; }
 div[align=justify i] { text-align: justify; }
 
 

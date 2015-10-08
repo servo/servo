@@ -4286,6 +4286,16 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/flow-content-0/div-align.html",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/flow-content-0/div-align-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/flow-content-0/div-align.html"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/phrasing-content-0/font-element-text-decoration-color/001-a.html",
         "references": [
           [

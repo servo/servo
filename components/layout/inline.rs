@@ -1019,8 +1019,14 @@ impl InlineFlow {
         // Translate `left` and `right` to logical directions.
         let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
         let line_align = match (line_align, is_ltr) {
-            (text_align::T::left, true) | (text_align::T::right, false) => text_align::T::start,
-            (text_align::T::left, false) | (text_align::T::right, true) => text_align::T::end,
+            (text_align::T::left, true) |
+            (text_align::T::servo_left, true) |
+            (text_align::T::right, false) |
+            (text_align::T::servo_right, false) => text_align::T::start,
+            (text_align::T::left, false) |
+            (text_align::T::servo_left, false) |
+            (text_align::T::right, true) |
+            (text_align::T::servo_right, true) => text_align::T::end,
             _ => line_align
         };
 
@@ -1040,7 +1046,10 @@ impl InlineFlow {
                 inline_start_position_for_fragment = inline_start_position_for_fragment +
                     slack_inline_size
             }
-            text_align::T::left | text_align::T::right => unreachable!()
+            text_align::T::left |
+            text_align::T::servo_left |
+            text_align::T::right |
+            text_align::T::servo_right => unreachable!()
         }
 
         // Lay out the fragments in visual order.

@@ -29,5 +29,5 @@ td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }
 td[align="right"]   { text-align: right; }
 
-center, div[align=center i], div[align=middle i] { text-align: -servo-center; }
+center { text-align: -servo-center; }
 
