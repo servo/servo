@@ -27,6 +27,18 @@
             "url": "/_mozilla/css/abs_float_pref_width.html"
           }
         ],
+        "css/abs_rel_explicit_height.html": [
+          {
+            "path": "css/abs_rel_explicit_height.html",
+            "references": [
+              [
+                "/_mozilla/css/abs_rel_explicit_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/abs_rel_explicit_height.html"
+          }
+        ],
         "css/absolute_clipping_of_own_contents.html": [
           {
             "path": "css/absolute_clipping_of_own_contents.html",
@@ -882,6 +894,18 @@
             ]
           ],
           "url": "/_mozilla/css/abs_float_pref_width.html"
+        }
+      ],
+      "css/abs_rel_explicit_height.html": [
+        {
+          "path": "css/abs_rel_explicit_height.html",
+          "references": [
+            [
+              "/_mozilla/css/abs_rel_explicit_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/abs_rel_explicit_height.html"
         }
       ],
       "css/absolute_clipping_of_own_contents.html": [
