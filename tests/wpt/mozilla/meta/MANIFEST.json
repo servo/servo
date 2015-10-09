@@ -255,6 +255,18 @@
             "url": "/_mozilla/css/background_image_position_a.html"
           }
         ],
+        "css/background_none_a.html": [
+          {
+            "path": "css/background_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_none_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_none_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1290,6 +1302,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_image_position_a.html"
+        }
+      ],
+      "css/background_none_a.html": [
+        {
+          "path": "css/background_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_none_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_none_a.html"
         }
       ],
       "css/class-namespaces.html": [
