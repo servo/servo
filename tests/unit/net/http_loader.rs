@@ -28,15 +28,15 @@ use url::Url;
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
-    let mut headers = Headers::new();
-    respond_with_headers(body, &mut headers)
+    let headers = Headers::new();
+    respond_with_headers(body, headers)
 }
 
-fn respond_with_headers(body: Vec<u8>, headers: &mut Headers) -> MockResponse {
+fn respond_with_headers(body: Vec<u8>, mut headers: Headers) -> MockResponse {
     headers.set(ContentLength(body.len() as u64));
 
     MockResponse::new(
-        headers.clone(),
+        headers,
         StatusCode::Ok,
         RawStatus(200, Cow::Borrowed("Ok")),
         body
@@ -118,8 +118,8 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Text(b) => {
             Ok(respond_with(b))
         },
-        ResponseType::WithHeaders(b, mut h) => {
-            Ok(respond_with_headers(b, &mut h))
+        ResponseType::WithHeaders(b, h) => {
+            Ok(respond_with_headers(b, h))
         }
     }
 }
