@@ -351,7 +351,7 @@ def check_rust(file_name, contents):
             mods = []
 
         # There should not be any extra pointer dereferencing
-        if re.search(r": &Vec<", line) is not None:
+        if ": &Vec<" in line:
             yield (idx + 1, "use &[T] instead of &Vec<T>")
 
 
