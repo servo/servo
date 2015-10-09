@@ -399,12 +399,13 @@ resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a
 prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
 == visibility_hidden.html visibility_hidden_ref.html
 
-== webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
-== webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
-== webgl-context/tex_image_2d_canvas.html webgl-context/tex_image_2d_canvas_ref.html
-== webgl-context/tex_image_2d_canvas2d.html webgl-context/tex_image_2d_canvas_ref.html
-== webgl-context/tex_image_2d_canvas_no_context.html webgl-context/tex_image_2d_canvas_no_context_ref.html
-== webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
+# https://github.com/servo/servo/issues/7931
+# == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
+# == webgl-context/draw_arrays_simple.html webgl-context/draw_arrays_simple_ref.html
+# == webgl-context/tex_image_2d_canvas.html webgl-context/tex_image_2d_canvas_ref.html
+# == webgl-context/tex_image_2d_canvas2d.html webgl-context/tex_image_2d_canvas_ref.html
+# == webgl-context/tex_image_2d_canvas_no_context.html webgl-context/tex_image_2d_canvas_no_context_ref.html
+# == webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
 == whitespace_nowrap_a.html whitespace_nowrap_ref.html
