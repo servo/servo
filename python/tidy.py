@@ -151,8 +151,7 @@ def check_lock(file_name, contents):
     packages = {}
 
     # package names to be neglected (as named by cargo)
-    # - `png` is used by PistonDevelopers/image-png and servo/rust-png
-    exceptions = ["glutin", "wayland-kbd", "png"]
+    exceptions = ["glutin", "wayland-kbd"]
 
     while idx < len(contents):
         content = contents[idx].strip()

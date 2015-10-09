@@ -5,29 +5,12 @@
 use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, GenericImage};
 use stb_image::image as stb_image2;
-use std::error::Error;
-use util::mem::HeapSizeOf;
 use util::vec::byte_swap;
+
+pub use msg::constellation_msg::{Image, PixelFormat};
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
-
-#[derive(Deserialize, Serialize, HeapSizeOf)]
-pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
-}
-
-#[derive(Deserialize, Serialize, HeapSizeOf)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
-    pub format: PixelFormat,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
-}
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 fn byte_swap_and_premultiply(data: &mut [u8]) {

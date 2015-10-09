@@ -22,10 +22,6 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-features = [ "serde-serialization" ]
-
 [dependencies.hyper]
 version = "0.6"
 features = [ "serde-serialization" ]

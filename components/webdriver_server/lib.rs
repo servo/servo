@@ -11,9 +11,9 @@
 #[macro_use]
 extern crate log;
 extern crate hyper;
+extern crate image;
 extern crate ipc_channel;
 extern crate msg;
-extern crate png;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate url;
@@ -22,10 +22,11 @@ extern crate uuid;
 extern crate webdriver;
 
 use hyper::method::Method::{self, Post};
+use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FrameId, LoadData, PipelineId};
-use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
+use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
 use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
@@ -615,24 +616,26 @@ impl Handler {
             sleep_ms(interval)
         }
 
-        let mut img = match img {
+        let img = match img {
             Some(img) => img,
             None => return Err(WebDriverError::new(ErrorStatus::Timeout,
                                                    "Taking screenshot timed out")),
         };
 
-        let img_vec = match png::to_vec(&mut img) {
-            Ok(x) => x,
-            Err(_) => return Err(WebDriverError::new(ErrorStatus::UnknownError,
-                                                     "Taking screenshot failed"))
-        };
+        // The compositor always sends RGB pixels.
+        assert!(img.format == PixelFormat::RGB8, "Unexpected screenshot pixel format");
+        let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+
+        let mut png_data = Vec::new();
+        DynamicImage::ImageRgb8(rgb).save(&mut png_data, ImageFormat::PNG).unwrap();
+
         let config = Config {
             char_set: CharacterSet::Standard,
             newline: Newline::LF,
             pad: true,
             line_length: None
         };
-        let encoded = img_vec.to_base64(config);
+        let encoded = png_data.to_base64(config);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
     }
 

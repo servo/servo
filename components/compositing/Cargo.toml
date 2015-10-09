@@ -52,10 +52,6 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-features = [ "serde-serialization" ]
-
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
 
@@ -72,6 +68,7 @@ features = [ "serde_serialization" ]
 
 [dependencies]
 app_units = "0.1"
+image = "0.3.14"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
