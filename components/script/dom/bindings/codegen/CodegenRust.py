@@ -2357,11 +2357,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         if self.descriptor.concrete:
             if self.descriptor.proxy:
-                domClass = "&Class"
+                domClass = "Some(&Class)"
             else:
-                domClass = "&Class.dom_class"
+                domClass = "Some(&Class.dom_class)"
         else:
-            domClass = "ptr::null()"
+            domClass = "None"
 
         if self.descriptor.interface.hasInterfaceObject():
             if self.descriptor.interface.ctor():

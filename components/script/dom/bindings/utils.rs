@@ -215,7 +215,7 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    proto_class: Option<&'static JSClass>,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
                                    named_constructors: &[(NonNullJSNative, &'static str, u32)],
-                                   dom_class: *const DOMClass,
+                                   dom_class: Option<&'static DOMClass>,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
     if let Some(proto_class) = proto_class {
@@ -223,10 +223,15 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                           proto_class, members, rval);
     }
 
-    unsafe {
-        if !rval.get().is_null() {
+    if !rval.get().is_null() {
+        let dom_class_ptr = match dom_class {
+            Some(dom_class) => dom_class as *const DOMClass as *const libc::c_void,
+            None            => ptr::null() as *const libc::c_void,
+        };
+
+        unsafe {
             JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               PrivateValue(dom_class as *const libc::c_void));
+                               PrivateValue(dom_class_ptr));
         }
     }
 
