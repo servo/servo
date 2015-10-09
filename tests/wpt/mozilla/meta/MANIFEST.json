@@ -231,6 +231,18 @@
             "url": "/_mozilla/css/background_external_stylesheet.html"
           }
         ],
+        "css/background_image_a.html": [
+          {
+            "path": "css/background_image_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_image_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_image_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1242,6 +1254,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_external_stylesheet.html"
+        }
+      ],
+      "css/background_image_a.html": [
+        {
+          "path": "css/background_image_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_image_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_image_a.html"
         }
       ],
       "css/class-namespaces.html": [
