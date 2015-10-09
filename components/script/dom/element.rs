@@ -20,7 +20,7 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateEl
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
-use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast, HTMLFieldSetElementDerived, HTMLLegendElementDerived, HTMLOptGroupElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementCast, HTMLFontElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementCast, HTMLTableElementCast};
@@ -1913,6 +1913,53 @@ impl Element {
 
     pub fn set_disabled_state(&self, state: bool) {
         self.set_state(IN_DISABLED_STATE, state)
+    }
+}
+
+impl Element {
+    pub fn check_ancestors_disabled_state_for_form_control(&self) {
+        let node = NodeCast::from_ref(self);
+        if self.get_disabled_state() { return; }
+        for ancestor in node.ancestors() {
+            let ancestor = ancestor;
+            let ancestor = ancestor.r();
+            if !ancestor.is_htmlfieldsetelement() { continue; }
+            if !ElementCast::to_ref(ancestor).unwrap().get_disabled_state() { continue; }
+            if ancestor.is_parent_of(node) {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+                return;
+            }
+            match ancestor.children()
+                          .find(|child| child.r().is_htmllegendelement())
+            {
+                Some(ref legend) => {
+                    // XXXabinader: should we save previous ancestor to avoid this iteration?
+                    if node.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                },
+                None => ()
+            }
+            self.set_disabled_state(true);
+            self.set_enabled_state(false);
+            return;
+        }
+    }
+
+    pub fn check_parent_disabled_state_for_option(&self) {
+        if self.get_disabled_state() { return; }
+        let node = NodeCast::from_ref(self);
+        if let Some(ref parent) = node.GetParentNode() {
+            if parent.r().is_htmloptgroupelement() && ElementCast::to_ref(parent.r()).unwrap().get_disabled_state() {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+            }
+        }
+    }
+
+    pub fn check_disabled_attribute(&self) {
+        let has_disabled_attrib = self.has_attribute(&atom!("disabled"));
+        self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
     }
 }
 
