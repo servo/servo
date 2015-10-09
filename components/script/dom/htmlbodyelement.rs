@@ -3,17 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId, RawLayoutElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
@@ -23,6 +23,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::rc::Rc;
+use string_cache::Atom;
 use time;
 use url::{Url, UrlParser};
 use util::str::{self, DOMString};
@@ -73,6 +74,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
     make_setter!(SetBgColor, "bgcolor");
 
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    make_getter!(Text);
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    fn SetText(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        let color = str::parse_legacy_color(&value).ok();
+        element.set_attribute(&Atom::from_slice("text"), AttrValue::Color(value, color));
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
         let win = window_from_node(self);
@@ -90,6 +101,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 impl HTMLBodyElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_color(&self) -> Option<RGBA> {
+        unsafe {
+            ElementCast::from_ref(self)
+                .get_attr_for_layout(&ns!(""), &atom!("text"))
+                .and_then(AttrValue::as_color)
+                .cloned()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -121,6 +142,16 @@ impl VirtualMethods for HTMLBodyElement {
         let ConstellationChan(ref chan) = window.r().constellation_chan();
         let event = ConstellationMsg::HeadParsed;
         chan.send(event).unwrap();
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("text") => {
+                let parsed = str::parse_legacy_color(&value).ok();
+                AttrValue::Color(value, parsed)
+            },
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
