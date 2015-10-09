@@ -34,11 +34,8 @@ features = ["texture_surface"]
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
-[dependencies.cssparser]
-version = "0.3"
-features = [ "serde-serialization" ]
-
 [dependencies]
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 num = "0.1.24"
 gleam = "0.1"

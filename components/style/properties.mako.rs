@@ -1138,6 +1138,7 @@ pub mod longhands {
         use std::fmt;
         use url::Url;
         use values::computed::Context;
+        use values::LocalToCss;
 
         #[derive(Clone, PartialEq, Eq)]
         pub enum SpecifiedValue {
@@ -1149,9 +1150,7 @@ pub mod longhands {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     SpecifiedValue::None => dest.write_str("none"),
-                    SpecifiedValue::Url(ref url) => {
-                        Token::Url(url.to_string().into()).to_css(dest)
-                    }
+                    SpecifiedValue::Url(ref url) => url.to_css(dest),
                 }
             }
         }
@@ -1160,6 +1159,7 @@ pub mod longhands {
             use cssparser::{ToCss, Token};
             use std::fmt;
             use url::Url;
+            use values::LocalToCss;
 
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Url>);
@@ -1168,7 +1168,7 @@ pub mod longhands {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                     match self.0 {
                         None => dest.write_str("none"),
-                        Some(ref url) => Token::Url(url.to_string().into()).to_css(dest)
+                        Some(ref url) => url.to_css(dest),
                     }
                 }
             }
@@ -1359,6 +1359,7 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
         use values::specified::Image;
+        use values::LocalToCss;
 
         pub mod computed_value {
             use values::computed;
@@ -1370,8 +1371,7 @@ pub mod longhands {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match self.0 {
                     None => dest.write_str("none"),
-                    Some(computed::Image::Url(ref url)) =>
-                        ::cssparser::Token::Url(url.to_string().into()).to_css(dest),
+                    Some(computed::Image::Url(ref url)) => url.to_css(dest),
                     Some(computed::Image::LinearGradient(ref gradient)) =>
                         gradient.to_css(dest)
                 }

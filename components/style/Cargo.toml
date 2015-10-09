@@ -18,20 +18,13 @@ path = "../util"
 [dependencies.style_traits]
 path = "../style_traits"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-features = ["unstable"]
-
-[dependencies.cssparser]
-version = "0.3.9"
-features = [ "serde-serialization" ]
-
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
@@ -40,6 +33,7 @@ matches = "0.1"
 bitflags = "0.3"
 num = "0.1.24"
 lazy_static = "0.1.10"
+selectors = { version = "0.2", features = ["unstable"] }
 smallvec = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"

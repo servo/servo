@@ -5,7 +5,10 @@
 pub use cssparser::RGBA;
 
 use app_units::Au;
-use std::fmt;
+use cssparser::CssStringWriter;
+use std::fmt::{self, Write};
+use url::Url;
+
 
 // This is a re-implementation of the ToCss trait in cssparser.
 // It's done here because the app_units crate shouldn't depend
@@ -63,6 +66,22 @@ macro_rules! define_numbered_css_keyword_enum {
         }
     }
 }
+
+/// The real ToCss trait can’t be implemented for Url
+/// since neither rust-url or rust-cssparser depend on the other.
+pub trait LocalToCss {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
+}
+
+impl LocalToCss for Url {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("url(\""));
+        try!(write!(CssStringWriter::new(dest), "{}", self));
+        try!(dest.write_str("\")"));
+        Ok(())
+    }
+}
+
 
 pub type CSSFloat = f32;
 
@@ -1177,20 +1196,16 @@ pub mod specified {
 
     impl Image {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
-            match try!(input.next()) {
-                Token::Url(url) => {
-                    Ok(Image::Url(context.parse_url(&url)))
-                }
-                Token::Function(name) => {
-                    match_ignore_ascii_case! { name,
-                        "linear-gradient" => {
-                            Ok(Image::LinearGradient(try!(
-                                input.parse_nested_block(LinearGradient::parse_function))))
-                        }
-                        _ => Err(())
+            if let Ok(url) = input.try(|input| input.expect_url()) {
+                Ok(Image::Url(context.parse_url(&url)))
+            } else {
+                match_ignore_ascii_case! { try!(input.expect_function()),
+                    "linear-gradient" => {
+                        Ok(Image::LinearGradient(try!(
+                            input.parse_nested_block(LinearGradient::parse_function))))
                     }
+                    _ => Err(())
                 }
-                _ => Err(())
             }
         }
     }

@@ -28,10 +28,6 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "nightly" ]
 
-[dependencies.cssparser]
-version = "0.3"
-features = [ "serde-serialization" ]
-
 [dependencies.plugins]
 path = "../plugins"
 
@@ -39,6 +35,7 @@ path = "../plugins"
 path = "../util"
 
 [dependencies]
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 euclid = {version = "0.3", features = ["plugins"]}
 serde_macros = "0.6"
 

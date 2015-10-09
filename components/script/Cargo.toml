@@ -42,9 +42,6 @@ path = "../canvas"
 [dependencies.canvas_traits]
 path = "../canvas_traits"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
@@ -59,10 +56,6 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 git = "https://github.com/ecoal95/angle"
 branch = "servo"
 
-[dependencies.cssparser]
-version = "0.3"
-features = [ "serde-serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
@@ -76,6 +69,7 @@ features = ["unstable"]
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
@@ -89,6 +83,7 @@ websocket = "0.12.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
+selectors = "0.2"
 string_cache = { version = "0.1.15", features = ["unstable"] }
 string_cache_plugin = "0.1"
 euclid = {version = "0.3", features = ["plugins"]}
