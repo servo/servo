@@ -1187,7 +1187,6 @@ dependencies = [
  "net_traits 0.0.1",
  "openssl 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
- "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex_macros 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -21,7 +21,6 @@ extern crate hyper;
 extern crate ipc_channel;
 extern crate net_traits;
 extern crate openssl;
-extern crate png;
 extern crate rustc_serialize;
 extern crate time;
 extern crate url;
