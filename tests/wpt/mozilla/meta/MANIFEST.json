@@ -183,6 +183,18 @@
             "url": "/_mozilla/css/attr_exists_selector.html"
           }
         ],
+        "css/attr_selector_case_sensitivity.html": [
+          {
+            "path": "css/attr_selector_case_sensitivity.html",
+            "references": [
+              [
+                "/_mozilla/css/attr_selector_case_sensitivity_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/attr_selector_case_sensitivity.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -1158,6 +1170,18 @@
             ]
           ],
           "url": "/_mozilla/css/attr_exists_selector.html"
+        }
+      ],
+      "css/attr_selector_case_sensitivity.html": [
+        {
+          "path": "css/attr_selector_case_sensitivity.html",
+          "references": [
+            [
+              "/_mozilla/css/attr_selector_case_sensitivity_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/attr_selector_case_sensitivity.html"
         }
       ],
       "css/background.html": [
