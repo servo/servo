@@ -2,14 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie_rs;
+use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, Encoding, Headers, Host, Location, Quality};
-use hyper::header::{QualityItem, qitem, UserAgent};
+use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
+use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, qitem, SetCookie};
+use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -348,7 +349,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     load_data.method = Method::Post;
 
     let mut content_length = Headers::new();
-    content_length.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec("0".as_bytes())]);
+    content_length.set(ContentLength(0));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
@@ -453,7 +454,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
             let encoded_content = e.finish().unwrap();
 
             let mut headers = Headers::new();
-            headers.set_raw("Content-Encoding", vec![b"deflate".to_vec()]);
+            headers.set(ContentEncoding(vec![Encoding::Deflate]));
             Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
@@ -486,7 +487,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
             let encoded_content = e.finish().unwrap();
 
             let mut headers = Headers::new();
-            headers.set_raw("Content-Encoding", vec![b"gzip".to_vec()]);
+            headers.set(ContentEncoding(vec![Encoding::Gzip]));
             Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
@@ -557,7 +558,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -589,7 +590,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -621,7 +622,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest".to_vec()]);
+            headers.set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -659,7 +660,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         let mut cookie_jar = cookie_jar.write().unwrap();
         let cookie_url = url.clone();
         let cookie = Cookie::new_wrapped(
-            cookie_rs::Cookie::parse("mozillaIs=theBest").unwrap(),
+            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &cookie_url,
             CookieSource::HTTP
         ).unwrap();
@@ -667,7 +668,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     }
 
     let mut cookie = Headers::new();
-    cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+    cookie.set(CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
 
     let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
                                                     &AssertMustIncludeHeadersRequestFactory {
@@ -685,10 +686,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
     let mut content_len_headers = Headers::new();
-    let content_len = format!("{}", content.len());
-    content_len_headers.set_raw(
-        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*content_len.as_bytes())]
-    );
+    content_len_headers.set(ContentLength(content.as_bytes().len() as u64));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -702,13 +700,15 @@ fn test_load_sets_content_length_to_length_of_request_body() {
 
 #[test]
 fn test_load_uses_explicit_accept_from_headers_in_load_data() {
+    let text_html = qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]));
+
     let mut accept_headers = Headers::new();
-    accept_headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
+    accept_headers.set(Accept(vec![text_html.clone()]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
+    load_data.headers.set(Accept(vec![text_html.clone()]));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -726,9 +726,12 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let mut accept_headers = Headers::new();
-    accept_headers.set_raw(
-        "Accept".to_owned(), vec![b"text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8".to_vec()]
-    );
+    accept_headers.set(Accept(vec![
+        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
+    ]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
@@ -750,12 +753,12 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
 #[test]
 fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+    load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
@@ -773,7 +776,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
