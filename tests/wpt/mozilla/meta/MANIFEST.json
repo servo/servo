@@ -303,6 +303,18 @@
             "url": "/_mozilla/css/background_position_keyword.html"
           }
         ],
+        "css/background_position_percent.html": [
+          {
+            "path": "css/background_position_percent.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_percent.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1386,6 +1398,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_position_keyword.html"
+        }
+      ],
+      "css/background_position_percent.html": [
+        {
+          "path": "css/background_position_percent.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_percent.html"
         }
       ],
       "css/class-namespaces.html": [
