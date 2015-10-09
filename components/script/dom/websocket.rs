@@ -324,7 +324,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(&self, data: Option<USVString>) -> Fallible<()> {
+    fn Send(&self, data: USVString) -> Fallible<()> {
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
@@ -346,7 +346,7 @@ impl WebSocketMethods for WebSocket {
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.unwrap().0));
+        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
         Ok(())
     }
 

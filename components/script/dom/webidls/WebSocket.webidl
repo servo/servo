@@ -28,7 +28,7 @@ interface WebSocket : EventTarget {
     //messaging
     attribute EventHandler onmessage;
     attribute BinaryType binaryType;
-    [Throws] void send(optional USVString data);
+    [Throws] void send(USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
