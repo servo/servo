@@ -176,7 +176,7 @@ pub fn reset_pref(name: &str) -> Arc<PrefValue> {
 
 pub fn reset_all_prefs() {
     let names = {
-        PREFS.lock().unwrap().keys().map(|x| x.clone()).collect::<Vec<String>>()
+        PREFS.lock().unwrap().keys().cloned().collect::<Vec<String>>()
     };
     for name in names.iter() {
         reset_pref(name);
