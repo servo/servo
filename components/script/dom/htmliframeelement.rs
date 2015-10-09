@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root};
+use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
@@ -222,10 +222,19 @@ impl HTMLIFrameElement {
     pub fn subpage_id(&self) -> Option<SubpageId> {
         self.subpage_id.get()
     }
+}
 
+pub trait HTMLIFrameElementLayoutMethods {
+    fn pipeline_id(self) -> Option<PipelineId>;
+}
+
+impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     #[inline]
-    pub fn pipeline_id(&self) -> Option<PipelineId> {
-        self.pipeline_id.get()
+    #[allow(unsafe_code)]
+    fn pipeline_id(self) -> Option<PipelineId> {
+        unsafe {
+            (*self.unsafe_get()).pipeline_id.get()
+        }
     }
 }
 
