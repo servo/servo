@@ -106,7 +106,7 @@ impl StorageManager {
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
                     .and_then(|entry| entry.keys().nth(index as usize))
-                    .map(|key| key.clone())).unwrap();
+                    .cloned()).unwrap();
     }
 
     fn keys(&self,
