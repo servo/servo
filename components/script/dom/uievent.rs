@@ -87,7 +87,7 @@ impl UIEvent {
 impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(&self) -> Option<Root<Window>> {
-        self.view.get().map(Root::from_rooted)
+        self.view.get_rooted()
     }
 
     // https://w3c.github.io/uievents/#widl-UIEvent-detail

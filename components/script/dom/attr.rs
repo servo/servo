@@ -303,7 +303,7 @@ impl Attr {
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
-        self.owner.get().map(Root::from_rooted)
+        self.owner.get_rooted()
     }
 
     pub fn summarize(&self) -> AttrInfo {

@@ -189,12 +189,12 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-target
     fn GetTarget(&self) -> Option<Root<EventTarget>> {
-        self.target.get().map(Root::from_rooted)
+        self.target.get_rooted()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-currenttarget
     fn GetCurrentTarget(&self) -> Option<Root<EventTarget>> {
-        self.current_target.get().map(Root::from_rooted)
+        self.current_target.get_rooted()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented

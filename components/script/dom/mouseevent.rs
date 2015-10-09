@@ -162,7 +162,7 @@ impl MouseEventMethods for MouseEvent {
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<Root<EventTarget>> {
-        self.related_target.get().map(Root::from_rooted)
+        self.related_target.get_rooted()
     }
 
     // See discussion at:
