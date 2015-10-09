@@ -100,7 +100,7 @@ fn main() {
 
     match run(test_opts,
               all_tests,
-              servo_args.iter().map(|x| x.clone()).collect()) {
+              servo_args.iter().cloned().collect()) {
         Ok(false) => process::exit(1), // tests failed
         Err(_) => process::exit(2),    // I/O-related failure
         _ => (),
