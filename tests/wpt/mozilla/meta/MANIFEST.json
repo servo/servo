@@ -183,6 +183,18 @@
             "url": "/_mozilla/css/attr_exists_selector.html"
           }
         ],
+        "css/attr_selector_case_sensitivity.html": [
+          {
+            "path": "css/attr_selector_case_sensitivity.html",
+            "references": [
+              [
+                "/_mozilla/css/attr_selector_case_sensitivity_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/attr_selector_case_sensitivity.html"
+          }
+        ],
         "css/background.html": [
           {
             "path": "css/background.html",
@@ -193,6 +205,114 @@
               ]
             ],
             "url": "/_mozilla/css/background.html"
+          }
+        ],
+        "css/background_clip_a.html": [
+          {
+            "path": "css/background_clip_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_clip_a.html"
+          }
+        ],
+        "css/background_external_stylesheet.html": [
+          {
+            "path": "css/background_external_stylesheet.html",
+            "references": [
+              [
+                "/_mozilla/css/background_rust_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_external_stylesheet.html"
+          }
+        ],
+        "css/background_image_a.html": [
+          {
+            "path": "css/background_image_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_image_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_image_a.html"
+          }
+        ],
+        "css/background_image_position_a.html": [
+          {
+            "path": "css/background_image_position_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_image_position_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_image_position_a.html"
+          }
+        ],
+        "css/background_none_a.html": [
+          {
+            "path": "css/background_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_none_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_none_a.html"
+          }
+        ],
+        "css/background_origin_a.html": [
+          {
+            "path": "css/background_origin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_origin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_origin_a.html"
+          }
+        ],
+        "css/background_position_a.html": [
+          {
+            "path": "css/background_position_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_a.html"
+          }
+        ],
+        "css/background_position_keyword.html": [
+          {
+            "path": "css/background_position_keyword.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_keyword.html"
+          }
+        ],
+        "css/background_position_percent.html": [
+          {
+            "path": "css/background_position_percent.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_percent.html"
           }
         ],
         "css/class-namespaces.html": [
@@ -1160,6 +1280,18 @@
           "url": "/_mozilla/css/attr_exists_selector.html"
         }
       ],
+      "css/attr_selector_case_sensitivity.html": [
+        {
+          "path": "css/attr_selector_case_sensitivity.html",
+          "references": [
+            [
+              "/_mozilla/css/attr_selector_case_sensitivity_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/attr_selector_case_sensitivity.html"
+        }
+      ],
       "css/background.html": [
         {
           "path": "css/background.html",
@@ -1170,6 +1302,114 @@
             ]
           ],
           "url": "/_mozilla/css/background.html"
+        }
+      ],
+      "css/background_clip_a.html": [
+        {
+          "path": "css/background_clip_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_clip_a.html"
+        }
+      ],
+      "css/background_external_stylesheet.html": [
+        {
+          "path": "css/background_external_stylesheet.html",
+          "references": [
+            [
+              "/_mozilla/css/background_rust_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_external_stylesheet.html"
+        }
+      ],
+      "css/background_image_a.html": [
+        {
+          "path": "css/background_image_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_image_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_image_a.html"
+        }
+      ],
+      "css/background_image_position_a.html": [
+        {
+          "path": "css/background_image_position_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_image_position_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_image_position_a.html"
+        }
+      ],
+      "css/background_none_a.html": [
+        {
+          "path": "css/background_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_none_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_none_a.html"
+        }
+      ],
+      "css/background_origin_a.html": [
+        {
+          "path": "css/background_origin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_origin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_origin_a.html"
+        }
+      ],
+      "css/background_position_a.html": [
+        {
+          "path": "css/background_position_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_a.html"
+        }
+      ],
+      "css/background_position_keyword.html": [
+        {
+          "path": "css/background_position_keyword.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_keyword.html"
+        }
+      ],
+      "css/background_position_percent.html": [
+        {
+          "path": "css/background_position_percent.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_percent.html"
         }
       ],
       "css/class-namespaces.html": [
