@@ -26,7 +26,7 @@ use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy, SubpageLayerInfo};
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
-use paint_task::PaintLayer;
+use paint_task::{PaintLayerContents, PaintLayer};
 use self::DisplayItem::*;
 use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
@@ -254,21 +254,38 @@ impl DisplayList {
         print_display_list_section(print_tree, &self.outlines, "Outlines");
 
 
-        for stacking_context in &self.children {
-            stacking_context.print_with_tree(print_tree);
+        if !self.children.is_empty() {
+            print_tree.new_level("Stacking Contexts".to_owned());
+            for stacking_context in &self.children {
+                stacking_context.print_with_tree(print_tree);
+            }
+            print_tree.end_level();
         }
 
-        for paint_layer in &self.layered_children {
-            paint_layer.stacking_context.print_with_tree(print_tree);
+        if !self.layered_children.is_empty() {
+            print_tree.new_level("Layers".to_owned());
+            for paint_layer in &self.layered_children {
+                match paint_layer.contents {
+                    PaintLayerContents::StackingContext(ref stacking_context) =>
+                        stacking_context.print_with_tree(print_tree),
+                    PaintLayerContents::DisplayList(ref display_list) => {
+                        print_tree.new_level(format!("DisplayList Layer with bounds {:?}:",
+                                                     display_list.calculate_bounding_rect()));
+                        display_list.print_with_tree(print_tree);
+                        print_tree.end_level();
+                    }
+                }
+            }
+            print_tree.end_level();
         }
     }
 
     /// Draws the DisplayList in stacking context order according to the steps in CSS 2.1 § E.2.
-    fn draw_into_context(&self,
-                         draw_target: &DrawTarget,
-                         paint_context: &mut PaintContext,
-                         transform: &Matrix4,
-                         clip_rect: Option<&Rect<Au>>) {
+    pub fn draw_into_context(&self,
+                             draw_target: &DrawTarget,
+                             paint_context: &mut PaintContext,
+                             transform: &Matrix4,
+                             clip_rect: Option<&Rect<Au>>) {
         let mut paint_subcontext = PaintContext {
             draw_target: draw_target.clone(),
             font_context: &mut *paint_context.font_context,
@@ -424,9 +441,15 @@ impl DisplayList {
             }
         }
 
-        // Layers are positioned on top of this layer should get a shot at the hit test first.
+        // Layers that are positioned on top of this layer should get a shot at the hit test first.
         for layer in self.layered_children.iter().rev() {
-            layer.stacking_context.hit_test(point, result, topmost_only);
+            match layer.contents {
+                PaintLayerContents::StackingContext(ref stacking_context) =>
+                    stacking_context.hit_test(point, result, topmost_only),
+                PaintLayerContents::DisplayList(ref display_list) =>
+                    display_list.hit_test(point, result, topmost_only),
+            }
+
             if topmost_only && !result.is_empty() {
                 return
             }
@@ -485,6 +508,51 @@ impl DisplayList {
                          topmost_only,
                          self.background_and_borders.iter().rev())
 
+    }
+
+    /// Returns the PaintLayer in the given DisplayList with a specific layer ID.
+    pub fn find_layer_with_layer_id(&self, layer_id: LayerId) -> Option<Arc<PaintLayer>> {
+        for kid in &self.layered_children {
+            if let Some(paint_layer) = PaintLayer::find_layer_with_layer_id(&kid, layer_id) {
+                return Some(paint_layer);
+            }
+        }
+
+        for kid in &self.children {
+            if let Some(paint_layer) = kid.display_list.find_layer_with_layer_id(layer_id) {
+                return Some(paint_layer);
+            }
+        }
+
+        None
+    }
+
+    /// Calculate the union of all the bounds of all of the items in this display list.
+    /// This is an expensive operation, so it shouldn't be done unless absolutely necessary
+    /// and, if possible, the result should be cached.
+    pub fn calculate_bounding_rect(&self) -> Rect<Au> {
+        fn union_all_items(list: &LinkedList<DisplayItem>, mut bounds: Rect<Au>) -> Rect<Au> {
+            for item in list {
+                bounds = bounds.union(&item.base().bounds);
+            }
+            bounds
+        };
+
+        let mut bounds = Rect::zero();
+        bounds = union_all_items(&self.background_and_borders, bounds);
+        bounds = union_all_items(&self.block_backgrounds_and_borders, bounds);
+        bounds = union_all_items(&self.floats, bounds);
+        bounds = union_all_items(&self.content, bounds);
+        bounds = union_all_items(&self.positioned_content, bounds);
+        bounds = union_all_items(&self.outlines, bounds);
+
+        for stacking_context in &self.children {
+            bounds = bounds.union(&Rect::new(
+                stacking_context.overflow.origin + stacking_context.bounds.origin,
+                stacking_context.overflow.size));
+        }
+
+        bounds
     }
 }
 
@@ -687,7 +755,7 @@ impl StackingContext {
 }
 
 struct StackingContextLayerCreator {
-    display_list_for_next_layer: Option<Box<DisplayList>>,
+    display_list_for_next_layer: Option<DisplayList>,
     next_layer_info: Option<LayerInfo>,
 }
 
@@ -728,12 +796,8 @@ impl StackingContextLayerCreator {
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
             let layer_info = self.next_layer_info.take().unwrap();
-            let child_stacking_context =
-                Arc::new(stacking_context.create_layered_child(layer_info.clone(), display_list));
             stacking_context.display_list.layered_children.push_back(
-                Arc::new(PaintLayer::new(layer_info,
-                                         color::transparent(),
-                                         child_stacking_context)));
+                Arc::new(PaintLayer::new_with_display_list(layer_info, display_list)));
         }
     }
 
@@ -768,31 +832,12 @@ impl StackingContextLayerCreator {
         }
 
         if self.display_list_for_next_layer.is_none() {
-            self.display_list_for_next_layer = Some(box DisplayList::new());
+            self.display_list_for_next_layer = Some(DisplayList::new());
         }
         if let Some(ref mut display_list) = self.display_list_for_next_layer {
             display_list.children.push_back(stacking_context);
         }
     }
-}
-
-/// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
-pub fn find_layer_with_layer_id(this: &Arc<StackingContext>,
-                                layer_id: LayerId)
-                                -> Option<Arc<PaintLayer>> {
-    for kid in &this.display_list.layered_children {
-        if let Some(paint_layer) = PaintLayer::find_layer_with_layer_id(&kid, layer_id) {
-            return Some(paint_layer);
-        }
-    }
-
-    for kid in &this.display_list.children {
-        if let Some(paint_layer) = find_layer_with_layer_id(kid, layer_id) {
-            return Some(paint_layer);
-        }
-    }
-
-    None
 }
 
 /// One drawing command in the list.
