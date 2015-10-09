@@ -207,6 +207,18 @@
             "url": "/_mozilla/css/background.html"
           }
         ],
+        "css/background_clip_a.html": [
+          {
+            "path": "css/background_clip_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_clip_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1194,6 +1206,18 @@
             ]
           ],
           "url": "/_mozilla/css/background.html"
+        }
+      ],
+      "css/background_clip_a.html": [
+        {
+          "path": "css/background_clip_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_clip_a.html"
         }
       ],
       "css/class-namespaces.html": [
