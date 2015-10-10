@@ -23,7 +23,8 @@ use euclid::num::Zero;
 use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::color;
 use libc::uintptr_t;
-use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy, SubpageLayerInfo};
+use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
 use paint_task::{PaintLayerContents, PaintLayer};
@@ -88,7 +89,7 @@ pub struct LayerInfo {
     pub scroll_policy: ScrollPolicy,
 
     /// The subpage that this layer represents, if there is one.
-    pub subpage_layer_info: Option<SubpageLayerInfo>,
+    pub subpage_pipeline_id: Option<PipelineId>,
 
     /// The id for the next layer in the sequence. This is used for synthesizing
     /// layers for content that needs to be displayed on top of this layer.
@@ -98,12 +99,12 @@ pub struct LayerInfo {
 impl LayerInfo {
     pub fn new(id: LayerId,
                scroll_policy: ScrollPolicy,
-               subpage_layer_info: Option<SubpageLayerInfo>)
+               subpage_pipeline_id: Option<PipelineId>)
                -> LayerInfo {
         LayerInfo {
             layer_id: id,
             scroll_policy: scroll_policy,
-            subpage_layer_info: subpage_layer_info,
+            subpage_pipeline_id: subpage_pipeline_id,
             next_layer_id: id.companion_layer_id(),
         }
     }
@@ -144,6 +145,8 @@ pub struct DisplayList {
     pub children: LinkedList<Arc<StackingContext>>,
     /// Child PaintLayers that will be rendered on top of everything else.
     pub layered_children: LinkedList<Arc<PaintLayer>>,
+    /// Information about child layers.
+    pub layer_info: LinkedList<LayerInfo>,
 }
 
 impl DisplayList {
@@ -159,6 +162,7 @@ impl DisplayList {
             outlines: LinkedList::new(),
             children: LinkedList::new(),
             layered_children: LinkedList::new(),
+            layer_info: LinkedList::new(),
         }
     }
 
@@ -174,6 +178,7 @@ impl DisplayList {
         self.outlines.append(&mut other.outlines);
         self.children.append(&mut other.children);
         self.layered_children.append(&mut other.layered_children);
+        self.layer_info.append(&mut other.layer_info);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
@@ -554,6 +559,29 @@ impl DisplayList {
 
         bounds
     }
+
+    #[inline]
+    fn get_section_mut(&mut self, section: DisplayListSection) -> &mut LinkedList<DisplayItem> {
+        match section {
+            DisplayListSection::BackgroundAndBorders => &mut self.background_and_borders,
+            DisplayListSection::BlockBackgroundsAndBorders =>
+                &mut self.block_backgrounds_and_borders,
+            DisplayListSection::Floats => &mut self.floats,
+            DisplayListSection::Content => &mut self.content,
+            DisplayListSection::PositionedContent => &mut self.positioned_content,
+            DisplayListSection::Outlines => &mut self.outlines,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DisplayListSection {
+    BackgroundAndBorders,
+    BlockBackgroundsAndBorders,
+    Floats,
+    Content,
+    PositionedContent,
+    Outlines,
 }
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
@@ -591,6 +619,9 @@ pub struct StackingContext {
 
     /// The layer info for this stacking context, if there is any.
     pub layer_info: Option<LayerInfo>,
+
+    /// The LayerId of the last child layer of this stacking context.
+    pub last_child_layer_info: Option<LayerInfo>,
 }
 
 impl StackingContext {
@@ -620,27 +651,10 @@ impl StackingContext {
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
             layer_info: layer_info,
+            last_child_layer_info: None,
         };
         StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
         stacking_context
-    }
-
-    pub fn create_layered_child(&self,
-                                layer_info: LayerInfo,
-                                display_list: Box<DisplayList>) -> StackingContext {
-        StackingContext {
-            display_list: display_list,
-            bounds: self.bounds.clone(),
-            overflow: self.overflow.clone(),
-            z_index: self.z_index,
-            filters: self.filters.clone(),
-            blend_mode: self.blend_mode,
-            transform: Matrix4::identity(),
-            perspective: Matrix4::identity(),
-            establishes_3d_context: false,
-            scrolls_overflow_area: self.scrolls_overflow_area,
-            layer_info: Some(layer_info),
-        }
     }
 
     /// Draws the stacking context in the proper order according to the steps in CSS 2.1 § E.2.
@@ -752,11 +766,22 @@ impl StackingContext {
             None => ScrollPolicy::Scrollable,
         }
     }
+
+    fn get_layer_info(&mut self, layer_id: LayerId) -> &mut LayerInfo {
+        for layer_info in self.display_list.layer_info.iter_mut() {
+            if layer_info.layer_id == layer_id {
+                return layer_info;
+            }
+        }
+
+        panic!("Could not find LayerInfo with id: {:?}", layer_id);
+    }
 }
 
 struct StackingContextLayerCreator {
     display_list_for_next_layer: Option<DisplayList>,
     next_layer_info: Option<LayerInfo>,
+    building_ordering_layer: bool,
 }
 
 impl StackingContextLayerCreator {
@@ -764,12 +789,22 @@ impl StackingContextLayerCreator {
         StackingContextLayerCreator {
             display_list_for_next_layer: None,
             next_layer_info: None,
+            building_ordering_layer: false,
         }
     }
 
     #[inline]
     fn add_layers_to_preserve_drawing_order(stacking_context: &mut StackingContext) {
         let mut state = StackingContextLayerCreator::new();
+
+        state.layerize_display_list_section(DisplayListSection::BackgroundAndBorders,
+                                            stacking_context);
+        state.layerize_display_list_section(DisplayListSection::BlockBackgroundsAndBorders,
+                                            stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Floats, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Content, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::PositionedContent, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Outlines, stacking_context);
 
         // First we need to sort child stacking contexts by z-index, so we can detect
         // situations where unlayered ones should be on top of layered ones.
@@ -779,17 +814,109 @@ impl StackingContextLayerCreator {
         sorted_children.extend(existing_children.into_iter());
         sorted_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
-        // FIXME(#7566, mrobinson): This should properly handle unlayered children that are on
-        // top of unlayered children which have child stacking contexts with layers.
         for child_stacking_context in sorted_children.into_iter() {
             state.add_stacking_context(child_stacking_context, stacking_context);
         }
         state.finish_building_current_layer(stacking_context);
+        stacking_context.last_child_layer_info =
+            StackingContextLayerCreator::find_last_child_layer_info(stacking_context);
     }
 
     #[inline]
     fn all_following_children_need_layers(&self) -> bool {
         self.next_layer_info.is_some()
+    }
+
+    #[inline]
+    fn layerize_display_list_section(&mut self,
+                                     section: DisplayListSection,
+                                     stacking_context: &mut StackingContext) {
+        let section_list = stacking_context.display_list.get_section_mut(section).split_off(0);
+        for item in section_list.into_iter() {
+            self.add_display_item(item, section, stacking_context);
+        }
+    }
+
+    #[inline]
+    fn display_item_needs_layer(&mut self, item: &DisplayItem) -> bool {
+        match *item {
+            LayeredItemClass(_) => true,
+            _ => self.all_following_children_need_layers(),
+        }
+    }
+
+    #[inline]
+    fn prepare_ordering_layer(&mut self,
+                              stacking_context: &mut StackingContext) {
+        if self.building_ordering_layer {
+            assert!(self.next_layer_info.is_some());
+            return;
+        }
+
+        let next_layer_info = Some(stacking_context
+                                   .get_layer_info(self.next_layer_info.unwrap().layer_id)
+                                   .next_with_scroll_policy(ScrollPolicy::Scrollable));
+        self.finish_building_current_layer(stacking_context);
+        self.next_layer_info = next_layer_info;
+
+        self.building_ordering_layer = true;
+    }
+
+    fn add_display_item(&mut self,
+                        item: DisplayItem,
+                        section: DisplayListSection,
+                        stacking_context: &mut StackingContext) {
+        if !self.display_item_needs_layer(&item) {
+            stacking_context.display_list.get_section_mut(section).push_back(item);
+            return;
+        }
+
+        if let LayeredItemClass(ref item) = item {
+            if let Some(ref next_layer_info) = self.next_layer_info {
+                if item.layer_id == next_layer_info.layer_id && !self.building_ordering_layer {
+                    return;
+                }
+            }
+
+            self.finish_building_current_layer(stacking_context);
+            self.building_ordering_layer = false;
+            self.next_layer_info = Some(stacking_context.get_layer_info(item.layer_id).clone());
+        } else {
+            self.prepare_ordering_layer(stacking_context);
+        }
+
+        match item {
+            LayeredItemClass(layered_item) =>
+                self.add_display_item_to_display_list(layered_item.item, section),
+            _ => self.add_display_item_to_display_list(item, section),
+        }
+    }
+
+    fn add_display_item_to_display_list(&mut self,
+                                        item: DisplayItem,
+                                        section: DisplayListSection) {
+        if self.display_list_for_next_layer.is_none() {
+            self.display_list_for_next_layer = Some(DisplayList::new());
+        }
+
+        if let Some(ref mut display_list) = self.display_list_for_next_layer {
+            display_list.get_section_mut(section).push_back(item);
+        }
+    }
+
+    fn find_last_child_layer_info(stacking_context: &mut StackingContext) -> Option<LayerInfo> {
+        match stacking_context.display_list.layered_children.back() {
+            Some(layer) => return Some(LayerInfo::new(layer.id, ScrollPolicy::Scrollable, None)),
+            None => {},
+        }
+
+        // We only care about the last child, because a layer in a child's hierarchy
+        // automatically gives following children a layer, so they will be in the
+        // 'layered_children' list instead of 'children'.
+        match stacking_context.display_list.children.back() {
+            Some(child) => child.last_child_layer_info,
+            None => None,
+        }
     }
 
     #[inline]
@@ -810,6 +937,14 @@ impl StackingContextLayerCreator {
             return;
         }
 
+        // This StackingContext has a layered child somewhere in its children.
+        // We need to give all new StackingContexts their own layer, so that they
+        // draw on top of this layered child.
+        if let Some(layer_info) = stacking_context.last_child_layer_info {
+            self.next_layer_info =
+                Some(layer_info.clone().next_with_scroll_policy(ScrollPolicy::Scrollable));
+        }
+
         parent_stacking_context.display_list.children.push_back(stacking_context);
     }
 
@@ -822,14 +957,18 @@ impl StackingContextLayerCreator {
 
             // We have started processing layered stacking contexts, so any stacking context that
             // we process from now on needs its own layer to ensure proper rendering order.
+            self.building_ordering_layer = true;
             self.next_layer_info =
                 Some(layer_info.next_with_scroll_policy(parent_stacking_context.scroll_policy()));
+
             parent_stacking_context.display_list.layered_children.push_back(
                 Arc::new(PaintLayer::new_with_stacking_context(layer_info,
                                                                stacking_context,
                                                                color::transparent())));
             return;
         }
+
+        self.prepare_ordering_layer(parent_stacking_context);
 
         if self.display_list_for_next_layer.is_none() {
             self.display_list_for_next_layer = Some(DisplayList::new());
@@ -850,6 +989,8 @@ pub enum DisplayItem {
     GradientClass(Box<GradientDisplayItem>),
     LineClass(Box<LineDisplayItem>),
     BoxShadowClass(Box<BoxShadowDisplayItem>),
+    LayeredItemClass(Box<LayeredItem>),
+    NoopClass(Box<BaseDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -1254,6 +1395,16 @@ pub struct BoxShadowDisplayItem {
     pub clip_mode: BoxShadowClipMode,
 }
 
+/// Contains an item that should get its own layer during layer creation.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct LayeredItem {
+    /// Fields common to all display items.
+    pub item: DisplayItem,
+
+    /// The id of the layer this item belongs to.
+    pub layer_id: LayerId,
+}
+
 /// How a box shadow should be clipped.
 #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
 pub enum BoxShadowClipMode {
@@ -1337,8 +1488,12 @@ impl DisplayItem {
                                               box_shadow.color,
                                               box_shadow.blur_radius,
                                               box_shadow.spread_radius,
-                                              box_shadow.clip_mode)
+                                              box_shadow.clip_mode);
             }
+
+            DisplayItem::LayeredItemClass(_) => panic!("Found layered item during drawing."),
+
+            DisplayItem::NoopClass(_) => { }
         }
     }
 
@@ -1351,6 +1506,8 @@ impl DisplayItem {
             DisplayItem::GradientClass(ref gradient) => &gradient.base,
             DisplayItem::LineClass(ref line) => &line.base,
             DisplayItem::BoxShadowClass(ref box_shadow) => &box_shadow.base,
+            DisplayItem::LayeredItemClass(ref layered_item) => layered_item.item.base(),
+            DisplayItem::NoopClass(ref base_item) => base_item,
         }
     }
 
@@ -1363,6 +1520,8 @@ impl DisplayItem {
             DisplayItem::GradientClass(ref mut gradient) => &mut gradient.base,
             DisplayItem::LineClass(ref mut line) => &mut line.base,
             DisplayItem::BoxShadowClass(ref mut box_shadow) => &mut box_shadow.base,
+            DisplayItem::LayeredItemClass(ref mut layered_item) => layered_item.item.mut_base(),
+            DisplayItem::NoopClass(ref mut base_item) => base_item,
         }
     }
 
@@ -1395,6 +1554,9 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::GradientClass(_) => "Gradient".to_owned(),
                 DisplayItem::LineClass(_) => "Line".to_owned(),
                 DisplayItem::BoxShadowClass(_) => "BoxShadow".to_owned(),
+                DisplayItem::LayeredItemClass(ref layered_item) =>
+                    format!("LayeredItem({:?})", layered_item.item),
+                DisplayItem::NoopClass(_) => "Noop".to_owned(),
             },
             self.base().bounds,
             self.base().metadata.node.id()
