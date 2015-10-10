@@ -146,8 +146,9 @@ macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self, value: u32) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::values::UNSIGNED_LONG_MAX;
             use string_cache::Atom;
-            let value = if value > 2147483647 {
+            let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
                 value
@@ -167,10 +168,11 @@ macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use dom::bindings::codegen::InheritTypes::ElementCast;
+            use dom::values::UNSIGNED_LONG_MAX;
             use string_cache::Atom;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
-            } else if value > 2147483647 {
+            } else if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
                 value
