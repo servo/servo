@@ -17,7 +17,7 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFieldSetElementD
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId, RawLayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, ElementTypeId, LabelableElement, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -26,6 +26,7 @@ use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use std::borrow::ToOwned;
@@ -342,6 +343,16 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
         self.indeterminate.set(val)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        if self.Type() == "hidden" {
+            let window = window_from_node(NodeCast::from_ref(self));
+            NodeList::empty(&window)
+        } else {
+            self.labels()
+        }
     }
 }
 
@@ -898,3 +909,5 @@ impl Activatable for HTMLInputElement {
         }
     }
 }
+
+impl LabelableElement for HTMLInputElement {}

@@ -10,13 +10,14 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, H
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementTypeId, LabelableElement};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
@@ -138,6 +139,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_setter!(SetValue, "value");
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.labels()
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
@@ -192,6 +198,8 @@ impl VirtualMethods for HTMLButtonElement {
 }
 
 impl FormControl for HTMLButtonElement {}
+
+impl LabelableElement for HTMLButtonElement {}
 
 impl<'a> Activatable for &'a HTMLButtonElement {
     fn as_element<'b>(&'b self) -> &'b Element {
