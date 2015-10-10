@@ -332,6 +332,7 @@ pub mod urlhelper;
 pub mod urlsearchparams;
 pub mod userscripts;
 pub mod validitystate;
+pub mod values;
 pub mod virtualmethods;
 pub mod webglactiveinfo;
 pub mod webglbuffer;
