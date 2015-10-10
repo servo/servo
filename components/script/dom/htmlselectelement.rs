@@ -68,10 +68,10 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn Add(&self, _element: HTMLOptionElementOrHTMLOptGroupElement, _before: Option<HTMLElementOrLong>) {
     }
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
