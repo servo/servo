@@ -44,7 +44,7 @@ dependencies = [
 [[package]]
 name = "angle"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/angle?branch=servo#77288884bd7a89bf3019ca94dcda6c94cb178aa4"
+source = "git+https://github.com/ecoal95/angle?branch=servo#cea8b791169ead77407868db7d90ffbea106e570"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -68,7 +68,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#f517e08c00fcd0249f031ac1f976e18b57f3da60"
+source = "git+https://github.com/servo/rust-azure#cf625c81bcbc412e3d79303a35fe7828e3fc615d"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -432,7 +432,10 @@ dependencies = [
 [[package]]
 name = "expat-sys"
 version = "2.1.0"
-source = "git+https://github.com/servo/libexpat#f186c2f9eb66ef3b6ffbff1c7c9ccf5c41f7b2a4"
+source = "git+https://github.com/servo/libexpat#b4fdb7a2c9825bdeafcd32ac43560e31ca839649"
+dependencies = [
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "flate2"
@@ -460,10 +463,11 @@ dependencies = [
 [[package]]
 name = "fontconfig-sys"
 version = "2.11.1"
-source = "git+https://github.com/servo/libfontconfig#df0f160922370815075b810be084baf49dba337e"
+source = "git+https://github.com/servo/libfontconfig#3f93fab726d951a506fd318b359912b4bdcd2e35"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -477,7 +481,10 @@ dependencies = [
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#1d5518a6a05b500ac949a7d0a8db462f0cb922bd"
+source = "git+https://github.com/servo/libfreetype2#237f95bae7536bae7fcfbbc65dba7285f422b90f"
+dependencies = [
+ "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "futf"
@@ -603,7 +610,7 @@ dependencies = [
 [[package]]
 name = "hbs-common-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#cc770dc4b829c415ae0fe3fd0d7ea93264c8c4b3"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#d5c58be1ca55b3b82bbd50aa32206be68a711031"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -620,7 +627,7 @@ dependencies = [
 [[package]]
 name = "hbs-pow-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#cc770dc4b829c415ae0fe3fd0d7ea93264c8c4b3"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#d5c58be1ca55b3b82bbd50aa32206be68a711031"
 dependencies = [
  "hbs-common-sys 0.1.0 (git+https://github.com/libheartbeats/heartbeats-simple-sys.git)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -730,7 +737,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#d92b23158f77c976544d8e99279f6e2006effa17"
+source = "git+https://github.com/servo/rust-mozjs#79e06de7709282104c9fef289014686db60551a8"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -918,7 +925,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#0224492ad276cd68eac197b2b9e2f6c14d0fe967"
+source = "git+https://github.com/servo/mozjs#74e7e954f5445ca0297772d5df543c270339dec2"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1405,7 +1412,7 @@ source = "git+https://github.com/huonw/simd#be4242121e081206d8769cc60a7d2fa8e23c
 [[package]]
 name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#0a08cc9f699552b6e2fa156e70a6e65f758e357c"
+source = "git+https://github.com/servo/skia#c743b93629bbd60e8c0cab7b9f2fddb9877d64b2"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
@@ -1437,7 +1444,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#f4c5380cd586bfe16326e05e2518aa044397894b"
+source = "git+https://github.com/servo/rust-stb-image#a6831a4e0ce78ec7393d6e9c5b3a26f2f4dc4249"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
