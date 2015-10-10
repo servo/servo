@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrValue;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -12,7 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
@@ -23,8 +24,10 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmllabelelement::HTMLLabelElement;
 use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
 use selectors::states::*;
@@ -364,6 +367,45 @@ impl HTMLElement {
             let raw_name = attr.local_name();
             to_camel_case(&raw_name)
         }).collect()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    pub fn labels(&self) -> Root<NodeList> {
+        debug_assert!(self.is_labelable_element());
+
+        let element = self.upcast::<Element>();
+        let window = window_from_node(element);
+
+        // Traverse ancestors for implicitly associated <label> elements
+        // https://html.spec.whatwg.org/multipage/#the-label-element:attr-label-for-4
+        let ancestors =
+            self.upcast::<Node>()
+                .ancestors()
+                .filter_map(Root::downcast::<HTMLElement>)
+                // If we reach a labelable element, we have a guarantee no ancestors above it
+                // will be a label for this HTMLElement
+                .take_while(|elem| !elem.is_labelable_element())
+                .filter_map(Root::downcast::<HTMLLabelElement>)
+                .filter(|elem| !elem.upcast::<Element>().has_attribute(&atom!("for")))
+                .filter(|elem| elem.first_labelable_descendant().r() == Some(self))
+                .map(Root::upcast::<Node>);
+
+        let id = element.Id();
+        let id = match &id as &str {
+            "" => return NodeList::new_simple_list(window.r(), ancestors),
+            id => id,
+        };
+
+        // Traverse entire tree for <label> elements with `for` attribute matching `id`
+        let root_element = element.get_root_element();
+        let root_node = root_element.upcast::<Node>();
+        let children = root_node.traverse_preorder()
+                                .filter_map(Root::downcast::<Element>)
+                                .filter(|elem| elem.is::<HTMLLabelElement>())
+                                .filter(|elem| elem.get_string_attribute(&atom!("for")) == id)
+                                .map(Root::upcast::<Node>);
+
+        NodeList::new_simple_list(window.r(), children.chain(ancestors))
     }
 }
 
