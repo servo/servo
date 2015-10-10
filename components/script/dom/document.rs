@@ -31,7 +31,7 @@ use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator};
+use dom::element::{Element, ElementCreator, EventState};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -152,6 +152,8 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
+    // The collection of EventStates that have been changed since the last restyle.
+    event_state_changes: DOMRefCell<HashMap<JS<Element>, EventState>>,
 }
 
 impl PartialEq for Document {
@@ -277,6 +279,11 @@ impl Document {
             // Step 2.
             Some(base) => base.frozen_base_url(),
         }
+    }
+
+    pub fn needs_reflow(&self) -> bool {
+        self.GetDocumentElement().is_some() &&
+        (self.upcast::<Node>().get_has_dirty_descendants() || !self.event_state_changes.borrow().is_empty())
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -960,6 +967,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
+    unsafe fn drain_event_state_changes(&self) -> Vec<(LayoutJS<Element>, EventState)>;
 }
 
 #[allow(unsafe_code)]
@@ -967,6 +975,14 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[inline]
     unsafe fn is_html_document_for_layout(&self) -> bool {
         (*self.unsafe_get()).is_html_document
+    }
+
+    #[inline]
+    unsafe fn drain_event_state_changes(&self) -> Vec<(LayoutJS<Element>, EventState)> {
+        let mut changes = (*self.unsafe_get()).event_state_changes.borrow_mut_for_layout();
+        let drain = changes.drain();
+        let layout_drain = drain.map(|(k, v)| (k.to_layout(), v));
+        Vec::from_iter(layout_drain)
     }
 }
 
@@ -1027,6 +1043,7 @@ impl Document {
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
+            event_state_changes: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -1086,6 +1103,20 @@ impl Document {
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
+    }
+
+    pub fn record_event_state_change(&self, el: &Element, which: EventState) {
+        let mut map = self.event_state_changes.borrow_mut();
+        let empty;
+        {
+            let states = map.entry(JS::from_ref(el))
+                            .or_insert(EventState::empty());
+            states.toggle(which);
+            empty = states.is_empty();
+        }
+        if empty {
+            map.remove(&JS::from_ref(el));
+        }
     }
 }
 

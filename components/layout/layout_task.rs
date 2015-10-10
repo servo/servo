@@ -1236,6 +1236,14 @@ impl LayoutTask {
             }
         }
 
+        let event_state_changes = doc.drain_event_state_changes();
+        if !needs_dirtying {
+            for &(el, state) in event_state_changes.iter() {
+                assert!(!state.is_empty());
+                el.note_event_state_change();
+            }
+        }
+
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,

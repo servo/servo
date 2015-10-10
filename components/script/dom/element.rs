@@ -1831,6 +1831,9 @@ impl Element {
 
     fn set_state(&self, which: EventState, value: bool) {
         let mut state = self.event_state.get();
+        if state.contains(which) == value {
+            return
+        }
         match value {
             true => state.insert(which),
             false => state.remove(which),
@@ -1838,7 +1841,7 @@ impl Element {
         self.event_state.set(state);
 
         let node = self.upcast::<Node>();
-        node.dirty(NodeDamage::NodeStyleDamaged);
+        node.owner_doc().record_event_state_change(self, which);
     }
 
     pub fn get_active_state(&self) -> bool {

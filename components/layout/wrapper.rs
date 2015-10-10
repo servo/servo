@@ -47,7 +47,8 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element;
-use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::element::{Element, EventState};
+use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
@@ -61,6 +62,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
+use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
@@ -367,6 +369,17 @@ impl<'le> LayoutDocument<'le> {
         }
         node
     }
+
+    pub fn drain_event_state_changes(&self) -> Vec<(LayoutElement, EventState)> {
+        unsafe {
+            let changes = self.document.drain_event_state_changes();
+            Vec::from_iter(changes.iter().map(|&(el, state)|
+                (LayoutElement {
+                    element: el,
+                    chain: PhantomData,
+                }, state)))
+        }
+    }
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
@@ -387,6 +400,41 @@ impl<'le> LayoutElement<'le> {
         LayoutNode {
             node: self.element.upcast(),
             chain: PhantomData,
+        }
+    }
+
+    /// Properly marks nodes as dirty in response to event state changes.
+    ///
+    /// Currently this implementation is very conservative, and basically mirrors node::dirty_impl.
+    /// With restyle hints, we can do less work here.
+    pub fn note_event_state_change(&self) {
+        let node = self.as_node();
+
+        // Bail out if we're already dirty. This won't be valid when we start doing more targeted
+        // dirtying with restyle hints.
+        if node.is_dirty() { return }
+
+        // Dirty descendants.
+        fn dirty_subtree(node: LayoutNode) {
+            // Stop if this subtree is already dirty. This won't be valid with restyle hints, see above.
+            if node.is_dirty() { return }
+
+            unsafe {
+                node.set_dirty(true);
+                node.set_dirty_descendants(true);
+            }
+
+            for kid in node.children() {
+                dirty_subtree(kid);
+            }
+        }
+        dirty_subtree(node);
+
+        let mut curr = node;
+        while let Some(parent) = curr.parent_node() {
+            if parent.has_dirty_descendants() { break }
+            unsafe { parent.set_dirty_descendants(true); }
+            curr = parent;
         }
     }
 }

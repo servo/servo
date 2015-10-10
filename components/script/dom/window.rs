@@ -953,16 +953,8 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-
-        let root = root.upcast::<Node>();
-        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
-            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
+        if query_type == ReflowQueryType::NoQuery && !self.Document().needs_reflow() {
+            debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
             return
         }
 
