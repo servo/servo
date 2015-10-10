@@ -670,7 +670,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scroll_policy: ScrollPolicy::Scrollable,
             transform: Matrix4::identity(),
             perspective: Matrix4::identity(),
-            subpage_layer_info: None,
+            subpage_pipeline_id: None,
             establishes_3d_context: true,
             scrolls_overflow_area: false,
         };
@@ -819,18 +819,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             // If this layer contains a subpage, then create the root layer for that subpage now.
-            if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
+            if let Some(ref subpage_pipeline_id) = layer_properties.subpage_pipeline_id {
                 let subpage_layer_properties = LayerProperties {
                     id: LayerId::null(),
                     parent_id: None,
-                    rect: Rect::new(Point2D::new(subpage_layer_info.origin.x.to_f32_px(),
-                                                 subpage_layer_info.origin.y.to_f32_px()),
-                                    layer_properties.rect.size),
+                    rect: Rect::new(Point2D::zero(), layer_properties.rect.size),
                     background_color: layer_properties.background_color,
                     scroll_policy: ScrollPolicy::Scrollable,
                     transform: Matrix4::identity(),
                     perspective: Matrix4::identity(),
-                    subpage_layer_info: layer_properties.subpage_layer_info,
+                    subpage_pipeline_id: layer_properties.subpage_pipeline_id,
                     establishes_3d_context: true,
                     scrolls_overflow_area: true,
                 };
@@ -840,13 +838,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 } else {
                     WantsScrollEventsFlag::DoesntWantScrollEvents
                 };
-                let subpage_layer = CompositorData::new_layer(subpage_layer_info.pipeline_id,
+                let subpage_layer = CompositorData::new_layer(*subpage_pipeline_id,
                                                               subpage_layer_properties,
                                                               wants_scroll_events,
                                                               new_layer.tile_size);
                 *subpage_layer.masks_to_bounds.borrow_mut() = true;
                 new_layer.add_child(subpage_layer);
-                self.pending_subpages.insert(subpage_layer_info.pipeline_id);
+                self.pending_subpages.insert(*subpage_pipeline_id);
             }
 
             parent_layer.add_child(new_layer.clone());
@@ -871,13 +869,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// Sends the size of the given subpage up to the constellation. This will often trigger a
     /// reflow of that subpage.
     fn update_subpage_size_if_necessary(&self, layer_properties: &LayerProperties) {
-        let subpage_layer_info = match layer_properties.subpage_layer_info {
-            Some(ref subpage_layer_info) => *subpage_layer_info,
+        let subpage_pipeline_id = match layer_properties.subpage_pipeline_id {
+            Some(ref subpage_pipeline_id) => subpage_pipeline_id,
             None => return,
         };
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::FrameSize(subpage_layer_info.pipeline_id,
+        chan.send(ConstellationMsg::FrameSize(*subpage_pipeline_id,
                                               layer_properties.rect.size)).unwrap();
     }
 

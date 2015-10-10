@@ -8,6 +8,7 @@
             .gray { background: rgb(200, 200, 200); }
             .grayer { background: rgb(80, 80, 80); }
             .grayest { background: rgb(0, 0, 0); }
+            iframe { display: block; border: 0; }
         </style>
     </head>
     <body>
@@ -27,5 +28,20 @@
             <div class="grayer box" style="margin-left: 10px; margin-top: 10px; opacity: 0.999; z-index: -1;"></div>
             <div class="gray box" style="margin-left: 20px; margin-top: -40px; opacity: 0.999;"> </div>
         </div>
+
+        <!-- The iframe should be painted in tree order since it is not positioned and
+             the following div is. -->
+        <div class="test grayest box">
+            <iframe class="box" style="margin-left: 10px; margin-top: 10px;" src="data:text/html;charset=utf-8;base64,PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IHJnYig4MCwgODAsIDgwKTsiPjwvYm9keT48L2Rpdj4="></iframe>
+            <div class="gray box" style="position: relative; left: 20px; top: -40px;"> </div>
+        </div>
+
+        <!-- The iframe should be painted in tree order since both it and the inner div are
+             not positioned elements. -->
+        <div class="test grayest box">
+            <iframe class="box" style="position: relative; left: 10px; top: 10px;" src="data:text/html;charset=utf-8;base64,PGh0bWw+PGJvZHkgc3R5bGU9ImJhY2tncm91bmQ6IHJnYig4MCwgODAsIDgwKTsiPjwvYm9keT48L2Rpdj4="></iframe>
+            <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
+        </div>
+
     </body>
 </html>

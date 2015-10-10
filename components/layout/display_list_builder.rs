@@ -15,6 +15,7 @@ use azure::azure_hl::Color;
 use block::BlockFlow;
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
+use euclid::num::Zero;
 use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
@@ -25,8 +26,8 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayIte
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, ImageDisplayItem, LayerInfo, LineDisplayItem};
-use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
+use gfx::display_list::{GradientStop, ImageDisplayItem, LayeredItem, LayerInfo};
+use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
@@ -35,7 +36,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use msg::compositor_msg::{ScrollPolicy, SubpageLayerInfo};
+use msg::compositor_msg::ScrollPolicy;
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_task::UsePlaceholder;
 use std::default::Default;
@@ -1098,7 +1099,6 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(..) |
-            SpecificFragmentInfo::Iframe(..) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
@@ -1110,6 +1110,27 @@ impl FragmentDisplayListBuilding for Fragment {
                     self.build_debug_borders_around_fragment(display_list,
                                                              stacking_relative_border_box,
                                                              clip);
+                }
+            }
+            SpecificFragmentInfo::Iframe(ref fragment_info) => {
+                // TODO(mrobinson): When https://github.com/servo/euclid/issues/109 is fixed this
+                // check can just become stacking_relative_content_box.is_empty().
+                if stacking_relative_content_box.size.width != Zero::zero() &&
+                   stacking_relative_content_box.size.height != Zero::zero() {
+                    let layer_id = self.layer_id();
+                    display_list.content.push_back(DisplayItem::LayeredItemClass(box LayeredItem {
+                        item: DisplayItem::NoopClass(
+                            box BaseDisplayItem::new(stacking_relative_content_box,
+                                                     DisplayItemMetadata::new(self.node,
+                                                                              &*self.style,
+                                                                              Cursor::DefaultCursor),
+                                                     (*clip).clone())),
+                        layer_id: layer_id
+                    }));
+
+                    display_list.layer_info.push_back(LayerInfo::new(layer_id,
+                                                                     ScrollPolicy::Scrollable,
+                                                                     Some(fragment_info.pipeline_id)));
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
@@ -1284,19 +1305,8 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        let subpage_layer_info = match self.specific {
-            SpecificFragmentInfo::Iframe(ref iframe_fragment_info) => {
-                let border_padding = self.border_padding.to_physical(self.style().writing_mode);
-                Some(SubpageLayerInfo {
-                    pipeline_id: iframe_fragment_info.pipeline_id,
-                    origin: Point2D::new(border_padding.left, border_padding.top),
-                })
-            }
-            _ => None,
-        };
-
-        let canvas_or_iframe = match self.specific {
-            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => true,
+        let canvas = match self.specific {
+            SpecificFragmentInfo::Canvas(_) => true,
             _ => false
         };
 
@@ -1304,11 +1314,9 @@ impl FragmentDisplayListBuilding for Fragment {
         // flag, when this is a canvas or iframe fragment, and when we are building a layer
         // tree for overflow scrolling.
         let layer_info = if mode == StackingContextCreationMode::InnerScrollWrapper {
-            Some(LayerInfo::new(self.layer_id_for_overflow_scroll(),
-                                scroll_policy,
-                                subpage_layer_info))
-        } else if self.flags.contains(HAS_LAYER) || canvas_or_iframe {
-            Some(LayerInfo::new(self.layer_id(), scroll_policy, subpage_layer_info))
+            Some(LayerInfo::new(self.layer_id_for_overflow_scroll(), scroll_policy, None))
+        } else if self.flags.contains(HAS_LAYER) || canvas {
+            Some(LayerInfo::new(self.layer_id(), scroll_policy, None))
         } else {
             None
         };
