@@ -106,9 +106,10 @@ impl StorageManager {
            index: u32) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
-        sender.send(data.get(&origin)
-                    .and_then(|&(_, ref entry)| entry.keys().nth(index as usize))
-                    .map(|key| key.clone())).unwrap();
+        let key = data.get(&origin)
+                      .and_then(|&(_, ref entry)| entry.keys().nth(index as usize))
+                      .cloned();
+        sender.send(key).unwrap();
     }
 
     fn keys(&self,
