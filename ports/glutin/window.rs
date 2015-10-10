@@ -824,6 +824,11 @@ impl WindowMethods for Window {
         NativeDisplay::new(ptr::null_mut())
     }
 
+    #[cfg(not(target_os = "linux"))]
+    fn native_display(&self) -> NativeDisplay {
+        NativeDisplay::new()
+    }
+
     /// Helper function to handle keyboard events.
     fn handle_key(&self, _: Key, _: constellation_msg::KeyModifiers) {
     }
