@@ -17,6 +17,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
@@ -157,6 +158,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         } else {
             "select-one".to_owned()
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
     }
 }
 

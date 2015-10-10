@@ -51,6 +51,10 @@ impl NodeList {
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
+
+    pub fn empty(window: &Window) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Simple(vec![]))
+    }
 }
 
 impl NodeListMethods for NodeList {

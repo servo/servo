@@ -17,6 +17,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
@@ -131,6 +132,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-button-value
     make_setter!(SetValue, "value");
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
