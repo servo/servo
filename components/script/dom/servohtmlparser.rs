@@ -132,6 +132,12 @@ impl AsyncResponseListener for ParserContext {
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
+            Some(ContentType(Mime(TopLevel::Application, sublevel, _))) => {
+                self.is_image_document.set(true);
+                let page = format!("<html><body><p>Unknown content type. ({})</p></body></html>", sublevel.as_str());
+                parser.pending_input.borrow_mut().push(page);
+                parser.parse_sync();
+            },
             _ => {}
         }
     }
