@@ -583,12 +583,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage#dom-script-text
+    // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
         Node::collect_text_contents(NodeCast::from_ref(self).children())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-script-text
+    // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
