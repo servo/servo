@@ -262,6 +262,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
 impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn Src(&self) -> DOMString {
+        // FIXME: This is supposed to be a URL attribute.
         let element = ElementCast::from_ref(self);
         element.get_string_attribute(&atom!("src"))
     }
@@ -361,14 +362,10 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
-    make_getter!(Width);
-    // https://html.spec.whatwg.org/multipage/#dom-dim-width
-    make_setter!(SetWidth, "width");
+    make_getter_setter!(Width, SetWidth);
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
-    make_getter!(Height);
-    // https://html.spec.whatwg.org/multipage/#dom-dim-height
-    make_setter!(SetHeight, "height");
+    make_getter_setter!(Height, SetHeight);
 }
 
 impl VirtualMethods for HTMLIFrameElement {

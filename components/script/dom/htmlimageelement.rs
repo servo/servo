@@ -196,28 +196,16 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 
 impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
-    make_getter!(Alt);
-    // https://html.spec.whatwg.org/multipage/#dom-img-alt
-    make_setter!(SetAlt, "alt");
+    make_getter_setter!(Alt, SetAlt);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_url_getter!(Src);
-    // https://html.spec.whatwg.org/multipage/#dom-img-src
-    make_setter!(SetSrc, "src");
+    make_url_getter_setter!(Src, SetSrc);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
-    make_getter!(UseMap);
-    // https://html.spec.whatwg.org/multipage/#dom-img-usemap
-    make_setter!(SetUseMap, "usemap");
+    make_getter_setter!(UseMap, SetUseMap);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    make_bool_getter!(IsMap);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    fn SetIsMap(&self, is_map: bool) {
-        let element = ElementCast::from_ref(self);
-        element.set_string_attribute(&atom!("ismap"), is_map.to_string())
-    }
+    make_bool_getter_setter!(IsMap, SetIsMap);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
@@ -228,6 +216,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn SetWidth(&self, width: u32) {
+        // FIXME: This needs to cap width at 2147483647.
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("width"), width)
     }
@@ -241,6 +230,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn SetHeight(&self, height: u32) {
+        // FIXME: This needs to cap height at 2147483647.
         let elem = ElementCast::from_ref(self);
         elem.set_uint_attribute(&atom!("height"), height)
     }
@@ -272,40 +262,22 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
-    make_getter!(Name);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-name
-    make_atomic_setter!(SetName, "name");
+    make_atomic_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-align
-    make_getter!(Align);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-align
-    make_setter!(SetAlign, "align");
+    make_getter_setter!(Align, SetAlign);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-hspace
-    make_uint_getter!(Hspace);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-hspace
-    make_uint_setter!(SetHspace, "hspace");
+    make_uint_getter_setter!(Hspace, SetHspace);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-vspace
-    make_uint_getter!(Vspace);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-vspace
-    make_uint_setter!(SetVspace, "vspace");
+    make_uint_getter_setter!(Vspace, SetVspace);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
-    make_getter!(LongDesc);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-longdesc
-    make_setter!(SetLongDesc, "longdesc");
+    make_getter_setter!(LongDesc, SetLongDesc);
 
     // https://html.spec.whatwg.org/multipage/#dom-img-border
-    make_getter!(Border);
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-border
-    make_setter!(SetBorder, "border");
+    make_getter_setter!(Border, SetBorder);
 }
 
 impl VirtualMethods for HTMLImageElement {

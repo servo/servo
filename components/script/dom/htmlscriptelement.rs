@@ -579,9 +579,7 @@ impl VirtualMethods for HTMLScriptElement {
 
 impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_getter!(Src);
-    // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_setter!(SetSrc, "src");
+    make_url_getter_setter!(Src, SetSrc);
 
     // https://www.whatwg.org/html/#dom-script-text
     fn Text(&self) -> DOMString {

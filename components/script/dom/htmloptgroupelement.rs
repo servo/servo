@@ -50,10 +50,7 @@ impl HTMLOptGroupElement {
 
 impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
     // https://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 }
 
 impl VirtualMethods for HTMLOptGroupElement {

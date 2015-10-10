@@ -51,10 +51,7 @@ impl HTMLDialogElement {
 
 impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-open
-    make_bool_getter!(Open);
-
-    // https://html.spec.whatwg.org/multipage/#dom-dialog-open
-    make_bool_setter!(SetOpen, "open");
+    make_bool_getter_setter!(Open, SetOpen);
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
     fn ReturnValue(&self) -> DOMString {

@@ -79,13 +79,7 @@ fn collect_text(element: &Element, value: &mut DOMString) {
 
 impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://www.whatwg.org/html/#dom-option-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-option-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        let elem = ElementCast::from_ref(self);
-        elem.set_bool_attribute(&atom!("disabled"), disabled)
-    }
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://www.whatwg.org/html/#dom-option-text
     fn Text(&self) -> DOMString {
@@ -113,7 +107,10 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
-    make_setter!(SetValue, "value");
+    fn SetValue(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        element.set_string_attribute(&atom!("value"), value)
+    }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(&self) -> DOMString {
@@ -127,13 +124,13 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
-    make_setter!(SetLabel, "label");
+    fn SetLabel(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        element.set_string_attribute(&atom!("label"), value)
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
-    make_bool_getter!(DefaultSelected, "selected");
-
-    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
-    make_bool_setter!(SetDefaultSelected, "selected");
+    make_bool_getter_setter!(DefaultSelected, SetDefaultSelected, "selected");
 
     // https://html.spec.whatwg.org/multipage/#dom-option-selected
     fn Selected(&self) -> bool {

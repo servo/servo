@@ -76,10 +76,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     }
 
     // https://www.whatwg.org/html/#dom-fieldset-disabled
-    make_bool_getter!(Disabled);
-
-    // https://www.whatwg.org/html/#dom-fieldset-disabled
-    make_bool_setter!(SetDisabled, "disabled");
+    make_bool_getter_setter!(Disabled, SetDisabled);
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {

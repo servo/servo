@@ -80,16 +80,10 @@ impl HTMLMetaElement {
 
 impl HTMLMetaElementMethods for HTMLMetaElement {
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
-    make_getter!(Name, "name");
-
-    // https://html.spec.whatwg.org/multipage/#dom-meta-name
-    make_setter!(SetName, "name");
+    make_getter_setter!(Name, SetName);
 
     // https://html.spec.whatwg.org/multipage/#dom-meta-content
-    make_getter!(Content, "content");
-
-    // https://html.spec.whatwg.org/multipage/#dom-meta-content
-    make_setter!(SetContent, "content");
+    make_getter_setter!(Content, SetContent);
 }
 
 impl VirtualMethods for HTMLMetaElement {

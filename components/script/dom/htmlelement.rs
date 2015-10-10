@@ -127,19 +127,13 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-title
-    make_getter!(Title);
-    // https://html.spec.whatwg.org/multipage/#attr-title
-    make_setter!(SetTitle, "title");
+    make_getter_setter!(Title, SetTitle);
 
     // https://html.spec.whatwg.org/multipage/#attr-lang
-    make_getter!(Lang);
-    // https://html.spec.whatwg.org/multipage/#attr-lang
-    make_setter!(SetLang, "lang");
+    make_getter_setter!(Lang, SetLang);
 
     // https://html.spec.whatwg.org/multipage/#dom-hidden
-    make_bool_getter!(Hidden);
-    // https://html.spec.whatwg.org/multipage/#dom-hidden
-    make_bool_setter!(SetHidden, "hidden");
+    make_bool_getter_setter!(Hidden, SetHidden);
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);

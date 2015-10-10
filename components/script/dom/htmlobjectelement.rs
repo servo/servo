@@ -89,10 +89,7 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
-    make_getter!(Type);
-
-    // https://html.spec.whatwg.org/multipage/#dom-object-type
-    make_setter!(SetType, "type");
+    make_getter_setter!(Type, SetType);
 
     // https://html.spec.whatwg.org/multipage#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {

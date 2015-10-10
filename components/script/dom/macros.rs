@@ -2,149 +2,74 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `DOMString` attributes which
+/// don't have any special cases.
 #[macro_export]
-macro_rules! make_getter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self) -> DOMString {
+macro_rules! make_getter_setter(
+    ($getter:ident, $setter:ident, $htmlname:expr) => (
+        fn $getter(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_string_attribute(&Atom::from_slice($htmlname))
         }
+        fn $setter(&self, value: DOMString) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+        }
     );
-    ($attr:ident) => {
-        make_getter!($attr, to_lower!(stringify!($attr)));
+    ($getter:ident, $setter:ident) => {
+        make_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
     }
 );
 
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `boolean` attributes.
 #[macro_export]
-macro_rules! make_bool_getter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self) -> bool {
+macro_rules! make_bool_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => (
+        fn $getter(&self) -> bool {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.has_attribute(&Atom::from_slice($htmlname))
         }
+         fn $setter(&self, value: bool) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_bool_attribute(&Atom::from_slice($htmlname), value)
+        }
     );
-    ($attr:ident) => {
-        make_bool_getter!($attr, to_lower!(stringify!($attr)));
+    ( $getter:ident, $setter:ident ) => {
+        make_bool_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
     }
 );
 
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `unsigned long` attributes which
+/// don't have any special cases.
+///
+/// If you use this, you must also add a case to parse_plain_attribute
+/// for the attribute in question.
 #[macro_export]
-macro_rules! make_uint_getter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(&self) -> u32 {
+macro_rules! make_uint_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr, $default:expr ) => (
+        fn $getter(&self) -> u32 {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
         }
-    );
-    ($attr:ident, $htmlname:expr) => {
-        make_uint_getter!($attr, $htmlname, 0);
-    };
-    ($attr:ident) => {
-        make_uint_getter!($attr, to_lower!(stringify!($attr)));
-    }
-);
-
-#[macro_export]
-macro_rules! make_url_getter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_url_attribute(&Atom::from_slice($htmlname))
-        }
-    );
-    ($attr:ident) => {
-        // FIXME(pcwalton): Do this at compile time, not runtime.
-        make_url_getter!($attr, to_lower!(stringify!($attr)));
-    }
-);
-
-#[macro_export]
-macro_rules! make_url_or_base_getter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            let url = element.get_url_attribute(&Atom::from_slice($htmlname));
-            if url.is_empty() {
-                let window = window_from_node(self);
-                window.r().get_url().serialize()
-            } else {
-                url
-            }
-        }
-    );
-    ($attr:ident) => {
-        make_url_or_base_getter!($attr, to_lower!(stringify!($attr)));
-    }
-);
-
-#[macro_export]
-macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
-        fn $attr(&self) -> DOMString {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use std::ascii::AsciiExt;
-            use std::borrow::ToOwned;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
-            val.make_ascii_lowercase();
-            // https://html.spec.whatwg.org/multipage/#attr-fs-method
-            match &*val {
-                $($choices)|+ => val,
-                _ => $default.to_owned()
-            }
-        }
-    );
-    ($attr:ident, $default:expr, $(($choices: pat))|+) => {
-        make_enumerated_getter!($attr, &to_lower!(stringify!($attr)), $default, $(($choices))|+);
-    }
-);
-
-// concat_idents! doesn't work for function name positions, so
-// we have to specify both the content name and the HTML name here
-#[macro_export]
-macro_rules! make_setter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self, value: DOMString) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_string_attribute(&Atom::from_slice($htmlname), value)
-        }
-    );
-);
-
-#[macro_export]
-macro_rules! make_bool_setter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self, value: bool) {
-            use dom::bindings::codegen::InheritTypes::ElementCast;
-            use string_cache::Atom;
-            let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
-            element.set_bool_attribute(&Atom::from_slice($htmlname), value)
-        }
-    );
-);
-
-#[macro_export]
-macro_rules! make_uint_setter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(&self, value: u32) {
+        fn $setter(&self, value: u32) {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let value = if value > 2147483647 {
@@ -153,19 +78,35 @@ macro_rules! make_uint_setter(
                 value
             };
             let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            // FIXME(pcwalton): Do this at compile time, not runtime.
             element.set_uint_attribute(&Atom::from_slice($htmlname), value)
         }
     );
-    ($attr:ident, $htmlname:expr) => {
-        make_uint_setter!($attr, $htmlname, 0);
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => {
+        make_uint_getter_setter!($getter, $setter, $htmlname, 0);
     };
+    ( $getter:ident, $setter:ident ) => {
+        make_uint_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
+    }
 );
 
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `unsigned long` attributes which
+/// are limited to only non-negative numbers greater than zero.
+///
+/// If you use this, you must also add a case to parse_plain_attribute
+/// for the attribute in question.
 #[macro_export]
-macro_rules! make_limited_uint_setter(
-    ($attr:ident, $htmlname:expr, $default:expr) => (
-        fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
+macro_rules! make_limited_uint_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr, $default:expr ) => (
+        fn $getter(&self) -> u32 {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
+        }
+        fn $setter(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let value = if value == 0 {
@@ -181,25 +122,136 @@ macro_rules! make_limited_uint_setter(
             Ok(())
         }
     );
-    ($attr:ident, $htmlname:expr) => {
-        make_limited_uint_setter!($attr, $htmlname, 1);
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => {
+        make_limited_uint_getter_setter!($getter, $setter, $htmlname, 1);
     };
-    ($attr:ident) => {
-        make_limited_uint_setter!($attr, to_lower!(stringify!($attr)));
-    };
+    ( $getter:ident, $setter:ident ) => {
+        make_limited_uint_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
+    }
 );
 
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `DOMString` attributes which
+/// don't have any special cases, and are represented as an Atom internally.
+///
+/// If you use this, you must also add a case to parse_plain_attribute
+/// for the attribute in question.
 #[macro_export]
-macro_rules! make_atomic_setter(
-    ( $attr:ident, $htmlname:expr ) => (
-        fn $attr(&self, value: DOMString) {
+macro_rules! make_atomic_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => (
+        fn $getter(&self) -> DOMString {
             use dom::bindings::codegen::InheritTypes::ElementCast;
             use string_cache::Atom;
             let element = ElementCast::from_ref(self);
-            // FIXME(pcwalton): Do this at compile time, not at runtime.
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_string_attribute(&Atom::from_slice($htmlname))
+        }
+        fn $setter(&self, value: DOMString) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
             element.set_atomic_attribute(&Atom::from_slice($htmlname), value)
         }
     );
+    ( $getter:ident, $setter:ident ) => {
+        make_atomic_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
+    }
+);
+
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `DOMString` attributes whose
+/// content attribute is defined to contain a URL.
+#[macro_export]
+macro_rules! make_url_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => (
+        fn $getter(&self) -> DOMString {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.get_url_attribute(&Atom::from_slice($htmlname))
+        }
+        fn $setter(&self, value: DOMString) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
+    ($getter:ident, $setter:ident) => {
+        make_url_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
+    }
+);
+
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `DOMString` attributes whose
+/// content attribute is defined to contain a URL, except that on getting, if the
+/// content attribute is missing or empty, the document's address is returned
+/// instead.
+#[macro_export]
+macro_rules! make_url_or_base_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr ) => (
+        fn $getter(&self) -> DOMString {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            let url = element.get_url_attribute(&Atom::from_slice($htmlname));
+            if url.is_empty() {
+                let window = window_from_node(self);
+                window.r().get_url().serialize()
+            } else {
+                url
+            }
+        }
+        fn $setter(&self, value: DOMString) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
+    ($getter:ident, $setter:ident) => {
+        make_url_or_base_getter_setter!($getter, $setter, to_lower!(stringify!($getter)));
+    }
+);
+
+/// Creates a getter and setter for an simple IDL attribute which reflects
+/// a content attribute.  This is used for `DOMString` attributes where
+/// the content attribute is an enumerated attribute and the IDL attribute
+/// is limited to only known values.
+#[macro_export]
+macro_rules! make_enumerated_getter_setter(
+    ( $getter:ident, $setter:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
+        fn $getter(&self) -> DOMString {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use std::ascii::AsciiExt;
+            use std::borrow::ToOwned;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            let mut val = element.get_string_attribute(&Atom::from_slice($htmlname));
+            val.make_ascii_lowercase();
+            // https://html.spec.whatwg.org/multipage/#attr-fs-method
+            match &*val {
+                $($choices)|+ => val,
+                _ => $default.to_owned()
+            }
+        }
+        fn $setter(&self, value: DOMString) {
+            use dom::bindings::codegen::InheritTypes::ElementCast;
+            use string_cache::Atom;
+            let element = ElementCast::from_ref(self);
+            // FIXME(pcwalton): Do this at compile time, not runtime.
+            element.set_string_attribute(&Atom::from_slice($htmlname), value)
+        }
+    );
+    ($getter:ident, $setter:ident, $default:expr, $(($choices: pat))|+) => {
+        make_enumerated_getter_setter!($getter, $setter, &to_lower!(stringify!($getter)), $default, $(($choices))|+);
+    }
 );
 
 /// For use on non-jsmanaged types
