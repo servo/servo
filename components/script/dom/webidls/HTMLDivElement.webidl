@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmldivelement
+// https://html.spec.whatwg.org/multipage/#htmldivelement
 interface HTMLDivElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLDivElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLDivElement-partial
 partial interface HTMLDivElement {
   //         attribute DOMString align;
 };

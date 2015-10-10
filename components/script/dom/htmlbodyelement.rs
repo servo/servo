@@ -68,10 +68,10 @@ impl HTMLBodyElement {
 }
 
 impl HTMLBodyElementMethods for HTMLBodyElement {
-    // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
+    // https://html.spec.whatwg.org/multipage/#dom-body-bgcolor
     make_getter!(BgColor, "bgcolor");
 
-    // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
+    // https://html.spec.whatwg.org/multipage/#dom-body-bgcolor
     make_setter!(SetBgColor, "bgcolor");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text

@@ -52,7 +52,7 @@ impl HTMLFieldSetElement {
 }
 
 impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
-    // https://www.whatwg.org/html/#dom-fieldset-elements
+    // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
     fn Elements(&self) -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct ElementsFilter;
@@ -75,13 +75,13 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
         ValidityState::new(window.r())
     }
 
-    // https://www.whatwg.org/html/#dom-fieldset-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-fieldset-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }

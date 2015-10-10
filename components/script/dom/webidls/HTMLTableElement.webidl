@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltableelement
+// https://html.spec.whatwg.org/multipage/#htmltableelement
 interface HTMLTableElement : HTMLElement {
            attribute HTMLTableCaptionElement? caption;
   HTMLElement createCaption();
@@ -25,7 +25,7 @@ interface HTMLTableElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLTableElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLTableElement-partial
 partial interface HTMLTableElement {
   //         attribute DOMString align;
   //         attribute DOMString border;

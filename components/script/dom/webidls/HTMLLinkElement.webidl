@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmllinkelement
+// https://html.spec.whatwg.org/multipage/#htmllinkelement
 interface HTMLLinkElement : HTMLElement {
            attribute DOMString href;
   //         attribute DOMString crossOrigin;
@@ -18,7 +18,7 @@ interface HTMLLinkElement : HTMLElement {
 };
 //HTMLLinkElement implements LinkStyle;
 
-// https://www.whatwg.org/html/#HTMLLinkElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLLinkElement-partial
 partial interface HTMLLinkElement {
   attribute DOMString charset;
   attribute DOMString rev;

@@ -76,13 +76,13 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
         ValidityState::new(window.r())
     }
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage#dom-fae-form
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }

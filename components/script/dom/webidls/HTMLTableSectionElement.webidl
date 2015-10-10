@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltablesectionelement
+// https://html.spec.whatwg.org/multipage/#htmltablesectionelement
 interface HTMLTableSectionElement : HTMLElement {
   readonly attribute HTMLCollection rows;
   //HTMLElement insertRow(optional long index = -1);
@@ -12,7 +12,7 @@ interface HTMLTableSectionElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLTableSectionElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLTableSectionElement-partial
 partial interface HTMLTableSectionElement {
   //         attribute DOMString align;
   //         attribute DOMString ch;

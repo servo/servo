@@ -15,7 +15,7 @@ interface WorkerGlobalScope : EventTarget {
   //         attribute EventHandler ononline;
 };
 
-// https://www.whatwg.org/html/#WorkerGlobalScope-partial
+// https://html.spec.whatwg.org/multipage/#WorkerGlobalScope-partial
 //[Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
   [Throws]

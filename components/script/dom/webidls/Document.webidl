@@ -5,7 +5,7 @@
 /*
  * The origin of this IDL file is:
  * https://dom.spec.whatwg.org/#interface-document
- * https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
+ * https://html.spec.whatwg.org/multipage/#the-document-object
  */
 
 // https://dom.spec.whatwg.org/#interface-document
@@ -75,7 +75,7 @@ Document implements ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
 
-// https://www.whatwg.org/specs/web-apps/current-work/#the-document-object
+// https://html.spec.whatwg.org/multipage/#the-document-object
 // [OverrideBuiltins]
 partial /*sealed*/ interface Document {
   // resource metadata management

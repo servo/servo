@@ -78,16 +78,16 @@ fn collect_text(element: &Element, value: &mut DOMString) {
 }
 
 impl HTMLOptionElementMethods for HTMLOptionElement {
-    // https://www.whatwg.org/html/#dom-option-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-option-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     fn SetDisabled(&self, disabled: bool) {
         let elem = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
-    // https://www.whatwg.org/html/#dom-option-text
+    // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
         let element = ElementCast::from_ref(self);
         let mut content = String::new();
@@ -95,7 +95,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         str_join(split_html_space_chars(&content), " ")
     }
 
-    // https://www.whatwg.org/html/#dom-option-text
+    // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))

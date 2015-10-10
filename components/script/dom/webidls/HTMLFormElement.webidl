@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlformelement
+// https://html.spec.whatwg.org/multipage/#htmlformelement
 //[OverrideBuiltins]
 interface HTMLFormElement : HTMLElement {
            attribute DOMString acceptCharset;

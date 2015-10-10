@@ -9,7 +9,7 @@ interface HTMLBodyElement : HTMLElement {
 };
 HTMLBodyElement implements WindowEventHandlers;
 
-// https://www.whatwg.org/html/#HTMLBodyElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
     [TreatNullAs=EmptyString] attribute DOMString text;
   //[TreatNullAs=EmptyString] attribute DOMString link;

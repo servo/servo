@@ -47,7 +47,7 @@ impl HTMLTitleElement {
 }
 
 impl HTMLTitleElementMethods for HTMLTitleElement {
-    // https://www.whatwg.org/html/#dom-title-text
+    // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         let mut content = String::new();
@@ -61,7 +61,7 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
         content
     }
 
-    // https://www.whatwg.org/html/#dom-title-text
+    // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))

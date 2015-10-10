@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlparamelement
+// https://html.spec.whatwg.org/multipage/#htmlparamelement
 interface HTMLParamElement : HTMLElement {
   //         attribute DOMString name;
   //         attribute DOMString value;
@@ -11,7 +11,7 @@ interface HTMLParamElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLParamElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLParamElement-partial
 partial interface HTMLParamElement {
   //         attribute DOMString type;
   //         attribute DOMString valueType;

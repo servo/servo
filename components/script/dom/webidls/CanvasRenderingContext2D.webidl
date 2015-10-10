@@ -5,7 +5,7 @@
 
 enum CanvasWindingRule { "nonzero", "evenodd" };
 
-// https://www.whatwg.org/html/#2dcontext
+// https://html.spec.whatwg.org/multipage/#2dcontext
 typedef (HTMLImageElement or
          /* HTMLVideoElement or */
          HTMLCanvasElement or

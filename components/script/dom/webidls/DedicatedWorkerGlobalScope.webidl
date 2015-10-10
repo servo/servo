@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#dedicatedworkerglobalscope
+// https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 [Global/*=Worker,DedicatedWorker*/]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   [Throws]

@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltablecaptionelement
+// https://html.spec.whatwg.org/multipage/#htmltablecaptionelement
 interface HTMLTableCaptionElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLTableCaptionElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLTableCaptionElement-partial
 partial interface HTMLTableCaptionElement {
   //         attribute DOMString align;
 };

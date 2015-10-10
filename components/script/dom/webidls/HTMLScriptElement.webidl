@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlscriptelement
+// https://html.spec.whatwg.org/multipage/#htmlscriptelement
 interface HTMLScriptElement : HTMLElement {
            attribute DOMString src;
   //         attribute DOMString type;
@@ -17,7 +17,7 @@ interface HTMLScriptElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLScriptElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLScriptElement-partial
 partial interface HTMLScriptElement {
   //         attribute DOMString event;
   //         attribute DOMString htmlFor;
