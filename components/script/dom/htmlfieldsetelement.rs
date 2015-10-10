@@ -7,17 +7,17 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use util::str::{DOMString, StaticStringVec};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -53,20 +53,10 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     // https://www.whatwg.org/html/#dom-fieldset-elements
-    fn Elements(&self) -> Root<HTMLCollection> {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct ElementsFilter;
-        impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
-                static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
-                    "keygen", "object", "output", "select", "textarea"];
-                TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
-            }
-        }
+    fn Elements(&self) -> Root<HTMLFormControlsCollection> {
         let node = NodeCast::from_ref(self);
-        let filter = box ElementsFilter;
         let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        HTMLFormControlsCollection::new(&window, node)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
