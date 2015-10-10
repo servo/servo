@@ -10,5 +10,5 @@ interface HTMLDivElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLDivElement-partial
 partial interface HTMLDivElement {
-  //         attribute DOMString align;
+  attribute DOMString align;
 };
