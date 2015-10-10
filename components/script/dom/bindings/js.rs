@@ -35,6 +35,7 @@ use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 use std::cell::UnsafeCell;
 use std::default::Default;
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
@@ -147,10 +148,22 @@ impl<T> PartialEq for JS<T> {
     }
 }
 
+impl<T> Eq for JS<T> {}
+
 impl<T> PartialEq for LayoutJS<T> {
     fn eq(&self, other: &LayoutJS<T>) -> bool {
         self.ptr == other.ptr
     }
+}
+
+impl<T> Eq for LayoutJS<T> {}
+
+impl<T> Hash for JS<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.ptr.hash(state) }
+}
+
+impl<T> Hash for LayoutJS<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.ptr.hash(state) }
 }
 
 impl <T> Clone for JS<T> {
