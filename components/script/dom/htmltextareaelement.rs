@@ -30,7 +30,7 @@ use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
-use textinput::{KeyReaction, Lines, TextInput, TextPoint};
+use textinput::{KeyReaction, Lines, TextInput};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -56,8 +56,6 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_for_layout(self) -> TextPoint;
-    #[allow(unsafe_code)]
     unsafe fn get_absolute_insertion_point_for_layout(self) -> usize;
 }
 
@@ -73,12 +71,6 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
-    }
-
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_for_layout(self) -> TextPoint {
-        (*self.unsafe_get()).textinput.borrow_for_layout().edit_point
     }
 
     #[allow(unrooted_must_root)]

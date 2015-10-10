@@ -953,8 +953,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         if let Some(area) = area {
             let insertion_point = unsafe { area.get_absolute_insertion_point_for_layout() };
             let text = unsafe { area.get_value_for_layout() };
-            println!("text: {}", text);
-            println!("ip: {}", insertion_point);
             return Some(CharIndex(search_index(insertion_point, text.char_indices())));
         }
         let input = HTMLInputElementCast::to_layout_js(this);
