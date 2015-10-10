@@ -15,7 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::{AttributeMutation, ElementTypeId, LabelableElement};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -23,6 +23,7 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{NodeTypeId, document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
@@ -206,6 +207,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         self.force_relayout();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.labels()
+    }
 }
 
 
@@ -364,6 +370,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 }
 
 impl FormControl for HTMLTextAreaElement {}
+
+impl LabelableElement for HTMLTextAreaElement {}
 
 pub struct ChangeEventRunnable {
     element: Trusted<HTMLTextAreaElement>,

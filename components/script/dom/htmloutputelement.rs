@@ -7,11 +7,12 @@ use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElemen
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
+use dom::element::{ElementTypeId, LabelableElement};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use util::str::DOMString;
 
@@ -58,6 +59,13 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.labels()
+    }
 }
 
 impl FormControl for HTMLOutputElement {}
+
+impl LabelableElement for HTMLOutputElement {}

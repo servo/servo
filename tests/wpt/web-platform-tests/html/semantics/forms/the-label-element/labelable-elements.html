@@ -36,42 +36,87 @@
 </form>
 
 <script>
+function testLabelsAttr(formElementId, labelElementId, hasLabels) {
+  var elem = document.getElementById(formElementId);
+  if (labelElementId) {
+    assert_equals(elem.labels.length, 1);
+    assert_equals(elem.labels[0].id, labelElementId);
+  } else {
+    assert_equals(elem.labels.length, 0);
+  }
+}
 
 test(function() {
   assert_equals(document.getElementById("lbl0").control.id, "testoutput", "An output element should be labelable.");
 }, "Check if the output element is a labelable element");
 
 test(function() {
+  testLabelsAttr("testoutput", "lbl0");
+}, "Check if the output element can access 'labels'");
+
+test(function() {
   assert_equals(document.getElementById("lbl1").control.id, "testprogress", "A progress element should be labelable.");
 }, "Check if the progress element is a labelable element");
+
+test(function() {
+  testLabelsAttr("testprogress", "lbl1");
+}, "Check if the progress element can access 'labels'");
 
 test(function() {
   assert_equals(document.getElementById("lbl2").control.id, "testselect", "A select element should be labelable.");
 }, "Check if the select element is a labelable element");
 
 test(function() {
+  testLabelsAttr("testselect", "lbl2");
+}, "Check if the select element can access 'labels'");
+
+test(function() {
   assert_equals(document.getElementById("lbl3").control.id, "testarea", "A textarea element should be labelable.");
 }, "Check if the textarea element is a labelable form-element");
+
+test(function() {
+  testLabelsAttr("testarea", "lbl3");
+}, "Check if the textarea element can access 'labels'");
 
 test(function() {
   assert_equals(document.getElementById("lbl4").control.id, "testButton", "A button element should be labelable.");
 }, "Check if the button element is a labelable element");
 
 test(function() {
+  testLabelsAttr("testButton", "lbl4");
+}, "Check if the button element can access 'labels'");
+
+test(function() {
   assert_equals(document.getElementById("lbl5").control, null, "An input element in hidden state should not be labelable.");
 }, "Check if the hidden input element is not a labelable element.");
+
+test(function() {
+  testLabelsAttr("testHidden", null);
+}, "Check if the hidden input element can access 'labels'");
 
 test(function() {
   assert_equals(document.getElementById("lbl6").control.id, "testRadio", "An input  element in radio state should be labelable.");
 }, "Check if the input element in radio state is a labelable element");
 
 test(function() {
+  testLabelsAttr("testRadio", "lbl6");
+}, "Check if the input element in radio state can access 'labels'");
+
+test(function() {
   assert_equals(document.getElementById("lbl7").control.id, "testkeygen", "A keygen element should be labelable.");
 }, "Check if the keygen element is a labelable element");
 
 test(function() {
+  testLabelsAttr("testkeygen", "lbl7");
+}, "Check if the keygen element can access 'labels'");
+
+test(function() {
   assert_equals(document.getElementById("lbl8").control.id, "testmeter", "A meter element should be labelable.");
 }, "Check if the meter element is a labelable element");
+
+test(function() {
+  testLabelsAttr("testmeter", "lbl8");
+}, "Check if the meter element can access 'labels'");
 
 test(function() {
   assert_not_equals(document.getElementById("lbl9").control, document.getElementById("testfieldset"));
@@ -79,9 +124,17 @@ test(function() {
 }, "Check if the fieldset element is not a labelable element");
 
 test(function() {
+  assert_equals(document.getElementById("testfieldset").labels, undefined);
+}, "Check if the fieldset element can access 'labels'");
+
+test(function() {
   assert_not_equals(document.getElementById("lbl9").control, document.getElementById("testlabel"));
   assert_equals(document.getElementById("lbl10").control, null, "A label element should not be labelable.");
 }, "Check if the label element is not a labelable element");
+
+test(function() {
+  assert_equals(document.getElementById("testlabel").labels, undefined);
+}, "Check if the label element can access 'labels'");
 
 test(function() {
   assert_not_equals(document.getElementById("lbl9").control, document.getElementById("testobject"));
@@ -89,8 +142,15 @@ test(function() {
 }, "Check if the object element is not a labelable element");
 
 test(function() {
+  assert_equals(document.getElementById("testobject").labels, undefined);
+}, "Check if the object element can access 'labels'");
+
+test(function() {
   assert_not_equals(document.getElementById("lbl9").control, document.getElementById("testimg"));
   assert_equals(document.getElementById("lbl12").control, null, "An img element should not be labelable.");
 }, "Check if the img element is not a labelable element");
 
+test(function() {
+  assert_equals(document.getElementById("lbl9").labels, undefined);
+}, "Check if the img element can access 'labels'");
 </script>

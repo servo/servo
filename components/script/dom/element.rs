@@ -19,7 +19,8 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
+use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementBase, ElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementDerived, EventTargetCast, HTMLAnchorElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementCast, HTMLFontElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
@@ -31,6 +32,7 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::create::create_element;
@@ -1843,5 +1845,31 @@ impl<'a> AttributeMutation<'a> {
             AttributeMutation::Set(_) => Some(attr.value()),
             AttributeMutation::Removed => None,
         }
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#category-label
+pub trait LabelableElement: ElementBase + Reflectable {
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn labels(&self) -> Root<NodeList> {
+        let self_element = ElementCast::from_ref(self);
+        let window = window_from_node(self_element);
+        let id = self_element.Id();
+
+        let id = match &id as &str {
+            "" => return NodeList::empty(window.r()),
+            id => id,
+        };
+
+        let root_element = self_element.get_root_element();
+        let root_node = NodeCast::from_root(root_element);
+
+        let node_iter = root_node.traverse_preorder()
+                                 .filter_map(ElementCast::to_root)
+                                 .filter(|element| element.is_htmllabelelement())
+                                 .filter(|element| element.get_string_attribute(&atom!("for")) == id)
+                                 .map(NodeCast::from_root);
+
+        NodeList::new_simple_list(window.r(), node_iter)
     }
 }
