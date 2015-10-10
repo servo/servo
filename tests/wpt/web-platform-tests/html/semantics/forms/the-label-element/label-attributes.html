@@ -98,9 +98,15 @@
   }, "A form control has multiple labels.");
 
   test(function () {
+    var labels = document.getElementById("test3").labels;
+    assert_true(labels instanceof NodeList, "A form control's 'labels' property should be an instance of a NodeList.");
+    assert_equals(labels.length, 1, "The form control has an ancestor with no explicit associated label, and is the first labelable descendant.");
+  }, "A form control has an implicit label.");
+
+  test(function () {
     var labels = document.getElementById("test4").labels;
     assert_true(labels instanceof NodeList, "A form control's 'labels' property should be an instance of a NodeList.");
-    assert_equals(labels.length, 0, "The number of labels should be 0 if the associated form control isn't referenced by any <label>.");
+    assert_equals(labels.length, 0, "The form control has an ancestor with no explicit associated label, but is *not* the first labelable descendant");
   }, "A form control has no label 1.");
 
   test(function () {
