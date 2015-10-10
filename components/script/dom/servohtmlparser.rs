@@ -69,8 +69,8 @@ pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 pub struct ParserContext {
     /// The parser that initiated the request.
     parser: RefCell<Option<Trusted<ServoHTMLParser>>>,
-    /// Is this document a synthesized document for a single image?
-    is_image_document: Cell<bool>,
+    /// Is this a synthesized document
+    is_synthesized_content: Cell<bool>,
     /// The pipeline associated with this document.
     id: PipelineId,
     /// The subpage associated with this document.
@@ -86,7 +86,7 @@ impl ParserContext {
                url: Url) -> ParserContext {
         ParserContext {
             parser: RefCell::new(None),
-            is_image_document: Cell::new(false),
+            is_synthesized_content: Cell::new(false),
             id: id,
             subpage: subpage,
             script_chan: script_chan,
@@ -113,12 +113,12 @@ impl AsyncResponseListener for ParserContext {
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
-                self.is_image_document.set(true);
+                self.is_synthesized_content.set(true);
                 let page = format!("<html><body><img src='{}' /></body></html>",
                                    self.url.serialize());
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
-            }
+            },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
                 // replace with fix from that issue.
@@ -132,9 +132,10 @@ impl AsyncResponseListener for ParserContext {
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
-            Some(ContentType(Mime(TopLevel::Application, sublevel, _))) => {
-                self.is_image_document.set(true);
-                let page = format!("<html><body><p>Unknown content type. ({})</p></body></html>", sublevel.as_str());
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {},
+            Some(ContentType(Mime(toplevel, sublevel, _))) => {
+                self.is_synthesized_content.set(true);
+                let page = format!("<html><body><p>Unknown content type. ({}/{})</p></body></html>", toplevel.as_str(), sublevel.as_str());
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
@@ -143,7 +144,7 @@ impl AsyncResponseListener for ParserContext {
     }
 
     fn data_available(&self, payload: Vec<u8>) {
-        if !self.is_image_document.get() {
+        if !self.is_synthesized_content.get() {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
             let parser = match self.parser.borrow().as_ref() {
