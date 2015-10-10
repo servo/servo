@@ -6031,7 +6031,11 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
+        % if style_struct.name == "Font":
+        #[derive(Clone, HeapSizeOf)]
+        % else:
         #[derive(PartialEq, Clone, HeapSizeOf)]
+        % endif
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
@@ -6040,6 +6044,18 @@ pub mod style_structs {
                 pub hash: u64,
             % endif
         }
+        % if style_struct.name == "Font":
+
+        impl PartialEq for ${style_struct.name} {
+            fn eq(&self, other: &${style_struct.name}) -> bool {
+                self.hash == other.hash
+                % for longhand in style_struct.longhands:
+                    && self.${longhand.ident} == other.${longhand.ident}
+                % endfor
+            }
+        }
+        % endif
+
     % endfor
 }
 
