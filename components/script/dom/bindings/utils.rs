@@ -150,6 +150,7 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
+#[allow(raw_pointer_derive)]
 #[derive(Copy, Clone)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
@@ -161,6 +162,9 @@ pub struct DOMClass {
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
+
+    /// The HeapSizeOf function wrapper for that interface.
+    pub heap_size_of: unsafe fn(*const libc::c_void) -> usize,
 }
 unsafe impl Sync for DOMClass {}
 
