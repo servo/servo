@@ -135,7 +135,8 @@ impl AsyncResponseListener for ParserContext {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {},
             Some(ContentType(Mime(toplevel, sublevel, _))) => {
                 self.is_synthesized_content.set(true);
-                let page = format!("<html><body><p>Unknown content type. ({}/{})</p></body></html>", toplevel.as_str(), sublevel.as_str());
+                let page = format!("<html><body><p>Unknown content type. ({}/{})</p></body></html>",
+                    toplevel.as_str(), sublevel.as_str());
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
