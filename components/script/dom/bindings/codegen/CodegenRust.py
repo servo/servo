@@ -1756,12 +1756,14 @@ def DOMClass(descriptor):
         # padding.
         protoList.extend(['PrototypeList::ID::Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
+        heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.interface.identifier.name
         return """\
 DOMClass {
     interface_chain: [ %s ],
     native_hooks: &sNativePropertyHooks,
     type_id: %s,
-}""" % (prototypeChainString, EventTargetEnum(descriptor))
+    heap_size_of: %s as unsafe fn(_) -> _,
+}""" % (prototypeChainString, EventTargetEnum(descriptor), heapSizeOf)
 
 
 class CGDOMJSClass(CGThing):
@@ -5241,6 +5243,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
             'dom::bindings::str::USVString',
+            'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::str::DOMString',
             'std::borrow::ToOwned',
