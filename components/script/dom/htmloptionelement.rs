@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast, HTMLSelectElementCast, NodeCast, TextDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLSelectElementDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation, ElementTypeId};
@@ -149,9 +148,9 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
-        if let Some(p) = NodeCast::from_ref(self).ancestors().find(|a| a.is_htmlselectelement()) {
-            let select = HTMLSelectElementCast::to_root(p);
-            select.unwrap().r().ask_for_reset();
+        if let Some(select) = NodeCast::from_ref(self).ancestors()
+            .filter_map(HTMLSelectElementCast::to_root).next() {
+                select.r().ask_for_reset();
         }
     }
 }
