@@ -635,8 +635,7 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
-            match response.headers().get::<Location>() {
-                Some(&Location(ref new_url)) => {
+            if let Some(&Location(ref new_url)) = response.headers().get::<Location>() {
                     // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                     match load_data.cors {
                         Some(ref c) => {
@@ -679,10 +678,8 @@ pub fn load<A>(load_data: LoadData,
                     redirected_to.insert(doc_url.clone());
                     continue;
                 }
-                None => ()
-            }
         }
-
+        
         let mut adjusted_headers = response.headers().clone();
 
         if viewing_source {
