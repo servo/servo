@@ -140,7 +140,10 @@ impl AsyncResponseListener for ParserContext {
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
-            _ => {}
+            None => {
+                // No Content-Type header.
+                // Merge with previous branch when #4212 is fixed.
+            }
         }
     }
 
