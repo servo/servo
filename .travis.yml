@@ -1,7 +1,4 @@
 language: python
-sudo: 9000
-services:
-  - docker
 
 before_install:
   - if [ "$DOCKER" = "1" ]; then docker build -t servo etc/ci/; fi
@@ -13,10 +10,14 @@ script:
 matrix:
   fast_finish: true
   include:
-    - env:
+    - sudo: false
+      env:
       - CMD="./mach test-tidy"
       - DOCKER=0
-    - env:
+    - sudo: 9000
+      services:
+      - docker
+      env:
       - CMD="./mach build -d --verbose"
       - DOCKER=1
 
