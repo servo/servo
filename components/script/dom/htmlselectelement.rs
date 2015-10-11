@@ -70,7 +70,7 @@ impl HTMLSelectElement {
         let node = NodeCast::from_ref(self);
         for opt in node.traverse_preorder().filter_map(HTMLOptionElementCast::to_root) {
             if opt.r().Selected() {
-                opt.r().SetSelected(false);
+                opt.r().set_selectedness(false);
                 num_selected += 1;
                 last_selected = Some(Root::from_ref(opt.r()));
             }
@@ -84,12 +84,12 @@ impl HTMLSelectElement {
             if self.Size() == 1 {
                 // select the first enabled element
                 if let Some(first_opt) = first_enabled {
-                    first_opt.r().SetSelected(true);
+                    first_opt.r().set_selectedness(true);
                 }
             }
         } else {
             // multiple options were selected, reselect last one
-            last_selected.unwrap().r().SetSelected(true);
+            last_selected.unwrap().r().set_selectedness(true);
         }
     }
 }

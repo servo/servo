@@ -58,6 +58,10 @@ impl HTMLOptionElement {
         let element = HTMLOptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
     }
+
+    pub fn set_selectedness(&self, selected: bool) {
+        self.selectedness.set(selected);
+    }
 }
 
 fn collect_text(element: &Element, value: &mut DOMString) {
