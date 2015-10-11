@@ -12,14 +12,14 @@ matrix:
   include:
     - sudo: false
       env:
-      - CMD="./mach test-tidy"
-      - DOCKER=0
+        - CMD="./mach test-tidy"
+        - DOCKER=0
     - sudo: 9000
       services:
-      - docker
+        - docker
       env:
-      - CMD="./mach build -d --verbose"
-      - DOCKER=1
+        - CMD="./mach build -d --verbose"
+        - DOCKER=1
 
 branches:
   only:
