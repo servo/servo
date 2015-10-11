@@ -309,7 +309,10 @@ fn set_default_accept_encoding(headers: &mut Headers) {
         return
     }
 
-    headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    headers.set(AcceptEncoding(vec![
+        qitem(Encoding::Gzip),
+        qitem(Encoding::Deflate)
+    ]));
 }
 
 fn set_default_accept(headers: &mut Headers) {
