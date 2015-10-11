@@ -4,19 +4,25 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived, HTMLTableSectionElementDerived};
+use dom::bindings::error::Error;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
+use std::iter;
 use util::str::{self, DOMString};
 
 #[dom_struct]
@@ -70,6 +76,61 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> Root<HTMLCollection> {
         HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
+    fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+        if index < -1 {
+            return Err(Error::IndexSize);
+        }
+
+        let node = NodeCast::from_ref(self);
+        let tr = HTMLTableRowElement::new("tr".to_owned(), None, node.owner_doc().r());
+
+        let after_node = if index == -1 {
+            None
+        } else {
+            match self.Rows()
+                      .elements_iter()
+                      .map(NodeCast::from_root)
+                      .map(Some)
+                      .chain(iter::once(None))
+                      .nth(index as usize) {
+                None => return Err(Error::IndexSize),
+                Some(node) => node,
+            }
+        };
+
+        {
+            let tr_node = NodeCast::from_ref(tr.r());
+            try!(node.InsertBefore(tr_node, after_node.r()));
+        }
+
+        Ok(HTMLElementCast::from_root(tr))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
+    fn DeleteRow(&self, index: i32) -> ErrorResult {
+        let element = match index {
+            index if index < -1 => return Err(Error::IndexSize),
+            -1 => {
+                let last_child = NodeCast::from_ref(self).GetLastChild();
+                match last_child.and_then(|node| node.inclusively_preceding_siblings()
+                                                     .filter_map(ElementCast::to_root)
+                                                     .filter(|n| n.is_htmltablerowelement())
+                                                     .next()) {
+                    Some(element) => element,
+                    None => return Ok(()),
+                }
+            },
+            index => match self.Rows().Item(index as u32) {
+                Some(element) => element,
+                None => return Err(Error::IndexSize),
+            },
+        };
+
+        NodeCast::from_ref(element.r()).remove_self();
+        Ok(())
     }
 }
 

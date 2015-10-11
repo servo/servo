@@ -160,7 +160,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    fn elements_iter(&self) -> HTMLCollectionElementsIter {
+    pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
         let ref filter = self.collection.1;
         let root = self.collection.0.root();
         let mut node_iter = root.traverse_preorder();
@@ -173,7 +173,7 @@ impl HTMLCollection {
     }
 }
 
-struct HTMLCollectionElementsIter<'a> {
+pub struct HTMLCollectionElementsIter<'a> {
     node_iter: TreeIterator,
     root: Root<Node>,
     filter: &'a Box<CollectionFilter>,
