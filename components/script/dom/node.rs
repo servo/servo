@@ -14,10 +14,13 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use dom::bindings::codegen::InheritTypes::HTMLElementBase;
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
 use dom::bindings::codegen::InheritTypes::{DocumentCast, DocumentDerived, DocumentTypeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, ElementTypeId};
@@ -43,6 +46,8 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
+use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -60,7 +65,7 @@ use selectors::parser::parse_author_origin_selector_list_from_str;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::default::Default;
-use std::iter::{FilterMap, Peekable};
+use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use std::slice::ref_slice;
 use std::sync::Arc;
@@ -917,6 +922,66 @@ impl Node {
             unimplemented!();
         }
         Ok(fragment)
+    }
+
+    /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
+    pub fn insert_cell_or_row<F, G, I>(&self, index: i32, get_items: F, new_child: G) -> Fallible<Root<HTMLElement>>
+        where F: Fn() -> Root<HTMLCollection>,
+              G: Fn() -> Root<I>,
+              I: NodeBase + HTMLElementBase + Reflectable,
+    {
+        if index < -1 {
+            return Err(Error::IndexSize);
+        }
+
+        let tr = new_child();
+
+        let after_node = if index == -1 {
+            None
+        } else {
+            match get_items().elements_iter()
+                             .map(NodeCast::from_root)
+                             .map(Some)
+                             .chain(iter::once(None))
+                             .nth(index as usize) {
+                None => return Err(Error::IndexSize),
+                Some(node) => node,
+            }
+        };
+
+        {
+            let tr_node = NodeCast::from_ref(tr.r());
+            try!(self.InsertBefore(tr_node, after_node.r()));
+        }
+
+        Ok(HTMLElementCast::from_root(tr))
+    }
+
+    /// Used by `HTMLTableSectionElement::DeleteRow` and `HTMLTableRowElement::DeleteCell`
+    pub fn delete_cell_or_row<F, G>(&self, index: i32, get_items: F, is_delete_type: G) -> ErrorResult
+        where F: Fn() -> Root<HTMLCollection>,
+              G: Fn(&Element) -> bool
+    {
+        let element = match index {
+            index if index < -1 => return Err(Error::IndexSize),
+            -1 => {
+                let last_child = NodeCast::from_ref(self).GetLastChild();
+                match last_child.and_then(|node| node.inclusively_preceding_siblings()
+                                                     .filter_map(ElementCast::to_root)
+                                                     .filter(|elem| is_delete_type(elem))
+                                                     .next()) {
+                    Some(element) => element,
+                    None => return Ok(()),
+                }
+            },
+            index => match get_items().Item(index as u32) {
+                Some(element) => element,
+                None => return Err(Error::IndexSize),
+            },
+        };
+
+        NodeCast::from_ref(element.r()).remove_self();
+        Ok(())
     }
 }
 
