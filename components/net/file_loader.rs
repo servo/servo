@@ -5,7 +5,7 @@
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{ProgressSender, start_sending, start_sending_sniffed};
+use resource_task::{ProgressSender, send_error, start_sending, start_sending_sniffed};
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
@@ -47,12 +47,12 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
     let url = load_data.url;
     assert!(&*url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
-        let metadata = Metadata::default(url.clone());
         let file_path: Result<PathBuf, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
+                        let metadata = Metadata::default(url);
                         let res = read_block(reader);
                         let (res, progress_chan) = match res {
                             Ok(ReadStatus::Partial(buf)) => {
@@ -67,14 +67,12 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
                         progress_chan.send(Done(res)).unwrap();
                     }
                     Err(e) => {
-                        let progress_chan = start_sending(senders, metadata);
-                        progress_chan.send(Done(Err(e.description().to_owned()))).unwrap();
+                        send_error(url, e.description().to_owned(), senders);
                     }
                 }
             }
             Err(_) => {
-                let progress_chan = start_sending(senders, metadata);
-                progress_chan.send(Done(Err(url.to_string()))).unwrap();
+                send_error(url, "Could not parse path".to_owned(), senders);
             }
         }
     });

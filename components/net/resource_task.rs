@@ -50,6 +50,16 @@ impl ProgressSender {
     }
 }
 
+pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+    let mut metadata: Metadata = Metadata::default(url);
+    metadata.status = None;
+
+    match start_sending_opt(start_chan, metadata) {
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
+        _ => {}
+    };
+}
+
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSender {
     start_sending_opt(start_chan, metadata).ok().unwrap()
