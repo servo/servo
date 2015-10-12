@@ -399,6 +399,18 @@
             "url": "/_mozilla/css/background_size_shorthand_a.html"
           }
         ],
+        "css/background_size_zero_a.html": [
+          {
+            "path": "css/background_size_zero_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_size_zero_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_size_zero_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1578,6 +1590,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_size_shorthand_a.html"
+        }
+      ],
+      "css/background_size_zero_a.html": [
+        {
+          "path": "css/background_size_zero_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_size_zero_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_size_zero_a.html"
         }
       ],
       "css/class-namespaces.html": [
