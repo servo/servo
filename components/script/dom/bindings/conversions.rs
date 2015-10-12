@@ -577,7 +577,7 @@ impl FromJSValConvertible for ByteString {
             let char_vec = slice::from_raw_parts(chars, length as usize);
 
             if char_vec.iter().any(|&c| c > 0xFF) {
-                // XXX Throw
+                throw_type_error(cx, "Invalid ByteString");
                 Err(())
             } else {
                 Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
