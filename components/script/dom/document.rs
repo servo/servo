@@ -520,7 +520,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        //TODO: dispatch blur, focus, focusout, and focusin events
+        //TODO: dispatch blur and focusin events
 
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
             let node = NodeCast::from_ref(elem.r());
