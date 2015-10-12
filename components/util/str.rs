@@ -97,7 +97,7 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
 
     let value = read_numbers(input);
 
-    return value.and_then(|value| value.checked_mul(sign));
+    value.and_then(|value| value.checked_mul(sign))
 }
 
 /// Parse an integer according to
@@ -244,9 +244,8 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     }
 
     // Step 5.
-    match cssparser::parse_color_keyword(input) {
-        Ok(Color::RGBA(rgba)) => return Ok(rgba),
-        _ => {}
+    if let Ok(Color::RGBA(rgba)) = cssparser::parse_color_keyword(input) {
+        return Ok(rgba);
     }
 
     // Step 6.

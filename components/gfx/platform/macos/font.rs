@@ -178,7 +178,7 @@ impl FontHandleMethods for FontHandle {
         let max_advance_width = au_from_pt(bounding_rect.size.width as f64);
         let average_advance = self.glyph_index('0')
                                   .and_then(|idx| self.glyph_h_advance(idx))
-                                  .map(|advance| Au::from_f64_px(advance))
+                                  .map(Au::from_f64_px)
                                   .unwrap_or(max_advance_width);
 
         let metrics =  FontMetrics {
@@ -201,7 +201,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         Au::from_f64_px(line_gap),
         };
         debug!("Font metrics (@{} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
-        return metrics;
+        metrics
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {

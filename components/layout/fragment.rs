@@ -1479,7 +1479,7 @@ impl Fragment {
                 let character_breaking_strategy =
                     text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
                 flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
-                return self.calculate_split_position_using_breaking_strategy(
+                self.calculate_split_position_using_breaking_strategy(
                     character_breaking_strategy,
                     max_inline_size,
                     flags)
@@ -1685,7 +1685,7 @@ impl Fragment {
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
+    pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
@@ -2257,7 +2257,7 @@ impl Fragment {
                     CharIndex(leading_whitespace_character_count),
                     -CharIndex(leading_whitespace_character_count));
 
-                return WhitespaceStrippingResult::RetainFragment
+                WhitespaceStrippingResult::RetainFragment
             }
             SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
                 let mut new_text_string = String::new();

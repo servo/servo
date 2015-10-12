@@ -35,9 +35,9 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
     for i in (0..length).step_by(4) {
         let r = data[i + 2];
         let g = data[i + 1];
-        let b = data[i + 0];
+        let b = data[i];
         let a = data[i + 3];
-        data[i + 0] = ((r as u32) * (a as u32) / 255) as u8;
+        data[i] = ((r as u32) * (a as u32) / 255) as u8;
         data[i + 1] = ((g as u32) * (a as u32) / 255) as u8;
         data[i + 2] = ((b as u32) * (a as u32) / 255) as u8;
     }

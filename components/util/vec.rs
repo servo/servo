@@ -52,7 +52,7 @@ impl<T> FullBinarySearchMethods<T> for [T] {
                 Ordering::Equal => return Some(mid),
             }
         }
-        return None;
+        None
     }
 }
 
@@ -70,8 +70,8 @@ pub fn byte_swap(data: &mut [u8]) {
     let length = data.len();
     for i in (0..length).step_by(4) {
         let r = data[i + 2];
-        data[i + 2] = data[i + 0];
-        data[i + 0] = r;
+        data[i + 2] = data[i];
+        data[i] = r;
     }
 }
 

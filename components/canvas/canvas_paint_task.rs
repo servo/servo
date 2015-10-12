@@ -601,7 +601,7 @@ impl<'a> CanvasPaintTask<'a> {
                 let alpha = imagedata[src_offset + 3] as f32 / 255.;
                 dest.push((imagedata[src_offset + 2] as f32 * alpha) as u8);
                 dest.push((imagedata[src_offset + 1] as f32 * alpha) as u8);
-                dest.push((imagedata[src_offset + 0] as f32 * alpha) as u8);
+                dest.push((imagedata[src_offset] as f32 * alpha) as u8);
                 dest.push(imagedata[src_offset + 3]);
                 src_offset += 4;
             }
@@ -756,7 +756,7 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 pub trait PointToi32 {

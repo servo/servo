@@ -34,8 +34,8 @@ impl PrefValue {
     }
 
     pub fn as_boolean(&self) -> Option<bool> {
-        match self {
-            &PrefValue::Boolean(value) => {
+        match *self {
+            PrefValue::Boolean(value) => {
                 Some(value)
             },
             _ => None
@@ -87,12 +87,12 @@ impl Pref {
     }
 
     pub fn value(&self) -> &Arc<PrefValue> {
-        match self {
-            &Pref::NoDefault(ref x) => x,
-            &Pref::WithDefault(ref default, ref override_value) => {
-                match override_value {
-                    &Some(ref x) => x,
-                    &None => default
+        match *self {
+            Pref::NoDefault(ref x) => x,
+            Pref::WithDefault(ref default, ref override_value) => {
+                match *override_value {
+                    Some(ref x) => x,
+                    None => default
                 }
             }
         }
@@ -101,11 +101,11 @@ impl Pref {
     fn set(&mut self, value: PrefValue) {
         // TODO - this should error if we try to override a pref of one type
         // with a value of a different type
-        match self {
-            &mut Pref::NoDefault(ref mut pref_value) => {
+        match *self {
+            Pref::NoDefault(ref mut pref_value) => {
                 *pref_value = Arc::new(value)
             },
-            &mut Pref::WithDefault(_, ref mut override_value) => {
+            Pref::WithDefault(_, ref mut override_value) => {
                 *override_value = Some(Arc::new(value))
             }
         }

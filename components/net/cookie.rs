@@ -154,7 +154,7 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure && url.scheme != "https".to_owned() {
+        if self.cookie.secure && url.scheme != "https" {
             return false;
         }
         if self.cookie.httponly && source == CookieSource::NonHTTP {

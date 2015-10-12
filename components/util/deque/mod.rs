@@ -197,7 +197,7 @@ impl<T: Send + 'static> Worker<T> {
     /// Gets access to the buffer pool that this worker is attached to. This can
     /// be used to create more deques which share the same buffer pool as this
     /// deque.
-    pub fn pool<'a>(&'a self) -> &'a BufferPool<T> {
+    pub fn pool(&self) -> &BufferPool<T> {
         &self.deque.pool
     }
 }
@@ -211,7 +211,7 @@ impl<T: Send + 'static> Stealer<T> {
     /// Gets access to the buffer pool that this stealer is attached to. This
     /// can be used to create more deques which share the same buffer pool as
     /// this deque.
-    pub fn pool<'a>(&'a self) -> &'a BufferPool<T> {
+    pub fn pool(&self) -> &BufferPool<T> {
         &self.deque.pool
     }
 }
@@ -270,11 +270,11 @@ impl<T: Send + 'static> Deque<T> {
         }
         if self.top.compare_and_swap(t, t + 1, SeqCst) == t {
             self.bottom.store(t + 1, SeqCst);
-            return Some(data);
+            Some(data)
         } else {
             self.bottom.store(t + 1, SeqCst);
             forget(data); // someone else stole this value
-            return None;
+            None
         }
     }
 
@@ -325,7 +325,7 @@ impl<T: Send + 'static> Deque<T> {
             self.bottom.store(b, SeqCst);
         }
         self.pool.free(transmute(old));
-        return newbuf;
+        newbuf
     }
 }
 
@@ -393,7 +393,7 @@ impl<T> Buffer<T> {
         for i in t..b {
             buf.put(i, self.get(i));
         }
-        return buf;
+        buf
     }
 }
 
