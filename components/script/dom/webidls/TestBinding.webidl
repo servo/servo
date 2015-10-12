@@ -92,6 +92,8 @@ interface TestBinding {
   readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
            attribute object objectAttribute;
+           [Unforgeable]
+           attribute boolean unforgeableBooleanAttribute;
 
            attribute boolean? booleanAttributeNullable;
            attribute byte? byteAttributeNullable;

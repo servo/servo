@@ -82,6 +82,8 @@ impl TestBindingMethods for TestBinding {
     fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
     fn ObjectAttribute(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
+    fn UnforgeableBooleanAttribute(&self) -> bool { false }
+    fn SetUnforgeableBooleanAttribute(&self, _: bool) {}
 
     fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
     fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
