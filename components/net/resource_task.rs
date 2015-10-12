@@ -50,22 +50,24 @@ impl ProgressSender {
     }
 }
 
+/// For use by loaders in responding to a Load message,
+/// if no content can be loaded.
+pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+    let mut metadata: Metadata = Metadata::default(url);
+    metadata.status = None;
+
+    match start_sending_opt(start_chan, metadata) {
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
+        _ => {}
+    };
+}
+
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSender {
-    start_sending_opt(start_chan, metadata).ok().unwrap()
-}
-
-/// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &[u8])
-                             -> ProgressSender {
-    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
-}
-
-/// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8])
-                                 -> Result<ProgressSender, ()> {
+/// If this function fails, it failed to set up a channel,
+/// so the load should be abandoned.
+pub fn start_sending(start_chan: LoadConsumer, mut metadata: Metadata,
+                     classifier: Arc<MIMEClassifier>, partial_body: &[u8])
+                     -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let mut no_sniff = NoSniffFlag::OFF;
@@ -112,8 +114,7 @@ fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
     }
 }
 
-/// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
+fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
@@ -243,9 +244,8 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(consumer, Metadata::default(load_data.url))
-                    .send(ProgressMsg::Done(Err("no loader for scheme".to_owned()))).unwrap();
-                return
+                send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
+                return;
             }
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
