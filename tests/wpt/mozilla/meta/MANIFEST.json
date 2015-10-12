@@ -315,6 +315,126 @@
             "url": "/_mozilla/css/background_position_percent.html"
           }
         ],
+        "css/background_position_shorthand.html": [
+          {
+            "path": "css/background_position_shorthand.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_shorthand_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_shorthand.html"
+          }
+        ],
+        "css/background_repeat_both_a.html": [
+          {
+            "path": "css/background_repeat_both_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_both_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_both_a.html"
+          }
+        ],
+        "css/background_repeat_none_a.html": [
+          {
+            "path": "css/background_repeat_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_none_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_none_a.html"
+          }
+        ],
+        "css/background_repeat_x_a.html": [
+          {
+            "path": "css/background_repeat_x_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_x_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_x_a.html"
+          }
+        ],
+        "css/background_repeat_y_a.html": [
+          {
+            "path": "css/background_repeat_y_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_y_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_y_a.html"
+          }
+        ],
+        "css/background_size_a.html": [
+          {
+            "path": "css/background_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_size_a.html"
+          }
+        ],
+        "css/background_size_shorthand_a.html": [
+          {
+            "path": "css/background_size_shorthand_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_size_shorthand_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_size_shorthand_a.html"
+          }
+        ],
+        "css/background_size_zero_a.html": [
+          {
+            "path": "css/background_size_zero_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_size_zero_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_size_zero_a.html"
+          }
+        ],
+        "css/background_style_attr.html": [
+          {
+            "path": "css/background_style_attr.html",
+            "references": [
+              [
+                "/_mozilla/css/background_rust_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_style_attr.html"
+          }
+        ],
+        "css/basic_width_px.html": [
+          {
+            "path": "css/basic_width_px.html",
+            "references": [
+              [
+                "/_mozilla/css/basic_width_em.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/basic_width_px.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1410,6 +1530,126 @@
             ]
           ],
           "url": "/_mozilla/css/background_position_percent.html"
+        }
+      ],
+      "css/background_position_shorthand.html": [
+        {
+          "path": "css/background_position_shorthand.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_shorthand_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_shorthand.html"
+        }
+      ],
+      "css/background_repeat_both_a.html": [
+        {
+          "path": "css/background_repeat_both_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_both_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_both_a.html"
+        }
+      ],
+      "css/background_repeat_none_a.html": [
+        {
+          "path": "css/background_repeat_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_none_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_none_a.html"
+        }
+      ],
+      "css/background_repeat_x_a.html": [
+        {
+          "path": "css/background_repeat_x_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_x_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_x_a.html"
+        }
+      ],
+      "css/background_repeat_y_a.html": [
+        {
+          "path": "css/background_repeat_y_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_y_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_y_a.html"
+        }
+      ],
+      "css/background_size_a.html": [
+        {
+          "path": "css/background_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_size_a.html"
+        }
+      ],
+      "css/background_size_shorthand_a.html": [
+        {
+          "path": "css/background_size_shorthand_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_size_shorthand_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_size_shorthand_a.html"
+        }
+      ],
+      "css/background_size_zero_a.html": [
+        {
+          "path": "css/background_size_zero_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_size_zero_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_size_zero_a.html"
+        }
+      ],
+      "css/background_style_attr.html": [
+        {
+          "path": "css/background_style_attr.html",
+          "references": [
+            [
+              "/_mozilla/css/background_rust_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_style_attr.html"
+        }
+      ],
+      "css/basic_width_px.html": [
+        {
+          "path": "css/basic_width_px.html",
+          "references": [
+            [
+              "/_mozilla/css/basic_width_em.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/basic_width_px.html"
         }
       ],
       "css/class-namespaces.html": [

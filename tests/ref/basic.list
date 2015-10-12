@@ -12,16 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== background_position_shorthand.html background_position_shorthand_ref.html
-== background_repeat_both_a.html background_repeat_both_b.html
-== background_repeat_none_a.html background_repeat_none_b.html
-== background_repeat_x_a.html background_repeat_x_b.html
-== background_repeat_y_a.html background_repeat_y_b.html
-== background_size_a.html background_size_ref.html
-== background_size_shorthand_a.html background_size_shorthand_ref.html
-== background_size_zero_a.html background_size_zero_ref.html
-== background_style_attr.html background_ref.html
-== basic_width_px.html basic_width_em.html
 == block_formatting_context_a.html block_formatting_context_ref.html
 == block_formatting_context_cleared_float_a.html block_formatting_context_cleared_float_ref.html
 == block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
