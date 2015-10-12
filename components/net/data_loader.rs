@@ -6,7 +6,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::start_sending;
+use resource_task::{send_error, start_sending};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
@@ -24,11 +24,9 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
-    let mut metadata = Metadata::default(url.clone());
-
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        SchemeData::NonRelative(scheme_data) => scheme_data,
+        SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {
@@ -40,8 +38,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     }
     let parts: Vec<&str> = scheme_data.splitn(2, ',').collect();
     if parts.len() != 2 {
-        start_sending(start_chan,
-                      metadata).send(Done(Err("invalid data uri".to_owned()))).unwrap();
+        send_error(url, "invalid data uri".to_owned(), start_chan);
         return;
     }
 
@@ -65,6 +62,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         content_type = Some(Mime(TopLevel::Text, SubLevel::Plain,
                                  vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))));
     }
+    let mut metadata = Metadata::default(url);
     metadata.set_content_type(content_type.as_ref());
 
     let progress_chan = start_sending(start_chan, metadata);

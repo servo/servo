@@ -9,7 +9,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::start_sending;
+use resource_task::{send_error, start_sending};
 use std::fs::PathExt;
 use std::sync::Arc;
 use url::Url;
@@ -36,9 +36,7 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            start_sending(start_chan, Metadata::default(load_data.url))
-                .send(Done(Err("Unknown about: URL.".to_owned())))
-                .unwrap();
+            send_error(load_data.url, "Unknown about: URL.".to_owned(), start_chan);
             return
         }
     };
