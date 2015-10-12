@@ -113,13 +113,12 @@ impl BasicCORSCache {
                                 header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
-                            e.origin.host() == request.origin.host() &&
-                            e.origin.port() == request.origin.port() &&
-                            e.url == request.destination &&
-                            e.credentials == request.credentials &&
-                            e.header_or_method.match_header(header_name));
-        entry
+        buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
+                                e.origin.host() == request.origin.host() &&
+                                e.origin.port() == request.origin.port() &&
+                                e.url == request.destination &&
+                                e.credentials == request.credentials &&
+                                e.header_or_method.match_header(header_name))
     }
 
     fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails,
@@ -127,13 +126,12 @@ impl BasicCORSCache {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
-                            e.origin.host() == request.origin.host() &&
-                            e.origin.port() == request.origin.port() &&
-                            e.url == request.destination &&
-                            e.credentials == request.credentials &&
-                            e.header_or_method.match_method(&method));
-        entry
+        buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
+                                e.origin.host() == request.origin.host() &&
+                                e.origin.port() == request.origin.port() &&
+                                e.url == request.destination &&
+                                e.credentials == request.credentials &&
+                                e.header_or_method.match_method(&method))
     }
 }
 

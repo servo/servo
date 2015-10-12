@@ -24,7 +24,7 @@ enum ReadStatus {
 fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
     let mut buf = vec![0; READ_SIZE];
     match reader.read(&mut buf) {
-        Ok(0) => return Ok(ReadStatus::EOF),
+        Ok(0) => Ok(ReadStatus::EOF),
         Ok(n) => {
             buf.truncate(n);
             Ok(ReadStatus::Partial(buf))

@@ -810,17 +810,12 @@ impl TableLikeFlow for BlockFlow {
             let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
                 &self.fragment,
                 self.base.block_container_explicit_block_size);
-            loop {
-                match candidate_block_size_iterator.next() {
-                    Some(candidate_block_size) => {
-                        candidate_block_size_iterator.candidate_value =
-                            match candidate_block_size {
-                                MaybeAuto::Auto => block_size,
-                                MaybeAuto::Specified(value) => value
-                            }
-                    }
-                    None => break,
-                }
+            while let Some(candidate_block_size) = candidate_block_size_iterator.next() {
+                candidate_block_size_iterator.candidate_value =
+                    match candidate_block_size {
+                        MaybeAuto::Auto => block_size,
+                        MaybeAuto::Specified(value) => value
+                    };
             }
 
             // Adjust `current_block_offset` as necessary to account for the explicitly-specified
