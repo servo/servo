@@ -20,7 +20,7 @@
 use devtools;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use document_loader::{DocumentLoader, LoadType, NotifierData};
+use document_loader::{DocumentLoader, LoadType};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::conversions::{Castable, FromJSValConvertible, StringificationBehavior};
@@ -1614,15 +1614,8 @@ impl ScriptTask {
             _ => None
         };
 
-        let notifier_data =  {
-            let MainThreadScriptChan(ref sender) = self.chan;
-            NotifierData {
-                script_chan: sender.clone(),
-                pipeline: page.pipeline(),
-            }
-        };
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
-                                                   Some(notifier_data),
+                                                   Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),
@@ -1935,7 +1928,10 @@ impl ScriptTask {
         let document = page.document();
         let final_url = document.r().url();
 
+        // https://html.spec.whatwg.org/multipage/#the-end step 1
         document.r().set_ready_state(DocumentReadyState::Interactive);
+
+        // TODO: Execute step 2 here.
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
@@ -1948,14 +1944,14 @@ impl ScriptTask {
         // No more reflow required
         page.set_reflow_status(false);
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
+        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
+        document.r().process_deferred_scripts();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
+        //TODO: should this happen as soon as the global is created, or at least once the first
+        // script runs?
         self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
     }
 }
