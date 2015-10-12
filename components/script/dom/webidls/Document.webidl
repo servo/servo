@@ -79,7 +79,7 @@ enum DocumentReadyState { "loading", "interactive", "complete" };
 // [OverrideBuiltins]
 partial /*sealed*/ interface Document {
   // resource metadata management
-  // [PutForwards=href, Unforgeable]
+  [/*PutForwards=href, */Unforgeable]
   readonly attribute Location/*?*/ location;
   readonly attribute DOMString domain;
   // readonly attribute DOMString referrer;

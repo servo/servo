@@ -78,6 +78,10 @@ impl GlobalStaticData {
     }
 }
 
+/// The index of the slot where the object holder of that interface's
+/// unforgeable members are defined.
+pub const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 0;
+
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
 pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
@@ -181,8 +185,12 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
 pub struct NativeProperties {
     /// Instance methods for the interface.
     pub methods: Option<&'static [JSFunctionSpec]>,
+    /// Unforgeable instance methods for the interface.
+    pub unforgeable_methods: Option<&'static [JSFunctionSpec]>,
     /// Instance attributes for the interface.
     pub attrs: Option<&'static [JSPropertySpec]>,
+    /// Unforgeable instance attributes for the interface.
+    pub unforgeable_attrs: Option<&'static [JSPropertySpec]>,
     /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
     /// Static methods for the interface.
