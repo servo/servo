@@ -8,9 +8,9 @@
 <body>
 
         <div id="log">FAILED (This TC requires JavaScript enabled)</div>
-        <script>log('inline script #1');
+        <script>console.log('inline script #1');
                 var script = testlib.addScript('', { }, document.getElementsByTagName('body')[0], false);
-                log('end script #1');
+                console.log('end script #1');
         </script>
 
         <script type="text/javascript">
@@ -22,8 +22,11 @@
                 t.done();
 }
         onload = t.step_func(function(){
+                console.log(1);
                 script.src='scripts/include-1.js';
+                console.log(2);
                 script.onload = t.step_func(test);
+                console.log(3);
         })
         </script>
 

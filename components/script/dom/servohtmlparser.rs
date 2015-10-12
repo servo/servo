@@ -193,7 +193,9 @@ impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
         self.document.root().r().set_current_parser(Some(self));
         self.pending_input.borrow_mut().push(input);
-        self.parse_sync();
+        if !self.is_suspended() {
+            self.parse_sync();
+        }
     }
 
     fn finish(self) {

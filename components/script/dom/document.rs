@@ -126,6 +126,8 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     ready_state: Cell<DocumentReadyState>,
+    /// Whether the DOMContentLoaded event has already been dispatched.
+    domcontentloaded_triggered: Cell<bool>,
     /// The element that has most recently requested focus for itself.
     possibly_focused: MutNullableHeap<JS<Element>>,
     /// The element that currently has the document focus context.
@@ -890,7 +892,7 @@ impl Document {
     }
 
     pub fn get_pending_parsing_blocking_script(&self) -> Option<Root<HTMLScriptElement>> {
-        self.pending_parsing_blocking_script.get().map(Root::from_rooted)
+        self.pending_parsing_blocking_script.get_rooted()
     }
 
     pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
@@ -1000,19 +1002,16 @@ impl Document {
         if still_blocked {
             return;
         }
-        match load {
-            LoadType::Script(_) => {
-                self.process_deferred_scripts();
-                self.process_asap_scripts();
-            },
-            _ => {}
+        if let LoadType::Script(_) = load {
+            self.process_deferred_scripts();
+            self.process_asap_scripts();
         }
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
         // parser so its loop can find out.
-        if let Some(parser) = self.current_parser.get().map(Root::from_rooted) {
-            if parser.r().is_suspended() {
-                parser.r().resume();
+        if let Some(parser) = self.current_parser.get_rooted() {
+            if parser.is_suspended() {
+                parser.resume();
             }
         }
 
@@ -1028,11 +1027,11 @@ impl Document {
     /// executed it.
     /// Returns true if the document is still blocked on a script, false otherwise.
     fn maybe_execute_parser_blocking_script(&self) -> bool {
-        let script = self.pending_parsing_blocking_script.get().map(Root::from_rooted);
-        if script.is_none() {
-            return false;
-        }
-        let script = script.unwrap();
+        let script = match self.pending_parsing_blocking_script.get_rooted() {
+            None => return false,
+            Some(script) => script,
+        };
+
         if self.script_blocking_stylesheets_count.get() == 0 &&
            script.r().is_ready_to_be_executed() {
             script.r().execute();
@@ -1052,22 +1051,24 @@ impl Document {
             return;
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
-        if deferred_scripts.len() == 0 {
+        if deferred_scripts.is_empty() {
             return;
         }
         while deferred_scripts.len() > 0 {
             let script = Root::from_rooted(deferred_scripts[0]);
+            let script = script.r();
             // Part of substep 1.
-            if !script.r().is_ready_to_be_executed() {
+            if !script.is_ready_to_be_executed() {
                 return;
             }
             // Substep 2.
-            script.r().execute();
+            script.execute();
             // Substep 3.
             deferred_scripts.remove(0);
             // Substep 4 (implicit).
         }
-        self.dispatch_dom_content_loaded();
+        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also triggered by script_task.
+        self.maybe_dispatch_dom_content_loaded();
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
@@ -1097,7 +1098,11 @@ impl Document {
         }
     }
 
-    fn dispatch_dom_content_loaded(&self) {
+    pub fn maybe_dispatch_dom_content_loaded(&self) {
+        if self.domcontentloaded_triggered.get() {
+            return;
+        }
+        self.domcontentloaded_triggered.set(true);
         let window = self.window();
         let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
@@ -1171,10 +1176,10 @@ impl Document {
                      doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
-        let ready_state = if source == DocumentSource::FromParser {
-            DocumentReadyState::Loading
+        let (ready_state, domcontentloaded_triggered) = if source == DocumentSource::FromParser {
+            (DocumentReadyState::Loading, false)
         } else {
-            DocumentReadyState::Complete
+            (DocumentReadyState::Complete, true)
         };
 
         Document {
@@ -1207,6 +1212,7 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             ready_state: Cell::new(ready_state),
+            domcontentloaded_triggered: Cell::new(domcontentloaded_triggered),
             possibly_focused: Default::default(),
             focused: Default::default(),
             current_script: Default::default(),
@@ -2039,7 +2045,6 @@ fn is_scheme_host_port_tuple(url: &Url) -> bool {
 
 #[derive(HeapSizeOf)]
 pub enum DocumentProgressTask {
-    DOMContentLoaded,
     Load,
 }
 
@@ -2054,18 +2059,6 @@ impl DocumentProgressHandler {
             addr: addr,
             task: task,
         }
-    }
-
-    fn dispatch_dom_content_loaded(&self) {
-        let document = self.addr.root();
-        let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let doctarget = EventTargetCast::from_ref(document.r());
-        let _ = doctarget.DispatchEvent(event.r());
-
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
     }
 
     fn set_ready_state_complete(&self) {
@@ -2114,9 +2107,6 @@ impl Runnable for DocumentProgressHandler {
         let window = document.r().window();
         if window.r().is_alive() {
             match self.task {
-                DocumentProgressTask::DOMContentLoaded => {
-                    self.dispatch_dom_content_loaded();
-                }
                 DocumentProgressTask::Load => {
                     self.set_ready_state_complete();
                     self.dispatch_load();

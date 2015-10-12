@@ -1921,7 +1921,8 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 3
         document.r().process_deferred_scripts();
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 4 implemented in step 3 above.
+        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also implemented in step 3 above.
+        document.r().maybe_dispatch_dom_content_loaded();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 
