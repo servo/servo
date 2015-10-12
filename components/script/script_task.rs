@@ -1901,7 +1901,10 @@ impl ScriptTask {
         let document = page.document();
         let final_url = document.r().url();
 
+        // https://html.spec.whatwg.org/multipage/#the-end step 1
         document.r().set_ready_state(DocumentReadyState::Interactive);
+
+        // TODO: Execute step 2 here.
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
@@ -1914,14 +1917,17 @@ impl ScriptTask {
         // No more reflow required
         page.set_reflow_status(false);
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr, DocumentProgressTask::DOMContentLoaded);
-        self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
+        // https://html.spec.whatwg.org/multipage/#the-end step 3
+        document.r().process_deferred_scripts();
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also implemented in step 3 above.
+        document.r().maybe_dispatch_dom_content_loaded();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
+        //TODO: should this happen as soon as the global is created, or at least once the first
+        // script runs?
         self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
     }
 }
