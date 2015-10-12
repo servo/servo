@@ -756,7 +756,7 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 pub trait PointToi32 {

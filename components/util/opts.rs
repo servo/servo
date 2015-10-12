@@ -257,7 +257,7 @@ pub struct DebugOptions {
 
 
 impl DebugOptions {
-    pub fn new<'a>(debug_string: &'a str) -> Result<DebugOptions, &'a str> {
+    pub fn new(debug_string: &str) -> Result<DebugOptions, &str> {
         let mut debug_options = DebugOptions::default();
 
         for option in debug_string.split(',') {

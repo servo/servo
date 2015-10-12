@@ -74,15 +74,10 @@ impl Profiler {
     }
 
     pub fn start(&mut self) {
-        loop {
-            match self.port.recv() {
-               Ok(msg) => {
-                   if !self.handle_msg(msg) {
-                       break
-                   }
-               }
-               _ => break
-            }
+        while let Ok(msg) = self.port.recv() {
+           if !self.handle_msg(msg) {
+               break
+           }
         }
     }
 

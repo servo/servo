@@ -173,7 +173,7 @@ impl ResourceChannelManager {
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source)
                 }
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                    let ref cookie_jar = self.resource_manager.cookie_storage;
+                    let cookie_jar = &self.resource_manager.cookie_storage;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
@@ -215,7 +215,7 @@ impl ResourceManager {
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                    let ref cookie_jar = self.cookie_storage;
+                    let cookie_jar = &self.cookie_storage;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     cookie_jar.push(cookie, source);
                 }

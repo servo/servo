@@ -49,7 +49,7 @@ impl<T> PersistentList<T> where T: Send + Sync {
     }
 
     #[inline]
-    pub fn iter<'a>(&'a self) -> PersistentListIterator<'a, T> {
+    pub fn iter(&self) -> PersistentListIterator<T> {
         // This could clone (and would not need the lifetime if it did), but then it would incur
         // atomic operations on every call to `.next()`. Bad.
         PersistentListIterator {
@@ -90,4 +90,3 @@ impl<'a, T> Iterator for PersistentListIterator<'a, T> where T: Send + Sync + 's
         Some(value)
     }
 }
-

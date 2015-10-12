@@ -1452,7 +1452,7 @@ impl LayoutTask {
                         // Parallel mode.
                         self.solve_constraints_parallel(parallel,
                                                         &mut root_flow,
-                                                        &mut *layout_context);
+                                                        &*layout_context);
                     }
                 }
             });
