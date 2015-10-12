@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::{DocumentLoader, LoadType};
+use document_loader::{DocumentLoader, LoadType, NotifierData};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -80,9 +80,9 @@ use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::{AsyncResponseTarget, Metadata, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
-use script_task::Runnable;
+use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -128,12 +128,24 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     ready_state: Cell<DocumentReadyState>,
+    /// Whether the DOMContentLoaded event has already been dispatched.
+    domcontentloaded_triggered: Cell<bool>,
     /// The element that has most recently requested focus for itself.
     possibly_focused: MutNullableHeap<JS<Element>>,
     /// The element that currently has the document focus context.
     focused: MutNullableHeap<JS<Element>>,
     /// The script element that is currently executing.
     current_script: MutNullableHeap<JS<HTMLScriptElement>>,
+    /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
+    pending_parsing_blocking_script: MutNullableHeap<JS<HTMLScriptElement>>,
+    /// Number of stylesheets that block executing the next parser-inserted script
+    script_blocking_stylesheets_count: Cell<u32>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
+    deferred_scripts: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
+    asap_in_order_scripts_list: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
+    asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
@@ -855,6 +867,42 @@ impl Document {
         self.current_script.set(script);
     }
 
+    pub fn get_script_blocking_stylesheets_count(&self) -> u32 {
+        self.script_blocking_stylesheets_count.get()
+    }
+
+    pub fn increment_script_blocking_stylesheet_count(&self) {
+        let count_cell = &self.script_blocking_stylesheets_count;
+        count_cell.set(count_cell.get() + 1);
+    }
+
+    pub fn decrement_script_blocking_stylesheet_count(&self) {
+        let count_cell = &self.script_blocking_stylesheets_count;
+        assert!(count_cell.get() > 0);
+        count_cell.set(count_cell.get() - 1);
+    }
+
+    pub fn set_pending_parsing_blocking_script(&self, script: Option<&HTMLScriptElement>) {
+        assert!(self.get_pending_parsing_blocking_script().is_none() || script.is_none());
+        self.pending_parsing_blocking_script.set(script);
+    }
+
+    pub fn get_pending_parsing_blocking_script(&self) -> Option<Root<HTMLScriptElement>> {
+        self.pending_parsing_blocking_script.get()
+    }
+
+    pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
+        self.deferred_scripts.borrow_mut().push(JS::from_ref(script));
+    }
+
+    pub fn add_asap_script(&self, script: &HTMLScriptElement) {
+        self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
+    }
+
+    pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
+        self.asap_in_order_scripts_list.borrow_mut().push(JS::from_ref(script));
+    }
+
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if htmliframeelement::mozbrowser_enabled() {
             let window = self.window.root();
@@ -939,14 +987,126 @@ impl Document {
         loader.load_async(load, listener)
     }
 
-    pub fn load_sync(&self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
-        let mut loader = self.loader.borrow_mut();
-        loader.load_sync(load)
+    pub fn finish_load(&self, load: LoadType) {
+        // The parser might need the loader, so restrict the lifetime of the borrow.
+        {
+            let mut loader = self.loader.borrow_mut();
+            loader.finish_load(load.clone());
+        }
+
+        if let LoadType::Script(_) = load {
+            self.process_deferred_scripts();
+            self.process_asap_scripts();
+        }
+
+        let still_blocked = self.maybe_execute_parser_blocking_script();
+        if still_blocked {
+            return;
+        }
+
+        // A finished resource load can potentially unblock parsing. In that case, resume the
+        // parser so its loop can find out.
+        if let Some(parser) = self.current_parser.get_rooted() {
+            if parser.is_suspended() {
+                parser.resume();
+            }
+        }
+
+        let loader = self.loader.borrow();
+        if let Some(NotifierData { ref script_chan, pipeline }) = loader.notifier_data {
+            if !loader.is_blocked() {
+                script_chan.send(MainThreadScriptMsg::DocumentLoadsComplete(pipeline)).unwrap();
+            }
+        }
     }
 
-    pub fn finish_load(&self, load: LoadType) {
-        let mut loader = self.loader.borrow_mut();
-        loader.finish_load(load);
+    /// If document parsing is blocked on a script, and that script is ready to run,
+    /// executed it.
+    /// Returns true if the document is still blocked on a script, false otherwise.
+    fn maybe_execute_parser_blocking_script(&self) -> bool {
+        let script = match self.pending_parsing_blocking_script.get_rooted() {
+            None => return false,
+            Some(script) => script,
+        };
+
+        if self.script_blocking_stylesheets_count.get() == 0 &&
+           script.r().is_ready_to_be_executed() {
+            script.r().execute();
+            self.pending_parsing_blocking_script.set(None);
+            return false;
+        }
+        true
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3
+    pub fn process_deferred_scripts(&self) {
+        if self.ready_state.get() != DocumentReadyState::Interactive {
+            return;
+        }
+        // Part of substep 1.
+        if self.script_blocking_stylesheets_count.get() > 0 {
+            return;
+        }
+        let mut deferred_scripts = self.deferred_scripts.borrow_mut();
+        if deferred_scripts.is_empty() {
+            return;
+        }
+        while !deferred_scripts.is_empty() {
+            let script = deferred_scripts[0].root();
+            // Part of substep 1.
+            if !script.is_ready_to_be_executed() {
+                return;
+            }
+            // Substep 2.
+            script.execute();
+            // Substep 3.
+            deferred_scripts.remove(0);
+            // Substep 4 (implicit).
+        }
+        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also triggered by script_task.
+        self.maybe_dispatch_dom_content_loaded();
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
+    pub fn process_asap_scripts(&self) {
+        // Execute the first in-order asap-executed script if its ready, repeat as required.
+        let mut in_order_scripts = self.asap_in_order_scripts_list.borrow_mut();
+        while in_order_scripts.len() > 0 {
+            let script = in_order_scripts[0].root();
+            if !script.r().is_ready_to_be_executed() {
+                break;
+            }
+            script.r().execute();
+            in_order_scripts.remove(0);
+        }
+
+        let mut asap_scripts_set = self.asap_scripts_set.borrow_mut();
+        let mut idx = 0;
+        while idx < asap_scripts_set.len() {
+            let script = asap_scripts_set[idx].root();
+            if !script.r().is_ready_to_be_executed() {
+                idx += 1;
+                continue;
+            }
+            script.r().execute();
+            asap_scripts_set.swap_remove(idx);
+        }
+    }
+
+    pub fn maybe_dispatch_dom_content_loaded(&self) {
+        if self.domcontentloaded_triggered.get() {
+            return;
+        }
+        self.domcontentloaded_triggered.set(true);
+        let window = self.window();
+        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable);
+        let doctarget = EventTargetCast::from_ref(self);
+        let _ = doctarget.DispatchEvent(event.r());
+
+        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
     }
 
     pub fn notify_constellation_load(&self) {
@@ -1012,10 +1172,10 @@ impl Document {
                      doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
-        let ready_state = if source == DocumentSource::FromParser {
-            DocumentReadyState::Loading
+        let (ready_state, domcontentloaded_triggered) = if source == DocumentSource::FromParser {
+            (DocumentReadyState::Loading, false)
         } else {
-            DocumentReadyState::Complete
+            (DocumentReadyState::Complete, true)
         };
 
         Document {
@@ -1048,9 +1208,15 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             ready_state: Cell::new(ready_state),
+            domcontentloaded_triggered: Cell::new(domcontentloaded_triggered),
             possibly_focused: Default::default(),
             focused: Default::default(),
             current_script: Default::default(),
+            pending_parsing_blocking_script: Default::default(),
+            script_blocking_stylesheets_count: Cell::new(0u32),
+            deferred_scripts: DOMRefCell::new(vec!()),
+            asap_in_order_scripts_list: DOMRefCell::new(vec!()),
+            asap_scripts_set: DOMRefCell::new(vec!()),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: RefCell::new(HashMap::new()),
@@ -1874,7 +2040,6 @@ fn is_scheme_host_port_tuple(url: &Url) -> bool {
 
 #[derive(HeapSizeOf)]
 pub enum DocumentProgressTask {
-    DOMContentLoaded,
     Load,
 }
 
@@ -1889,18 +2054,6 @@ impl DocumentProgressHandler {
             addr: addr,
             task: task,
         }
-    }
-
-    fn dispatch_dom_content_loaded(&self) {
-        let document = self.addr.root();
-        let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable);
-        let doctarget = EventTargetCast::from_ref(document.r());
-        let _ = doctarget.DispatchEvent(event.r());
-
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
     }
 
     fn set_ready_state_complete(&self) {
@@ -1949,9 +2102,6 @@ impl Runnable for DocumentProgressHandler {
         let window = document.r().window();
         if window.r().is_alive() {
             match self.task {
-                DocumentProgressTask::DOMContentLoaded => {
-                    self.dispatch_dom_content_loaded();
-                }
                 DocumentProgressTask::Load => {
                     self.set_ready_state_complete();
                     self.dispatch_load();

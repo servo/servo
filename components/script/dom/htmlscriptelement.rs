@@ -38,7 +38,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::ascii::AsciiExt;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::mem;
 use std::sync::{Arc, Mutex};
 use url::{Url, UrlParser};
@@ -60,12 +60,13 @@ pub struct HTMLScriptElement {
     non_blocking: Cell<bool>,
 
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    ///
-    /// (currently unused)
     ready_to_be_parser_executed: Cell<bool>,
 
     /// Document of the parser that created this element
     parser_document: JS<Document>,
+
+    /// The source this script was loaded from
+    load: RefCell<Option<ScriptOrigin>>,
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
@@ -83,6 +84,7 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
+            load: RefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }
@@ -117,6 +119,8 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+no_jsmanaged_fields!(ScriptOrigin);
+
 #[derive(HeapSizeOf)]
 pub enum ScriptOrigin {
     Internal(String, Url),
@@ -131,8 +135,6 @@ struct ScriptContext {
     data: Vec<u8>,
     /// The response metadata received to date.
     metadata: Option<Metadata>,
-    /// Whether the owning document's parser should resume once the response completes.
-    resume_on_completion: bool,
     /// The initial URL requested.
     url: Url,
 }
@@ -154,23 +156,20 @@ impl AsyncResponseListener for ScriptContext {
             (metadata, data)
         });
         let elem = self.elem.root();
-
-        elem.r().execute(ScriptOrigin::External(load));
+        // TODO: maybe set this to None again after script execution to save memory.
+        *elem.r().load.borrow_mut() = Some(ScriptOrigin::External(load));
+        elem.ready_to_be_parser_executed.set(true);
 
         let document = document_from_node(elem.r());
         document.r().finish_load(LoadType::Script(self.url.clone()));
-
-        if self.resume_on_completion {
-            document.r().get_current_parser().unwrap().r().resume();
-        }
     }
 }
 
 impl PreInvoke for ScriptContext {}
 
 impl HTMLScriptElement {
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script
     pub fn prepare(&self) -> NextParserState {
-        // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 1.
         if self.already_started.get() {
             return NextParserState::Continue;
@@ -181,7 +180,9 @@ impl HTMLScriptElement {
 
         // Step 3.
         let element = ElementCast::from_ref(self);
-        if was_parser_inserted && element.has_attribute(&atom!("async")) {
+        let async = element.has_attribute(&atom!("async"));
+        // Note: confusingly, this is done if the element does *not* have an "async" attribute.
+        if was_parser_inserted && !async {
             self.non_blocking.set(true);
         }
         // Step 4.
@@ -207,8 +208,8 @@ impl HTMLScriptElement {
         self.already_started.set(true);
 
         // Step 10.
-        let document_from_node_ref = document_from_node(self);
-        let document_from_node_ref = document_from_node_ref.r();
+        let doc = document_from_node(self);
+        let document_from_node_ref = doc.r();
         if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
             return NextParserState::Continue;
         }
@@ -249,8 +250,9 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         let window = window.r();
         let base_url = window.get_url();
+        let deferred = element.has_attribute(&atom!("defer"));
 
-        let load = match element.get_attribute(&ns!(""), &atom!("src")) {
+        let is_external = match element.get_attribute(&ns!(""), &atom!("src")) {
             // Step 14.
             Some(ref src) => {
                 // Step 14.1
@@ -276,8 +278,6 @@ impl HTMLScriptElement {
                         // state of the element's `crossorigin` content attribute, the origin being
                         // the origin of the script element's node document, and the default origin
                         // behaviour set to taint.
-                        let doc = document_from_node(self);
-
                         let script_chan = window.script_chan();
                         let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
 
@@ -285,7 +285,6 @@ impl HTMLScriptElement {
                             elem: elem,
                             data: vec!(),
                             metadata: None,
-                            resume_on_completion: self.parser_inserted.get(),
                             url: url.clone(),
                         }));
 
@@ -302,36 +301,85 @@ impl HTMLScriptElement {
                         });
 
                         doc.r().load_async(LoadType::Script(url), response_target);
-
-                        if self.parser_inserted.get() {
-                            doc.r().get_current_parser().unwrap().r().suspend();
-                        }
-                        return NextParserState::Suspend;
                     }
                 }
+                true
             },
-            None => ScriptOrigin::Internal(text, base_url),
+            None => false,
         };
 
         // Step 15.
-        // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
-        // scripts synchronously and execute them immediately.)
-        self.execute(load);
-        NextParserState::Continue
+        // Step 15.a, has src, has defer, was parser-inserted, is not async.
+        if is_external &&
+           deferred &&
+           was_parser_inserted &&
+           !async {
+            doc.r().add_deferred_script(self);
+            // Second part implemented in Document::process_deferred_scripts.
+            return NextParserState::Continue;
+        // Step 15.b, has src, was parser-inserted, is not async.
+        } else if is_external &&
+                  was_parser_inserted &&
+                  !async {
+            doc.r().set_pending_parsing_blocking_script(Some(self));
+            // Second part implemented in the load result handler.
+        // Step 15.c, doesn't have src, was parser-inserted, is blocked on stylesheet, is not async.
+        } else if !is_external &&
+                  was_parser_inserted &&
+                  // TODO: check for script nesting levels.
+                  doc.r().get_script_blocking_stylesheets_count() > 0 {
+            doc.r().set_pending_parsing_blocking_script(Some(self));
+            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            self.ready_to_be_parser_executed.set(true);
+        // Step 15.d, has src, is async, isn't non-blocking.
+        } else if is_external &&
+                  !async &&
+                  !self.non_blocking.get() {
+            doc.r().push_asap_in_order_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 15.e, has src.
+        } else if is_external {
+            doc.r().add_asap_script(self);
+            // Second part implemented in Document::process_asap_scripts.
+        // Step 15.f, otherwise.
+        } else {
+            assert!(!text.is_empty());
+            self.ready_to_be_parser_executed.set(true);
+            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            self.execute();
+            return NextParserState::Continue;
+        }
+        // TODO: make this suspension happen automatically.
+        if was_parser_inserted {
+            if let Some(parser) = doc.r().get_current_parser() {
+                parser.r().suspend();
+            }
+        }
+        return NextParserState::Suspend;
     }
 
-    pub fn execute(&self, load: ScriptOrigin) {
+    pub fn is_ready_to_be_executed(&self) -> bool {
+        self.ready_to_be_parser_executed.get()
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
+    pub fn execute(&self) {
+        assert!(self.ready_to_be_parser_executed.get());
+
         // Step 1.
-        // TODO: If the element is flagged as "parser-inserted", but the
-        // element's node document is not the Document of the parser that
-        // created the element, then abort these steps.
+        let doc = document_from_node(self);
+        if self.parser_inserted.get() && doc.r() != self.parser_document.root().r() {
+            return;
+        }
+
+        let load = mem::replace(&mut *self.load.borrow_mut(), None).unwrap();
 
         // Step 2.
         let (source, external, url) = match load {
             // Step 2.a.
             ScriptOrigin::External(Err(e)) => {
                 error!("error loading script {}", e);
-                self.queue_error_event();
+                self.dispatch_error_event();
                 return;
             }
 
