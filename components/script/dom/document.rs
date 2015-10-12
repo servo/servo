@@ -987,6 +987,11 @@ pub enum MouseEventType {
     MouseUp,
 }
 
+#[derive(HeapSizeOf)]
+pub enum FocusEventType {
+    Focus,
+    FocusOut
+}
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum DocumentSource {
