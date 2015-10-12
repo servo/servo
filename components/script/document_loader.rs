@@ -40,7 +40,7 @@ pub struct DocumentLoader {
     /// are lots of iframes.
     #[ignore_heap_size_of = "channels are hard"]
     pub resource_task: Arc<ResourceTask>,
-    notifier_data: Option<NotifierData>,
+    pub notifier_data: Option<NotifierData>,
     blocking_loads: Vec<LoadType>,
 }
 
@@ -98,12 +98,6 @@ impl DocumentLoader {
     pub fn finish_load(&mut self, load: LoadType) {
         let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == load);
         self.blocking_loads.remove(idx.expect(&format!("unknown completed load {:?}", load)));
-
-        if let Some(NotifierData { ref script_chan, pipeline }) = self.notifier_data {
-            if !self.is_blocked() {
-                script_chan.send(MainThreadScriptMsg::DocumentLoadsComplete(pipeline)).unwrap();
-            }
-        }
     }
 
     pub fn is_blocked(&self) -> bool {
