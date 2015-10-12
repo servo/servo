@@ -15,14 +15,6 @@ var testRangesCached = [];
 for (var i = 0; i < testNodes.length; i++) {
   var node = eval(testNodes[i]);
 
-  // "If the detached flag is set, throw an "InvalidStateError" exception and
-  // terminate these steps."
-  test(function() {
-    var range = document.createRange();
-    range.detach();
-    assert_equals(range.intersectsNode(node), node === document);
-  }, "Node " + i + " " + testNodes[i] + ", detached range");
-
   for (var j = 0; j < testRanges.length; j++) {
     test(function() {
       if (testRangesCached[j] === undefined) {

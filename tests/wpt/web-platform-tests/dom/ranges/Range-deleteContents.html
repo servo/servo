@@ -67,11 +67,13 @@ function myDeleteContents(range) {
   var originalEndOffset = range.endOffset;
 
   // "If original start node and original end node are the same, and they are
-  // a Text or Comment node, call deleteData(original start offset, original
-  // end offset − original start offset) on that node, and abort these
-  // steps."
+  // a Text, ProcessingInstruction, or Comment node, replace data with node
+  // original start node, offset original start offset, count original end
+  // offset minus original start offset, and data the empty string, and then
+  // terminate these steps"
   if (originalStartNode == originalEndNode
   && (range.startContainer.nodeType == Node.TEXT_NODE
+  || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || range.startContainer.nodeType == Node.COMMENT_NODE)) {
     originalStartNode.deleteData(originalStartOffset, originalEndOffset - originalStartOffset);
     return;
@@ -120,10 +122,12 @@ function myDeleteContents(range) {
     newOffset = 1 + indexOf(referenceNode);
   }
 
-  // "If original start node is a Text or Comment node, run deleteData() on
-  // it, with original start offset as the first argument and (length of
-  // original start node − original start offset) as the second."
+  // "If original start node is a Text, ProcessingInstruction, or Comment node,
+  // replace data with node original start node, offset original start offset,
+  // count original start node's length minus original start offset, data the
+  // empty start"
   if (originalStartNode.nodeType == Node.TEXT_NODE
+  || originalStartNode.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || originalStartNode.nodeType == Node.COMMENT_NODE) {
     originalStartNode.deleteData(originalStartOffset, nodeLength(originalStartNode) - originalStartOffset);
   }
@@ -134,9 +138,11 @@ function myDeleteContents(range) {
     nodesToRemove[i].parentNode.removeChild(nodesToRemove[i]);
   }
 
-  // "If original end node is a Text or Comment node, run deleteData(0,
-  // original end offset) on it."
+  // "If original end node is a Text, ProcessingInstruction, or Comment node,
+  // replace data with node original end node, offset 0, count original end
+  // offset, and data the empty string."
   if (originalEndNode.nodeType == Node.TEXT_NODE
+  || originalEndNode.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || originalEndNode.nodeType == Node.COMMENT_NODE) {
     originalEndNode.deleteData(0, originalEndOffset);
   }

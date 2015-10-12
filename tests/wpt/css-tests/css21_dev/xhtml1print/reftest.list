@@ -545,6 +545,14 @@ at-rules-001.xht == reference/ref-this-text-should-be-green.xht
 at-rules-002.xht == reference/ref-this-text-should-be-green.xht
 at-rules-003.xht == reference/ref-this-text-should-be-green.xht
 at-rules-004.xht == reference/ref-this-text-should-be-green.xht
+attribute-000.xht == reference/attribute-ref.xht
+attribute-001.xht == reference/attribute-ref.xht
+attribute-002.xht == reference/attribute-ref.xht
+attribute-003.xht == reference/attribute-ref.xht
+attribute-004.xht == reference/attribute-ref.xht
+attribute-005.xht == reference/attribute-ref.xht
+attribute-006.xht == reference/attribute-ref.xht
+attribute-007.xht == reference/attribute-ref.xht
 attribute-selector-001.xht == reference/no-red-filler-text-ref.xht
 attribute-selector-002.xht == reference/filler-text-below-green.xht
 attribute-token-selector-002.xht == reference/attribute-token-selector-002-ref.xht
