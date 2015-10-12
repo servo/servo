@@ -315,6 +315,18 @@
             "url": "/_mozilla/css/background_position_percent.html"
           }
         ],
+        "css/background_position_shorthand.html": [
+          {
+            "path": "css/background_position_shorthand.html",
+            "references": [
+              [
+                "/_mozilla/css/background_position_shorthand_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_position_shorthand.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1410,6 +1422,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_position_percent.html"
+        }
+      ],
+      "css/background_position_shorthand.html": [
+        {
+          "path": "css/background_position_shorthand.html",
+          "references": [
+            [
+              "/_mozilla/css/background_position_shorthand_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_position_shorthand.html"
         }
       ],
       "css/class-namespaces.html": [
