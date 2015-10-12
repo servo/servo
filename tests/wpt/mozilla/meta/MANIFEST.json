@@ -411,6 +411,18 @@
             "url": "/_mozilla/css/background_size_zero_a.html"
           }
         ],
+        "css/background_style_attr.html": [
+          {
+            "path": "css/background_style_attr.html",
+            "references": [
+              [
+                "/_mozilla/css/background_rust_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_style_attr.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1602,6 +1614,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_size_zero_a.html"
+        }
+      ],
+      "css/background_style_attr.html": [
+        {
+          "path": "css/background_style_attr.html",
+          "references": [
+            [
+              "/_mozilla/css/background_rust_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_style_attr.html"
         }
       ],
       "css/class-namespaces.html": [
