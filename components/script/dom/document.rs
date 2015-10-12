@@ -44,6 +44,7 @@ use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::focusevent::FocusEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -523,6 +524,9 @@ impl Document {
 
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
             let node = NodeCast::from_ref(elem.r());
+
+            self.fire_focus_event(FocusEventType::FocusOut, node);
+
             node.set_focus_state(false);
         }
 
@@ -531,6 +535,8 @@ impl Document {
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
             let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(true);
+
+            self.fire_focus_event(FocusEventType::Focus, node);
 
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
@@ -977,6 +983,33 @@ impl Document {
         NodeCast::from_ref(self).traverse_preorder()
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
+    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node) {
+        let window = self.window.root();
+
+        let focus_event_type_string = match focus_event_type {
+            FocusEventType::Focus => "focus".to_owned(),
+            FocusEventType::FocusOut => "focusout".to_owned(),
+        };
+
+        let event = FocusEvent::new(window.r(),
+                                    focus_event_type_string,
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::NotCancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    None);
+
+        let event = EventCast::from_ref(event.r());
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+        event.set_trusted(true);
+
+        let target = EventTargetCast::from_ref(node);
+
+        event.fire(target);
     }
 }
 
