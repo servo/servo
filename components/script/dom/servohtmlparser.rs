@@ -162,7 +162,9 @@ impl AsyncResponseListener for ParserContext {
         }
 
         parser.r().last_chunk_received.set(true);
-        parser.r().parse_sync();
+        if !parser.r().is_suspended() {
+            parser.r().parse_sync();
+        }
     }
 }
 
@@ -288,20 +290,11 @@ impl ServoHTMLParser {
 
 impl ServoHTMLParser {
     fn parse_sync(&self) {
-        let mut first = true;
-
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
-            if self.suspended.get() {
-                return;
-            }
-
-            if self.pending_input.borrow().is_empty() && !first {
-                break;
-            }
-
             let document = self.document.root();
+
             document.r().reflow_if_reflow_timer_expired();
 
             let mut pending_input = self.pending_input.borrow_mut();
@@ -312,7 +305,14 @@ impl ServoHTMLParser {
                 self.tokenizer.borrow_mut().run();
             }
 
-            first = false;
+            // Document parsing is blocked on an external resource.
+            if self.suspended.get() {
+                return;
+            }
+
+            if pending_input.is_empty() {
+                break;
+            }
         }
 
         if self.last_chunk_received.get() {
@@ -337,6 +337,10 @@ impl ServoHTMLParser {
         assert!(self.suspended.get());
         self.suspended.set(false);
         self.parse_sync();
+    }
+
+    pub fn is_suspended(&self) -> bool {
+        self.suspended.get()
     }
 }
 
