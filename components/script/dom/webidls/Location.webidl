@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#location
-/*[Unforgeable]*/ interface Location {
+[Unforgeable] interface Location {
   /*stringifier*/ attribute USVString href;
   //         attribute USVString origin;
            attribute USVString protocol;

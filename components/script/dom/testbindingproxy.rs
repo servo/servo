@@ -28,5 +28,4 @@ impl TestBindingProxyMethods for TestBindingProxy {
     fn IndexedSetter(&self, _: u32, _: DOMString) -> () {}
     fn NamedSetter(&self, _: DOMString, _: DOMString) -> () {}
     fn NamedGetter(&self, _: DOMString, _: &mut bool) -> DOMString { "".to_owned() }
-
 }

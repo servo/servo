@@ -93,6 +93,10 @@ impl GlobalStaticData {
 // changes.
 const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
 
+/// The index of the slot where the object holder of that interface's
+/// unforgeable members are defined.
+pub const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 1;
+
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
 pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
@@ -195,8 +199,12 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
 pub struct NativeProperties {
     /// Instance methods for the interface.
     pub methods: Option<&'static [JSFunctionSpec]>,
+    /// Unforgeable instance methods for the interface.
+    pub unforgeable_methods: Option<&'static [JSFunctionSpec]>,
     /// Instance attributes for the interface.
     pub attrs: Option<&'static [JSPropertySpec]>,
+    /// Unforgeable instance attributes for the interface.
+    pub unforgeable_attrs: Option<&'static [JSPropertySpec]>,
     /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
     /// Static methods for the interface.
@@ -347,8 +355,8 @@ fn define_constants(cx: *mut JSContext, obj: HandleObject,
 /// Defines methods on `obj`. The last entry of `methods` must contain zeroed
 /// memory.
 /// Fails on JSAPI failure.
-fn define_methods(cx: *mut JSContext, obj: HandleObject,
-                  methods: &'static [JSFunctionSpec]) {
+pub fn define_methods(cx: *mut JSContext, obj: HandleObject,
+                      methods: &'static [JSFunctionSpec]) {
     unsafe {
         assert!(JS_DefineFunctions(cx, obj, methods.as_ptr(), PropertyDefinitionBehavior::DefineAllProperties));
     }
@@ -357,8 +365,8 @@ fn define_methods(cx: *mut JSContext, obj: HandleObject,
 /// Defines attributes on `obj`. The last entry of `properties` must contain
 /// zeroed memory.
 /// Fails on JSAPI failure.
-fn define_properties(cx: *mut JSContext, obj: HandleObject,
-                     properties: &'static [JSPropertySpec]) {
+pub fn define_properties(cx: *mut JSContext, obj: HandleObject,
+                         properties: &'static [JSPropertySpec]) {
     unsafe {
         assert!(JS_DefineProperties(cx, obj, properties.as_ptr()));
     }
