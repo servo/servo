@@ -108,18 +108,20 @@ pub trait CORSCache {
 #[derive(Clone)]
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 
+fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) -> bool {
+    cors_cache.origin.scheme == cors_req.origin.scheme &&
+        cors_cache.origin.host() == cors_req.origin.host() &&
+        cors_cache.origin.port() == cors_req.origin.port() &&
+        cors_cache.url == cors_req.destination &&
+        cors_cache.credentials == cors_req.credentials
+}
+
 impl BasicCORSCache {
     fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails,
                                 header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
-                            e.origin.host() == request.origin.host() &&
-                            e.origin.port() == request.origin.port() &&
-                            e.url == request.destination &&
-                            e.credentials == request.credentials &&
-                            e.header_or_method.match_header(header_name));
-        entry
+        buf.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_header(header_name))
     }
 
     fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails,
@@ -127,13 +129,7 @@ impl BasicCORSCache {
         // we can take the method from CORSRequest itself
         self.cleanup();
         let BasicCORSCache(ref mut buf) = *self;
-        let entry = buf.iter_mut().find(|e| e.origin.scheme == request.origin.scheme &&
-                            e.origin.host() == request.origin.host() &&
-                            e.origin.port() == request.origin.port() &&
-                            e.url == request.destination &&
-                            e.credentials == request.credentials &&
-                            e.header_or_method.match_method(&method));
-        entry
+        buf.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
     }
 }
 

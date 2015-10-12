@@ -161,6 +161,6 @@ impl Cookie {
             return false;
         }
 
-        return true;
+        true
     }
 }

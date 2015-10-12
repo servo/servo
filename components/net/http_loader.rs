@@ -419,19 +419,19 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)));
+                        Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)))
                     }
                     Err(err) => {
-                        return Err(LoadError::Decoding(m.final_url, err.to_string()));
+                        Err(LoadError::Decoding(m.final_url, err.to_string()))
                     }
                 }
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)));
+                Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
             }
             _ => {
-                return Ok(StreamedResponse::new(m, Decoder::Plain(response)));
+                Ok(StreamedResponse::new(m, Decoder::Plain(response)))
             }
         }
     }

@@ -74,7 +74,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         if let Some(ref headers) = metadata.headers {
             if let Some(ref raw_content_type) = headers.get_raw("content-type") {
                 if raw_content_type.len() > 0 {
-                    let ref last_raw_content_type = raw_content_type[raw_content_type.len() - 1];
+                    let last_raw_content_type = &raw_content_type[raw_content_type.len() - 1];
                     check_for_apache_bug = apache_bug_predicate(last_raw_content_type)
                 }
             }

@@ -41,12 +41,8 @@ impl TaskPool {
         return TaskPool { tx: tx };
 
         fn worker(rx: &Mutex<Receiver<Box<FnBox() + Send + 'static>>>) {
-            loop {
-                let job = rx.lock().unwrap().recv();
-                match job {
-                    Ok(job) => job.call_box(()),
-                    Err(..) => break,
-                }
+            while let Ok(job) = rx.lock().unwrap().recv() {
+                job.call_box(());
             }
         }
     }
