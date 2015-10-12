@@ -327,6 +327,18 @@
             "url": "/_mozilla/css/background_position_shorthand.html"
           }
         ],
+        "css/background_repeat_both_a.html": [
+          {
+            "path": "css/background_repeat_both_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_both_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_both_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1434,6 +1446,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_position_shorthand.html"
+        }
+      ],
+      "css/background_repeat_both_a.html": [
+        {
+          "path": "css/background_repeat_both_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_both_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_both_a.html"
         }
       ],
       "css/class-namespaces.html": [

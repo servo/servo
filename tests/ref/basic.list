@@ -12,7 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== background_repeat_both_a.html background_repeat_both_b.html
 == background_repeat_none_a.html background_repeat_none_b.html
 == background_repeat_x_a.html background_repeat_x_b.html
 == background_repeat_y_a.html background_repeat_y_b.html
