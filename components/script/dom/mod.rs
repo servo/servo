@@ -331,6 +331,7 @@ pub mod url;
 pub mod urlhelper;
 pub mod urlsearchparams;
 pub mod userscripts;
+mod utils;
 pub mod validitystate;
 pub mod values;
 pub mod virtualmethods;
