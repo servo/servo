@@ -211,10 +211,10 @@ pub mod longhands {
                             let var = input.seen_var_functions();
                             if specified.is_err() && var {
                                 input.reset(start);
-                                let (first_token_type, _) = try!(
-                                    ::custom_properties::parse_declaration_value(input, &mut None));
+                                let (first_token_type, css) = try!(
+                                    ::custom_properties::parse_non_custom_with_var(input));
                                 return Ok(DeclaredValue::WithVariables {
-                                    css: input.slice_from(start).to_owned(),
+                                    css: css.into_owned(),
                                     first_token_type: first_token_type,
                                     base_url: context.base_url.clone(),
                                     from_shorthand: Shorthand::None,
@@ -4914,13 +4914,12 @@ pub mod shorthands {
                     Ok(())
                 } else if var {
                     input.reset(start);
-                    let (first_token_type, _) = try!(
-                        ::custom_properties::parse_declaration_value(input, &mut None));
-                    let css = input.slice_from(start);
+                    let (first_token_type, css) = try!(
+                        ::custom_properties::parse_non_custom_with_var(input));
                     % for sub_property in shorthand.sub_properties:
                         declarations.push(PropertyDeclaration::${sub_property.camel_case}(
                             DeclaredValue::WithVariables {
-                                css: css.to_owned(),
+                                css: css.clone().into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
                                 from_shorthand: Shorthand::${shorthand.camel_case},

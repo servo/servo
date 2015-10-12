@@ -5,6 +5,7 @@
 use cssparser::{Delimiter, Parser, SourcePosition, ToCss, Token, TokenSerializationType};
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
@@ -94,44 +95,99 @@ impl ComputedValue {
 }
 
 pub fn parse(input: &mut Parser) -> Result<SpecifiedValue, ()> {
-    let start = input.position();
     let mut references = Some(HashSet::new());
-    let (first, last) = try!(parse_declaration_value(input, &mut references));
+    let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
     Ok(SpecifiedValue {
-        css: input.slice_from(start).to_owned(),
+        css: css.into_owned(),
         first_token_type: first,
         last_token_type: last,
         references: references.unwrap(),
     })
 }
 
+/// Parse the value of a non-custom property that contains `var()` references.
+pub fn parse_non_custom_with_var<'i, 't>
+                                (input: &mut Parser<'i, 't>)
+                                -> Result<(TokenSerializationType, Cow<'i, str>), ()> {
+    let (first_token_type, css, _) = try!(parse_self_contained_declaration_value(input, &mut None));
+    Ok((first_token_type, css))
+}
+
+fn parse_self_contained_declaration_value<'i, 't>
+                                         (input: &mut Parser<'i, 't>,
+                                          references: &mut Option<HashSet<Name>>)
+                                          -> Result<(
+                                              TokenSerializationType,
+                                              Cow<'i, str>,
+                                              TokenSerializationType
+                                          ), ()> {
+    let start_position = input.position();
+    let mut missing_closing_characters = String::new();
+    let (first, last) = try!(
+        parse_declaration_value(input, references, &mut missing_closing_characters));
+    let mut css: Cow<str> = input.slice_from(start_position).into();
+    if !missing_closing_characters.is_empty() {
+        // Unescaped backslash at EOF in a quoted string is ignored.
+        if css.ends_with("\\") && matches!(missing_closing_characters.as_bytes()[0], b'"' | b'\'') {
+            css.to_mut().pop();
+        }
+        css.to_mut().push_str(&missing_closing_characters);
+    }
+    Ok((first, css, last))
+}
+
 /// https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
-pub fn parse_declaration_value(input: &mut Parser, references: &mut Option<HashSet<Name>>)
-                               -> Result<(TokenSerializationType, TokenSerializationType), ()> {
+fn parse_declaration_value<'i, 't>
+                          (input: &mut Parser<'i, 't>,
+                           references: &mut Option<HashSet<Name>>,
+                           missing_closing_characters: &mut String)
+                          -> Result<(TokenSerializationType, TokenSerializationType), ()> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
         let start_position = input.position();
         try!(input.next_including_whitespace());
         input.reset(start_position);
 
-        parse_declaration_value_block(input, references)
+        parse_declaration_value_block(input, references, missing_closing_characters)
     })
 }
 
 /// Like parse_declaration_value,
 /// but accept `!` and `;` since they are only invalid at the top level
-fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<HashSet<Name>>)
+fn parse_declaration_value_block(input: &mut Parser,
+                                 references: &mut Option<HashSet<Name>>,
+                                 missing_closing_characters: &mut String)
                                  -> Result<(TokenSerializationType, TokenSerializationType), ()> {
-    let mut first_token_type = TokenSerializationType::nothing();
-    let mut last_token_type = TokenSerializationType::nothing();
-    while let Ok(token) = input.next_including_whitespace_and_comments() {
-        first_token_type.set_if_nothing(token.serialization_type());
-        // This may be OpenParen when it should be Other (for the closing paren)
-        // but that doesn’t make a difference since OpenParen is only special
-        // when it comes *after* an identifier (it would turn into a function)
-        // but a "last" token will only be concantenated *before* another unrelated token.
-        last_token_type = token.serialization_type();
-        match token {
+    let mut token_start = input.position();
+    let mut token = match input.next_including_whitespace_and_comments() {
+        Ok(token) => token,
+        Err(()) => return Ok((TokenSerializationType::nothing(), TokenSerializationType::nothing()))
+    };
+    let first_token_type = token.serialization_type();
+    loop {
+        macro_rules! nested {
+            () => {
+                try!(input.parse_nested_block(|input| {
+                    parse_declaration_value_block(input, references, missing_closing_characters)
+                }))
+            }
+        }
+        macro_rules! check_closed {
+            ($closing: expr) => {
+                if !input.slice_from(token_start).ends_with($closing) {
+                    missing_closing_characters.push_str($closing)
+                }
+            }
+        }
+        let last_token_type = match token {
+            Token::Comment(_) => {
+                let token_slice = input.slice_from(token_start);
+                if !token_slice.ends_with("*/") {
+                    missing_closing_characters.push_str(
+                        if token_slice.ends_with("*") { "/" } else { "*/" })
+                }
+                token.serialization_type()
+            }
             Token::BadUrl |
             Token::BadString |
             Token::CloseParenthesis |
@@ -139,35 +195,88 @@ fn parse_declaration_value_block(input: &mut Parser, references: &mut Option<Has
             Token::CloseCurlyBracket => {
                 return Err(())
             }
-
-            Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
-                try!(input.parse_nested_block(|input| {
-                    parse_var_function(input, references)
-                }));
+            Token::Function(ref name) => {
+                if name.eq_ignore_ascii_case("var") {
+                    let position = input.position();
+                    try!(input.parse_nested_block(|input| {
+                        parse_var_function(input, references)
+                    }));
+                    input.reset(position);
+                }
+                nested!();
+                check_closed!(")");
+                Token::CloseParenthesis.serialization_type()
             }
-
-            Token::Function(_) |
-            Token::ParenthesisBlock |
-            Token::CurlyBracketBlock |
+            Token::ParenthesisBlock => {
+                nested!();
+                check_closed!(")");
+                Token::CloseParenthesis.serialization_type()
+            }
+            Token::CurlyBracketBlock => {
+                nested!();
+                check_closed!("}");
+                Token::CloseCurlyBracket.serialization_type()
+            }
             Token::SquareBracketBlock => {
-                try!(input.parse_nested_block(|input| {
-                    parse_declaration_value_block(input, references)
-                }));
+                nested!();
+                check_closed!("]");
+                Token::CloseSquareBracket.serialization_type()
             }
+            Token::QuotedString(_) => {
+                let token_slice = input.slice_from(token_start);
+                let quote = &token_slice[..1];
+                debug_assert!(matches!(quote, "\"" | "'"));
+                if !(token_slice.ends_with(quote) && token_slice.len() > 1) {
+                    missing_closing_characters.push_str(quote)
+                }
+                token.serialization_type()
+            }
+            Token::Ident(ref value) |
+            Token::AtKeyword(ref value) |
+            Token::Hash(ref value) |
+            Token::IDHash(ref value) |
+            Token::UnquotedUrl(ref value) |
+            Token::Dimension(_, ref value) => {
+                if value.ends_with("�") && input.slice_from(token_start).ends_with("\\") {
+                    // Unescaped backslash at EOF in these contexts is interpreted as U+FFFD
+                    // Check the value in case the final backslash was itself escaped.
+                    // Serialize as escaped U+FFFD, which is also interpreted as U+FFFD.
+                    // (Unescaped U+FFFD would also work, but removing the backslash is annoying.)
+                    missing_closing_characters.push_str("�")
+                }
+                if matches!(token, Token::UnquotedUrl(_)) {
+                    check_closed!(")");
+                }
+                token.serialization_type()
+            }
+            _ => {
+                token.serialization_type()
+            }
+        };
 
-            _ => {}
+        token_start = input.position();
+        token = if let Ok(token) = input.next_including_whitespace_and_comments() {
+            token
+        } else {
+            return Ok((first_token_type, last_token_type))
         }
     }
-    Ok((first_token_type, last_token_type))
 }
 
 // If the var function is valid, return Ok((custom_property_name, fallback))
-fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>, references: &mut Option<HashSet<Name>>)
+fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
+                              references: &mut Option<HashSet<Name>>)
                               -> Result<(), ()> {
     let name = try!(input.expect_ident());
     let name = try!(parse_name(&name));
-    if input.expect_comma().is_ok() {
-        try!(parse_declaration_value(input, references));
+    if input.try(|input| input.expect_comma()).is_ok() {
+        try!(input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
+            // At least one non-comment token.
+            try!(input.next_including_whitespace());
+            // Skip until the end.
+            while let Ok(_) = input.next_including_whitespace_and_comments() {}
+            Ok(())
+        }));
     }
     if let Some(ref mut refs) = *references {
         refs.insert(Atom::from_slice(name));
