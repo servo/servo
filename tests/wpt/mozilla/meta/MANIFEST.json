@@ -363,6 +363,18 @@
             "url": "/_mozilla/css/background_repeat_x_a.html"
           }
         ],
+        "css/background_repeat_y_a.html": [
+          {
+            "path": "css/background_repeat_y_a.html",
+            "references": [
+              [
+                "/_mozilla/css/background_repeat_y_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/background_repeat_y_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1506,6 +1518,18 @@
             ]
           ],
           "url": "/_mozilla/css/background_repeat_x_a.html"
+        }
+      ],
+      "css/background_repeat_y_a.html": [
+        {
+          "path": "css/background_repeat_y_a.html",
+          "references": [
+            [
+              "/_mozilla/css/background_repeat_y_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/background_repeat_y_a.html"
         }
       ],
       "css/class-namespaces.html": [
