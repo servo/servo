@@ -13,8 +13,7 @@ use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use png;
+use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState};
 use profile_traits::mem;
 use profile_traits::time;
 use std::fmt::{Debug, Error, Formatter};
@@ -193,7 +192,7 @@ pub enum Msg {
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(IpcSender<Option<png::Image>>),
+    CreatePng(IpcSender<Option<Image>>),
     /// Informs the compositor that the paint task for the given pipeline has exited.
     PaintTaskExited(PipelineId),
     /// Alerts the compositor that the viewport has been constrained in some manner

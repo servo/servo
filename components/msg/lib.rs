@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(custom_derive, plugin)]
+#![feature(custom_attribute, custom_derive, plugin)]
 #![plugin(serde_macros, plugins)]
 
 extern crate app_units;
@@ -19,7 +19,6 @@ extern crate io_surface;
 extern crate ipc_channel;
 extern crate layers;
 extern crate offscreen_gl_context;
-extern crate png;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate style_traits;

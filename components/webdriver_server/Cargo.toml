@@ -19,10 +19,6 @@ path = "../util"
 [dependencies.webdriver]
 git = "https://github.com/jgraham/webdriver-rust.git"
 
-[dependencies.png]
-git = "https://github.com/servo/rust-png"
-features = [ "serde-serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
 
@@ -31,6 +27,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
+image = "0.3.14"
 log = "0.3"
 hyper = "0.6"
 rustc-serialize = "0.3.4"

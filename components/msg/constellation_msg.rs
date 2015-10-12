@@ -11,10 +11,9 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
-use png::Image;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::fmt;
@@ -372,7 +371,24 @@ pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
     Refresh(PipelineId, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
-    TakeScreenshot(PipelineId, IpcSender<Option<Image>>)
+    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
+}
+
+#[derive(Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+pub enum PixelFormat {
+    K8,         // Luminance channel only
+    KA8,        // Luminance + alpha
+    RGB8,       // RGB, 8 bits per channel
+    RGBA8,      // RGB + alpha, 8 bits per channel
+}
+
+#[derive(Deserialize, Serialize, HeapSizeOf)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
 }
 
 /// Similar to net::resource_task::LoadData

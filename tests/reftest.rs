@@ -13,11 +13,12 @@
 #![feature(test)]
 
 #[macro_use] extern crate bitflags;
-extern crate png;
+extern crate image;
 extern crate test;
 extern crate url;
 extern crate util;
 
+use image::{DynamicImage, GenericImage, ImageFormat, RgbImage};
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{PathExt, File, walk_dir};
@@ -334,12 +335,12 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
 
     assert!(exit_status.success());
 
-    let image = png::load_png(&png_filename).unwrap();
-    let rgba8_bytes = match image.pixels {
-        png::PixelsByColorType::RGBA8(pixels) => pixels,
+    let image = match image::open(&png_filename) {
+        Ok(DynamicImage::ImageRgb8(image)) => image,
+        Ok(image) => image.to_rgb(),
         _ => panic!(),
     };
-    (image.width, image.height, rgba8_bytes)
+    (image.width(), image.height(), image.into_raw())
 }
 
 fn servo_path() -> PathBuf {
@@ -379,14 +380,9 @@ fn check_reftest(reftest: Reftest) {
 
     if pixels.iter().any(|&a| a < 255) {
         let output = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
-
-        let mut img = png::Image {
-            width: left_width,
-            height: left_height,
-            pixels: png::PixelsByColorType::RGBA8(pixels),
-        };
-        let res = png::store_png(&mut img, &output);
-        assert!(res.is_ok());
+        let mut file = File::create(&output).unwrap();
+        let img_buf = RgbImage::from_raw(left_width, left_height, pixels).expect("foo");
+        DynamicImage::ImageRgb8(img_buf).save(&mut file, ImageFormat::PNG).unwrap();
 
         match (reftest.kind, reftest.is_flaky) {
             (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output),

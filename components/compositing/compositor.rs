@@ -16,7 +16,8 @@ use gfx::paint_task::{ChromeToPaintMsg, PaintRequest};
 use gfx_traits::color;
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
-use ipc_channel::ipc;
+use image::{DynamicImage, ImageFormat, RgbImage};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBuffer, LayerBufferSet};
@@ -27,18 +28,18 @@ use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind};
 use msg::compositor_msg::{LayerProperties, ScrollPolicy};
-use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::constellation_msg::{AnimationState, Image, PixelFormat};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
-use png;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
@@ -1521,7 +1522,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<png::Image>, ()> {
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, ()> {
 
         if !self.context.is_some() {
             return Err(())
@@ -1573,13 +1574,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let rv = match target {
             CompositeTarget::Window => None,
             CompositeTarget::WindowAndPng => {
-                Some(self.draw_png(framebuffer_ids, texture_ids, width, height))
+                let img = self.draw_img(framebuffer_ids, texture_ids, width, height);
+                Some(Image {
+                    width: img.width(),
+                    height: img.height(),
+                    format: PixelFormat::RGB8,
+                    bytes: IpcSharedMemory::from_bytes(&*img),
+                })
             }
             CompositeTarget::PngFile => {
-                let mut img = self.draw_png(framebuffer_ids, texture_ids, width, height);
+                let img = self.draw_img(framebuffer_ids, texture_ids, width, height);
                 let path = opts::get().output_file.as_ref().unwrap();
-                let res = png::store_png(&mut img, &path);
-                assert!(res.is_ok(), format!("Error writing png: {}", res.unwrap_err()));
+                let mut file = File::create(path).unwrap();
+                DynamicImage::ImageRgb8(img).save(&mut file, ImageFormat::PNG).unwrap();
                 None
             }
         };
@@ -1596,12 +1603,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         Ok(rv)
     }
 
-    fn draw_png(&self,
+    fn draw_img(&self,
                 framebuffer_ids: Vec<gl::GLuint>,
                 texture_ids: Vec<gl::GLuint>,
                 width: usize,
                 height: usize)
-                -> png::Image {
+                -> RgbImage {
         let mut pixels = gl::read_pixels(0, 0,
                                          width as gl::GLsizei,
                                          height as gl::GLsizei,
@@ -1622,11 +1629,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             copy_memory(&src_slice[..stride],
                         &mut pixels[dst_start .. dst_start + stride]);
         }
-        png::Image {
-            width: width as u32,
-            height: height as u32,
-            pixels: png::PixelsByColorType::RGB8(pixels),
-        }
+        RgbImage::from_raw(width as u32, height as u32, pixels).unwrap()
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
