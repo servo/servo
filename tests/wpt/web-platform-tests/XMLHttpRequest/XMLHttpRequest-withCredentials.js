@@ -43,6 +43,7 @@ function test_withCredentials(worker) {
   test(function() {
     var client = new XMLHttpRequest()
     client.open("GET", "resources/delay.py?ms=1000", false)
+    client.send();
     assert_throws("InvalidStateError", function() { client.withCredentials = true })
   }, "setting withCredentials when in DONE state (synchronous)")
 }

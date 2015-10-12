@@ -7,7 +7,7 @@
 var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 function newSVGDocument() {
-  return document.implementation.createDocument(SVG_NAMESPACE, "svg");
+  return document.implementation.createDocument(SVG_NAMESPACE, "svg", null);
 }
 
 test(function() {

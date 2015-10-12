@@ -279,7 +279,7 @@ var validator = {
       ctl.removeAttribute(item);
     });
     for (var attr in obj) {
-      if (obj[attr] || obj[attr] === "")
+      if (attr === "checked" || obj[attr] || obj[attr] === "")
         ctl[attr] = obj[attr];
     }
   },

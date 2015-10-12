@@ -571,14 +571,6 @@ function indexOf(node) {
  * a spec bug.
  */
 function myExtractContents(range) {
-    // "If the context object's detached flag is set, raise an
-    // INVALID_STATE_ERR exception and abort these steps."
-    try {
-        range.collapsed;
-    } catch (e) {
-        return "INVALID_STATE_ERR";
-    }
-
     // "Let frag be a new DocumentFragment whose ownerDocument is the same as
     // the ownerDocument of the context object's start node."
     var ownerDoc = range.startContainer.nodeType == Node.DOCUMENT_NODE
@@ -601,10 +593,11 @@ function myExtractContents(range) {
     var originalEndNode = range.endContainer;
     var originalEndOffset = range.endOffset;
 
-    // "If original start node and original end node are the same, and they are
-    // a Text or Comment node:"
+    // "If original start node is original end node, and they are a Text,
+    // ProcessingInstruction, or Comment node:"
     if (range.startContainer == range.endContainer
     && (range.startContainer.nodeType == Node.TEXT_NODE
+    || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || range.startContainer.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
         // start node."
@@ -716,9 +709,11 @@ function myExtractContents(range) {
         newOffset = 1 + indexOf(referenceNode);
     }
 
-    // "If first partially contained child is a Text or Comment node:"
+    // "If first partially contained child is a Text, ProcessingInstruction, or
+    // Comment node:"
     if (firstPartiallyContainedChild
     && (firstPartiallyContainedChild.nodeType == Node.TEXT_NODE
+    || firstPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || firstPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
         // start node."
@@ -773,9 +768,11 @@ function myExtractContents(range) {
         frag.appendChild(containedChildren[i]);
     }
 
-    // "If last partially contained child is a Text or Comment node:"
+    // "If last partially contained child is a Text, ProcessingInstruction, or
+    // Comment node:"
     if (lastPartiallyContainedChild
     && (lastPartiallyContainedChild.nodeType == Node.TEXT_NODE
+    || lastPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || lastPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
         // end node."
@@ -831,13 +828,14 @@ function myExtractContents(range) {
  * instance "HIERARCHY_REQUEST_ERR".
  */
 function myInsertNode(range, node) {
-    // "If range's start node is either a ProcessingInstruction or Comment
-    // node, or a Text node whose parent is null, throw an
+    // "If range's start node is a ProcessingInstruction or Comment node, or is
+    // a Text node whose parent is null, or is node, throw an
     // "HierarchyRequestError" exception and terminate these steps."
     if (range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
             || range.startContainer.nodeType == Node.COMMENT_NODE
             || (range.startContainer.nodeType == Node.TEXT_NODE
-                && !range.startContainer.parentNode)) {
+                && !range.startContainer.parentNode)
+            || range.startContainer == node) {
                     return "HIERARCHY_REQUEST_ERR";
     }
 

@@ -14,32 +14,33 @@
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="/common/vendor-prefix.js"
-          data-prefixed-objects=
-              '[{"ancestors":["window"], "name":"RTCPeerConnection"},
-                {"ancestors":["window"], "name":"RTCSessionDescription"},
-                {"ancestors":["window"], "name":"RTCIceCandidate"}]'>
-</script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
 
-<!-- The IDL is copied from the 06 March 2015 editors' draft. -->
+<!-- The IDL is copied from the 22 September 2015 editors' draft. -->
 <script type="text/plain">
-[ Constructor (RTCConfiguration configuration)]
+interface EventTarget {
+    // Only a dummy definition is needed here.
+};
+[ Constructor (optional RTCConfiguration configuration)]
 interface RTCPeerConnection : EventTarget  {
     Promise<RTCSessionDescription> createOffer (optional RTCOfferOptions options);
-    Promise<RTCSessionDescription> createAnswer ();
+    Promise<RTCSessionDescription> createAnswer (optional RTCAnswerOptions options);
     Promise<void>                  setLocalDescription (RTCSessionDescription description);
     readonly    attribute RTCSessionDescription? localDescription;
+    readonly    attribute RTCSessionDescription? currentLocalDescription;
+    readonly    attribute RTCSessionDescription? pendingLocalDescription;
     Promise<void>                  setRemoteDescription (RTCSessionDescription description);
     readonly    attribute RTCSessionDescription? remoteDescription;
-    readonly    attribute RTCSignalingState      signalingState;
-    void                           updateIce (RTCConfiguration configuration);
+    readonly    attribute RTCSessionDescription? currentRemoteDescription;
+    readonly    attribute RTCSessionDescription? pendingRemoteDescription;
     Promise<void>                  addIceCandidate (RTCIceCandidate candidate);
+    readonly    attribute RTCSignalingState      signalingState;
     readonly    attribute RTCIceGatheringState   iceGatheringState;
     readonly    attribute RTCIceConnectionState  iceConnectionState;
     readonly    attribute boolean?               canTrickleIceCandidates;
     RTCConfiguration               getConfiguration ();
+    void                           setConfiguration (RTCConfiguration configuration);
     void                           close ();
                 attribute EventHandler           onnegotiationneeded;
                 attribute EventHandler           onicecandidate;
@@ -54,6 +55,11 @@ partial interface RTCPeerConnection {
     void createAnswer (RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
     void setRemoteDescription (RTCSessionDescription description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
     void addIceCandidate (RTCIceCandidate candidate, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    void getStats (MediaStreamTrack? selector, RTCStatsCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
+};
+
+partial interface RTCPeerConnection {
+    static Promise<RTCCertificate> generateCertificate (AlgorithmIdentifier keygenAlgorithm);
 };
 
 partial interface RTCPeerConnection {
@@ -70,21 +76,18 @@ partial interface RTCPeerConnection {
 };
 
 partial interface RTCPeerConnection {
-    RTCDTMFSender createDTMFSender (MediaStreamTrack track);
+    readonly    attribute RTCDTMFSender? dtmf;
 };
 
 partial interface RTCPeerConnection {
-    void getStats (MediaStreamTrack? selector, RTCStatsCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    Promise<RTCStatsReport> getStats (optional MediaStreamTrack? selector);
 };
 
 partial interface RTCPeerConnection {
-    void setIdentityProvider (DOMString provider, optional DOMString protocol, optional DOMString username);
-    void getIdentityAssertion ();
-    readonly    attribute RTCIdentityAssertion? peerIdentity;
-                attribute EventHandler          onidentityresult;
-                attribute EventHandler          onpeeridentity;
-                attribute EventHandler          onidpassertionerror;
-                attribute EventHandler          onidpvalidationerror;
+    void               setIdentityProvider (DOMString provider, optional DOMString protocol, optional DOMString usernameHint);
+    Promise<DOMString> getIdentityAssertion ();
+    readonly    attribute Promise<RTCIdentityAssertion> peerIdentity;
+    readonly    attribute DOMString?                    idpLoginUrl;
 };
 
 </script>
