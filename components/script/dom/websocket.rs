@@ -39,6 +39,7 @@ use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
 use websocket::header::Origin;
+use websocket::message::CloseData;
 use websocket::result::WebSocketResult;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
@@ -358,7 +359,9 @@ impl WebSocketMethods for WebSocket {
             let mut sender = this.sender.borrow_mut();
             //TODO: Also check if the buffer is full
             if let Some(sender) = sender.as_mut() {
-                let _ = sender.lock().unwrap().send_message(Message::Close(None));
+                let code: u16 = this.code.get();
+                let reason = this.reason.borrow().clone();
+                let _ = sender.lock().unwrap().send_message(Message::Close(Some(CloseData::new(code, reason))));
             }
         }
 
