@@ -174,7 +174,7 @@ pub struct ScriptReflow {
     /// General reflow data.
     pub reflow_info: Reflow,
     /// The document node.
-    pub document_root: TrustedNodeAddress,
+    pub document: TrustedNodeAddress,
     /// The channel through which messages can be sent back to the script task.
     pub script_chan: Sender<ConstellationControlMsg>,
     /// The current window size.

@@ -43,6 +43,7 @@ use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId
 use script::dom::bindings::conversions::Castable;
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
+use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element;
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
@@ -102,6 +103,12 @@ impl<'ln> LayoutNode<'ln> {
     pub fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
+        }
+    }
+
+    pub fn is_element(&self) -> bool {
+        unsafe {
+            self.node.is_element_for_layout()
         }
     }
 
@@ -333,6 +340,30 @@ impl<'a> Iterator for LayoutTreeIterator<'a> {
         let ret = self.stack.pop();
         ret.map(|node| self.stack.extend(node.rev_children()));
         ret
+    }
+}
+
+// A wrapper around documents that ensures ayout can only ever access safe properties.
+#[derive(Copy, Clone)]
+pub struct LayoutDocument<'le> {
+    document: LayoutJS<Document>,
+    chain: PhantomData<&'le ()>,
+}
+
+impl<'le> LayoutDocument<'le> {
+    pub fn as_node(&self) -> LayoutNode<'le> {
+        LayoutNode {
+            node: self.document.upcast(),
+            chain: PhantomData,
+        }
+    }
+
+    pub fn root_node(&self) -> Option<LayoutNode<'le>> {
+        let mut node = self.as_node().first_child();
+        while node.is_some() && !node.unwrap().is_element() {
+            node = node.unwrap().next_sibling();
+        }
+        node
     }
 }
 
