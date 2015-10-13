@@ -95,6 +95,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }
+
+    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        let win = window_from_node(self);
+        win.r().GetOnstorage()
+    }
+
+    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let win = window_from_node(self);
+        win.r().SetOnstorage(listener)
+    }
 }
 
 
@@ -179,7 +189,8 @@ impl VirtualMethods for HTMLBodyElement {
                     &atom!(onbeforeprint) | &atom!(onbeforeunload) | &atom!(onhashchange) |
                     &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
                     &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
-                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
+                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror) | &atom(onstorage) |
+                    &atom!(onbeforestorage)
                       => EventTargetCast::from_ref(window.r()), // forwarded event
                     _ => EventTargetCast::from_ref(self),
                 };
