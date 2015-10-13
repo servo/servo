@@ -998,13 +998,14 @@ impl Document {
             loader.finish_load(load.clone());
         }
 
-        let still_blocked = self.maybe_execute_parser_blocking_script();
-        if still_blocked {
-            return;
-        }
         if let LoadType::Script(_) = load {
             self.process_deferred_scripts();
             self.process_asap_scripts();
+        }
+
+        let still_blocked = self.maybe_execute_parser_blocking_script();
+        if still_blocked {
+            return;
         }
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
@@ -1054,7 +1055,7 @@ impl Document {
         if deferred_scripts.is_empty() {
             return;
         }
-        while deferred_scripts.len() > 0 {
+        while !deferred_scripts.is_empty() {
             let script = Root::from_rooted(deferred_scripts[0]);
             let script = script.r();
             // Part of substep 1.

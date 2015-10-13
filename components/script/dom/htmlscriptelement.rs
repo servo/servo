@@ -325,7 +325,7 @@ impl HTMLScriptElement {
            was_parser_inserted &&
            !async {
             doc.r().add_deferred_script(self);
-            // Second part implemented in the load result handler.
+            // Second part implemented in Document::process_deferred_scripts.
             return NextParserState::Continue;
         // Step 15.b, has src, was parser-inserted, is not async.
         } else if is_external &&
@@ -346,11 +346,11 @@ impl HTMLScriptElement {
                   !async &&
                   !self.non_blocking.get() {
             doc.r().push_asap_in_order_script(self);
-            // Second part implemented in the load result handler.
+            // Second part implemented in Document::process_asap_scripts.
         // Step 15.e, has src.
         } else if is_external {
             doc.r().add_asap_script(self);
-            // Second part implemented in the load result handler.
+            // Second part implemented in Document::process_asap_scripts.
         // Step 15.f, otherwise.
         } else {
             assert!(!text.is_empty());
@@ -360,7 +360,11 @@ impl HTMLScriptElement {
             return NextParserState::Continue;
         }
         // TODO: make this suspension happen automatically.
-        doc.r().get_current_parser().unwrap().r().suspend();
+        if was_parser_inserted {
+            if let Some(parser) = doc.r().get_current_parser() {
+                parser.r().suspend();
+            }
+        }
         return NextParserState::Suspend;
     }
 
