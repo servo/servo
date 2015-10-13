@@ -1170,7 +1170,7 @@ impl DocumentMethods for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/#dom-document-hasfocus
+    // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
         let target = self;                                                        // Step 1.
         let window = self.window.root();
@@ -1394,7 +1394,7 @@ impl DocumentMethods for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/#dom-document-lastmodified
+    // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
@@ -1419,7 +1419,7 @@ impl DocumentMethods for Document {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
-    // https://html.spec.whatwg.org/#document.title
+    // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
@@ -1446,7 +1446,7 @@ impl DocumentMethods for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/#document.title
+    // https://html.spec.whatwg.org/multipage/#document.title
     fn SetTitle(&self, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
@@ -1497,7 +1497,7 @@ impl DocumentMethods for Document {
         elem.r().SetTextContent(Some(title));
     }
 
-    // https://html.spec.whatwg.org/#dom-document-head
+    // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
@@ -1507,12 +1507,12 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-currentscript
+    // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
     fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
         self.current_script.get_rooted()
     }
 
-    // https://html.spec.whatwg.org/#dom-document-body
+    // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
@@ -1528,7 +1528,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-body
+    // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn SetBody(&self, new_body: Option<&HTMLElement>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
@@ -1571,7 +1571,7 @@ impl DocumentMethods for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/#dom-document-getelementsbyname
+    // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> Root<NodeList> {
         self.create_node_list(|node| {
             let element = match ElementCast::to_ref(node) {
@@ -1587,7 +1587,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-images
+    // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> Root<HTMLCollection> {
         self.images.or_init(|| {
             let window = self.window.root();
@@ -1597,7 +1597,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-embeds
+    // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> Root<HTMLCollection> {
         self.embeds.or_init(|| {
             let window = self.window.root();
@@ -1607,12 +1607,12 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-plugins
+    // https://html.spec.whatwg.org/multipage/#dom-document-plugins
     fn Plugins(&self) -> Root<HTMLCollection> {
         self.Embeds()
     }
 
-    // https://html.spec.whatwg.org/#dom-document-links
+    // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> Root<HTMLCollection> {
         self.links.or_init(|| {
             let window = self.window.root();
@@ -1622,7 +1622,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-forms
+    // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> Root<HTMLCollection> {
         self.forms.or_init(|| {
             let window = self.window.root();
@@ -1632,7 +1632,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-scripts
+    // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> Root<HTMLCollection> {
         self.scripts.or_init(|| {
             let window = self.window.root();
@@ -1642,7 +1642,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-anchors
+    // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> Root<HTMLCollection> {
         self.anchors.or_init(|| {
             let window = self.window.root();
@@ -1652,7 +1652,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-applets
+    // https://html.spec.whatwg.org/multipage/#dom-document-applets
     fn Applets(&self) -> Root<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
@@ -1663,7 +1663,7 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-location
+    // https://html.spec.whatwg.org/multipage/#dom-document-location
     fn Location(&self) -> Root<Location> {
         let window = self.window.root();
         let window = window.r();
@@ -1771,7 +1771,7 @@ impl DocumentMethods for Document {
                 filter_by_name(&self.name, NodeCast::from_ref(elem))
             }
         }
-        // https://html.spec.whatwg.org/#dom-document-nameditem-filter
+        // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
         fn filter_by_name(name: &Atom, node: &Node) -> bool {
             let html_elem_type = match node.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
@@ -1861,7 +1861,7 @@ impl DocumentMethods for Document {
         // This method intentionally does nothing
     }
 
-    // https://html.spec.whatwg.org/#dom-document-releaseevents
+    // https://html.spec.whatwg.org/multipage/#dom-document-releaseevents
     fn ReleaseEvents(&self) {
         // This method intentionally does nothing
     }

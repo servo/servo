@@ -50,10 +50,10 @@ impl HTMLAppletElement {
 }
 
 impl HTMLAppletElementMethods for HTMLAppletElement {
-    // https://html.spec.whatwg.org/#the-applet-element:dom-applet-name
+    // https://html.spec.whatwg.org/multipage/#the-applet-element:dom-applet-name
     make_getter!(Name);
 
-    // https://html.spec.whatwg.org/#the-applet-element:dom-applet-name
+    // https://html.spec.whatwg.org/multipage/#the-applet-element:dom-applet-name
     make_atomic_setter!(SetName, "name");
 }
 

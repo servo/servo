@@ -268,7 +268,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 }
 
-// https://html.spec.whatwg.org/#attr-data-*
+// https://html.spec.whatwg.org/multipage/#attr-data-*
 
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
