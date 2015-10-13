@@ -13,12 +13,9 @@ interface HTMLAreaElement : HTMLElement {
   //[PutForwards=value] attribute DOMSettableTokenList ping;
   //         attribute DOMString rel;
   readonly attribute DOMTokenList relList;
-  //         attribute DOMString hreflang;
-  //         attribute DOMString type;
-
-  // also has obsolete members
+  // hreflang and type are not reflected
 };
-//HTMLAreaElement implements URLUtils;
+//HTMLAreaElement implements HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {
