@@ -9,7 +9,6 @@
 
 from __future__ import print_function, unicode_literals
 
-import os
 import os.path as path
 import subprocess
 import sys
@@ -23,10 +22,6 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd
-
-
-def is_headless_build():
-    return int(os.getenv('SERVO_HEADLESS', 0)) == 1
 
 
 def headless_supported():
