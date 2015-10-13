@@ -139,7 +139,7 @@ partial /*sealed*/ interface Document {
 };
 Document implements GlobalEventHandlers;
 
-// https://html.spec.whatwg.org/#Document-partial
+// https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
   // [TreatNullAs=EmptyString] attribute DOMString fgColor;
   // [TreatNullAs=EmptyString] attribute DOMString linkColor;

@@ -360,7 +360,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
 }
 
 impl WindowMethods for Window {
-    // https://html.spec.whatwg.org/#dom-alert
+    // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
@@ -384,17 +384,17 @@ impl WindowMethods for Window {
         self.browsing_context().as_ref().unwrap().active_document()
     }
 
-    // https://html.spec.whatwg.org/#dom-location
+    // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
         self.Document().r().Location()
     }
 
-    // https://html.spec.whatwg.org/#dom-sessionstorage
+    // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> Root<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
-    // https://html.spec.whatwg.org/#dom-localstorage
+    // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
@@ -409,17 +409,17 @@ impl WindowMethods for Window {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
-    // https://html.spec.whatwg.org/#dom-frameelement
+    // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
         self.browsing_context().as_ref().unwrap().frame_element()
     }
 
-    // https://html.spec.whatwg.org/#dom-navigator
+    // https://html.spec.whatwg.org/multipage/#dom-navigator
     fn Navigator(&self) -> Root<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -429,7 +429,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -439,12 +439,12 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-cleartimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -454,7 +454,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -464,7 +464,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-clearinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }

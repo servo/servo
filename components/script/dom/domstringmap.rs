@@ -33,7 +33,7 @@ impl DOMStringMap {
     }
 }
 
-// https://html.spec.whatwg.org/#domstringmap
+// https://html.spec.whatwg.org/multipage/#domstringmap
 impl DOMStringMapMethods for DOMStringMap {
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
     fn NamedDeleter(&self, name: DOMString) {

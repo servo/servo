@@ -75,8 +75,8 @@ fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
 
 
 /// Shared implementation to parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers> or
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
 fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     let mut input = input.skip_while(|c| {
         HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
@@ -101,7 +101,7 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers>.
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
 pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
@@ -109,7 +109,7 @@ pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
 pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()
