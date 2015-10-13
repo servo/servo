@@ -525,7 +525,8 @@ impl Document {
         if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
             let node = NodeCast::from_ref(elem.r());
 
-            self.fire_focus_event(FocusEventType::FocusOut, node);
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::FocusOut, node, None);
 
             node.set_focus_state(false);
         }
@@ -536,7 +537,8 @@ impl Document {
             let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(true);
 
-            self.fire_focus_event(FocusEventType::Focus, node);
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::Focus, node, None);
 
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
@@ -986,7 +988,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
-    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node) {
+    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, relatedTarget: Option<&EventTarget>) {
         let window = self.window.root();
 
         let focus_event_type_string = match focus_event_type {
@@ -996,11 +998,11 @@ impl Document {
 
         let event = FocusEvent::new(window.r(),
                                     focus_event_type_string,
-                                    EventBubbles::Bubbles,
+                                    EventBubbles::DoesNotBubble,
                                     EventCancelable::NotCancelable,
                                     Some(window.r()),
                                     0i32,
-                                    None);
+                                    relatedTarget);
 
         let event = EventCast::from_ref(event.r());
 
