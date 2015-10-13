@@ -890,14 +890,6 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-        let root = root.upcast::<Node>();
-
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
             None => return,
@@ -933,7 +925,7 @@ impl Window {
                 goal: goal,
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document_root: root.to_trusted_node_address(),
+            document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
             script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
