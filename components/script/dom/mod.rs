@@ -58,6 +58,7 @@
 //! the derived type enum should
 //! use one addititional type (the parent class) because sometimes the parent
 //! can be the most-derived class of an object.
+//!
 //! ```ignore
 //! pub enum EventTypeId {
 //!     UIEvent(UIEventTypeId),
