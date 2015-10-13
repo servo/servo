@@ -226,8 +226,8 @@ impl ResourceManager {
     fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-            box move |load_data, senders, classifier, _user_agent| {
+                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+            box move |load_data, senders, classifier| {
                 factory(load_data, senders, classifier)
             }
         }
@@ -235,7 +235,8 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.hsts_list.clone(),
+                http_loader::factory(self.user_agent.clone(),
+                                     self.hsts_list.clone(),
                                      self.cookie_storage.clone(),
                                      self.devtools_chan.clone(),
                                      self.connector.clone()),
@@ -250,6 +251,6 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.call_box((load_data, consumer, self.mime_classifier.clone(), self.user_agent.clone()));
+        loader.call_box((load_data, consumer, self.mime_classifier.clone()));
     }
 }

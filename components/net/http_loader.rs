@@ -52,12 +52,13 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     Arc::new(Pool::with_connector(Default::default(), connector))
 }
 
-pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
+pub fn factory(user_agent: String,
+               hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-    box move |load_data: LoadData, senders, classifier, user_agent| {
+               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+    box move |load_data: LoadData, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
                               senders,
