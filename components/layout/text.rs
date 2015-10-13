@@ -40,13 +40,10 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
     for fragment in fragments {
         match fragment.specific {
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                match fragment.white_space() {
-                    white_space::T::normal | white_space::T::nowrap => {
-                        text.push_str(&info.text.replace("\n", " "));
-                    }
-                    white_space::T::pre => {
-                        text.push_str(&info.text);
-                    }
+                if fragment.white_space_preserve_newlines() {
+                    text.push_str(&info.text);
+                } else {
+                    text.push_str(&info.text.replace("\n", " "));
                 }
             }
             _ => {}
@@ -161,10 +158,11 @@ impl TextRunScanner {
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
-                    white_space::T::normal | white_space::T::nowrap => {
-                        CompressionMode::CompressWhitespaceNewline
-                    }
-                    white_space::T::pre => CompressionMode::CompressNone,
+                    white_space::T::normal |
+                    white_space::T::nowrap => CompressionMode::CompressWhitespaceNewline,
+                    white_space::T::pre |
+                    white_space::T::pre_wrap => CompressionMode::CompressNone,
+                    white_space::T::pre_line => CompressionMode::CompressWhitespace,
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing.0;
@@ -413,16 +411,16 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
         let string_before;
         let insertion_point_before;
         {
+            if !first_fragment.white_space_preserve_newlines() {
+                return;
+            }
+
             let unscanned_text_fragment_info = match first_fragment.specific {
                 SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
                     unscanned_text_fragment_info
                 }
                 _ => return,
             };
-
-            if first_fragment.style.get_inheritedtext().white_space != white_space::T::pre {
-                return
-            }
 
             let position = match unscanned_text_fragment_info.text.find('\n') {
                 Some(position) if position < unscanned_text_fragment_info.text.len() - 1 => {

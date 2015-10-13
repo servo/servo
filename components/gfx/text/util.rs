@@ -38,7 +38,7 @@ pub fn transform_text(text: &str,
                     output_text.push(ch);
                 }
             }
-            text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
+            false
         },
 
         CompressionMode::CompressWhitespace | CompressionMode::CompressWhitespaceNewline => {
