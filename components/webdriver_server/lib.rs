@@ -88,16 +88,16 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
     fn command(&self,
                _captures: &Captures,
                body_data: &Json) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
-        let command = match self {
-            &ServoExtensionRoute::GetPrefs => {
+        let command = match *self {
+            ServoExtensionRoute::GetPrefs => {
                 let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::GetPrefs(parameters)
             }
-            &ServoExtensionRoute::SetPrefs => {
+            ServoExtensionRoute::SetPrefs => {
                 let parameters: SetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::SetPrefs(parameters)
             }
-            &ServoExtensionRoute::ResetPrefs => {
+            ServoExtensionRoute::ResetPrefs => {
                 let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::ResetPrefs(parameters)
             }
@@ -115,10 +115,10 @@ enum ServoExtensionCommand {
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
     fn parameters_json(&self) -> Option<Json> {
-        match self {
-            &ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
-            &ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json()),
-            &ServoExtensionCommand::ResetPrefs(ref x) => Some(x.to_json()),
+        match *self {
+            ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::ResetPrefs(ref x) => Some(x.to_json()),
         }
     }
 }
@@ -542,8 +542,8 @@ impl Handler {
             "implicit" => self.implicit_wait_timeout = value,
             "page load" => self.load_timeout = value,
             "script" => self.script_timeout = value,
-            x @ _ => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                                    &format!("Unknown timeout type {}", x)))
+            x => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                                &format!("Unknown timeout type {}", x)))
         }
         Ok(WebDriverResponse::Void)
     }
@@ -708,10 +708,10 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => {
-                match extension {
-                    &ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
-                    &ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
-                    &ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
+                match *extension {
+                    ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
+                    ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                    ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
                 }
             }
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,

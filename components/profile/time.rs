@@ -22,9 +22,9 @@ pub trait Formattable {
 
 impl Formattable for Option<TimerMetadata> {
     fn format(&self) -> String {
-        match self {
+        match *self {
             // TODO(cgaebel): Center-align in the format strings as soon as rustc supports it.
-            &Some(ref meta) => {
+            Some(ref meta) => {
                 let url = &*meta.url;
                 let url = if url.len() > 30 {
                     &url[..30]
@@ -35,7 +35,7 @@ impl Formattable for Option<TimerMetadata> {
                 let iframe = if meta.iframe { "  yes" } else { "  no " };
                 format!(" {:14} {:9} {:30}", incremental, iframe, url)
             },
-            &None =>
+            None =>
                 format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
         }
     }
@@ -198,16 +198,10 @@ impl Profiler {
     }
 
     pub fn start(&mut self) {
-        loop {
-            let msg = self.port.recv();
-            match msg {
-               Ok(msg) => {
-                   if !self.handle_msg(msg) {
-                       break
-                   }
-               }
-               _ => break
-            }
+        while let Ok(msg) = self.port.recv() {
+           if !self.handle_msg(msg) {
+               break
+           }
         }
     }
 
@@ -227,10 +221,9 @@ impl Profiler {
                 let ms = (t.1 - t.0) as f64 / 1000000f64;
                 self.find_or_insert(k, ms);
             },
-            ProfilerMsg::Print => match self.last_msg {
+            ProfilerMsg::Print => if let Some(ProfilerMsg::Time(..)) = self.last_msg {
                 // only print if more data has arrived since the last printout
-                Some(ProfilerMsg::Time(..)) => self.print_buckets(),
-                _ => ()
+                self.print_buckets();
             },
             ProfilerMsg::Exit => {
                 heartbeats::cleanup();

@@ -52,7 +52,7 @@ impl<T> FullBinarySearchMethods<T> for [T] {
                 Ordering::Equal => return Some(mid),
             }
         }
-        return None;
+        None
     }
 }
 

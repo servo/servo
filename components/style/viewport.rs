@@ -95,7 +95,7 @@ impl ViewportLength {
 }
 
 impl FromMeta for Zoom {
-    fn from_meta<'a>(value: &'a str) -> Option<Zoom> {
+    fn from_meta(value: &str) -> Option<Zoom> {
         Some(match value {
             v if v.eq_ignore_ascii_case("yes") => Zoom::Number(1.),
             v if v.eq_ignore_ascii_case("no") => Zoom::Number(0.1),
@@ -113,7 +113,7 @@ impl FromMeta for Zoom {
 }
 
 impl FromMeta for UserZoom {
-    fn from_meta<'a>(value: &'a str) -> Option<UserZoom> {
+    fn from_meta(value: &str) -> Option<UserZoom> {
         Some(match value {
             v if v.eq_ignore_ascii_case("yes") => UserZoom::Zoom,
             v if v.eq_ignore_ascii_case("no") => UserZoom::Fixed,
@@ -377,13 +377,13 @@ impl ViewportRule {
                                start: usize)
                                -> Option<(&'a str, &'a str)>
     {
-        fn end_of_token<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+        fn end_of_token(iter: &mut Enumerate<Chars>) -> Option<(usize, char)> {
             iter.by_ref()
                 .skip_while(|&(_, c)| !is_whitespace_separator_or_equals(&c))
                 .next()
         }
 
-        fn skip_whitespace<'a>(iter: &mut Enumerate<Chars<'a>>) -> Option<(usize, char)> {
+        fn skip_whitespace(iter: &mut Enumerate<Chars>) -> Option<(usize, char)> {
             iter.by_ref()
                 .skip_while(|&(_, c)| WHITESPACE.contains(&c))
                 .next()

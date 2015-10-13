@@ -75,10 +75,9 @@ fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(Err(err))).unwrap(),
-        _ => {}
-    };
+    if let Ok(p) = start_sending_opt(start_chan, metadata) {
+        p.send(Done(Err(err))).unwrap();
+    }
 }
 
 enum ReadResult {
@@ -157,8 +156,8 @@ pub trait HttpResponse: Read {
 
     fn content_encoding(&self) -> Option<Encoding> {
         self.headers().get::<ContentEncoding>().and_then(|h| {
-            match h {
-                &ContentEncoding(ref encodings) => {
+            match *h {
+                ContentEncoding(ref encodings) => {
                     if encodings.contains(&Encoding::Gzip) {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
