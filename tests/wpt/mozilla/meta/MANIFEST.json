@@ -615,6 +615,18 @@
             "url": "/_mozilla/css/vertical_align_top_span_a.html"
           }
         ],
+        "css/visibility_hidden.html": [
+          {
+            "path": "css/visibility_hidden.html",
+            "references": [
+              [
+                "/_mozilla/css/visibility_hidden_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/visibility_hidden.html"
+          }
+        ],
         "css/word-spacing.html": [
           {
             "path": "css/word-spacing.html",
@@ -1962,6 +1974,18 @@
             ]
           ],
           "url": "/_mozilla/css/vertical_align_top_span_a.html"
+        }
+      ],
+      "css/visibility_hidden.html": [
+        {
+          "path": "css/visibility_hidden.html",
+          "references": [
+            [
+              "/_mozilla/css/visibility_hidden_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/visibility_hidden.html"
         }
       ],
       "css/word-spacing.html": [
