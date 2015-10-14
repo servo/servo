@@ -5,14 +5,15 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, MouseEventDerived, UIEventCast};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTypeId, UIEventCast};
+use dom::bindings::codegen::InheritTypes::{UIEventTypeId, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
@@ -43,7 +44,7 @@ impl MouseEventDerived for Event {
 impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::MouseEvent),
+            uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),

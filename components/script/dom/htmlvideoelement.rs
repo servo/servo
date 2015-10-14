@@ -3,14 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLMediaElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLVideoElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElementTypeId;
-use dom::htmlmediaelement::{HTMLMediaElement, HTMLMediaElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::eventtarget::EventTarget;
+use dom::htmlmediaelement::HTMLMediaElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]

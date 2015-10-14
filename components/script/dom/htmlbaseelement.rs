@@ -4,15 +4,15 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLBaseElementDerived, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, document_from_node};
+use dom::element::AttributeMutation;
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use url::{Url, UrlParser};
 use util::str::DOMString;

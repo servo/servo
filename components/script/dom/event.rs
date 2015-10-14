@@ -10,7 +10,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
-use dom::uievent::{UIEventTypeId};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
@@ -25,19 +24,6 @@ pub enum EventPhase {
     Capturing = EventConstants::CAPTURING_PHASE,
     AtTarget  = EventConstants::AT_TARGET,
     Bubbling  = EventConstants::BUBBLING_PHASE,
-}
-
-#[derive(JSTraceable, PartialEq, HeapSizeOf)]
-pub enum EventTypeId {
-    CustomEvent,
-    HTMLEvent,
-    MessageEvent,
-    ProgressEvent,
-    StorageEvent,
-    UIEvent(UIEventTypeId),
-    ErrorEvent,
-    CloseEvent,
-    WebGLContextEvent,
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -55,7 +41,6 @@ pub enum EventCancelable {
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
-    type_id: EventTypeId,
     current_target: MutNullableHeap<JS<EventTarget>>,
     target: MutNullableHeap<JS<EventTarget>>,
     type_: DOMRefCell<DOMString>,
@@ -72,10 +57,9 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new_inherited(type_id: EventTypeId) -> Event {
+    pub fn new_inherited() -> Event {
         Event {
             reflector_: Reflector::new(),
-            type_id: type_id,
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),
@@ -93,7 +77,7 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<Event> {
-        reflect_dom_object(box Event::new_inherited(EventTypeId::HTMLEvent),
+        reflect_dom_object(box Event::new_inherited(),
                            global,
                            EventBinding::Wrap)
     }
@@ -113,11 +97,6 @@ impl Event {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
         Ok(Event::new(global, type_, bubbles, cancelable))
-    }
-
-    #[inline]
-    pub fn type_id(&self) -> &EventTypeId {
-        &self.type_id
     }
 
     #[inline]
