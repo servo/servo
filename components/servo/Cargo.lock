@@ -484,7 +484,7 @@ dependencies = [
 [[package]]
 name = "energymon-default-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-default-sys.git#902e57f2011371309a0e1ea798e21055e40258a1"
+source = "git+https://github.com/energymon/energymon-default-sys.git#82dd2f6762b492ced15d8446b70569778200c287"
 dependencies = [
  "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -494,7 +494,7 @@ dependencies = [
 [[package]]
 name = "energymon-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-sys.git#770d2cfe0373cf833992352b50dfdceb7a42b2e6"
+source = "git+https://github.com/energymon/energymon-sys.git#6306f70e5d5c824fa168e43521385798fd1b890b"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
