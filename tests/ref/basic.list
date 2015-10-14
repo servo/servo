@@ -359,7 +359,6 @@ flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertica
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_inline_block_a.html vertical_align_inline_block_ref.html
 == vertical_align_inside_table_a.html vertical_align_inside_table_ref.html
-== vertical_align_sub_a.html vertical_align_sub_ref.html
 resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
 # resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
