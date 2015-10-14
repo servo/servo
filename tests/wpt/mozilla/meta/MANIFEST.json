@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/transition_calc.html": [
+          {
+            "path": "css/transition_calc.html",
+            "references": [
+              [
+                "/_mozilla/css/transition_calc_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transition_calc.html"
+          }
+        ],
         "css/upper_id_attr.html": [
           {
             "path": "css/upper_id_attr.html",
@@ -2010,6 +2022,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/transition_calc.html": [
+        {
+          "path": "css/transition_calc.html",
+          "references": [
+            [
+              "/_mozilla/css/transition_calc_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transition_calc.html"
         }
       ],
       "css/upper_id_attr.html": [
