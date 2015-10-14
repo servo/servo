@@ -483,6 +483,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/vertical_align_top_a.html": [
+          {
+            "path": "css/vertical_align_top_a.html",
+            "references": [
+              [
+                "/_mozilla/css/vertical_align_top_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/vertical_align_top_a.html"
+          }
+        ],
         "css/vertical_align_top_bottom_a.html": [
           {
             "path": "css/vertical_align_top_bottom_a.html",
@@ -1746,6 +1758,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/vertical_align_top_a.html": [
+        {
+          "path": "css/vertical_align_top_a.html",
+          "references": [
+            [
+              "/_mozilla/css/vertical_align_top_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/vertical_align_top_a.html"
         }
       ],
       "css/vertical_align_top_bottom_a.html": [
