@@ -483,6 +483,18 @@
             "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
           }
         ],
+        "css/block_formatting_context_float_placement_a.html": [
+          {
+            "path": "css/block_formatting_context_float_placement_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_float_placement_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1746,6 +1758,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
+        }
+      ],
+      "css/block_formatting_context_float_placement_a.html": [
+        {
+          "path": "css/block_formatting_context_float_placement_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_float_placement_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
         }
       ],
       "css/class-namespaces.html": [

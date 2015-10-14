@@ -12,7 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== block_formatting_context_float_placement_a.html block_formatting_context_float_placement_ref.html
 == block_formatting_context_max_width_a.html block_formatting_context_max_width_ref.html
 == block_formatting_context_overflow_a.html block_formatting_context_overflow_ref.html
 == block_formatting_context_relative_a.html block_formatting_context_ref.html
