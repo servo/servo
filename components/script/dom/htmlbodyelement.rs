@@ -189,8 +189,7 @@ impl VirtualMethods for HTMLBodyElement {
                     &atom!(onbeforeprint) | &atom!(onbeforeunload) | &atom!(onhashchange) |
                     &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
                     &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
-                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror) | &atom(onstorage) |
-                    &atom!(onbeforestorage)
+                    &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
                       => EventTargetCast::from_ref(window.r()), // forwarded event
                     _ => EventTargetCast::from_ref(self),
                 };
