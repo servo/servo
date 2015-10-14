@@ -37,7 +37,7 @@ def notify_linux(title, text):
         method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
         method(title, 0, "", text, "", [], {"transient": True}, -1)
     except:
-        raise Exception("Please make sure that the Python dbus module is installed!")
+        raise Exception("Optional Python module 'dbus' is not installed.")
 
 
 def notify_win(title, text):
@@ -82,7 +82,7 @@ def notify_darwin(title, text):
         centre = Foundation.NSUserNotificationCenter.defaultUserNotificationCenter()
         centre.scheduleNotification_(note)
     except ImportError:
-        raise Exception("Please make sure that the Python pyobjc module is installed!")
+        raise Exception("Optional Python module 'pyobjc' is not installed.")
 
 
 def notify_build_done(elapsed):
