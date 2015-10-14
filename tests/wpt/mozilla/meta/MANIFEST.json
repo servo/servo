@@ -663,6 +663,18 @@
             "url": "/_mozilla/css/upper_id_attr.html"
           }
         ],
+        "css/vertical_align_inside_table_a.html": [
+          {
+            "path": "css/vertical_align_inside_table_a.html",
+            "references": [
+              [
+                "/_mozilla/css/vertical_align_inside_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/vertical_align_inside_table_a.html"
+          }
+        ],
         "css/vertical_align_sub_a.html": [
           {
             "path": "css/vertical_align_sub_a.html",
@@ -2166,6 +2178,18 @@
             ]
           ],
           "url": "/_mozilla/css/upper_id_attr.html"
+        }
+      ],
+      "css/vertical_align_inside_table_a.html": [
+        {
+          "path": "css/vertical_align_inside_table_a.html",
+          "references": [
+            [
+              "/_mozilla/css/vertical_align_inside_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/vertical_align_inside_table_a.html"
         }
       ],
       "css/vertical_align_sub_a.html": [
