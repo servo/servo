@@ -377,7 +377,6 @@ resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmi
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
-== visibility_hidden.html visibility_hidden_ref.html
 
 # https://github.com/servo/servo/issues/7931
 # == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html
