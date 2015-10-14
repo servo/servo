@@ -892,7 +892,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#79e06de7709282104c9fef289014686db60551a8"
+source = "git+https://github.com/servo/rust-mozjs#01ff3cb8cb253a8a634cf6aecf64c10bf9c7d8c4"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",

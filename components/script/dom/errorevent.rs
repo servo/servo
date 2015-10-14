@@ -13,7 +13,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -102,11 +102,14 @@ impl ErrorEvent {
             EventCancelable::NotCancelable
         };
 
+        // Dictionaries need to be rooted
+        // https://github.com/servo/servo/issues/6381
+        let error = RootedValue::new(global.get_cx(), init.error);
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,
-                                HandleValue { ptr: &init.error });
+                                error.handle());
         Ok(event)
     }
 

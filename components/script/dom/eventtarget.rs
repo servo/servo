@@ -224,11 +224,11 @@ impl EventTarget {
                             name.as_ptr(),
                             nargs,
                             ARG_NAMES.as_mut_ptr(),
-                            source.as_ptr() as *const i16,
+                            source.as_ptr(),
                             source.len() as size_t,
                             handler.handle_mut())
         };
-        if rv == 0 || handler.ptr.is_null() {
+        if !rv || handler.ptr.is_null() {
             report_pending_exception(cx, self.reflector().get_jsobject().get());
             return;
         }
