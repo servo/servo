@@ -32,9 +32,10 @@ use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::UnsafeCell;
 use std::default::Default;
 use std::ops::Deref;
+use std::ptr;
 use util::mem::HeapSizeOf;
 
 /// A traced reference to a DOM object. Must only be used as a field in other
@@ -54,7 +55,7 @@ impl<T> HeapSizeOf for JS<T> {
 
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
-    pub unsafe fn to_layout(self) -> LayoutJS<T> {
+    pub unsafe fn to_layout(&self) -> LayoutJS<T> {
         LayoutJS {
             ptr: self.ptr.clone()
         }
@@ -106,8 +107,6 @@ impl<T: Reflectable> LayoutJS<T> {
         (**self.ptr).reflector().get_jsobject().get()
     }
 }
-
-impl<T> Copy for JS<T> {}
 
 impl<T> Copy for LayoutJS<T> {}
 
@@ -205,56 +204,62 @@ impl MutHeapJSVal {
 /// `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-#[derive(HeapSizeOf)]
-pub struct MutHeap<T: HeapGCValue + Copy> {
-    val: Cell<T>,
+pub struct MutHeap<T: HeapGCValue> {
+    val: UnsafeCell<T>,
 }
 
-impl<T: HeapGCValue + Copy> MutHeap<T> {
+impl<T: HeapGCValue> MutHeap<T> {
     /// Create a new `MutHeap`.
     pub fn new(initial: T) -> MutHeap<T> {
         MutHeap {
-            val: Cell::new(initial),
+            val: UnsafeCell::new(initial),
         }
     }
 
     /// Set this `MutHeap` to the given value.
     pub fn set(&self, val: T) {
-        self.val.set(val)
+        unsafe { *self.val.get() = val; }
     }
 
     /// Set the value in this `MutHeap`.
     pub fn get(&self) -> T {
-        self.val.get()
+        unsafe { ptr::read(self.val.get()) }
+    }
+}
+
+impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // See comment on HeapSizeOf for JS<T>.
+        0
     }
 }
 
 /// A mutable holder for GC-managed values such as `JSval` and `JS<T>`, with
-/// nullability represented by an enclosing Option wrapper. Must be used in
-/// place of traditional internal mutability to ensure that the proper GC
-/// barriers are enforced.
+/// nullability represented by an enclosing Option wrapper. Roughly equivalent
+/// to a DOMRefCell<Option<JS<T>>>, but smaller; the cost is that values which
+/// are read must be immediately rooted.
 #[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct MutNullableHeap<T: HeapGCValue + Copy> {
-    ptr: Cell<Option<T>>
+#[derive(JSTraceable)]
+pub struct MutNullableHeap<T: HeapGCValue> {
+    ptr: UnsafeCell<Option<T>>
 }
 
-impl<T: HeapGCValue + Copy> MutNullableHeap<T> {
+impl<T: HeapGCValue> MutNullableHeap<T> {
     /// Create a new `MutNullableHeap`.
     pub fn new(initial: Option<T>) -> MutNullableHeap<T> {
         MutNullableHeap {
-            ptr: Cell::new(initial)
+            ptr: UnsafeCell::new(initial)
         }
     }
 
     /// Set this `MutNullableHeap` to the given value.
     pub fn set(&self, val: Option<T>) {
-        self.ptr.set(val);
+        unsafe { *self.ptr.get() = val; }
     }
 
     /// Retrieve a copy of the current optional inner value.
     pub fn get(&self) -> Option<T> {
-        self.ptr.get()
+        unsafe { ptr::read(self.ptr.get()) }
     }
 }
 
@@ -277,7 +282,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
-        self.ptr.get().map(|js| js.to_layout())
+        ptr::read(self.ptr.get()).map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
@@ -287,11 +292,18 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     }
 }
 
-impl<T: HeapGCValue + Copy> Default for MutNullableHeap<T> {
+impl<T: HeapGCValue> Default for MutNullableHeap<T> {
     fn default() -> MutNullableHeap<T> {
         MutNullableHeap {
-            ptr: Cell::new(None)
+            ptr: UnsafeCell::new(None)
         }
+    }
+}
+
+impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // See comment on HeapSizeOf for JS<T>.
+        0
     }
 }
 

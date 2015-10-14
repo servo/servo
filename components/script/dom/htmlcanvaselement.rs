@@ -34,7 +34,7 @@ const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
 #[must_root]
-#[derive(JSTraceable, Clone, Copy, HeapSizeOf)]
+#[derive(JSTraceable, Clone, HeapSizeOf)]
 pub enum CanvasContext {
     Context2d(JS<CanvasRenderingContext2D>),
     WebGL(JS<WebGLRenderingContext>),
