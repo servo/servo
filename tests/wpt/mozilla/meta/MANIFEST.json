@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/upper_id_attr.html": [
+          {
+            "path": "css/upper_id_attr.html",
+            "references": [
+              [
+                "/_mozilla/css/upper_id_attr_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/upper_id_attr.html"
+          }
+        ],
         "css/vertical_align_text_top_a.html": [
           {
             "path": "css/vertical_align_text_top_a.html",
@@ -1998,6 +2010,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/upper_id_attr.html": [
+        {
+          "path": "css/upper_id_attr.html",
+          "references": [
+            [
+              "/_mozilla/css/upper_id_attr_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/upper_id_attr.html"
         }
       ],
       "css/vertical_align_text_top_a.html": [
