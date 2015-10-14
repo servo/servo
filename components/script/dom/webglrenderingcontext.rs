@@ -149,8 +149,8 @@ impl WebGLRenderingContext {
 
     pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
         match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get().map(|t| t.root()),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get().map(|t| t.root()),
+            constants::TEXTURE_2D => self.bound_texture_2d.get_rooted(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get_rooted(),
 
             _ => unreachable!(),
         }
