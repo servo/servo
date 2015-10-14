@@ -1109,13 +1109,15 @@ impl BaseFlow {
         };
 
         for item in &all_items {
-            let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
-            if !paint_bounds.might_be_nonempty() {
-                continue;
-            }
+            if let Some(base_item) = item.base() {
+                let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
+                if !paint_bounds.might_be_nonempty() {
+                    continue;
+                }
 
-            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
-                error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                if bounds.union(&paint_bounds.bounding_rect()) != bounds {
+                    error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                }
             }
         }
     }
