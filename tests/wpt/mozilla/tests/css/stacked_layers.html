@@ -22,6 +22,13 @@
             <div class="gray box" style="margin-left: 20px; margin-top: 10px; position: absolute; top: 20px; z-index: 5;"> </div>
         </div>
 
+        <!-- These divs should be stacked in tree order, even though the second one
+              initiates a stacking context and the third one does not. -->
+        <div class="test grayest box">
+            <div class="grayer box" style="transform: translateX(10px) translateY(10px);"> </div>
+            <div class="gray box" style="top: -30px; left: 20px; position: relative; "></div>
+        </div>
+
         <!-- The z-index of the second box should be ignored since it is not a positioned element.
              so these boxes stack in tree order. -->
         <div class="test grayest box">
