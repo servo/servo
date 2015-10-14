@@ -26,7 +26,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use resource_task::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -69,15 +69,6 @@ pub fn factory(user_agent: String,
                               devtools_chan,
                               user_agent)
         })
-    }
-}
-
-fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
-    let mut metadata: Metadata = Metadata::default(url);
-    metadata.status = None;
-
-    if let Ok(p) = start_sending_opt(start_chan, metadata) {
-        p.send(Done(Err(err))).unwrap();
     }
 }
 
