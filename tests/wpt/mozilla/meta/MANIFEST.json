@@ -435,6 +435,18 @@
             "url": "/_mozilla/css/basic_width_px.html"
           }
         ],
+        "css/block_formatting_context_a.html": [
+          {
+            "path": "css/block_formatting_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1650,6 +1662,18 @@
             ]
           ],
           "url": "/_mozilla/css/basic_width_px.html"
+        }
+      ],
+      "css/block_formatting_context_a.html": [
+        {
+          "path": "css/block_formatting_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_a.html"
         }
       ],
       "css/class-namespaces.html": [
