@@ -435,6 +435,126 @@
             "url": "/_mozilla/css/basic_width_px.html"
           }
         ],
+        "css/block_formatting_context_a.html": [
+          {
+            "path": "css/block_formatting_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_a.html"
+          }
+        ],
+        "css/block_formatting_context_cleared_float_a.html": [
+          {
+            "path": "css/block_formatting_context_cleared_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_cleared_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_cleared_float_a.html"
+          }
+        ],
+        "css/block_formatting_context_complex_a.html": [
+          {
+            "path": "css/block_formatting_context_complex_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_complex_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_complex_a.html"
+          }
+        ],
+        "css/block_formatting_context_containing_floats_a.html": [
+          {
+            "path": "css/block_formatting_context_containing_floats_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_containing_floats_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
+          }
+        ],
+        "css/block_formatting_context_float_placement_a.html": [
+          {
+            "path": "css/block_formatting_context_float_placement_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_float_placement_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+          }
+        ],
+        "css/block_formatting_context_max_width_a.html": [
+          {
+            "path": "css/block_formatting_context_max_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_max_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_max_width_a.html"
+          }
+        ],
+        "css/block_formatting_context_overflow_a.html": [
+          {
+            "path": "css/block_formatting_context_overflow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_overflow_a.html"
+          }
+        ],
+        "css/block_formatting_context_relative_a.html": [
+          {
+            "path": "css/block_formatting_context_relative_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_relative_a.html"
+          }
+        ],
+        "css/block_formatting_context_translation_a.html": [
+          {
+            "path": "css/block_formatting_context_translation_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_translation_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_translation_a.html"
+          }
+        ],
+        "css/block_formatting_context_with_margin_a.html": [
+          {
+            "path": "css/block_formatting_context_with_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_with_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_with_margin_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1650,6 +1770,126 @@
             ]
           ],
           "url": "/_mozilla/css/basic_width_px.html"
+        }
+      ],
+      "css/block_formatting_context_a.html": [
+        {
+          "path": "css/block_formatting_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_a.html"
+        }
+      ],
+      "css/block_formatting_context_cleared_float_a.html": [
+        {
+          "path": "css/block_formatting_context_cleared_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_cleared_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_cleared_float_a.html"
+        }
+      ],
+      "css/block_formatting_context_complex_a.html": [
+        {
+          "path": "css/block_formatting_context_complex_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_complex_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_complex_a.html"
+        }
+      ],
+      "css/block_formatting_context_containing_floats_a.html": [
+        {
+          "path": "css/block_formatting_context_containing_floats_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_containing_floats_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
+        }
+      ],
+      "css/block_formatting_context_float_placement_a.html": [
+        {
+          "path": "css/block_formatting_context_float_placement_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_float_placement_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+        }
+      ],
+      "css/block_formatting_context_max_width_a.html": [
+        {
+          "path": "css/block_formatting_context_max_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_max_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_max_width_a.html"
+        }
+      ],
+      "css/block_formatting_context_overflow_a.html": [
+        {
+          "path": "css/block_formatting_context_overflow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_overflow_a.html"
+        }
+      ],
+      "css/block_formatting_context_relative_a.html": [
+        {
+          "path": "css/block_formatting_context_relative_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_relative_a.html"
+        }
+      ],
+      "css/block_formatting_context_translation_a.html": [
+        {
+          "path": "css/block_formatting_context_translation_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_translation_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_translation_a.html"
+        }
+      ],
+      "css/block_formatting_context_with_margin_a.html": [
+        {
+          "path": "css/block_formatting_context_with_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_with_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_with_margin_a.html"
         }
       ],
       "css/class-namespaces.html": [

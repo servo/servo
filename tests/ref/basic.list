@@ -12,16 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== block_formatting_context_a.html block_formatting_context_ref.html
-== block_formatting_context_cleared_float_a.html block_formatting_context_cleared_float_ref.html
-== block_formatting_context_complex_a.html block_formatting_context_complex_ref.html
-== block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
-== block_formatting_context_float_placement_a.html block_formatting_context_float_placement_ref.html
-== block_formatting_context_max_width_a.html block_formatting_context_max_width_ref.html
-== block_formatting_context_overflow_a.html block_formatting_context_overflow_ref.html
-== block_formatting_context_relative_a.html block_formatting_context_ref.html
-== block_formatting_context_translation_a.html block_formatting_context_translation_ref.html
-== block_formatting_context_with_margin_a.html block_formatting_context_with_margin_ref.html
 == block_image.html 500x300_green.html
 != block_image.html noteq_500x300_white.html
 == block_replaced_content_a.html block_replaced_content_ref.html
