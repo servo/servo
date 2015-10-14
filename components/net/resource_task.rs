@@ -89,13 +89,13 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        metadata.content_type = classifier.classify(no_sniff, check_for_apache_bug, &supplied_type,
-                                                    &partial_body).map(|(toplevel, sublevel)| {
-            let mime_tp: TopLevel = toplevel.parse().unwrap();
-            let mime_sb: SubLevel = sublevel.parse().unwrap();
-            ContentType(Mime(mime_tp, mime_sb, vec!()))
-        });
-
+        let (toplevel, sublevel) = classifier.classify(no_sniff,
+                                                       check_for_apache_bug,
+                                                       &supplied_type,
+                                                       &partial_body);
+        let mime_tp: TopLevel = toplevel.parse().unwrap();
+        let mime_sb: SubLevel = sublevel.parse().unwrap();
+        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
     }
 
     start_sending_opt(start_chan, metadata)
