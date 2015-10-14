@@ -1331,7 +1331,7 @@ impl FragmentDisplayListBuilding for Fragment {
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
                                       &overflow,
-                                      self.style().get_box().z_index.number_or_zero(),
+                                      self.effective_z_index(),
                                       filters,
                                       self.style().get_effects().mix_blend_mode,
                                       transform,
