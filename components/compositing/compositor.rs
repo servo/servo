@@ -95,6 +95,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The application window size.
     window_size: TypedSize2D<DevicePixel, u32>,
 
+    /// The overridden viewport.
+    viewport: Option<(TypedPoint2D<DevicePixel, u32>, TypedSize2D<DevicePixel, u32>)>,
+
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
 
@@ -287,6 +290,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 size: window_size.as_f32(),
             }),
             window_size: window_size,
+            viewport: None,
             hidpi_factor: hidpi_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
@@ -989,6 +993,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.initialize_compositing();
             }
 
+            WindowEvent::Viewport(point, size) => {
+              self.viewport = Some((point, size));
+            }
+
             WindowEvent::Resize(size) => {
                 self.on_resize_window_event(size);
             }
@@ -1555,15 +1563,39 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
             self.dump_layer_tree();
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
-            self.scene.viewport = Rect {
-                origin: Point2D::zero(),
-                size: self.window_size.as_f32(),
+            self.scene.viewport = match self.viewport {
+                Some((point, size)) => Rect {
+                    origin: point.as_f32(),
+                    size:   size.as_f32(),
+                },
+
+                None => Rect {
+                    origin: Point2D::zero(),
+                    size: self.window_size.as_f32(),
+                }
             };
 
             // Paint the scene.
             if let Some(ref layer) = self.scene.root {
                 match self.context {
-                    Some(context) => rendergl::render_scene(layer.clone(), context, &self.scene),
+                    Some(context) => {
+                        if let Some((point, size)) = self.viewport {
+                            let point = point.to_untyped();
+                            let size  = size.to_untyped();
+
+                            gl::scissor(point.x as GLint, point.y as GLint,
+                                        size.width as GLsizei, size.height as GLsizei);
+
+                            gl::enable(gl::SCISSOR_TEST);
+                            rendergl::render_scene(layer.clone(), context, &self.scene);
+                            gl::disable(gl::SCISSOR_TEST);
+
+                        }
+                        else {
+                            rendergl::render_scene(layer.clone(), context, &self.scene);
+                        }
+                    }
+
                     None => {
                         debug!("compositor: not compositing because context not yet set up")
                     }
