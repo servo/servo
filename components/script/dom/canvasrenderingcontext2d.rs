@@ -763,7 +763,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 serialize(rgba, &mut result).unwrap();
                 StringOrCanvasGradientOrCanvasPattern::eString(result)
             },
-            CanvasFillOrStrokeStyle::Gradient(gradient) => {
+            CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
             },
         }
@@ -803,7 +803,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 serialize(rgba, &mut result).unwrap();
                 StringOrCanvasGradientOrCanvasPattern::eString(result)
             },
-            CanvasFillOrStrokeStyle::Gradient(gradient) => {
+            CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
             },
         }

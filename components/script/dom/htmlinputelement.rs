@@ -758,7 +758,7 @@ impl Activatable for HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.map(|t| t.root());
+                    let old_checked = cache.checked_radio.as_ref().map(|t| t.root());
                     let name = self.get_radio_group_name();
                     match old_checked {
                         Some(ref o) => {
