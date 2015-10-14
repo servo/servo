@@ -483,6 +483,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/transform_stacking_context_a.html": [
+          {
+            "path": "css/transform_stacking_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/transform_stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transform_stacking_context_a.html"
+          }
+        ],
         "css/transition_calc.html": [
           {
             "path": "css/transition_calc.html",
@@ -1794,6 +1806,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/transform_stacking_context_a.html": [
+        {
+          "path": "css/transform_stacking_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/transform_stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transform_stacking_context_a.html"
         }
       ],
       "css/transition_calc.html": [
