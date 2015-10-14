@@ -7,6 +7,10 @@ documentation = "http://doc.servo.org/app_units/"
 repository = "https://github.com/servo/app_units"
 license = "MIT / Apache-2.0"
 
+[lib]
+name = "app_units"
+path = "lib.rs"
+
 [dependencies]
 serde = "0.6"
 serde_macros = "0.5"
