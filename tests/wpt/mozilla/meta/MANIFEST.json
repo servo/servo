@@ -447,6 +447,18 @@
             "url": "/_mozilla/css/block_formatting_context_a.html"
           }
         ],
+        "css/block_formatting_context_cleared_float_a.html": [
+          {
+            "path": "css/block_formatting_context_cleared_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_cleared_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_cleared_float_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -1674,6 +1686,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_a.html"
+        }
+      ],
+      "css/block_formatting_context_cleared_float_a.html": [
+        {
+          "path": "css/block_formatting_context_cleared_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_cleared_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_cleared_float_a.html"
         }
       ],
       "css/class-namespaces.html": [
