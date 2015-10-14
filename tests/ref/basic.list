@@ -345,7 +345,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
 == transform_3d.html transform_3d_ref.html
 == transform_optimization.html transform_optimization_ref.html
-== transform_simple_a.html transform_simple_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_inline_block_a.html vertical_align_inline_block_ref.html
