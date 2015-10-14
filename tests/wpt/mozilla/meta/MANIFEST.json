@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/vertical_align_top_span_a.html": [
+          {
+            "path": "css/vertical_align_top_span_a.html",
+            "references": [
+              [
+                "/_mozilla/css/vertical_align_top_span_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/vertical_align_top_span_a.html"
+          }
+        ],
         "css/word-spacing.html": [
           {
             "path": "css/word-spacing.html",
@@ -1938,6 +1950,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/vertical_align_top_span_a.html": [
+        {
+          "path": "css/vertical_align_top_span_a.html",
+          "references": [
+            [
+              "/_mozilla/css/vertical_align_top_span_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/vertical_align_top_span_a.html"
         }
       ],
       "css/word-spacing.html": [
