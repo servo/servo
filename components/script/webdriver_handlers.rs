@@ -17,7 +17,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use page::Page;
 use script_task::get_page;
@@ -85,7 +85,7 @@ pub fn handle_execute_async_script(page: &Rc<Page>,
 pub fn handle_get_frame_id(page: &Rc<Page>,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
-                           reply: IpcSender<Result<Option<(PipelineId, SubpageId)>, ()>>) {
+                           reply: IpcSender<Result<Option<PipelineId>, ()>>) {
     let window = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
@@ -108,7 +108,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
         }
     };
 
-    let frame_id = window.map(|x| x.and_then(|x| x.r().parent_info()));
+    let frame_id = window.map(|x| x.map(|x| x.r().pipeline()));
     reply.send(frame_id).unwrap()
 }
 

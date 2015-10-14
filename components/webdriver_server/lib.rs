@@ -451,10 +451,10 @@ impl Handler {
         }
 
         let frame = match receiver.recv().unwrap() {
-            Ok(Some((pipeline_id, subpage_id))) => {
+            Ok(Some(pipeline_id)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
                 let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, subpage_id, sender)).unwrap();
+                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
                 receiver.recv().unwrap()
             },
             Ok(None) => None,

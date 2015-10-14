@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use constellation_msg::{PipelineId, SubpageId};
+use constellation_msg::PipelineId;
 use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json::{Json, ToJson};
 use url::Url;
@@ -16,7 +16,7 @@ pub enum WebDriverScriptCommand {
     GetActiveElement(IpcSender<Option<String>>),
     GetElementTagName(String, IpcSender<Result<String, ()>>),
     GetElementText(String, IpcSender<Result<String, ()>>),
-    GetFrameId(WebDriverFrameId, IpcSender<Result<Option<(PipelineId, SubpageId)>, ()>>),
+    GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
     GetUrl(IpcSender<Url>),
     GetTitle(IpcSender<String>)
 }
