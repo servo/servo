@@ -42,6 +42,7 @@ use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, ElementTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::focusevent::FocusEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbaseelement::HTMLBaseElement;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -517,10 +518,14 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        //TODO: dispatch blur, focus, focusout, and focusin events
+        //TODO: dispatch blur and focusin events
 
         if let Some(ref elem) = self.focused.get_rooted() {
             let node = NodeCast::from_ref(elem.r());
+
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::FocusOut, node, None);
+
             node.set_focus_state(false);
         }
 
@@ -529,6 +534,9 @@ impl Document {
         if let Some(ref elem) = self.focused.get_rooted() {
             let node = NodeCast::from_ref(elem.r());
             node.set_focus_state(true);
+
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::Focus, node, None);
 
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
@@ -976,6 +984,33 @@ impl Document {
             .filter_map(HTMLIFrameElementCast::to_root)
             .find(|node| node.r().subpage_id() == Some(subpage_id))
     }
+
+    // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
+    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, relatedTarget: Option<&EventTarget>) {
+        let window = self.window.root();
+
+        let focus_event_type_string = match focus_event_type {
+            FocusEventType::Focus => "focus".to_owned(),
+            FocusEventType::FocusOut => "focusout".to_owned(),
+        };
+
+        let event = FocusEvent::new(window.r(),
+                                    focus_event_type_string,
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::NotCancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    relatedTarget);
+
+        let event = EventCast::from_ref(event.r());
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+        event.set_trusted(true);
+
+        let target = EventTargetCast::from_ref(node);
+
+        event.fire(target);
+    }
 }
 
 #[derive(HeapSizeOf)]
@@ -985,6 +1020,11 @@ pub enum MouseEventType {
     MouseUp,
 }
 
+#[derive(HeapSizeOf)]
+pub enum FocusEventType {
+    Focus,
+    FocusOut
+}
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum DocumentSource {

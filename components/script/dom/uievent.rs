@@ -20,6 +20,7 @@ use util::str::DOMString;
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum UIEventTypeId {
     MouseEvent,
+    FocusEvent,
     KeyboardEvent,
     UIEvent,
 }
