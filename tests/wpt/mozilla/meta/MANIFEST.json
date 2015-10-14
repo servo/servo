@@ -483,6 +483,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/transform_simple_a.html": [
+          {
+            "path": "css/transform_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/transform_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transform_simple_a.html"
+          }
+        ],
         "css/transform_skew_a.html": [
           {
             "path": "css/transform_skew_a.html",
@@ -1818,6 +1830,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/transform_simple_a.html": [
+        {
+          "path": "css/transform_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/transform_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transform_simple_a.html"
         }
       ],
       "css/transform_skew_a.html": [
