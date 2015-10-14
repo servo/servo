@@ -171,6 +171,28 @@ impl HTMLElementMethods for HTMLElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            let win = window_from_node(self);
+            win.r().GetOnresize()
+        } else {
+            let target = EventTargetCast::from_ref(self);
+            target.get_event_handler_common("resize")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onresize
+    fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            let win = window_from_node(self);
+            win.r().SetOnresize(listener)
+        } else {
+            let target = EventTargetCast::from_ref(self);
+            target.set_event_handler_common("resize", listener)
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
         let maybe_input: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);

@@ -278,7 +278,6 @@ macro_rules! global_event_handlers(
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
-        event_handler!(resize, GetOnresize, SetOnresize);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
     )
 );
