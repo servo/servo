@@ -483,6 +483,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/transform_optimization.html": [
+          {
+            "path": "css/transform_optimization.html",
+            "references": [
+              [
+                "/_mozilla/css/transform_optimization_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transform_optimization.html"
+          }
+        ],
         "css/transform_simple_a.html": [
           {
             "path": "css/transform_simple_a.html",
@@ -1914,6 +1926,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/transform_optimization.html": [
+        {
+          "path": "css/transform_optimization.html",
+          "references": [
+            [
+              "/_mozilla/css/transform_optimization_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transform_optimization.html"
         }
       ],
       "css/transform_simple_a.html": [
