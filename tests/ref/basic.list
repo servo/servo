@@ -344,31 +344,13 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == text_transform_none_a.html text_transform_none_ref.html
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
 == transform_3d.html transform_3d_ref.html
-== transform_optimization.html transform_optimization_ref.html
-== transform_simple_a.html transform_simple_ref.html
-== transform_skew_a.html transform_skew_ref.html
-== transform_stacking_context_a.html transform_stacking_context_ref.html
-== transition_calc.html transition_calc_ref.html
-== upper_id_attr.html upper_id_attr_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
-== vertical_align_bottom_a.html vertical_align_bottom_ref.html
-== vertical_align_inline_block_a.html vertical_align_inline_block_ref.html
-== vertical_align_inside_table_a.html vertical_align_inside_table_ref.html
-== vertical_align_sub_a.html vertical_align_sub_ref.html
-== vertical_align_super_a.html vertical_align_super_ref.html
-== vertical_align_super_nested_a.html vertical_align_super_nested_ref.html
-== vertical_align_text_bottom_a.html vertical_align_text_bottom_ref.html
-== vertical_align_text_top_a.html vertical_align_text_top_ref.html
-== vertical_align_top_a.html vertical_align_top_ref.html
-== vertical_align_top_bottom_a.html vertical_align_top_bottom_ref.html
-== vertical_align_top_span_a.html vertical_align_top_span_ref.html
 == viewport_meta.html viewport_rule_ref.html
 resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
 # resolution=600x800 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_b.html
 resolution=800x600 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_a.html
 # resolution=600x800 == viewport_percentage_vw_vh.html viewport_percentage_vw_vh_b.html
 prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
-== visibility_hidden.html visibility_hidden_ref.html
 
 # https://github.com/servo/servo/issues/7931
 # == webgl-context/clearcolor.html webgl-context/clearcolor_ref.html

@@ -2,6 +2,7 @@
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="css/ahem.css">
+        <link rel='match' href='vertical_align_top_bottom_ref.html'>
         <style type="text/css">
             body {
                 margin: 0;
@@ -14,14 +15,19 @@
                 top: 100px;
                 background-color: red;
             }
-            .align {
+            .align-top {
                 color: green;
                 font-size: 20px;
                 vertical-align: top;
             }
+            .align-bottom {
+                color: green;
+                font-size: 20px;
+                vertical-align: bottom;
+            }
         </style>
     </head>
     <body>
-        <div><span>X<span class="align">X</span></span></div>
+        <div><span class="align-top">X</span><span>X</span><span class="align-bottom">X</span></div>
     </body>
 </html>
