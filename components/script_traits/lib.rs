@@ -206,13 +206,22 @@ pub struct TimerEventId(pub u32);
 /// Unit of measurement.
 #[derive(Clone, Copy, HeapSizeOf)]
 pub enum Milliseconds {}
+/// Unit of measurement.
+#[derive(Clone, Copy, HeapSizeOf)]
+pub enum Nanoseconds {}
 
 /// Amount of milliseconds.
 pub type MsDuration = Length<Milliseconds, u64>;
+/// Amount of nanoseconds.
+pub type NsDuration = Length<Nanoseconds, u64>;
 
 /// Returns the duration since an unspecified epoch measured in ms.
 pub fn precise_time_ms() -> MsDuration {
     Length::new(time::precise_time_ns() / (1000 * 1000))
+}
+/// Returns the duration since an unspecified epoch measured in ns.
+pub fn precise_time_ns() -> NsDuration {
+    Length::new(time::precise_time_ns())
 }
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`

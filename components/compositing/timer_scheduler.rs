@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::length::Length;
-use script_traits::{MsDuration, precise_time_ms, TimerEvent, TimerEventRequest};
+use script_traits::{MsDuration, NsDuration, precise_time_ms, precise_time_ns};
+use script_traits::{TimerEvent, TimerEventRequest};
 use util::task::spawn_named;
 
 use num::traits::Saturating;
@@ -79,7 +80,7 @@ pub struct TimerScheduler {
 
 struct ScheduledEvent {
     request: TimerEventRequest,
-    for_time: MsDuration,
+    for_time: NsDuration,
 }
 
 impl Ord for ScheduledEvent {
@@ -165,8 +166,9 @@ impl TimerScheduler {
     }
 
     fn handle_request(&self, request: TimerEventRequest) {
-        let TimerEventRequest(_, _, _, duration) = request;
-        let schedule_for = precise_time_ms() + duration;
+        let TimerEventRequest(_, _, _, duration_ms) = request;
+        let duration_ns = Length::new(duration_ms.get() * 1000 * 1000);
+        let schedule_for = precise_time_ns() + duration_ns;
 
         let previously_earliest = self.scheduled_events.borrow().peek()
                 .map(|scheduled| scheduled.for_time)
@@ -183,7 +185,7 @@ impl TimerScheduler {
     }
 
     fn dispatch_due_events(&self) {
-        let now = precise_time_ms();
+        let now = precise_time_ns();
 
         {
             let mut events = self.scheduled_events.borrow_mut();
@@ -210,9 +212,11 @@ impl TimerScheduler {
         }
 
         *timer = next_event.map(|next_event| {
-            let delay = next_event.for_time.get().saturating_sub(precise_time_ms().get());
+            let delay_ns = next_event.for_time.get().saturating_sub(precise_time_ns().get());
+            // Round up, we'd rather be late than early…
+            let delay_ms = Length::new(delay_ns.saturating_add(999999) / (1000 * 1000));
 
-            CancelableOneshotTimer::new(delay)
+            CancelableOneshotTimer::new(delay_ms)
         });
     }
 }
