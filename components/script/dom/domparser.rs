@@ -63,7 +63,7 @@ impl DOMParserMethods for DOMParser {
                                              None,
                                              DocumentSource::FromParser,
                                              loader);
-                parse_html(document.r(), s, &url, ParseContext::Owner(None));
+                parse_html(document.r(), s, url, ParseContext::Owner(None));
                 document.r().set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }

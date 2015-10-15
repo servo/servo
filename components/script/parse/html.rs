@@ -262,13 +262,13 @@ pub enum ParseContext<'a> {
 
 pub fn parse_html(document: &Document,
                   input: String,
-                  url: &Url,
+                  url: Url,
                   context: ParseContext) {
     let parser = match context {
         ParseContext::Owner(owner) =>
-            ServoHTMLParser::new(Some(url.clone()), document, owner),
+            ServoHTMLParser::new(Some(url), document, owner),
         ParseContext::Fragment(fc) =>
-            ServoHTMLParser::new_for_fragment(Some(url.clone()), document, fc),
+            ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
     parser.r().parse_chunk(input.into());
 }
@@ -300,7 +300,7 @@ pub fn parse_html_fragment(context_node: &Node,
         context_elem: context_node,
         form_elem: form.r(),
     };
-    parse_html(document.r(), input, &url, ParseContext::Fragment(fragment_context));
+    parse_html(document.r(), input, url.clone(), ParseContext::Fragment(fragment_context));
 
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element");
