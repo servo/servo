@@ -165,10 +165,17 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
             // Check to see whether we can share a style with someone.
             let style_sharing_candidate_cache =
                 &mut self.layout_context.style_sharing_candidate_cache();
-            let sharing_result = unsafe {
-                node.share_style_if_possible(style_sharing_candidate_cache,
-                                             parent_opt.clone())
+
+            let sharing_result = match node.as_element() {
+                Some(element) => {
+                    unsafe {
+                        element.share_style_if_possible(style_sharing_candidate_cache,
+                                                        parent_opt.clone())
+                    }
+                },
+                None => StyleSharingResult::CannotShare(false),
             };
+
             // Otherwise, match and cascade selectors.
             match sharing_result {
                 StyleSharingResult::CannotShare(mut shareable) => {

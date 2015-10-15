@@ -377,6 +377,15 @@ pub trait ElementMatchMethods {
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> bool;
+
+    /// Attempts to share a style with another node. This method is unsafe because it depends on
+    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
+    /// guarantee that at the type system level yet.
+    unsafe fn share_style_if_possible(&self,
+                                      style_sharing_candidate_cache:
+                                        &mut StyleSharingCandidateCache,
+                                      parent: Option<LayoutNode>)
+                                      -> StyleSharingResult;
 }
 
 pub trait MatchMethods {
@@ -392,15 +401,6 @@ pub trait MatchMethods {
     /// After all the children are done css selector matching, this must be
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
-
-    /// Attempts to share a style with another node. This method is unsafe because it depends on
-    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
-    /// guarantee that at the type system level yet.
-    unsafe fn share_style_if_possible(&self,
-                                      style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache,
-                                      parent: Option<LayoutNode>)
-                                      -> StyleSharingResult;
 
     unsafe fn cascade_node(&self,
                            layout_context: &SharedLayoutContext,
@@ -574,9 +574,7 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
         applicable_declarations.before.is_empty() &&
         applicable_declarations.after.is_empty()
     }
-}
 
-impl<'ln> MatchMethods for LayoutNode<'ln> {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
@@ -586,23 +584,19 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             return StyleSharingResult::CannotShare(false)
         }
 
-        let element = match self.as_element() {
-            Some(element) => element,
-            None => return StyleSharingResult::CannotShare(false),
-        };
-
-        if element.style_attribute().is_some() {
+        if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare(false)
         }
-        if element.get_attr(&ns!(""), &atom!("id")).is_some() {
+        if self.get_attr(&ns!(""), &atom!("id")).is_some() {
             return StyleSharingResult::CannotShare(false)
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
-            match element.share_style_with_candidate_if_possible(parent.clone(), candidate) {
+            match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
-                    let mut layout_data_ref = self.mutate_layout_data();
+                    let node = self.as_node();
+                    let mut layout_data_ref = node.mutate_layout_data();
                     let shared_data = &mut layout_data_ref.as_mut().unwrap().shared_data;
                     let style = &mut shared_data.style;
                     let damage = incremental::compute_damage(style, &*shared_style);
@@ -615,7 +609,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         StyleSharingResult::CannotShare(true)
     }
+}
 
+impl<'ln> MatchMethods for LayoutNode<'ln> {
     // The below two functions are copy+paste because I can't figure out how to
     // write a function which takes a generic function. I don't think it can
     // be done.
