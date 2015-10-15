@@ -20,8 +20,7 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateEl
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
-use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLBodyElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFontElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
@@ -41,16 +40,15 @@ use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmltablecellelement::HTMLTableCellElementLayoutHelpers;
 use dom::htmltableelement::HTMLTableElement;
 use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
-use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node, SEQUENTIALLY_FOCUSABLE};
-use dom::node::{NodeDamage, document_from_node};
-use dom::node::{window_from_node};
+use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
+use dom::node::{NodeDamage, NodeFlags, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use html5ever::serialize;
@@ -91,16 +89,6 @@ pub struct Element {
     class_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl ElementDerived for EventTarget {
-    #[inline]
-    fn is_element(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(_)) => true,
-            _ => false
-        }
-    }
-}
-
 impl PartialEq for Element {
     fn eq(&self, other: &Element) -> bool {
         self as *const Element == &*other
@@ -123,11 +111,20 @@ impl Element {
         create_element(name, prefix, document, creator)
     }
 
-    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString,
+
+    pub fn new_inherited(local_name: DOMString,
                          namespace: Namespace, prefix: Option<DOMString>,
                          document: &Document) -> Element {
+        Element::new_inherited_with_flags(NodeFlags::new(), local_name,
+                                          namespace, prefix, document)
+    }
+
+    pub fn new_inherited_with_flags(flags: NodeFlags, local_name: DOMString,
+                                    namespace: Namespace, prefix: Option<DOMString>,
+                                    document: &Document)
+                                    -> Element {
         Element {
-            node: Node::new_inherited(NodeTypeId::Element(type_id), document),
+            node: Node::new_inherited_with_flags(flags, document),
             local_name: Atom::from_slice(&local_name),
             namespace: namespace,
             prefix: prefix,
@@ -144,7 +141,7 @@ impl Element {
                prefix: Option<DOMString>,
                document: &Document) -> Root<Element> {
         Node::reflect_node(
-            box Element::new_inherited(ElementTypeId::Element, local_name, namespace, prefix, document),
+            box Element::new_inherited(local_name, namespace, prefix, document),
             document,
             ElementBinding::Wrap)
     }

@@ -126,8 +126,7 @@ impl LateLintPass for UnrootedPass {
         match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _) |
             visit::FnKind::Method(n, _, _) if n.as_str() == "new"
-                                           || n.as_str() == "new_inherited"
-                                           || n.as_str() == "new_initialized" => {
+                                           || n.as_str().starts_with("new_") => {
                 self.in_new_function = true;
                 return;
             },

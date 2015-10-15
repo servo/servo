@@ -5,19 +5,15 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::borrow::ToOwned;
@@ -29,14 +25,6 @@ pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLSelectElementDerived for EventTarget {
-    fn is_htmlselectelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)))
-    }
-}
-
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
@@ -45,7 +33,8 @@ impl HTMLSelectElement {
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 

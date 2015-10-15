@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, XMLHttpRequestEventTargetDerived};
 use dom::eventtarget::EventTarget;
 
 #[dom_struct]
@@ -19,16 +18,6 @@ impl XMLHttpRequestEventTarget {
             eventtarget: EventTarget::new_inherited()
         }
     }
-}
-
-impl XMLHttpRequestEventTargetDerived for EventTarget {
-    fn is_xmlhttprequesteventtarget(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::XMLHttpRequestEventTarget(_) => true,
-            _ => false
-        }
-    }
-
 }
 
 impl XMLHttpRequestEventTargetMethods for XMLHttpRequestEventTarget {

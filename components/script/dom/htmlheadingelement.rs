@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLHeadingElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -28,14 +25,6 @@ pub struct HTMLHeadingElement {
     level: HeadingLevel,
 }
 
-impl HTMLHeadingElementDerived for EventTarget {
-    fn is_htmlheadingelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)))
-    }
-}
-
 impl HTMLHeadingElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
@@ -43,7 +32,7 @@ impl HTMLHeadingElement {
                      level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadingElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             level: level,
         }
     }

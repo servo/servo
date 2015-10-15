@@ -6,10 +6,8 @@ use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -18,7 +16,6 @@ use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeMutation};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
@@ -63,16 +60,6 @@ pub struct HTMLIFrameElement {
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
-
-impl HTMLIFrameElementDerived for EventTarget {
-    fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
-    }
-}
-
-
 
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
@@ -197,8 +184,7 @@ impl HTMLIFrameElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),

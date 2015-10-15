@@ -24,7 +24,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, ElementT
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLOptGroupElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, NodeDerived, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeBase, NodeCast, NodeTypeId};
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, TextCast, TextDerived};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions;
@@ -122,15 +122,6 @@ impl PartialEq for Node {
     }
 }
 
-impl NodeDerived for EventTarget {
-    fn is_node(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(_) => true,
-            _ => false
-        }
-    }
-}
-
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]
@@ -172,22 +163,8 @@ bitflags! {
 }
 
 impl NodeFlags {
-    pub fn new(type_id: NodeTypeId) -> NodeFlags {
-        let dirty = HAS_CHANGED | IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS;
-        match type_id {
-            NodeTypeId::Document => IS_IN_DOC | dirty,
-            // The following elements are enabled by default.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
-            //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMenuItemElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) =>
-                IN_ENABLED_STATE | dirty,
-            _ => dirty,
-        }
+    pub fn new() -> NodeFlags {
+        HAS_CHANGED | IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS
     }
 }
 
@@ -1367,15 +1344,19 @@ impl Node {
         reflect_dom_object(node, GlobalRef::Window(window.r()), wrap_fn)
     }
 
-    pub fn new_inherited(type_id: NodeTypeId, doc: &Document) -> Node {
-        Node::new_(type_id, Some(doc.clone()))
+    pub fn new_inherited(doc: &Document) -> Node {
+        Node::new_inherited_with_flags(NodeFlags::new(), doc)
     }
 
-    pub fn new_without_doc(type_id: NodeTypeId) -> Node {
-        Node::new_(type_id, None)
+    pub fn new_inherited_with_flags(flags: NodeFlags, doc: &Document) -> Node {
+        Node::new_(flags, Some(doc))
     }
 
-    fn new_(type_id: NodeTypeId, doc: Option<&Document>) -> Node {
+    pub fn new_document_node() -> Node {
+        Node::new_(NodeFlags::new() | IS_IN_DOC, None)
+    }
+
+    fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),
 
@@ -1387,7 +1368,7 @@ impl Node {
             owner_doc: MutNullableHeap::new(doc.map(JS::from_ref)),
             child_list: Default::default(),
             children_count: Cell::new(0u32),
-            flags: Cell::new(NodeFlags::new(type_id)),
+            flags: Cell::new(flags),
 
             layout_data: LayoutDataRef::new(),
 

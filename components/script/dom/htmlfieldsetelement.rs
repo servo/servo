@@ -5,17 +5,16 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLLegendElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use util::str::{DOMString, StaticStringVec};
@@ -25,21 +24,14 @@ pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLFieldSetElementDerived for EventTarget {
-    fn is_htmlfieldsetelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)))
-    }
-}
-
 impl HTMLFieldSetElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLFieldSetElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 

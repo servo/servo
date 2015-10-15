@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLOListElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLOListElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -17,20 +14,12 @@ pub struct HTMLOListElement {
     htmlelement: HTMLElement,
 }
 
-impl HTMLOListElementDerived for EventTarget {
-    fn is_htmlolistelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOListElement)))
-    }
-}
-
 impl HTMLOListElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOListElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

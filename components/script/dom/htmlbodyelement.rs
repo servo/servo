@@ -8,15 +8,11 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, RawLayoutElementHelpers};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -41,21 +37,11 @@ pub struct HTMLBodyElement {
     background: DOMRefCell<Option<Url>>
 }
 
-impl HTMLBodyElementDerived for EventTarget {
-    fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLBodyElement)))
-    }
-}
-
 impl HTMLBodyElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
             background: DOMRefCell::new(None)
         }

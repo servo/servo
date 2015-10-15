@@ -10,10 +10,8 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, MouseEventCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -35,21 +33,13 @@ pub struct HTMLAnchorElement {
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl HTMLAnchorElementDerived for EventTarget {
-    fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
-    }
-}
-
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }

@@ -10,8 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementDerived};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLBodyElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFrameSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLHtmlElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
@@ -22,9 +21,9 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{Node, SEQUENTIALLY_FOCUSABLE, document_from_node, window_from_node};
+use dom::node::{Node, NodeFlags, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
 use std::borrow::ToOwned;
@@ -47,23 +46,18 @@ impl PartialEq for HTMLElement {
     }
 }
 
-impl HTMLElementDerived for EventTarget {
-    fn is_htmlelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(_))) => true,
-            _ => false
-        }
-    }
-}
-
 impl HTMLElement {
-    pub fn new_inherited(type_id: HTMLElementTypeId,
-                         tag_name: DOMString,
-                         prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
+        HTMLElement::new_inherited_with_flags(NodeFlags::new(), tag_name, prefix, document)
+    }
+
+    pub fn new_inherited_with_flags(flags: NodeFlags, tag_name: DOMString,
+                                    prefix: Option<DOMString>, document: &Document)
+                                    -> HTMLElement {
         HTMLElement {
             element:
-                Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
+                Element::new_inherited_with_flags(flags, tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -71,7 +65,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
-        let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
+        let element = HTMLElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 

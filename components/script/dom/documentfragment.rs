@@ -5,15 +5,13 @@
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding;
 use dom::bindings::codegen::Bindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, ElementCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
@@ -26,17 +24,11 @@ pub struct DocumentFragment {
     node: Node,
 }
 
-impl DocumentFragmentDerived for EventTarget {
-    fn is_documentfragment(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::DocumentFragment)
-    }
-}
-
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
     fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
-            node: Node::new_inherited(NodeTypeId::DocumentFragment, document),
+            node: Node::new_inherited(document),
         }
     }
 

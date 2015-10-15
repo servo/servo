@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLUnknownElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLUnknownElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -17,21 +14,13 @@ pub struct HTMLUnknownElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLUnknownElementDerived for EventTarget {
-    fn is_htmlunknownelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLUnknownElement)))
-    }
-}
-
 impl HTMLUnknownElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLUnknownElement {
         HTMLUnknownElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLUnknownElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

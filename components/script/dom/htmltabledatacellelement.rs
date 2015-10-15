@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTableDataCellElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableDataCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -18,23 +14,13 @@ pub struct HTMLTableDataCellElement {
     htmltablecellelement: HTMLTableCellElement,
 }
 
-impl HTMLTableDataCellElementDerived for EventTarget {
-    fn is_htmltabledatacellelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(
-                                                   ElementTypeId::HTMLElement(
-                                                   HTMLElementTypeId::HTMLTableCellElement(
-                                                   HTMLTableCellElementTypeId::HTMLTableDataCellElement))))
-    }
-}
-
 impl HTMLTableDataCellElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
             htmltablecellelement:
-                HTMLTableCellElement::new_inherited(
-                    HTMLTableCellElementTypeId::HTMLTableDataCellElement, localName, prefix, document)
+                HTMLTableCellElement::new_inherited(localName, prefix, document)
         }
     }
 

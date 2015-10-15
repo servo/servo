@@ -6,10 +6,8 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLButtonElementCast, HTMLButtonElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -18,7 +16,8 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, FormSubmitter};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{IN_ENABLED_STATE, Node, NodeFlags};
+use dom::node::{document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
@@ -42,21 +41,14 @@ pub struct HTMLButtonElement {
     button_type: Cell<ButtonType>
 }
 
-impl HTMLButtonElementDerived for EventTarget {
-    fn is_htmlbuttonelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)))
-    }
-}
-
 impl HTMLButtonElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             //TODO: implement button_type in attribute_mutated
             button_type: Cell::new(ButtonType::ButtonSubmit)
         }

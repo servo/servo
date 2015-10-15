@@ -9,19 +9,18 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFormElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -51,20 +50,12 @@ impl PartialEq for HTMLFormElement {
     }
 }
 
-impl HTMLFormElementDerived for EventTarget {
-    fn is_htmlformelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)))
-    }
-}
-
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFormElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             marked_for_reset: Cell::new(false),
         }
     }

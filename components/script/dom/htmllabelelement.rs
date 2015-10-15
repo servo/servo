@@ -4,11 +4,8 @@
 
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLLabelElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::Node;
@@ -19,21 +16,13 @@ pub struct HTMLLabelElement {
     htmlelement: HTMLElement,
 }
 
-impl HTMLLabelElementDerived for EventTarget {
-    fn is_htmllabelelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)))
-    }
-}
-
 impl HTMLLabelElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLLabelElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

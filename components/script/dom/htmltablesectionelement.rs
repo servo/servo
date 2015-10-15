@@ -7,15 +7,13 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId, HTMLTableRowElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
 use dom::bindings::error::Error;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
@@ -31,22 +29,11 @@ pub struct HTMLTableSectionElement {
     background_color: Cell<Option<RGBA>>,
 }
 
-impl HTMLTableSectionElementDerived for EventTarget {
-    fn is_htmltablesectionelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)))
-    }
-}
-
 impl HTMLTableSectionElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableSectionElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
         }
     }

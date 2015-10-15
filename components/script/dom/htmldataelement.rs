@@ -3,11 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLDataElementDerived, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -17,20 +14,12 @@ pub struct HTMLDataElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLDataElementDerived for EventTarget {
-    fn is_htmldataelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataElement)))
-    }
-}
-
 impl HTMLDataElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDataElement {
         HTMLDataElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

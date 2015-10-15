@@ -3,12 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLAudioElementDerived, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLMediaElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlmediaelement::HTMLMediaElement;
 use dom::node::Node;
 use util::str::DOMString;
@@ -18,22 +14,13 @@ pub struct HTMLAudioElement {
     htmlmediaelement: HTMLMediaElement
 }
 
-impl HTMLAudioElementDerived for EventTarget {
-    fn is_htmlaudioelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(
-                                                   ElementTypeId::HTMLElement(
-                                                   HTMLElementTypeId::HTMLMediaElement(
-                                                   HTMLMediaElementTypeId::HTMLAudioElement))))
-    }
-}
-
 impl HTMLAudioElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement:
-                HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLAudioElement, localName, prefix, document)
+                HTMLMediaElement::new_inherited(localName, prefix, document)
         }
     }
 

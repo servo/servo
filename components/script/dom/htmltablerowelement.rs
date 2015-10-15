@@ -6,14 +6,11 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableDataCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, HTMLTableRowElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableDataCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::eventtarget::EventTarget;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
@@ -38,22 +35,11 @@ pub struct HTMLTableRowElement {
     background_color: Cell<Option<RGBA>>,
 }
 
-impl HTMLTableRowElementDerived for EventTarget {
-    fn is_htmltablerowelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)))
-    }
-}
-
 impl HTMLTableRowElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableRowElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             cells: Default::default(),
             background_color: Cell::new(None),
         }

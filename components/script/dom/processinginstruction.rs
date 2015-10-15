@@ -4,12 +4,9 @@
 
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{NodeTypeId, ProcessingInstructionDerived};
 use dom::bindings::js::Root;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::node::Node;
 use util::str::DOMString;
 
@@ -20,17 +17,10 @@ pub struct ProcessingInstruction {
     target: DOMString,
 }
 
-impl ProcessingInstructionDerived for EventTarget {
-    fn is_processinginstruction(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction))
-    }
-}
-
 impl ProcessingInstruction {
     fn new_inherited(target: DOMString, data: DOMString, document: &Document) -> ProcessingInstruction {
         ProcessingInstruction {
-            characterdata: CharacterData::new_inherited(CharacterDataTypeId::ProcessingInstruction, data, document),
+            characterdata: CharacterData::new_inherited(data, document),
             target: target
         }
     }

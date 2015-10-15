@@ -4,11 +4,8 @@
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLOutputElementDerived, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
@@ -20,21 +17,13 @@ pub struct HTMLOutputElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLOutputElementDerived for EventTarget {
-    fn is_htmloutputelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)))
-    }
-}
-
 impl HTMLOutputElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOutputElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

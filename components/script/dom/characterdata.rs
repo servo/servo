@@ -6,15 +6,12 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, CharacterDataTypeId};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::EventTarget;
 use dom::node::{Node, NodeDamage};
 use std::borrow::ToOwned;
 use std::cell::Ref;
@@ -27,19 +24,10 @@ pub struct CharacterData {
     data: DOMRefCell<DOMString>,
 }
 
-impl CharacterDataDerived for EventTarget {
-    fn is_characterdata(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => true,
-            _ => false
-        }
-    }
-}
-
 impl CharacterData {
-    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: &Document) -> CharacterData {
+    pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
-            node: Node::new_inherited(NodeTypeId::CharacterData(id), document),
+            node: Node::new_inherited(document),
             data: DOMRefCell::new(data),
         }
     }

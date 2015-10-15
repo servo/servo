@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{ErrorEventDerived, EventCast, EventTypeId};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
@@ -28,12 +28,6 @@ pub struct ErrorEvent {
     colno: Cell<u32>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     error: MutHeapJSVal,
-}
-
-impl ErrorEventDerived for Event {
-    fn is_errorevent(&self) -> bool {
-        *self.type_id() == EventTypeId::ErrorEvent
-    }
 }
 
 impl ErrorEvent {

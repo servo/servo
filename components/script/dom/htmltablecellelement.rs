@@ -6,14 +6,11 @@ use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementTypeId, HTMLTableRowElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
 use dom::element::AttributeMutation;
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
@@ -31,25 +28,13 @@ pub struct HTMLTableCellElement {
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
-impl HTMLTableCellElementDerived for EventTarget {
-    fn is_htmltablecellelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
-            _ => false
-        }
-    }
-}
-
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: HTMLTableCellElementTypeId,
-                         tag_name: DOMString,
+    pub fn new_inherited(tag_name: DOMString,
                          prefix: Option<DOMString>,
                          document: &Document)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id),
-                                                    tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             background_color: Cell::new(None),
             colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),

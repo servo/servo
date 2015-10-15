@@ -8,23 +8,20 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, KeyboardEventCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{ChildrenMutation, Node, NodeDamage};
-use dom::node::{document_from_node, window_from_node};
+use dom::node::{ChildrenMutation, IN_ENABLED_STATE, Node, NodeDamage};
+use dom::node::{NodeFlags, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
@@ -44,14 +41,6 @@ pub struct HTMLTextAreaElement {
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
-}
-
-impl HTMLTextAreaElementDerived for EventTarget {
-    fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
-    }
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -98,7 +87,8 @@ impl HTMLTextAreaElement {
         let chan = document.window().r().constellation_chan();
         HTMLTextAreaElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),

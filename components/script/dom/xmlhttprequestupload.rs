@@ -3,13 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
-use dom::bindings::codegen::InheritTypes::EventTargetTypeId;
-use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetTypeId;
-use dom::bindings::codegen::InheritTypes::XMLHttpRequestUploadDerived;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::eventtarget::EventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 
 #[dom_struct]
@@ -27,12 +23,5 @@ impl XMLHttpRequestUpload {
         reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)
-    }
-}
-
-impl XMLHttpRequestUploadDerived for EventTarget {
-    fn is_xmlhttprequestupload(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
     }
 }

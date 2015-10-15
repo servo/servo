@@ -11,12 +11,9 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, EventTargetTypeId};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, KeyboardEventCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
@@ -27,7 +24,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{Node, NodeDamage};
+use dom::node::{IN_ENABLED_STATE, Node, NodeDamage, NodeFlags};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
@@ -105,21 +102,15 @@ impl InputActivationState {
     }
 }
 
-impl HTMLInputElementDerived for EventTarget {
-    fn is_htmlinputelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)))
-    }
-}
-
 static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
         let chan = document.window().r().constellation_chan();
         HTMLInputElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
+            htmlelement:
+                HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             checked: Cell::new(false),
             placeholder: DOMRefCell::new("".to_owned()),
