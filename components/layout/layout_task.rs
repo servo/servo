@@ -1491,7 +1491,6 @@ impl LayoutTask {
             // "changed":
             // > node.set_changed(true);
             node.set_dirty(true);
-            node.set_dirty_siblings(true);
             node.set_dirty_descendants(true);
         }
     }

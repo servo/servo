@@ -52,7 +52,7 @@ use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
+use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
 use selectors::matching::DeclarationBlock;
@@ -256,10 +256,6 @@ impl<'ln> LayoutNode<'ln> {
 
     pub unsafe fn set_dirty(&self, value: bool) {
         self.node.set_flag(IS_DIRTY, value)
-    }
-
-    pub unsafe fn set_dirty_siblings(&self, value: bool) {
-        self.node.set_flag(HAS_DIRTY_SIBLINGS, value);
     }
 
     pub fn has_dirty_descendants(&self) -> bool {
