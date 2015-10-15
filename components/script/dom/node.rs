@@ -1352,10 +1352,12 @@ impl Node {
         Node::new_(flags, Some(doc))
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new_document_node() -> Node {
         Node::new_(NodeFlags::new() | IS_IN_DOC, None)
     }
 
+    #[allow(unrooted_must_root)]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),

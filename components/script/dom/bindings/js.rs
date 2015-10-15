@@ -67,12 +67,14 @@ impl<T: Reflectable> JS<T> {
     }
     /// Create a JS<T> from a Root<T>
     /// XXX Not a great API. Should be a call on Root<T> instead
+    #[allow(unrooted_must_root)]
     pub fn from_rooted(root: &Root<T>) -> JS<T> {
         JS {
             ptr: unsafe { NonZero::new(&**root) }
         }
     }
     /// Create a JS<T> from a &T
+    #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> JS<T> {
         JS {
             ptr: unsafe { NonZero::new(&*obj) }
@@ -125,6 +127,7 @@ impl<T> PartialEq for LayoutJS<T> {
 
 impl <T> Clone for JS<T> {
     #[inline]
+    #[allow(unrooted_must_root)]
     fn clone(&self) -> JS<T> {
         JS {
             ptr: self.ptr.clone()
@@ -288,6 +291,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
 }
 
 impl<T: HeapGCValue + Copy> Default for MutNullableHeap<T> {
+    #[allow(unrooted_must_root)]
     fn default() -> MutNullableHeap<T> {
         MutNullableHeap {
             ptr: Cell::new(None)

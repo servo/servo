@@ -147,10 +147,10 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+    pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
         match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+            constants::TEXTURE_2D => self.bound_texture_2d.get().map(|t| t.root()),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get().map(|t| t.root()),
 
             _ => unreachable!(),
         }
@@ -906,7 +906,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Float(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
@@ -924,7 +923,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Int(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
