@@ -269,7 +269,6 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
         unsafe {
             node.set_changed(false);
             node.set_dirty(false);
-            node.set_dirty_siblings(false);
             node.set_dirty_descendants(false);
         }
 
