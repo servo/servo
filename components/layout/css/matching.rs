@@ -375,8 +375,8 @@ pub trait ElementMatchMethods {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
-                     applicable_declarations: &mut ApplicableDeclarations,
-                     shareable: &mut bool);
+                     applicable_declarations: &mut ApplicableDeclarations)
+                     -> bool;
 }
 
 pub trait MatchMethods {
@@ -549,8 +549,8 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
     fn match_element(&self,
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
-                     applicable_declarations: &mut ApplicableDeclarations,
-                     shareable: &mut bool) {
+                     applicable_declarations: &mut ApplicableDeclarations)
+                     -> bool {
         let style_attribute = self.style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
@@ -570,9 +570,9 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
                                              Some(PseudoElement::After),
                                              &mut applicable_declarations.after);
 
-        *shareable = applicable_declarations.normal_shareable &&
-            applicable_declarations.before.is_empty() &&
-            applicable_declarations.after.is_empty()
+        applicable_declarations.normal_shareable &&
+        applicable_declarations.before.is_empty() &&
+        applicable_declarations.after.is_empty()
     }
 }
 
