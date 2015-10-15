@@ -1,11 +1,31 @@
 language: python
+apt:
+  packages:
+    - cmake
+    - curl
+    - freeglut3-dev
+    - g++
+    - git
+    - gperf
+    - libbz2-dev
+    - libfreetype6-dev
+    - libgl1-mesa-dri
+    - libglib2.0-dev
+    - libglu1-mesa-dev
+    - libosmesa6-dev
+    - libssl-dev
+    - libxmu-dev
+    - libxmu6
+    - python-virtualenv
+    - xorg-dev
 
 before_install:
-  - if [ "$DOCKER" = "1" ]; then docker build -t servo etc/ci/; fi
+  #- if [ "$DOCKER" = "1" ]; then docker build -t servo etc/ci/; fi
 
 script:
-  - if [ "$DOCKER" = "0" ]; then sh -c "$CMD"; fi
-  - if [ "$DOCKER" = "1" ]; then docker run -tv `pwd`:/build servo sh -c "$CMD"; fi
+  #- if [ "$DOCKER" = "0" ]; then sh -c "$CMD"; fi
+  #- if [ "$DOCKER" = "1" ]; then docker run -tv `pwd`:/build servo sh -c "$CMD"; fi
+  - if [ "$DOCKER" = "1" ]; then sh -c "$CMD"; fi
 
 matrix:
   fast_finish: true
@@ -15,8 +35,7 @@ matrix:
         - CMD="./mach test-tidy"
         - DOCKER=0
     - sudo: 9000
-      services:
-        - docker
+      dist: trusty
       env:
         - CMD="./mach build -d --verbose"
         - DOCKER=1
