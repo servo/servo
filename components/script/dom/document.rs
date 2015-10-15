@@ -297,7 +297,7 @@ impl Document {
             .filter_map(HTMLBaseElementCast::to_root)
             .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
             .next();
-        self.base_element.set(base.as_ref().map(Root::r));
+        self.base_element.set(base.r());
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
