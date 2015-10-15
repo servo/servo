@@ -173,24 +173,30 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                                                         parent_opt.clone())
                     }
                 },
-                None => StyleSharingResult::CannotShare(false),
+                None => StyleSharingResult::CannotShare,
             };
 
             // Otherwise, match and cascade selectors.
             match sharing_result {
-                StyleSharingResult::CannotShare(mut shareable) => {
+                StyleSharingResult::CannotShare => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    if let Some(element) = node.as_element() {
-                        // Perform the CSS selector matching.
-                        let stylist = unsafe { &*self.layout_context.shared.stylist };
-                        shareable = element.match_element(stylist,
-                                                          Some(&*bf),
-                                                          &mut applicable_declarations);
-                    } else if node.has_changed() {
-                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(
-                            incremental::rebuild_and_reflow())
-                    }
+                    let shareable = match node.as_element() {
+                        Some(element) => {
+                            // Perform the CSS selector matching.
+                            let stylist = unsafe { &*self.layout_context.shared.stylist };
+                            element.match_element(stylist,
+                                                  Some(&*bf),
+                                                  &mut applicable_declarations)
+                        },
+                        None => {
+                            if node.has_changed() {
+                                ThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                                    incremental::rebuild_and_reflow())
+                            }
+                            false
+                        },
+                    };
 
                     // Perform the CSS cascade.
                     unsafe {

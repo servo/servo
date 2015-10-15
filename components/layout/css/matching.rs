@@ -363,9 +363,8 @@ impl StyleSharingCandidateCache {
 
 /// The results of attempting to share a style.
 pub enum StyleSharingResult {
-    /// We didn't find anybody to share the style with. The boolean indicates whether the style
-    /// is shareable at all.
-    CannotShare(bool),
+    /// We didn't find anybody to share the style with.
+    CannotShare,
     /// The node's style can be shared. The integer specifies the index in the LRU cache that was
     /// hit and the damage that was done.
     StyleWasShared(usize, RestyleDamage),
@@ -581,14 +580,14 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
                                       parent: Option<LayoutNode>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
-            return StyleSharingResult::CannotShare(false)
+            return StyleSharingResult::CannotShare
         }
 
         if self.style_attribute().is_some() {
-            return StyleSharingResult::CannotShare(false)
+            return StyleSharingResult::CannotShare
         }
         if self.get_attr(&ns!(""), &atom!("id")).is_some() {
-            return StyleSharingResult::CannotShare(false)
+            return StyleSharingResult::CannotShare
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
@@ -607,7 +606,7 @@ impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
             }
         }
 
-        StyleSharingResult::CannotShare(true)
+        StyleSharingResult::CannotShare
     }
 }
 
