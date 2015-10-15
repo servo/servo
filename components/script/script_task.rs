@@ -1648,7 +1648,7 @@ impl ScriptTask {
             "".to_owned()
         };
 
-        parse_html(document.r(), parse_input, &final_url,
+        parse_html(document.r(), parse_input, final_url,
                    ParseContext::Owner(Some(incomplete.pipeline_id)));
 
         page_remover.neuter();
