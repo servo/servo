@@ -420,7 +420,9 @@ trait PrivateMatchMethods {
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage;
+}
 
+trait PrivateElementMatchMethods {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<LayoutNode>,
                                               candidate: &StyleSharingCandidate)
@@ -504,13 +506,13 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         *style = Some(this_style);
         damage
     }
+}
 
+impl<'ln> PrivateElementMatchMethods for LayoutElement<'ln> {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<LayoutNode>,
                                               candidate: &StyleSharingCandidate)
                                               -> Option<Arc<ComputedValues>> {
-        let element = self.as_element().unwrap();
-
         let parent_node = match parent_node {
             Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
             Some(_) | None => return None,
@@ -528,7 +530,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 }
 
                 // Check tag names, classes, etc.
-                if !candidate.can_share_style_with(&element) {
+                if !candidate.can_share_style_with(self) {
                     return None
                 }
 
@@ -594,7 +596,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
-            match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
+            match element.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 Some(shared_style) => {
                     // Yay, cache hit. Share the style.
                     let mut layout_data_ref = self.mutate_layout_data();
