@@ -177,9 +177,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
             self.process(node);
 
             let shared_layout_context = proxy.user_data();
-            let layout_context = LayoutContext::new(shared_layout_context);
-
-            let parent = match node.layout_parent_node(layout_context.shared) {
+            let parent = match node.layout_parent_node(shared_layout_context) {
                 None => break,
                 Some(parent) => parent,
             };
