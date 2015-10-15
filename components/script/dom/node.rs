@@ -303,32 +303,32 @@ impl Node {
                 match prev_sibling {
                     None => {
                         assert!(Some(*before) == self.first_child.get_rooted().r());
-                        self.first_child.set(Some(JS::from_ref(new_child)));
+                        self.first_child.set(Some(new_child));
                     },
                     Some(ref prev_sibling) => {
-                        prev_sibling.next_sibling.set(Some(JS::from_ref(new_child)));
-                        new_child.prev_sibling.set(Some(JS::from_ref(prev_sibling.r())));
+                        prev_sibling.next_sibling.set(Some(new_child));
+                        new_child.prev_sibling.set(Some(prev_sibling.r()));
                     },
                 }
-                before.prev_sibling.set(Some(JS::from_ref(new_child)));
-                new_child.next_sibling.set(Some(JS::from_ref(before)));
+                before.prev_sibling.set(Some(new_child));
+                new_child.next_sibling.set(Some(before));
             },
             None => {
                 let last_child = self.GetLastChild();
                 match last_child {
-                    None => self.first_child.set(Some(JS::from_ref(new_child))),
+                    None => self.first_child.set(Some(new_child)),
                     Some(ref last_child) => {
                         assert!(last_child.next_sibling.get().is_none());
-                        last_child.r().next_sibling.set(Some(JS::from_ref(new_child)));
-                        new_child.prev_sibling.set(Some(JS::from_rooted(&last_child)));
+                        last_child.r().next_sibling.set(Some(new_child));
+                        new_child.prev_sibling.set(Some(&last_child));
                     }
                 }
 
-                self.last_child.set(Some(JS::from_ref(new_child)));
+                self.last_child.set(Some(new_child));
             },
         }
 
-        new_child.parent_node.set(Some(JS::from_ref(self)));
+        new_child.parent_node.set(Some(self));
 
         let parent_in_doc = self.is_in_doc();
         for node in new_child.traverse_preorder() {
@@ -347,19 +347,19 @@ impl Node {
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
             None => {
-                self.first_child.set(child.next_sibling.get());
+                self.first_child.set(child.next_sibling.get().r());
             }
             Some(ref prev_sibling) => {
-                prev_sibling.next_sibling.set(child.next_sibling.get());
+                prev_sibling.next_sibling.set(child.next_sibling.get().r());
             }
         }
         let next_sibling = child.GetNextSibling();
         match next_sibling {
             None => {
-                self.last_child.set(child.prev_sibling.get());
+                self.last_child.set(child.prev_sibling.get().r());
             }
             Some(ref next_sibling) => {
-                next_sibling.prev_sibling.set(child.prev_sibling.get());
+                next_sibling.prev_sibling.set(child.prev_sibling.get().r());
             }
         }
 
@@ -623,7 +623,7 @@ impl Node {
                 match self.parent_node.get() {
                     None         => return,
                     Some(parent) => parent,
-                }.root();
+                };
 
             for sibling in parent.r().children() {
                 sibling.r().set_has_dirty_siblings(true);
@@ -692,7 +692,7 @@ impl Node {
 
     pub fn is_parent_of(&self, child: &Node) -> bool {
         match child.parent_node.get() {
-            Some(ref parent) => parent.root().r() == self,
+            Some(ref parent) => parent.r() == self,
             None => false,
         }
     }
@@ -721,7 +721,7 @@ impl Node {
         // Step 2.
         let parent = match parent.get() {
             None => return Ok(()),
-            Some(ref parent) => parent.root(),
+            Some(parent) => parent,
         };
 
         // Step 3.
@@ -734,7 +734,7 @@ impl Node {
         let viable_previous_sibling = match viable_previous_sibling {
             Some(ref viable_previous_sibling) => viable_previous_sibling.next_sibling.get(),
             None => parent.first_child.get(),
-        }.map(|s| s.root());
+        };
 
         // Step 6.
         try!(Node::pre_insert(&node, &parent, viable_previous_sibling.r()));
@@ -750,7 +750,7 @@ impl Node {
         // Step 2.
         let parent = match parent.get() {
             None => return Ok(()),
-            Some(ref parent) => parent.root(),
+            Some(parent) => parent,
         };
 
         // Step 3.
@@ -777,7 +777,7 @@ impl Node {
                 let doc = self.owner_doc();
                 let node = try!(doc.r().node_from_nodes_and_strings(nodes));
                 // Step 3.
-                parent_node.root().r().ReplaceChild(node.r(), self).map(|_| ())
+                parent_node.r().ReplaceChild(node.r(), self).map(|_| ())
             },
         }
     }
@@ -855,11 +855,11 @@ impl Node {
     }
 
     pub fn owner_doc(&self) -> Root<Document> {
-        self.owner_doc.get().unwrap().root()
+        self.owner_doc.get().unwrap()
     }
 
     pub fn set_owner_doc(&self, document: &Document) {
-        self.owner_doc.set(Some(JS::from_ref(document)));
+        self.owner_doc.set(Some(document));
     }
 
     pub fn is_in_html_doc(&self) -> bool {

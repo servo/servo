@@ -360,7 +360,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if let Some(texture) = texture {
             match texture.bind(target) {
-                Ok(_) => slot.set(Some(JS::from_ref(texture))),
+                Ok(_) => slot.set(Some(texture)),
                 Err(err) => return self.webgl_error(err),
             }
         } else {

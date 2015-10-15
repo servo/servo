@@ -86,7 +86,7 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        shader_slot.set(Some(JS::from_ref(shader)));
+        shader_slot.set(Some(shader));
 
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::AttachShader(self.id, shader.id()))).unwrap();
 

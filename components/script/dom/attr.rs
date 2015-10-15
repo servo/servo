@@ -315,7 +315,7 @@ impl Attr {
             }
             (old, new) => assert!(old == new)
         }
-        self.owner.set(owner.map(JS::from_ref))
+        self.owner.set(owner);
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
