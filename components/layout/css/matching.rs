@@ -580,15 +580,16 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
         if opts::get().disable_share_style_cache {
             return StyleSharingResult::CannotShare(false)
         }
-        let ok = {
-            if let Some(element) = self.as_element() {
-                element.style_attribute().is_none() &&
-                    element.get_attr(&ns!(""), &atom!("id")).is_none()
-            } else {
-                false
-            }
+
+        let element = match self.as_element() {
+            Some(element) => element,
+            None => return StyleSharingResult::CannotShare(false),
         };
-        if !ok {
+
+        if element.style_attribute().is_some() {
+            return StyleSharingResult::CannotShare(false)
+        }
+        if element.get_attr(&ns!(""), &atom!("id")).is_some() {
             return StyleSharingResult::CannotShare(false)
         }
 
