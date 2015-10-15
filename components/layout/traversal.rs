@@ -6,7 +6,7 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
+use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use flow::{MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
@@ -174,13 +174,13 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 StyleSharingResult::CannotShare(mut shareable) => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    if node.as_element().is_some() {
+                    if let Some(element) = node.as_element() {
                         // Perform the CSS selector matching.
                         let stylist = unsafe { &*self.layout_context.shared.stylist };
-                        node.match_node(stylist,
-                                        Some(&*bf),
-                                        &mut applicable_declarations,
-                                        &mut shareable);
+                        element.match_element(stylist,
+                                              Some(&*bf),
+                                              &mut applicable_declarations,
+                                              &mut shareable);
                     } else if node.has_changed() {
                         ThreadSafeLayoutNode::new(&node).set_restyle_damage(
                             incremental::rebuild_and_reflow())

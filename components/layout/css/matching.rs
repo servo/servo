@@ -371,6 +371,14 @@ pub enum StyleSharingResult {
     StyleWasShared(usize, RestyleDamage),
 }
 
+pub trait ElementMatchMethods {
+    fn match_element(&self,
+                     stylist: &Stylist,
+                     parent_bf: Option<&BloomFilter>,
+                     applicable_declarations: &mut ApplicableDeclarations,
+                     shareable: &mut bool);
+}
+
 pub trait MatchMethods {
     /// Inserts and removes the matching `Descendant` selectors from a bloom
     /// filter. This is used to speed up CSS selector matching to remove
@@ -384,12 +392,6 @@ pub trait MatchMethods {
     /// After all the children are done css selector matching, this must be
     /// called to reset the bloom filter after an `insert`.
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter);
-
-    fn match_node(&self,
-                  stylist: &Stylist,
-                  parent_bf: Option<&BloomFilter>,
-                  applicable_declarations: &mut ApplicableDeclarations,
-                  shareable: &mut bool);
 
     /// Attempts to share a style with another node. This method is unsafe because it depends on
     /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
@@ -543,27 +545,26 @@ impl<'ln> PrivateElementMatchMethods for LayoutElement<'ln> {
     }
 }
 
-impl<'ln> MatchMethods for LayoutNode<'ln> {
-    fn match_node(&self,
-                  stylist: &Stylist,
-                  parent_bf: Option<&BloomFilter>,
-                  applicable_declarations: &mut ApplicableDeclarations,
-                  shareable: &mut bool) {
-        let element = self.as_element().unwrap();
-        let style_attribute = element.style_attribute().as_ref();
+impl<'ln> ElementMatchMethods for LayoutElement<'ln> {
+    fn match_element(&self,
+                     stylist: &Stylist,
+                     parent_bf: Option<&BloomFilter>,
+                     applicable_declarations: &mut ApplicableDeclarations,
+                     shareable: &mut bool) {
+        let style_attribute = self.style_attribute().as_ref();
 
         applicable_declarations.normal_shareable =
-            stylist.push_applicable_declarations(&element,
+            stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
-        stylist.push_applicable_declarations(&element,
+        stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::Before),
                                              &mut applicable_declarations.before);
-        stylist.push_applicable_declarations(&element,
+        stylist.push_applicable_declarations(self,
                                              parent_bf,
                                              None,
                                              Some(PseudoElement::After),
@@ -573,7 +574,9 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
             applicable_declarations.before.is_empty() &&
             applicable_declarations.after.is_empty()
     }
+}
 
+impl<'ln> MatchMethods for LayoutNode<'ln> {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
