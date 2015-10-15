@@ -61,7 +61,7 @@ use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLayoutChan};
 use libc;
-use mem::heap_size_of_eventtarget;
+use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
@@ -1258,11 +1258,11 @@ impl ScriptTask {
 
                 for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
                     let target = EventTargetCast::from_ref(&*child);
-                    dom_tree_size += heap_size_of_eventtarget(target);
+                    dom_tree_size += heap_size_of_self_and_children(target);
                 }
                 let window = it_page.window();
                 let target = EventTargetCast::from_ref(&*window);
-                dom_tree_size += heap_size_of_eventtarget(target);
+                dom_tree_size += heap_size_of_self_and_children(target);
 
                 reports.push(Report {
                     path: path![format!("url({})", current_url), "dom-tree"],
