@@ -181,20 +181,24 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                 StyleSharingResult::CannotShare => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    let shareable = match node.as_element() {
+                    let shareable_element = match node.as_element() {
                         Some(element) => {
                             // Perform the CSS selector matching.
                             let stylist = unsafe { &*self.layout_context.shared.stylist };
-                            element.match_element(stylist,
-                                                  Some(&*bf),
-                                                  &mut applicable_declarations)
+                            if element.match_element(stylist,
+                                                     Some(&*bf),
+                                                     &mut applicable_declarations) {
+                                Some(element)
+                            } else {
+                                None
+                            }
                         },
                         None => {
                             if node.has_changed() {
                                 ThreadSafeLayoutNode::new(&node).set_restyle_damage(
                                     incremental::rebuild_and_reflow())
                             }
-                            false
+                            None
                         },
                     };
 
@@ -208,10 +212,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                     }
 
                     // Add ourselves to the LRU cache.
-                    if shareable {
-                        if let Some(element) = node.as_element() {
-                            style_sharing_candidate_cache.insert_if_possible(&element);
-                        }
+                    if let Some(element) = shareable_element {
+                        style_sharing_candidate_cache.insert_if_possible(&element);
                     }
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
