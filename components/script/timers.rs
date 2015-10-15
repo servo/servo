@@ -129,6 +129,7 @@ impl ActiveTimers {
         }
     }
 
+    // see https://html.spec.whatwg.org/multipage/webappapis.html#timer-initialisation-steps
     pub fn set_timeout_or_interval(&self,
                                callback: TimerCallback,
                                arguments: Vec<HandleValue>,
@@ -138,11 +139,13 @@ impl ActiveTimers {
                                -> i32 {
         assert!(self.suspended_since.get().is_none());
 
+        // step 3
         let TimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(TimerHandle(new_handle + 1));
 
         let timeout = cmp::max(0, timeout);
-        let duration = self.bound_duration(Length::new(timeout as u64));
+        // step 7
+        let duration = self.clamp_duration(Length::new(timeout as u64));
         let next_call = self.base_time() + duration;
 
         let mut timer = Timer {
@@ -152,6 +155,7 @@ impl ActiveTimers {
             arguments: Vec::with_capacity(arguments.len()),
             is_interval: is_interval,
             duration: duration,
+            // step 6
             nesting_level: self.nesting_level.get() + 1,
             next_call: next_call,
         };
@@ -172,6 +176,7 @@ impl ActiveTimers {
             self.schedule_timer_call();
         }
 
+        // step 10
         new_handle
     }
 
@@ -187,6 +192,7 @@ impl ActiveTimers {
         }
     }
 
+    // see https://html.spec.whatwg.org/multipage/webappapis.html#timer-initialisation-steps
     pub fn fire_timer<T: Reflectable>(&self, id: TimerEventId, this: &T) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
@@ -212,8 +218,10 @@ impl ActiveTimers {
                 timers.pop().unwrap()
             };
 
+            // prep for step 6 in nested set_timeout_or_interval calls
             self.nesting_level.set(timer.nesting_level);
 
+            // step 14
             match timer.callback.clone() {
                 TimerCallback::FunctionTimerCallback(function) => {
                     let arguments: Vec<JSVal> = timer.arguments.iter().map(|arg| arg.get()).collect();
@@ -229,11 +237,14 @@ impl ActiveTimers {
                 }
             }
 
+            // step 4.3
             if timer.is_interval == IsInterval::Interval {
                 let mut timer = timer;
 
+                // step 7
+                timer.duration = self.clamp_duration(timer.duration);
+                // step 8, 9
                 timer.nesting_level += 1;
-                timer.duration = self.bound_duration(timer.duration);
                 timer.next_call = base_time + timer.duration;
                 self.insert_timer(timer);
             }
@@ -296,14 +307,15 @@ impl ActiveTimers {
         precise_time_ms() - self.suspension_offset.get()
     }
 
-    fn bound_duration(&self, unbounded: MsDuration) -> MsDuration {
+    // see step 7 of https://html.spec.whatwg.org/multipage/webappapis.html#timer-initialisation-steps
+    fn clamp_duration(&self, unclamped: MsDuration) -> MsDuration {
         let ms = if self.nesting_level.get() > 5 {
             4
         } else {
             0
         };
 
-        cmp::max(Length::new(ms), unbounded)
+        cmp::max(Length::new(ms), unclamped)
     }
 
     fn invalidate_expected_event_id(&self) -> TimerEventId {
