@@ -475,9 +475,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_pipeline(frame_id, resp_chan);
             }
-            ConstellationMsg::GetFrame(parent_pipeline_id, subpage_id, resp_chan) => {
+            ConstellationMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
-                self.handle_get_frame(parent_pipeline_id, subpage_id, resp_chan);
+                self.handle_get_frame(pipeline_id, resp_chan);
             }
             ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
@@ -919,11 +919,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_get_frame(&mut self,
-                        containing_pipeline_id: PipelineId,
-                        subpage_id: SubpageId,
+                        pipeline_id: PipelineId,
                         resp_chan: IpcSender<Option<FrameId>>) {
-        let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
-            |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
+        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|x| *x);
         resp_chan.send(frame_id).unwrap();
     }
 

@@ -260,8 +260,8 @@ pub enum Msg {
     /// id, or for the root frame if this is None, over a provided channel
     GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the FrameId corresponding to the document
-    /// with the provided parent pipeline id and subpage id
-    GetFrame(PipelineId, SubpageId, IpcSender<Option<FrameId>>),
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
