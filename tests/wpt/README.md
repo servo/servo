@@ -43,6 +43,15 @@ to run all the DOM tests.
 There are also a large number of command line options accepted by the
 test harness; these are documented by running with `--help`.
 
+Running all tests
+------------------------------
+
+Running all the WPT tests with debug mode results in a lot of timeout.
+If one wants to run all the tests,
+build with `mach build -r`
+and
+test with `mach test-wpt --release`
+
 Running the tests without mach
 ------------------------------
 
