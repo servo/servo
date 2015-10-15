@@ -116,7 +116,7 @@ impl FileReader {
 
         let global = fr.global.root();
         let exception = DOMException::new(global.r(), error);
-        fr.error.set(Some(JS::from_rooted(&exception)));
+        fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event("error".to_owned(), 0, None);
         return_on_abort!();
@@ -292,7 +292,7 @@ impl FileReaderMethods for FileReader {
 
         let global = self.global.root();
         let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
-        self.error.set(Some(JS::from_rooted(&exception)));
+        self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
@@ -346,7 +346,7 @@ impl FileReader {
         if blob.IsClosed() {
             let global = self.global.root();
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
-            self.error.set(Some(JS::from_rooted(&exception)));
+            self.error.set(Some(&exception));
 
             self.dispatch_progress_event("error".to_owned(), 0, None);
             return Ok(());

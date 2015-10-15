@@ -297,7 +297,7 @@ impl Document {
             .filter_map(HTMLBaseElementCast::to_root)
             .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
             .next();
-        self.base_element.set(base.map(|element| JS::from_ref(&*element)));
+        self.base_element.set(base.as_ref().map(Root::r));
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -506,7 +506,7 @@ impl Document {
     /// Request that the given element receive focus once the current transaction is complete.
     pub fn request_focus(&self, elem: &Element) {
         if elem.is_focusable_area() {
-            self.possibly_focused.set(Some(JS::from_ref(elem)))
+            self.possibly_focused.set(Some(elem))
         }
     }
 
@@ -520,7 +520,7 @@ impl Document {
             node.set_focus_state(false);
         }
 
-        self.focused.set(self.possibly_focused.get());
+        self.focused.set(self.possibly_focused.get().r());
 
         if let Some(ref elem) = self.focused.get_rooted() {
             let node = NodeCast::from_ref(elem.r());
@@ -852,7 +852,7 @@ impl Document {
     }
 
     pub fn set_current_script(&self, script: Option<&HTMLScriptElement>) {
-        self.current_script.set(script.map(JS::from_ref));
+        self.current_script.set(script);
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
@@ -959,7 +959,7 @@ impl Document {
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoHTMLParser>) {
-        self.current_parser.set(script.map(JS::from_ref));
+        self.current_parser.set(script);
     }
 
     pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
@@ -1119,8 +1119,7 @@ impl Document {
             let new_doc = Document::new(
                 &*self.window(), None, doctype, None, None,
                 DocumentSource::NotFromParser, DocumentLoader::new(&self.loader()));
-            new_doc.appropriate_template_contents_owner_document.set(
-                Some(JS::from_ref(&*new_doc)));
+            new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
     }

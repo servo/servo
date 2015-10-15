@@ -254,16 +254,6 @@ impl<T: HeapGCValue> MutNullableHeap<T> {
             ptr: UnsafeCell::new(initial)
         }
     }
-
-    /// Set this `MutNullableHeap` to the given value.
-    pub fn set(&self, val: Option<T>) {
-        unsafe { *self.ptr.get() = val; }
-    }
-
-    /// Retrieve a copy of the current optional inner value.
-    pub fn get(&self) -> Option<T> {
-        unsafe { ptr::read(self.ptr.get()) }
-    }
 }
 
 impl<T: Reflectable> MutNullableHeap<JS<T>> {
@@ -273,10 +263,10 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         where F: FnOnce() -> Root<T>
     {
         match self.get() {
-            Some(inner) => Root::from_rooted(inner),
+            Some(inner) => inner,
             None => {
                 let inner = cb();
-                self.set(Some(JS::from_rooted(&inner)));
+                self.set(Some(&inner));
                 inner
             },
         }
@@ -289,9 +279,22 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     }
 
     /// Get a rooted value out of this object
-    // FIXME(#6684)
+    pub fn get(&self) -> Option<Root<T>> {
+        unsafe {
+            ptr::read(self.ptr.get()).map(|o| o.root())
+        }
+    }
+
+    /// Get a rooted value out of this object
     pub fn get_rooted(&self) -> Option<Root<T>> {
-        self.get().map(|o| o.root())
+        self.get()
+    }
+
+    /// Set this `MutNullableHeap` to the given value.
+    pub fn set(&self, val: Option<&T>) {
+        unsafe {
+            *self.ptr.get() = val.map(|p| JS::from_ref(p));
+        }
     }
 }
 
