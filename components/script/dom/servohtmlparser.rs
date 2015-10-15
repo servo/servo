@@ -97,7 +97,7 @@ impl ParserContext {
 }
 
 impl AsyncResponseListener for ParserContext {
-    fn headers_available(&self, metadata: Metadata) {
+    fn headers_available(&mut self, metadata: Metadata) {
         let content_type = metadata.content_type.clone();
 
         let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
@@ -137,7 +137,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn data_available(&self, payload: Vec<u8>) {
+    fn data_available(&mut self, payload: Vec<u8>) {
         if !self.is_image_document.get() {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
@@ -149,7 +149,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), String>) {
         let parser = match self.parser.borrow().as_ref() {
             Some(parser) => parser.root(),
             None => return,

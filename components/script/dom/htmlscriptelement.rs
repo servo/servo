@@ -138,16 +138,16 @@ struct ScriptContext {
 }
 
 impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&self, metadata: Metadata) {
+    fn headers_available(&mut self, metadata: Metadata) {
         *self.metadata.borrow_mut() = Some(metadata);
     }
 
-    fn data_available(&self, payload: Vec<u8>) {
+    fn data_available(&mut self, payload: Vec<u8>) {
         let mut payload = payload;
         self.data.borrow_mut().append(&mut payload);
     }
 
-    fn response_complete(&self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), String>) {
         let load = status.map(|_| {
             let data = mem::replace(&mut *self.data.borrow_mut(), vec!());
             let metadata = self.metadata.borrow_mut().take().unwrap();
