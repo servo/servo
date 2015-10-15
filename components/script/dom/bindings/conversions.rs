@@ -177,6 +177,7 @@ fn clamp_to<D>(d: f64) -> D
     }
 }
 
+//http://heycam.github.io/webidl/#es-void
 impl ToJSValConvertible for () {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(UndefinedValue());
@@ -217,12 +218,14 @@ fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
     }
 }
 
+//http://heycam.github.io/webidl/#es-boolean
 impl ToJSValConvertible for bool {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(BooleanValue(*self));
     }
 }
 
+//http://heycam.github.io/webidl/#es-boolean
 impl FromJSValConvertible for bool {
     type Config = ();
     fn from_jsval(_cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<bool, ()> {
@@ -230,12 +233,14 @@ impl FromJSValConvertible for bool {
     }
 }
 
+//http://heycam.github.io/webidl/#es-byte
 impl ToJSValConvertible for i8 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
 
+//http://heycam.github.io/webidl/#es-byte
 impl FromJSValConvertible for i8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i8, ()> {
@@ -243,12 +248,14 @@ impl FromJSValConvertible for i8 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-octet
 impl ToJSValConvertible for u8 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
 
+//http://heycam.github.io/webidl/#es-octet
 impl FromJSValConvertible for u8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u8, ()> {
@@ -256,12 +263,14 @@ impl FromJSValConvertible for u8 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-short
 impl ToJSValConvertible for i16 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
 
+//http://heycam.github.io/webidl/#es-short
 impl FromJSValConvertible for i16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i16, ()> {
@@ -269,12 +278,14 @@ impl FromJSValConvertible for i16 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-short
 impl ToJSValConvertible for u16 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self as i32));
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-short
 impl FromJSValConvertible for u16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u16, ()> {
@@ -282,12 +293,14 @@ impl FromJSValConvertible for u16 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-long
 impl ToJSValConvertible for i32 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(Int32Value(*self));
     }
 }
 
+//http://heycam.github.io/webidl/#es-long
 impl FromJSValConvertible for i32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i32, ()> {
@@ -295,12 +308,14 @@ impl FromJSValConvertible for i32 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-long
 impl ToJSValConvertible for u32 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(UInt32Value(*self));
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-long
 impl FromJSValConvertible for u32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u32, ()> {
@@ -308,6 +323,7 @@ impl FromJSValConvertible for u32 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-long-long
 impl ToJSValConvertible for i64 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
@@ -316,6 +332,7 @@ impl ToJSValConvertible for i64 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-long-long
 impl FromJSValConvertible for i64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i64, ()> {
@@ -323,6 +340,7 @@ impl FromJSValConvertible for i64 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-long-long
 impl ToJSValConvertible for u64 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
@@ -331,6 +349,7 @@ impl ToJSValConvertible for u64 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-unsigned-long-long
 impl FromJSValConvertible for u64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u64, ()> {
@@ -338,6 +357,7 @@ impl FromJSValConvertible for u64 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-float
 impl ToJSValConvertible for f32 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
@@ -346,6 +366,7 @@ impl ToJSValConvertible for f32 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-float
 impl FromJSValConvertible for f32 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f32, ()> {
@@ -354,6 +375,7 @@ impl FromJSValConvertible for f32 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-double
 impl ToJSValConvertible for f64 {
     fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
@@ -362,6 +384,7 @@ impl ToJSValConvertible for f64 {
     }
 }
 
+//http://heycam.github.io/webidl/#es-double
 impl FromJSValConvertible for f64 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f64, ()> {
@@ -407,6 +430,7 @@ impl ToJSValConvertible for str {
     }
 }
 
+//http://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
@@ -484,6 +508,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
     }
 }
 
+//http://heycam.github.io/webidl/#es-DOMString
 impl FromJSValConvertible for DOMString {
     type Config = StringificationBehavior;
     fn from_jsval(cx: *mut JSContext, value: HandleValue,
@@ -504,12 +529,14 @@ impl FromJSValConvertible for DOMString {
     }
 }
 
+//http://heycam.github.io/webidl/#es-USVString
 impl ToJSValConvertible for USVString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.0.to_jsval(cx, rval);
     }
 }
 
+//http://heycam.github.io/webidl/#es-USVString
 impl FromJSValConvertible for USVString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
@@ -533,6 +560,7 @@ impl FromJSValConvertible for USVString {
     }
 }
 
+//http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         unsafe {
@@ -546,6 +574,7 @@ impl ToJSValConvertible for ByteString {
     }
 }
 
+//http://heycam.github.io/webidl/#es-ByteString
 impl FromJSValConvertible for ByteString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
@@ -585,6 +614,7 @@ impl FromJSValConvertible for ByteString {
         }
     }
 }
+
 
 impl ToJSValConvertible for Reflector {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
@@ -770,6 +800,7 @@ impl<T: FromJSValConvertible> FromJSValConvertible for Option<T> {
     }
 }
 
+//http://heycam.github.io/webidl/#es-object
 impl ToJSValConvertible for *mut JSObject {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         rval.set(ObjectOrNullValue(*self));
