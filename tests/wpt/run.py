@@ -6,6 +6,8 @@ import argparse
 import multiprocessing
 import os
 import sys
+import mozlog
+import grouping_formatter
 
 here = os.path.split(__file__)[0]
 servo_root = os.path.abspath(os.path.join(here, "..", ".."))
@@ -24,7 +26,11 @@ def run_tests(paths=None, **kwargs):
     if paths is None:
         paths = {}
     set_defaults(paths, kwargs)
-    wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
+
+    mozlog.commandline.log_formatters["servo"] = \
+        (grouping_formatter.GroupingFormatter, "A grouping output formatter")
+    wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
+
     success = wptrunner.run_tests(**kwargs)
     return 0 if success else 1
 
