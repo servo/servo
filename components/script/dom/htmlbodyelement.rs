@@ -83,6 +83,18 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        let win = window_from_node(self);
+        win.r().GetOnstorage()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let win = window_from_node(self);
+        win.r().SetOnstorage(listener)
+    }
 }
 
 

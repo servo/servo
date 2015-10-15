@@ -36,6 +36,7 @@ interface GlobalEventHandlers {
 [NoInterfaceObject]
 interface WindowEventHandlers {
            attribute EventHandler onunload;
+           attribute EventHandler onstorage;
 };
 
 // The spec has |attribute OnErrorEventHandler onerror;| on
