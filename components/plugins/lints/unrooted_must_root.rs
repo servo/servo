@@ -4,12 +4,11 @@
 
 use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
-use rustc::middle::astconv_util::ast_ty_to_prim_ty;
 use rustc::middle::ty;
 use rustc_front::{hir, visit};
 use syntax::attr::AttrMetaMethods;
 use syntax::{ast, codemap};
-use utils::{match_def_path, unsafe_context};
+use utils::{match_def_path, unsafe_context, in_derive_expn};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects");
@@ -107,7 +106,7 @@ impl LateLintPass for UnrootedPass {
             match var.node.kind {
                 hir::TupleVariantKind(ref vec) => {
                     for ty in vec {
-                        ast_ty_to_prim_ty(cx.tcx, &*ty.ty).map(|t| {
+                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
                             if is_unrooted_ty(cx, t, false) {
                                 cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
                                              "Type must be rooted, use #[must_root] on \
@@ -122,7 +121,7 @@ impl LateLintPass for UnrootedPass {
     }
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
-                block: &hir::Block, _span: codemap::Span, id: ast::NodeId) {
+                block: &hir::Block, span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _) |
             visit::FnKind::Method(n, _, _) if n.as_str() == "new"
@@ -145,9 +144,22 @@ impl LateLintPass for UnrootedPass {
         match block.rules {
             hir::DefaultBlock => {
                 for arg in &decl.inputs {
-                    ast_ty_to_prim_ty(cx.tcx, &*arg.ty).map(|t| {
+                    cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
                         if is_unrooted_ty(cx, t, false) {
+                            if in_derive_expn(cx, span) {
+                                return;
+                            }
                             cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+                        }
+                    });
+                }
+                if let hir::Return(ref ty) = decl.output {
+                    cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
+                        if is_unrooted_ty(cx, t, false) {
+                            if in_derive_expn(cx, span) {
+                                return;
+                            }
+                            cx.span_lint(UNROOTED_MUST_ROOT, ty.span, "Type must be rooted")
                         }
                     });
                 }
