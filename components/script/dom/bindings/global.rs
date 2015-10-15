@@ -210,6 +210,7 @@ impl GlobalRoot {
 
 impl GlobalField {
     /// Create a new `GlobalField` from a rooted reference.
+    #[allow(unrooted_must_root)]
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
             GlobalRef::Window(window) => GlobalField::Window(JS::from_ref(window)),
