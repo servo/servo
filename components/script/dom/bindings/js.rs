@@ -38,8 +38,13 @@ use std::ops::Deref;
 use std::ptr;
 use util::mem::HeapSizeOf;
 
-/// A traced reference to a DOM object. Must only be used as a field in other
-/// DOM objects.
+/// A traced reference to a DOM object
+///
+/// This type is critical to making garbage collection work with the DOM,
+/// but it is very dangerous; if garbage collection happens with a `JS<T>`
+/// on the stack, the `JS<T>` can point to freed memory.
+///
+/// This should only be used as a field in other DOM objects.
 #[must_root]
 pub struct JS<T> {
     ptr: NonZero<*const T>
@@ -61,6 +66,7 @@ impl<T> JS<T> {
         }
     }
 }
+
 impl<T: Reflectable> JS<T> {
     /// Root this JS-owned value to prevent its collection as garbage.
     pub fn root(&self) -> Root<T> {
@@ -204,7 +210,10 @@ impl MutHeapJSVal {
 
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`.
+/// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
 pub struct MutHeap<T: HeapGCValue> {
@@ -241,10 +250,12 @@ impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
     }
 }
 
-/// A mutable holder for GC-managed values such as `JSval` and `JS<T>`, with
-/// nullability represented by an enclosing Option wrapper. Roughly equivalent
-/// to a DOMRefCell<Option<JS<T>>>, but smaller; the cost is that values which
-/// are read must be immediately rooted.
+/// A holder that provides interior mutability for GC-managed values such as
+/// `JS<T>`, with nullability represented by an enclosing Option wrapper.
+/// Essentially a `Cell<Option<JS<T>>>`, but safer.
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
 pub struct MutNullableHeap<T: HeapGCValue> {
@@ -451,12 +462,6 @@ impl<T: Reflectable> Root<T> {
     /// outlive the lifetime of this root.
     pub fn r(&self) -> &T {
         &**self
-    }
-
-    /// Generate a new root from a JS<T> reference
-    #[allow(unrooted_must_root)]
-    pub fn from_rooted(js: JS<T>) -> Root<T> {
-        js.root()
     }
 }
 
