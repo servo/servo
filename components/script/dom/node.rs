@@ -1367,7 +1367,7 @@ impl Node {
             last_child: Default::default(),
             next_sibling: Default::default(),
             prev_sibling: Default::default(),
-            owner_doc: MutNullableHeap::new(doc.map(JS::from_ref)),
+            owner_doc: MutNullableHeap::new(doc),
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),

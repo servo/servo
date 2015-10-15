@@ -180,7 +180,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: MutNullableHeap::new(owner.map(JS::from_ref)),
+            owner: MutNullableHeap::new(owner),
         }
     }
 
