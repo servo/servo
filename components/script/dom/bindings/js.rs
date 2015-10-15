@@ -208,22 +208,26 @@ pub struct MutHeap<T: HeapGCValue> {
     val: UnsafeCell<T>,
 }
 
-impl<T: HeapGCValue> MutHeap<T> {
+impl<T: Reflectable> MutHeap<JS<T>> {
     /// Create a new `MutHeap`.
-    pub fn new(initial: T) -> MutHeap<T> {
+    pub fn new(initial: &T) -> MutHeap<JS<T>> {
         MutHeap {
-            val: UnsafeCell::new(initial),
+            val: UnsafeCell::new(JS::from_ref(initial)),
         }
     }
 
     /// Set this `MutHeap` to the given value.
-    pub fn set(&self, val: T) {
-        unsafe { *self.val.get() = val; }
+    pub fn set(&self, val: &T) {
+        unsafe {
+            *self.val.get() = JS::from_ref(val);
+        }
     }
 
     /// Set the value in this `MutHeap`.
-    pub fn get(&self) -> T {
-        unsafe { ptr::read(self.val.get()) }
+    pub fn get(&self) -> Root<T> {
+        unsafe {
+            ptr::read(self.val.get()).root()
+        }
     }
 }
 
@@ -244,16 +248,14 @@ pub struct MutNullableHeap<T: HeapGCValue> {
     ptr: UnsafeCell<Option<T>>
 }
 
-impl<T: HeapGCValue> MutNullableHeap<T> {
+impl<T: Reflectable> MutNullableHeap<JS<T>> {
     /// Create a new `MutNullableHeap`.
-    pub fn new(initial: Option<T>) -> MutNullableHeap<T> {
+    pub fn new(initial: Option<&T>) -> MutNullableHeap<JS<T>> {
         MutNullableHeap {
-            ptr: UnsafeCell::new(initial)
+            ptr: UnsafeCell::new(initial.map(JS::from_ref))
         }
     }
-}
 
-impl<T: Reflectable> MutNullableHeap<JS<T>> {
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     pub fn or_init<F>(&self, cb: F) -> Root<T>

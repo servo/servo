@@ -38,7 +38,7 @@ impl StorageEvent {
             oldValue: oldValue,
             newValue: newValue,
             url: url,
-            storageArea: MutNullableHeap::new(storageArea.map(JS::from_ref))
+            storageArea: MutNullableHeap::new(storageArea)
         }
     }
 

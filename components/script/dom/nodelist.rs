@@ -103,8 +103,7 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: JS::from_ref(node),
-            last_visited:
-                MutNullableHeap::new(last_visited.as_ref().map(JS::from_rooted)),
+            last_visited: MutNullableHeap::new(last_visited.as_ref().map(Root::r)),
             last_index: Cell::new(0u32),
         }
     }
