@@ -526,8 +526,46 @@ class IDLExposureMixins():
 
 class IDLExternalInterface(IDLObjectWithIdentifier, IDLExposureMixins):
     def __init__(self, location, parentScope, identifier):
-        raise WebIDLError("Servo does not support external interfaces.",
-                          [self.location])
+        assert isinstance(identifier, IDLUnresolvedIdentifier)
+        assert isinstance(parentScope, IDLScope)
+        self.parent = None
+        IDLObjectWithIdentifier.__init__(self, location, parentScope, identifier)
+        IDLExposureMixins.__init__(self, location)
+        IDLObjectWithIdentifier.resolve(self, parentScope)
+
+    def finish(self, scope):
+        IDLExposureMixins.finish(self, scope)
+        pass
+
+    def validate(self):
+        pass
+
+    def isExternal(self):
+        return True
+
+    def isInterface(self):
+        return True
+
+    def isConsequential(self):
+        return False
+
+    def addExtendedAttributes(self, attrs):
+        assert len(attrs) == 0
+
+    def resolve(self, parentScope):
+        pass
+
+    def getJSImplementation(self):
+        return None
+
+    def isJSImplemented(self):
+        return False
+
+    def getNavigatorProperty(self):
+        return None
+
+    def _getDependentObjects(self):
+        return set()
 
 
 class IDLPartialInterface(IDLObject):
@@ -1642,9 +1680,6 @@ class IDLDictionary(IDLObjectWithScope):
                 raise WebIDLError("Dictionary %s has member with itself as type." %
                                   self.identifier.name,
                                   [member.location] + locations)
-
-    def module(self):
-        return self.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
 
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
@@ -4156,9 +4191,6 @@ class IDLCallback(IDLObjectWithScope):
 
         self._treatNonCallableAsNull = False
         self._treatNonObjectAsNull = False
-
-    def module(self):
-        return self.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
 
     def isCallback(self):
         return True
