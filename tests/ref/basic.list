@@ -220,7 +220,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == opacity_stacking_context_a.html opacity_stacking_context_ref.html
 == outline_offset_a.html outline_offset_ref.html
 == outlines_simple_a.html outlines_simple_ref.html
-== outlines_wrap_a.html outlines_wrap_ref.html
 != outset_blackborder.html blackborder_ref.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html

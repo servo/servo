@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/outlines_wrap_a.html": [
+          {
+            "path": "css/outlines_wrap_a.html",
+            "references": [
+              [
+                "/_mozilla/css/outlines_wrap_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/outlines_wrap_a.html"
+          }
+        ],
         "css/outset.html": [
           {
             "path": "css/outset.html",
@@ -3418,6 +3430,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/outlines_wrap_a.html": [
+        {
+          "path": "css/outlines_wrap_a.html",
+          "references": [
+            [
+              "/_mozilla/css/outlines_wrap_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/outlines_wrap_a.html"
         }
       ],
       "css/outset.html": [
