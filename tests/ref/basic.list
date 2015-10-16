@@ -334,7 +334,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == text_justify_none_a.html text_justify_none_ref.html
 != text_overflow_a.html text_overflow_ref.html
 == text_overflow_basic_a.html text_overflow_basic_ref.html
-== text_shadow_blur_a.html text_shadow_blur_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
 == text_shadow_multiple_shadows_a.html text_shadow_multiple_shadows_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
