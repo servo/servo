@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/png_rgba_colorspace_a.html": [
+          {
+            "path": "css/png_rgba_colorspace_a.html",
+            "references": [
+              [
+                "/_mozilla/css/png_rgba_colorspace_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/png_rgba_colorspace_a.html"
+          }
+        ],
         "css/position_abs_cb_with_non_cb_kid_a.html": [
           {
             "path": "css/position_abs_cb_with_non_cb_kid_a.html",
@@ -3262,6 +3274,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/png_rgba_colorspace_a.html": [
+        {
+          "path": "css/png_rgba_colorspace_a.html",
+          "references": [
+            [
+              "/_mozilla/css/png_rgba_colorspace_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/png_rgba_colorspace_a.html"
         }
       ],
       "css/position_abs_cb_with_non_cb_kid_a.html": [
