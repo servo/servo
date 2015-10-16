@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_relative_stacking_context_contents_a.html": [
+          {
+            "path": "css/position_relative_stacking_context_contents_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_relative_stacking_context_contents_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_relative_stacking_context_contents_a.html"
+          }
+        ],
         "css/position_relative_top_percentage_a.html": [
           {
             "path": "css/position_relative_top_percentage_a.html",
@@ -3070,6 +3082,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_relative_stacking_context_contents_a.html": [
+        {
+          "path": "css/position_relative_stacking_context_contents_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_relative_stacking_context_contents_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_relative_stacking_context_contents_a.html"
         }
       ],
       "css/position_relative_top_percentage_a.html": [
