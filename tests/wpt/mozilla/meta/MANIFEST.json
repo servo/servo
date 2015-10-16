@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_relative_a.html": [
+          {
+            "path": "css/position_relative_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_relative_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_relative_a.html"
+          }
+        ],
         "css/position_relative_inline_block_a.html": [
           {
             "path": "css/position_relative_inline_block_a.html",
@@ -3118,6 +3130,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_relative_a.html": [
+        {
+          "path": "css/position_relative_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_relative_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_relative_a.html"
         }
       ],
       "css/position_relative_inline_block_a.html": [
