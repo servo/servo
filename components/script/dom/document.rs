@@ -935,6 +935,10 @@ impl Document {
     pub fn invalidate_stylesheets(&self) {
         self.stylesheets_changed.set(true);
         *self.stylesheets.borrow_mut() = None;
+        // Mark the document element dirty so a reflow will be performed.
+        self.get_html_element().map(|root| {
+            root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+        });
     }
 
     pub fn get_and_reset_stylesheets_changed(&self) -> bool {
@@ -1059,6 +1063,13 @@ impl Document {
         if let Some(parser) = self.current_parser.get_rooted() {
             if parser.is_suspended() {
                 parser.resume();
+            }
+        } else if self.reflow_timeout.get().is_none() {
+            // If we don't have a parser, and the reflow timer has been reset, explicitly
+            // trigger a reflow.
+            if let LoadType::Stylesheet(_) = load {
+                self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery,
+                                     ReflowReason::StylesheetLoaded);
             }
         }
 
