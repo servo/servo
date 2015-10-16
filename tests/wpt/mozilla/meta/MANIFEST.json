@@ -615,6 +615,18 @@
             "url": "/_mozilla/css/table_specified_width_a.html"
           }
         ],
+        "css/text_overflow_basic_a.html": [
+          {
+            "path": "css/text_overflow_basic_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_basic_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_basic_a.html"
+          }
+        ],
         "css/text_shadow_blur_a.html": [
           {
             "path": "css/text_shadow_blur_a.html",
@@ -2202,6 +2214,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_specified_width_a.html"
+        }
+      ],
+      "css/text_overflow_basic_a.html": [
+        {
+          "path": "css/text_overflow_basic_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_basic_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_basic_a.html"
         }
       ],
       "css/text_shadow_blur_a.html": [
