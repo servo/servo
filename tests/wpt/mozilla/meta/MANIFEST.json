@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_specified_width_a.html": [
+          {
+            "path": "css/table_specified_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_specified_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_specified_width_a.html"
+          }
+        ],
         "css/transform_optimization.html": [
           {
             "path": "css/transform_optimization.html",
@@ -2154,6 +2166,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_specified_width_a.html": [
+        {
+          "path": "css/table_specified_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_specified_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_specified_width_a.html"
         }
       ],
       "css/transform_optimization.html": [
