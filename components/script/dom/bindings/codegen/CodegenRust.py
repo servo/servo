@@ -3286,6 +3286,81 @@ class CGMemberJITInfo(CGThing):
         # Different types
         return "JSVAL_TYPE_UNKNOWN"
 
+    @staticmethod
+    def getJSArgType(t):
+        assert not t.isVoid()
+        if t.nullable():
+            # Sometimes it might return null, sometimes not
+            # XXX: Rust won't permit us to | arbitrary enum members together
+            # and call that a member of the enum like C++ would.  So we give
+            # a best effort here, but otherwise lie to the JIT about what
+            # our argument type is here.
+            innerType = CGMemberJITInfo.getJSArgType(t.inner)
+            if innerType.endswith("::Object"):
+                return "ArgType::ObjectOrNull"
+            else:
+                return "ArgType::Any"
+        if t.isArray():
+            # No idea yet
+            assert False
+        if t.isSequence():
+            return "ArgType::Object"
+        if t.isGeckoInterface():
+            return "ArgType::Object"
+        if t.isString():
+            return "ArgType::String"
+        if t.isEnum():
+            return "ArgType::String"
+        if t.isCallback():
+            return "ArgType::Object"
+        if t.isAny():
+            # The whole point is to return various stuff
+            return "ArgType::Any"
+        if t.isObject():
+            return "ArgType::Object"
+        if t.isSpiderMonkeyInterface():
+            return "ArgType::Object"
+        if t.isUnion():
+            # XXX: see above comment about nullable types.  Trying to do
+            # something smart here within the constraints of the Rust type
+            # system is difficult, so just punt.
+            return "ArgType::Any"
+        if t.isDictionary():
+            return "ArgType::Object"
+        if t.isDate():
+            return "ArgType::Object"
+        if not t.isPrimitive():
+            raise TypeError("No idea what type " + str(t) + " is.")
+        tag = t.tag()
+        if tag == IDLType.Tags.bool:
+            return "ArgType::Boolean"
+        if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+                   IDLType.Tags.int16, IDLType.Tags.uint16,
+                   IDLType.Tags.int32]:
+            return "ArgType::Integer"
+        if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
+                   IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+                   IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
+            # These all use JS_NumberValue, which can return int or double.
+            # But TI treats "double" as meaning "int or double", so we're
+            # good to return JSVAL_TYPE_DOUBLE here.
+            return "ArgType::Double"
+        if tag != IDLType.Tags.uint32:
+            raise TypeError("No idea what type " + str(t) + " is.")
+        # uint32 is sometimes int and sometimes double.
+        return "ArgType::Double"
+
+    @staticmethod
+    def getSingleArgType(existingType, t):
+        type = CGMemberJITInfo.getJSArgType(t)
+        if existingType == "":
+            # First element of the list; just return its type
+            return type
+
+        if type == existingType:
+            return existingType
+        return "%s | %s" % (existingType, type)
+
 
 def getEnumValueName(value):
     # Some enum values can be empty strings.  Others might have weird
