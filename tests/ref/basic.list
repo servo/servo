@@ -246,7 +246,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
 == position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 == position_abs_height_width_a.html position_abs_height_width_b.html
-== position_abs_left_a.html position_abs_left_b.html
 == position_abs_margin_top_percentage_a.html position_abs_margin_top_percentage_b.html
 # commented out because multiple layers don't work with reftests --pcwalton
 # == position_fixed_a.html position_fixed_b.html
