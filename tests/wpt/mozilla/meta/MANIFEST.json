@@ -795,6 +795,18 @@
             "url": "/_mozilla/css/text_shadow_simple_a.html"
           }
         ],
+        "css/text_transform_capitalize_a.html": [
+          {
+            "path": "css/text_transform_capitalize_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_transform_capitalize_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_transform_capitalize_a.html"
+          }
+        ],
         "css/text_transform_lowercase_a.html": [
           {
             "path": "css/text_transform_lowercase_a.html",
@@ -2586,6 +2598,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_shadow_simple_a.html"
+        }
+      ],
+      "css/text_transform_capitalize_a.html": [
+        {
+          "path": "css/text_transform_capitalize_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_transform_capitalize_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_transform_capitalize_a.html"
         }
       ],
       "css/text_transform_lowercase_a.html": [
