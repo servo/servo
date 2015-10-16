@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/percentage_height_float_a.html": [
+          {
+            "path": "css/percentage_height_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/percentage_height_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/percentage_height_float_a.html"
+          }
+        ],
         "css/percentage_height_root.html": [
           {
             "path": "css/percentage_height_root.html",
@@ -3286,6 +3298,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/percentage_height_float_a.html": [
+        {
+          "path": "css/percentage_height_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/percentage_height_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/percentage_height_float_a.html"
         }
       ],
       "css/percentage_height_root.html": [
