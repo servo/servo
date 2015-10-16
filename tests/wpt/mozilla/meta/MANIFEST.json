@@ -707,6 +707,18 @@
             "url": "/_mozilla/css/percentage_height_root.html"
           }
         ],
+        "css/percentage_width_inline_block_a.html": [
+          {
+            "path": "css/percentage_width_inline_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/percentage_width_inline_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/percentage_width_inline_block_a.html"
+          }
+        ],
         "css/png_rgba_colorspace_a.html": [
           {
             "path": "css/png_rgba_colorspace_a.html",
@@ -3322,6 +3334,18 @@
             ]
           ],
           "url": "/_mozilla/css/percentage_height_root.html"
+        }
+      ],
+      "css/percentage_width_inline_block_a.html": [
+        {
+          "path": "css/percentage_width_inline_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/percentage_width_inline_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/percentage_width_inline_block_a.html"
         }
       ],
       "css/png_rgba_colorspace_a.html": [
