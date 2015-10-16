@@ -255,7 +255,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == position_abs_width_percentage_a.html position_abs_width_percentage_b.html
 # commented out because multiple layers don't work with reftests --pcwalton
 # == position_fixed_a.html position_fixed_b.html
-== position_fixed_background_color_a.html position_fixed_background_color_b.html
 # == position_fixed_simple_a.html position_fixed_simple_b.html
 # == position_fixed_static_y_a.html position_fixed_static_y_b.html
 == position_fixed_tile_edge.html position_fixed_tile_edge_ref.html

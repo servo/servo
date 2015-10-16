@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_fixed_background_color_a.html": [
+          {
+            "path": "css/position_fixed_background_color_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_background_color_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_background_color_a.html"
+          }
+        ],
         "css/position_fixed_overflow_a.html": [
           {
             "path": "css/position_fixed_overflow_a.html",
@@ -3142,6 +3154,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_fixed_background_color_a.html": [
+        {
+          "path": "css/position_fixed_background_color_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_background_color_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_background_color_a.html"
         }
       ],
       "css/position_fixed_overflow_a.html": [
