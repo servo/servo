@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/position_abs_replaced_simple_a.html"
           }
         ],
+        "css/position_abs_static_y_a.html": [
+          {
+            "path": "css/position_abs_static_y_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_abs_static_y_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_abs_static_y_a.html"
+          }
+        ],
         "css/position_abs_width_percentage_a.html": [
           {
             "path": "css/position_abs_width_percentage_a.html",
@@ -3190,6 +3202,18 @@
             ]
           ],
           "url": "/_mozilla/css/position_abs_replaced_simple_a.html"
+        }
+      ],
+      "css/position_abs_static_y_a.html": [
+        {
+          "path": "css/position_abs_static_y_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_abs_static_y_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_abs_static_y_a.html"
         }
       ],
       "css/position_abs_width_percentage_a.html": [
