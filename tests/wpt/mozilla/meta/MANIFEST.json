@@ -647,6 +647,18 @@
             "url": "/_mozilla/css/border_code_tag.html"
           }
         ],
+        "css/border_collapse_missing_cell_a.html": [
+          {
+            "path": "css/border_collapse_missing_cell_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_collapse_missing_cell_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -2818,6 +2830,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_code_tag.html"
+        }
+      ],
+      "css/border_collapse_missing_cell_a.html": [
+        {
+          "path": "css/border_collapse_missing_cell_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_collapse_missing_cell_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
         }
       ],
       "css/class-namespaces.html": [
