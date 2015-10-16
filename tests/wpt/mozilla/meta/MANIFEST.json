@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_expansion_to_fit_a.html": [
+          {
+            "path": "css/table_expansion_to_fit_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_expansion_to_fit_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+          }
+        ],
         "css/table_row_direction_a.html": [
           {
             "path": "css/table_row_direction_a.html",
@@ -2334,6 +2346,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_expansion_to_fit_a.html": [
+        {
+          "path": "css/table_expansion_to_fit_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_expansion_to_fit_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_expansion_to_fit_a.html"
         }
       ],
       "css/table_row_direction_a.html": [
