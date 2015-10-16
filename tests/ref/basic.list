@@ -324,7 +324,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == table_width_attribute_a.html table_width_attribute_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
 == text_align_justify_a.html text_align_justify_ref.html
-== text_align_rtl.html text_align_rtl_ref.html
 == text_align_start_end.html text_align_start_end_ref.html
 == text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
