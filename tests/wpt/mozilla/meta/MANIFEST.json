@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_containing_block_a.html": [
+          {
+            "path": "css/table_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_containing_block_a.html"
+          }
+        ],
         "css/table_expansion_to_fit_a.html": [
           {
             "path": "css/table_expansion_to_fit_a.html",
@@ -2490,6 +2502,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_containing_block_a.html": [
+        {
+          "path": "css/table_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_containing_block_a.html"
         }
       ],
       "css/table_expansion_to_fit_a.html": [
