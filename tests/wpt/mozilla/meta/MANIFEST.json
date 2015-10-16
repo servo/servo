@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/root_pseudo_a.html": [
+          {
+            "path": "css/root_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_pseudo_a.html"
+          }
+        ],
         "css/rtl_body.html": [
           {
             "path": "css/rtl_body.html",
@@ -2926,6 +2938,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/root_pseudo_a.html": [
+        {
+          "path": "css/root_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_pseudo_a.html"
         }
       ],
       "css/rtl_body.html": [
