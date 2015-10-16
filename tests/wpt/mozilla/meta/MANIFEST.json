@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/root_height_a.html": [
+          {
+            "path": "css/root_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/root_height_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/root_height_a.html"
+          }
+        ],
         "css/root_margin_collapse_a.html": [
           {
             "path": "css/root_margin_collapse_a.html",
@@ -2950,6 +2962,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/root_height_a.html": [
+        {
+          "path": "css/root_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/root_height_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/root_height_a.html"
         }
       ],
       "css/root_margin_collapse_a.html": [
