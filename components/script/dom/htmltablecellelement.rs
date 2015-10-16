@@ -9,13 +9,12 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
-use std::cmp::max;
 use string_cache::Atom;
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
@@ -25,7 +24,6 @@ const DEFAULT_COLSPAN: u32 = 1;
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
-    colspan: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -37,7 +35,6 @@ impl HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             background_color: Cell::new(None),
-            colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
@@ -89,7 +86,9 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
 
     fn get_colspan(&self) -> Option<u32> {
         unsafe {
-            (*self.unsafe_get()).colspan.get()
+            (*ElementCast::from_layout_js(self).unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("colspan"))
+                .map(AttrValue::as_uint)
         }
     }
 
@@ -111,11 +110,6 @@ impl VirtualMethods for HTMLTableCellElement {
             atom!(bgcolor) => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
-                }));
-            },
-            atom!(colspan) => {
-                self.colspan.set(mutation.new_value(attr).map(|value| {
-                    max(DEFAULT_COLSPAN, value.as_uint())
                 }));
             },
             atom!(width) => {
