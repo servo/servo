@@ -571,6 +571,30 @@
             "url": "/_mozilla/css/block_image.html"
           }
         ],
+        "css/block_replaced_content_a.html": [
+          {
+            "path": "css/block_replaced_content_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_replaced_content_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_replaced_content_a.html"
+          }
+        ],
+        "css/block_replaced_content_b.html": [
+          {
+            "path": "css/block_replaced_content_b.html",
+            "references": [
+              [
+                "/_mozilla/css/block_replaced_content_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_replaced_content_b.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -2666,6 +2690,30 @@
             ]
           ],
           "url": "/_mozilla/css/block_image.html"
+        }
+      ],
+      "css/block_replaced_content_a.html": [
+        {
+          "path": "css/block_replaced_content_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_replaced_content_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_replaced_content_a.html"
+        }
+      ],
+      "css/block_replaced_content_b.html": [
+        {
+          "path": "css/block_replaced_content_b.html",
+          "references": [
+            [
+              "/_mozilla/css/block_replaced_content_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_replaced_content_b.html"
         }
       ],
       "css/class-namespaces.html": [
