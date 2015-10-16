@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/pseudo_content_with_layers.html": [
+          {
+            "path": "css/pseudo_content_with_layers.html",
+            "references": [
+              [
+                "/_mozilla/css/pseudo_content_with_layers_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pseudo_content_with_layers.html"
+          }
+        ],
         "css/pseudo_element_a.html": [
           {
             "path": "css/pseudo_element_a.html",
@@ -3010,6 +3022,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/pseudo_content_with_layers.html": [
+        {
+          "path": "css/pseudo_content_with_layers.html",
+          "references": [
+            [
+              "/_mozilla/css/pseudo_content_with_layers_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pseudo_content_with_layers.html"
         }
       ],
       "css/pseudo_element_a.html": [

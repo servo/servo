@@ -271,7 +271,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == position_relative_vertical_percentage_overflow_a.html position_relative_vertical_percentage_overflow_ref.html
 == pre_ignorable_whitespace_a.html pre_ignorable_whitespace_ref.html
 == pre_with_tab.html pre_with_tab_ref.html
-== pseudo_content_with_layers.html pseudo_content_with_layers_ref.html
 == root_display_inline_a.html root_display_ref.html
 == root_display_without_style_a.html root_display_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
