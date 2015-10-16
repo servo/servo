@@ -132,6 +132,8 @@ pub struct WebSocket {
     url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
+    buffered_amount: Cell<u32>,
+    clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
@@ -172,6 +174,8 @@ impl WebSocket {
             url: url,
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(WebSocketRequestState::Connecting),
+            buffered_amount: Cell::new(0),
+            clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
             sender: RefCell::new(None),
             full: Cell::new(false),
@@ -314,6 +318,11 @@ impl WebSocketMethods for WebSocket {
         self.ready_state.get() as u16
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    fn BufferedAmount(&self) -> u32 {
+        self.buffered_amount.get()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
     fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
@@ -340,14 +349,28 @@ impl WebSocketMethods for WebSocket {
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
                 "If argument is a string"
           TODO: Need to buffer data
-          TODO: bufferedAmount attribute returns the size of the buffer in bytes -
-                this is a required attribute defined in the websocket.webidl file
           TODO: The send function needs to flag when full by using the following
           self.full.set(true). This needs to be done when the buffer is full
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
+
+        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
+
         let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let global = self.global.root();
+            let task = box BufferedAmountTask {
+                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
+            };
+            let chan = global.r().script_chan();
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
         Ok(())
     }
 
@@ -434,6 +457,24 @@ impl Runnable for ConnectionEstablishedTask {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(EventTargetCast::from_ref(ws.r()));
+    }
+}
+
+struct BufferedAmountTask {
+    addr: Trusted<WebSocket>,
+}
+
+impl Runnable for BufferedAmountTask {
+    // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    //
+    // To be compliant with standards, we need to reset bufferedAmount only when the event loop
+    // reaches step 1.  In our implementation, the bytes will already have been sent on a background
+    // thread.
+    fn handler(self: Box<Self>) {
+        let ws = self.addr.root();
+
+        ws.buffered_amount.set(0);
+        ws.clearing_buffer.set(false);
     }
 }
 
