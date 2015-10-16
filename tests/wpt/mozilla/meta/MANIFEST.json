@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/style_is_in_doc.html": [
+          {
+            "path": "css/style_is_in_doc.html",
+            "references": [
+              [
+                "/_mozilla/css/style_is_in_doc_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/style_is_in_doc.html"
+          }
+        ],
         "css/submit_focus_a.html": [
           {
             "path": "css/submit_focus_a.html",
@@ -2598,6 +2610,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/style_is_in_doc.html": [
+        {
+          "path": "css/style_is_in_doc.html",
+          "references": [
+            [
+              "/_mozilla/css/style_is_in_doc_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/style_is_in_doc.html"
         }
       ],
       "css/submit_focus_a.html": [
