@@ -555,6 +555,110 @@
             "url": "/_mozilla/css/block_formatting_context_with_margin_a.html"
           }
         ],
+        "css/block_image.html": [
+          {
+            "path": "css/block_image.html",
+            "references": [
+              [
+                "/_mozilla/css/500x300_green.html",
+                "=="
+              ],
+              [
+                "/_mozilla/css/noteq_500x300_white.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/block_image.html"
+          }
+        ],
+        "css/block_replaced_content_a.html": [
+          {
+            "path": "css/block_replaced_content_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_replaced_content_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_replaced_content_a.html"
+          }
+        ],
+        "css/block_replaced_content_b.html": [
+          {
+            "path": "css/block_replaced_content_b.html",
+            "references": [
+              [
+                "/_mozilla/css/block_replaced_content_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_replaced_content_b.html"
+          }
+        ],
+        "css/blur_a.html": [
+          {
+            "path": "css/blur_a.html",
+            "references": [
+              [
+                "/_mozilla/css/blur_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/blur_a.html"
+          }
+        ],
+        "css/border_black_groove.html": [
+          {
+            "path": "css/border_black_groove.html",
+            "references": [
+              [
+                "/_mozilla/css/border_black_solid.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_black_groove.html"
+          }
+        ],
+        "css/border_black_ridge.html": [
+          {
+            "path": "css/border_black_ridge.html",
+            "references": [
+              [
+                "/_mozilla/css/border_black_groove.html",
+                "!="
+              ],
+              [
+                "/_mozilla/css/border_black_solid.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_black_ridge.html"
+          }
+        ],
+        "css/border_code_tag.html": [
+          {
+            "path": "css/border_code_tag.html",
+            "references": [
+              [
+                "/_mozilla/css/border_code_tag_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_code_tag.html"
+          }
+        ],
+        "css/border_collapse_missing_cell_a.html": [
+          {
+            "path": "css/border_collapse_missing_cell_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_collapse_missing_cell_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -2634,6 +2738,110 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_with_margin_a.html"
+        }
+      ],
+      "css/block_image.html": [
+        {
+          "path": "css/block_image.html",
+          "references": [
+            [
+              "/_mozilla/css/500x300_green.html",
+              "=="
+            ],
+            [
+              "/_mozilla/css/noteq_500x300_white.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/block_image.html"
+        }
+      ],
+      "css/block_replaced_content_a.html": [
+        {
+          "path": "css/block_replaced_content_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_replaced_content_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_replaced_content_a.html"
+        }
+      ],
+      "css/block_replaced_content_b.html": [
+        {
+          "path": "css/block_replaced_content_b.html",
+          "references": [
+            [
+              "/_mozilla/css/block_replaced_content_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_replaced_content_b.html"
+        }
+      ],
+      "css/blur_a.html": [
+        {
+          "path": "css/blur_a.html",
+          "references": [
+            [
+              "/_mozilla/css/blur_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/blur_a.html"
+        }
+      ],
+      "css/border_black_groove.html": [
+        {
+          "path": "css/border_black_groove.html",
+          "references": [
+            [
+              "/_mozilla/css/border_black_solid.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_black_groove.html"
+        }
+      ],
+      "css/border_black_ridge.html": [
+        {
+          "path": "css/border_black_ridge.html",
+          "references": [
+            [
+              "/_mozilla/css/border_black_groove.html",
+              "!="
+            ],
+            [
+              "/_mozilla/css/border_black_solid.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_black_ridge.html"
+        }
+      ],
+      "css/border_code_tag.html": [
+        {
+          "path": "css/border_code_tag.html",
+          "references": [
+            [
+              "/_mozilla/css/border_code_tag_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_code_tag.html"
+        }
+      ],
+      "css/border_collapse_missing_cell_a.html": [
+        {
+          "path": "css/border_collapse_missing_cell_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_collapse_missing_cell_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
         }
       ],
       "css/class-namespaces.html": [
