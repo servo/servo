@@ -97,6 +97,7 @@
 		* Unit tests using rustc’s built-in test harness.
 	* wpt
 		* W3C web-platform-tests and csswg-tests along with tools to run them and expected failures.
+
 # Major dependencies
 * <https://github.com/servo/rust-mozjs/>, <https://github.com/servo/mozjs/>: bindings to SpiderMonkey
 * <https://github.com/hyperium/hyper/>: an HTTP implementation
