@@ -297,7 +297,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == rtl_simple.html rtl_simple_ref.html
 == rtl_table_a.html rtl_table_ref.html
 == servo_center_a.html servo_center_ref.html
-== setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
