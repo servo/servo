@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/rtl_simple.html": [
+          {
+            "path": "css/rtl_simple.html",
+            "references": [
+              [
+                "/_mozilla/css/rtl_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/rtl_simple.html"
+          }
+        ],
         "css/rtl_table_a.html": [
           {
             "path": "css/rtl_table_a.html",
@@ -2878,6 +2890,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/rtl_simple.html": [
+        {
+          "path": "css/rtl_simple.html",
+          "references": [
+            [
+              "/_mozilla/css/rtl_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/rtl_simple.html"
         }
       ],
       "css/rtl_table_a.html": [
