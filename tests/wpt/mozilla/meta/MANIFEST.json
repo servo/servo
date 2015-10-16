@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/outset.html": [
+          {
+            "path": "css/outset.html",
+            "references": [
+              [
+                "/_mozilla/css/outset_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/outset.html"
+          }
+        ],
         "css/overflow_auto_stacking_order_a.html": [
           {
             "path": "css/overflow_auto_stacking_order_a.html",
@@ -3406,6 +3418,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/outset.html": [
+        {
+          "path": "css/outset.html",
+          "references": [
+            [
+              "/_mozilla/css/outset_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/outset.html"
         }
       ],
       "css/overflow_auto_stacking_order_a.html": [
