@@ -5,7 +5,7 @@
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{ProgressSender, send_error, start_sending, start_sending_sniffed};
+use resource_task::{ProgressSender, send_error, start_sending_sniffed, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
@@ -52,19 +52,28 @@ pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEC
             Ok(file_path) => {
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
-                        let metadata = Metadata::default(url);
-                        let res = read_block(reader);
-                        let (res, progress_chan) = match res {
+                        match read_block(reader) {
                             Ok(ReadStatus::Partial(buf)) => {
+                                let metadata = Metadata::default(url);
                                 let progress_chan = start_sending_sniffed(senders, metadata,
                                                                           classifier, &buf);
                                 progress_chan.send(Payload(buf)).unwrap();
-                                (read_all(reader, &progress_chan), progress_chan)
+                                let res = read_all(reader, &progress_chan);
+                                let _ = progress_chan.send(Done(res));
                             }
-                            Ok(ReadStatus::EOF) | Err(_) =>
-                                (res.map(|_| ()), start_sending(senders, metadata)),
+                            Ok(ReadStatus::EOF) => {
+                                let metadata = Metadata::default(url);
+                                if let Ok(chan) = start_sending_sniffed_opt(senders,
+                                                                            metadata,
+                                                                            classifier,
+                                                                            &[]) {
+                                    let _ = chan.send(Done(Ok(())));
+                                }
+                            }
+                            Err(e) => {
+                                send_error(url, e, senders);
+                            }
                         };
-                        progress_chan.send(Done(res)).unwrap();
                     }
                     Err(e) => {
                         send_error(url, e.description().to_owned(), senders);

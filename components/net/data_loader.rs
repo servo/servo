@@ -6,21 +6,21 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{send_error, start_sending};
+use resource_task::{send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;
 
-pub fn factory(load_data: LoadData, senders: LoadConsumer, _classifier: Arc<MIMEClassifier>) {
+pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, senders)
+    load(load_data, senders, classifier)
 }
 
-pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
+pub fn load(load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
@@ -62,27 +62,25 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
         content_type = Some(Mime(TopLevel::Text, SubLevel::Plain,
                                  vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))));
     }
-    let mut metadata = Metadata::default(url);
-    metadata.set_content_type(content_type.as_ref());
 
-    let progress_chan = start_sending(start_chan, metadata);
     let bytes = percent_decode(parts[1].as_bytes());
 
-    if is_base64 {
+    let bytes = if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.from_base64() {
-            Err(..) => {
-                progress_chan.send(Done(Err("non-base64 data uri".to_owned()))).unwrap();
-            }
-            Ok(data) => {
-                progress_chan.send(Payload(data)).unwrap();
-                progress_chan.send(Done(Ok(()))).unwrap();
-            }
+            Err(..) => return send_error(url, "non-base64 data uri".to_owned(), start_chan),
+            Ok(data) => data,
         }
     } else {
-        progress_chan.send(Payload(bytes)).unwrap();
-        progress_chan.send(Done(Ok(()))).unwrap();
+        bytes
+    };
+
+    let mut metadata = Metadata::default(url);
+    metadata.set_content_type(content_type.as_ref());
+    if let Ok(chan) = start_sending_sniffed_opt(start_chan, metadata, classifier, &bytes) {
+        let _ = chan.send(Payload(bytes));
+        let _ = chan.send(Done(Ok(())));
     }
 }
