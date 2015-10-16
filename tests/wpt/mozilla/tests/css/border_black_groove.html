@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+  <link rel=mismatch href=border_black_solid.html>
   <style>
     .box {
       width: 100px;
@@ -8,13 +9,13 @@
       margin: 10px;
       border-width: 20px;
       border-color: black;
-      border-style: ridge;
+      border-style: groove;
     }
   </style>
   </head>
 <body>
   <!-- Test mixed border styles. Expect a square with borders with
-       2 colors (lighter/dark), it fails if it has a solid dark border.
+       2 colors (dark/lighter), it fails if it has a solid dark border.
     -->
   <div class="box"></div>
 </body>

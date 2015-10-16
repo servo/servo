@@ -607,6 +607,34 @@
             "url": "/_mozilla/css/blur_a.html"
           }
         ],
+        "css/border_black_groove.html": [
+          {
+            "path": "css/border_black_groove.html",
+            "references": [
+              [
+                "/_mozilla/css/border_black_solid.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_black_groove.html"
+          }
+        ],
+        "css/border_black_ridge.html": [
+          {
+            "path": "css/border_black_ridge.html",
+            "references": [
+              [
+                "/_mozilla/css/border_black_groove.html",
+                "!="
+              ],
+              [
+                "/_mozilla/css/border_black_solid.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_black_ridge.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -2738,6 +2766,34 @@
             ]
           ],
           "url": "/_mozilla/css/blur_a.html"
+        }
+      ],
+      "css/border_black_groove.html": [
+        {
+          "path": "css/border_black_groove.html",
+          "references": [
+            [
+              "/_mozilla/css/border_black_solid.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_black_groove.html"
+        }
+      ],
+      "css/border_black_ridge.html": [
+        {
+          "path": "css/border_black_ridge.html",
+          "references": [
+            [
+              "/_mozilla/css/border_black_groove.html",
+              "!="
+            ],
+            [
+              "/_mozilla/css/border_black_solid.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_black_ridge.html"
         }
       ],
       "css/class-namespaces.html": [

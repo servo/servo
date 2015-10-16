@@ -12,9 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-!= border_black_groove.html border_black_solid.html
-!= border_black_ridge.html border_black_groove.html
-!= border_black_ridge.html border_black_solid.html
 == border_code_tag.html border_code_tag_ref.html
 == border_collapse_missing_cell_a.html border_collapse_missing_cell_ref.html
 == border_collapse_simple_a.html border_collapse_simple_ref.html
