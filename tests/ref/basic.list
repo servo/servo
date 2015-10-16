@@ -273,7 +273,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == pre_with_tab.html pre_with_tab_ref.html
 == pseudo_content_with_layers.html pseudo_content_with_layers_ref.html
 == pseudo_element_a.html pseudo_element_b.html
-== pseudo_inherit.html pseudo_inherit_ref.html
 == root_display_inline_a.html root_display_ref.html
 == root_display_without_style_a.html root_display_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html

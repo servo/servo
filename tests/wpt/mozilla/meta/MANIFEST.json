@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/pseudo_inherit.html": [
+          {
+            "path": "css/pseudo_inherit.html",
+            "references": [
+              [
+                "/_mozilla/css/pseudo_inherit_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pseudo_inherit.html"
+          }
+        ],
         "css/quotes_none_a.html": [
           {
             "path": "css/quotes_none_a.html",
@@ -2986,6 +2998,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/pseudo_inherit.html": [
+        {
+          "path": "css/pseudo_inherit.html",
+          "references": [
+            [
+              "/_mozilla/css/pseudo_inherit_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pseudo_inherit.html"
         }
       ],
       "css/quotes_none_a.html": [
