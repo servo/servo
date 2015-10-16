@@ -324,7 +324,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
 != text_overflow_a.html text_overflow_ref.html
 == text_transform_capitalize_a.html text_transform_capitalize_ref.html
-== transform_3d.html transform_3d_ref.html
 flaky_cpu,prefs:"layout.writing-mode.enabled" == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == viewport_meta.html viewport_rule_ref.html
 resolution=800x600 == viewport_percentage_vmin_vmax.html viewport_percentage_vmin_vmax_a.html
