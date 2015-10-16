@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/pre_with_tab.html": [
+          {
+            "path": "css/pre_with_tab.html",
+            "references": [
+              [
+                "/_mozilla/css/pre_with_tab_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pre_with_tab.html"
+          }
+        ],
         "css/pseudo_content_with_layers.html": [
           {
             "path": "css/pseudo_content_with_layers.html",
@@ -3022,6 +3034,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/pre_with_tab.html": [
+        {
+          "path": "css/pre_with_tab.html",
+          "references": [
+            [
+              "/_mozilla/css/pre_with_tab_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pre_with_tab.html"
         }
       ],
       "css/pseudo_content_with_layers.html": [
