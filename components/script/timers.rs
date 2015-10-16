@@ -21,7 +21,6 @@ use js::jsval::{JSVal, UndefinedValue};
 use num::traits::Saturating;
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
-use std::collections::BinaryHeap;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -37,7 +36,7 @@ pub struct ActiveTimers {
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: Sender<TimerEventRequest>,
     next_timer_handle: Cell<TimerHandle>,
-    timers: DOMRefCell<BinaryHeap<Timer>>,
+    timers: DOMRefCell<Vec<Timer>>,
     suspended_since: Cell<Option<MsDuration>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
@@ -81,7 +80,6 @@ pub enum IsInterval {
 
 impl Ord for Timer {
     fn cmp(&self, other: &Timer) -> Ordering {
-        // TimerEntries are stored in a max heap. => earlier is greater
         match self.next_call.cmp(&other.next_call).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
             res @ _ => res
@@ -123,7 +121,7 @@ impl ActiveTimers {
             timer_event_chan: timer_event_chan,
             scheduler_chan: scheduler_chan,
             next_timer_handle: Cell::new(TimerHandle(1)),
-            timers: DOMRefCell::new(BinaryHeap::new()),
+            timers: DOMRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
             suspension_offset: Cell::new(Length::new(0)),
             expected_event_id: Cell::new(TimerEventId(0)),
@@ -167,9 +165,9 @@ impl ActiveTimers {
             timer.arguments.get_mut(i).unwrap().set(item.get());
         }
 
-        self.timers.borrow_mut().push(timer);
-        let TimerHandle(max_handle) = self.timers.borrow().peek().unwrap().handle;
+        self.insert_timer(timer);
 
+        let TimerHandle(max_handle) = self.timers.borrow().last().unwrap().handle;
         if max_handle == new_handle {
             self.schedule_timer_call();
         }
@@ -179,15 +177,11 @@ impl ActiveTimers {
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
         let handle = TimerHandle(handle);
-        let was_first = self.is_next_timer(handle);
+        let was_next = self.is_next_timer(handle);
 
-        {
-            let mut timers = self.timers.borrow_mut();
-            let new_timers = timers.drain().filter(|t| t.handle != handle).collect();
-            *timers = new_timers;
-        }
+        self.timers.borrow_mut().retain(|t| t.handle != handle);
 
-        if was_first {
+        if was_next {
             self.invalidate_expected_event_id();
             self.schedule_timer_call();
         }
@@ -205,13 +199,13 @@ impl ActiveTimers {
         let base_time = self.base_time();
 
         // Since the event id was the expected one, at least one timer should be due.
-        assert!(base_time >= self.timers.borrow().peek().unwrap().next_call);
+        assert!(base_time >= self.timers.borrow().last().unwrap().next_call);
 
         loop {
             let timer = {
                 let mut timers = self.timers.borrow_mut();
 
-                if timers.is_empty() || timers.peek().unwrap().next_call > base_time {
+                if timers.is_empty() || timers.last().unwrap().next_call > base_time {
                     break;
                 }
 
@@ -241,7 +235,7 @@ impl ActiveTimers {
                 timer.nesting_level += 1;
                 timer.duration = self.bound_duration(timer.duration);
                 timer.next_call = base_time + timer.duration;
-                self.timers.borrow_mut().push(timer);
+                self.insert_timer(timer);
             }
 
             self.nesting_level.set(0);
@@ -250,8 +244,14 @@ impl ActiveTimers {
         self.schedule_timer_call();
     }
 
+    fn insert_timer(&self, timer: Timer) {
+        let mut timers = self.timers.borrow_mut();
+        let insertion_index = timers.binary_search(&timer).err().unwrap();
+        timers.insert(insertion_index, timer);
+    }
+
     fn is_next_timer(&self, handle: TimerHandle) -> bool {
-        match self.timers.borrow().peek() {
+        match self.timers.borrow().last() {
             None => false,
             Some(ref max_timer) => max_timer.handle == handle
         }
@@ -262,7 +262,7 @@ impl ActiveTimers {
 
         let timers = self.timers.borrow();
 
-        if let Some(timer) = timers.peek() {
+        if let Some(timer) = timers.last() {
             let expected_event_id = self.invalidate_expected_event_id();
 
             let delay = Length::new(timer.next_call.get().saturating_sub(precise_time_ms().get()));

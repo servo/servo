@@ -66,7 +66,7 @@ use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell, RefCell};
 use std::collections::hash_state::HashState;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::intrinsics::return_address;
@@ -258,15 +258,6 @@ impl<K, V, S> JSTraceable for HashMap<K, V, S>
         for (k, v) in &*self {
             k.trace(trc);
             v.trace(trc);
-        }
-    }
-}
-
-impl<T: JSTraceable + Ord> JSTraceable for BinaryHeap<T> {
-    #[inline]
-    fn trace(&self, trc: *mut JSTracer) {
-        for e in self.iter() {
-            e.trace(trc);
         }
     }
 }
