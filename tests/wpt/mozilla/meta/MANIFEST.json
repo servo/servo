@@ -615,6 +615,18 @@
             "url": "/_mozilla/css/table_expansion_to_fit_a.html"
           }
         ],
+        "css/table_intrinsic_style_specified_width_a.html": [
+          {
+            "path": "css/table_intrinsic_style_specified_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_intrinsic_style_specified_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
+          }
+        ],
         "css/table_margin_auto_a.html": [
           {
             "path": "css/table_margin_auto_a.html",
@@ -2478,6 +2490,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+        }
+      ],
+      "css/table_intrinsic_style_specified_width_a.html": [
+        {
+          "path": "css/table_intrinsic_style_specified_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_intrinsic_style_specified_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
         }
       ],
       "css/table_margin_auto_a.html": [
