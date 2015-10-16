@@ -283,7 +283,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == root_pseudo_a.html root_pseudo_b.html
 == rtl_body.html rtl_body_ref.html
 == rtl_float_a.html rtl_float_ref.html
-== rtl_margin_a.html rtl_margin_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
