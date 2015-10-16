@@ -35,9 +35,9 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
-use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, overflow_x};
-use style::computed_values::{position, text_align, text_decoration, transform_style, white_space};
-use style::computed_values::{word_break, z_index};
+use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
+use style::computed_values::{overflow_x, position, text_align, text_decoration, transform_style};
+use style::computed_values::{white_space, word_break, z_index};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -2163,6 +2163,25 @@ impl Fragment {
             (position::T::static_, _, _, _) => {
                 false
             }
+        }
+    }
+
+    // Get the effective z-index of this fragment. Z-indices only apply to positioned element
+    // per CSS 2 9.9.1 (http://www.w3.org/TR/CSS2/visuren.html#z-index), so this value may differ
+    // from the value specified in the style.
+    pub fn effective_z_index(&self) -> i32 {
+        match self.style().get_box().position {
+            position::T::static_ => {},
+            _ => return self.style().get_box().z_index.number_or_zero(),
+        }
+
+        if self.style().get_effects().transform.0.is_some() {
+            return self.style().get_box().z_index.number_or_zero();
+        }
+
+        match self.style().get_box().display {
+            display::T::flex => self.style().get_box().z_index.number_or_zero(),
+            _ => 0,
         }
     }
 
