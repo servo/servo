@@ -244,7 +244,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
 == png_rgba_colorspace_a.html png_rgba_colorspace_b.html
-== position_abs_cb_with_non_cb_kid_a.html position_abs_cb_with_non_cb_kid_b.html
 # commented out because multiple layers don't work with reftests --pcwalton
 # == position_fixed_a.html position_fixed_b.html
 # == position_fixed_simple_a.html position_fixed_simple_b.html
