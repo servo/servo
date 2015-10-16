@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_row_direction_a.html": [
+          {
+            "path": "css/table_row_direction_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_row_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_row_direction_a.html"
+          }
+        ],
         "css/table_specified_width_a.html": [
           {
             "path": "css/table_specified_width_a.html",
@@ -2286,6 +2298,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_row_direction_a.html": [
+        {
+          "path": "css/table_row_direction_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_row_direction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_row_direction_a.html"
         }
       ],
       "css/table_specified_width_a.html": [
