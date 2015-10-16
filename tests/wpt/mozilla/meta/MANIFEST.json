@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_abs_height_width_a.html": [
+          {
+            "path": "css/position_abs_height_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_abs_height_width_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_abs_height_width_a.html"
+          }
+        ],
         "css/position_abs_left_a.html": [
           {
             "path": "css/position_abs_left_a.html",
@@ -3238,6 +3250,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_abs_height_width_a.html": [
+        {
+          "path": "css/position_abs_height_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_abs_height_width_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_abs_height_width_a.html"
         }
       ],
       "css/position_abs_left_a.html": [
