@@ -639,6 +639,18 @@
             "url": "/_mozilla/css/text_shadow_blur_a.html"
           }
         ],
+        "css/text_shadow_decorations_a.html": [
+          {
+            "path": "css/text_shadow_decorations_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_shadow_decorations_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_shadow_decorations_a.html"
+          }
+        ],
         "css/text_shadow_simple_a.html": [
           {
             "path": "css/text_shadow_simple_a.html",
@@ -2238,6 +2250,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_shadow_blur_a.html"
+        }
+      ],
+      "css/text_shadow_decorations_a.html": [
+        {
+          "path": "css/text_shadow_decorations_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_shadow_decorations_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_shadow_decorations_a.html"
         }
       ],
       "css/text_shadow_simple_a.html": [
