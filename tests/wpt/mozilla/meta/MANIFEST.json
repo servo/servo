@@ -699,6 +699,18 @@
             "url": "/_mozilla/css/text_align_start_end.html"
           }
         ],
+        "css/text_decoration_cached.html": [
+          {
+            "path": "css/text_decoration_cached.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_cached_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_cached.html"
+          }
+        ],
         "css/text_indent_a.html": [
           {
             "path": "css/text_indent_a.html",
@@ -2454,6 +2466,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_align_start_end.html"
+        }
+      ],
+      "css/text_decoration_cached.html": [
+        {
+          "path": "css/text_decoration_cached.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_cached_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_cached.html"
         }
       ],
       "css/text_indent_a.html": [
