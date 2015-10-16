@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from WebIDL import IDLInterface
+from WebIDL import IDLExternalInterface, IDLInterface, WebIDLError
 
 
 class Configuration:
@@ -23,6 +23,11 @@ class Configuration:
         self.interfaces = {}
         self.maxProtoChainLength = 0
         for thing in parseData:
+            # Servo does not support external interfaces.
+            if isinstance(thing, IDLExternalInterface):
+                raise WebIDLError("Servo does not support external interfaces.",
+                                  [thing.location])
+
             # Some toplevel things are sadly types, and those have an
             # isInterface that doesn't mean the same thing as IDLObject's
             # isInterface()...
@@ -169,6 +174,7 @@ class Descriptor(DescriptorProvider):
         self.concreteType = ifaceName
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
+        self.abstract = desc.get('abstract', False)
         self.proxy = False
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
@@ -336,6 +342,10 @@ class Descriptor(DescriptorProvider):
 
 
 # Some utility methods
+def getModuleFromObject(object):
+    return object.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
+
+
 def getTypesFromDescriptor(descriptor):
     """
     Get all argument and return types for all members of the descriptor

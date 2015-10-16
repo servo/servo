@@ -6,7 +6,6 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Abstract]
 interface EventTarget {
   void addEventListener(DOMString type,
                         EventListener? listener,

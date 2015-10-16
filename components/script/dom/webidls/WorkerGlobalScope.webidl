@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#workerglobalscope
-[Abstract/*, Exposed=Worker*/]
+// [Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
