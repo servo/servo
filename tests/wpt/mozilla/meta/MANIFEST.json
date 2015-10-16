@@ -579,6 +579,30 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/servo_center_a.html": [
+          {
+            "path": "css/servo_center_a.html",
+            "references": [
+              [
+                "/_mozilla/css/servo_center_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/servo_center_a.html"
+          }
+        ],
+        "css/setattribute_id_restyle_a.html": [
+          {
+            "path": "css/setattribute_id_restyle_a.html",
+            "references": [
+              [
+                "/_mozilla/css/setattribute_id_restyle_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/setattribute_id_restyle_a.html"
+          }
+        ],
         "css/setpropertypriority.html": [
           {
             "path": "css/setpropertypriority.html",
@@ -591,6 +615,54 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/simple_inline_absolute_containing_block_a.html": [
+          {
+            "path": "css/simple_inline_absolute_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/simple_inline_absolute_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/simple_inline_absolute_containing_block_a.html"
+          }
+        ],
+        "css/stacked_layers.html": [
+          {
+            "path": "css/stacked_layers.html",
+            "references": [
+              [
+                "/_mozilla/css/stacked_layers_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacked_layers.html"
+          }
+        ],
+        "css/stacking_context_overflow_a.html": [
+          {
+            "path": "css/stacking_context_overflow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_context_overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_context_overflow_a.html"
+          }
+        ],
+        "css/stacking_context_overflow_relative_outline_a.html": [
+          {
+            "path": "css/stacking_context_overflow_relative_outline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_context_overflow_relative_outline_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_context_overflow_relative_outline_a.html"
+          }
+        ],
         "css/stacking_context_rtl.html": [
           {
             "path": "css/stacking_context_rtl.html",
@@ -601,6 +673,462 @@
               ]
             ],
             "url": "/_mozilla/css/stacking_context_rtl.html"
+          }
+        ],
+        "css/style_is_in_doc.html": [
+          {
+            "path": "css/style_is_in_doc.html",
+            "references": [
+              [
+                "/_mozilla/css/style_is_in_doc_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/style_is_in_doc.html"
+          }
+        ],
+        "css/submit_focus_a.html": [
+          {
+            "path": "css/submit_focus_a.html",
+            "references": [
+              [
+                "/_mozilla/css/submit_focus_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/submit_focus_a.html"
+          }
+        ],
+        "css/table_auto_width.html": [
+          {
+            "path": "css/table_auto_width.html",
+            "references": [
+              [
+                "/_mozilla/css/table_auto_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_auto_width.html"
+          }
+        ],
+        "css/table_caption_bottom_a.html": [
+          {
+            "path": "css/table_caption_bottom_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_caption_bottom_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_caption_bottom_a.html"
+          }
+        ],
+        "css/table_caption_top_a.html": [
+          {
+            "path": "css/table_caption_top_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_caption_top_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_caption_top_a.html"
+          }
+        ],
+        "css/table_cell_float_a.html": [
+          {
+            "path": "css/table_cell_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_cell_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_cell_float_a.html"
+          }
+        ],
+        "css/table_center_a.html": [
+          {
+            "path": "css/table_center_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_center_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_center_a.html"
+          }
+        ],
+        "css/table_colspan_fixed_a.html": [
+          {
+            "path": "css/table_colspan_fixed_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_colspan_fixed_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_colspan_fixed_a.html"
+          }
+        ],
+        "css/table_colspan_simple_a.html": [
+          {
+            "path": "css/table_colspan_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_colspan_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_colspan_simple_a.html"
+          }
+        ],
+        "css/table_containing_block_a.html": [
+          {
+            "path": "css/table_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_containing_block_a.html"
+          }
+        ],
+        "css/table_expansion_to_fit_a.html": [
+          {
+            "path": "css/table_expansion_to_fit_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_expansion_to_fit_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+          }
+        ],
+        "css/table_float_translation_a.html": [
+          {
+            "path": "css/table_float_translation_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_float_translation_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_float_translation_a.html"
+          }
+        ],
+        "css/table_intrinsic_style_specified_width_a.html": [
+          {
+            "path": "css/table_intrinsic_style_specified_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_intrinsic_style_specified_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
+          }
+        ],
+        "css/table_margin_auto_a.html": [
+          {
+            "path": "css/table_margin_auto_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_margin_auto_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_margin_auto_a.html"
+          }
+        ],
+        "css/table_padding_a.html": [
+          {
+            "path": "css/table_padding_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_padding_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_padding_a.html"
+          }
+        ],
+        "css/table_percentage_capping_a.html": [
+          {
+            "path": "css/table_percentage_capping_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_percentage_capping_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_percentage_capping_a.html"
+          }
+        ],
+        "css/table_percentage_width_a.html": [
+          {
+            "path": "css/table_percentage_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_percentage_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_percentage_width_a.html"
+          }
+        ],
+        "css/table_preferred_width_a.html": [
+          {
+            "path": "css/table_preferred_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_preferred_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_preferred_width_a.html"
+          }
+        ],
+        "css/table_row_direction_a.html": [
+          {
+            "path": "css/table_row_direction_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_row_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_row_direction_a.html"
+          }
+        ],
+        "css/table_specified_width_a.html": [
+          {
+            "path": "css/table_specified_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_specified_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_specified_width_a.html"
+          }
+        ],
+        "css/table_width_attribute_a.html": [
+          {
+            "path": "css/table_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_width_attribute_a.html"
+          }
+        ],
+        "css/text_align_complex_a.html": [
+          {
+            "path": "css/text_align_complex_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_align_complex_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_align_complex_a.html"
+          }
+        ],
+        "css/text_align_justify_a.html": [
+          {
+            "path": "css/text_align_justify_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_align_justify_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_align_justify_a.html"
+          }
+        ],
+        "css/text_align_rtl.html": [
+          {
+            "path": "css/text_align_rtl.html",
+            "references": [
+              [
+                "/_mozilla/css/text_align_rtl_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_align_rtl.html"
+          }
+        ],
+        "css/text_align_start_end.html": [
+          {
+            "path": "css/text_align_start_end.html",
+            "references": [
+              [
+                "/_mozilla/css/text_align_start_end_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_align_start_end.html"
+          }
+        ],
+        "css/text_decoration_cached.html": [
+          {
+            "path": "css/text_decoration_cached.html",
+            "references": [
+              [
+                "/_mozilla/css/text_decoration_cached_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_decoration_cached.html"
+          }
+        ],
+        "css/text_indent_a.html": [
+          {
+            "path": "css/text_indent_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_indent_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_indent_a.html"
+          }
+        ],
+        "css/text_justify_none_a.html": [
+          {
+            "path": "css/text_justify_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_justify_none_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_justify_none_a.html"
+          }
+        ],
+        "css/text_overflow_basic_a.html": [
+          {
+            "path": "css/text_overflow_basic_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_basic_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_basic_a.html"
+          }
+        ],
+        "css/text_shadow_blur_a.html": [
+          {
+            "path": "css/text_shadow_blur_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_shadow_blur_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_shadow_blur_a.html"
+          }
+        ],
+        "css/text_shadow_decorations_a.html": [
+          {
+            "path": "css/text_shadow_decorations_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_shadow_decorations_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_shadow_decorations_a.html"
+          }
+        ],
+        "css/text_shadow_multiple_shadows_a.html": [
+          {
+            "path": "css/text_shadow_multiple_shadows_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_shadow_multiple_shadows_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_shadow_multiple_shadows_a.html"
+          }
+        ],
+        "css/text_shadow_simple_a.html": [
+          {
+            "path": "css/text_shadow_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_shadow_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_shadow_simple_a.html"
+          }
+        ],
+        "css/text_transform_capitalize_a.html": [
+          {
+            "path": "css/text_transform_capitalize_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_transform_capitalize_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_transform_capitalize_a.html"
+          }
+        ],
+        "css/text_transform_lowercase_a.html": [
+          {
+            "path": "css/text_transform_lowercase_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_transform_lowercase_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_transform_lowercase_a.html"
+          }
+        ],
+        "css/text_transform_none_a.html": [
+          {
+            "path": "css/text_transform_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_transform_none_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_transform_none_a.html"
+          }
+        ],
+        "css/text_transform_uppercase_a.html": [
+          {
+            "path": "css/text_transform_uppercase_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_transform_uppercase_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_transform_uppercase_a.html"
+          }
+        ],
+        "css/transform_3d.html": [
+          {
+            "path": "css/transform_3d.html",
+            "references": [
+              [
+                "/_mozilla/css/transform_3d_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transform_3d.html"
           }
         ],
         "css/transform_optimization.html": [
@@ -2132,6 +2660,30 @@
           "url": "/_mozilla/css/flex_nochild.html"
         }
       ],
+      "css/servo_center_a.html": [
+        {
+          "path": "css/servo_center_a.html",
+          "references": [
+            [
+              "/_mozilla/css/servo_center_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/servo_center_a.html"
+        }
+      ],
+      "css/setattribute_id_restyle_a.html": [
+        {
+          "path": "css/setattribute_id_restyle_a.html",
+          "references": [
+            [
+              "/_mozilla/css/setattribute_id_restyle_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/setattribute_id_restyle_a.html"
+        }
+      ],
       "css/setpropertypriority.html": [
         {
           "path": "css/setpropertypriority.html",
@@ -2144,6 +2696,54 @@
           "url": "/_mozilla/css/setpropertypriority.html"
         }
       ],
+      "css/simple_inline_absolute_containing_block_a.html": [
+        {
+          "path": "css/simple_inline_absolute_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/simple_inline_absolute_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/simple_inline_absolute_containing_block_a.html"
+        }
+      ],
+      "css/stacked_layers.html": [
+        {
+          "path": "css/stacked_layers.html",
+          "references": [
+            [
+              "/_mozilla/css/stacked_layers_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacked_layers.html"
+        }
+      ],
+      "css/stacking_context_overflow_a.html": [
+        {
+          "path": "css/stacking_context_overflow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_context_overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_context_overflow_a.html"
+        }
+      ],
+      "css/stacking_context_overflow_relative_outline_a.html": [
+        {
+          "path": "css/stacking_context_overflow_relative_outline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_context_overflow_relative_outline_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_context_overflow_relative_outline_a.html"
+        }
+      ],
       "css/stacking_context_rtl.html": [
         {
           "path": "css/stacking_context_rtl.html",
@@ -2154,6 +2754,462 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/style_is_in_doc.html": [
+        {
+          "path": "css/style_is_in_doc.html",
+          "references": [
+            [
+              "/_mozilla/css/style_is_in_doc_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/style_is_in_doc.html"
+        }
+      ],
+      "css/submit_focus_a.html": [
+        {
+          "path": "css/submit_focus_a.html",
+          "references": [
+            [
+              "/_mozilla/css/submit_focus_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/submit_focus_a.html"
+        }
+      ],
+      "css/table_auto_width.html": [
+        {
+          "path": "css/table_auto_width.html",
+          "references": [
+            [
+              "/_mozilla/css/table_auto_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_auto_width.html"
+        }
+      ],
+      "css/table_caption_bottom_a.html": [
+        {
+          "path": "css/table_caption_bottom_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_caption_bottom_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_caption_bottom_a.html"
+        }
+      ],
+      "css/table_caption_top_a.html": [
+        {
+          "path": "css/table_caption_top_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_caption_top_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_caption_top_a.html"
+        }
+      ],
+      "css/table_cell_float_a.html": [
+        {
+          "path": "css/table_cell_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_cell_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_cell_float_a.html"
+        }
+      ],
+      "css/table_center_a.html": [
+        {
+          "path": "css/table_center_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_center_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_center_a.html"
+        }
+      ],
+      "css/table_colspan_fixed_a.html": [
+        {
+          "path": "css/table_colspan_fixed_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_colspan_fixed_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_colspan_fixed_a.html"
+        }
+      ],
+      "css/table_colspan_simple_a.html": [
+        {
+          "path": "css/table_colspan_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_colspan_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_colspan_simple_a.html"
+        }
+      ],
+      "css/table_containing_block_a.html": [
+        {
+          "path": "css/table_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_containing_block_a.html"
+        }
+      ],
+      "css/table_expansion_to_fit_a.html": [
+        {
+          "path": "css/table_expansion_to_fit_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_expansion_to_fit_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+        }
+      ],
+      "css/table_float_translation_a.html": [
+        {
+          "path": "css/table_float_translation_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_float_translation_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_float_translation_a.html"
+        }
+      ],
+      "css/table_intrinsic_style_specified_width_a.html": [
+        {
+          "path": "css/table_intrinsic_style_specified_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_intrinsic_style_specified_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
+        }
+      ],
+      "css/table_margin_auto_a.html": [
+        {
+          "path": "css/table_margin_auto_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_margin_auto_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_margin_auto_a.html"
+        }
+      ],
+      "css/table_padding_a.html": [
+        {
+          "path": "css/table_padding_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_padding_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_padding_a.html"
+        }
+      ],
+      "css/table_percentage_capping_a.html": [
+        {
+          "path": "css/table_percentage_capping_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_percentage_capping_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_percentage_capping_a.html"
+        }
+      ],
+      "css/table_percentage_width_a.html": [
+        {
+          "path": "css/table_percentage_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_percentage_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_percentage_width_a.html"
+        }
+      ],
+      "css/table_preferred_width_a.html": [
+        {
+          "path": "css/table_preferred_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_preferred_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_preferred_width_a.html"
+        }
+      ],
+      "css/table_row_direction_a.html": [
+        {
+          "path": "css/table_row_direction_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_row_direction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_row_direction_a.html"
+        }
+      ],
+      "css/table_specified_width_a.html": [
+        {
+          "path": "css/table_specified_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_specified_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_specified_width_a.html"
+        }
+      ],
+      "css/table_width_attribute_a.html": [
+        {
+          "path": "css/table_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_width_attribute_a.html"
+        }
+      ],
+      "css/text_align_complex_a.html": [
+        {
+          "path": "css/text_align_complex_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_align_complex_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_align_complex_a.html"
+        }
+      ],
+      "css/text_align_justify_a.html": [
+        {
+          "path": "css/text_align_justify_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_align_justify_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_align_justify_a.html"
+        }
+      ],
+      "css/text_align_rtl.html": [
+        {
+          "path": "css/text_align_rtl.html",
+          "references": [
+            [
+              "/_mozilla/css/text_align_rtl_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_align_rtl.html"
+        }
+      ],
+      "css/text_align_start_end.html": [
+        {
+          "path": "css/text_align_start_end.html",
+          "references": [
+            [
+              "/_mozilla/css/text_align_start_end_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_align_start_end.html"
+        }
+      ],
+      "css/text_decoration_cached.html": [
+        {
+          "path": "css/text_decoration_cached.html",
+          "references": [
+            [
+              "/_mozilla/css/text_decoration_cached_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_decoration_cached.html"
+        }
+      ],
+      "css/text_indent_a.html": [
+        {
+          "path": "css/text_indent_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_indent_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_indent_a.html"
+        }
+      ],
+      "css/text_justify_none_a.html": [
+        {
+          "path": "css/text_justify_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_justify_none_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_justify_none_a.html"
+        }
+      ],
+      "css/text_overflow_basic_a.html": [
+        {
+          "path": "css/text_overflow_basic_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_basic_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_basic_a.html"
+        }
+      ],
+      "css/text_shadow_blur_a.html": [
+        {
+          "path": "css/text_shadow_blur_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_shadow_blur_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_shadow_blur_a.html"
+        }
+      ],
+      "css/text_shadow_decorations_a.html": [
+        {
+          "path": "css/text_shadow_decorations_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_shadow_decorations_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_shadow_decorations_a.html"
+        }
+      ],
+      "css/text_shadow_multiple_shadows_a.html": [
+        {
+          "path": "css/text_shadow_multiple_shadows_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_shadow_multiple_shadows_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_shadow_multiple_shadows_a.html"
+        }
+      ],
+      "css/text_shadow_simple_a.html": [
+        {
+          "path": "css/text_shadow_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_shadow_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_shadow_simple_a.html"
+        }
+      ],
+      "css/text_transform_capitalize_a.html": [
+        {
+          "path": "css/text_transform_capitalize_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_transform_capitalize_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_transform_capitalize_a.html"
+        }
+      ],
+      "css/text_transform_lowercase_a.html": [
+        {
+          "path": "css/text_transform_lowercase_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_transform_lowercase_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_transform_lowercase_a.html"
+        }
+      ],
+      "css/text_transform_none_a.html": [
+        {
+          "path": "css/text_transform_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_transform_none_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_transform_none_a.html"
+        }
+      ],
+      "css/text_transform_uppercase_a.html": [
+        {
+          "path": "css/text_transform_uppercase_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_transform_uppercase_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_transform_uppercase_a.html"
+        }
+      ],
+      "css/transform_3d.html": [
+        {
+          "path": "css/transform_3d.html",
+          "references": [
+            [
+              "/_mozilla/css/transform_3d_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transform_3d.html"
         }
       ],
       "css/transform_optimization.html": [

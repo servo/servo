@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<!-- Tests that `text-indent` works, in particular when combined with `text-align`. -->
+<head>
+<link rel='match' href='text_indent_ref.html'>
+<link rel="stylesheet" type="text/css" href="css/ahem.css">
+<style>
+section {
+    color: blue;
+    position: absolute;
+    width: 200px;
+    height: 200px;
+}
+#a {
+    left: 0;
+    top: 0;
+    text-indent: 100px;
+}
+#b {
+    left: 0;
+    top: 200px;
+    text-indent: 50%;
+}
+#b2 {
+    left: 0;
+    top: 0;
+}
+#c {
+    left: 200px;
+    top: 0;
+    text-align: right;
+    text-indent: 100px;
+}
+</style>
+</head>
+<body>
+<section id=a>X X</section>
+<section id=b><section id=b2>X X</section></section>
+<section id=c>X X</section>
+</body>
+</html>

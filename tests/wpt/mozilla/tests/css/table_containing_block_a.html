@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <link rel='match' href='table_containing_block_ref.html'>
+    <head>
+        <style type="text/css">
+        .rel {
+            position: relative;
+        }
+        .abs {
+            position:absolute;
+        }
+        </style>
+    </head>
+    <body>
+        <p>Don't crash!</p>
+        <table class="rel">
+            <tbody>
+                <tr class="abs">
+                    <td>&nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>
