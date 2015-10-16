@@ -635,6 +635,18 @@
             "url": "/_mozilla/css/border_black_ridge.html"
           }
         ],
+        "css/border_code_tag.html": [
+          {
+            "path": "css/border_code_tag.html",
+            "references": [
+              [
+                "/_mozilla/css/border_code_tag_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_code_tag.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -2794,6 +2806,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_black_ridge.html"
+        }
+      ],
+      "css/border_code_tag.html": [
+        {
+          "path": "css/border_code_tag.html",
+          "references": [
+            [
+              "/_mozilla/css/border_code_tag_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_code_tag.html"
         }
       ],
       "css/class-namespaces.html": [
