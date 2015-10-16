@@ -723,6 +723,18 @@
             "url": "/_mozilla/css/text_indent_a.html"
           }
         ],
+        "css/text_justify_none_a.html": [
+          {
+            "path": "css/text_justify_none_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_justify_none_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_justify_none_a.html"
+          }
+        ],
         "css/text_overflow_basic_a.html": [
           {
             "path": "css/text_overflow_basic_a.html",
@@ -2490,6 +2502,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_indent_a.html"
+        }
+      ],
+      "css/text_justify_none_a.html": [
+        {
+          "path": "css/text_justify_none_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_justify_none_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_justify_none_a.html"
         }
       ],
       "css/text_overflow_basic_a.html": [
