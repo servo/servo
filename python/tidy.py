@@ -80,11 +80,18 @@ def check_length(file_name, idx, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
-def check_whatwg_url(idx, line):
+def check_whatwg_specific_url(idx, line):
     match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
+
+
+def check_whatwg_single_page_url(idx, line):
+    match = re.search(r"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    if match is not None:
+        preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
+        yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
 def check_whitespace(idx, line):
@@ -109,7 +116,8 @@ def check_by_line(file_name, contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
+            check_whatwg_specific_url(idx, line),
+            check_whatwg_single_page_url(idx, line),
         )
 
         for error in errors:
