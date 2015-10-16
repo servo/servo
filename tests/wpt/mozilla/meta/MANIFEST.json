@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_center_a.html": [
+          {
+            "path": "css/table_center_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_center_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_center_a.html"
+          }
+        ],
         "css/table_colspan_fixed_a.html": [
           {
             "path": "css/table_colspan_fixed_a.html",
@@ -2526,6 +2538,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_center_a.html": [
+        {
+          "path": "css/table_center_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_center_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_center_a.html"
         }
       ],
       "css/table_colspan_fixed_a.html": [
