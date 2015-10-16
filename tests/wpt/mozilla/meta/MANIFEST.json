@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_abs_nested_a.html": [
+          {
+            "path": "css/position_abs_nested_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_abs_nested_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_abs_nested_a.html"
+          }
+        ],
         "css/position_abs_pseudo_a.html": [
           {
             "path": "css/position_abs_pseudo_a.html",
@@ -3202,6 +3214,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_abs_nested_a.html": [
+        {
+          "path": "css/position_abs_nested_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_abs_nested_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_abs_nested_a.html"
         }
       ],
       "css/position_abs_pseudo_a.html": [
