@@ -627,6 +627,18 @@
             "url": "/_mozilla/css/table_specified_width_a.html"
           }
         ],
+        "css/table_width_attribute_a.html": [
+          {
+            "path": "css/table_width_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_width_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_width_attribute_a.html"
+          }
+        ],
         "css/text_align_complex_a.html": [
           {
             "path": "css/text_align_complex_a.html",
@@ -2334,6 +2346,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_specified_width_a.html"
+        }
+      ],
+      "css/table_width_attribute_a.html": [
+        {
+          "path": "css/table_width_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_width_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_width_attribute_a.html"
         }
       ],
       "css/text_align_complex_a.html": [
