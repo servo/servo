@@ -180,7 +180,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: MutNullableHeap::new(owner.map(JS::from_ref)),
+            owner: MutNullableHeap::new(owner),
         }
     }
 
@@ -315,7 +315,7 @@ impl Attr {
             }
             (old, new) => assert!(old == new)
         }
-        self.owner.set(owner.map(JS::from_ref))
+        self.owner.set(owner);
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {

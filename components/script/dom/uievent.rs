@@ -92,7 +92,7 @@ impl UIEventMethods for UIEvent {
         }
 
         event.InitEvent(type_, can_bubble, cancelable);
-        self.view.set(view.map(JS::from_ref));
+        self.view.set(view);
         self.detail.set(detail);
     }
 }

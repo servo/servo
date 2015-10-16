@@ -205,6 +205,6 @@ impl MouseEventMethods for MouseEvent {
         self.shift_key.set(shiftKeyArg);
         self.meta_key.set(metaKeyArg);
         self.button.set(buttonArg);
-        self.related_target.set(relatedTargetArg.map(JS::from_ref));
+        self.related_target.set(relatedTargetArg);
     }
 }

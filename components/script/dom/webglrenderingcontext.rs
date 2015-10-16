@@ -12,7 +12,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, NodeCast}
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::{GlobalField, GlobalRef};
-use dom::bindings::js::{JS, LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::event::{EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -78,8 +78,8 @@ pub struct WebGLRenderingContext {
     canvas: JS<HTMLCanvasElement>,
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
-    bound_texture_2d: Cell<Option<JS<WebGLTexture>>>,
-    bound_texture_cube_map: Cell<Option<JS<WebGLTexture>>>,
+    bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
+    bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
 }
 
 impl WebGLRenderingContext {
@@ -104,8 +104,8 @@ impl WebGLRenderingContext {
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
-                bound_texture_2d: Cell::new(None),
-                bound_texture_cube_map: Cell::new(None),
+                bound_texture_2d: MutNullableHeap::new(None),
+                bound_texture_cube_map: MutNullableHeap::new(None),
             }
         })
     }
@@ -149,8 +149,8 @@ impl WebGLRenderingContext {
 
     pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
         match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get().map(|t| t.root()),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get().map(|t| t.root()),
+            constants::TEXTURE_2D => self.bound_texture_2d.get_rooted(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get_rooted(),
 
             _ => unreachable!(),
         }
@@ -360,7 +360,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if let Some(texture) = texture {
             match texture.bind(target) {
-                Ok(_) => slot.set(Some(JS::from_ref(texture))),
+                Ok(_) => slot.set(Some(texture)),
                 Err(err) => return self.webgl_error(err),
             }
         } else {
