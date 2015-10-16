@@ -304,7 +304,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == style_is_in_doc.html style_is_in_doc_ref.html
 == submit_focus_a.html submit_focus_b.html
-== table_auto_width.html table_auto_width_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html

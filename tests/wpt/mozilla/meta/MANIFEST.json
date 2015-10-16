@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_auto_width.html": [
+          {
+            "path": "css/table_auto_width.html",
+            "references": [
+              [
+                "/_mozilla/css/table_auto_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_auto_width.html"
+          }
+        ],
         "css/table_caption_bottom_a.html": [
           {
             "path": "css/table_caption_bottom_a.html",
@@ -2574,6 +2586,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_auto_width.html": [
+        {
+          "path": "css/table_auto_width.html",
+          "references": [
+            [
+              "/_mozilla/css/table_auto_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_auto_width.html"
         }
       ],
       "css/table_caption_bottom_a.html": [
