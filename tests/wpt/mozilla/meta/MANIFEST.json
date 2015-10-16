@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/table_caption_top_a.html": [
+          {
+            "path": "css/table_caption_top_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_caption_top_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_caption_top_a.html"
+          }
+        ],
         "css/table_cell_float_a.html": [
           {
             "path": "css/table_cell_float_a.html",
@@ -2550,6 +2562,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/table_caption_top_a.html": [
+        {
+          "path": "css/table_caption_top_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_caption_top_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_caption_top_a.html"
         }
       ],
       "css/table_cell_float_a.html": [
