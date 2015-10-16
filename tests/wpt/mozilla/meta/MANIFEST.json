@@ -591,6 +591,18 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/stacked_layers.html": [
+          {
+            "path": "css/stacked_layers.html",
+            "references": [
+              [
+                "/_mozilla/css/stacked_layers_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacked_layers.html"
+          }
+        ],
         "css/stacking_context_overflow_a.html": [
           {
             "path": "css/stacking_context_overflow_a.html",
@@ -2622,6 +2634,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/stacked_layers.html": [
+        {
+          "path": "css/stacked_layers.html",
+          "references": [
+            [
+              "/_mozilla/css/stacked_layers_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacked_layers.html"
         }
       ],
       "css/stacking_context_overflow_a.html": [

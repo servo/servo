@@ -299,7 +299,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == servo_center_a.html servo_center_ref.html
 == setattribute_id_restyle_a.html setattribute_id_restyle_b.html
 == simple_inline_absolute_containing_block_a.html simple_inline_absolute_containing_block_ref.html
-== stacked_layers.html stacked_layers_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
