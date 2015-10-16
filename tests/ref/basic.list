@@ -316,7 +316,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == table_intrinsic_style_specified_width_a.html table_intrinsic_style_specified_width_ref.html
 == table_margin_auto_a.html table_margin_auto_ref.html
 == table_padding_a.html table_padding_ref.html
-== table_percentage_capping_a.html table_percentage_capping_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 != text_decoration_underline_subpx_a.html text_decoration_underline_subpx_ref.html
