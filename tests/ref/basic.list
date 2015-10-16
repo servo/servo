@@ -320,7 +320,6 @@ resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_
 == table_percentage_capping_a.html table_percentage_capping_ref.html
 == table_percentage_width_a.html table_percentage_width_ref.html
 == table_preferred_width_a.html table_preferred_width_ref.html
-== text_align_start_end.html text_align_start_end_ref.html
 == text_decoration_cached.html text_decoration_cached_ref.html
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
