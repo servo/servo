@@ -603,6 +603,18 @@
             "url": "/_mozilla/css/stacking_context_rtl.html"
           }
         ],
+        "css/submit_focus_a.html": [
+          {
+            "path": "css/submit_focus_a.html",
+            "references": [
+              [
+                "/_mozilla/css/submit_focus_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/submit_focus_a.html"
+          }
+        ],
         "css/table_auto_width.html": [
           {
             "path": "css/table_auto_width.html",
@@ -2586,6 +2598,18 @@
             ]
           ],
           "url": "/_mozilla/css/stacking_context_rtl.html"
+        }
+      ],
+      "css/submit_focus_a.html": [
+        {
+          "path": "css/submit_focus_a.html",
+          "references": [
+            [
+              "/_mozilla/css/submit_focus_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/submit_focus_a.html"
         }
       ],
       "css/table_auto_width.html": [
