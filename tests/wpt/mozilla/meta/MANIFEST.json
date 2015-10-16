@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/per_glyph_font_fallback_a.html": [
+          {
+            "path": "css/per_glyph_font_fallback_a.html",
+            "references": [
+              [
+                "/_mozilla/css/per_glyph_font_fallback_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/per_glyph_font_fallback_a.html"
+          }
+        ],
         "css/percent_height.html": [
           {
             "path": "css/percent_height.html",
@@ -3322,6 +3334,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/per_glyph_font_fallback_a.html": [
+        {
+          "path": "css/per_glyph_font_fallback_a.html",
+          "references": [
+            [
+              "/_mozilla/css/per_glyph_font_fallback_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/per_glyph_font_fallback_a.html"
         }
       ],
       "css/percent_height.html": [
