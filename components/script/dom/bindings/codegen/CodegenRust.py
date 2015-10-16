@@ -1445,7 +1445,11 @@ class MethodDefiner(PropertyDefiner):
                 selfHostedName = "0 as *const i8"
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
-                    jitinfo = "&%s_methodinfo" % identifier
+                    # Go through an intermediate type here, because it's not
+                    # easy to tell whether the methodinfo is a JSJitInfo or
+                    # a JSTypedMethodJitInfo here.  The compiler knows, though,
+                    # so let it do the work.
+                    jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
                     accessor = "Some(generic_method)"
                 else:
                     jitinfo = "0 as *const JSJitInfo"
@@ -3084,6 +3088,26 @@ class CGMemberJITInfo(CGThing):
                 isTypedMethod=toStringBool(isTypedMethod),
                 slotIndex=slotIndex)
             return initializer.rstrip()
+
+        if args is not None:
+            argTypes = "%s_argTypes" % infoName
+            args = [CGMemberJITInfo.getJSArgType(arg.type) for arg in args]
+            args.append("ArgType::ArgTypeListEnd")
+            argTypesDecl = (
+                "const %s: [ArgType; %d] = [ %s ];\n" %
+                (argTypes, len(args), ", ".join(args)))
+            return fill(
+                """
+                $*{argTypesDecl}
+                const ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
+                    base: ${jitInfo},
+                    argTypes: &${argTypes} as *const ArgType,
+                };
+                """,
+                argTypesDecl=argTypesDecl,
+                infoName=infoName,
+                jitInfo=indent(jitInfoInitializer(True)),
+                argTypes=argTypes)
 
         return ("\n"
                 "const %s: JSJitInfo = %s;\n"
@@ -5157,7 +5181,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{RootedValue, JSNativeWrapper, JSNative, JSObject, JSPropertyDescriptor}',
             'js::jsapi::{RootedId, JS_InternString, RootedString, INTERNED_STRING_TO_JSID}',
             'js::jsapi::{JSPropertySpec}',
-            'js::jsapi::{JSString, JSTracer, JSJitInfo, OpType, AliasSet}',
+            'js::jsapi::{JSString, JSTracer, JSJitInfo, JSTypedMethodJitInfo, OpType, AliasSet, ArgType}',
             'js::jsapi::{MutableHandle, Handle, HandleId, JSType, JSValueType}',
             'js::jsapi::{SymbolCode, ObjectOpResult, HandleValueArray}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitSetterCallArgs, JSJitMethodCallArgs, CallArgs}',
