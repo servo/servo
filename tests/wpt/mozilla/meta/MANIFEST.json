@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/rtl_float_a.html": [
+          {
+            "path": "css/rtl_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/rtl_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/rtl_float_a.html"
+          }
+        ],
         "css/rtl_margin_a.html": [
           {
             "path": "css/rtl_margin_a.html",
@@ -2902,6 +2914,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/rtl_float_a.html": [
+        {
+          "path": "css/rtl_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/rtl_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/rtl_float_a.html"
         }
       ],
       "css/rtl_margin_a.html": [
