@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/position_fixed_overflow_a.html": [
+          {
+            "path": "css/position_fixed_overflow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/position_fixed_overflow_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/position_fixed_overflow_a.html"
+          }
+        ],
         "css/position_relative_a.html": [
           {
             "path": "css/position_relative_a.html",
@@ -3130,6 +3142,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/position_fixed_overflow_a.html": [
+        {
+          "path": "css/position_fixed_overflow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/position_fixed_overflow_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/position_fixed_overflow_a.html"
         }
       ],
       "css/position_relative_a.html": [
