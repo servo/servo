@@ -591,6 +591,18 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/simple_inline_absolute_containing_block_a.html": [
+          {
+            "path": "css/simple_inline_absolute_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/simple_inline_absolute_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/simple_inline_absolute_containing_block_a.html"
+          }
+        ],
         "css/stacked_layers.html": [
           {
             "path": "css/stacked_layers.html",
@@ -2634,6 +2646,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/simple_inline_absolute_containing_block_a.html": [
+        {
+          "path": "css/simple_inline_absolute_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/simple_inline_absolute_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/simple_inline_absolute_containing_block_a.html"
         }
       ],
       "css/stacked_layers.html": [
