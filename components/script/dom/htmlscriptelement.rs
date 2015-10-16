@@ -38,7 +38,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use url::{Url, UrlParser};
@@ -128,9 +128,9 @@ struct ScriptContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
     /// The response body received to date.
-    data: RefCell<Vec<u8>>,
+    data: Vec<u8>,
     /// The response metadata received to date.
-    metadata: RefCell<Option<Metadata>>,
+    metadata: Option<Metadata>,
     /// Whether the owning document's parser should resume once the response completes.
     resume_on_completion: bool,
     /// The initial URL requested.
@@ -138,19 +138,19 @@ struct ScriptContext {
 }
 
 impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&self, metadata: Metadata) {
-        *self.metadata.borrow_mut() = Some(metadata);
+    fn headers_available(&mut self, metadata: Metadata) {
+        self.metadata = Some(metadata);
     }
 
-    fn data_available(&self, payload: Vec<u8>) {
+    fn data_available(&mut self, payload: Vec<u8>) {
         let mut payload = payload;
-        self.data.borrow_mut().append(&mut payload);
+        self.data.append(&mut payload);
     }
 
-    fn response_complete(&self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), String>) {
         let load = status.map(|_| {
-            let data = mem::replace(&mut *self.data.borrow_mut(), vec!());
-            let metadata = self.metadata.borrow_mut().take().unwrap();
+            let data = mem::replace(&mut self.data, vec!());
+            let metadata = self.metadata.take().unwrap();
             (metadata, data)
         });
         let elem = self.elem.root();
@@ -283,8 +283,8 @@ impl HTMLScriptElement {
 
                         let context = Arc::new(Mutex::new(ScriptContext {
                             elem: elem,
-                            data: RefCell::new(vec!()),
-                            metadata: RefCell::new(None),
+                            data: vec!(),
+                            metadata: None,
                             resume_on_completion: self.parser_inserted.get(),
                             url: url.clone(),
                         }));

@@ -31,7 +31,7 @@ use net_traits::{AsyncResponseListener, Metadata};
 use network_listener::PreInvoke;
 use parse::Parser;
 use script_task::{ScriptChan, ScriptTask};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::default::Default;
 use url::Url;
 
@@ -69,9 +69,9 @@ pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 /// The context required for asynchronously fetching a document and parsing it progressively.
 pub struct ParserContext {
     /// The parser that initiated the request.
-    parser: RefCell<Option<Trusted<ServoHTMLParser>>>,
+    parser: Option<Trusted<ServoHTMLParser>>,
     /// Is this document a synthesized document for a single image?
-    is_image_document: Cell<bool>,
+    is_image_document: bool,
     /// The pipeline associated with this document.
     id: PipelineId,
     /// The subpage associated with this document.
@@ -86,8 +86,8 @@ impl ParserContext {
     pub fn new(id: PipelineId, subpage: Option<SubpageId>, script_chan: Box<ScriptChan + Send>,
                url: Url) -> ParserContext {
         ParserContext {
-            parser: RefCell::new(None),
-            is_image_document: Cell::new(false),
+            parser: None,
+            is_image_document: false,
             id: id,
             subpage: subpage,
             script_chan: script_chan,
@@ -97,7 +97,7 @@ impl ParserContext {
 }
 
 impl AsyncResponseListener for ParserContext {
-    fn headers_available(&self, metadata: Metadata) {
+    fn headers_available(&mut self, metadata: Metadata) {
         let content_type = metadata.content_type.clone();
 
         let parser = ScriptTask::page_fetch_complete(self.id.clone(), self.subpage.clone(),
@@ -109,12 +109,11 @@ impl AsyncResponseListener for ParserContext {
 
         let parser = parser.r();
         let win = parser.window();
-        *self.parser.borrow_mut() = Some(Trusted::new(win.r().get_cx(), parser,
-                                                      self.script_chan.clone()));
+        self.parser = Some(Trusted::new(win.r().get_cx(), parser, self.script_chan.clone()));
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
-                self.is_image_document.set(true);
+                self.is_image_document = true;
                 let page = format!("<html><body><img src='{}' /></body></html>",
                                    self.url.serialize());
                 parser.pending_input.borrow_mut().push(page);
@@ -137,11 +136,11 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn data_available(&self, payload: Vec<u8>) {
-        if !self.is_image_document.get() {
+    fn data_available(&mut self, payload: Vec<u8>) {
+        if !self.is_image_document {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
-            let parser = match self.parser.borrow().as_ref() {
+            let parser = match self.parser.as_ref() {
                 Some(parser) => parser.root(),
                 None => return,
             };
@@ -149,8 +148,8 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&self, status: Result<(), String>) {
-        let parser = match self.parser.borrow().as_ref() {
+    fn response_complete(&mut self, status: Result<(), String>) {
+        let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
         };

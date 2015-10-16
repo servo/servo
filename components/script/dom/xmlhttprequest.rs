@@ -237,7 +237,7 @@ impl XMLHttpRequest {
                           resource_task: ResourceTask,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
-            fn headers_available(&self, metadata: Metadata) {
+            fn headers_available(&mut self, metadata: Metadata) {
                 let xhr = self.xhr.root();
                 let rv = xhr.r().process_headers_available(self.cors_request.clone(),
                                                            self.gen_id,
@@ -247,13 +247,13 @@ impl XMLHttpRequest {
                 }
             }
 
-            fn data_available(&self, payload: Vec<u8>) {
+            fn data_available(&mut self, payload: Vec<u8>) {
                 self.buf.borrow_mut().push_all(&payload);
                 let xhr = self.xhr.root();
                 xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn response_complete(&self, status: Result<(), String>) {
+            fn response_complete(&mut self, status: Result<(), String>) {
                 let xhr = self.xhr.root();
                 let rv = xhr.r().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
