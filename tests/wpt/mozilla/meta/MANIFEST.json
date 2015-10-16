@@ -615,6 +615,18 @@
             "url": "/_mozilla/css/table_expansion_to_fit_a.html"
           }
         ],
+        "css/table_padding_a.html": [
+          {
+            "path": "css/table_padding_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_padding_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_padding_a.html"
+          }
+        ],
         "css/table_percentage_capping_a.html": [
           {
             "path": "css/table_percentage_capping_a.html",
@@ -2454,6 +2466,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+        }
+      ],
+      "css/table_padding_a.html": [
+        {
+          "path": "css/table_padding_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_padding_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_padding_a.html"
         }
       ],
       "css/table_percentage_capping_a.html": [
