@@ -226,7 +226,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html
 == overflow_auto.html overflow_simple_b.html
-== overflow_auto_stacking_order_a.html overflow_auto_stacking_order_ref.html
 # Should be ==?
 != overflow_position_abs_inside_normal_a.html overflow_position_abs_inside_normal_b.html
 == overflow_scroll.html overflow_simple_b.html

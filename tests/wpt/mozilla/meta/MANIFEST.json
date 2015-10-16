@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/overflow_auto_stacking_order_a.html": [
+          {
+            "path": "css/overflow_auto_stacking_order_a.html",
+            "references": [
+              [
+                "/_mozilla/css/overflow_auto_stacking_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/overflow_auto_stacking_order_a.html"
+          }
+        ],
         "css/overflow_position_abs_inline_block.html": [
           {
             "path": "css/overflow_position_abs_inline_block.html",
@@ -3394,6 +3406,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/overflow_auto_stacking_order_a.html": [
+        {
+          "path": "css/overflow_auto_stacking_order_a.html",
+          "references": [
+            [
+              "/_mozilla/css/overflow_auto_stacking_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/overflow_auto_stacking_order_a.html"
         }
       ],
       "css/overflow_position_abs_inline_block.html": [
