@@ -615,6 +615,18 @@
             "url": "/_mozilla/css/table_expansion_to_fit_a.html"
           }
         ],
+        "css/table_margin_auto_a.html": [
+          {
+            "path": "css/table_margin_auto_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_margin_auto_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_margin_auto_a.html"
+          }
+        ],
         "css/table_padding_a.html": [
           {
             "path": "css/table_padding_a.html",
@@ -2466,6 +2478,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_expansion_to_fit_a.html"
+        }
+      ],
+      "css/table_margin_auto_a.html": [
+        {
+          "path": "css/table_margin_auto_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_margin_auto_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_margin_auto_a.html"
         }
       ],
       "css/table_padding_a.html": [
