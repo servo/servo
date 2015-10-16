@@ -591,6 +591,18 @@
             "url": "/_mozilla/css/setpropertypriority.html"
           }
         ],
+        "css/stacking_context_overflow_relative_outline_a.html": [
+          {
+            "path": "css/stacking_context_overflow_relative_outline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/stacking_context_overflow_relative_outline_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/stacking_context_overflow_relative_outline_a.html"
+          }
+        ],
         "css/stacking_context_rtl.html": [
           {
             "path": "css/stacking_context_rtl.html",
@@ -2598,6 +2610,18 @@
             ]
           ],
           "url": "/_mozilla/css/setpropertypriority.html"
+        }
+      ],
+      "css/stacking_context_overflow_relative_outline_a.html": [
+        {
+          "path": "css/stacking_context_overflow_relative_outline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/stacking_context_overflow_relative_outline_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/stacking_context_overflow_relative_outline_a.html"
         }
       ],
       "css/stacking_context_rtl.html": [
