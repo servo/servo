@@ -239,7 +239,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == per_glyph_font_fallback_a.html per_glyph_font_fallback_ref.html
 == percent_height.html percent_height_ref.html
 == percentage_height_float_a.html percentage_height_float_ref.html
-== percentage_height_root.html percentage_height_root_ref.html
 == percentage_width_inline_block_a.html percentage_width_inline_block_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html

@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/percentage_height_root.html": [
+          {
+            "path": "css/percentage_height_root.html",
+            "references": [
+              [
+                "/_mozilla/css/percentage_height_root_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/percentage_height_root.html"
+          }
+        ],
         "css/png_rgba_colorspace_a.html": [
           {
             "path": "css/png_rgba_colorspace_a.html",
@@ -3274,6 +3286,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/percentage_height_root.html": [
+        {
+          "path": "css/percentage_height_root.html",
+          "references": [
+            [
+              "/_mozilla/css/percentage_height_root_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/percentage_height_root.html"
         }
       ],
       "css/png_rgba_colorspace_a.html": [
