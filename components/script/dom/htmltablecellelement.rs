@@ -23,7 +23,6 @@ const DEFAULT_COLSPAN: u32 = 1;
 #[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<RGBA>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -34,7 +33,6 @@ impl HTMLTableCellElement {
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
-            background_color: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
@@ -80,7 +78,10 @@ pub trait HTMLTableCellElementLayoutHelpers {
 impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (*self.unsafe_get()).background_color.get()
+            (*ElementCast::from_layout_js(self).unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .and_then(AttrValue::as_color)
+                .cloned()
         }
     }
 
@@ -107,11 +108,6 @@ impl VirtualMethods for HTMLTableCellElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!(bgcolor) => {
-                self.background_color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
             atom!(width) => {
                 let width = mutation.new_value(attr).map(|value| {
                     str::parse_length(&value)
@@ -125,6 +121,7 @@ impl VirtualMethods for HTMLTableCellElement {
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
             atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

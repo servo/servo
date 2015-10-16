@@ -21,7 +21,8 @@ use std::mem;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
 use style::values::specified::Length;
-use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
+use util::str::{DOMString, parse_unsigned_integer, parse_legacy_color};
+use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {
@@ -75,6 +76,11 @@ impl AttrValue {
     pub fn from_atomic(string: DOMString) -> AttrValue {
         let value = Atom::from_slice(&string);
         AttrValue::Atom(value)
+    }
+
+    pub fn from_legacy_color(string: DOMString) -> AttrValue {
+        let parsed = parse_legacy_color(&string).ok();
+        AttrValue::Color(string, parsed)
     }
 
     /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
