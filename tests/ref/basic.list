@@ -235,7 +235,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == overflow_scroll.html overflow_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
 == overflow_wrap_a.html overflow_wrap_ref.html
-== overflow_xy_a.html overflow_xy_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_border_a.html pixel_snapping_border_ref.html
 resolution=300x300,device-pixel-ratio=2 != pixel_snapping_position_a.html pixel_snapping_position_ref.html
 # commented out because multiple layers don't work with reftests --pcwalton
