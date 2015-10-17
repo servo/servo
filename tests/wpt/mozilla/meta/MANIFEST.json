@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/layerization_z_order_a.html"
           }
         ],
+        "css/legacy_input_size_attribute_override_a.html": [
+          {
+            "path": "css/legacy_input_size_attribute_override_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_input_size_attribute_override_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_input_size_attribute_override_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3622,6 +3634,18 @@
             ]
           ],
           "url": "/_mozilla/css/layerization_z_order_a.html"
+        }
+      ],
+      "css/legacy_input_size_attribute_override_a.html": [
+        {
+          "path": "css/legacy_input_size_attribute_override_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_input_size_attribute_override_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_input_size_attribute_override_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [

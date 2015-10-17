@@ -162,7 +162,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == last_child_pseudo_a.html last_child_pseudo_b.html
 == last_of_type_pseudo_a.html last_of_type_pseudo_b.html
 == legacy_cellspacing_attribute_a.html border_spacing_ref.html
-== legacy_input_size_attribute_override_a.html legacy_input_size_attribute_override_ref.html
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
 == legacy_td_width_attribute_a.html legacy_td_width_attribute_ref.html
