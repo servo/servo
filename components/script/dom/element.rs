@@ -30,6 +30,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextArea
 use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -1249,9 +1250,11 @@ impl ElementMethods for Element {
         let node = NodeCast::from_ref(self);
         let raw_rects = node.get_content_boxes();
         let rects = raw_rects.iter().map(|rect| {
-            DOMRect::new(win.r(),
-                         rect.origin.y, rect.origin.y + rect.size.height,
-                         rect.origin.x, rect.origin.x + rect.size.width)
+            DOMRect::new(GlobalRef::Window(win.r()),
+                         rect.origin.x.to_f64_px(),
+                         rect.origin.y.to_f64_px(),
+                         rect.size.width.to_f64_px(),
+                         rect.size.height.to_f64_px())
         });
         DOMRectList::new(win.r(), rects)
     }
@@ -1261,12 +1264,11 @@ impl ElementMethods for Element {
         let win = window_from_node(self);
         let node = NodeCast::from_ref(self);
         let rect = node.get_bounding_content_box();
-        DOMRect::new(
-            win.r(),
-            rect.origin.y,
-            rect.origin.y + rect.size.height,
-            rect.origin.x,
-            rect.origin.x + rect.size.width)
+        DOMRect::new(GlobalRef::Window(win.r()),
+                     rect.origin.x.to_f64_px(),
+                     rect.origin.y.to_f64_px(),
+                     rect.size.width.to_f64_px(),
+                     rect.size.height.to_f64_px())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
