@@ -149,7 +149,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == input_button_margins_a.html input_button_margins_ref.html
 == input_button_size_a.html input_button_size_ref.html
 != input_height_a.html input_height_ref.html
-== inset.html inset_ref.html
 != inset_blackborder.html blackborder_ref.html
 == jpeg_normal.html jpeg_ref.html
 == jpeg_progressive.html jpeg_ref.html

@@ -731,6 +731,18 @@
             "url": "/_mozilla/css/inline_padding_a.html"
           }
         ],
+        "css/inset.html": [
+          {
+            "path": "css/inset.html",
+            "references": [
+              [
+                "/_mozilla/css/inset_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inset.html"
+          }
+        ],
         "css/issue-1324.html": [
           {
             "path": "css/issue-1324.html",
@@ -3778,6 +3790,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_padding_a.html"
+        }
+      ],
+      "css/inset.html": [
+        {
+          "path": "css/inset.html",
+          "references": [
+            [
+              "/_mozilla/css/inset_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inset.html"
         }
       ],
       "css/issue-1324.html": [
