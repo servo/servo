@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/layerization_z_order_a.html": [
+          {
+            "path": "css/layerization_z_order_a.html",
+            "references": [
+              [
+                "/_mozilla/css/layerization_z_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/layerization_z_order_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3598,6 +3610,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/layerization_z_order_a.html": [
+        {
+          "path": "css/layerization_z_order_a.html",
+          "references": [
+            [
+              "/_mozilla/css/layerization_z_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/layerization_z_order_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [
