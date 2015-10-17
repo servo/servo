@@ -48,8 +48,8 @@ impl BrowsingContext {
         &*self.history[self.active_index].document
     }
 
-    pub fn active_window(&self) -> Root<Window> {
-        Root::from_ref(self.active_document().window())
+    pub fn active_window(&self) -> &Window {
+        self.active_document().window()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -63,8 +63,8 @@ impl BrowsingContext {
 
     #[allow(unsafe_code)]
     pub fn create_window_proxy(&mut self) {
-        let win = self.active_window();
-        let win = win.r();
+        // We inline self.active_window() because we can't borrow *self here.
+        let win = self.history[self.active_index].document.window();
 
         let WindowProxyHandler(handler) = win.windowproxy_handler();
         assert!(!handler.is_null());
