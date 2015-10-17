@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/inline_element_border_a.html": [
+          {
+            "path": "css/inline_element_border_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_element_border_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_element_border_a.html"
+          }
+        ],
         "css/inline_margins_a.html": [
           {
             "path": "css/inline_margins_a.html",
@@ -3694,6 +3706,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/inline_element_border_a.html": [
+        {
+          "path": "css/inline_element_border_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_element_border_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_element_border_a.html"
         }
       ],
       "css/inline_margins_a.html": [
