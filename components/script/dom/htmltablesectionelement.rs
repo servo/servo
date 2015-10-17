@@ -58,7 +58,7 @@ impl CollectionFilter for RowsFilter {
 impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> Root<HTMLCollection> {
-        HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
+        HTMLCollection::new(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow

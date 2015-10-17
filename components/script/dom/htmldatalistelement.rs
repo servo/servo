@@ -50,6 +50,6 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
         let node = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        HTMLCollection::new(window.r(), node, filter)
     }
 }

@@ -72,7 +72,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
-            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+            HTMLCollection::new(window.r(), NodeCast::from_ref(self), filter)
         })
     }
 

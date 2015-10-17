@@ -1588,7 +1588,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ImagesFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1598,7 +1598,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box EmbedsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1613,7 +1613,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box LinksFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1623,7 +1623,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box FormsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1633,7 +1633,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ScriptsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1643,7 +1643,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AnchorsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1654,7 +1654,7 @@ impl DocumentMethods for Document {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AppletsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::new(window.r(), root, filter)
         })
     }
 
@@ -1836,7 +1836,7 @@ impl DocumentMethods for Document {
         *found = true;
         let window = self.window();
         let filter = NamedElementFilter { name: name };
-        let collection = HTMLCollection::create(window.r(), root, box filter);
+        let collection = HTMLCollection::new(window.r(), root, box filter);
         collection.r().reflector().get_jsobject().get()
     }
 
