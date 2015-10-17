@@ -49,7 +49,7 @@ impl BrowsingContext {
     }
 
     pub fn active_window(&self) -> Root<Window> {
-        self.active_document().window()
+        Root::from_ref(self.active_document().window())
     }
 
     pub fn frame_element(&self) -> Option<&Element> {

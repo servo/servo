@@ -106,7 +106,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
-        let chan = document.window().r().constellation_chan();
+        let chan = document.window().constellation_chan();
         HTMLInputElement {
             htmlelement:
                 HTMLElement::new_inherited_with_flags(NodeFlags::new() | IN_ENABLED_STATE,
