@@ -719,6 +719,18 @@
             "url": "/_mozilla/css/legacy_table_border_attribute_a.html"
           }
         ],
+        "css/legacy_td_bgcolor_attribute_a.html": [
+          {
+            "path": "css/legacy_td_bgcolor_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/legacy_td_bgcolor_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3670,6 +3682,18 @@
             ]
           ],
           "url": "/_mozilla/css/legacy_table_border_attribute_a.html"
+        }
+      ],
+      "css/legacy_td_bgcolor_attribute_a.html": [
+        {
+          "path": "css/legacy_td_bgcolor_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/legacy_td_bgcolor_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [
