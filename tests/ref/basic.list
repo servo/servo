@@ -205,7 +205,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == no_image_background_a.html no_image_background_ref.html
 == noscript.html noscript_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
-== nth_child_pseudo_a.html nth_child_pseudo_b.html
 == nth_last_of_type_pseudo_a.html nth_last_of_type_pseudo_b.html
 == nth_of_type_pseudo_a.html nth_of_type_pseudo_b.html
 == object_element_a.html object_element_b.html
