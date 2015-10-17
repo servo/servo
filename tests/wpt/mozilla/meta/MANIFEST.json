@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/nth_last_child_pseudo_a.html": [
+          {
+            "path": "css/nth_last_child_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/nth_last_child_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
+          }
+        ],
         "css/ol_simple_a.html": [
           {
             "path": "css/ol_simple_a.html",
@@ -3502,6 +3514,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/nth_last_child_pseudo_a.html": [
+        {
+          "path": "css/nth_last_child_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/nth_last_child_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
         }
       ],
       "css/ol_simple_a.html": [
