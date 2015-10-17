@@ -48,8 +48,7 @@ impl Sink {
         match child {
             NodeOrText::AppendNode(n) => n.root(),
             NodeOrText::AppendText(t) => {
-                let doc = self.document.root();
-                let text = Text::new(t.into(), &doc);
+                let text = Text::new(t.into(), &self.document);
                 NodeCast::from_root(text)
             }
         }
