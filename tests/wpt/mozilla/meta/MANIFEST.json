@@ -719,6 +719,18 @@
             "url": "/_mozilla/css/inline_margins_a.html"
           }
         ],
+        "css/inline_padding_a.html": [
+          {
+            "path": "css/inline_padding_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_padding_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_padding_a.html"
+          }
+        ],
         "css/issue-1324.html": [
           {
             "path": "css/issue-1324.html",
@@ -3754,6 +3766,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_margins_a.html"
+        }
+      ],
+      "css/inline_padding_a.html": [
+        {
+          "path": "css/inline_padding_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_padding_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_padding_a.html"
         }
       ],
       "css/issue-1324.html": [
