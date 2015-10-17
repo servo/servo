@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/ol_simple_a.html"
           }
         ],
+        "css/only_child_pseudo_a.html": [
+          {
+            "path": "css/only_child_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/only_child_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/only_child_pseudo_a.html"
+          }
+        ],
         "css/only_of_type_pseudo_a.html": [
           {
             "path": "css/only_of_type_pseudo_a.html",
@@ -3502,6 +3514,18 @@
             ]
           ],
           "url": "/_mozilla/css/ol_simple_a.html"
+        }
+      ],
+      "css/only_child_pseudo_a.html": [
+        {
+          "path": "css/only_child_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/only_child_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/only_child_pseudo_a.html"
         }
       ],
       "css/only_of_type_pseudo_a.html": [
