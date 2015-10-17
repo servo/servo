@@ -411,7 +411,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
-        self.browsing_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element().map(Root::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
@@ -1245,7 +1245,7 @@ impl Window {
         let browsing_context = browsing_context.as_ref().unwrap();
 
         browsing_context.frame_element().map(|frame_element| {
-            let window = window_from_node(frame_element.r());
+            let window = window_from_node(frame_element);
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browsing_context();

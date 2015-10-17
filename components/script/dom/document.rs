@@ -1923,14 +1923,14 @@ impl DocumentProgressHandler {
         let browsing_context = window_ref.browsing_context();
         let browsing_context = browsing_context.as_ref().unwrap();
 
-        browsing_context.frame_element().map(|frame_element| {
-            let frame_window = window_from_node(frame_element.r());
+        if let Some(frame_element) = browsing_context.frame_element() {
+            let frame_window = window_from_node(frame_element);
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
-            let target = EventTargetCast::from_ref(frame_element.r());
+            let target = EventTargetCast::from_ref(frame_element);
             event.r().fire(target);
-        });
+        };
 
         document.r().notify_constellation_load();
 

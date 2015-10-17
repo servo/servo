@@ -52,8 +52,8 @@ impl BrowsingContext {
         self.active_document().window()
     }
 
-    pub fn frame_element(&self) -> Option<Root<Element>> {
-        self.frame_element.as_ref().map(JS::root)
+    pub fn frame_element(&self) -> Option<&Element> {
+        self.frame_element.as_ref().map(|element| &**element)
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
