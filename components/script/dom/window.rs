@@ -1249,7 +1249,7 @@ impl Window {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browsing_context();
-            context.as_ref().unwrap().active_window()
+            Root::from_ref(context.as_ref().unwrap().active_window())
         })
     }
 }
