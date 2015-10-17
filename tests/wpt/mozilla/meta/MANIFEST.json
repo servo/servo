@@ -707,6 +707,18 @@
             "url": "/_mozilla/css/opacity_simple_a.html"
           }
         ],
+        "css/opacity_stacking_context_a.html": [
+          {
+            "path": "css/opacity_stacking_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/opacity_stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/opacity_stacking_context_a.html"
+          }
+        ],
         "css/outlines_simple_a.html": [
           {
             "path": "css/outlines_simple_a.html",
@@ -3490,6 +3502,18 @@
             ]
           ],
           "url": "/_mozilla/css/opacity_simple_a.html"
+        }
+      ],
+      "css/opacity_stacking_context_a.html": [
+        {
+          "path": "css/opacity_stacking_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/opacity_stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/opacity_stacking_context_a.html"
         }
       ],
       "css/outlines_simple_a.html": [
