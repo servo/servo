@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel='match' href='position_relative_stacking_context_ref.html'>
+<style>
+body, html {
+    margin: 0;
+}
+div {
+    width: 100px;
+    height: 100px;
+}
+#a {
+    position: relative;
+    z-index: 2;
+    background: green;
+}
+#b {
+    position: absolute;
+    background: red;
+    top: 0;
+    left: 0;
+}
+</style>
+<div id=a></div>
+<div id=b></div>
+

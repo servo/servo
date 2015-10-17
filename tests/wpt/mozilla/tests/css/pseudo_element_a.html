@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='pseudo_element_b.html'>
+<style>
+span.servo1:before { display:inline; content:'Hello';}
+span.servo1:after { display:inline; content:'ervo';}
+div.servo2:before { display:inline; content:'Hello';}
+div.servo2:after { display:inline; content:'ervo';}
+span.servo3:before { display:block; content:'Smile'; color:blue}
+span.servo3:after { display:block; content:'And thanks'; color:blue}
+div.rust:before { display:block; content:'Hello,';}
+div.rust:after { display:inline; content:'ust';}
+</style>
+</head>
+
+<body>
+<span class="servo1">, S</span>
+<div class="servo2">, S</div>
+<span class="servo3">Servo</span>
+<div class="rust">R</div>
+</body>
+</html>
