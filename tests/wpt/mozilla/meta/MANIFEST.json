@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/jumpiness_a.html": [
+          {
+            "path": "css/jumpiness_a.html",
+            "references": [
+              [
+                "/_mozilla/css/jumpiness_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/jumpiness_a.html"
+          }
+        ],
         "css/layerization_z_order_a.html": [
           {
             "path": "css/layerization_z_order_a.html",
@@ -3646,6 +3658,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/jumpiness_a.html": [
+        {
+          "path": "css/jumpiness_a.html",
+          "references": [
+            [
+              "/_mozilla/css/jumpiness_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/jumpiness_a.html"
         }
       ],
       "css/layerization_z_order_a.html": [
