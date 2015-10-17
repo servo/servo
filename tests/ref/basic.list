@@ -252,7 +252,6 @@ prefs:"layout.viewport.enabled" == viewport_rule.html viewport_rule_ref.html
 # == webgl-context/tex_image_2d_simple.html webgl-context/tex_image_2d_simple_ref.html
 
 flaky_macos == white_space_intrinsic_sizes_a.html white_space_intrinsic_sizes_ref.html
-== word_break_a.html word_break_ref.html
 
 
 # This file must be sorted alphabetically.

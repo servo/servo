@@ -2171,6 +2171,18 @@
             "url": "/_mozilla/css/word-spacing.html"
           }
         ],
+        "css/word_break_a.html": [
+          {
+            "path": "css/word_break_a.html",
+            "references": [
+              [
+                "/_mozilla/css/word_break_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/word_break_a.html"
+          }
+        ],
         "mozilla/canvas/drawimage_html_image_1.html": [
           {
             "path": "mozilla/canvas/drawimage_html_image_1.html",
@@ -5062,6 +5074,18 @@
             ]
           ],
           "url": "/_mozilla/css/word-spacing.html"
+        }
+      ],
+      "css/word_break_a.html": [
+        {
+          "path": "css/word_break_a.html",
+          "references": [
+            [
+              "/_mozilla/css/word_break_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/word_break_a.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [
