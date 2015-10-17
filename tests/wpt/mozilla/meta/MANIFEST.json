@@ -743,6 +743,18 @@
             "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
           }
         ],
+        "css/letter_spacing_a.html": [
+          {
+            "path": "css/letter_spacing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/letter_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/letter_spacing_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3718,6 +3730,18 @@
             ]
           ],
           "url": "/_mozilla/css/legacy_td_bgcolor_attribute_a.html"
+        }
+      ],
+      "css/letter_spacing_a.html": [
+        {
+          "path": "css/letter_spacing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/letter_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/letter_spacing_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [
