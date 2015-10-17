@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/issue-1324.html": [
+          {
+            "path": "css/issue-1324.html",
+            "references": [
+              [
+                "/_mozilla/css/issue-1324-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/issue-1324.html"
+          }
+        ],
         "css/jumpiness_a.html": [
           {
             "path": "css/jumpiness_a.html",
@@ -3670,6 +3682,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/issue-1324.html": [
+        {
+          "path": "css/issue-1324.html",
+          "references": [
+            [
+              "/_mozilla/css/issue-1324-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/issue-1324.html"
         }
       ],
       "css/jumpiness_a.html": [
