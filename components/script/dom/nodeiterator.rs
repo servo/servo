@@ -121,7 +121,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for following_node in node.r().following_nodes(self.root_node.root().r()) {
+        for following_node in node.r().following_nodes(&self.root_node) {
             // Step 3-2.
             let result = try!(self.accept_node(following_node.r()));
 
@@ -165,7 +165,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for preceding_node in node.r().preceding_nodes(self.root_node.root().r()) {
+        for preceding_node in node.r().preceding_nodes(&self.root_node) {
 
             // Step 3-2.
             let result = try!(self.accept_node(preceding_node.r()));
