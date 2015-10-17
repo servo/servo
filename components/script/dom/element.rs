@@ -1143,7 +1143,7 @@ impl ElementMethods for Element {
                 node.owner_doc()
             };
             let window = doc.r().window();
-            NamedNodeMap::new(window.r(), self)
+            NamedNodeMap::new(window, self)
         })
     }
 

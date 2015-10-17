@@ -100,7 +100,6 @@ impl HTMLImageElement {
         let node = NodeCast::from_ref(self);
         let document = node.owner_doc();
         let window = document.r().window();
-        let window = window.r();
         let image_cache = window.image_cache_task();
         match value {
             None => {

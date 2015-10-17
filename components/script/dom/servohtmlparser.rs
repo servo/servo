@@ -214,7 +214,6 @@ impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
     pub fn new(base_url: Option<Url>, document: &Document, pipeline: Option<PipelineId>)
                -> Root<ServoHTMLParser> {
-        let window = document.window();
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
@@ -237,14 +236,13 @@ impl ServoHTMLParser {
             pipeline: pipeline,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
     }
 
     #[allow(unrooted_must_root)]
     pub fn new_for_fragment(base_url: Option<Url>, document: &Document,
                             fragment_context: FragmentContext) -> Root<ServoHTMLParser> {
-        let window = document.window();
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
@@ -275,7 +273,7 @@ impl ServoHTMLParser {
             pipeline: None,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
     }
 

@@ -232,8 +232,8 @@ impl Document {
     }
 
     #[inline]
-    pub fn window(&self) -> Root<Window> {
-        self.window.root()
+    pub fn window(&self) -> &Window {
+        &*self.window
     }
 
     #[inline]
@@ -549,7 +549,6 @@ impl Document {
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let window = window.r();
         let compositor = window.compositor();
         compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
     }
@@ -1117,7 +1116,7 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(
-                &*self.window(), None, doctype, None, None,
+                self.window(), None, doctype, None, None,
                 DocumentSource::NotFromParser, DocumentLoader::new(&self.loader()));
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
@@ -1834,9 +1833,8 @@ impl DocumentMethods for Document {
         }
         // Step 4.
         *found = true;
-        let window = self.window();
         let filter = NamedElementFilter { name: name };
-        let collection = HTMLCollection::create(window.r(), root, box filter);
+        let collection = HTMLCollection::create(self.window(), root, box filter);
         collection.r().reflector().get_jsobject().get()
     }
 
@@ -1894,13 +1892,15 @@ impl DocumentProgressHandler {
     fn dispatch_dom_content_loaded(&self) {
         let document = self.addr.root();
         let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
+        let event = Event::new(GlobalRef::Window(window), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let doctarget = EventTargetCast::from_ref(document.r());
         let _ = doctarget.DispatchEvent(event.r());
 
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DOMContentLoaded);
     }
 
     fn set_ready_state_complete(&self) {
@@ -1911,16 +1911,15 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.root();
         let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
+        let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let wintarget = EventTargetCast::from_ref(window.r());
+        let wintarget = EventTargetCast::from_ref(window);
         let doctarget = EventTargetCast::from_ref(document.r());
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
-        let window_ref = window.r();
-        let browsing_context = window_ref.browsing_context();
+        let browsing_context = window.browsing_context();
         let browsing_context = browsing_context.as_ref().unwrap();
 
         if let Some(frame_element) = browsing_context.frame_element() {
@@ -1937,9 +1936,9 @@ impl DocumentProgressHandler {
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
         document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
-        window_ref.reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::DocumentLoaded);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DocumentLoaded);
     }
 }
 
@@ -1947,7 +1946,7 @@ impl Runnable for DocumentProgressHandler {
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
         let window = document.r().window();
-        if window.r().is_alive() {
+        if window.is_alive() {
             match self.task {
                 DocumentProgressTask::DOMContentLoaded => {
                     self.dispatch_dom_content_loaded();
