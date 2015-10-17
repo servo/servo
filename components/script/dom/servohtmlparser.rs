@@ -15,7 +15,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::node::{Node, window_from_node};
+use dom::node::Node;
 use dom::text::Text;
 use dom::window::Window;
 use encoding::all::UTF_8;
@@ -108,7 +108,7 @@ impl AsyncResponseListener for ParserContext {
 
         let parser = parser.r();
         let win = parser.window();
-        self.parser = Some(Trusted::new(win.r().get_cx(), parser, self.script_chan.clone()));
+        self.parser = Some(Trusted::new(win.get_cx(), parser, self.script_chan.clone()));
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
@@ -314,8 +314,8 @@ impl ServoHTMLParser {
         }
     }
 
-    fn window(&self) -> Root<Window> {
-        window_from_node(&*self.document)
+    fn window(&self) -> &Window {
+        self.document.window()
     }
 }
 
