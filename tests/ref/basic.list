@@ -212,7 +212,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 != octicons_a.html octicons_ref.html
 == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
 != ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
-== outline_offset_a.html outline_offset_ref.html
 != outset_blackborder.html blackborder_ref.html
 # Should be == with expected failure. See #2797
 != overconstrained_block.html overconstrained_block_ref.html

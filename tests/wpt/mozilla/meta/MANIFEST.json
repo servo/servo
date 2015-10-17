@@ -755,6 +755,18 @@
             "url": "/_mozilla/css/opacity_stacking_context_a.html"
           }
         ],
+        "css/outline_offset_a.html": [
+          {
+            "path": "css/outline_offset_a.html",
+            "references": [
+              [
+                "/_mozilla/css/outline_offset_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/outline_offset_a.html"
+          }
+        ],
         "css/outlines_simple_a.html": [
           {
             "path": "css/outlines_simple_a.html",
@@ -3586,6 +3598,18 @@
             ]
           ],
           "url": "/_mozilla/css/opacity_stacking_context_a.html"
+        }
+      ],
+      "css/outline_offset_a.html": [
+        {
+          "path": "css/outline_offset_a.html",
+          "references": [
+            [
+              "/_mozilla/css/outline_offset_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/outline_offset_a.html"
         }
       ],
       "css/outlines_simple_a.html": [
