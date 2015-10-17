@@ -8,11 +8,13 @@ use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTab
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableDataCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, NodeCast};
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
@@ -72,6 +74,24 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             let filter = box CellsFilter;
             HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
         })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
+    fn InsertCell(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+        let node = NodeCast::from_ref(self);
+        node.insert_cell_or_row(
+            index,
+            || self.Cells(),
+            || HTMLTableDataCellElement::new("td".to_owned(), None, node.owner_doc().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    fn DeleteCell(&self, index: i32) -> ErrorResult {
+        let node = NodeCast::from_ref(self);
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is_htmltabledatacellelement())
     }
 }
 
