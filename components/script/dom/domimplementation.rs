@@ -53,17 +53,14 @@ impl DOMImplementationMethods for DOMImplementation {
     fn CreateDocumentType(&self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
-        let document = self.document.root();
-        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), document.r()))
+        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<&DocumentType>) -> Fallible<Root<Document>> {
-        let doc = self.document.root();
-        let doc = doc.r();
-        let win = doc.window();
-        let loader = DocumentLoader::new(&*doc.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
         let doc = Document::new(win, None, IsHTMLDocument::NonHTMLDocument,
@@ -108,10 +105,8 @@ impl DOMImplementationMethods for DOMImplementation {
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Root<Document> {
-        let document = self.document.root();
-        let document = document.r();
-        let win = document.window();
-        let loader = DocumentLoader::new(&*document.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1-2.
         let doc = Document::new(win, None, IsHTMLDocument::HTMLDocument, None, None,
