@@ -2111,6 +2111,18 @@
             "url": "/_mozilla/css/visibility_hidden.html"
           }
         ],
+        "css/whitespace_nowrap_a.html": [
+          {
+            "path": "css/whitespace_nowrap_a.html",
+            "references": [
+              [
+                "/_mozilla/css/whitespace_nowrap_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/whitespace_nowrap_a.html"
+          }
+        ],
         "css/word-spacing.html": [
           {
             "path": "css/word-spacing.html",
@@ -4954,6 +4966,18 @@
             ]
           ],
           "url": "/_mozilla/css/visibility_hidden.html"
+        }
+      ],
+      "css/whitespace_nowrap_a.html": [
+        {
+          "path": "css/whitespace_nowrap_a.html",
+          "references": [
+            [
+              "/_mozilla/css/whitespace_nowrap_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/whitespace_nowrap_a.html"
         }
       ],
       "css/word-spacing.html": [
