@@ -2123,6 +2123,18 @@
             "url": "/_mozilla/css/whitespace_nowrap_a.html"
           }
         ],
+        "css/whitespace_nowrap_line_breaking_a.html": [
+          {
+            "path": "css/whitespace_nowrap_line_breaking_a.html",
+            "references": [
+              [
+                "/_mozilla/css/whitespace_nowrap_line_breaking_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/whitespace_nowrap_line_breaking_a.html"
+          }
+        ],
         "css/word-spacing.html": [
           {
             "path": "css/word-spacing.html",
@@ -4978,6 +4990,18 @@
             ]
           ],
           "url": "/_mozilla/css/whitespace_nowrap_a.html"
+        }
+      ],
+      "css/whitespace_nowrap_line_breaking_a.html": [
+        {
+          "path": "css/whitespace_nowrap_line_breaking_a.html",
+          "references": [
+            [
+              "/_mozilla/css/whitespace_nowrap_line_breaking_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/whitespace_nowrap_line_breaking_a.html"
         }
       ],
       "css/word-spacing.html": [
