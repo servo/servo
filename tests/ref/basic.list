@@ -215,7 +215,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 != ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
 == ol_simple_a.html ol_simple_ref.html
 == only_child_pseudo_a.html only_child_pseudo_b.html
-== only_of_type_pseudo_a.html only_of_type_pseudo_b.html
 == opacity_simple_a.html opacity_simple_ref.html
 == opacity_stacking_context_a.html opacity_stacking_context_ref.html
 == outline_offset_a.html outline_offset_ref.html

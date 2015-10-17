@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/only_of_type_pseudo_a.html": [
+          {
+            "path": "css/only_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/only_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/only_of_type_pseudo_a.html"
+          }
+        ],
         "css/outlines_simple_a.html": [
           {
             "path": "css/outlines_simple_a.html",
@@ -3442,6 +3454,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/only_of_type_pseudo_a.html": [
+        {
+          "path": "css/only_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/only_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/only_of_type_pseudo_a.html"
         }
       ],
       "css/outlines_simple_a.html": [
