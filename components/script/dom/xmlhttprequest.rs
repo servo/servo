@@ -120,6 +120,9 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableHeap<JS<Document>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
+    override_mime_type: DOMRefCell<DOMString>,
+    #[ignore_heap_size_of = "Defined in rust-encoding"]
+    override_charset: DOMRefCell<Option<EncodingRef>>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
@@ -157,6 +160,8 @@ impl XMLHttpRequest {
             response_type: Cell::new(_empty),
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
+            override_mime_type: DOMRefCell::new("".to_owned()),
+            override_charset: DOMRefCell::new(None),
 
             request_method: DOMRefCell::new(Method::Get),
             request_url: DOMRefCell::new(None),
@@ -645,6 +650,35 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
     fn GetAllResponseHeaders(&self) -> ByteString {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
+    }
+
+    // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
+    fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+	    match self.ready_state.get() {
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
+	        _ => {},
+	    }
+	    let parsed_mime = mime.parse::<Mime>();
+        let override_mime;
+        match parsed_mime {
+            Err(_) => return Err(Error::Syntax),
+            Ok(valid_mime) => { override_mime = valid_mime },
+        }
+        match override_mime {
+            Mime(ref toplevel, ref sublevel, ref params) => { 
+                                                        let toplevel_mime = &toplevel.as_str().to_ascii_lowercase();
+                                                        let sublevel_mime = &sublevel.as_str().to_ascii_lowercase();
+                                                        *self.override_mime_type.borrow_mut() = format!("{}/{}", toplevel_mime, sublevel_mime);
+                                                        for &(ref name, ref value) in params {
+                                                            if name == &mime::Attr::Charset {
+                                                                let encoding =  encoding_from_whatwg_label(&value.to_string());
+                                                                *self.override_charset.borrow_mut() = if encoding.is_none() { *self.override_charset.borrow() } 
+                                                                                                      else { Some(encoding.unwrap()) };
+                                                            }
+                                                        }
+                                                        Ok(())
+                                                        },
+        }
     }
 
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
