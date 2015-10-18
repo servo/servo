@@ -1158,7 +1158,7 @@ impl ElementMethods for Element {
     fn GetAttributeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        GetAttributeNodeNS(namespace,local_name)
+        self.GetAttributeNodeNS(namespace, local_name)
                      .map(|attr| attr.r().Value())
     }
 
