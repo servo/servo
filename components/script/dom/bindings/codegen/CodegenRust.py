@@ -5907,8 +5907,8 @@ pub trait %(derivedTrait)s: Sized {
 
 impl %(name)sCast {
     #[inline]
-    /// Downcast an instance of a base class of `${name}` to an instance of
-    /// `${name}`, if it internally is an instance of `${name}`
+    /// Downcast an instance of a base class of `%(name)s` to an instance of
+    /// `%(name)s`, if it internally is an instance of `%(name)s`
     pub fn to_ref<T: %(derivedTrait)s + Reflectable>(base: &T) -> Option<&%(name)s> {
         match base.%(methodName)s() {
             true => Some(unsafe { mem::transmute(base) }),
