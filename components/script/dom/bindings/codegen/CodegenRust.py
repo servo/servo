@@ -1773,12 +1773,16 @@ class CGDOMJSClass(CGThing):
     def define(self):
         traceHook = 'Some(%s)' % TRACE_HOOK_NAME
         if self.descriptor.isGlobal():
+            assert not self.descriptor.weakReferenceable
             traceHook = "Some(js::jsapi::JS_GlobalObjectTraceHook)"
             flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
         else:
             flags = "0"
-            slots = "1"
+            if self.descriptor.weakReferenceable:
+                slots = "2"
+            else:
+                slots = "1"
         return """\
 static Class: DOMJSClass = DOMJSClass {
     base: js::jsapi::Class {
@@ -2183,6 +2187,9 @@ let obj = RootedObject::new(cx, obj);\
                    "\n"
                    "JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,\n"
                    "                   PrivateValue(raw as *const libc::c_void));")
+    if descriptor.weakReferenceable:
+        create += """
+JS_SetReservedSlot(obj.ptr, DOM_WEAK_SLOT, PrivateValue(ptr::null()));"""
     return create
 
 
@@ -4531,7 +4538,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
                                         args)
 
     def definition_body_prologue(self):
-        return CGGeneric("""\
+        return CGGeneric("""
 let this: *const %s = native_from_reflector::<%s>(obj);
 """ % (self.descriptor.concreteType, self.descriptor.concreteType))
 
@@ -4551,6 +4558,24 @@ def finalizeHook(descriptor, hookName, context):
         release += """\
 finalize_global(obj);
 """
+    elif descriptor.weakReferenceable:
+        release += """\
+let weak_box_ptr = JS_GetReservedSlot(obj, DOM_WEAK_SLOT).to_private() as *mut WeakBox<%s>;
+if !weak_box_ptr.is_null() {
+    let count = {
+        let weak_box = &*weak_box_ptr;
+        assert!(weak_box.value.get().is_some());
+        assert!(weak_box.count.get() > 0);
+        weak_box.value.set(None);
+        let count = weak_box.count.get() - 1;
+        weak_box.count.set(count);
+        count
+    };
+    if count == 0 {
+        mem::drop(Box::from_raw(weak_box_ptr));
+    }
+}
+""" % descriptor.concreteType
     release += """\
 let _ = Box::from_raw(this as *mut %s);
 debug!("%s finalize: {:p}", this);\
@@ -4728,6 +4753,15 @@ class CGInterfaceTrait(CGThing):
         return self.cgRoot.define()
 
 
+class CGWeakReferenceableTrait(CGThing):
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.code = "impl WeakReferenceable for %s {}" % descriptor.interface.identifier.name
+
+    def define(self):
+        return self.code
+
+
 class CGDescriptor(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
@@ -4836,6 +4870,8 @@ class CGDescriptor(CGThing):
         if not descriptor.interface.isCallback():
             cgThings.append(CGIDLInterface(descriptor))
             cgThings.append(CGInterfaceTrait(descriptor))
+            if descriptor.weakReferenceable:
+                cgThings.append(CGWeakReferenceableTrait(descriptor))
 
         cgThings = CGList(cgThings, "\n")
         # self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -5242,6 +5278,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::num::Finite',
             'dom::bindings::str::ByteString',
             'dom::bindings::str::USVString',
+            'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::str::DOMString',
