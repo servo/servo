@@ -431,6 +431,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SaveContext)).unwrap();
     }
 
+    #[allow(unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
         let mut saved_states = self.saved_states.borrow_mut();
