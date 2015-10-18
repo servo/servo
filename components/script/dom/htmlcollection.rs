@@ -20,33 +20,26 @@ pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
-#[derive(JSTraceable)]
-#[must_root]
-pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
-
 #[dom_struct]
 pub struct HTMLCollection {
     reflector_: Reflector,
+    root: JS<Node>,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
-    collection: Collection,
+    filter: Box<CollectionFilter + 'static>,
 }
 
 impl HTMLCollection {
-    fn new_inherited(collection: Collection) -> HTMLCollection {
+    fn new_inherited(root: JS<Node>, filter: Box<CollectionFilter + 'static>) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
-            collection: collection,
+            root: root,
+            filter: filter,
         }
     }
 
-    pub fn new(window: &Window, collection: Collection) -> Root<HTMLCollection> {
-        reflect_dom_object(box HTMLCollection::new_inherited(collection),
+    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
+        reflect_dom_object(box HTMLCollection::new_inherited(JS::from_ref(root), filter),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
-    }
-
-    pub fn create(window: &Window, root: &Node,
-                  filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
-        HTMLCollection::new(window, Collection(JS::from_ref(root), filter))
     }
 
     fn all_elements(window: &Window, root: &Node,
@@ -64,7 +57,7 @@ impl HTMLCollection {
             }
         }
         let filter = AllElementFilter { namespace_filter: namespace_filter };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::new(window, root, box filter)
     }
 
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
@@ -94,7 +87,7 @@ impl HTMLCollection {
             tag: tag_atom,
             ascii_lower_tag: ascii_lower_tag,
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::new(window, root, box filter)
     }
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
@@ -127,7 +120,7 @@ impl HTMLCollection {
             tag: Atom::from_slice(&tag),
             namespace_filter: namespace_filter
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::new(window, root, box filter)
     }
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
@@ -146,7 +139,7 @@ impl HTMLCollection {
                          Atom::from_slice(class)
                      }).collect()
         };
-        HTMLCollection::create(window, root, box filter)
+        HTMLCollection::new(window, root, box filter)
     }
 
     pub fn children(window: &Window, root: &Node) -> Root<HTMLCollection> {
@@ -157,18 +150,17 @@ impl HTMLCollection {
                 root.is_parent_of(NodeCast::from_ref(elem))
             }
         }
-        HTMLCollection::create(window, root, box ElementChildFilter)
+        HTMLCollection::new(window, root, box ElementChildFilter)
     }
 
     pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
-        let ref filter = self.collection.1;
-        let root = self.collection.0.root();
+        let root = self.root.root();
         let mut node_iter = root.traverse_preorder();
         let _ = node_iter.next();  // skip the root node
         HTMLCollectionElementsIter {
             node_iter: node_iter,
             root: root,
-            filter: filter,
+            filter: &self.filter,
         }
     }
 }

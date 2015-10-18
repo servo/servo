@@ -59,7 +59,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
         let node = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
         let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        HTMLCollection::new(window.r(), node, filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
