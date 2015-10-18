@@ -44,6 +44,7 @@ use euclid::size::Size2D;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
+use hyper::mime::Mime;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
 use js::jsapi::{GCTraceKindToAscii, Heap, JSGCTraceKind, JSObject, JSTracer, JS_CallObjectTracer, JS_CallValueTracer};
@@ -308,6 +309,7 @@ no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
+no_jsmanaged_fields!(Mime);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
