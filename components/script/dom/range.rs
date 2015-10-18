@@ -713,6 +713,7 @@ pub struct RangeInner {
 }
 
 impl RangeInner {
+    #[allow(unrooted_must_root)]
     fn new(start: BoundaryPoint, end: BoundaryPoint) -> RangeInner {
         RangeInner { start: start, end: end }
     }

@@ -32,6 +32,7 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
+    #[allow(unrooted_must_root)]
     fn new_inherited(collection: Collection) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
@@ -39,6 +40,7 @@ impl HTMLCollection {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &Window, collection: Collection) -> Root<HTMLCollection> {
         reflect_dom_object(box HTMLCollection::new_inherited(collection),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)

@@ -55,9 +55,11 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                 } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                     false
                 } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
-                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"]) {
-                        // Ref and RefMut are borrowed pointers, okay to hold unrooted stuff
-                        // since it will be rooted elsewhere
+                        || match_def_path(cx, did.did, &["core", "cell", "RefMut"])
+                        || match_def_path(cx, did.did, &["core", "slice", "Iter"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"]) {
+                    // Structures which are semantically similar to an &ptr.
                     false
                 } else {
                     true
@@ -133,7 +135,8 @@ impl LateLintPass for UnrootedPass {
                 hir::Unsafety::Unsafe => return,
                 _ => ()
             },
-            _ => ()
+            visit::FnKind::Closure => return,
+            visit::FnKind::Method(..) => ()
         }
         self.in_new_function = false;
 
@@ -168,7 +171,6 @@ impl LateLintPass for UnrootedPass {
         }
     }
 
-    /// Trait casts from #[must_root] types are not allowed
     fn check_expr(&mut self, cx: &LateContext, expr: &hir::Expr) {
         fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
             let ty = cx.tcx.expr_ty(&*subexpr);
@@ -177,56 +179,38 @@ impl LateLintPass for UnrootedPass {
                              subexpr.span,
                              &format!("Expression of type {:?} must be rooted", ty))
             }
-        };
+        }
 
         match expr.node {
+            /// Trait casts from #[must_root] types are not allowed
             hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            // This catches assignments... the main point of this would be to catch mutable
+            // references to `JS<T>`.
+            // FIXME: Enable this? Triggers on certain kinds of uses of DOMRefCell.
+            // hir::ExprAssign(_, ref rhs) => require_rooted(cx, self.in_new_function, &*rhs),
+            // This catches calls; basically, this enforces the constraint that only constructors
+            // can call other constructors.
+            // FIXME: Enable this? Currently triggers with constructs involving DOMRefCell, and
+            // constructs like Vec<JS<T>> and RootedVec<JS<T>>.
+            // hir::ExprCall(..) if !self.in_new_function => {
+            //     require_rooted(cx, self.in_new_function, expr);
+            // }
             _ => {
                 // TODO(pcwalton): Check generics with a whitelist of allowed generics.
             }
         }
     }
 
-    // Partially copied from rustc::middle::lint::builtin
-    // Catches `let` statements and assignments which store a #[must_root] value
-    // Expressions which return out of blocks eventually end up in a `let` or assignment
-    // statement or a function return (which will be caught when it is used elsewhere)
-    fn check_stmt(&mut self, cx: &LateContext, s: &hir::Stmt) {
-        match s.node {
-            hir::StmtDecl(_, id) |
-            hir::StmtExpr(_, id) |
-            hir::StmtSemi(_, id) if unsafe_context(&cx.tcx.map, id) => {
-                return
-            },
-            _ => ()
-        };
-
-        let expr = match s.node {
-            // Catch a `let` binding
-            hir::StmtDecl(ref decl, _) => match decl.node {
-                hir::DeclLocal(ref loc) => match loc.init {
-                    Some(ref e) => &**e,
-                    _ => return
-                },
-                _ => return
-            },
-            hir::StmtExpr(ref expr, _) => match expr.node {
-                // This catches deferred `let` statements
-                hir::ExprAssign(_, ref e) |
-                // Match statements allow you to bind onto the variable later in an arm
-                // We need not check arms individually since enum/struct fields are already
-                // linted in `check_struct_def` and `check_variant`
-                // (so there is no way of destructuring out a `#[must_root]` field)
-                hir::ExprMatch(ref e, _, _) => &**e,
-                _ => return
-            },
-            _ => return
-        };
-
-        let ty = cx.tcx.expr_ty(&*expr);
-        if is_unrooted_ty(cx, ty, self.in_new_function) {
-            cx.span_lint(UNROOTED_MUST_ROOT, expr.span,
-                                     &format!("Expression of type {:?} must be rooted", ty))
+    fn check_pat(&mut self, cx: &LateContext, pat: &hir::Pat) {
+        if let hir::PatIdent(hir::BindByValue(_), _, _) = pat.node {
+            if let Some(ty) = cx.tcx.pat_ty_opt(pat) {
+                if is_unrooted_ty(cx, ty, self.in_new_function) {
+                    cx.span_lint(UNROOTED_MUST_ROOT,
+                                pat.span,
+                                &format!("Expression of type {:?} must be rooted", ty))
+                }
+            }
         }
     }
+
 }
