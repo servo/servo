@@ -1172,7 +1172,7 @@ impl ElementMethods for Element {
     fn GetAttributeNodeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        self.GetAttributeNS(namespace,local_name)
+        self.GetAttributeNS(namespace, local_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
