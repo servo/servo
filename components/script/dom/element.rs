@@ -1163,6 +1163,18 @@ impl ElementMethods for Element {
                      .map(|attr| attr.r().Value())
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-getattributenode
+    fn GetAttributeNode(&self, name: DOMString) -> Option<DOMString> {
+        self.GetAttribute(name)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-getattributenodens
+    fn GetAttributeNodeNS(&self,
+                      namespace: Option<DOMString>,
+                      local_name: DOMString) -> Option<DOMString> {
+        self.GetAttributeNS(namespace,local_name)
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-setattribute
     fn SetAttribute(&self,
                     name: DOMString,
