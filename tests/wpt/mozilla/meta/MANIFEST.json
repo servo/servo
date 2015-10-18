@@ -7,6 +7,10 @@
       {
         "path": "mozilla/prototypes.html",
         "url": "/_mozilla/mozilla/prototypes.html"
+      },
+      {
+        "path": "mozilla/weakref.html",
+        "url": "/_mozilla/mozilla/weakref.html"
       }
     ],
     "wdspec": []

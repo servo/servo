@@ -113,6 +113,7 @@ interface TestBinding {
            attribute ByteString? byteStringAttributeNullable;
   readonly attribute TestEnum? enumAttributeNullable;
            attribute Blob? interfaceAttributeNullable;
+           attribute URL? interfaceAttributeWeak;
            attribute object? objectAttributeNullable;
            attribute (HTMLElement or long)? unionAttributeNullable;
            attribute (Event or DOMString)? union2AttributeNullable;
