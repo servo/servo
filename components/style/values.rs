@@ -569,8 +569,8 @@ pub mod specified {
                 (Token::Percentage(ref value), CalcUnit::LengthOrPercentage) =>
                     Ok(CalcValueNode::Percentage(value.unit_value)),
                 (Token::ParenthesisBlock, _) => {
-                    let result = try!(input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, expected_unit)));
-                    Ok(CalcValueNode::Sum(box result))
+                    input.parse_nested_block(|i| CalcLengthOrPercentage::parse_sum(i, expected_unit))
+                         .map(|result| CalcValueNode::Sum(box result))
                 },
                 _ => Err(())
             }
