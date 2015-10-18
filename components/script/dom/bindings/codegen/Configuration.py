@@ -170,6 +170,7 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
+        self.weakReferenceable = desc.get('weakReferenceable', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.

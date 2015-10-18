@@ -6,17 +6,21 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestEnum};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString, HTMLElementOrLong};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, global_object_for_reflector};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
-use dom::bindings::utils::Reflector;
+use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::weakref::TransientWeakRef;
 use dom::blob::Blob;
+use dom::url::URL;
 use js::jsapi::{HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
+use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;
 use util::str::DOMString;
@@ -24,6 +28,25 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct TestBinding {
     reflector_: Reflector,
+    url: RefCell<TransientWeakRef<URL>>,
+}
+
+impl TestBinding {
+    fn new_inherited() -> TestBinding {
+        TestBinding {
+            reflector_: Reflector::new(),
+            url: RefCell::new(TransientWeakRef::new(None)),
+        }
+    }
+
+    pub fn new(global: GlobalRef) -> Root<TestBinding> {
+        reflect_dom_object(box TestBinding::new_inherited(),
+                           global, TestBindingBinding::Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
+    }
 }
 
 impl TestBindingMethods for TestBinding {
@@ -119,6 +142,12 @@ impl TestBindingMethods for TestBinding {
         Some(Blob::new(global_object_for_reflector(self).r(), None, ""))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
+    fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
+        self.url.borrow().root()
+    }
+    fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
+        *self.url.borrow_mut() = TransientWeakRef::new(url)
+    }
     fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {

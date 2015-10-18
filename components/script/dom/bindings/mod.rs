@@ -145,6 +145,7 @@ pub mod str;
 pub mod structuredclone;
 pub mod trace;
 pub mod utils;
+pub mod weakref;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
