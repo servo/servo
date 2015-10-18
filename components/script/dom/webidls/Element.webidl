@@ -38,9 +38,9 @@ interface Element : Node {
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [Pure]
-  DOMString? getAttributeNode(DOMString name);
+  Attr? getAttributeNode(DOMString name);
   [Pure]
-  DOMString? getAttributeNodeNS(DOMString? namespace, DOMString localName);
+  Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
   [Throws]
   void setAttribute(DOMString name, DOMString value);
   [Throws]

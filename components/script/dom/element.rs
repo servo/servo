@@ -1150,7 +1150,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
-        self.get_attribute_by_name(name)
+        self.GetAttributeNode(name)
                      .map(|s| s.r().Value())
     }
 
@@ -1158,21 +1158,22 @@ impl ElementMethods for Element {
     fn GetAttributeNS(&self,
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
-        let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute(namespace, &Atom::from_slice(&local_name))
+        GetAttributeNodeNS(namespace,local_name)
                      .map(|attr| attr.r().Value())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenode
-    fn GetAttributeNode(&self, name: DOMString) -> Option<DOMString> {
+    fn GetAttributeNode(&self, name: DOMString) -> Option<Root<Attr>> {
+        self.get_attribute_by_name(name)
         self.GetAttribute(name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenodens
     fn GetAttributeNodeNS(&self,
                       namespace: Option<DOMString>,
-                      local_name: DOMString) -> Option<DOMString> {
-        self.GetAttributeNS(namespace, local_name)
+                      local_name: DOMString) -> Option<Root<Attr>> {
+        let namespace = &namespace_from_domstring(namespace);
+        self.get_attribute(namespace, &Atom::from_slice(&local_name))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattribute
