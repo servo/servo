@@ -120,6 +120,9 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableHeap<JS<Document>>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
+    override_mime_type: DOMRefCell<Option<(Mime)>>,
+    #[ignore_heap_size_of = "Defined in rust-encoding"]
+    override_charset: DOMRefCell<Option<EncodingRef>>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
@@ -157,6 +160,8 @@ impl XMLHttpRequest {
             response_type: Cell::new(_empty),
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
+            override_mime_type: DOMRefCell::new(None),
+            override_charset: DOMRefCell::new(None),
 
             request_method: DOMRefCell::new(Method::Get),
             request_url: DOMRefCell::new(None),
@@ -647,6 +652,24 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
 
+    // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
+    fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+        match self.ready_state.get() {
+            XMLHttpRequestState::Loading | XMLHttpRequestState::Done => return Err(Error::InvalidState),
+            _ => {},
+        }
+        let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
+        let Mime(_, _, ref params) = override_mime.clone();
+        *self.override_mime_type.borrow_mut() = Some(override_mime);
+        for &(ref name, ref value) in params {
+            if name == &mime::Attr::Charset {
+                let encoding =  encoding_from_whatwg_label(&value.to_string());
+                *self.override_charset.borrow_mut() = encoding
+            }
+        }
+        Ok(())
+    }
+
     // https://xhr.spec.whatwg.org/#the-responsetype-attribute
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.get()
@@ -988,6 +1011,7 @@ impl XMLHttpRequest {
         }
     }
 
+    //FIXME: add support for override_mime_type and override_charset
     fn text_response(&self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
