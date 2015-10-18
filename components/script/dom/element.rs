@@ -1165,7 +1165,6 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getattributenode
     fn GetAttributeNode(&self, name: DOMString) -> Option<Root<Attr>> {
         self.get_attribute_by_name(name)
-        self.GetAttribute(name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenodens
