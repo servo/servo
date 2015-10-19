@@ -779,6 +779,18 @@
             "url": "/_mozilla/css/inline_hypothetical_box_a.html"
           }
         ],
+        "css/inline_margin_multiple_fragments_a.html": [
+          {
+            "path": "css/inline_margin_multiple_fragments_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_margin_multiple_fragments_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
+          }
+        ],
         "css/inline_margins_a.html": [
           {
             "path": "css/inline_margins_a.html",
@@ -4306,6 +4318,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_hypothetical_box_a.html"
+        }
+      ],
+      "css/inline_margin_multiple_fragments_a.html": [
+        {
+          "path": "css/inline_margin_multiple_fragments_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_margin_multiple_fragments_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
         }
       ],
       "css/inline_margins_a.html": [
