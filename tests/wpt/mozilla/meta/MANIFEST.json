@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/jumpiness_a.html"
           }
         ],
+        "css/last_of_type_pseudo_a.html": [
+          {
+            "path": "css/last_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/last_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/last_of_type_pseudo_a.html"
+          }
+        ],
         "css/layerization_z_order_a.html": [
           {
             "path": "css/layerization_z_order_a.html",
@@ -4114,6 +4126,18 @@
             ]
           ],
           "url": "/_mozilla/css/jumpiness_a.html"
+        }
+      ],
+      "css/last_of_type_pseudo_a.html": [
+        {
+          "path": "css/last_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/last_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/last_of_type_pseudo_a.html"
         }
       ],
       "css/layerization_z_order_a.html": [
