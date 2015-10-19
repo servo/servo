@@ -863,6 +863,18 @@
             "url": "/_mozilla/css/min_max_height_a.html"
           }
         ],
+        "css/min_width_float_simple_a.html": [
+          {
+            "path": "css/min_width_float_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/min_width_float_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/min_width_float_simple_a.html"
+          }
+        ],
         "css/min_width_simple_a.html": [
           {
             "path": "css/min_width_simple_a.html",
@@ -4090,6 +4102,18 @@
             ]
           ],
           "url": "/_mozilla/css/min_max_height_a.html"
+        }
+      ],
+      "css/min_width_float_simple_a.html": [
+        {
+          "path": "css/min_width_float_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/min_width_float_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/min_width_float_simple_a.html"
         }
       ],
       "css/min_width_simple_a.html": [
