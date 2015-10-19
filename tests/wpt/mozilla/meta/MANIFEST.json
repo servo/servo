@@ -707,6 +707,18 @@
             "url": "/_mozilla/css/incremental_float_a.html"
           }
         ],
+        "css/incremental_inline_layout_a.html": [
+          {
+            "path": "css/incremental_inline_layout_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_inline_layout_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_inline_layout_a.html"
+          }
+        ],
         "css/incremental_letter_spacing_a.html": [
           {
             "path": "css/incremental_letter_spacing_a.html",
@@ -4390,6 +4402,18 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_float_a.html"
+        }
+      ],
+      "css/incremental_inline_layout_a.html": [
+        {
+          "path": "css/incremental_inline_layout_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_inline_layout_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_inline_layout_a.html"
         }
       ],
       "css/incremental_letter_spacing_a.html": [
