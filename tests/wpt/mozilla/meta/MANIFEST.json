@@ -707,6 +707,18 @@
             "url": "/_mozilla/css/inline_block_img_a.html"
           }
         ],
+        "css/inline_block_margin_a.html": [
+          {
+            "path": "css/inline_block_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_margin_a.html"
+          }
+        ],
         "css/inline_block_min_width.html": [
           {
             "path": "css/inline_block_min_width.html",
@@ -4282,6 +4294,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_img_a.html"
+        }
+      ],
+      "css/inline_block_margin_a.html": [
+        {
+          "path": "css/inline_block_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_margin_a.html"
         }
       ],
       "css/inline_block_min_width.html": [
