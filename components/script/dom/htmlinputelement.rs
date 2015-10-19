@@ -359,12 +359,10 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
     // This function is a workaround for lifetime constraint difficulties.
     fn do_broadcast(doc_node: &Node, broadcaster: &HTMLInputElement,
                         owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
-        // There is no DOM tree manipulation here, so this is safe
-        let iter = unsafe {
-            doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                .filter_map(HTMLInputElementCast::to_root)
-                .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r())
-        };
+        let iter = doc_node.query_selector_iter("input[type=radio]".to_owned())
+                .unwrap().filter_map(HTMLInputElementCast::to_root)
+                .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r());
+        
         for ref r in iter {
             if r.r().Checked() {
                 r.r().SetChecked(false);
@@ -714,15 +712,12 @@ impl Activatable for HTMLInputElement {
                     let doc_node = NodeCast::from_ref(doc.r());
                     let group = self.get_radio_group_name();;
 
-                    // Safe since we only manipulate the DOM tree after finding an element
-                    let checked_member = unsafe {
-                        doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
-                                .filter_map(HTMLInputElementCast::to_root)
-                                .find(|r| {
-                                    in_same_group(r.r(), owner.r(), group.as_ref()) &&
-                                    r.r().Checked()
-                                })
-                    };
+                    let checked_member = doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
+                            .filter_map(HTMLInputElementCast::to_root)
+                            .find(|r| {
+                                in_same_group(r.r(), owner.r(), group.as_ref()) &&
+                                r.r().Checked()
+                            }); 
                     cache.checked_radio = checked_member.r().map(JS::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
@@ -849,14 +844,10 @@ impl Activatable for HTMLInputElement {
         if elem.click_in_progress() {
             return;
         }
-        // This is safe because we are stopping after finding the first element
-        // and only then performing actions which may modify the DOM tree
-        let submit_button;
-        unsafe {
-            submit_button = node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
-                .filter_map(HTMLInputElementCast::to_root)
-                .find(|r| r.r().form_owner() == owner);
-        }
+        let submit_button; 
+        submit_button = node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
+            .filter_map(HTMLInputElementCast::to_root)
+            .find(|r| r.r().form_owner() == owner);
         match submit_button {
             Some(ref button) => {
                 if button.r().is_instance_activatable() {
@@ -864,28 +855,23 @@ impl Activatable for HTMLInputElement {
                 }
             }
             None => {
-                unsafe {
-                    // Safe because we don't perform any DOM modification
-                    // until we're done with the iterator.
-                    let inputs = node.query_selector_iter("input".to_owned()).unwrap()
-                        .filter_map(HTMLInputElementCast::to_root)
-                        .filter(|input| {
-                            input.r().form_owner() == owner && match &*input.r().Type() {
-                                "text" | "search" | "url" | "tel" |
-                                "email" | "password" | "datetime" |
-                                "date" | "month" | "week" | "time" |
-                                "datetime-local" | "number"
-                                  => true,
-                                _ => false
-                            }
-                        });
+                let inputs = node.query_selector_iter("input".to_owned()).unwrap()
+                    .filter_map(HTMLInputElementCast::to_root)
+                    .filter(|input| {
+                        input.r().form_owner() == owner && match &*input.r().Type() {
+                            "text" | "search" | "url" | "tel" |
+                            "email" | "password" | "datetime" |
+                            "date" | "month" | "week" | "time" |
+                            "datetime-local" | "number"
+                              => true,
+                            _ => false
+                        }
+                    });
 
-                    if inputs.skip(1).next().is_some() {
-                        // lazily test for > 1 submission-blocking inputs
-                        return;
-                    }
+                if inputs.skip(1).next().is_some() {
+                    // lazily test for > 1 submission-blocking inputs
+                    return;
                 }
-
                 form.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
                                 FormSubmitter::FormElement(form.r()));
             }
