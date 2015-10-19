@@ -810,25 +810,6 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn get_input_value(&self) -> String {
-        unsafe {
-            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
-            match input {
-                Some(input) => input.get_value_for_layout(),
-                None => panic!("not an input element!")
-            }
-        }
-    }
-
-    pub fn get_input_size(&self) -> u32 {
-        unsafe {
-            match HTMLInputElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(input) => input.get_size_for_layout(),
-                None => panic!("not an input element!")
-            }
-        }
-    }
-
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
