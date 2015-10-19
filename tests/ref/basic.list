@@ -184,7 +184,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == min_width_float_simple_a.html min_width_float_simple_b.html
 == min_width_simple_a.html min_width_simple_b.html
 == negative_margins_a.html negative_margins_b.html
-== no-image.html no-image-ref.html
 == no_image_background_a.html no_image_background_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 != octicons_a.html octicons_ref.html
