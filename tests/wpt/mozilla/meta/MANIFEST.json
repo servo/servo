@@ -899,6 +899,18 @@
             "url": "/_mozilla/css/no-image.html"
           }
         ],
+        "css/no_image_background_a.html": [
+          {
+            "path": "css/no_image_background_a.html",
+            "references": [
+              [
+                "/_mozilla/css/no_image_background_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/no_image_background_a.html"
+          }
+        ],
         "css/noscript.html": [
           {
             "path": "css/noscript.html",
@@ -4078,6 +4090,18 @@
             ]
           ],
           "url": "/_mozilla/css/no-image.html"
+        }
+      ],
+      "css/no_image_background_a.html": [
+        {
+          "path": "css/no_image_background_a.html",
+          "references": [
+            [
+              "/_mozilla/css/no_image_background_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/no_image_background_a.html"
         }
       ],
       "css/noscript.html": [
