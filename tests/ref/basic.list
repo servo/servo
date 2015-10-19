@@ -181,7 +181,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
 == max_width_float_simple_a.html max_width_float_simple_b.html
 == max_width_simple_a.html max_width_simple_b.html
-== min_max_height_a.html min_max_height_b.html
 == min_width_float_simple_a.html min_width_float_simple_b.html
 == min_width_simple_a.html min_width_simple_b.html
 == minimum_line_height_a.html minimum_line_height_b.html

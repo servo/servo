@@ -827,6 +827,18 @@
             "url": "/_mozilla/css/letter_spacing_a.html"
           }
         ],
+        "css/min_max_height_a.html": [
+          {
+            "path": "css/min_max_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/min_max_height_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/min_max_height_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3886,6 +3898,18 @@
             ]
           ],
           "url": "/_mozilla/css/letter_spacing_a.html"
+        }
+      ],
+      "css/min_max_height_a.html": [
+        {
+          "path": "css/min_max_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/min_max_height_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/min_max_height_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [
