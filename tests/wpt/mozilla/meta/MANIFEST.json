@@ -839,6 +839,18 @@
             "url": "/_mozilla/css/jumpiness_a.html"
           }
         ],
+        "css/last_child_pseudo_a.html": [
+          {
+            "path": "css/last_child_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/last_child_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/last_child_pseudo_a.html"
+          }
+        ],
         "css/last_of_type_pseudo_a.html": [
           {
             "path": "css/last_of_type_pseudo_a.html",
@@ -4222,6 +4234,18 @@
             ]
           ],
           "url": "/_mozilla/css/jumpiness_a.html"
+        }
+      ],
+      "css/last_child_pseudo_a.html": [
+        {
+          "path": "css/last_child_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/last_child_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/last_child_pseudo_a.html"
         }
       ],
       "css/last_of_type_pseudo_a.html": [
