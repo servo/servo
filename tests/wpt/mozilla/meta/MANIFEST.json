@@ -851,6 +851,18 @@
             "url": "/_mozilla/css/negative_margin_uncle_a.html"
           }
         ],
+        "css/noscript.html": [
+          {
+            "path": "css/noscript.html",
+            "references": [
+              [
+                "/_mozilla/css/noscript_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/noscript.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3934,6 +3946,18 @@
             ]
           ],
           "url": "/_mozilla/css/negative_margin_uncle_a.html"
+        }
+      ],
+      "css/noscript.html": [
+        {
+          "path": "css/noscript.html",
+          "references": [
+            [
+              "/_mozilla/css/noscript_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/noscript.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [

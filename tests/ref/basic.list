@@ -189,7 +189,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == negative_margins_a.html negative_margins_b.html
 == no-image.html no-image-ref.html
 == no_image_background_a.html no_image_background_ref.html
-== noscript.html noscript_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 == nth_last_of_type_pseudo_a.html nth_last_of_type_pseudo_b.html
 == nth_of_type_pseudo_a.html nth_of_type_pseudo_b.html
