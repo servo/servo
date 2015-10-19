@@ -743,6 +743,18 @@
             "url": "/_mozilla/css/inline_margins_a.html"
           }
         ],
+        "css/inline_margins_intrinsic_size_a.html": [
+          {
+            "path": "css/inline_margins_intrinsic_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_margins_intrinsic_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_margins_intrinsic_size_a.html"
+          }
+        ],
         "css/inline_padding_a.html": [
           {
             "path": "css/inline_padding_a.html",
@@ -4090,6 +4102,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_margins_a.html"
+        }
+      ],
+      "css/inline_margins_intrinsic_size_a.html": [
+        {
+          "path": "css/inline_margins_intrinsic_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_margins_intrinsic_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_margins_intrinsic_size_a.html"
         }
       ],
       "css/inline_padding_a.html": [
