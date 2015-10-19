@@ -468,7 +468,8 @@ def create_parser_create():
     p.add_argument('--release', action="store_true",
                    help="Run with a release build of servo")
     p.add_argument("--long-timeout", action="store_true",
-                   help="Test should be given a long timeout (typically 60s rather than 10s, but varies depending on environment)")
+                   help="Test should be given a long timeout (typically 60s rather than 10s,"
+                   "but varies depending on environment)")
     p.add_argument("--overwrite", action="store_true",
                    help="Allow overwriting an existing test file")
     p.add_argument("-r", "--reftest", action="store_true",
@@ -545,7 +546,6 @@ tests/wpt/mozilla/tests for Servo-only tests""" % path)
 testing/web-platform/tests for tests that may be shared
 testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
             return 1
-
 
         if os.path.exists(path) and not kwargs["overwrite"]:
             print("Test path already exists, pass --overwrite to replace")
