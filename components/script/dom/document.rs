@@ -347,7 +347,6 @@ impl Document {
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
         node.force_dirty_ancestors(damage);
-        node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
