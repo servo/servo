@@ -743,6 +743,18 @@
             "url": "/_mozilla/css/inline_element_border_a.html"
           }
         ],
+        "css/inline_hypothetical_box_a.html": [
+          {
+            "path": "css/inline_hypothetical_box_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_hypothetical_box_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_hypothetical_box_a.html"
+          }
+        ],
         "css/inline_margins_a.html": [
           {
             "path": "css/inline_margins_a.html",
@@ -4234,6 +4246,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_element_border_a.html"
+        }
+      ],
+      "css/inline_hypothetical_box_a.html": [
+        {
+          "path": "css/inline_hypothetical_box_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_hypothetical_box_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_hypothetical_box_a.html"
         }
       ],
       "css/inline_margins_a.html": [
