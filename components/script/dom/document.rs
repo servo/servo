@@ -139,8 +139,10 @@ pub struct Document {
     scripts: MutNullableHeap<JS<HTMLCollection>>,
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
+    /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
-    stylesheets_changed: Cell<bool>,
+    /// Whether the list of stylesheets has changed since the last reflow was triggered.
+    stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
@@ -933,7 +935,7 @@ impl Document {
     }
 
     pub fn invalidate_stylesheets(&self) {
-        self.stylesheets_changed.set(true);
+        self.stylesheets_changed_since_reflow.set(true);
         *self.stylesheets.borrow_mut() = None;
         // Mark the document element dirty so a reflow will be performed.
         self.get_html_element().map(|root| {
@@ -941,9 +943,9 @@ impl Document {
         });
     }
 
-    pub fn get_and_reset_stylesheets_changed(&self) -> bool {
-        let changed = self.stylesheets_changed.get();
-        self.stylesheets_changed.set(false);
+    pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
+        let changed = self.stylesheets_changed_since_reflow.get();
+        self.stylesheets_changed_since_reflow.set(false);
         changed
     }
 
@@ -1264,7 +1266,7 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             stylesheets: DOMRefCell::new(None),
-            stylesheets_changed: Cell::new(false),
+            stylesheets_changed_since_reflow: Cell::new(false),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
@@ -1328,26 +1330,29 @@ impl Document {
         self.GetDocumentElement().and_then(Root::downcast)
     }
 
-    pub fn get_stylesheets(&self) -> Vec<Arc<Stylesheet>> {
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        if stylesheets.is_none() {
-            let new_stylesheets: Vec<Arc<Stylesheet>> = self.upcast::<Node>()
-                .traverse_preorder()
-                .filter_map(|node| {
-                    if let Some(node) = node.downcast::<HTMLStyleElement>() {
-                        node.get_stylesheet()
-                    } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
-                        node.get_stylesheet()
-                    } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
-                        node.get_stylesheet()
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            *stylesheets = Some(new_stylesheets);
-        };
-        stylesheets.clone().unwrap()
+    /// Returns the list of stylesheets associated with nodes in the document.
+    pub fn stylesheets<'a>(&'a self) -> Ref<Vec<Arc<Stylesheet>>> {
+        {
+            let mut stylesheets = self.stylesheets.borrow_mut();
+            if stylesheets.is_none() {
+                let new_stylesheets: Vec<Arc<Stylesheet>> = self.upcast::<Node>()
+                    .traverse_preorder()
+                    .filter_map(|node| {
+                        if let Some(node) = node.downcast::<HTMLStyleElement>() {
+                            node.get_stylesheet()
+                        } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
+                            node.get_stylesheet()
+                        } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
+                            node.get_stylesheet()
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                *stylesheets = Some(new_stylesheets);
+            };
+        }
+        Ref::map(self.stylesheets.borrow(), |t| t.as_ref().unwrap())
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document

@@ -185,7 +185,7 @@ impl HTMLLinkElement {
                 let mut css_parser = CssParser::new(&mq_str);
                 let media = parse_media_query_list(&mut css_parser);
 
-                // TODO we don't really even need to load this if mq does not match
+                // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
                 let doc = window.Document();
                 let script_chan = window.script_chan();
                 let elem = Trusted::new(window.get_cx(), self, script_chan.clone());
