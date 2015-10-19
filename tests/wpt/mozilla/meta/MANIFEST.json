@@ -827,6 +827,18 @@
             "url": "/_mozilla/css/letter_spacing_a.html"
           }
         ],
+        "css/max_width_float_simple_a.html": [
+          {
+            "path": "css/max_width_float_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/max_width_float_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_width_float_simple_a.html"
+          }
+        ],
         "css/max_width_simple_a.html": [
           {
             "path": "css/max_width_simple_a.html",
@@ -4042,6 +4054,18 @@
             ]
           ],
           "url": "/_mozilla/css/letter_spacing_a.html"
+        }
+      ],
+      "css/max_width_float_simple_a.html": [
+        {
+          "path": "css/max_width_float_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/max_width_float_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_width_float_simple_a.html"
         }
       ],
       "css/max_width_simple_a.html": [
