@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/inline_block_overflow.html"
           }
         ],
+        "css/inline_block_percentage_height_a.html": [
+          {
+            "path": "css/inline_block_percentage_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_percentage_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_percentage_height_a.html"
+          }
+        ],
         "css/inline_border_baseline_a.html": [
           {
             "path": "css/inline_border_baseline_a.html",
@@ -3958,6 +3970,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_overflow.html"
+        }
+      ],
+      "css/inline_block_percentage_height_a.html": [
+        {
+          "path": "css/inline_block_percentage_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_percentage_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_percentage_height_a.html"
         }
       ],
       "css/inline_border_baseline_a.html": [
