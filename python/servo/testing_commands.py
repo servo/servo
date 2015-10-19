@@ -537,13 +537,13 @@ class WebPlatformTestsCreator(CommandBase):
         if self.rel_url(path) is None:
             print("""Test path %s is not in wpt directories:
 tests/wpt/web-platform-tests for tests that may be shared
-            tests/wpt/mozilla/tests for Servo-only tests""" % path)
+tests/wpt/mozilla/tests for Servo-only tests""" % path)
             return 1
 
         if ref_path and self.rel_url(ref_path) is None:
-            print("""Test path %s is not in wpt directories:
+            print("""Reference path %s is not in wpt directories:
 testing/web-platform/tests for tests that may be shared
-            testing/web-platform/mozilla/tests for Gecko only tests""" % ref_path)
+testing/web-platform/mozilla/tests for Servo-only tests""" % ref_path)
             return 1
 
 
