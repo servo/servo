@@ -179,7 +179,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == margin_padding_inline_block_a.html margin_padding_inline_block_ref.html
 == margins_inside_floats_a.html margins_inside_floats_ref.html
 == marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
-== negative_margins_a.html negative_margins_b.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 != octicons_a.html octicons_ref.html
 == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html

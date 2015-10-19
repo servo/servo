@@ -935,6 +935,18 @@
             "url": "/_mozilla/css/negative_margin_uncle_a.html"
           }
         ],
+        "css/negative_margins_a.html": [
+          {
+            "path": "css/negative_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/negative_margins_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/negative_margins_a.html"
+          }
+        ],
         "css/no-image.html": [
           {
             "path": "css/no-image.html",
@@ -4174,6 +4186,18 @@
             ]
           ],
           "url": "/_mozilla/css/negative_margin_uncle_a.html"
+        }
+      ],
+      "css/negative_margins_a.html": [
+        {
+          "path": "css/negative_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/negative_margins_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/negative_margins_a.html"
         }
       ],
       "css/no-image.html": [
