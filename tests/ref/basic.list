@@ -189,7 +189,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == no_image_background_a.html no_image_background_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 == nth_last_of_type_pseudo_a.html nth_last_of_type_pseudo_b.html
-== nth_of_type_pseudo_a.html nth_of_type_pseudo_b.html
 != octicons_a.html octicons_ref.html
 == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
 != ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html

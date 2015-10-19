@@ -911,6 +911,18 @@
             "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
           }
         ],
+        "css/nth_of_type_pseudo_a.html": [
+          {
+            "path": "css/nth_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/nth_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/nth_of_type_pseudo_a.html"
+          }
+        ],
         "css/object_element_a.html": [
           {
             "path": "css/object_element_a.html",
@@ -4042,6 +4054,18 @@
             ]
           ],
           "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
+        }
+      ],
+      "css/nth_of_type_pseudo_a.html": [
+        {
+          "path": "css/nth_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/nth_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/nth_of_type_pseudo_a.html"
         }
       ],
       "css/object_element_a.html": [
