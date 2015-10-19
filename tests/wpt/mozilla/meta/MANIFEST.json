@@ -983,6 +983,18 @@
             "url": "/_mozilla/css/linear_gradients_parsing_a.html"
           }
         ],
+        "css/linebreak_inline_span_a.html": [
+          {
+            "path": "css/linebreak_inline_span_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linebreak_inline_span_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linebreak_inline_span_a.html"
+          }
+        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -4390,6 +4402,18 @@
             ]
           ],
           "url": "/_mozilla/css/linear_gradients_parsing_a.html"
+        }
+      ],
+      "css/linebreak_inline_span_a.html": [
+        {
+          "path": "css/linebreak_inline_span_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linebreak_inline_span_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linebreak_inline_span_a.html"
         }
       ],
       "css/max_width_float_simple_a.html": [
