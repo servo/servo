@@ -755,6 +755,18 @@
             "url": "/_mozilla/css/inline_padding_a.html"
           }
         ],
+        "css/inline_text_align_a.html": [
+          {
+            "path": "css/inline_text_align_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_text_align_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_text_align_a.html"
+          }
+        ],
         "css/inset.html": [
           {
             "path": "css/inset.html",
@@ -4090,6 +4102,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_padding_a.html"
+        }
+      ],
+      "css/inline_text_align_a.html": [
+        {
+          "path": "css/inline_text_align_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_text_align_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_text_align_a.html"
         }
       ],
       "css/inset.html": [

@@ -141,7 +141,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == inline_hypothetical_box_a.html inline_hypothetical_box_ref.html
 == inline_margin_multiple_fragments_a.html inline_margin_multiple_fragments_ref.html
 == inline_margins_intrinsic_size_a.html inline_margins_intrinsic_size_ref.html
-== inline_text_align_a.html inline_text_align_b.html
 == inline_whitespace_a.html inline_whitespace_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
 == input_button_margins_a.html input_button_margins_ref.html
