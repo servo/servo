@@ -779,6 +779,18 @@
             "url": "/_mozilla/css/inline_text_align_a.html"
           }
         ],
+        "css/input_button_size_a.html": [
+          {
+            "path": "css/input_button_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_button_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_button_size_a.html"
+          }
+        ],
         "css/inset.html": [
           {
             "path": "css/inset.html",
@@ -4138,6 +4150,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_text_align_a.html"
+        }
+      ],
+      "css/input_button_size_a.html": [
+        {
+          "path": "css/input_button_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_button_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_button_size_a.html"
         }
       ],
       "css/inset.html": [
