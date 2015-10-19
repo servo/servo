@@ -159,7 +159,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == list_style_position_a.html list_style_position_ref.html
 != list_style_type_a.html list_style_type_ref.html
 == margin_a.html margin_b.html
-== margin_padding_inline_block_a.html margin_padding_inline_block_ref.html
 == marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 != octicons_a.html octicons_ref.html

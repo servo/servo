@@ -1031,6 +1031,18 @@
             "url": "/_mozilla/css/many_brs_a.html"
           }
         ],
+        "css/margin_padding_inline_block_a.html": [
+          {
+            "path": "css/margin_padding_inline_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/margin_padding_inline_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/margin_padding_inline_block_a.html"
+          }
+        ],
         "css/margins_inside_floats_a.html": [
           {
             "path": "css/margins_inside_floats_a.html",
@@ -4498,6 +4510,18 @@
             ]
           ],
           "url": "/_mozilla/css/many_brs_a.html"
+        }
+      ],
+      "css/margin_padding_inline_block_a.html": [
+        {
+          "path": "css/margin_padding_inline_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/margin_padding_inline_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/margin_padding_inline_block_a.html"
         }
       ],
       "css/margins_inside_floats_a.html": [
