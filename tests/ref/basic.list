@@ -181,7 +181,6 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
 == max_width_float_simple_a.html max_width_float_simple_b.html
 == min_width_float_simple_a.html min_width_float_simple_b.html
-== min_width_simple_a.html min_width_simple_b.html
 == negative_margins_a.html negative_margins_b.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 != octicons_a.html octicons_ref.html
