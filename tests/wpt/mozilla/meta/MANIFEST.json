@@ -839,6 +839,18 @@
             "url": "/_mozilla/css/min_max_height_a.html"
           }
         ],
+        "css/mix_blend_mode_a.html": [
+          {
+            "path": "css/mix_blend_mode_a.html",
+            "references": [
+              [
+                "/_mozilla/css/mix_blend_mode_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/mix_blend_mode_a.html"
+          }
+        ],
         "css/multiple_css_class_a.html": [
           {
             "path": "css/multiple_css_class_a.html",
@@ -3958,6 +3970,18 @@
             ]
           ],
           "url": "/_mozilla/css/min_max_height_a.html"
+        }
+      ],
+      "css/mix_blend_mode_a.html": [
+        {
+          "path": "css/mix_blend_mode_a.html",
+          "references": [
+            [
+              "/_mozilla/css/mix_blend_mode_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/mix_blend_mode_a.html"
         }
       ],
       "css/multiple_css_class_a.html": [
