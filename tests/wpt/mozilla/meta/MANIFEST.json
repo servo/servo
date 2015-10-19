@@ -1031,6 +1031,18 @@
             "url": "/_mozilla/css/many_brs_a.html"
           }
         ],
+        "css/margins_inside_floats_a.html": [
+          {
+            "path": "css/margins_inside_floats_a.html",
+            "references": [
+              [
+                "/_mozilla/css/margins_inside_floats_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/margins_inside_floats_a.html"
+          }
+        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -4486,6 +4498,18 @@
             ]
           ],
           "url": "/_mozilla/css/many_brs_a.html"
+        }
+      ],
+      "css/margins_inside_floats_a.html": [
+        {
+          "path": "css/margins_inside_floats_a.html",
+          "references": [
+            [
+              "/_mozilla/css/margins_inside_floats_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/margins_inside_floats_a.html"
         }
       ],
       "css/max_width_float_simple_a.html": [
