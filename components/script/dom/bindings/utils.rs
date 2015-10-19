@@ -222,20 +222,21 @@ pub fn do_create_interface_objects(cx: *mut JSContext,
                                    dom_class: Option<&'static DOMClass>,
                                    members: &'static NativeProperties,
                                    rval: MutableHandleObject) {
+    assert!(rval.get().is_null());
     if let Some(proto_class) = proto_class {
         create_interface_prototype_object(cx, proto_proto,
                                           proto_class, members, rval);
-    }
 
-    if !rval.get().is_null() {
-        let dom_class_ptr = match dom_class {
-            Some(dom_class) => dom_class as *const DOMClass as *const libc::c_void,
-            None            => ptr::null() as *const libc::c_void,
-        };
+        if !rval.get().is_null() {
+            let dom_class_ptr = match dom_class {
+                Some(dom_class) => dom_class as *const DOMClass as *const libc::c_void,
+                None            => ptr::null() as *const libc::c_void,
+            };
 
-        unsafe {
-            JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
-                               PrivateValue(dom_class_ptr));
+            unsafe {
+                JS_SetReservedSlot(rval.get(), DOM_PROTO_INSTANCE_CLASS_SLOT,
+                                   PrivateValue(dom_class_ptr));
+            }
         }
     }
 
