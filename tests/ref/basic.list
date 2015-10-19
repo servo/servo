@@ -155,7 +155,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == legacy_cellspacing_attribute_a.html border_spacing_ref.html
 == legacy_td_width_attribute_a.html legacy_td_width_attribute_ref.html
 == legacy_th_width_attribute_a.html legacy_td_width_attribute_ref.html
-== line_breaking_whitespace_collapse_a.html line_breaking_whitespace_collapse_ref.html
 == line_height_a.html line_height_ref.html
 != linear_gradients_corners_a.html linear_gradients_corners_ref.html
 == linear_gradients_parsing_a.html linear_gradients_parsing_ref.html
