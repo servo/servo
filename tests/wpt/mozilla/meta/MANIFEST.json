@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/inline_block_img_a.html"
           }
         ],
+        "css/inline_block_min_width.html": [
+          {
+            "path": "css/inline_block_min_width.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_min_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_min_width.html"
+          }
+        ],
         "css/inline_block_overflow.html": [
           {
             "path": "css/inline_block_overflow.html",
@@ -4210,6 +4222,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_img_a.html"
+        }
+      ],
+      "css/inline_block_min_width.html": [
+        {
+          "path": "css/inline_block_min_width.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_min_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_min_width.html"
         }
       ],
       "css/inline_block_overflow.html": [

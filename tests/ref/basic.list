@@ -129,7 +129,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_margin_auto_a.html inline_block_margin_auto_ref.html
 == inline_block_margin_auto_zero_a.html inline_block_margin_auto_zero_ref.html
-== inline_block_min_width.html inline_block_min_width_ref.html
 == inline_block_overflow_hidden_a.html inline_block_overflow_hidden_ref.html
 == inline_block_parent_padding_a.html inline_block_parent_padding_ref.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
