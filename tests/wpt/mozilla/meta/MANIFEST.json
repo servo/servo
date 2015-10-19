@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/img_size_a.html"
           }
         ],
+        "css/incremental_float_a.html": [
+          {
+            "path": "css/incremental_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_float_a.html"
+          }
+        ],
         "css/inline_block_border_a.html": [
           {
             "path": "css/inline_block_border_a.html",
@@ -4294,6 +4306,18 @@
             ]
           ],
           "url": "/_mozilla/css/img_size_a.html"
+        }
+      ],
+      "css/incremental_float_a.html": [
+        {
+          "path": "css/incremental_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_float_a.html"
         }
       ],
       "css/inline_block_border_a.html": [
