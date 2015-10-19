@@ -839,6 +839,18 @@
             "url": "/_mozilla/css/min_max_height_a.html"
           }
         ],
+        "css/negative_margin_uncle_a.html": [
+          {
+            "path": "css/negative_margin_uncle_a.html",
+            "references": [
+              [
+                "/_mozilla/css/negative_margin_uncle_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/negative_margin_uncle_a.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -3910,6 +3922,18 @@
             ]
           ],
           "url": "/_mozilla/css/min_max_height_a.html"
+        }
+      ],
+      "css/negative_margin_uncle_a.html": [
+        {
+          "path": "css/negative_margin_uncle_a.html",
+          "references": [
+            [
+              "/_mozilla/css/negative_margin_uncle_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/negative_margin_uncle_a.html"
         }
       ],
       "css/nth_child_pseudo_a.html": [
