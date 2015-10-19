@@ -851,6 +851,18 @@
             "url": "/_mozilla/css/letter_spacing_a.html"
           }
         ],
+        "css/line_height_float_placement_a.html": [
+          {
+            "path": "css/line_height_float_placement_a.html",
+            "references": [
+              [
+                "/_mozilla/css/line_height_float_placement_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/line_height_float_placement_a.html"
+          }
+        ],
         "css/linear_gradients_lengths_a.html": [
           {
             "path": "css/linear_gradients_lengths_a.html",
@@ -4138,6 +4150,18 @@
             ]
           ],
           "url": "/_mozilla/css/letter_spacing_a.html"
+        }
+      ],
+      "css/line_height_float_placement_a.html": [
+        {
+          "path": "css/line_height_float_placement_a.html",
+          "references": [
+            [
+              "/_mozilla/css/line_height_float_placement_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/line_height_float_placement_a.html"
         }
       ],
       "css/linear_gradients_lengths_a.html": [
