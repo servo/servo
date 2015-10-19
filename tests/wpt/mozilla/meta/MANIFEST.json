@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/img_size_a.html"
           }
         ],
+        "css/img_width_style_intrinsic_width_a.html": [
+          {
+            "path": "css/img_width_style_intrinsic_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/img_width_style_intrinsic_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_width_style_intrinsic_width_a.html"
+          }
+        ],
         "css/incremental_float_a.html": [
           {
             "path": "css/incremental_float_a.html",
@@ -4402,6 +4414,18 @@
             ]
           ],
           "url": "/_mozilla/css/img_size_a.html"
+        }
+      ],
+      "css/img_width_style_intrinsic_width_a.html": [
+        {
+          "path": "css/img_width_style_intrinsic_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/img_width_style_intrinsic_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_width_style_intrinsic_width_a.html"
         }
       ],
       "css/incremental_float_a.html": [
