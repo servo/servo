@@ -118,7 +118,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == incremental_letter_spacing_a.html incremental_letter_spacing_ref.html
 == incremental_text_color_a.html incremental_text_color_ref.html
 == inline_absolute_hypothetical_clip_a.html inline_absolute_hypothetical_clip_ref.html
-== inline_absolute_out_of_flow_a.html inline_absolute_out_of_flow_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_block_direction_margins_a.html inline_block_block_direction_margins_ref.html

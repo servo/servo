@@ -707,6 +707,18 @@
             "url": "/_mozilla/css/incremental_float_a.html"
           }
         ],
+        "css/inline_absolute_out_of_flow_a.html": [
+          {
+            "path": "css/inline_absolute_out_of_flow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_absolute_out_of_flow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
+          }
+        ],
         "css/inline_block_border_a.html": [
           {
             "path": "css/inline_block_border_a.html",
@@ -4318,6 +4330,18 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_float_a.html"
+        }
+      ],
+      "css/inline_absolute_out_of_flow_a.html": [
+        {
+          "path": "css/inline_absolute_out_of_flow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_absolute_out_of_flow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
         }
       ],
       "css/inline_block_border_a.html": [
