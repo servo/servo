@@ -779,6 +779,18 @@
             "url": "/_mozilla/css/inline_block_overflow.html"
           }
         ],
+        "css/inline_block_overflow_hidden_a.html": [
+          {
+            "path": "css/inline_block_overflow_hidden_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_overflow_hidden_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_overflow_hidden_a.html"
+          }
+        ],
         "css/inline_block_parent_padding_a.html": [
           {
             "path": "css/inline_block_parent_padding_a.html",
@@ -4414,6 +4426,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_overflow.html"
+        }
+      ],
+      "css/inline_block_overflow_hidden_a.html": [
+        {
+          "path": "css/inline_block_overflow_hidden_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_overflow_hidden_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_overflow_hidden_a.html"
         }
       ],
       "css/inline_block_parent_padding_a.html": [
