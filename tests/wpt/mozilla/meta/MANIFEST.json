@@ -839,6 +839,18 @@
             "url": "/_mozilla/css/min_max_height_a.html"
           }
         ],
+        "css/minimum_line_height_a.html": [
+          {
+            "path": "css/minimum_line_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/minimum_line_height_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/minimum_line_height_a.html"
+          }
+        ],
         "css/mix_blend_mode_a.html": [
           {
             "path": "css/mix_blend_mode_a.html",
@@ -3994,6 +4006,18 @@
             ]
           ],
           "url": "/_mozilla/css/min_max_height_a.html"
+        }
+      ],
+      "css/minimum_line_height_a.html": [
+        {
+          "path": "css/minimum_line_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/minimum_line_height_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/minimum_line_height_a.html"
         }
       ],
       "css/mix_blend_mode_a.html": [
