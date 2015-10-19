@@ -731,6 +731,18 @@
             "url": "/_mozilla/css/inline_block_percentage_height_a.html"
           }
         ],
+        "css/inline_block_stacking_context_a.html": [
+          {
+            "path": "css/inline_block_stacking_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_stacking_context_a.html"
+          }
+        ],
         "css/inline_block_with_margin_a.html": [
           {
             "path": "css/inline_block_with_margin_a.html",
@@ -4270,6 +4282,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_percentage_height_a.html"
+        }
+      ],
+      "css/inline_block_stacking_context_a.html": [
+        {
+          "path": "css/inline_block_stacking_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_stacking_context_a.html"
         }
       ],
       "css/inline_block_with_margin_a.html": [
