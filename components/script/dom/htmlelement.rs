@@ -20,9 +20,9 @@ use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, EventState};
 use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{Node, NodeFlags, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
@@ -49,15 +49,15 @@ impl PartialEq for HTMLElement {
 impl HTMLElement {
     pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
-        HTMLElement::new_inherited_with_flags(NodeFlags::new(), tag_name, prefix, document)
+        HTMLElement::new_inherited_with_state(EventState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_flags(flags: NodeFlags, tag_name: DOMString,
+    pub fn new_inherited_with_state(state: EventState, tag_name: DOMString,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {
             element:
-                Element::new_inherited_with_flags(flags, tag_name, ns!(HTML), prefix, document),
+                Element::new_inherited_with_state(state, tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -194,8 +194,8 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        let node = NodeCast::from_ref(self);
-        if !node.get_focus_state() {
+        let el = ElementCast::from_ref(self);
+        if !el.get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps

@@ -223,9 +223,11 @@ impl HTMLFormElement {
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         node.traverse_preorder().filter_map(|child| {
-            if child.r().get_disabled_state() {
-                return None;
+            match ElementCast::to_ref(child.r()) {
+                Some(el) if !el.get_disabled_state() => (),
+                _ => return None,
             }
+
             if child.r().ancestors()
                         .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
                 return None;

@@ -22,8 +22,9 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFontElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived, HTMLFontElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLOptGroupElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementCast, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSectionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
@@ -48,7 +49,7 @@ use dom::htmltableelement::HTMLTableElement;
 use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
-use dom::node::{NodeDamage, NodeFlags, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -63,7 +64,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
-use std::cell::Ref;
+use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -77,6 +78,25 @@ use style::values::specified::{self, CSSColor, CSSRGBA};
 use url::UrlParser;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
+bitflags! {
+    #[doc = "Element Event States."]
+    #[derive(JSTraceable, HeapSizeOf)]
+    flags EventState: u8 {
+        #[doc = "The mouse is down on this element. \
+                 (https://html.spec.whatwg.org/multipage/#selector-active). \
+                 FIXME(#7333): set/unset this when appropriate"]
+        const IN_ACTIVE_STATE = 0x01,
+        #[doc = "This element has focus."]
+        const IN_FOCUS_STATE = 0x02,
+        #[doc = "The mouse is hovering over this element."]
+        const IN_HOVER_STATE = 0x04,
+        #[doc = "Content is enabled (and can be disabled)."]
+        const IN_ENABLED_STATE = 0x08,
+        #[doc = "Content is disabled."]
+        const IN_DISABLED_STATE = 0x10,
+    }
+}
+
 #[dom_struct]
 pub struct Element {
     node: Node,
@@ -88,6 +108,7 @@ pub struct Element {
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
+    event_state: Cell<EventState>,
 }
 
 impl PartialEq for Element {
@@ -116,16 +137,16 @@ impl Element {
     pub fn new_inherited(local_name: DOMString,
                          namespace: Namespace, prefix: Option<DOMString>,
                          document: &Document) -> Element {
-        Element::new_inherited_with_flags(NodeFlags::new(), local_name,
+        Element::new_inherited_with_state(EventState::empty(), local_name,
                                           namespace, prefix, document)
     }
 
-    pub fn new_inherited_with_flags(flags: NodeFlags, local_name: DOMString,
+    pub fn new_inherited_with_state(state: EventState, local_name: DOMString,
                                     namespace: Namespace, prefix: Option<DOMString>,
                                     document: &Document)
                                     -> Element {
         Element {
-            node: Node::new_inherited_with_flags(flags, document),
+            node: Node::new_inherited(document),
             local_name: Atom::from_slice(&local_name),
             namespace: namespace,
             prefix: prefix,
@@ -134,6 +155,7 @@ impl Element {
             class_list: Default::default(),
             id_attribute: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
+            event_state: Cell::new(state),
         }
     }
 
@@ -225,6 +247,8 @@ pub trait LayoutElementHelpers {
     fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
+
+    fn get_event_state_for_layout(&self) -> EventState;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -575,6 +599,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             None => false,
         }
     }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn get_event_state_for_layout(&self) -> EventState {
+        unsafe {
+            (*self.unsafe_get()).event_state.get()
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
@@ -828,7 +860,7 @@ impl Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
-                node.get_disabled_state()
+                self.get_disabled_state()
             }
             // TODO:
             // an optgroup element that has a disabled attribute
@@ -1626,31 +1658,30 @@ impl<'a> ::selectors::Element for Root<Element> {
     fn get_namespace<'b>(&'b self) -> &'b Namespace {
         self.namespace()
     }
+
     fn get_hover_state(&self) -> bool {
-        let node = NodeCast::from_ref(&**self);
-        node.get_hover_state()
+        Element::get_hover_state(self)
     }
+
     fn get_active_state(&self) -> bool {
-        let node = NodeCast::from_ref(&**self);
-        node.get_active_state()
+        Element::get_active_state(self)
     }
+
     fn get_focus_state(&self) -> bool {
         // TODO: Also check whether the top-level browsing context has the system focus,
         // and whether this element is a browsing context container.
         // https://html.spec.whatwg.org/multipage/#selector-focus
-        let node = NodeCast::from_ref(&**self);
-        node.get_focus_state()
+        Element::get_focus_state(self)
     }
+
     fn get_id(&self) -> Option<Atom> {
         self.id_attribute.borrow().clone()
     }
     fn get_disabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(&**self);
-        node.get_disabled_state()
+        Element::get_disabled_state(self)
     }
     fn get_enabled_state(&self) -> bool {
-        let node = NodeCast::from_ref(&**self);
-        node.get_enabled_state()
+        Element::get_enabled_state(self)
     }
     fn get_checked_state(&self) -> bool {
         let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
@@ -1817,6 +1848,105 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    fn set_state(&self, which: EventState, value: bool) {
+        let mut state = self.event_state.get();
+        match value {
+            true => state.insert(which),
+            false => state.remove(which),
+        };
+        self.event_state.set(state);
+
+        let node = NodeCast::from_ref(self);
+        node.dirty(NodeDamage::NodeStyleDamaged);
+    }
+
+    pub fn get_active_state(&self) -> bool {
+        self.event_state.get().contains(IN_ACTIVE_STATE)
+    }
+
+    pub fn set_active_state(&self, value: bool) {
+        self.set_state(IN_ACTIVE_STATE, value)
+    }
+
+    pub fn get_focus_state(&self) -> bool {
+        self.event_state.get().contains(IN_FOCUS_STATE)
+    }
+
+    pub fn set_focus_state(&self, value: bool) {
+        self.set_state(IN_FOCUS_STATE, value)
+    }
+
+    pub fn get_hover_state(&self) -> bool {
+        self.event_state.get().contains(IN_HOVER_STATE)
+    }
+
+    pub fn set_hover_state(&self, value: bool) {
+        self.set_state(IN_HOVER_STATE, value)
+    }
+
+    pub fn get_enabled_state(&self) -> bool {
+        self.event_state.get().contains(IN_ENABLED_STATE)
+    }
+
+    pub fn set_enabled_state(&self, value: bool) {
+        self.set_state(IN_ENABLED_STATE, value)
+    }
+
+    pub fn get_disabled_state(&self) -> bool {
+        self.event_state.get().contains(IN_DISABLED_STATE)
+    }
+
+    pub fn set_disabled_state(&self, value: bool) {
+        self.set_state(IN_DISABLED_STATE, value)
+    }
+}
+
+impl Element {
+    pub fn check_ancestors_disabled_state_for_form_control(&self) {
+        let node = NodeCast::from_ref(self);
+        if self.get_disabled_state() { return; }
+        for ancestor in node.ancestors() {
+            let ancestor = ancestor;
+            let ancestor = ancestor.r();
+            if !ancestor.is_htmlfieldsetelement() { continue; }
+            if !ElementCast::to_ref(ancestor).unwrap().get_disabled_state() { continue; }
+            if ancestor.is_parent_of(node) {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+                return;
+            }
+            match ancestor.children()
+                          .find(|child| child.r().is_htmllegendelement())
+            {
+                Some(ref legend) => {
+                    // XXXabinader: should we save previous ancestor to avoid this iteration?
+                    if node.ancestors().any(|ancestor| ancestor == *legend) { continue; }
+                },
+                None => ()
+            }
+            self.set_disabled_state(true);
+            self.set_enabled_state(false);
+            return;
+        }
+    }
+
+    pub fn check_parent_disabled_state_for_option(&self) {
+        if self.get_disabled_state() { return; }
+        let node = NodeCast::from_ref(self);
+        if let Some(ref parent) = node.GetParentNode() {
+            if parent.r().is_htmloptgroupelement() && ElementCast::to_ref(parent.r()).unwrap().get_disabled_state() {
+                self.set_disabled_state(true);
+                self.set_enabled_state(false);
+            }
+        }
+    }
+
+    pub fn check_disabled_attribute(&self) {
+        let has_disabled_attrib = self.has_attribute(&atom!("disabled"));
+        self.set_disabled_state(has_disabled_attrib);
+        self.set_enabled_state(!has_disabled_attrib);
     }
 }
 
