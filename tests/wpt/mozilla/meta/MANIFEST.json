@@ -983,6 +983,18 @@
             "url": "/_mozilla/css/linear_gradients_parsing_a.html"
           }
         ],
+        "css/linear_gradients_reverse_a.html": [
+          {
+            "path": "css/linear_gradients_reverse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_reverse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_reverse_a.html"
+          }
+        ],
         "css/linebreak_inline_span_a.html": [
           {
             "path": "css/linebreak_inline_span_a.html",
@@ -4402,6 +4414,18 @@
             ]
           ],
           "url": "/_mozilla/css/linear_gradients_parsing_a.html"
+        }
+      ],
+      "css/linear_gradients_reverse_a.html": [
+        {
+          "path": "css/linear_gradients_reverse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_reverse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_reverse_a.html"
         }
       ],
       "css/linebreak_inline_span_a.html": [
