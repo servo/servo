@@ -683,6 +683,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/inline_block_img_a.html": [
+          {
+            "path": "css/inline_block_img_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_img_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_img_a.html"
+          }
+        ],
         "css/inline_block_overflow.html": [
           {
             "path": "css/inline_block_overflow.html",
@@ -4186,6 +4198,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/inline_block_img_a.html": [
+        {
+          "path": "css/inline_block_img_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_img_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_img_a.html"
         }
       ],
       "css/inline_block_overflow.html": [
