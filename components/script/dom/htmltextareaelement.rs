@@ -84,7 +84,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().r().constellation_chan();
+        let chan = document.window().constellation_chan();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,

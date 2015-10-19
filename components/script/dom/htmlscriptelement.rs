@@ -209,7 +209,7 @@ impl HTMLScriptElement {
         // Step 10.
         let document_from_node_ref = document_from_node(self);
         let document_from_node_ref = document_from_node_ref.r();
-        if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
+        if self.parser_inserted.get() && &*self.parser_document != document_from_node_ref {
             return NextParserState::Continue;
         }
 

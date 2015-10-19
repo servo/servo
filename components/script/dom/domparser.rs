@@ -49,15 +49,14 @@ impl DOMParserMethods for DOMParser {
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Root<Document>> {
-        let window = self.window.root();
-        let url = window.r().get_url();
+        let url = self.window.get_url();
         let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as usize].to_owned();
-        let doc = window.r().Document();
+        let doc = self.window.Document();
         let doc = doc.r();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
             Text_html => {
-                let document = Document::new(window.r(), Some(url.clone()),
+                let document = Document::new(&self.window, Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              None,
@@ -69,7 +68,7 @@ impl DOMParserMethods for DOMParser {
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(window.r(), Some(url.clone()),
+                Ok(Document::new(&self.window, Some(url.clone()),
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
                                  None,

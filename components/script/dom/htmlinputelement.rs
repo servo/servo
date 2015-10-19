@@ -106,7 +106,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
-        let chan = document.window().r().constellation_chan();
+        let chan = document.window().constellation_chan();
         HTMLInputElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
@@ -759,17 +759,16 @@ impl Activatable for HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let old_checked = cache.checked_radio.as_ref().map(|t| t.root());
                     let name = self.get_radio_group_name();
-                    match old_checked {
-                        Some(ref o) => {
+                    match cache.checked_radio.as_ref().map(|t| &*t) {
+                        Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name == o.r().get_radio_group_name() && // TODO should be compatibility caseless
-                               self.form_owner() == o.r().form_owner() &&
+                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
+                               self.form_owner() == o.form_owner() &&
                                // TODO Both a and b are in the same home subtree
-                               o.r().input_type.get() == InputType::InputRadio {
-                                    o.r().SetChecked(true);
+                               o.input_type.get() == InputType::InputRadio {
+                                    o.SetChecked(true);
                             } else {
                                 self.SetChecked(false);
                             }

@@ -47,9 +47,8 @@ impl NodeIterator {
                            root_node: &Node,
                            what_to_show: u32,
                            filter: Filter) -> Root<NodeIterator> {
-        let window = document.window();
         reflect_dom_object(box NodeIterator::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(document.window()),
                            NodeIteratorBinding::Wrap)
     }
 
@@ -122,7 +121,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for following_node in node.r().following_nodes(self.root_node.root().r()) {
+        for following_node in node.r().following_nodes(&self.root_node) {
             // Step 3-2.
             let result = try!(self.accept_node(following_node.r()));
 
@@ -166,7 +165,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for preceding_node in node.r().preceding_nodes(self.root_node.root().r()) {
+        for preceding_node in node.r().preceding_nodes(&self.root_node) {
 
             // Step 3-2.
             let result = try!(self.accept_node(preceding_node.r()));

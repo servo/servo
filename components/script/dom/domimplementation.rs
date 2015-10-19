@@ -42,7 +42,7 @@ impl DOMImplementation {
     pub fn new(document: &Document) -> Root<DOMImplementation> {
         let window = document.window();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(window),
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -53,20 +53,17 @@ impl DOMImplementationMethods for DOMImplementation {
     fn CreateDocumentType(&self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
-        let document = self.document.root();
-        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), document.r()))
+        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<&DocumentType>) -> Fallible<Root<Document>> {
-        let doc = self.document.root();
-        let doc = doc.r();
-        let win = doc.window();
-        let loader = DocumentLoader::new(&*doc.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
-        let doc = Document::new(win.r(), None, IsHTMLDocument::NonHTMLDocument,
+        let doc = Document::new(win, None, IsHTMLDocument::NonHTMLDocument,
                                 None, None, DocumentSource::NotFromParser, loader);
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
@@ -108,13 +105,11 @@ impl DOMImplementationMethods for DOMImplementation {
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Root<Document> {
-        let document = self.document.root();
-        let document = document.r();
-        let win = document.window();
-        let loader = DocumentLoader::new(&*document.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1-2.
-        let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None, None,
+        let doc = Document::new(win, None, IsHTMLDocument::HTMLDocument, None, None,
                                 DocumentSource::NotFromParser, loader);
 
         {

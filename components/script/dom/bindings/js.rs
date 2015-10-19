@@ -96,6 +96,16 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
+impl<T: Reflectable> Deref for JS<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        // We can only have &JS<T> from a rooted thing, so it's safe to deref
+        // it to &T.
+        unsafe { &**self.ptr }
+    }
+}
+
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
         trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });

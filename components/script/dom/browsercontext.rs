@@ -44,17 +44,16 @@ impl BrowsingContext {
         }
     }
 
-    pub fn active_document(&self) -> Root<Document> {
-        self.history[self.active_index].document.root()
+    pub fn active_document(&self) -> &Document {
+        &*self.history[self.active_index].document
     }
 
-    pub fn active_window(&self) -> Root<Window> {
-        let doc = self.active_document();
-        doc.r().window()
+    pub fn active_window(&self) -> &Window {
+        self.active_document().window()
     }
 
-    pub fn frame_element(&self) -> Option<Root<Element>> {
-        self.frame_element.as_ref().map(JS::root)
+    pub fn frame_element(&self) -> Option<&Element> {
+        self.frame_element.as_ref().map(|element| &**element)
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
@@ -64,8 +63,8 @@ impl BrowsingContext {
 
     #[allow(unsafe_code)]
     pub fn create_window_proxy(&mut self) {
-        let win = self.active_window();
-        let win = win.r();
+        // We inline self.active_window() because we can't borrow *self here.
+        let win = self.history[self.active_index].document.window();
 
         let WindowProxyHandler(handler) = win.windowproxy_handler();
         assert!(!handler.is_null());

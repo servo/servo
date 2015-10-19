@@ -15,7 +15,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::node::{Node, window_from_node};
+use dom::node::Node;
 use dom::text::Text;
 use dom::window::Window;
 use encoding::all::UTF_8;
@@ -48,8 +48,7 @@ impl Sink {
         match child {
             NodeOrText::AppendNode(n) => n.root(),
             NodeOrText::AppendText(t) => {
-                let doc = self.document.root();
-                let text = Text::new(t.into(), &doc);
+                let text = Text::new(t.into(), &self.document);
                 NodeCast::from_root(text)
             }
         }
@@ -109,7 +108,7 @@ impl AsyncResponseListener for ParserContext {
 
         let parser = parser.r();
         let win = parser.window();
-        self.parser = Some(Trusted::new(win.r().get_cx(), parser, self.script_chan.clone()));
+        self.parser = Some(Trusted::new(win.get_cx(), parser, self.script_chan.clone()));
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
@@ -153,8 +152,7 @@ impl AsyncResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        let doc = parser.r().document.root();
-        doc.r().finish_load(LoadType::PageSource(self.url.clone()));
+        parser.document.finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
             debug!("Failed to load page URL {}, error: {}", self.url.serialize(), err);
@@ -189,7 +187,7 @@ pub struct ServoHTMLParser {
 
 impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
-        self.document.root().r().set_current_parser(Some(self));
+        self.document.set_current_parser(Some(self));
         self.pending_input.borrow_mut().push(input);
         self.parse_sync();
     }
@@ -201,8 +199,7 @@ impl<'a> Parser for &'a ServoHTMLParser {
         self.tokenizer().borrow_mut().end();
         debug!("finished parsing");
 
-        let document = self.document.root();
-        document.r().set_current_parser(None);
+        self.document.set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
             ScriptTask::parsing_complete(pipeline);
@@ -214,7 +211,6 @@ impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
     pub fn new(base_url: Option<Url>, document: &Document, pipeline: Option<PipelineId>)
                -> Root<ServoHTMLParser> {
-        let window = document.window();
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
@@ -237,14 +233,13 @@ impl ServoHTMLParser {
             pipeline: pipeline,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
     }
 
     #[allow(unrooted_must_root)]
     pub fn new_for_fragment(base_url: Option<Url>, document: &Document,
                             fragment_context: FragmentContext) -> Root<ServoHTMLParser> {
-        let window = document.window();
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
@@ -275,7 +270,7 @@ impl ServoHTMLParser {
             pipeline: None,
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+        reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
     }
 
@@ -301,8 +296,7 @@ impl ServoHTMLParser {
                 break;
             }
 
-            let document = self.document.root();
-            document.r().reflow_if_reflow_timer_expired();
+            self.document.reflow_if_reflow_timer_expired();
 
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
@@ -320,9 +314,8 @@ impl ServoHTMLParser {
         }
     }
 
-    fn window(&self) -> Root<Window> {
-        let doc = self.document.root();
-        window_from_node(doc.r())
+    fn window(&self) -> &Window {
+        self.document.window()
     }
 }
 

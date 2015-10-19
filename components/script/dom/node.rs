@@ -1308,7 +1308,7 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Root<N>)
              -> Root<N> {
         let window = document.window();
-        reflect_dom_object(node, GlobalRef::Window(window.r()), wrap_fn)
+        reflect_dom_object(node, GlobalRef::Window(window), wrap_fn)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
@@ -1651,7 +1651,7 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window.r(), Some((*document.url()).clone()),
+                let document = Document::new(window, Some((*document.url()).clone()),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader);
                 NodeCast::from_root(document)
@@ -1892,7 +1892,7 @@ impl NodeMethods for Node {
         self.child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.r().window();
-            NodeList::new_child_list(window.r(), self)
+            NodeList::new_child_list(window, self)
         })
     }
 
@@ -2391,7 +2391,7 @@ pub fn document_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Docume
 
 pub fn window_from_node<T: NodeBase + Reflectable>(derived: &T) -> Root<Window> {
     let document = document_from_node(derived);
-    document.r().window()
+    Root::from_ref(document.r().window())
 }
 
 impl VirtualMethods for Node {
