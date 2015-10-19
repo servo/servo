@@ -1007,6 +1007,18 @@
             "url": "/_mozilla/css/linebreak_inline_span_a.html"
           }
         ],
+        "css/link_style_order.html": [
+          {
+            "path": "css/link_style_order.html",
+            "references": [
+              [
+                "/_mozilla/css/link_style_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/link_style_order.html"
+          }
+        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -4438,6 +4450,18 @@
             ]
           ],
           "url": "/_mozilla/css/linebreak_inline_span_a.html"
+        }
+      ],
+      "css/link_style_order.html": [
+        {
+          "path": "css/link_style_order.html",
+          "references": [
+            [
+              "/_mozilla/css/link_style_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/link_style_order.html"
         }
       ],
       "css/max_width_float_simple_a.html": [
