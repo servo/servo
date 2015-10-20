@@ -659,6 +659,18 @@
             "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
           }
         ],
+        "css/border_collapse_simple_a.html": [
+          {
+            "path": "css/border_collapse_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_collapse_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_collapse_simple_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -4378,6 +4390,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
+        }
+      ],
+      "css/border_collapse_simple_a.html": [
+        {
+          "path": "css/border_collapse_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_collapse_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_collapse_simple_a.html"
         }
       ],
       "css/class-namespaces.html": [
