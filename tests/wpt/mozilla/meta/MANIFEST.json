@@ -695,6 +695,18 @@
             "url": "/_mozilla/css/border_radius_clip_a.html"
           }
         ],
+        "css/border_radius_dashed_a.html": [
+          {
+            "path": "css/border_radius_dashed_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_dashed_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_dashed_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -4450,6 +4462,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_radius_clip_a.html"
+        }
+      ],
+      "css/border_radius_dashed_a.html": [
+        {
+          "path": "css/border_radius_dashed_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_dashed_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_dashed_a.html"
         }
       ],
       "css/class-namespaces.html": [
