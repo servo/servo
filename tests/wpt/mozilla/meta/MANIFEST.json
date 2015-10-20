@@ -743,6 +743,18 @@
             "url": "/_mozilla/css/border_radius_shorthand_a.html"
           }
         ],
+        "css/border_radius_zero_sizes_a.html": [
+          {
+            "path": "css/border_radius_zero_sizes_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_zero_sizes_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -4546,6 +4558,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_radius_shorthand_a.html"
+        }
+      ],
+      "css/border_radius_zero_sizes_a.html": [
+        {
+          "path": "css/border_radius_zero_sizes_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_zero_sizes_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
         }
       ],
       "css/class-namespaces.html": [
