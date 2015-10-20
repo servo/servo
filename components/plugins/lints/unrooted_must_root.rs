@@ -129,17 +129,18 @@ impl LateLintPass for UnrootedPass {
             visit::FnKind::Closure => return,
         };
 
-        if !in_new_function {
-            for arg in &decl.inputs {
-                cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
-                    if is_unrooted_ty(cx, t, false) {
-                        if in_derive_expn(cx, span) {
-                            return;
-                        }
-                        cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+        for arg in &decl.inputs {
+            cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
+                if is_unrooted_ty(cx, t, false) {
+                    if in_derive_expn(cx, span) {
+                        return;
                     }
-                });
-            }
+                    cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+                }
+            });
+        }
+
+        if !in_new_function {
             if let hir::Return(ref ty) = decl.output {
                 cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
                     if is_unrooted_ty(cx, t, false) {
