@@ -38,7 +38,7 @@ pub enum ViewportDescriptor {
 }
 
 trait FromMeta: Sized {
-    fn from_meta<'a>(value: &'a str) -> Option<Self>;
+    fn from_meta (value: &str) -> Option<Self>;
 }
 
 // ViewportLength is a length | percentage | auto | extend-to-zoom
@@ -63,7 +63,7 @@ impl ToCss for ViewportLength {
 }
 
 impl FromMeta for ViewportLength {
-    fn from_meta<'a>(value: &'a str) -> Option<ViewportLength> {
+    fn from_meta(value: &str) -> Option<ViewportLength> {
         macro_rules! specified {
             ($value:expr) => {
                 ViewportLength::Specified(LengthOrPercentageOrAuto::Length($value))
@@ -276,7 +276,7 @@ impl ViewportRule {
         Ok(ViewportRule { declarations: valid_declarations.iter().cascade() })
     }
 
-    pub fn from_meta<'a>(content: &'a str) -> Option<ViewportRule> {
+    pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = HashMap::new();
         macro_rules! push_descriptor {
             ($descriptor:ident($value:expr)) => {{

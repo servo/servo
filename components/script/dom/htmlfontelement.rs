@@ -70,7 +70,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

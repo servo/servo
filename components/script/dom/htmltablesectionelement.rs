@@ -81,7 +81,7 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
 }
 
 impl VirtualMethods for HTMLTableSectionElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

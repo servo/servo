@@ -20,7 +20,7 @@ pub type WeakFlowRef = Weak<Flow>;
 /// See https://github.com/servo/servo/issues/6503
 /// Use Arc::get_mut instead when possible (e.g. on an Arc that was just created).
 #[allow(unsafe_code)]
-pub fn deref_mut<'a>(r: &'a mut FlowRef) -> &'a mut Flow {
+pub fn deref_mut<'a>(r: &mut FlowRef) -> &'a mut Flow {
     let ptr: *const Flow = &**r;
     unsafe {
         &mut *(ptr as *mut Flow)
