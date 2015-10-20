@@ -52,7 +52,7 @@ use script::dom::element;
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
