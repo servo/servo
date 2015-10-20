@@ -20,35 +20,33 @@ pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
-#[derive(JSTraceable)]
-#[must_root]
-pub struct Collection(JS<Node>, Box<CollectionFilter + 'static>);
-
 #[dom_struct]
 pub struct HTMLCollection {
     reflector_: Reflector,
+    root: JS<Node>,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
-    collection: Collection,
+    filter: Box<CollectionFilter + 'static>,
 }
 
 impl HTMLCollection {
     #[allow(unrooted_must_root)]
-    fn new_inherited(collection: Collection) -> HTMLCollection {
+    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
-            collection: collection,
+            root: JS::from_ref(root),
+	    filter: filter,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, collection: Collection) -> Root<HTMLCollection> {
-        reflect_dom_object(box HTMLCollection::new_inherited(collection),
+    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
+        reflect_dom_object(box HTMLCollection::new_inherited(root, filter),
                            GlobalRef::Window(window), HTMLCollectionBinding::Wrap)
     }
 
     pub fn create(window: &Window, root: &Node,
                   filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
-        HTMLCollection::new(window, Collection(JS::from_ref(root), filter))
+        HTMLCollection::new(window, root, filter)
     }
 
     fn all_elements(window: &Window, root: &Node,
@@ -163,14 +161,13 @@ impl HTMLCollection {
     }
 
     pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
-        let ref filter = self.collection.1;
-        let root = Root::from_ref(&*self.collection.0);
+        let root = Root::from_ref(self.root);
         let mut node_iter = root.traverse_preorder();
         let _ = node_iter.next();  // skip the root node
         HTMLCollectionElementsIter {
             node_iter: node_iter,
             root: root,
-            filter: filter,
+            filter: &self.filter,
         }
     }
 }
