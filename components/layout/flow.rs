@@ -381,10 +381,10 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn base<'a, T: ?Sized + Flow>(this: &'a T) -> &'a BaseFlow {
+pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&'a T, &'a raw::TraitObject>(&this);
-        mem::transmute::<*mut (), &'a BaseFlow>(obj.data)
+        let obj = mem::transmute::<&&T, &raw::TraitObject>(&this);
+        mem::transmute::<*mut (), &BaseFlow>(obj.data)
     }
 }
 
@@ -395,10 +395,10 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn mut_base<'a, T: ?Sized + Flow>(this: &'a mut T) -> &'a mut BaseFlow {
+pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&'a mut T, &'a raw::TraitObject>(&this);
-        mem::transmute::<*mut (), &'a mut BaseFlow>(obj.data)
+        let obj = mem::transmute::<&&mut T, &raw::TraitObject>(&this);
+        mem::transmute::<*mut (), &mut BaseFlow>(obj.data)
     }
 }
 

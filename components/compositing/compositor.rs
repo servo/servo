@@ -598,16 +598,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn pipeline_details<'a>(&'a mut self,
+    pub fn pipeline_details (&mut self,
                                               pipeline_id: PipelineId)
-                                              -> &'a mut PipelineDetails {
+                                              -> &mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
         }
         return self.pipeline_details.get_mut(&pipeline_id).unwrap();
     }
 
-    pub fn pipeline<'a>(&'a self, pipeline_id: PipelineId) -> Option<&'a CompositionPipeline> {
+    pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
             Some(ref details) => details.pipeline.as_ref(),
             None => panic!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id),

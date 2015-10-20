@@ -1507,7 +1507,7 @@ impl ElementMethods for Element {
 }
 
 impl VirtualMethods for Element {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let node: &Node = NodeCast::from_ref(self);
         Some(node as &VirtualMethods)
     }
@@ -1664,10 +1664,10 @@ impl<'a> ::selectors::Element for Root<Element> {
         false
     }
 
-    fn get_local_name<'b>(&'b self) -> &'b Atom {
+    fn get_local_name(&self) -> &Atom {
         self.local_name()
     }
-    fn get_namespace<'b>(&'b self) -> &'b Namespace {
+    fn get_namespace(&self) -> &Namespace {
         self.namespace()
     }
 
@@ -1768,16 +1768,16 @@ impl<'a> ::selectors::Element for Root<Element> {
 
 
 impl Element {
-    pub fn as_maybe_activatable<'a>(&'a self) -> Option<&'a (Activatable + 'a)> {
+    pub fn as_maybe_activatable(&self) -> Option<&Activatable> {
         let node = NodeCast::from_ref(self);
         let element = match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element = HTMLInputElementCast::to_ref(self).unwrap();
-                Some(element as &'a (Activatable + 'a))
+                Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
                 let element = HTMLAnchorElementCast::to_ref(self).unwrap();
-                Some(element as &'a (Activatable + 'a))
+                Some(element as &Activatable)
             },
             _ => {
                 None
@@ -1826,7 +1826,7 @@ impl Element {
     ///
     /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
     /// If the spec says otherwise, check with Manishearth first
-    pub fn authentic_click_activation<'b>(&self, event: &'b Event) {
+    pub fn authentic_click_activation(&self, event: &Event) {
         // Not explicitly part of the spec, however this helps enforce the invariants
         // required to save state between pre-activation and post-activation
         // since we cannot nest authentic clicks (unlike synthetic click activation, where

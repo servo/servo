@@ -2387,7 +2387,7 @@ impl Fragment {
         }
     }
 
-    pub fn inline_styles<'a>(&'a self) -> InlineStyleIterator<'a> {
+    pub fn inline_styles(&self) -> InlineStyleIterator {
         InlineStyleIterator::new(self)
     }
 
@@ -2542,7 +2542,7 @@ impl<'a> Iterator for InlineStyleIterator<'a> {
 }
 
 impl<'a> InlineStyleIterator<'a> {
-    fn new<'b>(fragment: &'b Fragment) -> InlineStyleIterator<'b> {
+    fn new(fragment: &Fragment) -> InlineStyleIterator {
         InlineStyleIterator {
             fragment: fragment,
             inline_style_index: 0,

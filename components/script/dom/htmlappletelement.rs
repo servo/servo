@@ -47,7 +47,7 @@ impl HTMLAppletElementMethods for HTMLAppletElement {
 }
 
 impl VirtualMethods for HTMLAppletElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 

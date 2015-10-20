@@ -41,7 +41,7 @@ impl HTMLAreaElement {
 }
 
 impl VirtualMethods for HTMLAreaElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
