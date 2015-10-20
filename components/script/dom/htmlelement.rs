@@ -305,7 +305,7 @@ impl HTMLElement {
 }
 
 impl VirtualMethods for HTMLElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let element: &Element = ElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }

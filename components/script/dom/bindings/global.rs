@@ -65,7 +65,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> &'b window::Window {
+    pub fn as_window(&self) -> &window::Window {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
@@ -189,7 +189,7 @@ impl<'a> GlobalRef<'a> {
 }
 
 impl<'a> Reflectable for GlobalRef<'a> {
-    fn reflector<'b>(&'b self) -> &'b Reflector {
+    fn reflector(&self) -> &Reflector {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),

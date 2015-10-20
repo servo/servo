@@ -24,27 +24,27 @@ pub struct MutFlowListIterator<'a> {
 impl FlowList {
     /// Provide a reference to the front element, or None if the list is empty
     #[inline]
-    pub fn front<'a>(&'a self) -> Option<&'a Flow> {
+    pub fn front(&self) -> Option<&Flow> {
         self.flows.front().map(|head| &**head)
     }
 
     /// Provide a mutable reference to the front element, or None if the list is empty
     #[inline]
     #[allow(unsafe_code)]
-    pub unsafe fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
+    pub unsafe fn front_mut(&mut self) -> Option<&mut Flow> {
         self.flows.front_mut().map(flow_ref::deref_mut)
     }
 
     /// Provide a reference to the back element, or None if the list is empty
     #[inline]
-    pub fn back<'a>(&'a self) -> Option<&'a Flow> {
+    pub fn back(&self) -> Option<&Flow> {
         self.flows.back().map(|tail| &**tail)
     }
 
     /// Provide a mutable reference to the back element, or None if the list is empty
     #[inline]
     #[allow(unsafe_code)]
-    pub unsafe fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
+    pub unsafe fn back_mut(&mut self) -> Option<&mut Flow> {
         self.flows.back_mut().map(flow_ref::deref_mut)
     }
 

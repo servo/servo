@@ -218,7 +218,7 @@ impl HTMLFormElement {
             win.r().pipeline(), load_data)).unwrap();
     }
 
-    fn get_unclean_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
+    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         let node = NodeCast::from_ref(self);
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
@@ -256,7 +256,7 @@ impl HTMLFormElement {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
-    pub fn get_form_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
+    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
@@ -515,7 +515,7 @@ pub trait FormControl: ElementBase + Reflectable {
 }
 
 impl VirtualMethods for HTMLFormElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
     }
 

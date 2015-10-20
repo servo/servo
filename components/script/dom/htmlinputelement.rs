@@ -399,7 +399,7 @@ impl HTMLInputElement {
         }
     }
 
-    pub fn get_form_datum<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Option<FormDatum> {
+    pub fn get_form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
         let ty = self.Type();
         let name = self.Name();
         let is_submitter = match submitter {
@@ -491,7 +491,7 @@ impl HTMLInputElement {
 }
 
 impl VirtualMethods for HTMLInputElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -662,7 +662,7 @@ impl VirtualMethods for HTMLInputElement {
 impl FormControl for HTMLInputElement {}
 
 impl Activatable for HTMLInputElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
+    fn as_element(&self) -> &Element {
         ElementCast::from_ref(self)
     }
 
