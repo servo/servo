@@ -67,7 +67,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Drop};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -1125,6 +1125,17 @@ impl LayoutTask {
     fn handle_reflow<'a>(&'a self,
                          data: &ScriptReflow,
                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+
+        // Make sure that every return path from this method joins the script task,
+        // otherwise the script task will panic.
+        struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
+        impl<'a> Drop for AutoJoinScriptTask<'a> {
+            fn drop(&mut self) {
+                self.data.script_join_chan.send(()).unwrap();
+            }
+        };
+        let _ajst = AutoJoinScriptTask { data: data };
+
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -1245,9 +1256,6 @@ impl LayoutTask {
                 ReflowQueryType::NoQuery => {}
             }
         }
-
-        // Tell script that we're done.
-        data.script_join_chan.send(()).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,
