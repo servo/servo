@@ -362,6 +362,10 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
         let iter = doc_node.query_selector_iter("input[type=radio]".to_owned())
                 .unwrap().filter_map(HTMLInputElementCast::to_root)
                 .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r());
+<<<<<<< HEAD
+=======
+        
+>>>>>>> refs/remotes/origin/foo
         for ref r in iter {
             if r.r().Checked() {
                 r.r().SetChecked(false);
@@ -716,7 +720,11 @@ impl Activatable for HTMLInputElement {
                             .find(|r| {
                                 in_same_group(r.r(), owner.r(), group.as_ref()) &&
                                 r.r().Checked()
+<<<<<<< HEAD
                             });
+=======
+                            }); 
+>>>>>>> refs/remotes/origin/foo
                     cache.checked_radio = checked_member.r().map(JS::from_ref);
                     cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
@@ -843,7 +851,11 @@ impl Activatable for HTMLInputElement {
         if elem.click_in_progress() {
             return;
         }
+<<<<<<< HEAD
         let submit_button;
+=======
+        let submit_button; 
+>>>>>>> refs/remotes/origin/foo
         submit_button = node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
             .filter_map(HTMLInputElementCast::to_root)
             .find(|r| r.r().form_owner() == owner);
