@@ -683,6 +683,234 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/img_size_a.html": [
+          {
+            "path": "css/img_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/img_size_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_size_a.html"
+          }
+        ],
+        "css/img_width_style_intrinsic_width_a.html": [
+          {
+            "path": "css/img_width_style_intrinsic_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/img_width_style_intrinsic_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_width_style_intrinsic_width_a.html"
+          }
+        ],
+        "css/incremental_float_a.html": [
+          {
+            "path": "css/incremental_float_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_float_a.html"
+          }
+        ],
+        "css/incremental_inline_layout_a.html": [
+          {
+            "path": "css/incremental_inline_layout_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_inline_layout_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_inline_layout_a.html"
+          }
+        ],
+        "css/incremental_letter_spacing_a.html": [
+          {
+            "path": "css/incremental_letter_spacing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_letter_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_letter_spacing_a.html"
+          }
+        ],
+        "css/inline_absolute_hypothetical_clip_a.html": [
+          {
+            "path": "css/inline_absolute_hypothetical_clip_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_absolute_hypothetical_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_absolute_hypothetical_clip_a.html"
+          }
+        ],
+        "css/inline_absolute_out_of_flow_a.html": [
+          {
+            "path": "css/inline_absolute_out_of_flow_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_absolute_out_of_flow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
+          }
+        ],
+        "css/inline_block_block_direction_margins_a.html": [
+          {
+            "path": "css/inline_block_block_direction_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_block_direction_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_block_direction_margins_a.html"
+          }
+        ],
+        "css/inline_block_border_a.html": [
+          {
+            "path": "css/inline_block_border_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_border_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_border_a.html"
+          }
+        ],
+        "css/inline_block_img_a.html": [
+          {
+            "path": "css/inline_block_img_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_img_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_img_a.html"
+          }
+        ],
+        "css/inline_block_margin_a.html": [
+          {
+            "path": "css/inline_block_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_margin_a.html"
+          }
+        ],
+        "css/inline_block_margin_auto_zero_a.html": [
+          {
+            "path": "css/inline_block_margin_auto_zero_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_margin_auto_zero_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_margin_auto_zero_a.html"
+          }
+        ],
+        "css/inline_block_min_width.html": [
+          {
+            "path": "css/inline_block_min_width.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_min_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_min_width.html"
+          }
+        ],
+        "css/inline_block_overflow.html": [
+          {
+            "path": "css/inline_block_overflow.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_overflow.html"
+          }
+        ],
+        "css/inline_block_overflow_hidden_a.html": [
+          {
+            "path": "css/inline_block_overflow_hidden_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_overflow_hidden_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_overflow_hidden_a.html"
+          }
+        ],
+        "css/inline_block_parent_padding_a.html": [
+          {
+            "path": "css/inline_block_parent_padding_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_parent_padding_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_parent_padding_a.html"
+          }
+        ],
+        "css/inline_block_percentage_height_a.html": [
+          {
+            "path": "css/inline_block_percentage_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_percentage_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_percentage_height_a.html"
+          }
+        ],
+        "css/inline_block_stacking_context_a.html": [
+          {
+            "path": "css/inline_block_stacking_context_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_stacking_context_a.html"
+          }
+        ],
+        "css/inline_block_with_margin_a.html": [
+          {
+            "path": "css/inline_block_with_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_with_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_with_margin_a.html"
+          }
+        ],
         "css/inline_border_baseline_a.html": [
           {
             "path": "css/inline_border_baseline_a.html",
@@ -707,6 +935,30 @@
             "url": "/_mozilla/css/inline_element_border_a.html"
           }
         ],
+        "css/inline_hypothetical_box_a.html": [
+          {
+            "path": "css/inline_hypothetical_box_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_hypothetical_box_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_hypothetical_box_a.html"
+          }
+        ],
+        "css/inline_margin_multiple_fragments_a.html": [
+          {
+            "path": "css/inline_margin_multiple_fragments_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_margin_multiple_fragments_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
+          }
+        ],
         "css/inline_margins_a.html": [
           {
             "path": "css/inline_margins_a.html",
@@ -719,6 +971,18 @@
             "url": "/_mozilla/css/inline_margins_a.html"
           }
         ],
+        "css/inline_margins_intrinsic_size_a.html": [
+          {
+            "path": "css/inline_margins_intrinsic_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_margins_intrinsic_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_margins_intrinsic_size_a.html"
+          }
+        ],
         "css/inline_padding_a.html": [
           {
             "path": "css/inline_padding_a.html",
@@ -729,6 +993,42 @@
               ]
             ],
             "url": "/_mozilla/css/inline_padding_a.html"
+          }
+        ],
+        "css/inline_text_align_a.html": [
+          {
+            "path": "css/inline_text_align_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_text_align_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_text_align_a.html"
+          }
+        ],
+        "css/input_button_margins_a.html": [
+          {
+            "path": "css/input_button_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_button_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_button_margins_a.html"
+          }
+        ],
+        "css/input_button_size_a.html": [
+          {
+            "path": "css/input_button_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_button_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_button_size_a.html"
           }
         ],
         "css/inset.html": [
@@ -765,6 +1065,30 @@
               ]
             ],
             "url": "/_mozilla/css/jumpiness_a.html"
+          }
+        ],
+        "css/last_child_pseudo_a.html": [
+          {
+            "path": "css/last_child_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/last_child_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/last_child_pseudo_a.html"
+          }
+        ],
+        "css/last_of_type_pseudo_a.html": [
+          {
+            "path": "css/last_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/last_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/last_of_type_pseudo_a.html"
           }
         ],
         "css/layerization_z_order_a.html": [
@@ -827,6 +1151,306 @@
             "url": "/_mozilla/css/letter_spacing_a.html"
           }
         ],
+        "css/li_absolute_containing_block_a.html": [
+          {
+            "path": "css/li_absolute_containing_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/li_absolute_containing_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/li_absolute_containing_block_a.html"
+          }
+        ],
+        "css/line_breaking_whitespace_collapse_a.html": [
+          {
+            "path": "css/line_breaking_whitespace_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/line_breaking_whitespace_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/line_breaking_whitespace_collapse_a.html"
+          }
+        ],
+        "css/line_height_float_placement_a.html": [
+          {
+            "path": "css/line_height_float_placement_a.html",
+            "references": [
+              [
+                "/_mozilla/css/line_height_float_placement_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/line_height_float_placement_a.html"
+          }
+        ],
+        "css/linear_gradients_lengths_a.html": [
+          {
+            "path": "css/linear_gradients_lengths_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_lengths_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_lengths_a.html"
+          }
+        ],
+        "css/linear_gradients_parsing_a.html": [
+          {
+            "path": "css/linear_gradients_parsing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_parsing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_parsing_a.html"
+          }
+        ],
+        "css/linear_gradients_reverse_a.html": [
+          {
+            "path": "css/linear_gradients_reverse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linear_gradients_reverse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linear_gradients_reverse_a.html"
+          }
+        ],
+        "css/linebreak_inline_span_a.html": [
+          {
+            "path": "css/linebreak_inline_span_a.html",
+            "references": [
+              [
+                "/_mozilla/css/linebreak_inline_span_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/linebreak_inline_span_a.html"
+          }
+        ],
+        "css/link_style_order.html": [
+          {
+            "path": "css/link_style_order.html",
+            "references": [
+              [
+                "/_mozilla/css/link_style_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/link_style_order.html"
+          }
+        ],
+        "css/list_style_image_sizing_a.html": [
+          {
+            "path": "css/list_style_image_sizing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/list_style_image_sizing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/list_style_image_sizing_a.html"
+          }
+        ],
+        "css/many_brs_a.html": [
+          {
+            "path": "css/many_brs_a.html",
+            "references": [
+              [
+                "/_mozilla/css/many_brs_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/many_brs_a.html"
+          }
+        ],
+        "css/margin_padding_inline_block_a.html": [
+          {
+            "path": "css/margin_padding_inline_block_a.html",
+            "references": [
+              [
+                "/_mozilla/css/margin_padding_inline_block_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/margin_padding_inline_block_a.html"
+          }
+        ],
+        "css/margins_inside_floats_a.html": [
+          {
+            "path": "css/margins_inside_floats_a.html",
+            "references": [
+              [
+                "/_mozilla/css/margins_inside_floats_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/margins_inside_floats_a.html"
+          }
+        ],
+        "css/max_width_float_simple_a.html": [
+          {
+            "path": "css/max_width_float_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/max_width_float_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_width_float_simple_a.html"
+          }
+        ],
+        "css/max_width_simple_a.html": [
+          {
+            "path": "css/max_width_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/max_width_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_width_simple_a.html"
+          }
+        ],
+        "css/min_max_height_a.html": [
+          {
+            "path": "css/min_max_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/min_max_height_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/min_max_height_a.html"
+          }
+        ],
+        "css/min_width_float_simple_a.html": [
+          {
+            "path": "css/min_width_float_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/min_width_float_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/min_width_float_simple_a.html"
+          }
+        ],
+        "css/min_width_simple_a.html": [
+          {
+            "path": "css/min_width_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/min_width_simple_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/min_width_simple_a.html"
+          }
+        ],
+        "css/minimum_line_height_a.html": [
+          {
+            "path": "css/minimum_line_height_a.html",
+            "references": [
+              [
+                "/_mozilla/css/minimum_line_height_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/minimum_line_height_a.html"
+          }
+        ],
+        "css/mix_blend_mode_a.html": [
+          {
+            "path": "css/mix_blend_mode_a.html",
+            "references": [
+              [
+                "/_mozilla/css/mix_blend_mode_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/mix_blend_mode_a.html"
+          }
+        ],
+        "css/multiple_css_class_a.html": [
+          {
+            "path": "css/multiple_css_class_a.html",
+            "references": [
+              [
+                "/_mozilla/css/multiple_css_class_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/multiple_css_class_a.html"
+          }
+        ],
+        "css/negative_margin_uncle_a.html": [
+          {
+            "path": "css/negative_margin_uncle_a.html",
+            "references": [
+              [
+                "/_mozilla/css/negative_margin_uncle_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/negative_margin_uncle_a.html"
+          }
+        ],
+        "css/negative_margins_a.html": [
+          {
+            "path": "css/negative_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/negative_margins_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/negative_margins_a.html"
+          }
+        ],
+        "css/no-image.html": [
+          {
+            "path": "css/no-image.html",
+            "references": [
+              [
+                "/_mozilla/css/no-image-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/no-image.html"
+          }
+        ],
+        "css/no_image_background_a.html": [
+          {
+            "path": "css/no_image_background_a.html",
+            "references": [
+              [
+                "/_mozilla/css/no_image_background_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/no_image_background_a.html"
+          }
+        ],
+        "css/noscript.html": [
+          {
+            "path": "css/noscript.html",
+            "references": [
+              [
+                "/_mozilla/css/noscript_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/noscript.html"
+          }
+        ],
         "css/nth_child_pseudo_a.html": [
           {
             "path": "css/nth_child_pseudo_a.html",
@@ -849,6 +1473,42 @@
               ]
             ],
             "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
+          }
+        ],
+        "css/nth_last_of_type_pseudo_a.html": [
+          {
+            "path": "css/nth_last_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/nth_last_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/nth_last_of_type_pseudo_a.html"
+          }
+        ],
+        "css/nth_of_type_pseudo_a.html": [
+          {
+            "path": "css/nth_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/nth_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/nth_of_type_pseudo_a.html"
+          }
+        ],
+        "css/object_element_a.html": [
+          {
+            "path": "css/object_element_a.html",
+            "references": [
+              [
+                "/_mozilla/css/object_element_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/object_element_a.html"
           }
         ],
         "css/ol_simple_a.html": [
@@ -3744,6 +4404,234 @@
           "url": "/_mozilla/css/flex_nochild.html"
         }
       ],
+      "css/img_size_a.html": [
+        {
+          "path": "css/img_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/img_size_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_size_a.html"
+        }
+      ],
+      "css/img_width_style_intrinsic_width_a.html": [
+        {
+          "path": "css/img_width_style_intrinsic_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/img_width_style_intrinsic_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_width_style_intrinsic_width_a.html"
+        }
+      ],
+      "css/incremental_float_a.html": [
+        {
+          "path": "css/incremental_float_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_float_a.html"
+        }
+      ],
+      "css/incremental_inline_layout_a.html": [
+        {
+          "path": "css/incremental_inline_layout_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_inline_layout_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_inline_layout_a.html"
+        }
+      ],
+      "css/incremental_letter_spacing_a.html": [
+        {
+          "path": "css/incremental_letter_spacing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_letter_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_letter_spacing_a.html"
+        }
+      ],
+      "css/inline_absolute_hypothetical_clip_a.html": [
+        {
+          "path": "css/inline_absolute_hypothetical_clip_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_absolute_hypothetical_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_absolute_hypothetical_clip_a.html"
+        }
+      ],
+      "css/inline_absolute_out_of_flow_a.html": [
+        {
+          "path": "css/inline_absolute_out_of_flow_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_absolute_out_of_flow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
+        }
+      ],
+      "css/inline_block_block_direction_margins_a.html": [
+        {
+          "path": "css/inline_block_block_direction_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_block_direction_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_block_direction_margins_a.html"
+        }
+      ],
+      "css/inline_block_border_a.html": [
+        {
+          "path": "css/inline_block_border_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_border_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_border_a.html"
+        }
+      ],
+      "css/inline_block_img_a.html": [
+        {
+          "path": "css/inline_block_img_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_img_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_img_a.html"
+        }
+      ],
+      "css/inline_block_margin_a.html": [
+        {
+          "path": "css/inline_block_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_margin_a.html"
+        }
+      ],
+      "css/inline_block_margin_auto_zero_a.html": [
+        {
+          "path": "css/inline_block_margin_auto_zero_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_margin_auto_zero_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_margin_auto_zero_a.html"
+        }
+      ],
+      "css/inline_block_min_width.html": [
+        {
+          "path": "css/inline_block_min_width.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_min_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_min_width.html"
+        }
+      ],
+      "css/inline_block_overflow.html": [
+        {
+          "path": "css/inline_block_overflow.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_overflow.html"
+        }
+      ],
+      "css/inline_block_overflow_hidden_a.html": [
+        {
+          "path": "css/inline_block_overflow_hidden_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_overflow_hidden_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_overflow_hidden_a.html"
+        }
+      ],
+      "css/inline_block_parent_padding_a.html": [
+        {
+          "path": "css/inline_block_parent_padding_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_parent_padding_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_parent_padding_a.html"
+        }
+      ],
+      "css/inline_block_percentage_height_a.html": [
+        {
+          "path": "css/inline_block_percentage_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_percentage_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_percentage_height_a.html"
+        }
+      ],
+      "css/inline_block_stacking_context_a.html": [
+        {
+          "path": "css/inline_block_stacking_context_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_stacking_context_a.html"
+        }
+      ],
+      "css/inline_block_with_margin_a.html": [
+        {
+          "path": "css/inline_block_with_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_with_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_with_margin_a.html"
+        }
+      ],
       "css/inline_border_baseline_a.html": [
         {
           "path": "css/inline_border_baseline_a.html",
@@ -3768,6 +4656,30 @@
           "url": "/_mozilla/css/inline_element_border_a.html"
         }
       ],
+      "css/inline_hypothetical_box_a.html": [
+        {
+          "path": "css/inline_hypothetical_box_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_hypothetical_box_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_hypothetical_box_a.html"
+        }
+      ],
+      "css/inline_margin_multiple_fragments_a.html": [
+        {
+          "path": "css/inline_margin_multiple_fragments_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_margin_multiple_fragments_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
+        }
+      ],
       "css/inline_margins_a.html": [
         {
           "path": "css/inline_margins_a.html",
@@ -3780,6 +4692,18 @@
           "url": "/_mozilla/css/inline_margins_a.html"
         }
       ],
+      "css/inline_margins_intrinsic_size_a.html": [
+        {
+          "path": "css/inline_margins_intrinsic_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_margins_intrinsic_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_margins_intrinsic_size_a.html"
+        }
+      ],
       "css/inline_padding_a.html": [
         {
           "path": "css/inline_padding_a.html",
@@ -3790,6 +4714,42 @@
             ]
           ],
           "url": "/_mozilla/css/inline_padding_a.html"
+        }
+      ],
+      "css/inline_text_align_a.html": [
+        {
+          "path": "css/inline_text_align_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_text_align_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_text_align_a.html"
+        }
+      ],
+      "css/input_button_margins_a.html": [
+        {
+          "path": "css/input_button_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_button_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_button_margins_a.html"
+        }
+      ],
+      "css/input_button_size_a.html": [
+        {
+          "path": "css/input_button_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_button_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_button_size_a.html"
         }
       ],
       "css/inset.html": [
@@ -3826,6 +4786,30 @@
             ]
           ],
           "url": "/_mozilla/css/jumpiness_a.html"
+        }
+      ],
+      "css/last_child_pseudo_a.html": [
+        {
+          "path": "css/last_child_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/last_child_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/last_child_pseudo_a.html"
+        }
+      ],
+      "css/last_of_type_pseudo_a.html": [
+        {
+          "path": "css/last_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/last_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/last_of_type_pseudo_a.html"
         }
       ],
       "css/layerization_z_order_a.html": [
@@ -3888,6 +4872,306 @@
           "url": "/_mozilla/css/letter_spacing_a.html"
         }
       ],
+      "css/li_absolute_containing_block_a.html": [
+        {
+          "path": "css/li_absolute_containing_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/li_absolute_containing_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/li_absolute_containing_block_a.html"
+        }
+      ],
+      "css/line_breaking_whitespace_collapse_a.html": [
+        {
+          "path": "css/line_breaking_whitespace_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/line_breaking_whitespace_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/line_breaking_whitespace_collapse_a.html"
+        }
+      ],
+      "css/line_height_float_placement_a.html": [
+        {
+          "path": "css/line_height_float_placement_a.html",
+          "references": [
+            [
+              "/_mozilla/css/line_height_float_placement_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/line_height_float_placement_a.html"
+        }
+      ],
+      "css/linear_gradients_lengths_a.html": [
+        {
+          "path": "css/linear_gradients_lengths_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_lengths_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_lengths_a.html"
+        }
+      ],
+      "css/linear_gradients_parsing_a.html": [
+        {
+          "path": "css/linear_gradients_parsing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_parsing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_parsing_a.html"
+        }
+      ],
+      "css/linear_gradients_reverse_a.html": [
+        {
+          "path": "css/linear_gradients_reverse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linear_gradients_reverse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linear_gradients_reverse_a.html"
+        }
+      ],
+      "css/linebreak_inline_span_a.html": [
+        {
+          "path": "css/linebreak_inline_span_a.html",
+          "references": [
+            [
+              "/_mozilla/css/linebreak_inline_span_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/linebreak_inline_span_a.html"
+        }
+      ],
+      "css/link_style_order.html": [
+        {
+          "path": "css/link_style_order.html",
+          "references": [
+            [
+              "/_mozilla/css/link_style_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/link_style_order.html"
+        }
+      ],
+      "css/list_style_image_sizing_a.html": [
+        {
+          "path": "css/list_style_image_sizing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/list_style_image_sizing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/list_style_image_sizing_a.html"
+        }
+      ],
+      "css/many_brs_a.html": [
+        {
+          "path": "css/many_brs_a.html",
+          "references": [
+            [
+              "/_mozilla/css/many_brs_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/many_brs_a.html"
+        }
+      ],
+      "css/margin_padding_inline_block_a.html": [
+        {
+          "path": "css/margin_padding_inline_block_a.html",
+          "references": [
+            [
+              "/_mozilla/css/margin_padding_inline_block_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/margin_padding_inline_block_a.html"
+        }
+      ],
+      "css/margins_inside_floats_a.html": [
+        {
+          "path": "css/margins_inside_floats_a.html",
+          "references": [
+            [
+              "/_mozilla/css/margins_inside_floats_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/margins_inside_floats_a.html"
+        }
+      ],
+      "css/max_width_float_simple_a.html": [
+        {
+          "path": "css/max_width_float_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/max_width_float_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_width_float_simple_a.html"
+        }
+      ],
+      "css/max_width_simple_a.html": [
+        {
+          "path": "css/max_width_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/max_width_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_width_simple_a.html"
+        }
+      ],
+      "css/min_max_height_a.html": [
+        {
+          "path": "css/min_max_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/min_max_height_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/min_max_height_a.html"
+        }
+      ],
+      "css/min_width_float_simple_a.html": [
+        {
+          "path": "css/min_width_float_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/min_width_float_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/min_width_float_simple_a.html"
+        }
+      ],
+      "css/min_width_simple_a.html": [
+        {
+          "path": "css/min_width_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/min_width_simple_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/min_width_simple_a.html"
+        }
+      ],
+      "css/minimum_line_height_a.html": [
+        {
+          "path": "css/minimum_line_height_a.html",
+          "references": [
+            [
+              "/_mozilla/css/minimum_line_height_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/minimum_line_height_a.html"
+        }
+      ],
+      "css/mix_blend_mode_a.html": [
+        {
+          "path": "css/mix_blend_mode_a.html",
+          "references": [
+            [
+              "/_mozilla/css/mix_blend_mode_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/mix_blend_mode_a.html"
+        }
+      ],
+      "css/multiple_css_class_a.html": [
+        {
+          "path": "css/multiple_css_class_a.html",
+          "references": [
+            [
+              "/_mozilla/css/multiple_css_class_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/multiple_css_class_a.html"
+        }
+      ],
+      "css/negative_margin_uncle_a.html": [
+        {
+          "path": "css/negative_margin_uncle_a.html",
+          "references": [
+            [
+              "/_mozilla/css/negative_margin_uncle_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/negative_margin_uncle_a.html"
+        }
+      ],
+      "css/negative_margins_a.html": [
+        {
+          "path": "css/negative_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/negative_margins_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/negative_margins_a.html"
+        }
+      ],
+      "css/no-image.html": [
+        {
+          "path": "css/no-image.html",
+          "references": [
+            [
+              "/_mozilla/css/no-image-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/no-image.html"
+        }
+      ],
+      "css/no_image_background_a.html": [
+        {
+          "path": "css/no_image_background_a.html",
+          "references": [
+            [
+              "/_mozilla/css/no_image_background_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/no_image_background_a.html"
+        }
+      ],
+      "css/noscript.html": [
+        {
+          "path": "css/noscript.html",
+          "references": [
+            [
+              "/_mozilla/css/noscript_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/noscript.html"
+        }
+      ],
       "css/nth_child_pseudo_a.html": [
         {
           "path": "css/nth_child_pseudo_a.html",
@@ -3910,6 +5194,42 @@
             ]
           ],
           "url": "/_mozilla/css/nth_last_child_pseudo_a.html"
+        }
+      ],
+      "css/nth_last_of_type_pseudo_a.html": [
+        {
+          "path": "css/nth_last_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/nth_last_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/nth_last_of_type_pseudo_a.html"
+        }
+      ],
+      "css/nth_of_type_pseudo_a.html": [
+        {
+          "path": "css/nth_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/nth_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/nth_of_type_pseudo_a.html"
+        }
+      ],
+      "css/object_element_a.html": [
+        {
+          "path": "css/object_element_a.html",
+          "references": [
+            [
+              "/_mozilla/css/object_element_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/object_element_a.html"
         }
       ],
       "css/ol_simple_a.html": [

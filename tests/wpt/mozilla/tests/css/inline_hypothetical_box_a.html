@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='inline_hypothetical_box_ref.html'>
+<style>
+.a {
+    position: relative;
+    height: 200px;
+}
+
+.b {
+    position: absolute;
+    vertical-align: top;
+}
+
+.c {
+    background: blue;
+    display: inline-block;
+    height: 8px;
+    width: 32px;
+}
+</style>
+</head>
+<body>
+<div class=a><span class=c></span><span class=b style="top: 100px;">Hello</span>world!</div>
+<div class=a><span class=c></span><span class=b style="left: 100px;">Hello</span>world!</div>
+</body>
+</html>
+
