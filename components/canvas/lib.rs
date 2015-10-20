@@ -25,4 +25,5 @@ extern crate offscreen_gl_context;
 extern crate util;
 
 pub mod canvas_paint_task;
+mod premultiplytable;
 pub mod webgl_paint_task;
