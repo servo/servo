@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- This is a lightly modified copy of
+     tests/wpt/css-tests/css21_dev/html4/reference/white-space-mixed-002-ref.htm,
+     changed to work around a bug in Servo's float handling.
+-->
+<html>
+
+ <head>
+
+  <title>CSS Reftest Reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style type="text/css">
+  div
+  {
+  background-color: yellow;
+  border: blue solid medium;
+  margin-left: 20px;
+  width: 140px;
+  margin-top: 36px;
+  }
+  div+div { margin-top: 56px; }
+
+  img {vertical-align: top;}
+
+  img:first-child {float: right;}
+
+  </style>
+
+ </head>
+
+ <body>
+
+  <p>Test passes if the contents of the 2 blue stripes are <strong>identical</strong>.</p>
+
+  <div><img src="swatch-orange.png" width="20" height="20" alt="Image download support must be enabled"><img src="swatch-orange.png" width="20" height="20" alt="Image download support must be enabled"></div>
+
+  <div><img src="swatch-orange.png" width="20" height="20" alt="Image download support must be enabled"><img src="swatch-orange.png" width="20" height="20" alt="Image download support must be enabled"></div>
+
+ </body>
+</html>

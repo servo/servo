@@ -3047,6 +3047,54 @@
             "url": "/_mozilla/css/visibility_hidden.html"
           }
         ],
+        "css/white-space-mixed-002.htm": [
+          {
+            "path": "css/white-space-mixed-002.htm",
+            "references": [
+              [
+                "/_mozilla/css/white-space-mixed-002-ref.htm",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/white-space-mixed-002.htm"
+          }
+        ],
+        "css/white-space-normal-001.htm": [
+          {
+            "path": "css/white-space-normal-001.htm",
+            "references": [
+              [
+                "/_mozilla/css/white-space-normal-001-ref.htm",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/white-space-normal-001.htm"
+          }
+        ],
+        "css/white-space-pre-line.htm": [
+          {
+            "path": "css/white-space-pre-line.htm",
+            "references": [
+              [
+                "/_mozilla/css/white-space-pre-line-ref.htm",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/white-space-pre-line.htm"
+          }
+        ],
+        "css/white-space-pre-wrap.htm": [
+          {
+            "path": "css/white-space-pre-wrap.htm",
+            "references": [
+              [
+                "/_mozilla/css/white-space-pre-wrap-ref.htm",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/white-space-pre-wrap.htm"
+          }
+        ],
         "css/whitespace_nowrap_a.html": [
           {
             "path": "css/whitespace_nowrap_a.html",
@@ -6886,6 +6934,54 @@
             ]
           ],
           "url": "/_mozilla/css/visibility_hidden.html"
+        }
+      ],
+      "css/white-space-mixed-002.htm": [
+        {
+          "path": "css/white-space-mixed-002.htm",
+          "references": [
+            [
+              "/_mozilla/css/white-space-mixed-002-ref.htm",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/white-space-mixed-002.htm"
+        }
+      ],
+      "css/white-space-normal-001.htm": [
+        {
+          "path": "css/white-space-normal-001.htm",
+          "references": [
+            [
+              "/_mozilla/css/white-space-normal-001-ref.htm",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/white-space-normal-001.htm"
+        }
+      ],
+      "css/white-space-pre-line.htm": [
+        {
+          "path": "css/white-space-pre-line.htm",
+          "references": [
+            [
+              "/_mozilla/css/white-space-pre-line-ref.htm",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/white-space-pre-line.htm"
+        }
+      ],
+      "css/white-space-pre-wrap.htm": [
+        {
+          "path": "css/white-space-pre-wrap.htm",
+          "references": [
+            [
+              "/_mozilla/css/white-space-pre-wrap-ref.htm",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/white-space-pre-wrap.htm"
         }
       ],
       "css/whitespace_nowrap_a.html": [
