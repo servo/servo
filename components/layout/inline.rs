@@ -1496,7 +1496,7 @@ impl Flow for InlineFlow {
             for fragment_index in line.range.each_index() {
                 let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
 
-                if fragment.needs_layer() && !fragment.is_positioned() {
+                if fragment.needs_layered_stacking_context() && !fragment.is_positioned() {
                     layers_needed_for_descendants = true
                 }
 

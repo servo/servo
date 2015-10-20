@@ -61,9 +61,7 @@ impl CompositorData {
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
             scroll_offset: Point2D::typed(0., 0.),
-            subpage_info: layer_properties.subpage_layer_info.map(|subpage_layer_info| {
-                subpage_layer_info.pipeline_id
-            }),
+            subpage_info: layer_properties.subpage_pipeline_id,
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
@@ -485,8 +483,8 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                 if let Some(layer_pipeline_id) = layer_pipeline_id {
                     for layer_properties in new_layers.iter() {
                         // Keep this layer if a reference to it exists.
-                        if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
-                            if subpage_layer_info.pipeline_id == layer_pipeline_id {
+                        if let Some(ref subpage_pipeline_id) = layer_properties.subpage_pipeline_id {
+                            if *subpage_pipeline_id == layer_pipeline_id {
                                 return true
                             }
                         }
