@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that `border-spacing` works. -->
+<style>
+div {
+    background: blue;
+    position: absolute;
+    height: 32px;
+}
+#a, #c {
+    width: 32px;
+}
+#b, #d {
+    width: 64px;
+}
+#a, #b {
+    top: 6px;
+}
+#c, #d {
+    top: 44px;
+}
+#a, #c {
+    left: 6px;
+}
+#b, #d {
+    left: 44px;
+}
+</style>
+</head>
+<body>
+<div id=a></div>
+<div id=b></div>
+<div id=c></div>
+<div id=d></div>
+</body>
+</html>
+
+
