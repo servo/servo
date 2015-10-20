@@ -232,13 +232,9 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         if owner.is_none() || elem.click_in_progress() {
             return;
         }
-        // This is safe because we are stopping after finding the first element
-        // and only then performing actions which may modify the DOM tree
-        unsafe {
-            node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
-                .filter_map(HTMLButtonElementCast::to_root)
-                .find(|r| r.r().form_owner() == owner)
-                .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
-        }
+        node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
+            .filter_map(HTMLButtonElementCast::to_root)
+            .find(|r| r.r().form_owner() == owner)
+            .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }
