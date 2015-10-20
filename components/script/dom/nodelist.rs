@@ -27,6 +27,7 @@ pub struct NodeList {
 }
 
 impl NodeList {
+    #[allow(unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
@@ -34,6 +35,7 @@ impl NodeList {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                list_type: NodeListType) -> Root<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
