@@ -345,8 +345,7 @@ pub struct QuerySelectorIterator {
 }
 
 impl<'a> QuerySelectorIterator {
-    #[allow(unsafe_code)]
-    unsafe fn new(iter: TreeIterator, selectors: Vec<Selector>)
+     fn new(iter: TreeIterator, selectors: Vec<Selector>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
@@ -737,8 +736,7 @@ impl Node {
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree
     /// whilst iterating, otherwise the iterator may be invalidated.
-    #[allow(unsafe_code)]
-    pub unsafe fn query_selector_iter(&self, selectors: DOMString)
+    pub fn query_selector_iter(&self, selectors: DOMString)
                                   -> Fallible<QuerySelectorIterator> {
         // Step 1.
         match parse_author_origin_selector_list_from_str(&selectors) {
@@ -755,7 +753,7 @@ impl Node {
     #[allow(unsafe_code)]
     pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let window = window_from_node(self);
-        let iter = try!(unsafe { self.query_selector_iter(selectors) });
+        let iter = try!(self.query_selector_iter(selectors));
         Ok(NodeList::new_simple_list(window.r(), iter))
     }
 
