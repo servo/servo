@@ -12,16 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== border_collapse_simple_a.html border_collapse_simple_ref.html
-== border_radius_asymmetric_sizes_a.html border_radius_asymmetric_sizes_ref.html
-== border_radius_clip_a.html border_radius_clip_ref.html
-!= border_radius_dashed_a.html border_radius_dashed_ref.html
-== border_radius_elliptical_a.html border_radius_elliptical_ref.html
-== border_radius_overlapping_a.html border_radius_overlapping_ref.html
-== border_radius_shorthand_a.html border_radius_shorthand_ref.html
-== border_radius_zero_sizes_a.html border_radius_zero_sizes_ref.html
-== border_rounding_1px_invisible_issue_7184_a.html border_rounding_1px_invisible_issue_7184_ref.html
-== border_spacing_a.html border_spacing_ref.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
 == border_spacing_empty_table.html border_spacing_empty_table_ref.html
 == border_spacing_fixed_layout_a.html border_spacing_ref.html

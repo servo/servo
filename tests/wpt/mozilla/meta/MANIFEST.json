@@ -659,6 +659,126 @@
             "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
           }
         ],
+        "css/border_collapse_simple_a.html": [
+          {
+            "path": "css/border_collapse_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_collapse_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_collapse_simple_a.html"
+          }
+        ],
+        "css/border_radius_asymmetric_sizes_a.html": [
+          {
+            "path": "css/border_radius_asymmetric_sizes_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_asymmetric_sizes_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_asymmetric_sizes_a.html"
+          }
+        ],
+        "css/border_radius_clip_a.html": [
+          {
+            "path": "css/border_radius_clip_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_clip_a.html"
+          }
+        ],
+        "css/border_radius_dashed_a.html": [
+          {
+            "path": "css/border_radius_dashed_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_dashed_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_dashed_a.html"
+          }
+        ],
+        "css/border_radius_elliptical_a.html": [
+          {
+            "path": "css/border_radius_elliptical_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_elliptical_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_elliptical_a.html"
+          }
+        ],
+        "css/border_radius_overlapping_a.html": [
+          {
+            "path": "css/border_radius_overlapping_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_overlapping_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_overlapping_a.html"
+          }
+        ],
+        "css/border_radius_shorthand_a.html": [
+          {
+            "path": "css/border_radius_shorthand_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_shorthand_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_shorthand_a.html"
+          }
+        ],
+        "css/border_radius_zero_sizes_a.html": [
+          {
+            "path": "css/border_radius_zero_sizes_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_zero_sizes_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
+          }
+        ],
+        "css/border_rounding_1px_invisible_issue_7184_a.html": [
+          {
+            "path": "css/border_rounding_1px_invisible_issue_7184_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_rounding_1px_invisible_issue_7184_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_rounding_1px_invisible_issue_7184_a.html"
+          }
+        ],
+        "css/border_spacing_a.html": [
+          {
+            "path": "css/border_spacing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_spacing_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -4378,6 +4498,126 @@
             ]
           ],
           "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
+        }
+      ],
+      "css/border_collapse_simple_a.html": [
+        {
+          "path": "css/border_collapse_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_collapse_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_collapse_simple_a.html"
+        }
+      ],
+      "css/border_radius_asymmetric_sizes_a.html": [
+        {
+          "path": "css/border_radius_asymmetric_sizes_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_asymmetric_sizes_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_asymmetric_sizes_a.html"
+        }
+      ],
+      "css/border_radius_clip_a.html": [
+        {
+          "path": "css/border_radius_clip_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_clip_a.html"
+        }
+      ],
+      "css/border_radius_dashed_a.html": [
+        {
+          "path": "css/border_radius_dashed_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_dashed_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_dashed_a.html"
+        }
+      ],
+      "css/border_radius_elliptical_a.html": [
+        {
+          "path": "css/border_radius_elliptical_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_elliptical_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_elliptical_a.html"
+        }
+      ],
+      "css/border_radius_overlapping_a.html": [
+        {
+          "path": "css/border_radius_overlapping_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_overlapping_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_overlapping_a.html"
+        }
+      ],
+      "css/border_radius_shorthand_a.html": [
+        {
+          "path": "css/border_radius_shorthand_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_shorthand_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_shorthand_a.html"
+        }
+      ],
+      "css/border_radius_zero_sizes_a.html": [
+        {
+          "path": "css/border_radius_zero_sizes_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_zero_sizes_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
+        }
+      ],
+      "css/border_rounding_1px_invisible_issue_7184_a.html": [
+        {
+          "path": "css/border_rounding_1px_invisible_issue_7184_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_rounding_1px_invisible_issue_7184_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_rounding_1px_invisible_issue_7184_a.html"
+        }
+      ],
+      "css/border_spacing_a.html": [
+        {
+          "path": "css/border_spacing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_spacing_a.html"
         }
       ],
       "css/class-namespaces.html": [
