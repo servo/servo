@@ -67,7 +67,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Drop};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -1159,6 +1159,20 @@ impl LayoutTask {
     fn handle_reflow<'a>(&'a self,
                          data: &ScriptReflow,
                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+
+        // Make sure that every return path from this method sends ReflowComplete on the channel,
+        // otherwise the script task will panic.
+        struct AutoSendReflowComplete<'a> { data: &'a ScriptReflow, id: PipelineId };
+        impl<'a> Drop for AutoSendReflowComplete<'a> {
+            fn drop(&mut self) {
+                // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
+                // either select or a filtered recv() that only looks for messages of a given type.
+                self.data.script_join_chan.send(()).unwrap();
+                self.data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, self.data.id)).unwrap();
+            }
+        };
+        let _asrc = AutoSendReflowComplete { data: data, id: self.id };
+
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -1280,12 +1294,6 @@ impl LayoutTask {
             }
         }
 
-        // Tell script that we're done.
-        //
-        // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
-        // either select or a filtered recv() that only looks for messages of a given type.
-        data.script_join_chan.send(()).unwrap();
-        data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,
