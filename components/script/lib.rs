@@ -95,6 +95,7 @@ pub mod parse;
 pub mod script_task;
 pub mod textinput;
 mod timers;
+mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
