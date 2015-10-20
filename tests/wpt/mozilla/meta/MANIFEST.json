@@ -755,6 +755,18 @@
             "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
           }
         ],
+        "css/border_rounding_1px_invisible_issue_7184_a.html": [
+          {
+            "path": "css/border_rounding_1px_invisible_issue_7184_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_rounding_1px_invisible_issue_7184_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_rounding_1px_invisible_issue_7184_a.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -4570,6 +4582,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_radius_zero_sizes_a.html"
+        }
+      ],
+      "css/border_rounding_1px_invisible_issue_7184_a.html": [
+        {
+          "path": "css/border_rounding_1px_invisible_issue_7184_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_rounding_1px_invisible_issue_7184_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_rounding_1px_invisible_issue_7184_a.html"
         }
       ],
       "css/class-namespaces.html": [
