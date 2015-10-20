@@ -260,6 +260,12 @@ impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
     }
 }
 
+impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
+   fn eq(&self, other: &MutHeap<JS<T>>) -> bool {
+        self.get().eq(&other.get())
+    }
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `JS<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<JS<T>>>`, but safer.
@@ -334,6 +340,12 @@ impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for JS<T>.
         0
+    }
+}
+
+impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
+   fn eq(&self, other: &MutNullableHeap<JS<T>>) -> bool {
+        self.get().eq(&other.get())
     }
 }
 
