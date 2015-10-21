@@ -470,6 +470,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
     }
 
+    // FIXME(#7720)
+    #[inline]
+    fn get_target_state(&self) -> bool {
+        false
+    }
+
     #[inline]
     fn get_active_state(&self) -> bool {
         self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
