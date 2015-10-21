@@ -461,7 +461,7 @@ pub fn new_image_cache_task(resource_task: ResourceTask) -> ImageCacheTask {
         placeholder_url.push("rippy.jpg");
         let placeholder_image = match Url::from_file_path(&*placeholder_url) {
             Ok(url) => {
-                match load_whole_resource(&resource_task, url) {
+                match load_whole_resource(&resource_task, url, None) {
                     Err(..) => {
                         debug!("image_cache_task: failed loading the placeholder.");
                         None

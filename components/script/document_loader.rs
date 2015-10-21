@@ -81,7 +81,7 @@ impl DocumentLoader {
     /// Create, initiate, and await the response for a new network request.
     pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
         self.blocking_loads.push(load.clone());
-        let result = load_whole_resource(&self.resource_task, load.url().clone());
+        let result = load_whole_resource(&self.resource_task, load.url().clone(), None);
         self.finish_load(load);
         result
     }

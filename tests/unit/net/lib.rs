@@ -7,6 +7,7 @@ extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
 extern crate ipc_channel;
+extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate time;

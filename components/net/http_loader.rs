@@ -22,6 +22,7 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
+use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
@@ -439,10 +440,12 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             url: Url,
                             method: Method,
                             headers: Headers,
-                            body: Option<Vec<u8>>) {
+                            body: Option<Vec<u8>>,
+                            pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let request = DevtoolsHttpRequest {
+            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
@@ -453,9 +456,10 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>) {
+                             status: Option<RawStatus>,
+                             pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
@@ -572,34 +576,29 @@ pub fn load<A>(load_data: LoadData,
             //
             // https://tools.ietf.org/html/rfc7231#section-6.4
             let is_redirected_request = iters != 1;
+            let cloned_data;
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-
-                    // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
-                    // in the message
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        load_data.data.clone()
-                    );
-
+                    cloned_data = load_data.data.clone();
                     req.send(&load_data.data)
                 }
                 _ => {
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        None
-                    );
-
+                    cloned_data = None;
                     req.send(&None)
                 }
             };
+
+            if let Some(pipeline_id) = load_data.pipeline_id {
+                send_request_to_devtools(
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), request_headers.clone(),
+                    cloned_data, pipeline_id
+                );
+}
 
             response = match maybe_response {
                 Ok(r) => r,
@@ -684,13 +683,13 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?
-        send_response_to_devtools(
-            devtools_chan, request_id,
-            metadata.headers.clone(), metadata.status.clone()
-        );
-
+        if let Some(pipeline_id) = load_data.pipeline_id {
+                send_response_to_devtools(
+                    devtools_chan, request_id,
+                    metadata.headers.clone(), metadata.status.clone(),
+                    pipeline_id);
+         }
         return StreamedResponse::from_http_response(response, metadata)
     }
 }

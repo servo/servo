@@ -19,6 +19,7 @@ extern crate euclid;
 extern crate flate2;
 extern crate hyper;
 extern crate ipc_channel;
+extern crate msg;
 extern crate net_traits;
 extern crate openssl;
 extern crate rustc_serialize;
