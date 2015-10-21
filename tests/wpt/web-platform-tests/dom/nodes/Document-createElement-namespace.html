@@ -13,22 +13,17 @@
  */
 
 /**
- * Test that an element created using the Document object doc has the namespace
- * that would be expected for the given contentType.
+ * Test that an element created using the Document object doc has the HTML
+ * namespace.
  */
 function testDoc(doc, contentType) {
-  // WebKit doesn't support document.contentType, so they don't get this sanity
-  // check :(
   if (doc.contentType !== undefined) {
+    // Sanity check
     assert_equals(doc.contentType, contentType,
                   "Wrong MIME type -- incorrect server config?");
   }
 
-  var expectedNamespace = contentType == "text/html" ||
-                          contentType == "application/xhtml+xml"
-                          ? "http://www.w3.org/1999/xhtml" : null;
-
-  assert_equals(doc.createElement("x").namespaceURI, expectedNamespace);
+  assert_equals(doc.createElement("x").namespaceURI, "http://www.w3.org/1999/xhtml");
 }
 
 // First test various objects we create in JS

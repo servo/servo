@@ -13706,6 +13706,10 @@
         "url": "/dom/nodes/Element-getElementsByClassName.html"
       },
       {
+        "path": "dom/nodes/Element-getElementsByTagName-change-document-HTMLNess.html",
+        "url": "/dom/nodes/Element-getElementsByTagName-change-document-HTMLNess.html"
+      },
+      {
         "path": "dom/nodes/Element-getElementsByTagName.html",
         "url": "/dom/nodes/Element-getElementsByTagName.html"
       },
@@ -26130,10 +26134,6 @@
         "url": "/shadow-dom/untriaged/user-interaction/ranges-and-selections/test-002.html"
       },
       {
-        "path": "subresource-integrity/subresource-integrity.html",
-        "url": "/subresource-integrity/subresource-integrity.html"
-      },
-      {
         "path": "touch-events/create-touch-touchlist.html",
         "url": "/touch-events/create-touch-touchlist.html"
       },
@@ -35315,7 +35315,7 @@
       }
     ]
   },
-  "rev": "4bba821de44da9ed47c2562f995a0da6eecc177b",
+  "rev": "4b25d322ac6ed466f992669e5408b15d37d56436",
   "url_base": "/",
   "version": 2
 }
