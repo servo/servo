@@ -53,7 +53,7 @@ use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
 use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
@@ -66,6 +66,7 @@ use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
@@ -209,7 +210,11 @@ pub struct Window {
     /// The current state of the window object
     current_state: Cell<WindowState>,
 
-    current_viewport: Cell<Rect<Au>>
+    current_viewport: Cell<Rect<Au>>,
+
+    /// A flag to prevent async events from attempting to interact with this window.
+    #[ignore_heap_size_of = "defined in std"]
+    ignore_further_async_events: Arc<AtomicBool>,
 }
 
 impl Window {
@@ -219,6 +224,7 @@ impl Window {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.browsing_context.set(None);
             self.current_state.set(WindowState::Zombie);
+            self.ignore_further_async_events.store(true, Ordering::Relaxed);
         }
     }
 
@@ -781,6 +787,12 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
 }
 
 impl Window {
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+        RunnableWrapper {
+            cancelled: self.ignore_further_async_events.clone()
+        }
+    }
+
     pub fn clear_js_runtime(&self) {
         self.Document().upcast::<Node>().teardown();
 
@@ -798,6 +810,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.browsing_context.set(None);
+        self.ignore_further_async_events.store(true, Ordering::Relaxed);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -1260,6 +1273,8 @@ impl Window {
             devtools_markers: DOMRefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
+
+            ignore_further_async_events: Arc::new(AtomicBool::new(false)),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

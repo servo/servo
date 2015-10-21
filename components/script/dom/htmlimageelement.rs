@@ -110,13 +110,16 @@ impl HTMLImageElement {
                 let trusted_node = Trusted::new(window.get_cx(), self, window.script_chan());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.script_chan();
+                let wrapper = window.get_runnable_wrapper();
                 ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script task, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    script_chan.send(CommonScriptMsg::RunnableMsg(UpdateReplacedElement,
-                        box ImageResponseHandlerRunnable::new(
-                            trusted_node.clone(), image_response))).unwrap();
+                    let runnable = ImageResponseHandlerRunnable::new(
+                        trusted_node.clone(), image_response);
+                    let runnable = wrapper.wrap_runnable(runnable);
+                    script_chan.send(CommonScriptMsg::RunnableMsg(
+                        UpdateReplacedElement, runnable)).unwrap();
                 });
 
                 image_cache.request_image(img_url,
