@@ -1208,6 +1208,7 @@ dependencies = [
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
  "net_traits 0.0.1",
  "openssl 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",

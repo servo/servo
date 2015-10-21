@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate msg;
 
 use cookie;
 use cookie_storage::CookieStorage;
@@ -38,6 +39,7 @@ use url::{Url, UrlParser};
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use uuid;
+use self::msg::constellation_msg::{PipelineId};
 
 pub type Connector = HttpsConnector<Openssl>;
 
@@ -439,14 +441,17 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             url: Url,
                             method: Method,
                             headers: Headers,
-                            body: Option<Vec<u8>>) {
+                            body: Option<Vec<u8>>,
+							pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id};
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
+		//let msg2 = DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id.PipelineNamespaceId, true);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
+		//chan.send(DevtoolScriptControlMsg::FromChrome(msg2)).unwrap();
     }
 }
 
@@ -578,11 +583,24 @@ pub fn load<A>(load_data: LoadData,
 
                     // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
                     // in the message
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        load_data.data.clone()
-                    );
+
+					let has_pipeline = load_data.pipeline_id;
+					match has_pipeline {
+						// has pipeline Id
+						Some(pipeline_id) => {
+									send_request_to_devtools(
+                        			devtools_chan.clone(), request_id.clone(), url.clone(),
+                        			method.clone(), request_headers.clone(),
+                        			load_data.data.clone(), pipeline_id
+                    				);	
+							},
+						// LoadData doesn't have pipeline_id
+						None => {
+									// Do nothing.
+							}
+					};
+
+                    
 
                     req.send(&load_data.data)
                 }
@@ -590,12 +608,24 @@ pub fn load<A>(load_data: LoadData,
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-
-                    send_request_to_devtools(
-                        devtools_chan.clone(), request_id.clone(), url.clone(),
-                        method.clone(), load_data.headers.clone(),
-                        None
-                    );
+					//start
+					let has_pipeline = load_data.pipeline_id;
+					match has_pipeline {
+						// has pipeline Id
+						Some(pipeline_id) => {
+									send_request_to_devtools(
+                        			devtools_chan.clone(), request_id.clone(), url.clone(),
+                        			method.clone(), request_headers.clone(),
+                        			load_data.data.clone(), pipeline_id
+                    				);	
+							},
+						// LoadData doesn't have pipeline_id
+						None => {
+									// Do nothing.
+							}
+					};
+					//end
+					                   
 
                     req.send(&None)
                 }
@@ -685,7 +715,9 @@ pub fn load<A>(load_data: LoadData,
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message only if load_data has a pipeline_id that is not None
-        // TODO: Send this message even when the load fails?
+        // TODO: Send this message even when the load fails?	
+		
+		
         send_response_to_devtools(
             devtools_chan, request_id,
             metadata.headers.clone(), metadata.status.clone()

@@ -383,10 +383,10 @@ pub enum ProgressMsg {
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
+pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
+    resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
                        LoadConsumer::Channel(start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
