@@ -9,21 +9,20 @@
 #![allow(unsafe_code)]
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow;
-use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::{self, FlowRef};
 use profile_traits::time::{self, ProfilerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use traversal::PostorderNodeMutTraversal;
-use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
-use traversal::{ComputeAbsolutePositions, BuildDisplayList};
-use traversal::{PreorderDomTraversal, PostorderDomTraversal};
-use traversal::{RecalcStyleForNode, ConstructFlows};
+use traversal::{AssignBSizesAndStoreOverflow, AssignISizes, BubbleISizes};
+use traversal::{BuildDisplayList, ComputeAbsolutePositions};
+use traversal::{ConstructFlows, RecalcStyleForNode};
+use traversal::{PostorderDomTraversal, PreorderDomTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use wrapper::UnsafeLayoutNode;
-use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
+use wrapper::{LayoutNode, layout_node_from_unsafe_layout_node, layout_node_to_unsafe_layout_node};
 
 const CHUNK_SIZE: usize = 64;
 
@@ -166,21 +165,18 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
     /// The only communication between siblings is that they both
     /// fetch-and-subtract the parent's children count.
     fn run_parallel(&self,
-                    mut unsafe_node: UnsafeLayoutNode,
+                    unsafe_node: UnsafeLayoutNode,
                     proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeLayoutNodeList>) {
+        // Get a real layout node.
+        let mut node: LayoutNode = unsafe {
+            layout_node_from_unsafe_layout_node(&unsafe_node)
+        };
         loop {
-            // Get a real layout node.
-            let node: LayoutNode = unsafe {
-                layout_node_from_unsafe_layout_node(&unsafe_node)
-            };
-
             // Perform the appropriate operation.
             self.process(node);
 
             let shared_layout_context = proxy.user_data();
-            let layout_context = LayoutContext::new(shared_layout_context);
-
-            let parent = match node.layout_parent_node(layout_context.shared) {
+            let parent = match node.layout_parent_node(shared_layout_context) {
                 None => break,
                 Some(parent) => parent,
             };
@@ -189,18 +185,18 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
                 &*parent.borrow_layout_data_unchecked()
             };
             let parent_layout_data = parent_layout_data.as_ref().expect("no layout data");
-            unsafe_node = layout_node_to_unsafe_layout_node(&parent);
 
             if parent_layout_data
                 .data
                 .parallel
                 .children_count
-                .fetch_sub(1, Ordering::Relaxed) == 1 {
-                // We were the last child of our parent. Construct flows for our parent.
-            } else {
+                .fetch_sub(1, Ordering::Relaxed) != 1 {
                 // Get out of here and find another node to work on.
                 break
             }
+
+            // We were the last child of our parent. Construct flows for our parent.
+            node = parent;
         }
     }
 }

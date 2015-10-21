@@ -3,21 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
-use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventMethods, KeyboardEventConstants};
+use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::event::{Event, EventTypeId};
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
+use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use msg::constellation_msg::{SHIFT, CONTROL, ALT, SUPER};
 use std::borrow::ToOwned;
-use std::cell::{RefCell, Cell};
+use std::cell::{Cell, RefCell};
 use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
@@ -39,16 +38,10 @@ pub struct KeyboardEvent {
     key_code: Cell<u32>,
 }
 
-impl KeyboardEventDerived for Event {
-    fn is_keyboardevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::KeyboardEvent)
-    }
-}
-
 impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::KeyboardEvent),
+            uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
             key_string: RefCell::new("".to_owned()),
             code: RefCell::new("".to_owned()),

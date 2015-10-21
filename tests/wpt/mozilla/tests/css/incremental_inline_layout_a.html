@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='incremental_inline_layout_ref.html'>
+<style>
+h1 {
+    font-size: 72px;
+}
+</style>
+</head>
+<body>
+<h1 id=h1>
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+Incremental Inline Layout
+</h1>
+<script>
+document.getElementById('h1').getBoundingClientRect();  // Trigger one layout.
+document.getElementById('h1').getBoundingClientRect();  // Trigger another layout.
+</script>
+</body>
+</html>
+

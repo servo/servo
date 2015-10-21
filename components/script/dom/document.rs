@@ -14,40 +14,40 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::ElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLBaseElementCast;
-use dom::bindings::codegen::InheritTypes::{DocumentDerived, EventCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, HTMLHtmlElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLAnchorElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementCast, ElementCast, HTMLIFrameElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
+use dom::bindings::codegen::InheritTypes::{DocumentDerived, DocumentTypeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId};
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLAnchorElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLAppletElementDerived, HTMLAreaElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLBaseElementCast, HTMLBodyElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLElementTypeId};
+use dom::bindings::codegen::InheritTypes::{HTMLEmbedElementDerived, HTMLFormElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLHeadElementCast, HTMLHtmlElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLTitleElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::Error::HierarchyRequest;
-use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
-use dom::bindings::js::{JS, Root, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
-use dom::bindings::utils::{reflect_dom_object, Reflectable};
-use dom::bindings::utils::{xml_name_type, validate_and_extract};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::bindings::utils::{validate_and_extract, xml_name_type};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator, ElementTypeId};
+use dom::element::{Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::{EventTarget};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbaseelement::HTMLBaseElement;
-use dom::htmlcollection::{HTMLCollection, CollectionFilter};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::{HTMLElement};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::{self, HTMLIFrameElement};
@@ -56,7 +56,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, Node, NodeTypeId, CloneChildrenFlag, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
@@ -65,9 +65,9 @@ use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::window::{Window, ReflowReason};
+use dom::window::{ReflowReason, Window};
 use euclid::point::Point2D;
-use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
+use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{HitTestResponse, MouseOverResponse};
@@ -76,18 +76,18 @@ use layout_interface::{ReflowGoal, ReflowQueryType};
 use msg::compositor_msg::ScriptToCompositorMsg;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyModifiers, MozBrowserEvent, SubpageId};
-use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
-use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
+use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyModifiers, KeyState, MozBrowserEvent, SubpageId};
+use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::{Metadata, PendingAsyncLoad, AsyncResponseTarget};
+use net_traits::{AsyncResponseTarget, Metadata, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefMut, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -98,7 +98,7 @@ use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
 use time;
 use url::Url;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -163,12 +163,6 @@ impl PartialEq for Document {
     }
 }
 
-impl DocumentDerived for EventTarget {
-    fn is_document(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Document)
-    }
-}
-
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
@@ -226,7 +220,6 @@ impl CollectionFilter for AppletsFilter {
     }
 }
 
-
 impl Document {
     #[inline]
     pub fn loader(&self) -> Ref<DocumentLoader> {
@@ -239,8 +232,8 @@ impl Document {
     }
 
     #[inline]
-    pub fn window(&self) -> Root<Window> {
-        self.window.root()
+    pub fn window(&self) -> &Window {
+        &*self.window
     }
 
     #[inline]
@@ -255,13 +248,11 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        let window = self.window.root();
-        let window = window.r();
-        let browsing_context = window.browsing_context();
+        let browsing_context = self.window.browsing_context();
         let browsing_context = browsing_context.as_ref().unwrap();
         let active_document = browsing_context.active_document();
 
-        if self != active_document.r() {
+        if self != active_document {
             return false;
         }
         // FIXME: It should also check whether the browser context is top-level or not
@@ -269,8 +260,8 @@ impl Document {
     }
 
     // https://dom.spec.whatwg.org/#concept-document-url
-    pub fn url(&self) -> Url {
-        self.url.clone()
+    pub fn url(&self) -> &Url {
+        &self.url
     }
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
@@ -278,7 +269,7 @@ impl Document {
         // Step 1: iframe srcdoc (#4767).
         // Step 2: about:blank with a creator browsing context.
         // Step 3.
-        self.url()
+        self.url().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url
@@ -293,7 +284,7 @@ impl Document {
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
-        self.base_element.get().map(Root::from_rooted)
+        self.base_element.get_rooted()
     }
 
     /// Refresh the cached first base element in the DOM.
@@ -304,7 +295,7 @@ impl Document {
             .filter_map(HTMLBaseElementCast::to_root)
             .filter(|element| ElementCast::from_ref(&**element).has_attribute(&atom!("href")))
             .next();
-        self.base_element.set(base.map(|element| JS::from_ref(&*element)));
+        self.base_element.set(base.r());
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -315,9 +306,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
-            let window = self.window.root();
-            let window = window.r();
-            let LayoutChan(ref layout_chan) = window.layout_chan();
+            let LayoutChan(ref layout_chan) = self.window.layout_chan();
             layout_chan.send(Msg::SetQuirksMode).unwrap();
         }
     }
@@ -343,10 +332,9 @@ impl Document {
             }
 
             self.reflow_timeout.set(None);
-            let window = self.window.root();
-            window.r().reflow(ReflowGoal::ForDisplay,
-                              ReflowQueryType::NoQuery,
-                              ReflowReason::RefreshTick);
+            self.window.reflow(ReflowGoal::ForDisplay,
+                               ReflowQueryType::NoQuery,
+                               ReflowReason::RefreshTick);
         }
     }
 
@@ -456,8 +444,7 @@ impl Document {
             None => return None,
         };
         let root = NodeCast::from_ref(root);
-        let win = self.window.root();
-        let address = match win.r().layout().hit_test(root.to_trusted_node_address(), *point) {
+        let address = match self.window.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => Some(node_address),
             Err(()) => {
                 debug!("layout query error");
@@ -474,8 +461,7 @@ impl Document {
             None => return vec!(),
         };
         let root = NodeCast::from_ref(root);
-        let win = self.window.root();
-        match win.r().layout().mouse_over(root.to_trusted_node_address(), *point) {
+        match self.window.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => node_address,
             Err(()) => vec!(),
         }
@@ -485,8 +471,7 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         self.ready_state.set(state);
 
-        let window = self.window.root();
-        let event = Event::new(GlobalRef::Window(window.r()), "readystatechange".to_owned(),
+        let event = Event::new(GlobalRef::Window(&self.window), "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let target = EventTargetCast::from_ref(self);
@@ -501,7 +486,7 @@ impl Document {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     pub fn get_focused_element(&self) -> Option<Root<Element>> {
-        self.focused.get().map(Root::from_rooted)
+        self.focused.get_rooted()
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
@@ -513,7 +498,7 @@ impl Document {
     /// Request that the given element receive focus once the current transaction is complete.
     pub fn request_focus(&self, elem: &Element) {
         if elem.is_focusable_area() {
-            self.possibly_focused.set(Some(JS::from_ref(elem)))
+            self.possibly_focused.set(Some(elem))
         }
     }
 
@@ -522,23 +507,20 @@ impl Document {
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
-        if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
-            let node = NodeCast::from_ref(elem.r());
-            node.set_focus_state(false);
+        if let Some(ref elem) = self.focused.get_rooted() {
+            elem.set_focus_state(false);
         }
 
-        self.focused.set(self.possibly_focused.get());
+        self.focused.set(self.possibly_focused.get().r());
 
-        if let Some(ref elem) = self.focused.get().map(|t| t.root()) {
-            let node = NodeCast::from_ref(elem.r());
-            node.set_focus_state(true);
+        if let Some(ref elem) = self.focused.get_rooted() {
+            elem.set_focus_state(true);
 
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let window = self.window.root();
-                let ConstellationChan(ref chan) = window.r().constellation_chan();
-                let event = ConstellationMsg::Focus(window.r().pipeline());
+                let ConstellationChan(ref chan) = self.window.constellation_chan();
+                let event = ConstellationMsg::Focus(self.window.pipeline());
                 chan.send(event).unwrap();
             }
         }
@@ -555,8 +537,6 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let window = window.r();
         let compositor = window.compositor();
         compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
     }
@@ -600,24 +580,22 @@ impl Document {
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let  MouseEventType::Click = mouse_event_type {
-            if node.click_event_filter_by_disabled_state() {
+            if el.click_event_filter_by_disabled_state() {
                 return;
             }
 
             self.begin_focus_transaction();
         }
 
-        let window = self.window.root();
-
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
         let x = point.x as i32;
         let y = point.y as i32;
         let clickCount = 1;
-        let event = MouseEvent::new(window.r(),
+        let event = MouseEvent::new(&self.window,
                                     mouse_event_type_string,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
-                                    Some(window.r()),
+                                    Some(&self.window),
                                     clickCount,
                                     x, y, x, y,
                                     false, false, false, false,
@@ -639,7 +617,9 @@ impl Document {
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
         }
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::MouseEvent);
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::MouseEvent);
     }
 
     pub fn fire_mouse_event(&self,
@@ -649,13 +629,11 @@ impl Document {
         let x = point.x.to_i32().unwrap_or(0);
         let y = point.y.to_i32().unwrap_or(0);
 
-        let window = self.window.root();
-
-        let mouse_event = MouseEvent::new(window.r(),
+        let mouse_event = MouseEvent::new(&self.window,
                                           event_name,
                                           EventBubbles::Bubbles,
                                           EventCancelable::Cancelable,
-                                          Some(window.r()),
+                                          Some(&self.window),
                                           0i32,
                                           x, y, x, y,
                                           false, false, false, false,
@@ -668,15 +646,16 @@ impl Document {
     pub fn handle_mouse_move_event(&self,
                                js_runtime: *mut JSRuntime,
                                point: Point2D<f32>,
-                               prev_mouse_over_targets: &mut RootedVec<JS<Node>>) {
+                               prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mut mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+        let mut mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
         for node_address in &mouse_over_addresses {
             let node = node::from_untrusted_node_address(js_runtime, *node_address);
             mouse_over_targets.push(node.r().inclusive_ancestors()
                                             .find(|node| node.r().is_element())
-                                            .map(|node| JS::from_rooted(&node)).unwrap());
+                                            .map(|node| JS::from_ref(ElementCast::to_ref(node.r()).unwrap()))
+                                            .unwrap());
         };
 
         // Remove hover from any elements in the previous list that are no longer
@@ -722,10 +701,9 @@ impl Document {
         prev_mouse_over_targets.clear();
         prev_mouse_over_targets.append(&mut *mouse_over_targets);
 
-        let window = self.window.root();
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::MouseEvent);
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::MouseEvent);
     }
 
     /// The entry point for all key processing for web content
@@ -734,14 +712,13 @@ impl Document {
                           state: KeyState,
                           modifiers: KeyModifiers,
                           compositor: &mut IpcSender<ScriptToCompositorMsg>) {
-        let window = self.window.root();
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
         let target = match (&focused, &body) {
             (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
             (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
-            (&None, &None) => EventTargetCast::from_ref(window.r()),
+            (&None, &None) => EventTargetCast::from_ref(&*self.window),
         };
 
         let ctrl = modifiers.contains(CONTROL);
@@ -758,8 +735,8 @@ impl Document {
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
-        let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
-                                          Some(window.r()), 0, Some(key),
+        let keyevent = KeyboardEvent::new(&self.window, ev_type, true, true,
+                                          Some(&self.window), 0, Some(key),
                                           props.key_string.to_owned(), props.code.to_owned(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
@@ -771,8 +748,8 @@ impl Document {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
-                                           true, true, Some(window.r()), 0, Some(key),
+            let event = KeyboardEvent::new(&self.window, "keypress".to_owned(),
+                                           true, true, Some(&self.window), 0, Some(key),
                                             props.key_string.to_owned(), props.code.to_owned(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
@@ -812,7 +789,9 @@ impl Document {
             _ => ()
         }
 
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::KeyEvent);
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::KeyEvent);
     }
 
     pub fn node_from_nodes_and_strings(&self, nodes: Vec<NodeOrString>)
@@ -859,15 +838,13 @@ impl Document {
     }
 
     pub fn set_current_script(&self, script: Option<&HTMLScriptElement>) {
-        self.current_script.set(script.map(JS::from_ref));
+        self.current_script.set(script);
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if htmliframeelement::mozbrowser_enabled() {
-            let window = self.window.root();
-
-            if let Some((containing_pipeline_id, subpage_id)) = window.r().parent_info() {
-                let ConstellationChan(ref chan) = window.r().constellation_chan();
+            if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
+                let ConstellationChan(ref chan) = self.window.constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
@@ -878,16 +855,14 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
-        let window = self.window.root();
-        let window = window.r();
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
         self.animation_frame_list.borrow_mut().insert(ident, callback);
 
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = window.constellation_chan();
-        let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+        let ConstellationChan(ref chan) = self.window.constellation_chan();
+        let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                    AnimationState::AnimationCallbacksPresent);
         chan.send(event).unwrap();
 
@@ -898,10 +873,8 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
-            let window = self.window.root();
-            let window = window.r();
-            let ConstellationChan(ref chan) = window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
         }
@@ -914,16 +887,12 @@ impl Document {
             let mut list = self.animation_frame_list.borrow_mut();
             animation_frame_list = Vec::from_iter(list.drain());
 
-            let window = self.window.root();
-            let window = window.r();
-            let ConstellationChan(ref chan) = window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(window.pipeline(),
+            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
         }
-        let window = self.window.root();
-        let window = window.r();
-        let performance = window.Performance();
+        let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
 
@@ -931,9 +900,9 @@ impl Document {
             callback(*timing);
         }
 
-        window.reflow(ReflowGoal::ForDisplay,
-                      ReflowQueryType::NoQuery,
-                      ReflowReason::RequestAnimationFrame);
+       self.window.reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::RequestAnimationFrame);
     }
 
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
@@ -957,20 +926,19 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let window = self.window.root();
-        let pipeline_id = window.r().pipeline();
-        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let pipeline_id = self.window.pipeline();
+        let ConstellationChan(ref chan) = self.window.constellation_chan();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
         chan.send(event).unwrap();
 
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoHTMLParser>) {
-        self.current_parser.set(script.map(JS::from_ref));
+        self.current_parser.set(script);
     }
 
     pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
-        self.current_parser.get().map(Root::from_rooted)
+        self.current_parser.get_rooted()
     }
 
     /// Find an iframe element in the document.
@@ -1026,7 +994,7 @@ impl Document {
         };
 
         Document {
-            node: Node::new_without_doc(NodeTypeId::Document),
+            node: Node::new_document_node(),
             window: JS::from_ref(window),
             idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
@@ -1100,12 +1068,11 @@ impl Document {
     }
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
-        let window = self.window.root();
         let doc = self.GetDocumentElement();
         let maybe_node = doc.r().map(NodeCast::from_ref);
         let iter = maybe_node.iter().flat_map(|node| node.traverse_preorder())
                              .filter(|node| callback(node.r()));
-        NodeList::new_simple_list(window.r(), iter)
+        NodeList::new_simple_list(&self.window, iter)
     }
 
     fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
@@ -1124,19 +1091,19 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(
-                &*self.window(), None, doctype, None, None,
+                self.window(), None, doctype, None, None,
                 DocumentSource::NotFromParser, DocumentLoader::new(&self.loader()));
-            new_doc.appropriate_template_contents_owner_document.set(
-                Some(JS::from_ref(&*new_doc)));
+            new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
     }
 }
 
 
-impl Node {
+impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
-        match self.type_id() {
+        let node = NodeCast::from_ref(self);
+        match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
             // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
@@ -1173,12 +1140,10 @@ impl DocumentMethods for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/#dom-document-hasfocus
+    // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
         let target = self;                                                        // Step 1.
-        let window = self.window.root();
-        let window = window.r();
-        let browsing_context = window.browsing_context();
+        let browsing_context = self.window.browsing_context();
         let browsing_context = browsing_context.as_ref();
 
         match browsing_context {
@@ -1238,22 +1203,18 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        let window = self.window.root();
-        HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), tag_name)
+        HTMLCollection::by_tag_name(&self.window, NodeCast::from_ref(self), tag_name)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
-        let window = self.window.root();
-        HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), tag_name, maybe_ns)
+        HTMLCollection::by_tag_name_ns(&self.window, NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
-        let window = self.window.root();
-
-        HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
+        HTMLCollection::by_class_name(&self.window, NodeCast::from_ref(self), classes)
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -1266,7 +1227,7 @@ impl DocumentMethods for Document {
     fn CreateElement(&self, mut local_name: DOMString) -> Fallible<Root<Element>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
         if self.is_html_document {
             local_name.make_ascii_lowercase();
@@ -1289,16 +1250,15 @@ impl DocumentMethods for Document {
     fn CreateAttribute(&self, local_name: DOMString) -> Fallible<Root<Attr>> {
         if xml_name_type(&local_name) == InvalidXMLName {
             debug!("Not a valid element name");
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
-        let window = self.window.root();
         let name = Atom::from_slice(&local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(&local_name);
         let value = AttrValue::String("".to_owned());
 
-        Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
+        Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattributens
@@ -1306,10 +1266,9 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let window = self.window.root();
         let value = AttrValue::String("".to_owned());
         let qualified_name = Atom::from_slice(&qualified_name);
-        Ok(Attr::new(window.r(), local_name, value, qualified_name,
+        Ok(Attr::new(&self.window, local_name, value, qualified_name,
                      namespace, prefix, None))
     }
 
@@ -1333,12 +1292,12 @@ impl DocumentMethods for Document {
             Fallible<Root<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(&target) == InvalidXMLName {
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 2.
         if data.contains("?>") {
-            return Err(InvalidCharacter);
+            return Err(Error::InvalidCharacter);
         }
 
         // Step 3.
@@ -1349,7 +1308,7 @@ impl DocumentMethods for Document {
     fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
-            return Err(NotSupported);
+            return Err(Error::NotSupported);
         }
 
         // Step 2.
@@ -1365,7 +1324,7 @@ impl DocumentMethods for Document {
     fn AdoptNode(&self, node: &Node) -> Fallible<Root<Node>> {
         // Step 1.
         if node.is_document() {
-            return Err(NotSupported);
+            return Err(Error::NotSupported);
         }
 
         // Step 2.
@@ -1377,27 +1336,25 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createevent
     fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
-        let window = self.window.root();
-
         interface.make_ascii_lowercase();
         match &*interface {
             "uievents" | "uievent" => Ok(EventCast::from_root(
-                UIEvent::new_uninitialized(window.r()))),
+                UIEvent::new_uninitialized(&self.window))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_root(
-                MouseEvent::new_uninitialized(window.r()))),
+                MouseEvent::new_uninitialized(&self.window))),
             "customevent" => Ok(EventCast::from_root(
-                CustomEvent::new_uninitialized(GlobalRef::Window(window.r())))),
+                CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
-                GlobalRef::Window(window.r()))),
+                GlobalRef::Window(&self.window))),
             "keyboardevent" | "keyevents" => Ok(EventCast::from_root(
-                KeyboardEvent::new_uninitialized(window.r()))),
+                KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" => Ok(EventCast::from_root(
-                MessageEvent::new_uninitialized(GlobalRef::Window(window.r())))),
-            _ => Err(NotSupported)
+                MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            _ => Err(Error::NotSupported)
         }
     }
 
-    // https://html.spec.whatwg.org/#dom-document-lastmodified
+    // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
         match self.last_modified {
             Some(ref t) => t.clone(),
@@ -1422,7 +1379,7 @@ impl DocumentMethods for Document {
         TreeWalker::new(self, root, whatToShow, filter)
     }
 
-    // https://html.spec.whatwg.org/#document.title
+    // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
@@ -1444,12 +1401,12 @@ impl DocumentMethods for Document {
             Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.r().children());
-                split_html_space_chars(&value).collect::<Vec<_>>().join(" ")
+                str_join(split_html_space_chars(&value), " ")
             },
         }
     }
 
-    // https://html.spec.whatwg.org/#document.title
+    // https://html.spec.whatwg.org/multipage/#document.title
     fn SetTitle(&self, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
@@ -1500,7 +1457,7 @@ impl DocumentMethods for Document {
         elem.r().SetTextContent(Some(title));
     }
 
-    // https://html.spec.whatwg.org/#dom-document-head
+    // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
@@ -1510,12 +1467,12 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-currentscript
+    // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
     fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
-        self.current_script.get().map(Root::from_rooted)
+        self.current_script.get_rooted()
     }
 
-    // https://html.spec.whatwg.org/#dom-document-body
+    // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = NodeCast::from_ref(root.r());
@@ -1531,19 +1488,19 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-body
+    // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn SetBody(&self, new_body: Option<&HTMLElement>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
-            None => return Err(HierarchyRequest),
+            None => return Err(Error::HierarchyRequest),
         };
 
         let node = NodeCast::from_ref(new_body);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {}
-            _ => return Err(HierarchyRequest)
+            _ => return Err(Error::HierarchyRequest)
         }
 
         // Step 2.
@@ -1562,7 +1519,7 @@ impl DocumentMethods for Document {
             },
 
             // Step 4.
-            (None, _) => return Err(HierarchyRequest),
+            (None, _) => return Err(Error::HierarchyRequest),
 
             // Step 5.
             (Some(ref root), &None) => {
@@ -1574,7 +1531,7 @@ impl DocumentMethods for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/#dom-document-getelementsbyname
+    // https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname
     fn GetElementsByName(&self, name: DOMString) -> Root<NodeList> {
         self.create_node_list(|node| {
             let element = match ElementCast::to_ref(node) {
@@ -1590,93 +1547,83 @@ impl DocumentMethods for Document {
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-images
+    // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> Root<HTMLCollection> {
         self.images.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ImagesFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-embeds
+    // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> Root<HTMLCollection> {
         self.embeds.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box EmbedsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-plugins
+    // https://html.spec.whatwg.org/multipage/#dom-document-plugins
     fn Plugins(&self) -> Root<HTMLCollection> {
         self.Embeds()
     }
 
-    // https://html.spec.whatwg.org/#dom-document-links
+    // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> Root<HTMLCollection> {
         self.links.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box LinksFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-forms
+    // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> Root<HTMLCollection> {
         self.forms.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box FormsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-scripts
+    // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> Root<HTMLCollection> {
         self.scripts.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ScriptsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-anchors
+    // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> Root<HTMLCollection> {
         self.anchors.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AnchorsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-applets
+    // https://html.spec.whatwg.org/multipage/#dom-document-applets
     fn Applets(&self) -> Root<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
         self.applets.or_init(|| {
-            let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AppletsFilter;
-            HTMLCollection::create(window.r(), root, filter)
+            HTMLCollection::create(&self.window, root, filter)
         })
     }
 
-    // https://html.spec.whatwg.org/#dom-document-location
+    // https://html.spec.whatwg.org/multipage/#dom-document-location
     fn Location(&self) -> Root<Location> {
-        let window = self.window.root();
-        let window = window.r();
-        self.location.or_init(|| Location::new(window))
+        self.location.or_init(|| Location::new(&self.window))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
-        let window = self.window.root();
-        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
+        HTMLCollection::children(&self.window, NodeCast::from_ref(self))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -1731,11 +1678,10 @@ impl DocumentMethods for Document {
         //TODO: return empty string for cookie-averse Document
         let url = self.url();
         if !is_scheme_host_port_tuple(&url) {
-            return Err(Security);
+            return Err(Error::Security);
         }
-        let window = self.window.root();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = window.r().resource_task().send(GetCookiesForUrl(url, tx, NonHTTP));
+        let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.unwrap_or("".to_owned()))
     }
@@ -1744,11 +1690,10 @@ impl DocumentMethods for Document {
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
         //TODO: ignore for cookie-averse Document
         let url = self.url();
-        if !is_scheme_host_port_tuple(&url) {
-            return Err(Security);
+        if !is_scheme_host_port_tuple(url) {
+            return Err(Error::Security);
         }
-        let window = self.window.root();
-        let _ = window.r().resource_task().send(SetCookiesForUrl(url, cookie, NonHTTP));
+        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));
         Ok(())
     }
 
@@ -1774,7 +1719,7 @@ impl DocumentMethods for Document {
                 filter_by_name(&self.name, NodeCast::from_ref(elem))
             }
         }
-        // https://html.spec.whatwg.org/#dom-document-nameditem-filter
+        // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
         fn filter_by_name(name: &Atom, node: &Node) -> bool {
             let html_elem_type = match node.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
@@ -1842,9 +1787,8 @@ impl DocumentMethods for Document {
         }
         // Step 4.
         *found = true;
-        let window = self.window();
         let filter = NamedElementFilter { name: name };
-        let collection = HTMLCollection::create(window.r(), root, box filter);
+        let collection = HTMLCollection::create(self.window(), root, box filter);
         collection.r().reflector().get_jsobject().get()
     }
 
@@ -1864,7 +1808,7 @@ impl DocumentMethods for Document {
         // This method intentionally does nothing
     }
 
-    // https://html.spec.whatwg.org/#dom-document-releaseevents
+    // https://html.spec.whatwg.org/multipage/#dom-document-releaseevents
     fn ReleaseEvents(&self) {
         // This method intentionally does nothing
     }
@@ -1902,13 +1846,15 @@ impl DocumentProgressHandler {
     fn dispatch_dom_content_loaded(&self) {
         let document = self.addr.root();
         let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
+        let event = Event::new(GlobalRef::Window(window), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let doctarget = EventTargetCast::from_ref(document.r());
         let _ = doctarget.DispatchEvent(event.r());
 
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DOMContentLoaded);
     }
 
     fn set_ready_state_complete(&self) {
@@ -1919,35 +1865,34 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.root();
         let window = document.r().window();
-        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
+        let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let wintarget = EventTargetCast::from_ref(window.r());
+        let wintarget = EventTargetCast::from_ref(window);
         let doctarget = EventTargetCast::from_ref(document.r());
         event.r().set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
-        let window_ref = window.r();
-        let browsing_context = window_ref.browsing_context();
+        let browsing_context = window.browsing_context();
         let browsing_context = browsing_context.as_ref().unwrap();
 
-        browsing_context.frame_element().map(|frame_element| {
-            let frame_window = window_from_node(frame_element.r());
+        if let Some(frame_element) = browsing_context.frame_element() {
+            let frame_window = window_from_node(frame_element);
             let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
-            let target = EventTargetCast::from_ref(frame_element.r());
+            let target = EventTargetCast::from_ref(frame_element);
             event.r().fire(target);
-        });
+        };
 
         document.r().notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
         document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
-        window_ref.reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::DocumentLoaded);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DocumentLoaded);
     }
 }
 
@@ -1955,7 +1900,7 @@ impl Runnable for DocumentProgressHandler {
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
         let window = document.r().window();
-        if window.r().is_alive() {
+        if window.is_alive() {
             match self.task {
                 DocumentProgressTask::DOMContentLoaded => {
                     self.dispatch_dom_content_loaded();

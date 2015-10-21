@@ -15,7 +15,7 @@ use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTe
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RESOLVE_GENERATED_CONTENT};
 use smallvec::SmallVec;
-use std::collections::{LinkedList, HashMap};
+use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
@@ -184,11 +184,11 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 }
                 GeneratedContentInfo::ContentItem(ContentItem::Counter(ref counter_name,
                                                                        counter_style)) => {
-                    let mut temporary_counter = Counter::new();
+                    let temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
                                       .get(&*counter_name)
-                                      .unwrap_or(&mut temporary_counter);
+                                      .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo.clone(),
@@ -199,11 +199,11 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
                 GeneratedContentInfo::ContentItem(ContentItem::Counters(ref counter_name,
                                                                         ref separator,
                                                                         counter_style)) => {
-                    let mut temporary_counter = Counter::new();
+                    let temporary_counter = Counter::new();
                     let counter = self.traversal
                                       .counters
                                       .get(&*counter_name)
-                                      .unwrap_or(&mut temporary_counter);
+                                      .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo,

@@ -1,0 +1,15 @@
+<!doctype html>
+2
+<script>
+  onunload = function() {}
+  opener.pages.push(2);
+  onload = function() {
+    setTimeout(function() {
+      document.write("<!doctype html>3<script>opener.pages.push(3); if(!opener.started) {opener.started = true; history.go(-1);} opener.start_test_wait();<\/script>");
+      document.close();
+      if (opener.started) {
+        opener.start_test_wait();
+      }
+    }, 100);
+  }
+</script>

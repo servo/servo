@@ -3,13 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTrackElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLTrackElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -17,18 +14,10 @@ pub struct HTMLTrackElement {
     htmlelement: HTMLElement,
 }
 
-impl HTMLTrackElementDerived for EventTarget {
-    fn is_htmltrackelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(
-            NodeTypeId::Element(
-                ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTrackElement)))
-    }
-}
-
 impl HTMLTrackElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTrackElement {
         HTMLTrackElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTrackElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

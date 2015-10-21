@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use std::i32;
 use style::computed_values::float;
-use util::geometry::Au;
 use util::logical_geometry::WritingMode;
 use util::logical_geometry::{LogicalRect, LogicalSize};
 use util::persistent_list::PersistentList;

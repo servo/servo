@@ -3,26 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node, document_from_node};
+use dom::element::{AttributeMutation, RawLayoutElementHelpers};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::rc::Rc;
+use string_cache::Atom;
 use time;
 use url::{Url, UrlParser};
 use util::str::{self, DOMString};
@@ -38,21 +37,11 @@ pub struct HTMLBodyElement {
     background: DOMRefCell<Option<Url>>
 }
 
-impl HTMLBodyElementDerived for EventTarget {
-    fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLBodyElement)))
-    }
-}
-
 impl HTMLBodyElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
             background: DOMRefCell::new(None)
         }
@@ -67,11 +56,21 @@ impl HTMLBodyElement {
 }
 
 impl HTMLBodyElementMethods for HTMLBodyElement {
-    // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
+    // https://html.spec.whatwg.org/multipage/#dom-body-bgcolor
     make_getter!(BgColor, "bgcolor");
 
-    // https://html.spec.whatwg.org/multipage#dom-body-bgcolor
+    // https://html.spec.whatwg.org/multipage/#dom-body-bgcolor
     make_setter!(SetBgColor, "bgcolor");
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    make_getter!(Text);
+
+    // https://html.spec.whatwg.org/multipage/#dom-body-text
+    fn SetText(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        let color = str::parse_legacy_color(&value).ok();
+        element.set_attribute(&Atom::from_slice("text"), AttrValue::Color(value, color));
+    }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
@@ -84,12 +83,34 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        let win = window_from_node(self);
+        win.r().GetOnstorage()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let win = window_from_node(self);
+        win.r().SetOnstorage(listener)
+    }
 }
 
 
 impl HTMLBodyElement {
     pub fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_color(&self) -> Option<RGBA> {
+        unsafe {
+            ElementCast::from_ref(self)
+                .get_attr_for_layout(&ns!(""), &atom!("text"))
+                .and_then(AttrValue::as_color)
+                .cloned()
+        }
     }
 
     #[allow(unsafe_code)]
@@ -101,7 +122,7 @@ impl HTMLBodyElement {
 }
 
 impl VirtualMethods for HTMLBodyElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let element: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
@@ -123,6 +144,16 @@ impl VirtualMethods for HTMLBodyElement {
         chan.send(event).unwrap();
     }
 
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("text") => {
+                let parsed = str::parse_legacy_color(&value).ok();
+                AttrValue::Color(value, parsed)
+            },
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match (attr.local_name(), mutation) {
@@ -133,7 +164,8 @@ impl VirtualMethods for HTMLBodyElement {
             },
             (&atom!(background), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
-                    let base = document_from_node(self).url();
+                    let document = document_from_node(self);
+                    let base = document.url();
                     UrlParser::new().base_url(&base).parse(&value).ok()
                 });
             },

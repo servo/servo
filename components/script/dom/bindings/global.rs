@@ -17,11 +17,11 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
-use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
+use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
-use script_task::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptTask};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -65,7 +65,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> &'b window::Window {
+    pub fn as_window(&self) -> &window::Window {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
@@ -189,7 +189,7 @@ impl<'a> GlobalRef<'a> {
 }
 
 impl<'a> Reflectable for GlobalRef<'a> {
-    fn reflector<'b>(&'b self) -> &'b Reflector {
+    fn reflector(&self) -> &Reflector {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
@@ -210,6 +210,7 @@ impl GlobalRoot {
 
 impl GlobalField {
     /// Create a new `GlobalField` from a rooted reference.
+    #[allow(unrooted_must_root)]
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
             GlobalRef::Window(window) => GlobalField::Window(JS::from_ref(window)),

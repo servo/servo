@@ -71,20 +71,35 @@ CATEGORIES = {
 }
 
 
-def _get_exec(name, default=None):
-    path = find_executable(name)
-    if not path:
-        return default
-    return path
+def _get_exec(*names):
+    for name in names:
+        path = find_executable(name)
+        if path is not None:
+            return path
+    return None
+
+
+# Possible names of executables, sorted from most to least specific
+PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
+VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
+PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
 
 
 def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
-    python = _get_exec("python2", "python")
+    python = _get_exec(*PYTHON_NAMES)
+    if python is None:
+        sys.exit("Python is not installed. Please install it prior to running mach.")
 
     if not os.path.exists(virtualenv_path):
-        virtualenv = _get_exec("virtualenv2", "virtualenv")
-        subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+        virtualenv = _get_exec(*VIRTUALENV_NAMES)
+        if virtualenv is None:
+            sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
+
+        try:
+            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
+        except (subprocess.CalledProcessError, OSError):
+            sys.exit("Python virtualenv failed to execute properly.")
 
     activate_path = os.path.join(virtualenv_path, "bin", "activate_this.py")
     execfile(activate_path, dict(__file__=activate_path))
@@ -109,7 +124,16 @@ def _activate_virtualenv(topdir):
                 continue
         except OSError:
             open(marker_path, 'w').close()
-        subprocess.check_call(["pip", "install", "-q", "-r", req_path])
+
+        pip = _get_exec(*PIP_NAMES)
+        if pip is None:
+            sys.exit("Python pip is not installed. Please install it prior to running mach.")
+
+        try:
+            subprocess.check_call([pip, "install", "-q", "-r", req_path])
+        except (subprocess.CalledProcessError, OSError):
+            sys.exit("Pip failed to execute properly.")
+
         os.utime(marker_path, None)
 
 

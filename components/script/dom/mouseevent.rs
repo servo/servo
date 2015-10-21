@@ -5,14 +5,14 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
@@ -34,16 +34,10 @@ pub struct MouseEvent {
     related_target: MutNullableHeap<JS<EventTarget>>,
 }
 
-impl MouseEventDerived for Event {
-    fn is_mouseevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::MouseEvent)
-    }
-}
-
 impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::MouseEvent),
+            uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
@@ -162,7 +156,7 @@ impl MouseEventMethods for MouseEvent {
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<Root<EventTarget>> {
-        self.related_target.get().map(Root::from_rooted)
+        self.related_target.get_rooted()
     }
 
     // See discussion at:
@@ -171,7 +165,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if prefs::get_pref("dom.mouseevent.which.enabled").unwrap_or(false) {
+        if prefs::get_pref("dom.mouseevent.which.enabled").as_boolean().unwrap_or(false) {
             (self.button.get() + 1) as i32
         } else {
             0
@@ -211,6 +205,6 @@ impl MouseEventMethods for MouseEvent {
         self.shift_key.set(shiftKeyArg);
         self.meta_key.set(metaKeyArg);
         self.button.set(buttonArg);
-        self.related_target.set(relatedTargetArg.map(JS::from_ref));
+        self.related_target.set(relatedTargetArg);
     }
 }

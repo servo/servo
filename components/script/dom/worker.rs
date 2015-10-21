@@ -7,9 +7,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::error::Error::Syntax;
-use dom::bindings::error::{Fallible, ErrorResult};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -22,12 +21,12 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsapi::{JSContext, HandleValue, RootedValue};
+use js::jsapi::{HandleValue, JSContext, RootedValue};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
-use script_task::{ScriptChan, Runnable};
+use script_task::{Runnable, ScriptChan};
 use std::borrow::ToOwned;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use url::UrlParser;
 use util::str::DOMString;
 
@@ -63,12 +62,12 @@ impl Worker {
                            WorkerBinding::Wrap)
     }
 
-    // https://www.whatwg.org/html/#dom-worker
+    // https://html.spec.whatwg.org/multipage/#dom-worker
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url()).parse(&script_url) {
             Ok(url) => url,
-            Err(_) => return Err(Syntax),
+            Err(_) => return Err(Error::Syntax),
         };
 
         let resource_task = global.resource_task();

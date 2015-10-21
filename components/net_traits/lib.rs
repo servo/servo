@@ -3,34 +3,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(box_syntax)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
-#![feature(box_raw)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
 #![feature(vec_push_all)]
 #![feature(custom_attribute)]
 #![plugin(serde_macros, plugins)]
-
 #![plugin(regex_macros)]
 
+#[macro_use]
+extern crate log;
 extern crate euclid;
 extern crate hyper;
 extern crate ipc_channel;
-#[macro_use]
-extern crate log;
-extern crate png;
+extern crate image as piston_image;
+extern crate msg;
 extern crate regex;
 extern crate serde;
 extern crate stb_image;
 extern crate url;
 extern crate util;
-extern crate msg;
 
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{Mime, Attr};
+use hyper::mime::{Attr, Mime};
+use hyper::status::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
 use regex::Regex;
@@ -47,6 +47,75 @@ pub mod storage_task;
 pub static IPV4_REGEX: Regex = regex!(
     r"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
 pub static IPV6_REGEX: Regex = regex!(r"^([a-fA-F0-9]{0,4}[:]?){1,8}(/\d{1,3})?$");
+
+/// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
+#[derive(Clone, PartialEq, Copy)]
+pub enum ResponseType {
+    Basic,
+    CORS,
+    Default,
+    Error,
+    Opaque
+}
+
+/// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
+#[derive(Clone, Copy)]
+pub enum TerminationReason {
+    EndUserAbort,
+    Fatal,
+    Timeout
+}
+
+/// The response body can still be pushed to after fetch
+/// This provides a way to store unfinished response bodies
+#[derive(Clone)]
+pub enum ResponseBody {
+    Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
+    Receiving(Vec<u8>),
+    Done(Vec<u8>),
+}
+
+pub enum ResponseMsg {
+    Chunk(Vec<u8>),
+    Finished,
+    Errored
+}
+
+/// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
+#[derive(Clone)]
+pub struct Response {
+    pub response_type: ResponseType,
+    pub termination_reason: Option<TerminationReason>,
+    pub url: Option<Url>,
+    /// `None` can be considered a StatusCode of `0`.
+    pub status: Option<StatusCode>,
+    pub headers: Headers,
+    pub body: ResponseBody,
+    /// [Internal response](https://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response
+    /// is a filtered response
+    pub internal_response: Option<Box<Response>>,
+}
+
+impl Response {
+    pub fn network_error() -> Response {
+        Response {
+            response_type: ResponseType::Error,
+            termination_reason: None,
+            url: None,
+            status: None,
+            headers: Headers::new(),
+            body: ResponseBody::Empty,
+            internal_response: None
+        }
+    }
+
+    pub fn is_network_error(&self) -> bool {
+        match self.response_type {
+            ResponseType::Error => true,
+            _ => false
+        }
+    }
+}
 
 /// Image handling.
 ///
@@ -86,16 +155,21 @@ impl LoadData {
     }
 }
 
+/// Interface for observing the final response for an asynchronous fetch operation.
+pub trait AsyncFetchListener {
+    fn response_available(&self, response: Response);
+}
+
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
     /// The response headers for a request have been received.
-    fn headers_available(&self, metadata: Metadata);
+    fn headers_available(&mut self, metadata: Metadata);
     /// A portion of the response body has been received. This data is unavailable after
     /// this method returned, and must be stored accordingly.
-    fn data_available(&self, payload: Vec<u8>);
+    fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), String>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -112,7 +186,7 @@ pub enum ResponseAction {
 
 impl ResponseAction {
     /// Execute the default action on a provided listener.
-    pub fn process(self, listener: &AsyncResponseListener) {
+    pub fn process(self, listener: &mut AsyncResponseListener) {
         match self {
             ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
             ResponseAction::DataAvailable(d) => listener.data_available(d),

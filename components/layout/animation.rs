@@ -49,32 +49,41 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 }
 
 /// Processes any new animations that were discovered after style recalculation.
-pub fn process_new_animations(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
+/// Also expire any old animations that have completed.
+pub fn update_animation_state(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
     let mut new_running_animations = Vec::new();
     while let Ok(animation) = rw_data.new_animations_receiver.try_recv() {
         new_running_animations.push(animation)
     }
-    if !new_running_animations.is_empty() {
-        let mut running_animations = (*rw_data.running_animations).clone();
 
-        // Expire old running animations.
-        let now = clock_ticks::precise_time_s();
-        for (_, running_animations) in &mut running_animations {
-            running_animations.retain(|running_animation| now < running_animation.end_time);
+    let mut running_animations_hash = (*rw_data.running_animations).clone();
+
+    // Expire old running animations.
+    let now = clock_ticks::precise_time_s();
+    let mut keys_to_remove = Vec::new();
+    for (key, running_animations) in &mut running_animations_hash {
+        running_animations.retain(|running_animation| {
+            now < running_animation.end_time
+        });
+        if running_animations.len() == 0 {
+            keys_to_remove.push(*key);
         }
-
-        // Add new running animations.
-        for new_running_animation in new_running_animations {
-            match running_animations.entry(OpaqueNode(new_running_animation.node)) {
-                Entry::Vacant(entry) => {
-                    entry.insert(vec![new_running_animation]);
-                }
-                Entry::Occupied(mut entry) => entry.get_mut().push(new_running_animation),
-            }
-        }
-
-        rw_data.running_animations = Arc::new(running_animations);
     }
+    for key in keys_to_remove {
+        running_animations_hash.remove(&key).unwrap();
+    }
+
+    // Add new running animations.
+    for new_running_animation in new_running_animations {
+        match running_animations_hash.entry(OpaqueNode(new_running_animation.node)) {
+            Entry::Vacant(entry) => {
+                entry.insert(vec![new_running_animation]);
+            }
+            Entry::Occupied(mut entry) => entry.get_mut().push(new_running_animation),
+        }
+    }
+
+    rw_data.running_animations = Arc::new(running_animations_hash);
 
     let animation_state;
     if rw_data.running_animations.is_empty() {
@@ -127,5 +136,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
     layout_task.tick_animations(rw_data);
 
-    layout_task.script_chan.send(ConstellationControlMsg::TickAllAnimations(layout_task.id)).unwrap();
+    layout_task.script_chan
+               .send(ConstellationControlMsg::TickAllAnimations(layout_task.id))
+               .unwrap();
 }

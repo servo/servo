@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+    Tests that block formatting context inline-size speculation works when the floats that impact
+    the block formatting context are cleared.
+-->
+<link rel=match href=block_formatting_context_cleared_float_ref.html>
+<style>
+#a {
+    background: silver;
+    height: 150px;
+    width: 150px;
+    float: right;
+    clear: right;
+}
+#b {
+    background: goldenrod;
+    height: 300px;
+    overflow: hidden;
+}
+</style>
+</head>
+<body>
+<div id=a></div>
+<div id=b></div>
+</body>
+</html>
+

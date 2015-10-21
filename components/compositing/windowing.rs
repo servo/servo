@@ -8,13 +8,13 @@ use compositor_task::{CompositorProxy, CompositorReceiver};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use euclid::{Size2D, Point2D};
+use euclid::{Point2D, Size2D};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
-use msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::MouseButton;
-use std::fmt::{Error, Formatter, Debug};
+use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use url::Url;
 use util::cursor::Cursor;
@@ -51,6 +51,8 @@ pub enum WindowEvent {
     InitializeCompositing,
     /// Sent when the window is resized.
     Resize(TypedSize2D<DevicePixel, u32>),
+    /// Sent when you want to override the viewport.
+    Viewport(TypedPoint2D<DevicePixel, u32>, TypedSize2D<DevicePixel, u32>),
     /// Sent when a new URL is to be loaded.
     LoadUrl(String),
     /// Sent when a mouse hit test is to be performed.
@@ -81,6 +83,7 @@ impl Debug for WindowEvent {
             WindowEvent::Refresh => write!(f, "Refresh"),
             WindowEvent::InitializeCompositing => write!(f, "InitializeCompositing"),
             WindowEvent::Resize(..) => write!(f, "Resize"),
+            WindowEvent::Viewport(..) => write!(f, "Viewport"),
             WindowEvent::KeyEvent(..) => write!(f, "Key"),
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),

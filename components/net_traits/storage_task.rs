@@ -21,12 +21,14 @@ pub enum StorageTaskMsg {
     /// gets the name of the key at the specified index in the associated storage data
     Key(IpcSender<Option<DOMString>>, Url, StorageType, u32),
 
+    /// Gets the available keys in the associated storage data
+    Keys(IpcSender<Vec<DOMString>>, Url, StorageType),
+
     /// gets the value associated with the given key in the associated storage data
     GetItem(IpcSender<Option<DOMString>>, Url, StorageType, DOMString),
 
     /// sets the value of the given key in the associated storage data
-    /// TODO throw QuotaExceededError in case of error
-    SetItem(IpcSender<(bool, Option<DOMString>)>, Url, StorageType, DOMString, DOMString),
+    SetItem(IpcSender<Result<(bool, Option<DOMString>), ()>>, Url, StorageType, DOMString, DOMString),
 
     /// removes the key/value pair for the given key in the associated storage data
     RemoveItem(IpcSender<Option<DOMString>>, Url, StorageType, DOMString),

@@ -3,14 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTableHeaderCellElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElementTypeId;
-use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -18,22 +14,13 @@ pub struct HTMLTableHeaderCellElement {
     htmltablecellelement: HTMLTableCellElement,
 }
 
-impl HTMLTableHeaderCellElementDerived for EventTarget {
-    fn is_htmltableheadercellelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(
-                                                   ElementTypeId::HTMLElement(
-                                                   HTMLElementTypeId::HTMLTableCellElement(
-                                                   HTMLTableCellElementTypeId::HTMLTableHeaderCellElement))))
-    }
-}
-
 impl HTMLTableHeaderCellElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
-            htmltablecellelement: HTMLTableCellElement::new_inherited(
-                HTMLTableCellElementTypeId::HTMLTableHeaderCellElement, localName, prefix, document)
+            htmltablecellelement:
+                HTMLTableCellElement::new_inherited(localName, prefix, document)
         }
     }
 

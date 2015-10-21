@@ -9,22 +9,21 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived, HTMLHtmlElementDerived};
-use dom::bindings::error::Error::Syntax;
-use dom::bindings::error::ErrorResult;
+use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLBodyElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFrameSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLHtmlElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
-use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::element::{AttributeMutation, Element, EventState};
 use dom::htmlinputelement::HTMLInputElement;
-use dom::htmlmediaelement::HTMLMediaElementTypeId;
-use dom::htmltablecellelement::HTMLTableCellElementTypeId;
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
+use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
 use std::borrow::ToOwned;
@@ -47,23 +46,18 @@ impl PartialEq for HTMLElement {
     }
 }
 
-impl HTMLElementDerived for EventTarget {
-    fn is_htmlelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(_))) => true,
-            _ => false
-        }
-    }
-}
-
 impl HTMLElement {
-    pub fn new_inherited(type_id: HTMLElementTypeId,
-                         tag_name: DOMString,
-                         prefix: Option<DOMString>,
+    pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
+        HTMLElement::new_inherited_with_state(EventState::empty(), tag_name, prefix, document)
+    }
+
+    pub fn new_inherited_with_state(state: EventState, tag_name: DOMString,
+                                    prefix: Option<DOMString>, document: &Document)
+                                    -> HTMLElement {
         HTMLElement {
             element:
-                Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
+                Element::new_inherited_with_state(state, tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -71,7 +65,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
-        let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
+        let element = HTMLElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 
@@ -200,8 +194,8 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        let node = NodeCast::from_ref(self);
-        if !node.get_focus_state() {
+        let el = ElementCast::from_ref(self);
+        if !el.get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
@@ -269,7 +263,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 }
 
-// https://html.spec.whatwg.org/#attr-data-*
+// https://html.spec.whatwg.org/multipage/#attr-data-*
 
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = "data-".to_owned();
@@ -323,7 +317,7 @@ impl HTMLElement {
         if name.chars()
                .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
-            return Err(Syntax);
+            return Err(Error::Syntax);
         }
         let element = ElementCast::from_ref(self);
         element.set_custom_attribute(to_snake_case(name), value)
@@ -359,7 +353,7 @@ impl HTMLElement {
 }
 
 impl VirtualMethods for HTMLElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let element: &Element = ElementCast::from_ref(self);
         Some(element as &VirtualMethods)
     }
@@ -387,76 +381,6 @@ impl VirtualMethods for HTMLElement {
         }
         self.update_sequentially_focusable_status();
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum HTMLElementTypeId {
-    HTMLElement,
-
-    HTMLAnchorElement,
-    HTMLAppletElement,
-    HTMLAreaElement,
-    HTMLBaseElement,
-    HTMLBRElement,
-    HTMLBodyElement,
-    HTMLButtonElement,
-    HTMLCanvasElement,
-    HTMLDataElement,
-    HTMLDataListElement,
-    HTMLDialogElement,
-    HTMLDirectoryElement,
-    HTMLDListElement,
-    HTMLDivElement,
-    HTMLEmbedElement,
-    HTMLFieldSetElement,
-    HTMLFontElement,
-    HTMLFormElement,
-    HTMLFrameElement,
-    HTMLFrameSetElement,
-    HTMLHRElement,
-    HTMLHeadElement,
-    HTMLHeadingElement,
-    HTMLHtmlElement,
-    HTMLIFrameElement,
-    HTMLImageElement,
-    HTMLInputElement,
-    HTMLLabelElement,
-    HTMLLegendElement,
-    HTMLLinkElement,
-    HTMLLIElement,
-    HTMLMapElement,
-    HTMLMediaElement(HTMLMediaElementTypeId),
-    HTMLMetaElement,
-    HTMLMeterElement,
-    HTMLModElement,
-    HTMLObjectElement,
-    HTMLOListElement,
-    HTMLOptGroupElement,
-    HTMLOptionElement,
-    HTMLOutputElement,
-    HTMLParagraphElement,
-    HTMLParamElement,
-    HTMLPreElement,
-    HTMLProgressElement,
-    HTMLQuoteElement,
-    HTMLScriptElement,
-    HTMLSelectElement,
-    HTMLSourceElement,
-    HTMLSpanElement,
-    HTMLStyleElement,
-    HTMLTableElement,
-    HTMLTableCaptionElement,
-    HTMLTableCellElement(HTMLTableCellElementTypeId),
-    HTMLTableColElement,
-    HTMLTableRowElement,
-    HTMLTableSectionElement,
-    HTMLTemplateElement,
-    HTMLTextAreaElement,
-    HTMLTimeElement,
-    HTMLTitleElement,
-    HTMLTrackElement,
-    HTMLUListElement,
-    HTMLUnknownElement,
 }
 
 impl PartialEq for HTMLElementTypeId {

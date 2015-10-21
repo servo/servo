@@ -3,13 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLHeadElementDerived};
+use dom::bindings::codegen::InheritTypes::HTMLElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
@@ -19,20 +17,12 @@ pub struct HTMLHeadElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLHeadElementDerived for EventTarget {
-    fn is_htmlheadelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)))
-    }
-}
-
 impl HTMLHeadElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLHeadElement {
         HTMLHeadElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
@@ -46,7 +36,7 @@ impl HTMLHeadElement {
 }
 
 impl VirtualMethods for HTMLHeadElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

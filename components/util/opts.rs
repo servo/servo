@@ -9,7 +9,8 @@ use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
-use prefs;
+use prefs::{self, PrefValue};
+use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
 use std::env;
@@ -149,14 +150,14 @@ pub struct Opts {
     /// Dumps the display list after optimization (post layout, at painting time).
     pub dump_display_list_optimized: bool,
 
+    /// Dumps the layer tree when it changes.
+    pub dump_layer_tree: bool,
+
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
 
     /// Whether to show an error when display list geometry escapes flow overflow regions.
     pub validate_display_list_geometry: bool,
-
-    /// A specific path to find required resources (such as user-agent.css).
-    pub resources_path: Option<String>,
 
     /// Whether MIME sniffing should be used
     pub sniff_mime_types: bool,
@@ -169,6 +170,9 @@ pub struct Opts {
 
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
+
+    /// Do not use native titlebar
+    pub no_native_titlebar: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -203,6 +207,9 @@ pub struct DebugOptions {
 
     /// Print optimized display list (at paint time).
     pub dump_display_list_optimized: bool,
+
+    /// Print the layer tree whenever it changes.
+    pub dump_layer_tree: bool,
 
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
@@ -250,7 +257,7 @@ pub struct DebugOptions {
 
 
 impl DebugOptions {
-    pub fn new<'a>(debug_string: &'a str) -> Result<DebugOptions, &'a str> {
+    pub fn new(debug_string: &str) -> Result<DebugOptions, &str> {
         let mut debug_options = DebugOptions::default();
 
         for option in debug_string.split(',') {
@@ -263,6 +270,7 @@ impl DebugOptions {
                 "dump-display-list" => debug_options.dump_display_list = true,
                 "dump-display-list-json" => debug_options.dump_display_list_json = true,
                 "dump-display-list-optimized" => debug_options.dump_display_list_optimized = true,
+                "dump-layer-tree" => debug_options.dump_layer_tree = true,
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
@@ -301,6 +309,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
     print_option("dump-display-list-optimized", "Print optimized display list (at paint time).");
+    print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
@@ -405,15 +414,16 @@ pub fn default_opts() -> Opts {
         dump_display_list: false,
         dump_display_list_json: false,
         dump_display_list_optimized: false,
+        dump_layer_tree: false,
         relayout_event: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
-        resources_path: None,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
         exit_after_load: false,
+        no_native_titlebar: false,
     }
 }
 
@@ -454,11 +464,14 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optflag("", "sniff-mime-types" , "Enable MIME sniffing");
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
+    opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
+
+    set_resources_path(opt_match.opt_str("resources-path"));
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
@@ -480,12 +493,21 @@ pub fn from_cmdline_args(args: &[String]) {
     }
 
     let cwd = env::current_dir().unwrap();
-    let url = if opt_match.free.is_empty() {
-        print_usage(app_name, &opts);
-        args_fail("servo asks that you provide a URL")
+    let homepage_pref = prefs::get_pref("shell.homepage");
+    let url_opt = if !opt_match.free.is_empty() {
+        Some(&opt_match.free[0][..])
     } else {
-        parse_url_or_filename(&cwd, &opt_match.free[0])
-            .unwrap_or_else(|()| args_fail("URL parsing failed"))
+        homepage_pref.as_string()
+    };
+    let url = match url_opt {
+        Some(url_string) => {
+            parse_url_or_filename(&cwd, url_string)
+                .unwrap_or_else(|()| args_fail("URL parsing failed"))
+        },
+        None => {
+            print_usage(app_name, &opts);
+            args_fail("servo asks that you provide a URL")
+        }
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
@@ -600,13 +622,14 @@ pub fn from_cmdline_args(args: &[String]) {
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,
         dump_display_list_optimized: debug_options.dump_display_list_optimized,
+        dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         validate_display_list_geometry: debug_options.validate_display_list_geometry,
-        resources_path: opt_match.opt_str("resources-path"),
         sniff_mime_types: opt_match.opt_present("sniff-mime-types"),
         disable_share_style_cache: debug_options.disable_share_style_cache,
         parallel_display_list_building: debug_options.parallel_display_list_building,
         exit_after_load: opt_match.opt_present("x"),
+        no_native_titlebar: opt_match.opt_present("b"),
     };
 
     set_defaults(opts);
@@ -614,7 +637,7 @@ pub fn from_cmdline_args(args: &[String]) {
     // This must happen after setting the default options, since the prefs rely on
     // on the resource path.
     for pref in opt_match.opt_strs("pref").iter() {
-        prefs::set_pref(pref, true);
+        prefs::set_pref(pref, PrefValue::Boolean(true));
     }
 }
 

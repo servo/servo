@@ -26,8 +26,8 @@ macro_rules! define_cursor {
 
         impl ToCss for Cursor {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result where W: ::std::fmt::Write {
-                match self {
-                    $( &Cursor::$variant => dest.write_str($css) ),+
+                match *self {
+                    $( Cursor::$variant => dest.write_str($css) ),+
                 }
             }
         }

@@ -55,17 +55,15 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
 
     match read_result {
         Ok(data) => {
-            match classifier.classify(no_sniff_flag, apache_bug_flag, &as_string_option(supplied_type), &data) {
-                Some((parsed_type, parsed_subtp)) => {
-                    if (&parsed_type[..] != type_string) ||
-                        (&parsed_subtp[..] != subtype_string) {
-                            panic!("File {:?} parsed incorrectly should be {}/{}, parsed as {}/{}",
-                                   filename, type_string, subtype_string,
-                                   parsed_type, parsed_subtp);
-                        }
-                }
-                None => panic!("No classification found for {:?} with supplied type {:?}",
-                               filename, supplied_type),
+            let (parsed_type, parsed_subtp) = classifier.classify(no_sniff_flag,
+                                                                  apache_bug_flag,
+                                                                  &as_string_option(supplied_type),
+                                                                  &data);
+            if (&parsed_type[..] != type_string) ||
+                (&parsed_subtp[..] != subtype_string) {
+                    panic!("File {:?} parsed incorrectly should be {}/{}, parsed as {}/{}",
+                            filename, type_string, subtype_string,
+                            parsed_type, parsed_subtp);
             }
         }
         Err(e) => panic!("Couldn't read from file {:?} with error {}",

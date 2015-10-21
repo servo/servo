@@ -4,7 +4,7 @@
 
 use net_traits::{AsyncResponseListener, ResponseAction};
 use script_task::ScriptTaskEventCategory::NetworkEvent;
-use script_task::{ScriptChan, Runnable, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to
@@ -43,9 +43,9 @@ struct ListenerRunnable<T: AsyncResponseListener + PreInvoke + Send> {
 impl<T: AsyncResponseListener + PreInvoke + Send> Runnable for ListenerRunnable<T> {
     fn handler(self: Box<ListenerRunnable<T>>) {
         let this = *self;
-        let context = this.context.lock().unwrap();
+        let mut context = this.context.lock().unwrap();
         if context.should_invoke() {
-            this.action.process(&*context);
+            this.action.process(&mut *context);
         }
     }
 }

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Test setValueAtTime with startTime in the past</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function do_test(t, context) {
+  var source = context.createBufferSource();
+  source.buffer =
+    function() {
+      var buffer = context.createBuffer(1, 1, context.sampleRate);
+      buffer.getChannelData(0)[0] = 1.0;
+      return buffer;
+    }();
+  source.loop = true;
+  source.start();
+
+  // Use a ramp of slope 1/sample to measure time.
+  // The end value is the extent of exact precision in single precision float.
+  const rampEnd = Math.pow(2, 24);
+  const rampEndSeconds = rampEnd / context.sampleRate;
+  var test = context.createGain();
+  test.gain.setValueAtTime(0.0, 0.0);
+  test.gain.linearRampToValueAtTime(rampEnd, rampEndSeconds);
+
+  // With a different starting point on the same line, the result should be
+  // the same.  |currentTime| may include double precision floating point
+  // rounding errors, so round to nearest integer sample to ignore these.
+  var scheduledSample = Math.round(context.currentTime * context.sampleRate);
+  assert_equals(scheduledSample % 128, 0,
+                "currentTime advances in blocks of 128 samples");
+  var reference = context.createGain();
+  reference.gain.setValueAtTime(scheduledSample, context.currentTime);
+  reference.gain.linearRampToValueAtTime(rampEnd, rampEndSeconds);
+
+  source.connect(test);
+  source.connect(reference);
+
+  var merger = context.createChannelMerger();
+  test.connect(merger, 0, 0);
+  reference.connect(merger, 0, 1);
+
+  var processor = context.createScriptProcessor(0, 2, 0);
+  merger.connect(processor);
+  processor.onaudioprocess =
+    t.step_func_done((e) => {
+      source.stop();
+      processor.onaudioprocess = null;
+
+      var testValue = e.inputBuffer.getChannelData(0)[0];
+      var referenceValue = e.inputBuffer.getChannelData(1)[0];
+
+      assert_equals(testValue, referenceValue,
+                    "ramp value matches expected");
+      assert_greater_than_equal(testValue, scheduledSample,
+                                "time does not retreat");
+      assert_equals(testValue % 128, 0,
+                    "ScriptProcessor blocks align on 128-sample blocks");
+    });
+}
+
+async_test(function(t) {
+  var context = new AudioContext;
+  (function waitForTimeAdvance() {
+    if (context.currentTime == 0) {
+      t.step_timeout(waitForTimeAdvance, 0);
+    } else {
+      do_test(t, context);
+    }
+  })();
+});
+</script>

@@ -5,12 +5,13 @@
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCellElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, NodeCast};
+use dom::bindings::js::LayoutJS;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::NodeTypeId;
+use dom::element::AttributeMutation;
+use dom::htmlelement::HTMLElement;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use std::cmp::max;
@@ -18,19 +19,6 @@ use string_cache::Atom;
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
-
-#[derive(Copy, Clone, Debug)]
-pub enum HTMLTableCellElementTypeId {
-    HTMLTableDataCellElement = 0,
-    HTMLTableHeaderCellElement = 1,
-}
-
-impl PartialEq for HTMLTableCellElementTypeId {
-    #[inline]
-    fn eq(&self, other: &HTMLTableCellElementTypeId) -> bool {
-        (*self as u8) == (*other as u8)
-    }
-}
 
 #[dom_struct]
 pub struct HTMLTableCellElement {
@@ -40,25 +28,13 @@ pub struct HTMLTableCellElement {
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
-impl HTMLTableCellElementDerived for EventTarget {
-    fn is_htmltablecellelement(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
-            _ => false
-        }
-    }
-}
-
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: HTMLTableCellElementTypeId,
-                         tag_name: DOMString,
+    pub fn new_inherited(tag_name: DOMString,
                          prefix: Option<DOMString>,
                          document: &Document)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id),
-                                                    tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             background_color: Cell::new(None),
             colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
@@ -77,25 +53,52 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan");
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-cellindex
+    fn CellIndex(&self) -> i32 {
+        let self_node = NodeCast::from_ref(self);
+
+        let parent_children = match self_node.GetParentNode() {
+            Some(ref parent_node) if parent_node.is_htmltablerowelement() => parent_node.children(),
+            _ => return -1,
+        };
+
+        parent_children.filter(|c| c.is_htmltablecellelement())
+                       .position(|c| c.r() == self_node)
+                       .map(|p| p as i32).unwrap_or(-1)
+    }
 }
 
 
-impl HTMLTableCellElement {
-    pub fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
+pub trait HTMLTableCellElementLayoutHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_colspan(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
+
+#[allow(unsafe_code)]
+impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
+    fn get_background_color(&self) -> Option<RGBA> {
+        unsafe {
+            (*self.unsafe_get()).background_color.get()
+        }
     }
 
-    pub fn get_colspan(&self) -> Option<u32> {
-        self.colspan.get()
+    fn get_colspan(&self) -> Option<u32> {
+        unsafe {
+            (*self.unsafe_get()).colspan.get()
+        }
     }
 
-    pub fn get_width(&self) -> LengthOrPercentageOrAuto {
-        self.width.get()
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        unsafe {
+            (*self.unsafe_get()).width.get()
+        }
     }
 }
 
 impl VirtualMethods for HTMLTableCellElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

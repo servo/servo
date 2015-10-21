@@ -6,17 +6,17 @@ use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLButtonElementCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormSubmitter, FormControl};
-use dom::htmlformelement::{SubmittedFrom};
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, FormSubmitter};
+use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
@@ -40,21 +40,14 @@ pub struct HTMLButtonElement {
     button_type: Cell<ButtonType>
 }
 
-impl HTMLButtonElementDerived for EventTarget {
-    fn is_htmlbuttonelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)))
-    }
-}
-
 impl HTMLButtonElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             //TODO: implement button_type in attribute_mutated
             button_type: Cell::new(ButtonType::ButtonSubmit)
         }
@@ -76,11 +69,16 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
         ValidityState::new(window.r())
     }
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     fn Type(&self) -> DOMString {
@@ -136,7 +134,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 }
 
 impl VirtualMethods for HTMLButtonElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -145,17 +143,17 @@ impl VirtualMethods for HTMLButtonElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let el = ElementCast::from_ref(self);
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {}
                     AttributeMutation::Set(None) => {
-                        node.set_disabled_state(true);
-                        node.set_enabled_state(false);
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     },
                     AttributeMutation::Removed => {
-                        node.set_disabled_state(false);
-                        node.set_enabled_state(true);
-                        node.check_ancestors_disabled_state_for_form_control();
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },
@@ -168,8 +166,8 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_ancestors_disabled_state_for_form_control();
+        let el = ElementCast::from_ref(self);
+        el.check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -178,29 +176,26 @@ impl VirtualMethods for HTMLButtonElement {
         }
 
         let node = NodeCast::from_ref(self);
+        let el = ElementCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
-            node.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLButtonElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLButtonElement {}
 
 impl<'a> Activatable for &'a HTMLButtonElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
+    fn as_element(&self) -> &Element {
         ElementCast::from_ref(*self)
     }
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        let node = NodeCast::from_ref(*self);
-        !(node.get_disabled_state())
+        let el = ElementCast::from_ref(*self);
+        !(el.get_disabled_state())
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
@@ -237,13 +232,9 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         if owner.is_none() || elem.click_in_progress() {
             return;
         }
-        // This is safe because we are stopping after finding the first element
-        // and only then performing actions which may modify the DOM tree
-        unsafe {
-            node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
-                .filter_map(HTMLButtonElementCast::to_root)
-                .find(|r| r.r().form_owner() == owner)
-                .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
-        }
+        node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
+            .filter_map(HTMLButtonElementCast::to_root)
+            .find(|r| r.r().form_owner() == owner)
+            .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }

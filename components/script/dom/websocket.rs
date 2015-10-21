@@ -9,44 +9,43 @@ use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMe
 use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::{InvalidAccess, Syntax};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{reflect_dom_object, Reflectable};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use hyper::header::Host;
-use js::jsapi::{JS_NewArrayBuffer, JS_GetArrayBufferData};
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
+use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
-use libc::{uint8_t, uint32_t};
+use libc::{uint32_t, uint8_t};
 use net_traits::hosts::replace_hosts;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
-use script_task::{Runnable, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::ptr;
 use std::sync::{Arc, Mutex};
+use std::{ptr, slice};
 use util::str::DOMString;
 use util::task::spawn_named;
-use websocket::Client;
-use websocket::Message;
 use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
 use websocket::header::Origin;
+use websocket::message::CloseData;
 use websocket::result::WebSocketResult;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
+use websocket::{Client, Message};
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum WebSocketRequestState {
@@ -64,12 +63,77 @@ enum MessageData {
     Binary(Vec<u8>),
 }
 
+// list of blacklist ports according to
+// http://mxr.mozilla.org/mozilla-central/source/netwerk/base/nsIOService.cpp#87
+const BLOCKED_PORTS_LIST: &'static [u16] = &[
+    1,    // tcpmux
+    7,    // echo
+    9,    // discard
+    11,   // systat
+    13,   // daytime
+    15,   // netstat
+    17,   // qotd
+    19,   // chargen
+    20,   // ftp-data
+    21,   // ftp-cntl
+    22,   // ssh
+    23,   // telnet
+    25,   // smtp
+    37,   // time
+    42,   // name
+    43,   // nicname
+    53,   // domain
+    77,   // priv-rjs
+    79,   // finger
+    87,   // ttylink
+    95,   // supdup
+    101,  // hostriame
+    102,  // iso-tsap
+    103,  // gppitnp
+    104,  // acr-nema
+    109,  // pop2
+    110,  // pop3
+    111,  // sunrpc
+    113,  // auth
+    115,  // sftp
+    117,  // uucp-path
+    119,  // nntp
+    123,  // NTP
+    135,  // loc-srv / epmap
+    139,  // netbios
+    143,  // imap2
+    179,  // BGP
+    389,  // ldap
+    465,  // smtp+ssl
+    512,  // print / exec
+    513,  // login
+    514,  // shell
+    515,  // printer
+    526,  // tempo
+    530,  // courier
+    531,  // Chat
+    532,  // netnews
+    540,  // uucp
+    556,  // remotefs
+    563,  // nntp+ssl
+    587,  //
+    601,  //
+    636,  // ldap+ssl
+    993,  // imap+ssl
+    995,  // pop3+ssl
+    2049, // nfs
+    4045, // lockd
+    6000, // x11
+];
+
 #[dom_struct]
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
+    buffered_amount: Cell<u32>,
+    clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
@@ -77,7 +141,6 @@ pub struct WebSocket {
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
     reason: DOMRefCell<DOMString>, //Closing reason
-    data: DOMRefCell<DOMString>, //Data from send - TODO: Remove after buffer is added.
     binary_type: Cell<BinaryType>,
 }
 
@@ -111,13 +174,14 @@ impl WebSocket {
             url: url,
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(WebSocketRequestState::Connecting),
+            buffered_amount: Cell::new(0),
+            clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
             sender: RefCell::new(None),
             full: Cell::new(false),
             clean_close: Cell::new(true),
             code: Cell::new(0),
             reason: DOMRefCell::new("".to_owned()),
-            data: DOMRefCell::new("".to_owned()),
             binary_type: Cell::new(BinaryType::Blob),
         }
 
@@ -137,26 +201,33 @@ impl WebSocket {
         let net_url = try!(parse_url(&replace_hosts(&resource_url)).map_err(|_| Error::Syntax));
 
         // Step 2: Disallow https -> ws connections.
+
         // Step 3: Potentially block access to some ports.
+        let port: u16 = resource_url.port_or_default().unwrap();
+
+        if BLOCKED_PORTS_LIST.iter().any(|&p| p == port) {
+            return Err(Error::Security);
+        }
 
         // Step 4.
-        let protocols = protocols.as_slice();
+        let protocols: &[DOMString] = protocols
+                                      .as_ref()
+                                      .map_or(&[], |ref string| slice::ref_slice(string));
 
         // Step 5.
         for (i, protocol) in protocols.iter().enumerate() {
             // https://tools.ietf.org/html/rfc6455#section-4.1
             // Handshake requirements, step 10
             if protocol.is_empty() {
-                return Err(Syntax);
+                return Err(Error::Syntax);
             }
 
             if protocols[i + 1..].iter().any(|p| p == protocol) {
-                return Err(Syntax);
-
+                return Err(Error::Syntax);
             }
 
             if protocol.chars().any(|c| c < '\u{0021}' || c > '\u{007E}') {
-                return Err(Syntax);
+                return Err(Error::Syntax);
             }
         }
 
@@ -247,6 +318,11 @@ impl WebSocketMethods for WebSocket {
         self.ready_state.get() as u16
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    fn BufferedAmount(&self) -> u32 {
+        self.buffered_amount.get()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
     fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
@@ -258,7 +334,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(&self, data: Option<USVString>) -> Fallible<()> {
+    fn Send(&self, data: USVString) -> Fallible<()> {
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
@@ -273,14 +349,28 @@ impl WebSocketMethods for WebSocket {
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
                 "If argument is a string"
           TODO: Need to buffer data
-          TODO: bufferedAmount attribute returns the size of the buffer in bytes -
-                this is a required attribute defined in the websocket.webidl file
           TODO: The send function needs to flag when full by using the following
           self.full.set(true). This needs to be done when the buffer is full
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.unwrap().0));
+
+        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
+
+        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let global = self.global.root();
+            let task = box BufferedAmountTask {
+                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
+            };
+            let chan = global.r().script_chan();
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
         Ok(())
     }
 
@@ -292,7 +382,9 @@ impl WebSocketMethods for WebSocket {
             let mut sender = this.sender.borrow_mut();
             //TODO: Also check if the buffer is full
             if let Some(sender) = sender.as_mut() {
-                let _ = sender.lock().unwrap().send_message(Message::Close(None));
+                let code: u16 = this.code.get();
+                let reason = this.reason.borrow().clone();
+                let _ = sender.lock().unwrap().send_message(Message::Close(Some(CloseData::new(code, reason))));
             }
         }
 
@@ -365,6 +457,24 @@ impl Runnable for ConnectionEstablishedTask {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(EventTargetCast::from_ref(ws.r()));
+    }
+}
+
+struct BufferedAmountTask {
+    addr: Trusted<WebSocket>,
+}
+
+impl Runnable for BufferedAmountTask {
+    // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    //
+    // To be compliant with standards, we need to reset bufferedAmount only when the event loop
+    // reaches step 1.  In our implementation, the bytes will already have been sent on a background
+    // thread.
+    fn handler(self: Box<Self>) {
+        let ws = self.addr.root();
+
+        ws.buffered_amount.set(0);
+        ws.clearing_buffer.set(false);
     }
 }
 

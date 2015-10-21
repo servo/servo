@@ -1,0 +1,30 @@
+<!doctype html>
+<title>pageshow event from traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<iframe src="001-1.html"></iframe>
+<script>
+var t = async_test();
+var events = [];
+var iframe = document.getElementsByTagName("iframe")[0];
+
+onload = t.step_func(function() {
+  setTimeout(t.step_func(
+    function() {
+      assert_equals(iframe.contentDocument.readyState, "complete")
+      iframe.src = "001-2.html";
+    }), 500);
+  onload = null;
+})
+
+do_test = t.step_func(function() {
+  assert_equals(events.length, 2);
+  events.forEach(function(e, i) {
+    phase = i ? "after" : "before";
+    assert_equals(e.type, "pageshow", "type " + phase + " navigation");
+    assert_equals(e.persisted, i == 0 ? false : true, "persisted " + phase + " navigation");
+    t.done();
+  });
+});
+</script>

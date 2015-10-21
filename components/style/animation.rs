@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{RGBA, Color};
+use app_units::Au;
+use cssparser::{Color, RGBA};
 use euclid::point::Point2D;
 use properties::ComputedValues;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
@@ -25,10 +26,9 @@ use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp::Ordering;
 use std::iter::repeat;
 use util::bezier::Bezier;
-use util::geometry::Au;
 use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{LengthOrPercentage, Length, Time, Calc};
+use values::computed::{Calc, Length, LengthOrPercentage, Time};
 
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
@@ -736,8 +736,8 @@ impl Interpolate for TextShadowList {
 /// Check if it's possible to do a direct numerical interpolation
 /// between these two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-fn can_interpolate_list(from_list: &Vec<TransformOperation>,
-                        to_list: &Vec<TransformOperation>) -> bool {
+fn can_interpolate_list(from_list: &[TransformOperation],
+                        to_list: &[TransformOperation]) -> bool {
     // Lists must be equal length
     if from_list.len() != to_list.len() {
         return false;
@@ -763,8 +763,8 @@ fn can_interpolate_list(from_list: &Vec<TransformOperation>,
 
 /// Interpolate two transform lists.
 /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
-                              to_list: &Vec<TransformOperation>,
+fn interpolate_transform_list(from_list: &[TransformOperation],
+                              to_list: &[TransformOperation],
                               time: f64) -> TransformList {
     let mut result = vec!();
 
@@ -823,7 +823,7 @@ fn interpolate_transform_list(from_list: &Vec<TransformOperation>,
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
 /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-fn build_identity_transform_list(list: &Vec<TransformOperation>) -> Vec<TransformOperation> {
+fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
     let mut result = vec!();
 
     for operation in list {

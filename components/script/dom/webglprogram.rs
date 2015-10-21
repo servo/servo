@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLError};
+use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
@@ -86,7 +86,7 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        shader_slot.set(Some(JS::from_ref(shader)));
+        shader_slot.set(Some(shader));
 
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::AttachShader(self.id, shader.id()))).unwrap();
 

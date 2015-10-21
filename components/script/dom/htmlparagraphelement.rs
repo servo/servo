@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLParagraphElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLParagraphElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLParagraphElementDerived for EventTarget {
-    fn is_htmlparagraphelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement)))
-    }
 }
 
 impl HTMLParagraphElement {
@@ -31,7 +20,7 @@ impl HTMLParagraphElement {
                      document: &Document) -> HTMLParagraphElement {
         HTMLParagraphElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLParagraphElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

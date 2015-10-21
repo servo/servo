@@ -4,6 +4,7 @@
 
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::ElementTypeId;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAppletElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
@@ -12,6 +13,7 @@ use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::codegen::InheritTypes::HTMLFieldSetElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFontElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
@@ -20,6 +22,7 @@ use dom::bindings::codegen::InheritTypes::HTMLIFrameElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLImageElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLMetaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
@@ -33,11 +36,10 @@ use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTemplateElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
+use dom::bindings::codegen::InheritTypes::NodeTypeId;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::AttributeMutation;
 use dom::event::Event;
-use dom::htmlelement::HTMLElementTypeId;
-use dom::node::NodeTypeId;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use string_cache::Atom;
 use util::str::DOMString;
@@ -118,133 +120,137 @@ pub trait VirtualMethods {
 /// method call on the trait object will invoke the corresponding method on the
 /// concrete type, propagating up the parent hierarchy unless otherwise
 /// interrupted.
-pub fn vtable_for<'a>(node: &'a Node) -> &'a (VirtualMethods + 'a) {
+pub fn vtable_for(node: &Node) -> &VirtualMethods {
     match node.type_id() {
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
             let element = HTMLAnchorElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAppletElement)) => {
-            HTMLAppletElementCast::to_ref(node).unwrap() as &'a (VirtualMethods + 'a)
+            HTMLAppletElementCast::to_ref(node).unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
             let element = HTMLAreaElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)) => {
             let element = HTMLBaseElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
             let element = HTMLBodyElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
             let element = HTMLButtonElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
             let element = HTMLCanvasElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             let element = HTMLFieldSetElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)) => {
             let element = HTMLFontElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)) => {
             let element = HTMLFormElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement)) => {
             let element = HTMLHeadElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
             let element = HTMLImageElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
             let element = HTMLIFrameElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
             let element = HTMLInputElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             let element = HTMLLinkElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
+            let element = HTMLMetaElementCast::to_ref(node).unwrap();
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
             let element = HTMLObjectElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
             let element = HTMLOptGroupElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
             let element = HTMLOptionElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
             let element = HTMLScriptElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
             let element = HTMLSelectElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
             let element = HTMLStyleElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
             let element =
                 HTMLTableElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_))) => {
             let element =
                 HTMLTableCellElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
             let element =
                 HTMLTableRowElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)) => {
             let element =
                 HTMLTableSectionElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)) => {
-            HTMLTemplateElementCast::to_ref(node).unwrap() as &'a (VirtualMethods + 'a)
+            HTMLTemplateElementCast::to_ref(node).unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
             let element = HTMLTextAreaElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
             let element =
                 HTMLTitleElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::Element) => {
             let element = ElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         NodeTypeId::Element(_) => {
             let element = HTMLElementCast::to_ref(node).unwrap();
-            element as &'a (VirtualMethods + 'a)
+            element as &VirtualMethods
         }
         _ => {
-            node as &'a (VirtualMethods + 'a)
+            node as &VirtualMethods
         }
     }
 }

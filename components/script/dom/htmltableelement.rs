@@ -7,17 +7,16 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::HTMLTableSectionElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLTableCaptionElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::element::AttributeMutation;
+use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::node::{Node, NodeTypeId, document_from_node};
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -32,22 +31,11 @@ pub struct HTMLTableElement {
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
-impl HTMLTableElementDerived for EventTarget {
-    fn is_htmltableelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)))
-    }
-}
-
 impl HTMLTableElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
@@ -127,6 +115,12 @@ impl HTMLTableElementMethods for HTMLTableElement {
                                   reference_element.r()).is_ok());
         tbody
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
+    make_setter!(SetBgColor, "bgcolor");
 }
 
 
@@ -149,7 +143,7 @@ impl HTMLTableElement {
 }
 
 impl VirtualMethods for HTMLTableElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

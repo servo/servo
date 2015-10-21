@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
 use font_template::FontTemplateDescriptor;
 use platform::font::{FontHandle, FontTable};
@@ -16,10 +17,10 @@ use std::sync::Arc;
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use text::Shaper;
-use text::glyph::{GlyphStore, GlyphId};
+use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
+use unicode_script::Script;
 use util::cache::HashCache;
-use util::geometry::Au;
 
 // FontHandle encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
@@ -117,6 +118,8 @@ pub struct ShapingOptions {
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
     pub word_spacing: Au,
+    /// The Unicode script property of the characters in this run.
+    pub script: Script,
     /// Various flags.
     pub flags: ShapingFlags,
 }

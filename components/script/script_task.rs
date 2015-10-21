@@ -17,70 +17,70 @@
 //! a page runs its course and the script task returns to processing events in the main event
 //! loop.
 
-#![allow(unsafe_code)]
-
 use devtools;
 use devtools_traits::ScriptToDevtoolsControlMsg;
-use devtools_traits::{DevtoolsPageInfo, DevtoolScriptControlMsg};
-use document_loader::{LoadType, DocumentLoader, NotifierData};
+use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
+use document_loader::{DocumentLoader, LoadType, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, EventTargetCast, NodeCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, RootCollection, trace_roots};
-use dom::bindings::js::{RootCollectionPtr, Root, RootedReference};
+use dom::bindings::js::{Root, RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
-use dom::bindings::trace::{JSTraceable, trace_traceables, RootedVec};
-use dom::bindings::utils::{WRAP_CALLBACKS, DOM_CALLBACKS};
-use dom::document::{Document, IsHTMLDocument, DocumentProgressHandler};
+use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
+use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
+use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
 use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
-use dom::node::{Node, NodeDamage, window_from_node};
-use dom::servohtmlparser::{ServoHTMLParser, ParserContext};
+use dom::node::{NodeDamage, window_from_node};
+use dom::servohtmlparser::{ParserContext, ServoHTMLParser};
 use dom::uievent::UIEvent;
-use dom::window::{Window, ScriptHelpers, ReflowReason};
+use dom::window::{ReflowReason, ScriptHelpers, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
 use hyper::header::{ContentType, HttpDate};
-use hyper::header::{LastModified, Headers};
+use hyper::header::{Headers, LastModified};
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::CollectServoSizes;
+use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue, SetDOMProxyInformation};
+use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObjectCallbacks};
+use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
+use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JSGCInvocationKind, GCDescription, SetGCSliceCallback, GCProgress};
-use js::jsapi::{JS_GetRuntime, JS_SetGCCallback, JSGCStatus, JSAutoRequest, SetDOMCallbacks};
-use js::jsapi::{JS_SetWrapObjectCallbacks, JS_AddExtraGCRootsTracer, DisableIncrementalGC};
-use js::jsapi::{SetDOMProxyInformation, DOMProxyShadowsResult, HandleObject, HandleId, RootedValue};
+use js::jsapi::{JSObject, SetPreserveWrapperCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
-use layout_interface::{self, NewLayoutTaskInfo, ScriptLayoutChan, LayoutChan, ReflowGoal};
+use layout_interface::{self, LayoutChan, NewLayoutTaskInfo, ReflowGoal, ScriptLayoutChan};
 use libc;
-use mem::heap_size_of_eventtarget;
+use mem::heap_size_of_self_and_children;
 use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, FocusType, LoadData};
 use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineId};
+use msg::constellation_msg::{PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
-use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageCacheResult};
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
 use net_traits::storage_task::StorageTask;
-use net_traits::{AsyncResponseTarget, ResourceTask, LoadConsumer, ControlMsg, Metadata};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, Metadata, ResourceTask};
 use network_listener::NetworkListener;
-use page::{Page, IterablePage, Frame};
+use page::{Frame, IterablePage, Page};
 use parse::html::{ParseContext, parse_html};
-use profile_traits::mem::{self, Report, ReportKind, ReportsChan, OpaqueSender};
+use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
+use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
+use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
-use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
-use script_traits::CompositorEvent::{ResizeEvent, ClickEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
@@ -88,16 +88,16 @@ use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use std::mem as std_mem;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use time::{now, Tm};
+use time::{Tm, now};
 use timers::TimerId;
 use url::{Url, UrlParser};
 use util::opts;
@@ -406,7 +406,7 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: Rc<Runtime>,
 
-    mouse_over_targets: DOMRefCell<Vec<JS<Node>>>,
+    mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: RefCell<HashSet<PipelineId>>,
@@ -469,6 +469,8 @@ impl ScriptTaskFactory for ScriptTask {
         let layout_chan = LayoutChan(layout_chan.sender());
         let failure_info = state.failure_info;
         spawn_named_with_send_on_failure(format!("ScriptTask {:?}", state.id), task_state::SCRIPT, move || {
+            PipelineNamespace::install(state.pipeline_namespace_id);
+
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan);
@@ -491,7 +493,7 @@ impl ScriptTaskFactory for ScriptTask {
                                                load_data.url.clone());
             script_task.start_page_load(new_load, load_data);
 
-            let reporter_name = format!("script-reporter-{}", id.0);
+            let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_task.start();
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
@@ -656,8 +658,10 @@ impl ScriptTask {
         }
 
         unsafe {
+            unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
             SetDOMProxyInformation(ptr::null(), 0, Some(shadow_check_callback));
             SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
+            SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
             // Pre barriers aren't working correctly at the moment
             DisableIncrementalGC(runtime.rt());
         }
@@ -941,6 +945,8 @@ impl ScriptTask {
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
                 self.handle_tick_all_animations(pipeline_id),
+            ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
+                self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::StylesheetLoadComplete(id, url, responder) => {
                 responder.respond();
                 self.handle_resource_loaded(id, LoadType::Stylesheet(url));
@@ -1252,11 +1258,11 @@ impl ScriptTask {
 
                 for child in NodeCast::from_ref(&*it_page.document()).traverse_preorder() {
                     let target = EventTargetCast::from_ref(&*child);
-                    dom_tree_size += heap_size_of_eventtarget(target);
+                    dom_tree_size += heap_size_of_self_and_children(target);
                 }
                 let window = it_page.window();
                 let target = EventTargetCast::from_ref(&*window);
-                dom_tree_size += heap_size_of_eventtarget(target);
+                dom_tree_size += heap_size_of_self_and_children(target);
 
                 reports.push(Report {
                     path: path![format!("url({})", current_url), "dom-tree"],
@@ -1281,6 +1287,11 @@ impl ScriptTask {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
+        // Workaround for a race condition when navigating before the initial page has
+        // been constructed c.f. https://github.com/servo/servo/issues/7677
+        if self.page.borrow().is_none() {
+            return
+        };
         let page = self.root_page();
         let page = page.find(id).expect("ScriptTask: received freeze msg for a
                     pipeline ID not associated with this script task. This is a bug.");
@@ -1472,6 +1483,15 @@ impl ScriptTask {
         document.r().run_the_animation_frame_callbacks();
     }
 
+    /// Handles a Web font being loaded. Does nothing if the page no longer exists.
+    fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
+        if let Some(page) = self.page.borrow().as_ref() {
+            if let Some(page) = page.find(pipeline_id) {
+                self.rebuild_and_force_reflow(&*page, ReflowReason::WebFontLoaded);
+            }
+        }
+    }
+
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> Root<ServoHTMLParser> {
@@ -1628,7 +1648,7 @@ impl ScriptTask {
             "".to_owned()
         };
 
-        parse_html(document.r(), parse_input, &final_url,
+        parse_html(document.r(), parse_input, final_url,
                    ParseContext::Owner(Some(incomplete.pipeline_id)));
 
         page_remover.neuter();
@@ -1698,7 +1718,7 @@ impl ScriptTask {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
 
-                let mut prev_mouse_over_targets: RootedVec<JS<Node>> = RootedVec::new();
+                let mut prev_mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
                 for target in &*self.mouse_over_targets.borrow_mut() {
                     prev_mouse_over_targets.push(target.clone());
                 }
@@ -1712,7 +1732,7 @@ impl ScriptTask {
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
                     if !mouse_over_targets.contains(target) {
-                        if target.root().r().is_anchor_element() {
+                        if NodeCast::from_ref(target.root().r()).is_anchor_element() {
                             let event = ConstellationMsg::NodeStatus(None);
                             let ConstellationChan(ref chan) = self.constellation_chan;
                             chan.send(event).unwrap();
@@ -1724,9 +1744,8 @@ impl ScriptTask {
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
                     let target = target.root();
-                    if target.r().is_anchor_element() {
-                        let element = ElementCast::to_ref(target.r()).unwrap();
-                        let status = element.get_attribute(&ns!(""), &atom!("href"))
+                    if NodeCast::from_ref(target.r()).is_anchor_element() {
+                        let status = target.r().get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.r().url();
@@ -1903,7 +1922,7 @@ impl ScriptTask {
         window.r().set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.r().Title(), final_url, (id, None));
+        self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
     }
 }
 

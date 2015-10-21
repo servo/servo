@@ -25,6 +25,7 @@
 //!   line breaks and mapping to CSS boxes, for the purpose of handling `getClientRects()` and
 //!   similar methods.
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildingResult;
@@ -41,14 +42,12 @@ use msg::compositor_msg::{LayerId, LayerType};
 use msg::constellation_msg::ConstellationChan;
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
-use rustc_serialize::{Encoder, Encodable};
-use std::fmt;
+use rustc_serialize::{Encodable, Encoder};
 use std::iter::Zip;
-use std::mem;
-use std::raw;
 use std::slice::IterMut;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, text_align};
 use style::properties::{self, ComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -59,7 +58,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use util::geometry::{Au, ZERO_RECT};
+use util::geometry::ZERO_RECT;
 use util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
@@ -382,10 +381,10 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn base<'a, T: ?Sized + Flow>(this: &'a T) -> &'a BaseFlow {
+pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&'a T, &'a raw::TraitObject>(&this);
-        mem::transmute::<*mut (), &'a BaseFlow>(obj.data)
+        let obj = mem::transmute::<&&T, &raw::TraitObject>(&this);
+        mem::transmute::<*mut (), &BaseFlow>(obj.data)
     }
 }
 
@@ -396,10 +395,10 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 
 #[inline(always)]
 #[allow(unsafe_code)]
-pub fn mut_base<'a, T: ?Sized + Flow>(this: &'a mut T) -> &'a mut BaseFlow {
+pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&&'a mut T, &'a raw::TraitObject>(&this);
-        mem::transmute::<*mut (), &'a mut BaseFlow>(obj.data)
+        let obj = mem::transmute::<&&mut T, &raw::TraitObject>(&this);
+        mem::transmute::<*mut (), &mut BaseFlow>(obj.data)
     }
 }
 
@@ -657,14 +656,6 @@ static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_001
 static TEXT_ALIGN_SHIFT: usize = 11;
 
 impl FlowFlags {
-    /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
-    ///
-    /// FIXME(#2265, pcwalton): It would be cleaner and faster to make this a derived CSS property
-    /// `-servo-text-align-in-effect`.
-    pub fn propagate_text_alignment_from_parent(&mut self, parent_flags: FlowFlags) {
-        self.set_text_align_override(parent_flags);
-    }
-
     #[inline]
     pub fn text_align(self) -> text_align::T {
         text_align::T::from_u32((self & TEXT_ALIGN).bits() >> TEXT_ALIGN_SHIFT).unwrap()
@@ -674,11 +665,6 @@ impl FlowFlags {
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
                 FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
-    }
-
-    #[inline]
-    pub fn set_text_align_override(&mut self, parent: FlowFlags) {
-        self.insert(parent & TEXT_ALIGN);
     }
 
     #[inline]

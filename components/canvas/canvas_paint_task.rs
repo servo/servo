@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure::{AzFloat, AzColor};
-use azure::azure_hl::{ColorPattern, PathBuilder, DrawSurfaceOptions, Filter};
-use azure::azure_hl::{DrawTarget, SurfaceFormat, BackendType, StrokeOptions, DrawOptions, Pattern};
-use azure::azure_hl::{JoinStyle, CapStyle, CompositionOp, AntialiasMode};
+use azure::azure::{AzColor, AzFloat};
+use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
+use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
 use canvas_traits::*;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -19,7 +19,7 @@ use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use util::opts;
 use util::task::spawn_named;
 use util::vec::byte_swap;
@@ -459,11 +459,15 @@ impl<'a> CanvasPaintTask<'a> {
     }
 
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
-        self.state.fill_style = style.to_azure_pattern(&self.drawtarget)
+        if let Some(pattern) = style.to_azure_pattern(&self.drawtarget) {
+            self.state.fill_style = pattern
+        }
     }
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
-        self.state.stroke_style = style.to_azure_pattern(&self.drawtarget)
+        if let Some(pattern) = style.to_azure_pattern(&self.drawtarget) {
+            self.state.stroke_style = pattern
+        }
     }
 
     fn set_line_width(&mut self, width: f32) {
@@ -604,13 +608,15 @@ impl<'a> CanvasPaintTask<'a> {
             src_line += (image_size.width * 4) as usize;
         }
 
-        let source_surface = self.drawtarget.create_source_surface_from_data(
-            &dest,
-            dest_rect.size, dest_rect.size.width * 4, SurfaceFormat::B8G8R8A8);
-
-        self.drawtarget.copy_surface(source_surface,
-                                     Rect::new(Point2D::new(0, 0), dest_rect.size),
-                                     dest_rect.origin);
+        if let Some(source_surface) = self.drawtarget.create_source_surface_from_data(
+                &dest,
+                dest_rect.size,
+                dest_rect.size.width * 4,
+                SurfaceFormat::B8G8R8A8) {
+            self.drawtarget.copy_surface(source_surface,
+                                         Rect::new(Point2D::new(0, 0), dest_rect.size),
+                                         dest_rect.origin);
+        }
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
@@ -728,18 +734,20 @@ fn write_image(draw_target: &DrawTarget,
     // azure_hl operates with integers. We need to cast the image size
     let image_size = image_size.to_i32();
 
-    let source_surface = draw_target.create_source_surface_from_data(
-        &image_data,
-        image_size, image_size.width * 4, SurfaceFormat::B8G8R8A8);
+    if let Some(source_surface) =
+            draw_target.create_source_surface_from_data(&image_data,
+                                                        image_size,
+                                                        image_size.width * 4,
+                                                        SurfaceFormat::B8G8R8A8) {
+        let draw_surface_options = DrawSurfaceOptions::new(filter, true);
+        let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
 
-    let draw_surface_options = DrawSurfaceOptions::new(filter, true);
-    let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
-
-    draw_target.draw_surface(source_surface,
-                             dest_rect.to_azfloat(),
-                             image_rect.to_azfloat(),
-                             draw_surface_options,
-                             draw_options);
+        draw_target.draw_surface(source_surface,
+                                 dest_rect.to_azfloat(),
+                                 image_rect.to_azfloat(),
+                                 draw_surface_options,
+                                 draw_options);
+    }
 }
 
 fn is_zero_size_gradient(pattern: &Pattern) -> bool {
@@ -748,7 +756,7 @@ fn is_zero_size_gradient(pattern: &Pattern) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 pub trait PointToi32 {

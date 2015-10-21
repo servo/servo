@@ -6,18 +6,19 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use cssparser::{Color, RGBA};
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::{Point2D, Rect};
-use flow::{self, EarlyAbsolutePositionInfo, FlowClass, Flow, ImmutableFlowUtils, OpaqueFlow};
+use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
 use layout_debug;
 use model::MaybeAuto;
-use rustc_serialize::{Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder};
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
@@ -27,7 +28,6 @@ use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
-use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 
 /// A single row of a table.

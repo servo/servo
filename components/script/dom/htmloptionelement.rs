@@ -7,29 +7,27 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast, HTMLElementCast, NodeCast, TextDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLScriptElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node};
 use dom::virtualmethods::VirtualMethods;
-use util::str::{DOMString, split_html_space_chars};
+use std::cell::Cell;
+use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
-    htmlelement: HTMLElement
-}
+    htmlelement: HTMLElement,
 
-impl HTMLOptionElementDerived for EventTarget {
-    fn is_htmloptionelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)))
-    }
+    /// https://html.spec.whatwg.org/multipage/#attr-option-selected
+    selectedness: Cell<bool>,
+
+    /// https://html.spec.whatwg.org/multipage/#concept-option-dirtiness
+    dirtiness: Cell<bool>,
 }
 
 impl HTMLOptionElement {
@@ -38,7 +36,10 @@ impl HTMLOptionElement {
                      document: &Document) -> HTMLOptionElement {
         HTMLOptionElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptionElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document),
+            selectedness: Cell::new(false),
+            dirtiness: Cell::new(false),
         }
     }
 
@@ -51,44 +52,42 @@ impl HTMLOptionElement {
     }
 }
 
-fn collect_text(node: &&Node, value: &mut DOMString) {
-    let elem = ElementCast::to_ref(*node).unwrap();
-    let svg_script = *elem.namespace() == ns!(SVG) && elem.local_name() == &atom!("script");
-    let html_script = node.is_htmlscriptelement();
+fn collect_text(element: &Element, value: &mut DOMString) {
+    let svg_script = *element.namespace() == ns!(SVG) && element.local_name() == &atom!("script");
+    let html_script = element.is_htmlscriptelement();
     if svg_script || html_script {
         return;
-    } else {
-        for child in node.children() {
-            if child.r().is_text() {
-                let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
-                value.push_str(&characterdata.Data());
-            } else {
-                collect_text(&child.r(), value);
-            }
+    }
+
+    for child in NodeCast::from_ref(element).children() {
+        if child.r().is_text() {
+            let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
+            value.push_str(&characterdata.Data());
+        } else if let Some(element_child) = ElementCast::to_ref(&*child) {
+            collect_text(element_child, value);
         }
     }
 }
 
 impl HTMLOptionElementMethods for HTMLOptionElement {
-    // https://www.whatwg.org/html/#dom-option-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-option-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     fn SetDisabled(&self, disabled: bool) {
         let elem = ElementCast::from_ref(self);
         elem.set_bool_attribute(&atom!("disabled"), disabled)
     }
 
-    // https://www.whatwg.org/html/#dom-option-text
+    // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
+        let element = ElementCast::from_ref(self);
         let mut content = String::new();
-        collect_text(&node, &mut content);
-        let v: Vec<&str> = split_html_space_chars(&content).collect();
-        v.join(" ")
+        collect_text(element, &mut content);
+        str_join(split_html_space_chars(&content), " ")
     }
 
-    // https://www.whatwg.org/html/#dom-option-text
+    // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
@@ -122,10 +121,28 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     make_setter!(SetLabel, "label");
 
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_getter!(DefaultSelected, "selected");
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
+    make_bool_setter!(SetDefaultSelected, "selected");
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    fn Selected(&self) -> bool {
+        self.selectedness.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    fn SetSelected(&self, selected: bool) {
+        self.dirtiness.set(true);
+        self.selectedness.set(selected);
+        // FIXME: as per the spec, implement 'ask for a reset'
+        // https://github.com/servo/servo/issues/7774
+    }
 }
 
 impl VirtualMethods for HTMLOptionElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -134,17 +151,33 @@ impl VirtualMethods for HTMLOptionElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let el = ElementCast::from_ref(self);
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        node.set_disabled_state(true);
-                        node.set_enabled_state(false);
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     },
                     AttributeMutation::Removed => {
-                        node.set_disabled_state(false);
-                        node.set_enabled_state(true);
-                        node.check_parent_disabled_state_for_option();
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_parent_disabled_state_for_option();
                     }
+                }
+            },
+            &atom!(selected) => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
+                        if !self.dirtiness.get() {
+                            self.selectedness.set(true);
+                        }
+                    },
+                    AttributeMutation::Removed => {
+                        // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
+                        if !self.dirtiness.get() {
+                            self.selectedness.set(false);
+                        }
+                    },
                 }
             },
             _ => {},
@@ -156,8 +189,8 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_parent_disabled_state_for_option();
+        let el = ElementCast::from_ref(self);
+        el.check_parent_disabled_state_for_option();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -166,10 +199,11 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         let node = NodeCast::from_ref(self);
+        let el = ElementCast::from_ref(self);
         if node.GetParentNode().is_some() {
-            node.check_parent_disabled_state_for_option();
+            el.check_parent_disabled_state_for_option();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 }

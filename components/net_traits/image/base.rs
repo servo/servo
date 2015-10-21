@@ -3,31 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSharedMemory;
-use png;
+use piston_image::{self, DynamicImage, GenericImage};
 use stb_image::image as stb_image2;
-use std::mem;
-use util::mem::HeapSizeOf;
 use util::vec::byte_swap;
+
+pub use msg::constellation_msg::{Image, PixelFormat};
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
-
-#[derive(Deserialize, Serialize, HeapSizeOf)]
-pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
-}
-
-#[derive(Deserialize, Serialize, HeapSizeOf)]
-pub struct Image {
-    pub width: u32,
-    pub height: u32,
-    pub format: PixelFormat,
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
-}
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
 fn byte_swap_and_premultiply(data: &mut [u8]) {
@@ -48,41 +31,10 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         return None;
     }
 
-    if png::is_png(buffer) {
-        match png::load_png_from_memory(buffer) {
-            Ok(mut png_image) => {
-                let (bytes, format) = match png_image.pixels {
-                    png::PixelsByColorType::K8(ref mut data) => {
-                        (data, PixelFormat::K8)
-                    }
-                    png::PixelsByColorType::KA8(ref mut data) => {
-                        (data, PixelFormat::KA8)
-                    }
-                    png::PixelsByColorType::RGB8(ref mut data) => {
-                        byte_swap(data);
-                        (data, PixelFormat::RGB8)
-                    }
-                    png::PixelsByColorType::RGBA8(ref mut data) => {
-                        byte_swap_and_premultiply(data);
-                        (data, PixelFormat::RGBA8)
-                    }
-                };
+    if is_jpeg(buffer) {
+        // For JPEG images, we use stb_image because piston_image does not yet support progressive
+        // JPEG.
 
-                let bytes = mem::replace(bytes, Vec::new());
-                let bytes = IpcSharedMemory::from_bytes(&bytes[..]);
-                let image = Image {
-                    width: png_image.width,
-                    height: png_image.height,
-                    format: format,
-                    bytes: bytes,
-                };
-
-                Some(image)
-            }
-            Err(_err) => None,
-        }
-    } else {
-        // For non-png images, we use stb_image
         // Can't remember why we do this. Maybe it's what cairo wants
         static FORCE_DEPTH: usize = 4;
 
@@ -111,6 +63,26 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 None
             }
         }
+    } else {
+        match piston_image::load_from_memory(buffer) {
+            Ok(image) => {
+                let mut rgba = match image {
+                    DynamicImage::ImageRgba8(rgba) => rgba,
+                    image => image.to_rgba()
+                };
+                byte_swap_and_premultiply(&mut *rgba);
+                Some(Image {
+                    width: rgba.width(),
+                    height: rgba.height(),
+                    format: PixelFormat::RGBA8,
+                    bytes: IpcSharedMemory::from_bytes(&*rgba),
+                })
+            }
+            Err(e) => {
+                debug!("Image decoding error: {:?}", e);
+                None
+            }
+        }
     }
 }
 
@@ -119,4 +91,8 @@ fn is_gif(buffer: &[u8]) -> bool {
         [b'G', b'I', b'F', b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
         _ => false
     }
+}
+
+fn is_jpeg(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0xff, 0xd8, 0xff])
 }

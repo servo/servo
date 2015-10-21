@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointermove on button state changes</title>
+        <meta name="viewport" content="width=device-width">
+        <meta name="assert" content="When a pointer changes button state and does not produce a different event, the pointermove event must be dispatched."/>
+        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="pointerevent_support.js"></script>
+    </head>
+    <body onload="run()">
+        <h2>PointerMove</h2>
+        <h4>Test Description: This test checks if pointermove event are triggered by button state changes
+            <ol>
+                <li>Put your mouse over the black rectangle</li>
+                <li>Press a button and hold it</li>
+                <li>Press a second button</li>
+                <li>Release the second button</li>
+                <li>Release the first button to complete the test</li>
+            </ol>
+        </h4>
+        <div id="target0" style="background:black"></div>
+        <script>
+            var eventTested = false;
+            var detected_pointertypes = {};
+            var test_pointermove = async_test("pointermove events received for button state changes");
+            add_completion_callback(showPointerTypes);
+
+            var step = 0;
+            var firstButton = 0;
+
+            function run() {
+                var target0 = document.getElementById("target0");
+
+                // When a pointer changes button state and the circumstances produce no other pointer event, the pointermove event must be dispatched.
+                // 5.2.6
+
+                on_event(target0, "pointerdown", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    test_pointermove.step(function() {assert_true(step === 0, "There must not be more than one pointer down event.");});
+                    if (step == 0) {
+                        step = 1;
+                        firstButton = event.buttons;
+                    }
+                });
+                on_event(target0, "pointermove", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+
+                    if (step == 1 && event.button != -1) { // second button pressed
+                        test_pointermove.step(function() {assert_true(event.buttons !== firstButton, "The pointermove event must be triggered by pressing a second button.");});
+                        test_pointermove.step(function() {assert_true((event.buttons & firstButton) != 0, "The first button must still be reported pressed.");});
+                        step = 2;
+                    } else if (step == 2 && event.button != -1) { // second button released
+                        test_pointermove.step(function() {assert_true(event.buttons === firstButton, "The pointermove event must be triggered by releasing the second button.");});
+                        step = 3;
+                    }
+                });
+                on_event(target0, "pointerup", function (event) {
+                    detected_pointertypes[event.pointerType] = true;
+                    test_pointermove.step(function() {assert_true(step === 3, "The pointerup event must be triggered after pressing and releasing the second button.");});
+                    test_pointermove.step(function() {assert_true(event.buttons === 0, "The pointerup event must be triggered by releasing the last pressed button.");});
+                    test_pointermove.done();
+                    eventTested = true;
+                });
+            }
+        </script>
+        <h1>Pointer Events pointermove on button state changes Tests</h1>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+            <p>Refresh the page to run the tests again.</p>
+        </div>
+        <div id="log"></div>
+    </body>
+</html>

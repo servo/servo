@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Backgrounds and Borders Module Level 3 CR Test Suite</h1>
-  <h2>Miscellaneous Effects (10 tests)</h2>
+  <h2>Miscellaneous Effects (11 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,15 +37,15 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
         <a href="http://www.w3.org/TR/css3-background/#the-box-shadow">7.1 Drop Shadows: the &#8216;box-shadow&#8217; property</a></th></tr>
-      <!-- 10 tests -->
-      <tr id="box-shadow-001-7.1" class="primary">
+      <!-- 11 tests -->
+      <tr id="box-shadow-001-7.1" class="primary internal">
         <td><strong>
             <a href="box-shadow-001.xht">box-shadow-001</a></strong></td>
-        <td><a href="reference/box-shadow-001-ref.xht">=</a> </td>
         <td></td>
-        <td>Box-Shadow property
+        <td><abbr class="internal" title=""></abbr></td>
+        <td>Positive value of horizontal offset
           <ul class="assert">
-            <li>Testing simple drop shadow with the box-shadow property</li>
+            <li>A positive value for the horizontal offset of the 'box-shadow' draws a shadow that is offset to the right of the box.</li>
           </ul>
         </td>
       </tr>
@@ -68,6 +68,17 @@
         <td>Negative value for blur radius
           <ul class="assert">
             <li>Negative values for the blur radius of the 'box-shadow' are not allowed.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="box-shadow-005-7.1" class="primary">
+        <td><strong>
+            <a href="box-shadow-005.xht">box-shadow-005</a></strong></td>
+        <td><a href="reference/box-shadow-005-ref.xht">=</a> </td>
+        <td></td>
+        <td>Box-Shadow property
+          <ul class="assert">
+            <li>Testing simple drop shadow with the box-shadow property</li>
           </ul>
         </td>
       </tr>

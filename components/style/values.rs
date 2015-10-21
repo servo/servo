@@ -2,10 +2,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(non_camel_case_types)]
-
 pub use cssparser::RGBA;
 
+use app_units::Au;
+use std::fmt;
+
+// This is a re-implementation of the ToCss trait in cssparser.
+// It's done here because the app_units crate shouldn't depend
+// on cssparser, and it's not possible to implement a trait when
+// both the trait and the type are defined in different crates.
+pub trait AuExtensionMethods {
+    /// Serialize `self` in CSS syntax, writing to `dest`.
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
+
+    /// Serialize `self` in CSS syntax and return a string.
+    ///
+    /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
+    #[inline]
+    fn to_css_string(&self) -> String {
+        let mut s = String::new();
+        self.to_css(&mut s).unwrap();
+        s
+    }
+}
+
+impl AuExtensionMethods for Au {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}px", self.to_f64_px())
+    }
+}
 
 macro_rules! define_numbered_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+,) => {
@@ -41,22 +66,23 @@ macro_rules! define_numbered_css_keyword_enum {
 
 pub type CSSFloat = f32;
 
+pub const FONT_MEDIUM_PX: i32 = 16;
+
 
 pub mod specified {
-    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
+    use app_units::Au;
+    use cssparser::{self, CssStringWriter, Parser, ToCss, Token};
     use euclid::size::Size2D;
     use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
-    use std::fmt;
-    use std::fmt::Write;
+    use std::fmt::{self, Write};
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
-    use super::CSSFloat;
+    use super::AuExtensionMethods;
+    use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
-    use util::geometry::Au;
-
 
     #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
     pub struct CSSColor {
@@ -269,6 +295,24 @@ pub mod specified {
     const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
     const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
+        // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+        pub fn from_str(s: &str) -> Option<Length> {
+            Some(match_ignore_ascii_case! { s,
+                "xx-small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 5),
+                "x-small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 4),
+                "small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 8 / 9),
+                "medium" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX)),
+                "large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 6 / 5),
+                "x-large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 2),
+                "xx-large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 2),
+
+                // https://github.com/servo/servo/issues/3423#issuecomment-56321664
+                "smaller" => Length::FontRelative(FontRelativeLength::Em(0.85)),
+                "larger" => Length::FontRelative(FontRelativeLength::Em(1.2))
+                _ => return None
+            })
+        }
+
         #[inline]
         fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
             match try!(input.next()) {
@@ -279,7 +323,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         pub fn parse(input: &mut Parser) -> Result<Length, ()> {
             Length::parse_internal(input, &AllowedNumericType::All)
         }
@@ -692,7 +735,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
             LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
@@ -784,7 +826,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
             LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::All)
@@ -823,7 +864,6 @@ pub mod specified {
                 _ => Err(())
             }
         }
-        #[allow(dead_code)]
         #[inline]
         pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
             LengthOrNone::parse_internal(input, &AllowedNumericType::All)
@@ -1217,15 +1257,16 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use super::specified::{Angle, BorderStyle, Time};
+    use app_units::Au;
     use euclid::size::Size2D;
-    pub use cssparser::Color as CSSColor;
     use properties::longhands;
     use std::fmt;
+    use super::AuExtensionMethods;
     use super::specified::AngleOrCorner;
-    use super::{specified, CSSFloat};
+    use super::{CSSFloat, specified};
     use url::Url;
-    use util::geometry::Au;
+    pub use cssparser::Color as CSSColor;
+    pub use super::specified::{Angle, BorderStyle, Time};
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,

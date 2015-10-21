@@ -37,28 +37,28 @@ use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
 use incremental::RestyleDamage;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLCanvasElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
+use script::dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
+use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLElementTypeId};
+use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
+use script::dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
 use script::dom::bindings::js::LayoutJS;
-use script::dom::characterdata::{CharacterDataTypeId, LayoutCharacterDataHelpers};
-use script::dom::element::{Element, ElementTypeId};
-use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::characterdata::LayoutCharacterDataHelpers;
+use script::dom::element;
+use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
-use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
 use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
-use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
-use script::dom::node::{LayoutNodeHelpers, SharedLayoutData};
-use script::dom::node::{Node, NodeTypeId};
+use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
+use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
 use selectors::matching::DeclarationBlock;
-use selectors::parser::{NamespaceConstraint, AttrSelector};
+use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
@@ -468,20 +468,17 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_hover_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_hover_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
     }
 
     #[inline]
     fn get_focus_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_focus_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
     }
 
     #[inline]
     fn get_active_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_active_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
     }
 
     #[inline]
@@ -493,14 +490,12 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
 
     #[inline]
     fn get_disabled_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_disabled_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
     }
 
     #[inline]
     fn get_enabled_state(&self) -> bool {
-        let node = NodeCast::from_layout_js(&self.element);
-        node.get_enabled_state_for_layout()
+        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
     }
 
     #[inline]
@@ -516,14 +511,14 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     #[inline]
     fn has_class(&self, name: &Atom) -> bool {
         unsafe {
-            (*self.element.unsafe_get()).has_class_for_layout(name)
+            self.element.has_class_for_layout(name)
         }
     }
 
     #[inline(always)]
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
-            match (*self.element.unsafe_get()).get_classes_for_layout() {
+            match self.element.get_classes_for_layout() {
                 None => {}
                 Some(ref classes) => {
                     for class in *classes {
@@ -572,13 +567,13 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
-            (*self.element.unsafe_get()).synthesize_presentational_hints_for_legacy_attributes(hints);
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
         }
     }
 
     fn get_unsigned_integer_attribute(&self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
-            (*self.element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+            self.element.get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
 
@@ -809,27 +804,11 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
             match self.style().get_inheritedtext().white_space {
-                white_space::T::normal => true,
-                _ => false,
-            }
-        }
-    }
-
-    pub fn get_input_value(&self) -> String {
-        unsafe {
-            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
-            match input {
-                Some(input) => input.get_value_for_layout(),
-                None => panic!("not an input element!")
-            }
-        }
-    }
-
-    pub fn get_input_size(&self) -> u32 {
-        unsafe {
-            match HTMLInputElementCast::to_layout_js(self.get_jsmanaged()) {
-                Some(input) => input.get_size_for_layout(),
-                None => panic!("not an input element!")
+                white_space::T::normal |
+                white_space::T::nowrap => true,
+                white_space::T::pre |
+                white_space::T::pre_wrap |
+                white_space::T::pre_line => false,
             }
         }
     }
@@ -840,7 +819,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let elem: Option<LayoutJS<Element>> = ElementCast::to_layout_js(self.get_jsmanaged());
             match elem {
                 Some(element) => {
-                    (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+                    element.get_unsigned_integer_attribute_for_layout(attribute)
                 }
                 None => panic!("not an element!")
             }
@@ -954,18 +933,20 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             let insertion_point = unsafe {
                 input.get_insertion_point_for_layout()
             };
-            let text = unsafe {
-                input.get_value_for_layout()
-            };
+            if let Some(insertion_point) = insertion_point {
+                let text = unsafe {
+                    input.get_value_for_layout()
+                };
 
-            let mut character_count = 0;
-            for (character_index, _) in text.char_indices() {
-                if character_index == insertion_point.index {
-                    return Some(CharIndex(character_count))
+                let mut character_count = 0;
+                for (character_index, _) in text.char_indices() {
+                    if character_index == insertion_point.index {
+                        return Some(CharIndex(character_count))
+                    }
+                    character_count += 1
                 }
-                character_count += 1
+                return Some(CharIndex(character_count))
             }
-            return Some(CharIndex(character_count))
         }
         None
     }
@@ -1009,14 +990,14 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
+    /// If this node is an iframe element, returns its pipeline ID. If this node is
     /// not an iframe element, fails.
-    pub fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
+    pub fn iframe_pipeline_id(&self) -> PipelineId {
+        use script::dom::htmliframeelement::HTMLIFrameElementLayoutMethods;
         unsafe {
             let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
                 .expect("not an iframe element!");
-            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
-             (*iframe_element.unsafe_get()).subpage_id().unwrap())
+            iframe_element.pipeline_id().unwrap()
         }
     }
 }
@@ -1132,4 +1113,3 @@ impl TextContent {
         }
     }
 }
-

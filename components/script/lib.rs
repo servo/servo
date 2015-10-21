@@ -2,15 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(append)]
-#![feature(arc_unique)]
 #![feature(ascii)]
-#![feature(as_slice)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
-#![feature(box_raw)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
+#![feature(const_fn)]
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
@@ -24,13 +21,10 @@
 #![feature(nonzero)]
 #![feature(plugin)]
 #![feature(ref_slice)]
-#![feature(rc_unique)]
 #![feature(slice_patterns)]
-#![feature(str_split_at)]
 #![feature(str_utf16)]
 #![feature(unicode)]
 #![feature(vec_push_all)]
-#![feature(slice_concat_ext)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -40,17 +34,28 @@
 #![plugin(string_cache_plugin)]
 #![plugin(plugins)]
 
+extern crate app_units;
+#[macro_use]
+extern crate bitflags;
 #[macro_use]
 extern crate log;
-
-#[macro_use] extern crate bitflags;
+#[macro_use]
+extern crate profile_traits;
+#[macro_use]
+extern crate style;
+#[macro_use]
+extern crate util;
+extern crate angle;
+extern crate canvas;
+extern crate canvas_traits;
+extern crate caseless;
 extern crate core;
-extern crate devtools_traits;
 extern crate cssparser;
-extern crate euclid;
-extern crate html5ever;
+extern crate devtools_traits;
 extern crate encoding;
+extern crate euclid;
 extern crate fnv;
+extern crate html5ever;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate js;
@@ -58,46 +63,35 @@ extern crate libc;
 extern crate msg;
 extern crate net_traits;
 extern crate num;
+extern crate offscreen_gl_context;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
-extern crate serde;
-extern crate time;
-extern crate canvas;
-extern crate canvas_traits;
-extern crate rand;
-#[macro_use]
-extern crate profile_traits;
 extern crate script_traits;
 extern crate selectors;
+extern crate serde;
 extern crate smallvec;
-#[macro_use]
-extern crate util;
-extern crate websocket;
-#[macro_use]
-extern crate style;
+extern crate string_cache;
+extern crate tendril;
+extern crate time;
 extern crate unicase;
 extern crate url;
 extern crate uuid;
-extern crate string_cache;
-extern crate offscreen_gl_context;
-extern crate angle;
-extern crate tendril;
-
-pub mod cors;
-pub mod document_loader;
-
-#[macro_use]
-pub mod dom;
-
-pub mod parse;
+extern crate websocket;
 
 pub mod clipboard_provider;
+pub mod cors;
 mod devtools;
+pub mod document_loader;
+#[macro_use]
+pub mod dom;
 mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
 pub mod page;
+pub mod parse;
+#[allow(unsafe_code)]
 pub mod script_task;
 pub mod textinput;
 mod timers;
@@ -109,15 +103,37 @@ use dom::bindings::codegen::RegisterBindings;
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
     use std::mem;
-    const RLIMIT_NOFILE: libc::c_int = 7;
+    // 4096 is default max on many linux systems
+    const MAX_FILE_LIMIT: libc::rlim_t = 4096;
 
     // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
     // of iframes.
     unsafe {
-        let mut rlim = mem::uninitialized();
-        assert!(libc::getrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
-        rlim.rlim_cur = rlim.rlim_max;
-        assert!(libc::setrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+        let mut rlim: libc::rlimit = mem::uninitialized();
+        match libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
+            0 => {
+                if rlim.rlim_cur >= MAX_FILE_LIMIT {
+                    // we have more than enough
+                    return;
+                }
+
+                rlim.rlim_cur = match rlim.rlim_max {
+                    libc::RLIM_INFINITY => MAX_FILE_LIMIT,
+                    _ => {
+                        if rlim.rlim_max < MAX_FILE_LIMIT {
+                            rlim.rlim_max
+                        } else {
+                            MAX_FILE_LIMIT
+                        }
+                    }
+                };
+                match libc::setrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
+                    0 => (),
+                    _ => warn!("Failed to set file count limit"),
+                };
+            },
+            _ => warn!("Failed to get file count limit"),
+        };
     }
 }
 
@@ -127,7 +143,7 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        assert_eq!(js::jsapi::JS_Init(), 1);
+        assert_eq!(js::jsapi::JS_Init(), true);
     }
 
     // Create the global vtables used by the (generated) DOM

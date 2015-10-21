@@ -8,7 +8,7 @@ use dom::bindings::js::Root;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
-// https://html.spec.whatwg.org/#validitystate
+// https://html.spec.whatwg.org/multipage/#validitystate
 #[dom_struct]
 pub struct ValidityState {
     reflector_: Reflector,

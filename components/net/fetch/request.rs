@@ -3,17 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch::cors_cache::{CORSCache, CacheRequestDetails};
-use fetch::response::{Response, ResponseType};
-use hyper::header::{Accept, IfUnmodifiedSince, IfMatch, IfRange, Location};
-use hyper::header::{Header, Headers, ContentType, IfModifiedSince, IfNoneMatch};
-use hyper::header::{HeaderView, AcceptLanguage, ContentLanguage};
-use hyper::header::{QualityItem, qitem, q};
+use fetch::response::ResponseMethods;
+use hyper::header::{Accept, IfMatch, IfRange, IfUnmodifiedSince, Location};
+use hyper::header::{AcceptLanguage, ContentLanguage, HeaderView};
+use hyper::header::{ContentType, Header, Headers, IfModifiedSince, IfNoneMatch};
+use hyper::header::{QualityItem, q, qitem};
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
+use net_traits::{AsyncFetchListener, Response, ResponseType, Metadata};
 use std::ascii::AsciiExt;
 use std::str::FromStr;
 use url::Url;
+use util::task::spawn_named;
 
 /// A [request context](https://fetch.spec.whatwg.org/#concept-request-context)
 #[derive(Copy, Clone, PartialEq)]
@@ -112,7 +114,7 @@ pub struct Request {
     pub redirect_mode: RedirectMode,
     pub redirect_count: usize,
     pub response_tainting: ResponseTainting,
-    pub cache: Option<Box<CORSCache + 'static>>
+    pub cache: Option<Box<CORSCache + Send>>
 }
 
 impl Request {
@@ -145,6 +147,15 @@ impl Request {
         }
     }
 
+    pub fn fetch_async(mut self,
+                       cors_flag: bool,
+                       listener: Box<AsyncFetchListener + Send>) {
+        spawn_named(format!("fetch for {:?}", self.url.serialize()), move || {
+            let res = self.fetch(cors_flag);
+            listener.response_available(res);
+        });
+    }
+
     /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
     pub fn fetch(&mut self, cors_flag: bool) -> Response {
         // Step 1
@@ -155,7 +166,7 @@ impl Request {
                     => vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
                 Context::Form | Context::Frame | Context::Hyperlink |
@@ -164,14 +175,14 @@ impl Request {
                     => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
                 Context::Internal if self.context_frame_type != ContextFrameType::ContextNone
                     => vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                         // FIXME: This should properly generate a MimeType that has a
                         // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                         QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
                         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
                 Context::Style

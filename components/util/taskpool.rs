@@ -16,7 +16,7 @@
 //
 
 use std::boxed::FnBox;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
 use task::spawn_named;
 
@@ -41,12 +41,8 @@ impl TaskPool {
         return TaskPool { tx: tx };
 
         fn worker(rx: &Mutex<Receiver<Box<FnBox() + Send + 'static>>>) {
-            loop {
-                let job = rx.lock().unwrap().recv();
-                match job {
-                    Ok(job) => job.call_box(()),
-                    Err(..) => break,
-                }
+            while let Ok(job) = rx.lock().unwrap().recv() {
+                job.call_box(());
             }
         }
     }

@@ -4,19 +4,20 @@
 
 //! Data structure measurement.
 
+use app_units::Au;
 use azure::azure_hl::Color;
 use cssparser::Color as CSSParserColor;
 use cssparser::{RGBA, TokenSerializationType};
 use cursor::Cursor;
 use euclid::length::Length;
 use euclid::scale_factor::ScaleFactor;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
-use geometry::{PagePx, ViewportPx, Au};
+use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
+use geometry::{PagePx, ViewportPx};
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::GCMethods;
@@ -25,7 +26,7 @@ use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
-use selectors::parser::{PseudoElement, Selector, CompoundSelector, SimpleSelector, Combinator};
+use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
 use std::hash::Hash;
@@ -53,7 +54,7 @@ extern {
 
 // A wrapper for je_malloc_usable_size that handles `EMPTY` and returns `usize`.
 pub fn heap_size_of(ptr: *const c_void) -> usize {
-    if ptr == ::std::rt::heap::EMPTY as *const c_void {
+    if ptr == ::alloc::heap::EMPTY as *const c_void {
         0
     } else {
         unsafe { je_malloc_usable_size(ptr) as usize }
@@ -122,9 +123,9 @@ impl HeapSizeOf for url::Url {
 
 impl HeapSizeOf for url::SchemeData {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &url::SchemeData::Relative(ref data) => data.heap_size_of_children(),
-            &url::SchemeData::NonRelative(ref str) => str.heap_size_of_children()
+        match *self {
+            url::SchemeData::Relative(ref data) => data.heap_size_of_children(),
+            url::SchemeData::NonRelative(ref str) => str.heap_size_of_children()
         }
     }
 }
@@ -146,9 +147,9 @@ impl HeapSizeOf for url::RelativeSchemeData {
 
 impl HeapSizeOf for url::Host {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &url::Host::Domain(ref str) => str.heap_size_of_children(),
-            &url::Host::Ipv6(_) => 0
+        match *self {
+            url::Host::Domain(ref str) => str.heap_size_of_children(),
+            url::Host::Ipv6(_) => 0
         }
     }
 }
@@ -301,8 +302,8 @@ impl<T: Copy + GCMethods<T>> HeapSizeOf for Heap<T> {
 
 impl HeapSizeOf for Method {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &Method::Extension(ref str) => str.heap_size_of_children(),
+        match *self {
+            Method::Extension(ref str) => str.heap_size_of_children(),
             _ => 0
         }
     }
@@ -310,9 +311,9 @@ impl HeapSizeOf for Method {
 
 impl<T: HeapSizeOf, U: HeapSizeOf> HeapSizeOf for Result<T, U> {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &Result::Ok(ref ok) => ok.heap_size_of_children(),
-            &Result::Err(ref err) => err.heap_size_of_children()
+        match *self {
+            Result::Ok(ref ok) => ok.heap_size_of_children(),
+            Result::Err(ref err) => err.heap_size_of_children()
         }
     }
 }
@@ -340,13 +341,13 @@ impl HeapSizeOf for CompoundSelector {
 
 impl HeapSizeOf for SimpleSelector {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &SimpleSelector::Negation(ref vec) => vec.heap_size_of_children(),
-            &SimpleSelector::AttrIncludes(_, ref str) | &SimpleSelector::AttrPrefixMatch(_, ref str) |
-            &SimpleSelector::AttrSubstringMatch(_, ref str) | &SimpleSelector::AttrSuffixMatch(_, ref str)
+        match *self {
+            SimpleSelector::Negation(ref vec) => vec.heap_size_of_children(),
+            SimpleSelector::AttrIncludes(_, ref str) | SimpleSelector::AttrPrefixMatch(_, ref str) |
+            SimpleSelector::AttrSubstringMatch(_, ref str) | SimpleSelector::AttrSuffixMatch(_, ref str)
             => str.heap_size_of_children(),
-            &SimpleSelector::AttrEqual(_, ref str, _) => str.heap_size_of_children(),
-            &SimpleSelector::AttrDashMatch(_, ref first, ref second) => first.heap_size_of_children()
+            SimpleSelector::AttrEqual(_, ref str, _) => str.heap_size_of_children(),
+            SimpleSelector::AttrDashMatch(_, ref first, ref second) => first.heap_size_of_children()
             + second.heap_size_of_children(),
             // All other types come down to Atom, enum or i32, all 0
             _ => 0
@@ -371,8 +372,8 @@ impl HeapSizeOf for Mime {
 
 impl HeapSizeOf for TopLevel {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &TopLevel::Ext(ref str) => str.heap_size_of_children(),
+        match *self {
+            TopLevel::Ext(ref str) => str.heap_size_of_children(),
             _ => 0
         }
     }
@@ -380,8 +381,8 @@ impl HeapSizeOf for TopLevel {
 
 impl HeapSizeOf for SubLevel {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &SubLevel::Ext(ref str) => str.heap_size_of_children(),
+        match *self {
+            SubLevel::Ext(ref str) => str.heap_size_of_children(),
             _ => 0
         }
     }
@@ -389,8 +390,8 @@ impl HeapSizeOf for SubLevel {
 
 impl HeapSizeOf for Attr {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &Attr::Ext(ref str) => str.heap_size_of_children(),
+        match *self {
+            Attr::Ext(ref str) => str.heap_size_of_children(),
             _ => 0
         }
     }
@@ -398,8 +399,8 @@ impl HeapSizeOf for Attr {
 
 impl HeapSizeOf for Value {
     fn heap_size_of_children(&self) -> usize {
-        match self {
-            &Value::Ext(ref str) => str.heap_size_of_children(),
+        match *self {
+            Value::Ext(ref str) => str.heap_size_of_children(),
             _ => 0
         }
     }

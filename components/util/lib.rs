@@ -4,7 +4,6 @@
 
 #![feature(alloc)]
 #![feature(box_syntax)]
-#![feature(box_raw)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
@@ -19,15 +18,19 @@
 #![feature(step_trait)]
 #![feature(zero_one)]
 
-#![plugin(serde_macros)]
+#![plugin(plugins, serde_macros)]
 
-#[macro_use] extern crate log;
-#[macro_use] extern crate lazy_static;
-
-extern crate azure;
+extern crate app_units;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate cssparser;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
 extern crate alloc;
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate cssparser;
+extern crate azure;
 extern crate euclid;
 extern crate getopts;
 extern crate html5ever;
@@ -36,8 +39,8 @@ extern crate ipc_channel;
 extern crate js;
 extern crate layers;
 extern crate libc;
-extern crate num as num_lib;
 extern crate num_cpus;
+extern crate num as num_lib;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;

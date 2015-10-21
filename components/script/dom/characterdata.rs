@@ -6,16 +6,13 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::error::Error::IndexSize;
-use dom::bindings::error::{Fallible, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{LayoutJS, Root};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::{Node, NodeDamage};
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use util::str::DOMString;
@@ -27,19 +24,10 @@ pub struct CharacterData {
     data: DOMRefCell<DOMString>,
 }
 
-impl CharacterDataDerived for EventTarget {
-    fn is_characterdata(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => true,
-            _ => false
-        }
-    }
-}
-
 impl CharacterData {
-    pub fn new_inherited(id: CharacterDataTypeId, data: DOMString, document: &Document) -> CharacterData {
+    pub fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
-            node: Node::new_inherited(NodeTypeId::CharacterData(id), document),
+            node: Node::new_inherited(document),
             data: DOMRefCell::new(data),
         }
     }
@@ -54,6 +42,7 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
         *self.data.borrow_mut() = data;
+        self.content_changed();
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
@@ -68,7 +57,7 @@ impl CharacterDataMethods for CharacterData {
         let data_from_offset = match find_utf16_code_unit_offset(&data, offset) {
             Some(offset_bytes) => &data[offset_bytes..],
             // Step 2.
-            None => return Err(IndexSize)
+            None => return Err(Error::IndexSize)
         };
         let substring = match find_utf16_code_unit_offset(data_from_offset, count) {
             // Steps 3.
@@ -101,7 +90,7 @@ impl CharacterDataMethods for CharacterData {
             let (prefix, data_from_offset) = match find_utf16_code_unit_offset(&data, offset) {
                 Some(offset_bytes) => data.split_at(offset_bytes),
                 // Step 2.
-                None => return Err(IndexSize)
+                None => return Err(Error::IndexSize)
             };
             let suffix = match find_utf16_code_unit_offset(data_from_offset, count) {
                 // Steps 3.
@@ -117,6 +106,7 @@ impl CharacterDataMethods for CharacterData {
             new_data
         };
         *self.data.borrow_mut() = new_data;
+        self.content_changed();
         // FIXME: Once we have `Range`, we should implement step 8 to step 11
         Ok(())
     }
@@ -155,15 +145,6 @@ impl CharacterDataMethods for CharacterData {
     }
 }
 
-/// The different types of CharacterData.
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum CharacterDataTypeId {
-    Comment,
-    Text,
-    ProcessingInstruction,
-}
-
-
 impl CharacterData {
     #[inline]
     pub fn data(&self) -> Ref<DOMString> {
@@ -171,7 +152,14 @@ impl CharacterData {
     }
     #[inline]
     pub fn append_data(&self, data: &str) {
-        self.data.borrow_mut().push_str(data)
+        self.data.borrow_mut().push_str(data);
+        self.content_changed();
+    }
+
+    fn content_changed(&self) {
+        let node = NodeCast::from_ref(self);
+        let document = node.owner_doc();
+        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
     }
 }
 

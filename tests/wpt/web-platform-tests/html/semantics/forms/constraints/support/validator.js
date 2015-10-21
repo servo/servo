@@ -229,8 +229,8 @@ var validator = {
         assert_true(ctl.reportValidity(), "The reportValidity method should be true.");
         assert_false(eventFired, "The invalid event should not be fired.");
       } else {
-        assert_true(eventFired, "The invalid event should be fired.");
         assert_false(ctl.reportValidity(), "The reportValidity method should be false.");
+        assert_true(eventFired, "The invalid event should be fired.");
       }
     }, data.name);
 
@@ -262,12 +262,24 @@ var validator = {
   },
 
   set_conditions: function (ctl, obj) {
-    ["required", "pattern", "step", "max", "min", "maxlength",
-     "value", "multiple", "checked", "selected"].forEach(function(item) {
+    [
+      "checked",
+      "disabled",
+      "max",
+      "maxlength",
+      "min",
+      "minlength",
+      "multiple",
+      "pattern",
+      "required",
+      "selected",
+      "step",
+      "value"
+    ].forEach(function(item) {
       ctl.removeAttribute(item);
     });
     for (var attr in obj) {
-      if (obj[attr] || obj[attr] === "")
+      if (attr === "checked" || obj[attr] || obj[attr] === "")
         ctl[attr] = obj[attr];
     }
   },
@@ -278,10 +290,24 @@ var validator = {
     var old_value = ctl.value;
     ctl.value = "a";
     ctl.value = old_value;
-    if (ctl.type !== 'email') {
-      ctl.setSelectionRange(ctl.value.length, ctl.value.length);
+    if (
+      // See https://html.spec.whatwg.org/multipage/#input-type-attr-summary
+      // and https://html.spec.whatwg.org/multipage/#textFieldSelection
+      (
+        ctl.tagName === "INPUT" && (
+          ctl.type === "text" ||
+          ctl.type === "search" ||
+          ctl.type === "tel" ||
+          ctl.type === "url" ||
+          ctl.type === "password"
+        )
+      ) ||
+      ctl.tagName === "TEXTAREA"
+    ) {
+      ctl.value += "1";
+      ctl.setSelectionRange(ctl.value.length - 1, ctl.value.length);
+      document.execCommand("Delete");
     }
-    document.execCommand("Delete");
     document.designMode = "off";
   },
 

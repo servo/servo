@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlappletelement
+// https://html.spec.whatwg.org/multipage/#htmlappletelement
 interface HTMLAppletElement : HTMLElement {
   //         attribute DOMString align;
   //         attribute DOMString alt;

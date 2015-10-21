@@ -76,6 +76,7 @@ background-paint-order-001.xht == reference/background-paint-order-001-ref.xht
 background-repeat-no-repeat.xht == reference/background-repeat-no-repeat.xht
 background-repeat-repeat-x.xht == reference/background-repeat-repeat-x.xht
 background-repeat-repeat-y.xht == reference/background-repeat-repeat-y.xht
+background-repeat-round.xht == reference/background-repeat-round.xht
 background-repeat-round-roundup.xht == reference/background-repeat-round-roundup.xht
 background-repeat-space.xht == reference/background-repeat-space.xht
 background-size-002.xht == reference/background-size-002-ref.xht
@@ -193,6 +194,7 @@ border-radius-010.xht == reference/border-radius-010-ref.xht
 border-radius-011.xht == reference/border-radius-011-ref.xht
 border-radius-clipping.xht == reference/border-radius-clipping-ref.xht
 border-radius-horizontal-value-is-zero.xht == reference/border-radius-horizontal-value-is-zero-ref.xht
+border-radius-shorthand-002.xht == reference/border-radius-shorthand-002-ref.xht
 border-top-left-radius-001.xht == reference/border-radius-001-ref.xht
 border-top-left-radius-003.xht == border-top-left-radius-004.xht
 border-top-left-radius-004.xht == border-top-left-radius-003.xht
@@ -213,7 +215,7 @@ border-top-right-radius-009.xht == border-top-right-radius-007.xht
 border-top-right-radius-010.xht == reference/border-radius-001-ref.xht
 border-top-right-radius-011.xht == reference/border-radius-001-ref.xht
 border-top-right-radius-014.xht == reference/border-radius-001-ref.xht
-box-shadow-001.xht == reference/box-shadow-001-ref.xht
+box-shadow-005.xht == reference/box-shadow-005-ref.xht
 box-shadow-inset-spread-without-border-radius.xht == reference/box-shadow-inset-spread-without-border-radius.xht
 box-shadow-inset-without-border-radius.xht == reference/box-shadow-inset-without-border-radius.xht
 box-shadow-outset-spread-without-border-radius.xht == reference/box-shadow-outset-spread-without-border-radius.xht

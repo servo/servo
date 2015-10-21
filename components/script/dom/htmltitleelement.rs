@@ -5,14 +5,12 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, HTMLElementCast};
+use dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{ChildrenMutation, Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
@@ -22,18 +20,10 @@ pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
 }
 
-impl HTMLTitleElementDerived for EventTarget {
-    fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
-    }
-}
-
 impl HTMLTitleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTitleElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
@@ -47,7 +37,7 @@ impl HTMLTitleElement {
 }
 
 impl HTMLTitleElementMethods for HTMLTitleElement {
-    // https://www.whatwg.org/html/#dom-title-text
+    // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
         let node = NodeCast::from_ref(self);
         let mut content = String::new();
@@ -61,7 +51,7 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
         content
     }
 
-    // https://www.whatwg.org/html/#dom-title-text
+    // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
         let node = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
@@ -69,7 +59,7 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 }
 
 impl VirtualMethods for HTMLTitleElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

@@ -10,6 +10,7 @@ function checkMetadata(doc, contentType) {
   assert_equals(doc.URL, document.URL, "URL");
   assert_equals(doc.documentURI, document.URL, "documentURI");
   assert_equals(doc.characterSet, "UTF-8", "characterSet");
+  assert_equals(doc.charset, "UTF-8", "charset");
   assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
   assert_equals(doc.contentType, contentType, "contentType");
   assert_equals(doc.location, null, "location");

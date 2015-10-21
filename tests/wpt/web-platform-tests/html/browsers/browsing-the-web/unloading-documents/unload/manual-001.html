@@ -1,0 +1,5 @@
+<!doctype html>
+<title>Document salvagable state after setting pagehide handler</title>
+<script>onpagehide = function() {setTimeout(function(){document.body.innerHTML = "PASS"}, 100)}</script>
+<p>Click the link below then navigate back to this page. Shortly after returning you should see the text "PASS"</p>
+<p><A href="manual-001-1.html">Click here</a>

@@ -6,9 +6,10 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
-use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag, OpaqueFlow};
+use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use layout_debug;
 use std::cmp::max;
@@ -16,7 +17,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::geometry::{Au, ZERO_RECT};
+use util::geometry::ZERO_RECT;
 use util::logical_geometry::LogicalSize;
 
 /// A table formatting context.

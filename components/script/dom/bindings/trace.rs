@@ -31,7 +31,7 @@
 
 use canvas_traits::WebGLError;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
-use canvas_traits::{LineCapStyle, LineJoinStyle, CompositionOrBlending, RepetitionStyle};
+use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
@@ -45,10 +45,10 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use js::jsapi::JS_CallUnbarrieredObjectTracer;
-use js::jsapi::{JSObject, JSTracer, JSGCTraceKind, JS_CallValueTracer, JS_CallObjectTracer, GCTraceKindToAscii, Heap};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSGCTraceKind, JSObject, JSTracer, JS_CallObjectTracer, JS_CallValueTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
-use layout_interface::{LayoutRPC, LayoutChan};
+use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WorkerId};
@@ -60,10 +60,10 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
 use script_traits::UntrustedNodeAddress;
 use selectors::parser::PseudoElement;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
-use std::cell::{Cell, UnsafeCell, RefCell};
+use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::hash_state::HashState;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
@@ -77,6 +77,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
+use style::values::specified::Length;
 use url::Url;
 use util::str::{LengthOrPercentageOrAuto};
 
@@ -301,6 +302,7 @@ no_jsmanaged_fields!(WebGLError);
 no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
+no_jsmanaged_fields!(Length);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

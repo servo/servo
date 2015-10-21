@@ -6,14 +6,13 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::element::AttributeMutation;
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
@@ -26,21 +25,13 @@ pub struct HTMLObjectElement {
     image: DOMRefCell<Option<Arc<Image>>>,
 }
 
-impl HTMLObjectElementDerived for EventTarget {
-    fn is_htmlobjectelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)))
-    }
-}
-
 impl HTMLObjectElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLObjectElement {
         HTMLObjectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             image: DOMRefCell::new(None),
         }
     }
@@ -92,10 +83,15 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-object-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 }
 
 impl VirtualMethods for HTMLObjectElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -112,3 +108,5 @@ impl VirtualMethods for HTMLObjectElement {
         }
     }
 }
+
+impl FormControl for HTMLObjectElement {}

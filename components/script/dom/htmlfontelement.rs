@@ -7,17 +7,17 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFontElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, RawLayoutElementHelpers};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::{self, DOMString};
+use style::values::specified;
+use util::str::{self, DOMString, parse_legacy_font_size};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -26,18 +26,11 @@ pub struct HTMLFontElement {
     face: DOMRefCell<Option<Atom>>,
 }
 
-impl HTMLFontElementDerived for EventTarget {
-    fn is_htmlfontelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)))
-    }
-}
 
 impl HTMLFontElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFontElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             color: Cell::new(None),
             face: DOMRefCell::new(None),
         }
@@ -64,10 +57,20 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-face
     make_atomic_setter!(SetFace, "face");
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    make_getter!(Size);
+
+    // https://html.spec.whatwg.org/multipage/#dom-font-size
+    fn SetSize(&self, value: DOMString) {
+        let element = ElementCast::from_ref(self);
+        let length = parse_length(&value);
+        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+    }
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -92,6 +95,10 @@ impl VirtualMethods for HTMLFontElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("face") => AttrValue::from_atomic(value),
+            &atom!("size") => {
+                let length = parse_length(&value);
+                AttrValue::Length(value, length)
+            },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -111,4 +118,18 @@ impl HTMLFontElement {
             None => None,
         }
     }
+
+    #[allow(unsafe_code)]
+    pub fn get_size(&self) -> Option<specified::Length> {
+        unsafe {
+            ElementCast::from_ref(self)
+                .get_attr_for_layout(&ns!(""), &atom!("size"))
+                .and_then(AttrValue::as_length)
+                .cloned()
+        }
+    }
+}
+
+fn parse_length(value: &str) -> Option<specified::Length> {
+    parse_legacy_font_size(&value).and_then(|parsed| specified::Length::from_str(&parsed))
 }

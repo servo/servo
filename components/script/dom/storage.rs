@@ -5,7 +5,8 @@
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::global::{GlobalRef, GlobalField};
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -15,7 +16,7 @@ use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_task::{StorageTask, StorageTaskMsg, StorageType};
 use page::IterablePage;
-use script_task::{ScriptTask, MainThreadRunnable, MainThreadScriptMsg};
+use script_task::{MainThreadRunnable, MainThreadScriptMsg, ScriptTask};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use url::Url;
@@ -82,14 +83,19 @@ impl StorageMethods for Storage {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-storage-setitem
-    fn SetItem(&self, name: DOMString, value: DOMString) {
+    fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
 
         let msg = StorageTaskMsg::SetItem(sender, self.get_url(), self.storage_type, name.clone(), value.clone());
         self.get_storage_task().send(msg).unwrap();
-        let (changed, old_value) = receiver.recv().unwrap();
-        if changed {
-            self.broadcast_change_notification(Some(name), old_value, Some(value));
+        match receiver.recv().unwrap() {
+            Err(_) => Err(Error::QuotaExceeded),
+            Ok((changed, old_value)) => {
+              if changed {
+                  self.broadcast_change_notification(Some(name), old_value, Some(value));
+              }
+              Ok(())
+            }
         }
     }
 
@@ -116,8 +122,10 @@ impl StorageMethods for Storage {
 
     // https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        let (sender, receiver) = ipc::channel().unwrap();
+
+        self.get_storage_task().send(StorageTaskMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
+        receiver.recv().unwrap()
     }
 
     // check-tidy: no specs after this line
@@ -127,8 +135,8 @@ impl StorageMethods for Storage {
         item
     }
 
-    fn NamedSetter(&self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
+    fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {
+        self.SetItem(name, value)
     }
 
     fn NamedDeleter(&self, name: DOMString) {

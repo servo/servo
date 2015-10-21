@@ -8,19 +8,18 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLLinkElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
-use dom::event::{EventBubbles, EventCancelable, Event};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::element::{AttributeMutation, Element};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
 use msg::constellation_msg::ConstellationChan;
@@ -40,18 +39,10 @@ pub struct HTMLLinkElement {
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl HTMLLinkElementDerived for EventTarget {
-    fn is_htmllinkelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)))
-    }
-}
-
 impl HTMLLinkElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLinkElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -97,7 +88,7 @@ fn is_favicon(value: &Option<String>) -> bool {
 }
 
 impl VirtualMethods for HTMLLinkElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

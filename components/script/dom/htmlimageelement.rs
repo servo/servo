@@ -8,25 +8,24 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
+use dom::element::AttributeMutation;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{document_from_node, Node, NodeTypeId, NodeDamage, window_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageResponder, ImageResponse};
 use script_task::ScriptTaskEventCategory::UpdateReplacedElement;
-use script_task::{Runnable, ScriptChan, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -39,15 +38,6 @@ pub struct HTMLImageElement {
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
 }
-
-impl HTMLImageElementDerived for EventTarget {
-    fn is_htmlimageelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)))
-    }
-}
-
 
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<Url>{
@@ -110,7 +100,6 @@ impl HTMLImageElement {
         let node = NodeCast::from_ref(self);
         let document = node.owner_doc();
         let window = document.r().window();
-        let window = window.r();
         let image_cache = window.image_cache_task();
         match value {
             None => {
@@ -144,7 +133,7 @@ impl HTMLImageElement {
 
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
         }
@@ -309,7 +298,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 }
 
 impl VirtualMethods for HTMLImageElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

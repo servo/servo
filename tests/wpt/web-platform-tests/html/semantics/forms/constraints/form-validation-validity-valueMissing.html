@@ -114,17 +114,26 @@
         {conditions: {required: true, value: " 123 "}, expected: true, name: "[target] Value is a number with some white spaces"},
         {conditions: {required: true, value: Math.pow(2, 1024)}, expected: true, name: "[target] Value is Math.pow(2, 1024)"},
         {conditions: {required: true, value: Math.pow(-2, 1024)}, expected: true, name: "[target] Value is Math.pow(-2, 1024)"},
-        {conditions: {required: true, value: "abc"}, expected: true, name: "[target] Value is a string that can not be coverted to a number"},
+        {conditions: {required: true, value: "abc"}, expected: true, name: "[target] Value is a string that cannot be converted to a number"},
         {conditions: {required: true, value: ""}, expected: true, name: "[target] The value attribute is empty string"}
       ]
     },
     {
       tag: "input",
-      types: ["checkbox", "radio"],
+      types: ["checkbox"],
       testData: [
         {conditions: {required: false, checked: false, name: "test1"}, expected: false, name: "[target] The required attribute is not set"},
-        {conditions: {required: true, checked: true, name: "test1"}, expected: false, name: "[target] The checked attribute is true"},
-        {conditions: {required: true, checked: false, name: "test1"}, expected: true, name: "[target] The checked attribute is false"}
+        {conditions: {required: true, checked: true, name: "test2"}, expected: false, name: "[target] The checked attribute is true"},
+        {conditions: {required: true, checked: false, name: "test3"}, expected: true, name: "[target] The checked attribute is false"}
+      ]
+    },
+    {
+      tag: "input",
+      types: ["radio"],
+      testData: [
+        {conditions: {required: false, checked: false, name: "test4"}, expected: false, name: "[target] The required attribute is not set"},
+        {conditions: {required: true, checked: true, name: "test5"}, expected: false, name: "[target] The checked attribute is true"},
+        {conditions: {required: true, checked: false, name: "test6"}, expected: true, name: "[target] The checked attribute is false"}
       ]
     },
     {

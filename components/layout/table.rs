@@ -6,6 +6,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
@@ -28,7 +29,6 @@ use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{TableRowFlow};
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_wrapper::TableLayout;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
@@ -810,17 +810,12 @@ impl TableLikeFlow for BlockFlow {
             let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
                 &self.fragment,
                 self.base.block_container_explicit_block_size);
-            loop {
-                match candidate_block_size_iterator.next() {
-                    Some(candidate_block_size) => {
-                        candidate_block_size_iterator.candidate_value =
-                            match candidate_block_size {
-                                MaybeAuto::Auto => block_size,
-                                MaybeAuto::Specified(value) => value
-                            }
-                    }
-                    None => break,
-                }
+            while let Some(candidate_block_size) = candidate_block_size_iterator.next() {
+                candidate_block_size_iterator.candidate_value =
+                    match candidate_block_size {
+                        MaybeAuto::Auto => block_size,
+                        MaybeAuto::Specified(value) => value
+                    };
             }
 
             // Adjust `current_block_offset` as necessary to account for the explicitly-specified

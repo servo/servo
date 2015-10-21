@@ -2,21 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnErrorEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::WindowBinding::{ScrollToOptions, ScrollBehavior};
-use dom::bindings::codegen::Bindings::WindowBinding::{self, WindowMethods, FrameRequestCallback};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventTargetCast, WindowDerived};
-use dom::bindings::error::Error::InvalidCharacter;
-use dom::bindings::error::{report_pending_exception, Fallible};
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast};
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::RootedReference;
-use dom::bindings::js::{JS, Root, MutNullableHeap};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
 use dom::browsercontext::BrowsingContext;
@@ -25,25 +25,25 @@ use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{window_from_node, TrustedNodeAddress, from_untrusted_node_address};
+use dom::node::{TrustedNodeAddress, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
-use js::jsapi::{JSContext, HandleValue};
-use js::jsapi::{JS_GC, JS_GetRuntime, JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GC, JS_GetRuntime};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{ReflowGoal, ReflowQueryType, LayoutRPC, LayoutChan, Reflow, Msg};
+use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowGoal, ReflowQueryType};
 use libc;
-use msg::compositor_msg::{ScriptToCompositorMsg, LayerId};
-use msg::constellation_msg::{LoadData, PipelineId, SubpageId, ConstellationChan, WindowSizeData, WorkerId};
+use msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData, WorkerId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask};
@@ -51,9 +51,9 @@ use net_traits::storage_task::{StorageTask, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
-use rustc_serialize::base64::{FromBase64, ToBase64, STANDARD};
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
-use script_task::{TimerSource, ScriptChan, ScriptPort, MainThreadScriptMsg};
+use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
+use script_task::{MainThreadScriptChan, SendableMainThreadScriptChan};
+use script_task::{MainThreadScriptMsg, ScriptChan, ScriptPort, TimerSource};
 use script_traits::ConstellationControlMsg;
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
@@ -62,17 +62,17 @@ use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
-use std::io::{stdout, stderr, Write};
+use std::io::{Write, stderr, stdout};
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use time;
-use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
+use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
 use url::Url;
-use util::geometry::{self, Au, MAX_RECT};
+use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
@@ -100,6 +100,7 @@ pub enum ReflowReason {
     DocumentLoaded,
     ImageLoaded,
     RequestAnimationFrame,
+    WebFontLoaded,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -290,13 +291,13 @@ impl Window {
     }
 }
 
-// https://www.whatwg.org/html/#atob
+// https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
     if input.chars().any(|c: char| c > '\u{FF}') {
-        Err(InvalidCharacter)
+        Err(Error::InvalidCharacter)
     } else {
         // "Otherwise, the user agent must convert that argument to a
         //  sequence of octets whose nth octet is the eight-bit
@@ -310,7 +311,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     }
 }
 
-// https://www.whatwg.org/html/#atob
+// https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "Remove all space characters from input."
     // serialize::base64::from_base64 ignores \r and \n,
@@ -338,7 +339,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     // "If the length of input divides by 4 leaving a remainder of 1,
     //  throw an InvalidCharacterError exception and abort these steps."
     if input.len() % 4 == 1 {
-        return Err(InvalidCharacter)
+        return Err(Error::InvalidCharacter)
     }
 
     // "If input contains a character that is not in the following list of
@@ -349,17 +350,17 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     //  U+002F SOLIDUS (/)
     //  Alphanumeric ASCII characters"
     if input.chars().any(|c| c != '+' && c != '/' && !c.is_alphanumeric()) {
-        return Err(InvalidCharacter)
+        return Err(Error::InvalidCharacter)
     }
 
     match input.from_base64() {
         Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
-        Err(..) => Err(InvalidCharacter)
+        Err(..) => Err(Error::InvalidCharacter)
     }
 }
 
 impl WindowMethods for Window {
-    // https://html.spec.whatwg.org/#dom-alert
+    // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
@@ -380,20 +381,20 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-0
     fn Document(&self) -> Root<Document> {
-        self.browsing_context().as_ref().unwrap().active_document()
+        Root::from_ref(self.browsing_context().as_ref().unwrap().active_document())
     }
 
-    // https://html.spec.whatwg.org/#dom-location
+    // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
         self.Document().r().Location()
     }
 
-    // https://html.spec.whatwg.org/#dom-sessionstorage
+    // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> Root<Storage> {
         self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Session))
     }
 
-    // https://html.spec.whatwg.org/#dom-localstorage
+    // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
     }
@@ -408,17 +409,17 @@ impl WindowMethods for Window {
         self.crypto.or_init(|| Crypto::new(GlobalRef::Window(self)))
     }
 
-    // https://html.spec.whatwg.org/#dom-frameelement
+    // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
-        self.browsing_context().as_ref().unwrap().frame_element()
+        self.browsing_context().as_ref().unwrap().frame_element().map(Root::from_ref)
     }
 
-    // https://html.spec.whatwg.org/#dom-navigator
+    // https://html.spec.whatwg.org/multipage/#dom-navigator
     fn Navigator(&self) -> Root<Navigator> {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -428,7 +429,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-settimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
     fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -438,12 +439,12 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-cleartimeout
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
     fn ClearTimeout(&self, handle: i32) {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -453,7 +454,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-setinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
     fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -463,7 +464,7 @@ impl WindowMethods for Window {
                                             self.script_chan.clone())
     }
 
-    // https://html.spec.whatwg.org/#dom-windowtimers-clearinterval
+    // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
     fn ClearInterval(&self, handle: i32) {
         self.ClearTimeout(handle);
     }
@@ -478,7 +479,7 @@ impl WindowMethods for Window {
         self.Window()
     }
 
-    // https://www.whatwg.org/html/#dom-frames
+    // https://html.spec.whatwg.org/multipage/#dom-frames
     fn Frames(&self) -> Root<Window> {
         self.Window()
     }
@@ -511,6 +512,9 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#handler-window-onunload
     event_handler!(unload, GetOnunload, SetOnunload);
+
+    // https://html.spec.whatwg.org/multipage/#handler-window-onstorage
+    event_handler!(storage, GetOnstorage, SetOnstorage);
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     error_event_handler!(error, GetOnerror, SetOnerror);
@@ -777,9 +781,9 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
         unsafe {
-            if Evaluate2(cx, options.ptr, code.as_ptr() as *const i16,
-                         code.len() as libc::size_t,
-                         rval) == 0 {
+            if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                          code.len() as libc::size_t,
+                          rval) {
                 debug!("error evaluating JS string");
                 report_pending_exception(cx, globalhandle.get());
             }
@@ -1098,7 +1102,7 @@ impl Window {
 
     pub fn get_url(&self) -> Url {
         let doc = self.Document();
-        doc.r().url()
+        (*doc.r().url()).clone()
     }
 
     pub fn resource_task(&self) -> ResourceTask {
@@ -1244,11 +1248,11 @@ impl Window {
         let browsing_context = browsing_context.as_ref().unwrap();
 
         browsing_context.frame_element().map(|frame_element| {
-            let window = window_from_node(frame_element.r());
+            let window = window_from_node(frame_element);
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browsing_context();
-            context.as_ref().unwrap().active_window()
+            Root::from_ref(context.as_ref().unwrap().active_window())
         })
     }
 }
@@ -1378,13 +1382,8 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
         ReflowReason::ImageLoaded => "\tImageLoaded",
         ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
+        ReflowReason::WebFontLoaded => "\tWebFontLoaded",
     });
 
     println!("{}", debug_msg);
-}
-
-impl WindowDerived for EventTarget {
-    fn is_window(&self) -> bool {
-        self.type_id() == &EventTargetTypeId::Window
-    }
 }

@@ -13,12 +13,13 @@
 
 #![deny(unsafe_code)]
 
-use block::{BlockFlow, FloatNonReplaced, AbsoluteNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
+use app_units::Au;
+use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
 use floats::FloatKind;
-use flow::{FlowClass, Flow, ImmutableFlowUtils};
+use flow::{Flow, FlowClass, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use model::MaybeAuto;
@@ -32,7 +33,6 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 
 #[derive(Copy, Clone, RustcEncodable, Debug)]
@@ -860,4 +860,3 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
     }
 
 }
-

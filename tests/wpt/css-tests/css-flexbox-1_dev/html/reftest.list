@@ -418,7 +418,6 @@ flexbox_flow-column-wrap-reverse.htm == reference/flexbox_flow-column-wrap-rever
 flexbox_flow-row-wrap.htm == reference/flexbox_flow-row-wrap-ref.htm
 flexbox_flow-row-wrap-reverse.htm == reference/flexbox_flow-row-wrap-reverse-ref.htm
 flexbox_generated.htm == reference/flexbox_generated-ref.htm
-flexbox_generated-container.htm == reference/flexbox_generated-container-ref.htm
 flexbox_generated-flex.htm == reference/flexbox_generated-flex-ref.htm
 flexbox_generated-nested-flex.htm == reference/flexbox_generated-flex-ref.htm
 flexbox_inline.htm == reference/flexbox_inline-ref.htm
@@ -445,8 +444,6 @@ flexbox_margin-auto-overflow.htm == reference/flexbox_margin-auto-overflow-ref.h
 flexbox_margin-auto-overflow-2.htm == reference/flexbox_margin-auto-overflow-2-ref.htm
 flexbox_margin-collapse.htm == reference/flexbox_margin-collapse-ref.htm
 flexbox_margin-left-ex.htm == reference/flexbox_margin-left-ex-ref.htm
-flexbox_min-height-auto.htm == reference/flexbox_min-height-auto-ref.htm
-flexbox_min-width-auto.htm == reference/flexbox_min-width-auto-ref.htm
 flexbox_nested-flex.htm == reference/flexbox_generated-flex-ref.htm
 flexbox_object.htm == reference/flexbox_object-ref.htm
 flexbox_order.htm == reference/flexbox_order-ref.htm
@@ -525,6 +522,7 @@ ttwf-reftest-flex-base.htm == reference/ttwf-reftest-flex-base-ref.htm
 ttwf-reftest-flex-direction-column.htm == reference/ttwf-reftest-flex-direction-column-ref.htm
 ttwf-reftest-flex-direction-column-reverse.htm == reference/ttwf-reftest-flex-direction-column-reverse-ref.htm
 ttwf-reftest-flex-direction-row-reverse.htm == reference/ttwf-reftest-flex-direction-row-reverse-ref.htm
+ttwf-reftest-flex-inline.htm == reference/ttwf-reftest-flex-inline-ref.htm
 ttwf-reftest-flex-order.htm == reference/ttwf-reftest-flex-order-ref.htm
 ttwf-reftest-flex-wrap.htm == reference/ttwf-reftest-flex-wrap-ref.htm
 ttwf-reftest-flex-wrap-reverse.htm == reference/ttwf-reftest-flex-wrap-reverse-ref.htm

@@ -119,6 +119,7 @@ impl Page {
         old
     }
 
+    #[allow(unrooted_must_root)]
     pub fn set_frame(&self, frame: Option<Frame>) {
         *self.frame.borrow_mut() = frame;
     }

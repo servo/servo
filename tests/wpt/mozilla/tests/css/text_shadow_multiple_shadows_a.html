@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='text_shadow_multiple_shadows_ref.html'>
+<!-- Tests that multiple `text-shadow`s paint in the right order. -->
+<style>
+#a {
+    text-shadow: 6px 6px black, 12px 12px blue;
+    color: red;
+    font-size: 96px;
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    width: 300px;
+}
+</style>
+</head>
+<body>
+<div id=a>Foo</div>
+</body>
+</html>
+

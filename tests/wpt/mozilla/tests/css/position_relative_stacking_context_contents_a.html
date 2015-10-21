@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel='match' href='position_relative_stacking_context_contents_ref.html'>
+<style>
+html, body {
+    margin: 0;
+}
+aside {
+    display: block;
+    position: relative;
+    left: 12px;
+    z-index: 3;  /* force creation of stacking context */
+    background: red;
+}
+div {
+    float: left;
+    width: 100px;
+    height: 100px;
+    background: blue;
+}
+</style>
+<aside><div></div></aside>
+

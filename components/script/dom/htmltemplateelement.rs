@@ -6,15 +6,12 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTemplateElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTemplateElementCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{CloneChildrenFlag, Node, NodeTypeId, document_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
@@ -26,21 +23,13 @@ pub struct HTMLTemplateElement {
     contents: MutNullableHeap<JS<DocumentFragment>>,
 }
 
-impl HTMLTemplateElementDerived for EventTarget {
-    fn is_htmltemplateelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)))
-    }
-}
-
 impl HTMLTemplateElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             contents: MutNullableHeap::new(None),
         }
     }

@@ -5,27 +5,28 @@
 
 use cookie;
 use cookie_storage::CookieStorage;
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
+use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hsts::{secure_url, HSTSList, HSTSEntry};
+use hsts::{HSTSEntry, HSTSList, secure_url};
 use hyper::Error as HttpError;
-use hyper::client::{Request, Response, Pool};
-use hyper::header::{AcceptEncoding, Accept, ContentLength, ContentType, Host};
-use hyper::header::{Location, qitem, StrictTransportSecurity, UserAgent, SetCookie};
-use hyper::header::{Quality, QualityItem, Headers, ContentEncoding, Encoding, Header};
+use hyper::client::{Pool, Request, Response};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
+use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::{Fresh, HttpsConnector, Openssl};
-use hyper::status::{StatusCode, StatusClass};
+use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
-use net_traits::{CookieSource, LoadData, Metadata, LoadConsumer, IncludeSubdomains};
-use openssl::ssl::{SslContext, SslMethod, SSL_VERIFY_PEER};
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
+use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
+use resource_task::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -51,12 +52,13 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     Arc::new(Pool::with_connector(Default::default(), connector))
 }
 
-pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
+pub fn factory(user_agent: String,
+               hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-    box move |load_data: LoadData, senders, classifier, user_agent| {
+               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+    box move |load_data: LoadData, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
                               senders,
@@ -68,16 +70,6 @@ pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
                               user_agent)
         })
     }
-}
-
-fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
-    let mut metadata: Metadata = Metadata::default(url);
-    metadata.status = None;
-
-    match start_sending_opt(start_chan, metadata) {
-        Ok(p) => p.send(Done(Err(err))).unwrap(),
-        _ => {}
-    };
 }
 
 enum ReadResult {
@@ -124,7 +116,7 @@ fn load_for_consumer(load_data: LoadData,
             send_error(url, e, start_chan)
         }
         Err(LoadError::MaxRedirects(url)) => {
-            send_error(url, "too many redirects".to_string(), start_chan)
+            send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
         Err(LoadError::InvalidRedirect(url, msg)) |
@@ -156,8 +148,8 @@ pub trait HttpResponse: Read {
 
     fn content_encoding(&self) -> Option<Encoding> {
         self.headers().get::<ContentEncoding>().and_then(|h| {
-            match h {
-                &ContentEncoding(ref encodings) => {
+            match *h {
+                ContentEncoding(ref encodings) => {
                     if encodings.contains(&Encoding::Gzip) {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
@@ -237,7 +229,7 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
                 )
             },
             Err(e) => {
-                 return Err(LoadError::Connection(url, e.description().to_string()))
+                 return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         };
 
@@ -267,13 +259,13 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         if let Some(ref data) = *body {
             match request_writer.write_all(&data) {
                 Err(e) => {
-                    return Err(LoadError::Connection(url, e.description().to_string()))
+                    return Err(LoadError::Connection(url, e.description().to_owned()))
                 }
                 _ => {}
             }
@@ -282,9 +274,9 @@ impl HttpRequest for WrappedHttpRequest {
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::ConnectionAborted(io_error.description().to_string()));
+                return Err(LoadError::ConnectionAborted(io_error.description().to_owned()));
             },
-            Err(e) => return Err(LoadError::Connection(url, e.description().to_string()))
+            Err(e) => return Err(LoadError::Connection(url, e.description().to_owned()))
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -308,14 +300,17 @@ fn set_default_accept_encoding(headers: &mut Headers) {
         return
     }
 
-    headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    headers.set(AcceptEncoding(vec![
+        qitem(Encoding::Gzip),
+        qitem(Encoding::Deflate)
+    ]));
 }
 
 fn set_default_accept(headers: &mut Headers) {
     if !headers.has::<Accept>() {
         let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
                             QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
@@ -374,7 +369,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
                 IncludeSubdomains::NotIncluded
             };
 
-            if let Some(entry) = HSTSEntry::new(host.to_string(), include_subdomains, Some(header.max_age)) {
+            if let Some(entry) = HSTSEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
                 info!("adding host {} to the strict transport security list", host);
                 info!("- max-age {}", header.max_age);
                 if header.include_subdomains {
@@ -415,19 +410,19 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => {
-                        return Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)));
+                        Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding)))
                     }
                     Err(err) => {
-                        return Err(LoadError::Decoding(m.final_url, err.to_string()));
+                        Err(LoadError::Decoding(m.final_url, err.to_string()))
                     }
                 }
             }
             Some(Encoding::Deflate) => {
                 let response_decoding = DeflateDecoder::new(response);
-                return Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)));
+                Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
             }
             _ => {
-                return Ok(StreamedResponse::new(m, Decoder::Plain(response)));
+                Ok(StreamedResponse::new(m, Decoder::Plain(response)))
             }
         }
     }
@@ -447,7 +442,8 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             body: Option<Vec<u8>>) {
 
     if let Some(ref chan) = devtools_chan {
-        let net_event = NetworkEvent::HttpRequest(url, method, headers, body);
+        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body };
+        let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -459,7 +455,8 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              headers: Option<Headers>,
                              status: Option<RawStatus>) {
     if let Some(ref chan) = devtools_chan {
-        let net_event_response = NetworkEvent::HttpResponse(headers, status, None);
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
@@ -629,51 +626,45 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
-            match response.headers().get::<Location>() {
-                Some(&Location(ref new_url)) => {
-                    // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
-                    match load_data.cors {
-                        Some(ref c) => {
-                            if c.preflight {
-                                return Err(
-                                    LoadError::Cors(
-                                        url,
-                                        "Preflight fetch inconsistent with main fetch".to_string()));
-                            } else {
-                                // XXXManishearth There are some CORS-related steps here,
-                                // but they don't seem necessary until credentials are implemented
-                            }
-                        }
-                        _ => {}
+            if let Some(&Location(ref new_url)) = response.headers().get::<Location>() {
+                // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
+                if let Some(ref c) = load_data.cors {
+                    if c.preflight {
+                        return Err(
+                            LoadError::Cors(
+                                url,
+                                "Preflight fetch inconsistent with main fetch".to_owned()));
+                    } else {
+                        // XXXManishearth There are some CORS-related steps here,
+                        // but they don't seem necessary until credentials are implemented
                     }
-
-                    let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
-                        Ok(u) => u,
-                        Err(e) => {
-                            return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
-                        }
-                    };
-
-                    info!("redirecting to {}", new_doc_url);
-                    url = replace_hosts(&new_doc_url);
-                    doc_url = new_doc_url;
-
-                    // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
-                    // historically UAs have rewritten POST->GET on 301 and 302 responses.
-                    if method == Method::Post &&
-                        (response.status() == StatusCode::MovedPermanently ||
-                         response.status() == StatusCode::Found) {
-                        method = Method::Get;
-                    }
-
-                    if redirected_to.contains(&url) {
-                        return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_string()));
-                    }
-
-                    redirected_to.insert(doc_url.clone());
-                    continue;
                 }
-                None => ()
+
+                let new_doc_url = match UrlParser::new().base_url(&doc_url).parse(&new_url) {
+                    Ok(u) => u,
+                    Err(e) => {
+                        return Err(LoadError::InvalidRedirect(doc_url, e.to_string()));
+                    }
+                };
+
+                info!("redirecting to {}", new_doc_url);
+                url = replace_hosts(&new_doc_url);
+                doc_url = new_doc_url;
+
+                // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
+                // historically UAs have rewritten POST->GET on 301 and 302 responses.
+                if method == Method::Post &&
+                    (response.status() == StatusCode::MovedPermanently ||
+                        response.status() == StatusCode::Found) {
+                    method = Method::Get;
+                }
+
+                if redirected_to.contains(&url) {
+                    return Err(LoadError::InvalidRedirect(doc_url, "redirect loop".to_owned()));
+                }
+
+                redirected_to.insert(doc_url.clone());
+                continue;
             }
         }
 

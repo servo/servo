@@ -6,13 +6,12 @@ use dom::bindings::str::USVString;
 use std::borrow::ToOwned;
 use std::fmt::Write;
 use url::urlutils::{UrlUtils, UrlUtilsWrapper};
-use url::{Url, UrlParser, SchemeData};
+use url::{SchemeData, Url, UrlParser};
 
 #[derive(HeapSizeOf)]
 pub struct UrlHelper;
 
 impl UrlHelper {
-    // https://url.spec.whatwg.org/#dom-urlutils-hash
     pub fn Hash(url: &Url) -> USVString {
         USVString(match url.fragment {
             None => "".to_owned(),
@@ -21,13 +20,11 @@ impl UrlHelper {
         })
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hash
     pub fn SetHash(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_fragment(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-host
     pub fn Host(url: &Url) -> USVString {
         USVString(match url.scheme_data {
             SchemeData::NonRelative(..) => "".to_owned(),
@@ -41,40 +38,33 @@ impl UrlHelper {
         })
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-host
     pub fn SetHost(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_host(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hostname
     pub fn Hostname(url: &Url) -> USVString {
         USVString(url.serialize_host().unwrap_or_else(|| "".to_owned()))
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-hostname
     pub fn SetHostname(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_host_and_port(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-href
     pub fn Href(url: &Url) -> USVString {
         USVString(url.serialize())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-password
     pub fn Password(url: &Url) -> USVString {
         USVString(url.password().unwrap_or("").to_owned())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-password
     pub fn SetPassword(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_password(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-pathname
     pub fn Pathname(url: &Url) -> USVString {
         USVString(match url.scheme_data {
             SchemeData::NonRelative(ref scheme_data) => scheme_data.clone(),
@@ -82,13 +72,11 @@ impl UrlHelper {
         })
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-pathname
     pub fn SetPathname(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_path(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-port
     pub fn Port(url: &Url) -> USVString {
         USVString(match url.port() {
             None => "".to_owned(),
@@ -96,18 +84,15 @@ impl UrlHelper {
         })
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-port
     pub fn SetPort(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_port(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-protocol
     pub fn Protocol(url: &Url) -> USVString {
         USVString(format!("{}:", url.scheme.clone()))
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-protocol
     pub fn SetProtocol(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_scheme(&value.0);
@@ -127,7 +112,6 @@ impl UrlHelper {
         true
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-search
     pub fn Search(url: &Url) -> USVString {
         USVString(match url.query {
             None => "".to_owned(),
@@ -136,18 +120,15 @@ impl UrlHelper {
         })
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-search
     pub fn SetSearch(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_query(&value.0);
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-username
     pub fn Username(url: &Url) -> USVString {
         USVString(url.username().unwrap_or("").to_owned())
     }
 
-    // https://url.spec.whatwg.org/#dom-urlutils-username
     pub fn SetUsername(url: &mut Url, value: USVString) {
         let mut wrapper = UrlUtilsWrapper { url: url, parser: &UrlParser::new() };
         let _ = wrapper.set_username(&value.0);

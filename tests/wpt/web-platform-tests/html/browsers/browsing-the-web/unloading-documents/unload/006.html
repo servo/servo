@@ -1,0 +1,18 @@
+<!doctype html>
+<title>salvagable state of document after setting pagehide listener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+
+var loaded = false;
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+  onload = null;
+  iframe.src="006-1.html?" + Math.random();
+}, 100)};
+
+</script>
+<iframe></iframe>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>'font' element, 'size' attribute</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#dom-font-size">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size">
+<link rel=help href="https://drafts.csswg.org/css-fonts-3/#font-size-prop">
+<link rel=author title="Corey Farwell" href="mailto:coreyf@rwell.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<font>Hello</font>
+
+<script>
+var elem = document.getElementsByTagName('font')[0];
+
+var modes = ["", "+", "-"];
+var sizes = ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
+
+var testSize = function (attrValue) {
+  elem.setAttribute("size", attrValue);
+  assert_equals(elem.getAttribute("size"), attrValue);
+  assert_equals(elem.size, attrValue);
+
+  elem.size = attrValue;
+  assert_equals(elem.getAttribute("size"), attrValue);
+  assert_equals(elem.size, attrValue);
+}
+
+var args = [];
+for (var i = 0; i < modes.length; i++) {
+  for (var j = 0; j < sizes.length; j++) {
+    var sizeAttrValue = modes[i] + sizes[j];
+    args.push(["size=" + sizeAttrValue, sizeAttrValue]);
+  }
+}
+
+generate_tests(testSize, args);
+</script>

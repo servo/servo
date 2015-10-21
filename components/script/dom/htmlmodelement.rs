@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLModElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLModElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLModElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLModElementDerived for EventTarget {
-    fn is_htmlmodelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLModElement)))
-    }
 }
 
 impl HTMLModElement {
@@ -31,7 +20,7 @@ impl HTMLModElement {
                      document: &Document) -> HTMLModElement {
         HTMLModElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLModElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

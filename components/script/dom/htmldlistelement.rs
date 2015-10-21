@@ -3,13 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDListElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLDListElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -17,19 +14,11 @@ pub struct HTMLDListElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLDListElementDerived for EventTarget {
-    fn is_htmldlistelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDListElement)))
-    }
-}
-
 impl HTMLDListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDListElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

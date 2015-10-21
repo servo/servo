@@ -3,14 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltablecolelement
+// https://html.spec.whatwg.org/multipage/#htmltablecolelement
 interface HTMLTableColElement : HTMLElement {
   //         attribute unsigned long span;
 
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLTableColElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLTableColElement-partial
 partial interface HTMLTableColElement {
   //         attribute DOMString align;
   //         attribute DOMString ch;

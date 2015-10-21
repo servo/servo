@@ -6,6 +6,7 @@
 //! interface helps reduce coupling between these two components, and enables
 //! the DOM to be placed in a separate crate from layout.
 
+use app_units::Au;
 use dom::node::LayoutData;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -22,14 +23,13 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{OpaqueScriptLayoutChannel, StylesheetLoadResponder, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use std::any::Any;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::animation::PropertyAnimation;
 use style::media_queries::MediaQueryList;
 use style::stylesheets::Stylesheet;
+use style::viewport::ViewportRule;
 use url::Url;
-use util::geometry::Au;
-
 pub use dom::node::TrustedNodeAddress;
 
 /// Asynchronous messages that script can send to layout.
@@ -39,6 +39,9 @@ pub enum Msg {
 
     /// Adds the given stylesheet to the document.
     LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad, Box<StylesheetLoadResponder + Send>),
+
+    /// Adds a @viewport rule (translated from a <META name="viewport"> element) to the document.
+    AddMetaViewport(ViewportRule),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,
@@ -51,6 +54,9 @@ pub enum Msg {
 
     /// Requests that the layout task render the next frame of all animations.
     TickAnimations,
+
+    /// Requests that the layout task reflow with a newly-loaded Web font.
+    ReflowWithNewlyLoadedWebFont,
 
     /// Updates the layout visible rects, affecting the area that display lists will be constructed
     /// for.
@@ -76,6 +82,10 @@ pub enum Msg {
 
     /// Get the last epoch counter for this layout task.
     GetCurrentEpoch(IpcSender<Epoch>),
+
+    /// Asks the layout task whether any Web fonts have yet to load (if true, loads are pending;
+    /// false otherwise).
+    GetWebFontLoadState(IpcSender<bool>),
 
     /// Creates a new layout task.
     ///
@@ -250,4 +260,3 @@ pub struct NewLayoutTaskInfo {
     pub paint_chan: Box<Any + Send>,
     pub layout_shutdown_chan: Sender<()>,
 }
-

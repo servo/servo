@@ -58,6 +58,7 @@
 //! the derived type enum should
 //! use one addititional type (the parent class) because sometimes the parent
 //! can be the most-derived class of an object.
+//!
 //! ```ignore
 //! pub enum EventTypeId {
 //!     UIEvent(UIEventTypeId),
@@ -185,14 +186,16 @@
 #[macro_use]
 pub mod macros;
 
-pub mod bindings;
-
 pub mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub mod activation;
 pub mod attr;
+mod create;
+#[allow(unsafe_code)]
+#[deny(missing_docs, non_snake_case)]
+pub mod bindings;
 pub mod blob;
 pub mod browsercontext;
 pub mod canvasgradient;
@@ -202,7 +205,6 @@ pub mod characterdata;
 pub mod closeevent;
 pub mod comment;
 pub mod console;
-mod create;
 pub mod crypto;
 pub mod css;
 pub mod cssstyledeclaration;
@@ -218,6 +220,7 @@ pub mod dompoint;
 pub mod dompointreadonly;
 pub mod domrect;
 pub mod domrectlist;
+pub mod domrectreadonly;
 pub mod domstringmap;
 pub mod domtokenlist;
 pub mod element;
@@ -319,6 +322,8 @@ pub mod screen;
 pub mod servohtmlparser;
 pub mod storage;
 pub mod storageevent;
+pub mod testbinding;
+pub mod testbindingproxy;
 pub mod text;
 pub mod textdecoder;
 pub mod textencoder;
@@ -329,9 +334,11 @@ pub mod urlhelper;
 pub mod urlsearchparams;
 pub mod userscripts;
 pub mod validitystate;
+pub mod values;
 pub mod virtualmethods;
 pub mod webglactiveinfo;
 pub mod webglbuffer;
+pub mod webglcontextevent;
 pub mod webglframebuffer;
 pub mod webglobject;
 pub mod webglprogram;
@@ -350,6 +357,3 @@ pub mod workernavigator;
 pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
-
-pub mod testbinding;
-pub mod testbindingproxy;

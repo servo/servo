@@ -4,17 +4,16 @@
 
 use dom::bindings::codegen::Bindings::TextEncoderBinding;
 use dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
-use dom::bindings::error::Error::Range;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::EncodingRef;
-use encoding::{Encoding, EncoderTrap};
+use encoding::{EncoderTrap, Encoding};
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_NewUint8Array, JS_GetUint8ArrayData};
+use js::jsapi::{JS_GetUint8ArrayData, JS_NewUint8Array};
 use libc::uint8_t;
 use std::borrow::ToOwned;
 use std::ptr;
@@ -50,7 +49,7 @@ impl TextEncoder {
             Some(enc) => enc,
             None => {
                 debug!("Encoding Label Not Supported");
-                return Err(Range("The given encoding is not supported.".to_owned()))
+                return Err(Error::Range("The given encoding is not supported.".to_owned()))
             }
         };
 
@@ -60,7 +59,7 @@ impl TextEncoder {
             }
             _ => {
                 debug!("Encoding Not UTF");
-                Err(Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
+                Err(Error::Range("The encoding must be utf-8, utf-16le, or utf-16be.".to_owned()))
             }
         }
     }

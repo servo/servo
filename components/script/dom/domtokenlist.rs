@@ -5,8 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::Error::{InvalidCharacter, Syntax};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -40,14 +39,13 @@ impl DOMTokenList {
     }
 
     fn attribute(&self) -> Option<Root<Attr>> {
-        let element = self.element.root();
-        element.r().get_attribute(&ns!(""), &self.local_name)
+        self.element.get_attribute(&ns!(""), &self.local_name)
     }
 
     fn check_token_exceptions(&self, token: &str) -> Fallible<Atom> {
         match token {
-            "" => Err(Syntax),
-            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
+            "" => Err(Error::Syntax),
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter),
             slice => Ok(Atom::from_slice(slice))
         }
     }
@@ -88,43 +86,40 @@ impl DOMTokenListMethods for DOMTokenList {
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-add
     fn Add(&self, tokens: Vec<DOMString>) -> ErrorResult {
-        let element = self.element.root();
-        let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
+        let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = try!(self.check_token_exceptions(&token));
             if !atoms.iter().any(|atom| *atom == token) {
                 atoms.push(token);
             }
         }
-        element.r().set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-remove
     fn Remove(&self, tokens: Vec<DOMString>) -> ErrorResult {
-        let element = self.element.root();
-        let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
+        let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = try!(self.check_token_exceptions(&token));
             atoms.iter().position(|atom| *atom == token).map(|index| {
                 atoms.remove(index)
             });
         }
-        element.r().set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-toggle
     fn Toggle(&self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
-        let element = self.element.root();
-        let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
+        let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         let token = try!(self.check_token_exceptions(&token));
         match atoms.iter().position(|atom| *atom == token) {
             Some(index) => match force {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    element.r().set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
                     Ok(false)
                 }
             },
@@ -132,7 +127,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    element.r().set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
                     Ok(true)
                 }
             }
@@ -141,7 +136,7 @@ impl DOMTokenListMethods for DOMTokenList {
 
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
-        let tokenlist = self.element.root().r().get_tokenlist_attribute(&self.local_name);
+        let tokenlist = self.element.get_tokenlist_attribute(&self.local_name);
         str_join(&tokenlist, "\x20")
     }
 

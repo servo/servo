@@ -31,6 +31,6 @@ path = "../plugins"
 time = "0.1"
 rustc-serialize = "0.3"
 bitflags = "0.3"
-serde = "0.5"
+serde = "0.6"
 serde_macros = "0.5"
 

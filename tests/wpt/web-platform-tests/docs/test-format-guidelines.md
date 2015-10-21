@@ -42,7 +42,7 @@ running in automation. In general the following order of preference holds:
 * WebDriver tests - for testing the webdriver protocol itself or (in
   the future) for certain tests that require access to privileged APIs.
 
-* Manual tests - as a last resort for anything that can't be tested
+* [Manual tests][manual-tests] - as a last resort for anything that can't be tested
   using one of the above techniques.
 
 Some scenarios demand certain test types. For example:
@@ -328,6 +328,7 @@ see the [lint-tool documentation][lint-tool].
 
 [lint-tool]: ./lint-tool.html
 [reftests]: ./reftests.html
+[manual-tests]: ./manual-test.html
 [test-templates]: ./test-templates.html
 [requirement-flags]: ./test-templates.html#requirement-flags
 [testharness-documentation]: ./testharness-documentation.html

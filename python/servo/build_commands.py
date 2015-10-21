@@ -35,9 +35,9 @@ def notify_linux(title, text):
         bus = dbus.SessionBus()
         notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
         method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
-        method(title, 0, "", text, "", [], [], -1)
+        method(title, 0, "", text, "", [], {"transient": True}, -1)
     except:
-        raise Exception("Please make sure that the Python dbus module is installed!")
+        raise Exception("Optional Python module 'dbus' is not installed.")
 
 
 def notify_win(title, text):
@@ -66,22 +66,23 @@ def notify_win(title, text):
 def notify_darwin(title, text):
     try:
         import Foundation
-        import objc
 
-        NSUserNotification = objc.lookUpClass("NSUserNotification")
-        NSUserNotificationCenter = objc.lookUpClass("NSUserNotificationCenter")
+        bundleDict = Foundation.NSBundle.mainBundle().infoDictionary()
+        bundleIdentifier = 'CFBundleIdentifier'
+        if bundleIdentifier not in bundleDict:
+            bundleDict[bundleIdentifier] = 'mach'
 
-        note = NSUserNotification.alloc().init()
+        note = Foundation.NSUserNotification.alloc().init()
         note.setTitle_(title)
         note.setInformativeText_(text)
 
         now = Foundation.NSDate.dateWithTimeInterval_sinceDate_(0, Foundation.NSDate.date())
         note.setDeliveryDate_(now)
 
-        centre = NSUserNotificationCenter.defaultUserNotificationCenter()
+        centre = Foundation.NSUserNotificationCenter.defaultUserNotificationCenter()
         centre.scheduleNotification_(note)
     except ImportError:
-        raise Exception("Please make sure that the Python pyobjc module is installed!")
+        raise Exception("Optional Python module 'pyobjc' is not installed.")
 
 
 def notify_build_done(elapsed):
@@ -97,6 +98,7 @@ def notify(title, text):
     platforms, this function acts as a no-op."""
     platforms = {
         "linux": notify_linux,
+        "linux2": notify_linux,
         "win": notify_win,
         "darwin": notify_darwin
     }

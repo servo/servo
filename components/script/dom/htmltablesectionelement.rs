@@ -4,14 +4,17 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived, NodeCast};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, Element};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{self, DOMString};
@@ -22,22 +25,11 @@ pub struct HTMLTableSectionElement {
     background_color: Cell<Option<RGBA>>,
 }
 
-impl HTMLTableSectionElementDerived for EventTarget {
-    fn is_htmltablesectionelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)))
-    }
-}
-
 impl HTMLTableSectionElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableSectionElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
         }
     }
@@ -54,8 +46,42 @@ impl HTMLTableSectionElement {
     }
 }
 
+#[derive(JSTraceable)]
+struct RowsFilter;
+impl CollectionFilter for RowsFilter {
+    fn filter(&self, elem: &Element, root: &Node) -> bool {
+        elem.is_htmltablerowelement()
+            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+    }
+}
+
+impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
+    fn Rows(&self) -> Root<HTMLCollection> {
+        HTMLCollection::create(&window_from_node(self), NodeCast::from_ref(self), box RowsFilter)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
+    fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+        let node = NodeCast::from_ref(self);
+        node.insert_cell_or_row(
+            index,
+            || self.Rows(),
+            || HTMLTableRowElement::new("tr".to_owned(), None, node.owner_doc().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
+    fn DeleteRow(&self, index: i32) -> ErrorResult {
+        let node = NodeCast::from_ref(self);
+        node.delete_cell_or_row(
+            index,
+            || self.Rows(),
+            |n| n.is_htmltablerowelement())
+    }
+}
+
 impl VirtualMethods for HTMLTableSectionElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

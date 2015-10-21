@@ -10,16 +10,15 @@ use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeCast, TextCast, TextDerived};
-use dom::bindings::error::Error::HierarchyRequest;
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
+use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast, TextDerived};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::characterdata::CharacterDataTypeId;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::node::{Node, NodeTypeId};
+use dom::node::Node;
 use std::cell::RefCell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use std::rc::Rc;
@@ -50,10 +49,9 @@ impl Range {
                start_container: &Node, start_offset: u32,
                end_container: &Node, end_offset: u32)
                -> Root<Range> {
-        let window = document.window();
         reflect_dom_object(box Range::new_inherited(start_container, start_offset,
                                                     end_container, end_offset),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(document.window()),
                            RangeBinding::Wrap)
     }
 
@@ -117,7 +115,7 @@ impl Range {
 
         // Step 12.
         if contained_children.iter().any(|n| n.is_doctype()) {
-            return Err(HierarchyRequest);
+            return Err(Error::HierarchyRequest);
         }
 
         Ok((first_contained_child, last_contained_child, contained_children))
@@ -597,7 +595,7 @@ impl RangeMethods for Range {
         match start_node.type_id() {
             // Handled under step 2.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => (),
-            NodeTypeId::CharacterData(_) => return Err(HierarchyRequest),
+            NodeTypeId::CharacterData(_) => return Err(Error::HierarchyRequest),
             _ => ()
         }
 
@@ -608,7 +606,7 @@ impl RangeMethods for Range {
                 let parent = match start_node.GetParentNode() {
                     Some(parent) => parent,
                     // Step 1.
-                    None => return Err(HierarchyRequest)
+                    None => return Err(Error::HierarchyRequest)
                 };
                 // Step 5.
                 (Some(Root::from_ref(start_node.r())), parent)

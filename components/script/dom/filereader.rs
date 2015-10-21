@@ -6,24 +6,23 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
-use dom::bindings::error::Error::InvalidState;
-use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{Root, JS, MutNullableHeap};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{reflect_dom_object, Reflectable};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
-use dom::domexception::{DOMException, DOMErrorName};
-use dom::event::{EventCancelable, EventBubbles};
+use dom::domexception::{DOMErrorName, DOMException};
+use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{EncodingRef, DecoderTrap};
-use hyper::mime::{Mime, Attr};
-use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+use encoding::types::{DecoderTrap, EncodingRef};
+use hyper::mime::{Attr, Mime};
+use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_task::ScriptTaskEventCategory::FileRead;
-use script_task::{ScriptChan, Runnable, ScriptPort, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
 use std::cell::{Cell, RefCell};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -117,7 +116,7 @@ impl FileReader {
 
         let global = fr.global.root();
         let exception = DOMException::new(global.r(), error);
-        fr.error.set(Some(JS::from_rooted(&exception)));
+        fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event("error".to_owned(), 0, None);
         return_on_abort!();
@@ -293,7 +292,7 @@ impl FileReaderMethods for FileReader {
 
         let global = self.global.root();
         let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
-        self.error.set(Some(JS::from_rooted(&exception)));
+        self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
@@ -303,7 +302,7 @@ impl FileReaderMethods for FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-error
     fn GetError(&self) -> Option<Root<DOMException>> {
-        self.error.get().map(|error| error.root())
+        self.error.get_rooted()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result
@@ -341,13 +340,13 @@ impl FileReader {
         let global = root.r();
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(InvalidState);
+            return Err(Error::InvalidState);
         }
         // Step 2
         if blob.IsClosed() {
             let global = self.global.root();
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
-            self.error.set(Some(JS::from_rooted(&exception)));
+            self.error.set(Some(&exception));
 
             self.dispatch_progress_event("error".to_owned(), 0, None);
             return Ok(());

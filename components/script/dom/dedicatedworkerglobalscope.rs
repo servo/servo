@@ -8,37 +8,35 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{RootCollection, Root};
+use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler, SimpleWorkerErrorHandler};
+use dom::worker::{SimpleWorkerErrorHandler, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
-use dom::workerglobalscope::{WorkerGlobalScopeTypeId, WorkerGlobalScopeInit};
+use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoRequest, JSAutoCompartment};
-use js::jsapi::{JSContext, RootedValue, HandleValue};
+use js::jsapi::{HandleValue, JSContext, RootedValue};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
 use rand::random;
 use script_task::ScriptTaskEventCategory::WorkerEvent;
-use script_task::{ScriptTask, ScriptChan, TimerSource, ScriptPort, StackRootTLS, CommonScriptMsg};
+use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask, StackRootTLS, TimerSource};
 use std::mem::replace;
 use std::rc::Rc;
-use std::sync::mpsc::{Sender, Receiver, channel, Select, RecvError};
+use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use url::Url;
 use util::task::spawn_named;
 use util::task_state;
-use util::task_state::{SCRIPT, IN_WORKER};
+use util::task_state::{IN_WORKER, SCRIPT};
 
 /// Messages used to control the worker event loops
 pub enum WorkerScriptMsg {
@@ -355,13 +353,4 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
-}
-
-impl DedicatedWorkerGlobalScopeDerived for EventTarget {
-    fn is_dedicatedworkerglobalscope(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedWorkerGlobalScope) => true,
-            _ => false
-        }
-    }
 }

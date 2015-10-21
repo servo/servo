@@ -5,14 +5,12 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use dom::bindings::error::Error::DataClone;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::JSContext;
-use js::jsapi::JS_ReadStructuredClone;
 use js::jsapi::{HandleValue, MutableHandleValue};
-use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
+use js::jsapi::{JSContext, JS_ReadStructuredClone};
+use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
 use std::ptr;
 
@@ -33,9 +31,9 @@ impl StructuredCloneData {
                                     ptr::null(), ptr::null_mut(),
                                     HandleValue::undefined())
         };
-        if result == 0 {
+        if !result {
             unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
+            return Err(Error::DataClone);
         }
         Ok(StructuredCloneData {
             data: data,
@@ -51,7 +49,7 @@ impl StructuredCloneData {
             assert!(JS_ReadStructuredClone(
                 global.get_cx(), self.data, self.nbytes,
                 JS_STRUCTURED_CLONE_VERSION, rval,
-                ptr::null(), ptr::null_mut()) != 0);
+                ptr::null(), ptr::null_mut()));
         }
     }
 }

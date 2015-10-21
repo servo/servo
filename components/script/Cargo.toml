@@ -71,6 +71,7 @@ version = "0.6"
 features = [ "serde-serialization" ]
 
 [dependencies]
+app_units = "0.1"
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
@@ -89,4 +90,5 @@ string_cache_plugin = "0.1"
 euclid = "0.2"
 tendril = "0.1.1"
 rand = "0.3"
-serde = "0.5"
+serde = "0.6"
+caseless = "0.1.0"

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=background_size_ref.html>
+<style>
+section {
+    position: absolute;
+    top: 0;
+    width: 40px;
+}
+#tall {
+    left: 0;
+}
+#wide {
+    left: 40px;
+}
+div {
+    width: 40px;
+    height: 40px;
+    image-rendering: -moz-crisp-edges;  /* for comparison with Firefox */
+    image-rendering: pixelated;
+}
+#tall div {
+    background-image: url(2x4.png);
+}
+#wide div {
+    background-image: url(4x2.png);
+}
+.a {
+    background-size: 40px 20px;
+}
+.b {
+    background-size: 40px 40px;
+}
+.c {
+    background-size: 40px;
+}
+.d {
+    background-size: cover;
+}
+.e {
+    background-size: contain;
+}
+</style>
+</head>
+<body>
+<section id=tall>
+<div class=a></div>
+<div class=b></div>
+<div class=c></div>
+<div class=d></div>
+<div class=e></div>
+</section>
+<section id=wide>
+<div class=a></div>
+<div class=b></div>
+<div class=c></div>
+<div class=d></div>
+<div class=e></div>
+</section>
+</body>
+</html>
+

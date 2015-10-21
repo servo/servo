@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+    <input id="a">
+        <script>
+            test(function() {
+                    x = new WeakMap();
+                    x.set(document.getElementById("a"), 2);
+                    assert_equals(x.get(document.getElementById("a")), 2);
+            }, "WeakMaps with DOM objects");
+            test(function() {
+                    x = new WeakMap();
+                    y = {};
+                    x.set(y, 2);
+                    assert_equals(x.get(y), 2);
+            }, "WeakMaps with objects");
+        </script>
+    </body>
+</html>

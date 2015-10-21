@@ -6,16 +6,16 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
 use floats::FloatKind;
-use flow::{FlowClass, Flow, OpaqueFlow};
+use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use std::fmt;
 use std::sync::Arc;
 use style::properties::ComputedValues;
-use util::geometry::Au;
 use util::logical_geometry::LogicalSize;
 
 pub struct MulticolFlow {

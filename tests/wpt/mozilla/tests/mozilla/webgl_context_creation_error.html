@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGLContextEvent "webglcontextcreationerror" event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function() {
+  var canvas = document.createElement('canvas');
+
+  canvas.addEventListener("webglcontextcreationerror", this.step_func_done(function(e) {
+    assert_true(e.__proto__ === WebGLContextEvent.prototype,
+                "webglcontextcreationevent should be a WebGLContextEvent");
+    assert_true(typeof(e.statusMessage) === "string",
+                "'statusMessage' should be a string, " + typeof(e.statusMessage) + " found");
+  }), false);
+
+  // Antialising actually is not supported and thus triggers the error event
+  var gl = canvas.getContext('webgl', { antialiasing: true });
+
+  assert_false(!!gl, "WebGLContext creation succeeded, please update this test!");
+});
+</script>

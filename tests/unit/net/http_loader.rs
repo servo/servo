@@ -2,12 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie_rs;
+use cookie_rs::Cookie as CookiePair;
+use devtools_traits::HttpRequest as DevtoolsHttpRequest;
+use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
-use hyper::header::{Headers, Location, ContentLength};
+use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
+use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, qitem, SetCookie};
+use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
 use hyper::method::Method;
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -16,21 +22,22 @@ use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpRes
 use net_traits::{LoadData, CookieSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
-use std::sync::{Arc, RwLock};
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, mpsc, RwLock};
 use url::Url;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
-    let mut headers = Headers::new();
-    respond_with_headers(body, &mut headers)
+    let headers = Headers::new();
+    respond_with_headers(body, headers)
 }
 
-fn respond_with_headers(body: Vec<u8>, headers: &mut Headers) -> MockResponse {
+fn respond_with_headers(body: Vec<u8>, mut headers: Headers) -> MockResponse {
     headers.set(ContentLength(body.len() as u64));
 
     MockResponse::new(
-        headers.clone(),
+        headers,
         StatusCode::Ok,
         RawStatus(200, Cow::Borrowed("Ok")),
         body
@@ -112,8 +119,8 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::Text(b) => {
             Ok(respond_with(b))
         },
-        ResponseType::WithHeaders(b, mut h) => {
-            Ok(respond_with_headers(b, &mut h))
+        ResponseType::WithHeaders(b, h) => {
+            Ok(respond_with_headers(b, h))
         }
     }
 }
@@ -146,6 +153,31 @@ impl HttpRequest for AssertRequestMustHaveHeaders {
     fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
+        assert_eq!(self.request_headers, self.expected_headers);
+
+        response_for_request_type(self.t)
+    }
+}
+
+struct AssertRequestMustIncludeHeaders {
+    expected_headers: Headers,
+    request_headers: Headers,
+    t: ResponseType
+}
+
+impl AssertRequestMustIncludeHeaders {
+    fn new(t: ResponseType, expected_headers: Headers) -> Self {
+        assert!(expected_headers.len() != 0);
+        AssertRequestMustIncludeHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
+    }
+}
+
+impl HttpRequest for AssertRequestMustIncludeHeaders {
+    type R = MockResponse;
+
+    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
+
+    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         for header in self.expected_headers.iter() {
             assert!(self.request_headers.get_raw(header.name()).is_some());
             assert_eq!(
@@ -169,6 +201,25 @@ impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
     fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
         Ok(
             AssertRequestMustHaveHeaders::new(
+                ResponseType::Text(self.body.clone()),
+                self.expected_headers.clone()
+            )
+        )
+    }
+}
+
+
+struct AssertMustIncludeHeadersRequestFactory {
+    expected_headers: Headers,
+    body: Vec<u8>
+}
+
+impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
+    type R = AssertRequestMustIncludeHeaders;
+
+    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
+        Ok(
+            AssertRequestMustIncludeHeaders::new(
                 ResponseType::Text(self.body.clone()),
                 self.expected_headers.clone()
             )
@@ -212,6 +263,80 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
+fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+        ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
+            match net_event {
+                NetworkEvent::HttpRequest(httprequest) => {
+                    httprequest
+                },
+
+                _ => panic!("No HttpRequest Received"),
+            }
+        },
+        _ => panic!("No HttpRequest Received"),
+    }
+}
+
+fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
+    match devtools_port.recv().unwrap() {
+        DevtoolsControlMsg::FromChrome(
+            ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
+            match net_event_response {
+                NetworkEvent::HttpResponse(httpresponse) => {
+                    httpresponse
+                },
+
+                _ => panic!("No HttpResponse Received"),
+            }
+        },
+        _ => panic!("No HttpResponse Received"),
+    }
+}
+
+#[test]
+fn test_check_default_headers_loaded_in_every_request() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    let mut load_data = LoadData::new(url.clone(), None);
+    load_data.data = None;
+    load_data.method = Method::Get;
+
+    let mut headers = Headers::new();
+    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
+    headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+    let accept = Accept(vec![
+                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                            ]);
+    headers.set(accept);
+    headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+
+    // Testing for method.GET
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list.clone(), cookie_jar.clone(), None,
+                                                &AssertMustHaveHeadersRequestFactory {
+                                                    expected_headers: headers.clone(),
+                                                    body: <[_]>::to_vec(&[])
+                                                }, DEFAULT_USER_AGENT.to_string());
+
+    // Testing for method.POST
+    load_data.method = Method::Post;
+
+    headers.set(ContentLength(0 as u64));
+
+    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
+                                                &AssertMustHaveHeadersRequestFactory {
+                                                    expected_headers: headers,
+                                                    body: <[_]>::to_vec(&[])
+                                                }, DEFAULT_USER_AGENT.to_string());
+}
+
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
     let url = Url::parse("http://mozilla.com").unwrap();
@@ -224,14 +349,68 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     load_data.method = Method::Post;
 
     let mut content_length = Headers::new();
-    content_length.set_raw("Content-Length".to_owned(), vec![<[_]>::to_vec("0".as_bytes())]);
+    content_length.set(ContentLength(0));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
+    let _ = load::<AssertRequestMustIncludeHeaders>(
         load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
+        &AssertMustIncludeHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
         }, DEFAULT_USER_AGENT.to_string());
+}
+
+#[test]
+fn test_request_and_response_data_with_network_messages() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut headers = Headers::new();
+            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+            Ok(MockRequest::new(
+                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
+            )
+        }
+    }
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    let url = Url::parse("https://mozilla.com").unwrap();
+    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
+    let mut load_data = LoadData::new(url.clone(), None);
+    let mut request_headers = Headers::new();
+    request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
+    load_data.headers = request_headers.clone();
+    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
+                                DEFAULT_USER_AGENT.to_string());
+
+    // notification received from devtools
+    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+
+    let httprequest = DevtoolsHttpRequest {
+        url: url,
+        method: Method::Get,
+        headers: request_headers,
+        body: None,
+    };
+
+    let content = "Yay!";
+    let mut response_headers = Headers::new();
+    response_headers.set(ContentLength(content.len() as u64));
+    response_headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+
+    let httpresponse = DevtoolsHttpResponse {
+        headers: Some(response_headers),
+        status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
+        body: None
+    };
+
+    assert_eq!(devhttprequest, httprequest);
+    assert_eq!(devhttpresponse, httpresponse);
 }
 
 #[test]
@@ -275,7 +454,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
             let encoded_content = e.finish().unwrap();
 
             let mut headers = Headers::new();
-            headers.set_raw("Content-Encoding", vec![b"deflate".to_vec()]);
+            headers.set(ContentEncoding(vec![Encoding::Deflate]));
             Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
@@ -308,7 +487,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
             let encoded_content = e.finish().unwrap();
 
             let mut headers = Headers::new();
-            headers.set_raw("Content-Encoding", vec![b"gzip".to_vec()]);
+            headers.set(ContentEncoding(vec![Encoding::Gzip]));
             Ok(MockRequest::new(ResponseType::WithHeaders(encoded_content, headers)))
         }
     }
@@ -379,7 +558,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -411,7 +590,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("Strict-Transport-Security", vec![b"max-age=31536000".to_vec()]);
+            headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -443,7 +622,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
-            headers.set_raw("set-cookie", vec![b"mozillaIs=theBest".to_vec()]);
+            headers.set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
             Ok(MockRequest::new(ResponseType::WithHeaders(content, headers)))
         }
     }
@@ -481,7 +660,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         let mut cookie_jar = cookie_jar.write().unwrap();
         let cookie_url = url.clone();
         let cookie = Cookie::new_wrapped(
-            cookie_rs::Cookie::parse("mozillaIs=theBest").unwrap(),
+            CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &cookie_url,
             CookieSource::HTTP
         ).unwrap();
@@ -489,14 +668,13 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     }
 
     let mut cookie = Headers::new();
-    cookie.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+    cookie.set(CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
-            expected_headers: cookie,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, None,
+                                                    &AssertMustIncludeHeadersRequestFactory {
+                                                        expected_headers: cookie,
+                                                        body: <[_]>::to_vec(&*load_data.data.unwrap())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
@@ -508,51 +686,52 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
     let mut content_len_headers = Headers::new();
-    let content_len = format!("{}", content.len());
-    content_len_headers.set_raw(
-        "Content-Length".to_owned(), vec![<[_]>::to_vec(&*content_len.as_bytes())]
-    );
+    content_len_headers.set(ContentLength(content.as_bytes().len() as u64));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, None,
-        &AssertMustHaveHeadersRequestFactory {
-            expected_headers: content_len_headers,
-            body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar,
+                                                    None, &AssertMustIncludeHeadersRequestFactory {
+                                                            expected_headers: content_len_headers,
+                                                            body: <[_]>::to_vec(&*load_data.data.unwrap())
+                                                        }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
 fn test_load_uses_explicit_accept_from_headers_in_load_data() {
+    let text_html = qitem(Mime(TopLevel::Text, SubLevel::Html, vec![]));
+
     let mut accept_headers = Headers::new();
-    accept_headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
+    accept_headers.set(Accept(vec![text_html.clone()]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set_raw("Accept".to_owned(), vec![b"text/html".to_vec()]);
+    load_data.headers.set(Accept(vec![text_html.clone()]));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                    expected_headers: accept_headers,
-                                                    body: <[_]>::to_vec("Yay!".as_bytes())
-                                                }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustIncludeHeadersRequestFactory {
+                                                        expected_headers: accept_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let mut accept_headers = Headers::new();
-    accept_headers.set_raw(
-        "Accept".to_owned(), vec![b"text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8".to_vec()]
-    );
+    accept_headers.set(Accept(vec![
+        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+        qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+        QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
+        QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
+    ]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
@@ -561,43 +740,43 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustIncludeHeadersRequestFactory {
+                                                        expected_headers: accept_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
 fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
-    load_data.headers.set_raw("Accept-Encoding".to_owned(), vec![b"chunked".to_vec()]);
+    load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_encoding_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustIncludeHeadersRequestFactory {
+                                                        expected_headers: accept_encoding_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set_raw("Accept-Encoding".to_owned(), vec![b"gzip, deflate".to_vec()]);
+    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
@@ -606,14 +785,14 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data,
-                                                 hsts_list,
-                                                 cookie_jar,
-                                                 None,
-                                                 &AssertMustHaveHeadersRequestFactory {
-                                                     expected_headers: accept_encoding_headers,
-                                                     body: <[_]>::to_vec("Yay!".as_bytes())
-                                                 }, DEFAULT_USER_AGENT.to_string());
+    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+                                                    hsts_list,
+                                                    cookie_jar,
+                                                    None,
+                                                    &AssertMustIncludeHeadersRequestFactory {
+                                                        expected_headers: accept_encoding_headers,
+                                                        body: <[_]>::to_vec("Yay!".as_bytes())
+                                                    }, DEFAULT_USER_AGENT.to_string());
 }
 
 #[test]

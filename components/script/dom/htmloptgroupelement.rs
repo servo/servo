@@ -5,14 +5,13 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLOptionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast};
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, IN_ENABLED_STATE};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
@@ -21,21 +20,14 @@ pub struct HTMLOptGroupElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLOptGroupElementDerived for EventTarget {
-    fn is_htmloptgroupelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)))
-    }
-}
-
 impl HTMLOptGroupElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptGroupElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 
@@ -49,15 +41,15 @@ impl HTMLOptGroupElement {
 }
 
 impl HTMLOptGroupElementMethods for HTMLOptGroupElement {
-    // https://www.whatwg.org/html#dom-optgroup-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html#dom-optgroup-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");
 }
 
 impl VirtualMethods for HTMLOptGroupElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -75,19 +67,22 @@ impl VirtualMethods for HTMLOptGroupElement {
                     AttributeMutation::Removed => false,
                 };
                 let node = NodeCast::from_ref(self);
-                node.set_disabled_state(disabled_state);
-                node.set_enabled_state(!disabled_state);
+                let el = ElementCast::from_ref(self);
+                el.set_disabled_state(disabled_state);
+                el.set_enabled_state(!disabled_state);
                 let options = node.children().filter(|child| {
                     child.is_htmloptionelement()
-                });
+                }).map(|child| Root::from_ref(HTMLOptionElementCast::to_ref(child.r()).unwrap()));
                 if disabled_state {
                     for option in options {
-                        option.set_disabled_state(true);
-                        option.set_enabled_state(false);
+                        let el = ElementCast::from_ref(option.r());
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     }
                 } else {
                     for option in options {
-                        option.check_disabled_attribute();
+                        let el = ElementCast::from_ref(option.r());
+                        el.check_disabled_attribute();
                     }
                 }
             },

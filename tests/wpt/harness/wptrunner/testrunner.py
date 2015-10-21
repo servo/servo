@@ -199,6 +199,7 @@ class TestRunnerManager(threading.Thread):
 
         self.browser = None
         self.browser_pid = None
+        self.browser_started = False
 
         # Flags used to shut down this thread if we get a sigint
         self.parent_stop_flag = stop_flag
@@ -279,6 +280,10 @@ class TestRunnerManager(threading.Thread):
                         if commands[command](*data) is Stop:
                             break
                     else:
+                        if (self.debug_info and self.debug_info.interactive and
+                            self.browser_started and not browser.is_alive()):
+                            self.logger.debug("Debugger exited")
+                            break
                         if not self.test_runner_proc.is_alive():
                             if not self.command_queue.empty():
                                 # We got a new message so process that
@@ -355,6 +360,7 @@ class TestRunnerManager(threading.Thread):
                 succeeded = False
             else:
                 succeeded = True
+                self.browser_started = True
 
         # This has to happen after the lock is released
         if not succeeded:
@@ -457,6 +463,7 @@ class TestRunnerManager(threading.Thread):
             return
         try:
             self.browser.stop()
+            self.browser_started = False
             if self.test_runner_proc.is_alive():
                 self.send_message("stop")
                 self.ensure_runner_stopped()

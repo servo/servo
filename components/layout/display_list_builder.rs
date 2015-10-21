@@ -10,23 +10,24 @@
 
 #![deny(unsafe_code)]
 
+use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
 use block::BlockFlow;
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::Matrix4;
-use euclid::{Point2D, Point3D, Rect, Size2D, SideOffsets2D};
+use euclid::num::Zero;
+use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{self, BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
-use fragment::{CoordinateSystem, Fragment, HAS_LAYER, IframeFragmentInfo, ImageFragmentInfo};
-use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
+use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
+use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList};
 use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
-use gfx::display_list::{OpaqueNode, SolidColorDisplayItem};
+use gfx::display_list::{GradientStop, ImageDisplayItem, LayeredItem, LayerInfo};
+use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
@@ -35,21 +36,18 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use msg::compositor_msg::{ScrollPolicy, LayerId};
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::Msg as ConstellationMsg;
+use msg::compositor_msg::ScrollPolicy;
 use net_traits::image::base::{Image, PixelFormat};
 use net_traits::image_cache_task::UsePlaceholder;
-use std::cmp;
 use std::default::Default;
-use std::f32;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
+use std::{cmp, f32};
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size};
 use style::computed_values::{border_style, image_rendering, overflow_x, position};
-use style::computed_values::{visibility, transform, transform_style};
+use style::computed_values::{transform, transform_style, visibility};
 use style::properties::style_structs::Border;
 use style::properties::{self, ComputedValues};
 use style::values::RGBA;
@@ -60,19 +58,13 @@ use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirec
 use table_cell::CollapsedBordersForCell;
 use url::Url;
 use util::cursor::Cursor;
-use util::geometry::{AU_PER_PX, Au, ZERO_POINT};
+use util::geometry::ZERO_POINT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
 use util::range::Range;
 
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
-
-/// Whether a stacking context needs a layer or not.
-pub enum StackingContextLayerNecessity {
-    Always(LayerId, ScrollPolicy),
-    IfCanvas(LayerId),
-}
 
 /// The results of display list building for a single flow.
 pub enum DisplayListBuildingResult {
@@ -207,13 +199,6 @@ pub trait FragmentDisplayListBuilding {
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>);
 
-    /// Sends the size and position of this iframe fragment to the constellation. This is out of
-    /// line to guide inlining.
-    fn finalize_position_and_size_of_iframe(&self,
-                                            iframe_fragment: &IframeFragmentInfo,
-                                            offset: Point2D<Au>,
-                                            layout_context: &LayoutContext);
-
     /// Returns the appropriate clipping region for descendants of this fragment.
     fn clipping_region_for_children(&self,
                                     current_clip: &ClippingRegion,
@@ -268,10 +253,9 @@ pub trait FragmentDisplayListBuilding {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               needs_layer: StackingContextLayerNecessity,
+                               scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
-
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -685,6 +669,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        box_shadow.offset_y)),
                               box_shadow.blur_radius,
                               box_shadow.spread_radius);
+
+            // TODO(pcwalton): Multiple border radii; elliptical border radii.
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -696,6 +682,9 @@ impl FragmentDisplayListBuilding for Fragment {
                 offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
+                border_radius: model::specified_border_radius(style.get_border()
+                                                                   .border_top_left_radius,
+                                                              absolute_bounds.size.width).width,
                 clip_mode: if box_shadow.inset {
                     BoxShadowClipMode::Inset
                 } else {
@@ -983,14 +972,14 @@ impl FragmentDisplayListBuilding for Fragment {
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
                 for node in inline_context.nodes.iter().rev() {
-                    self.build_display_list_for_box_shadow_if_applicable(
+                    self.build_display_list_for_background_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
                         level,
                         &stacking_relative_border_box,
                         &clip);
-                    self.build_display_list_for_background_if_applicable(
+                    self.build_display_list_for_box_shadow_if_applicable(
                         &*node.style,
                         display_list,
                         layout_context,
@@ -1020,13 +1009,13 @@ impl FragmentDisplayListBuilding for Fragment {
             }
 
             if !self.is_scanned_text_fragment() {
-                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
+                self.build_display_list_for_background_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
                                                                      &stacking_relative_border_box,
                                                                      &clip);
-                self.build_display_list_for_background_if_applicable(&*self.style,
+                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
                                                                      display_list,
                                                                      layout_context,
                                                                      level,
@@ -1060,28 +1049,6 @@ impl FragmentDisplayListBuilding for Fragment {
            self.build_debug_borders_around_fragment(display_list,
                                                     &stacking_relative_border_box,
                                                     &clip)
-        }
-
-        // If this is an iframe, then send its position and size up to the constellation.
-        //
-        // FIXME(pcwalton): Doing this during display list construction seems potentially
-        // problematic if iframes are outside the area we're computing the display list for, since
-        // they won't be able to reflow at all until the user scrolls to them. Perhaps we should
-        // separate this into two parts: first we should send the size only to the constellation
-        // once that's computed during assign-block-sizes, and second we should should send the
-        // origin to the constellation here during display list construction. This should work
-        // because layout for the iframe only needs to know size, and origin is only relevant if
-        // the iframe is actually going to be displayed.
-        if let SpecificFragmentInfo::Iframe(ref iframe_fragment) = self.specific {
-            let stacking_relative_border_box_in_parent_coordinate_system =
-                self.stacking_relative_border_box(stacking_relative_flow_origin,
-                                                  relative_containing_block_size,
-                                                  relative_containing_block_mode,
-                                                  CoordinateSystem::Parent);
-            self.finalize_position_and_size_of_iframe(
-                &**iframe_fragment,
-                stacking_relative_border_box_in_parent_coordinate_system.origin,
-                layout_context)
         }
     }
 
@@ -1132,7 +1099,6 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(..) |
-            SpecificFragmentInfo::Iframe(..) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow |
@@ -1144,6 +1110,27 @@ impl FragmentDisplayListBuilding for Fragment {
                     self.build_debug_borders_around_fragment(display_list,
                                                              stacking_relative_border_box,
                                                              clip);
+                }
+            }
+            SpecificFragmentInfo::Iframe(ref fragment_info) => {
+                // TODO(mrobinson): When https://github.com/servo/euclid/issues/109 is fixed this
+                // check can just become stacking_relative_content_box.is_empty().
+                if stacking_relative_content_box.size.width != Zero::zero() &&
+                   stacking_relative_content_box.size.height != Zero::zero() {
+                    let layer_id = self.layer_id();
+                    display_list.content.push_back(DisplayItem::LayeredItemClass(box LayeredItem {
+                        item: DisplayItem::NoopClass(
+                            box BaseDisplayItem::new(stacking_relative_content_box,
+                                                     DisplayItemMetadata::new(self.node,
+                                                                              &*self.style,
+                                                                              Cursor::DefaultCursor),
+                                                     (*clip).clone())),
+                        layer_id: layer_id
+                    }));
+
+                    display_list.layer_info.push_back(LayerInfo::new(layer_id,
+                                                                     ScrollPolicy::Scrollable,
+                                                                     Some(fragment_info.pipeline_id)));
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
@@ -1205,7 +1192,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
                                layout_context: &LayoutContext,
-                               needs_layer: StackingContextLayerNecessity,
+                               scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
         let border_box = match mode {
@@ -1318,23 +1305,25 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        // Ensure every canvas has a layer
-        let (scroll_policy, layer_id) = match needs_layer {
-            StackingContextLayerNecessity::Always(layer_id, scroll_policy) =>
-                (scroll_policy, Some(layer_id)),
-            StackingContextLayerNecessity::IfCanvas(layer_id) => {
-                if let SpecificFragmentInfo::Canvas(_) = self.specific {
-                    (ScrollPolicy::Scrollable, Some(layer_id))
-                } else {
-                    (ScrollPolicy::Scrollable, None)
-                }
-            }
+        let canvas = match self.specific {
+            SpecificFragmentInfo::Canvas(_) => true,
+            _ => false
         };
 
-        // If it's a canvas we must propagate the layer and the renderer to the paint
-        // task
+        // There are three situations that need layers: when the fragment has the HAS_LAYER
+        // flag, when this is a canvas or iframe fragment, and when we are building a layer
+        // tree for overflow scrolling.
+        let layer_info = if mode == StackingContextCreationMode::InnerScrollWrapper {
+            Some(LayerInfo::new(self.layer_id_for_overflow_scroll(), scroll_policy, None))
+        } else if self.flags.contains(HAS_LAYER) || canvas {
+            Some(LayerInfo::new(self.layer_id(), scroll_policy, None))
+        } else {
+            None
+        };
+
+        // If it's a canvas we must propagate the layer and the renderer to the paint task.
         if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
-            let layer_id = layer_id.unwrap();
+            let layer_id = layer_info.unwrap().layer_id;
             if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
                 layout_context.shared
                               .canvas_layers_sender
@@ -1350,36 +1339,14 @@ impl FragmentDisplayListBuilding for Fragment {
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
                                       &overflow,
-                                      self.style().get_box().z_index.number_or_zero(),
+                                      self.effective_z_index(),
                                       filters,
                                       self.style().get_effects().mix_blend_mode,
                                       transform,
                                       perspective,
                                       establishes_3d_context,
                                       scrolls_overflow_area,
-                                      scroll_policy,
-                                      layer_id))
-    }
-
-    #[inline(never)]
-    fn finalize_position_and_size_of_iframe(&self,
-                                            iframe_fragment: &IframeFragmentInfo,
-                                            offset: Point2D<Au>,
-                                            layout_context: &LayoutContext) {
-        let border_padding = (self.border_padding).to_physical(self.style.writing_mode);
-        let content_size = self.content_box().size.to_physical(self.style.writing_mode);
-        let iframe_rect = Rect::new(Point2D::new((offset.x + border_padding.left).to_f32_px(),
-                                                 (offset.y + border_padding.top).to_f32_px()),
-                                    Size2D::new(content_size.width.to_f32_px(),
-                                                content_size.height.to_f32_px()));
-
-        debug!("finalizing position and size of iframe for {:?},{:?}",
-               iframe_fragment.pipeline_id,
-               iframe_fragment.subpage_id);
-        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
-        chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
-                                              iframe_fragment.subpage_id,
-                                              iframe_rect)).unwrap();
+                                      layer_info))
     }
 
     fn clipping_region_for_children(&self,
@@ -1548,6 +1515,7 @@ impl FragmentDisplayListBuilding for Fragment {
             offset: ZERO_POINT,
             blur_radius: blur_radius,
             spread_radius: Au(0),
+            border_radius: Au(0),
             clip_mode: BoxShadowClipMode::None,
         }))
     }
@@ -1624,34 +1592,23 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                border_painting_mode,
                                                background_border_level);
 
-        self.base.display_list_building_result = if self.fragment.flags.contains(HAS_LAYER) {
+        self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             let scroll_policy = if self.is_fixed() {
                 ScrollPolicy::FixedPosition
             } else {
                 ScrollPolicy::Scrollable
             };
 
-            let stacking_context = self.fragment.create_stacking_context(
-                &self.base,
-                display_list,
-                layout_context,
-                StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
-                StackingContextCreationMode::Normal);
-            DisplayListBuildingResult::StackingContext(stacking_context)
-        } else if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
                 self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                    scroll_policy,
                     StackingContextCreationMode::Normal))
         } else {
-            match self.fragment.style.get_box().position {
-                position::T::static_ => {}
-                _ => {
-                    display_list.form_pseudo_stacking_context_for_positioned_content();
-                }
+            if self.fragment.style.get_box().position != position::T::static_ {
+                display_list.form_pseudo_stacking_context_for_positioned_content();
             }
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1709,22 +1666,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             }
         };
 
-        if !self.fragment.flags.contains(HAS_LAYER) {
-            if !self.fragment.establishes_stacking_context() {
-                display_list.form_pseudo_stacking_context_for_positioned_content();
-                self.base.display_list_building_result =
-                    DisplayListBuildingResult::Normal(display_list);
-            } else {
-                self.base.display_list_building_result =
-                    DisplayListBuildingResult::StackingContext(
-                        self.fragment.create_stacking_context(
-                            &self.base,
-                            display_list,
-                            layout_context,
-                            StackingContextLayerNecessity::IfCanvas(self.layer_id()),
-                            StackingContextCreationMode::Normal));
-            }
-            return
+        if !self.fragment.flags.contains(HAS_LAYER) && !self.fragment.establishes_stacking_context() {
+            display_list.form_pseudo_stacking_context_for_positioned_content();
+            self.base.display_list_building_result =
+                DisplayListBuildingResult::Normal(display_list);
+            return;
         }
 
         // If we got here, then we need a new layer.
@@ -1734,40 +1680,33 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             ScrollPolicy::Scrollable
         };
 
-        let stacking_context_creation_mode = if outer_display_list_for_overflow_scroll.is_some() {
-            StackingContextCreationMode::InnerScrollWrapper
-        } else {
-            StackingContextCreationMode::Normal
-        };
-
-        let layer_id = if outer_display_list_for_overflow_scroll.is_some() {
-            self.layer_id_for_overflow_scroll()
-        } else {
-            self.layer_id()
-        };
-        let stacking_context = self.fragment.create_stacking_context(
-            &self.base,
-            display_list,
-            layout_context,
-            StackingContextLayerNecessity::Always(layer_id, scroll_policy),
-            stacking_context_creation_mode);
-
-        let outermost_stacking_context = match outer_display_list_for_overflow_scroll {
-            Some(mut outer_display_list_for_overflow_scroll) => {
-                outer_display_list_for_overflow_scroll.children.push_back(stacking_context);
-
+        let stacking_context = match outer_display_list_for_overflow_scroll {
+            Some(mut outer_display_list) => {
+                outer_display_list.children.push_back(self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    scroll_policy,
+                    StackingContextCreationMode::InnerScrollWrapper));
                 self.fragment.create_stacking_context(
                     &self.base,
-                    outer_display_list_for_overflow_scroll,
+                    outer_display_list,
                     layout_context,
-                    StackingContextLayerNecessity::Always(self.layer_id(), scroll_policy),
+                    scroll_policy,
                     StackingContextCreationMode::OuterScrollWrapper)
             }
-            None => stacking_context,
+            None => {
+                self.fragment.create_stacking_context(
+                    &self.base,
+                    display_list,
+                    layout_context,
+                    scroll_policy,
+                    StackingContextCreationMode::Normal)
+            }
         };
 
         self.base.display_list_building_result =
-            DisplayListBuildingResult::StackingContext(outermost_stacking_context)
+            DisplayListBuildingResult::StackingContext(stacking_context)
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1782,13 +1721,15 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
             DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(
-                    &self.base,
-                    display_list,
-                    layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
-                    StackingContextCreationMode::Normal))
+                self.fragment.create_stacking_context(&self.base,
+                                                      display_list,
+                                                      layout_context,
+                                                      ScrollPolicy::Scrollable,
+                                                      StackingContextCreationMode::Normal))
         } else {
+            if self.fragment.style.get_box().position != position::T::static_ {
+                display_list.form_pseudo_stacking_context_for_positioned_content();
+            }
             DisplayListBuildingResult::Normal(display_list)
         }
     }
@@ -1872,13 +1813,17 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
 
         // FIXME(Savago): fix Fragment::establishes_stacking_context() for absolute positioned item
         // and remove the check for filter presence. Further details on #5812.
-        has_stacking_context = has_stacking_context && {
-            if let SpecificFragmentInfo::Canvas(_) = self.fragments.fragments[0].specific {
-                true
-            } else {
-                !self.fragments.fragments[0].style().get_effects().filter.is_empty()
+        //
+        // FIXME(#7424, pcwalton): This is terribly bogus! What is even going on here?
+        if has_stacking_context {
+            match self.fragments.fragments[0].specific {
+                SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) => {}
+                _ => {
+                    has_stacking_context =
+                        !self.fragments.fragments[0].style().get_effects().filter.is_empty()
+                }
             }
-        };
+        }
 
         self.base.display_list_building_result = if has_stacking_context {
             DisplayListBuildingResult::StackingContext(
@@ -1886,7 +1831,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     &self.base,
                     display_list,
                     layout_context,
-                    StackingContextLayerNecessity::IfCanvas(self.layer_id()),
+                    ScrollPolicy::Scrollable,
                     StackingContextCreationMode::Normal))
         } else {
             DisplayListBuildingResult::Normal(display_list)

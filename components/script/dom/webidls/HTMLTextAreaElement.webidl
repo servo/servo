@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltextareaelement
+// https://html.spec.whatwg.org/multipage/#htmltextareaelement
 interface HTMLTextAreaElement : HTMLElement {
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
@@ -11,7 +11,7 @@ interface HTMLTextAreaElement : HTMLElement {
              attribute unsigned long cols;
   //         attribute DOMString dirName;
            attribute boolean disabled;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //         attribute DOMString inputMode;
   //         attribute long maxLength;
   //         attribute long minLength;

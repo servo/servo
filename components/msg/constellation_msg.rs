@@ -7,23 +7,23 @@
 
 use canvas_traits::CanvasMsg;
 use compositor_msg::Epoch;
-use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
 use offscreen_gl_context::GLContextAttributes;
-use png::Image;
+use std::cell::Cell;
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::fmt;
+use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::{PagePx, ViewportPx};
 use util::mem::HeapSizeOf;
-use webdriver_msg::{WebDriverScriptCommand, LoadStatus};
+use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 #[derive(Clone)]
 pub struct ConstellationChan(pub Sender<Msg>);
@@ -212,6 +212,23 @@ pub enum FocusType {
     Parent,     // Focusing a parent element (an iframe)
 }
 
+/// Specifies the information required to load a URL in an iframe.
+#[derive(Deserialize, Serialize)]
+pub struct IframeLoadInfo {
+    /// Url to load
+    pub url: Url,
+    /// Pipeline ID of the parent of this iframe
+    pub containing_pipeline_id: PipelineId,
+    /// The new subpage ID for this load
+    pub new_subpage_id: SubpageId,
+    /// The old subpage ID for this iframe, if a page was previously loaded.
+    pub old_subpage_id: Option<SubpageId>,
+    /// The new pipeline ID that the iframe has generated.
+    pub new_pipeline_id: PipelineId,
+    /// Sandbox type of this iframe
+    pub sandbox: IFrameSandboxState,
+}
+
 /// Messages from the compositor and script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum Msg {
@@ -221,9 +238,9 @@ pub enum Msg {
     LoadComplete(PipelineId),
     /// Dispatched after the DOM load event has fired on a document
     DOMLoad(PipelineId),
-    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    FrameSize(PipelineId, Size2D<f32>),
     LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
+    ScriptLoadedURLInIFrame(IframeLoadInfo),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),
@@ -243,8 +260,8 @@ pub enum Msg {
     /// id, or for the root frame if this is None, over a provided channel
     GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the FrameId corresponding to the document
-    /// with the provided parent pipeline id and subpage id
-    GetFrame(PipelineId, SubpageId, IpcSender<Option<FrameId>>),
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Requests that the constellation retrieve the current contents of the clipboard
@@ -258,7 +275,7 @@ pub enum Msg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId, SubpageId),
+    RemoveIFrame(PipelineId),
     /// Favicon detected
     NewFavicon(Url),
     /// <head> tag finished parsing
@@ -275,7 +292,7 @@ pub enum Msg {
     NodeStatus(Option<String>),
 }
 
-#[derive(Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize, Serialize, Debug)]
 pub enum AnimationState {
     AnimationsPresent,
     AnimationCallbacksPresent,
@@ -286,30 +303,30 @@ pub enum AnimationState {
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
 #[derive(Deserialize, Serialize)]
 pub enum MozBrowserEvent {
-    /// Sent when the scroll position within a browser <iframe> changes.
+    /// Sent when the scroll position within a browser `<iframe>` changes.
     AsyncScroll,
-    /// Sent when window.close() is called within a browser <iframe>.
+    /// Sent when window.close() is called within a browser `<iframe>`.
     Close,
-    /// Sent when a browser <iframe> tries to open a context menu. This allows
-    /// handling <menuitem> element available within the browser <iframe>'s content.
+    /// Sent when a browser `<iframe>` tries to open a context menu. This allows
+    /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
-    /// Sent when an error occurred while trying to load content within a browser <iframe>.
+    /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
     Error,
-    /// Sent when the favicon of a browser <iframe> changes.
+    /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange,
-    /// Sent when the browser <iframe> has finished loading all its assets.
+    /// Sent when the browser `<iframe>` has finished loading all its assets.
     LoadEnd,
-    /// Sent when the browser <iframe> starts to load a new page.
+    /// Sent when the browser `<iframe>` starts to load a new page.
     LoadStart,
-    /// Sent when a browser <iframe>'s location changes.
+    /// Sent when a browser `<iframe>`'s location changes.
     LocationChange(String),
-    /// Sent when window.open() is called within a browser <iframe>.
+    /// Sent when window.open() is called within a browser `<iframe>`.
     OpenWindow,
-    /// Sent when the SSL state changes within a browser <iframe>.
+    /// Sent when the SSL state changes within a browser `<iframe>`.
     SecurityChange,
-    /// Sent when alert(), confirm(), or prompt() is called within a browser <iframe>.
+    /// Sent when alert(), confirm(), or prompt() is called within a browser `<iframe>`.
     ShowModalPrompt,
-    /// Sent when the document.title changes within a browser <iframe>.
+    /// Sent when the document.title changes within a browser `<iframe>`.
     TitleChange(String),
     /// Sent when an HTTP authentification is requested.
     UsernameAndPasswordRequired,
@@ -354,7 +371,24 @@ pub enum WebDriverCommandMsg {
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
     Refresh(PipelineId, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
-    TakeScreenshot(PipelineId, IpcSender<Option<Image>>)
+    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
+}
+
+#[derive(Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+pub enum PixelFormat {
+    K8,         // Luminance channel only
+    KA8,        // Luminance + alpha
+    RGB8,       // RGB, 8 bits per channel
+    RGBA8,      // RGB + alpha, 8 bits per channel
+}
+
+#[derive(Deserialize, Serialize, HeapSizeOf)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
 }
 
 /// Similar to net::resource_task::LoadData
@@ -391,8 +425,95 @@ pub struct FrameId(pub u32);
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct WorkerId(pub u32);
 
+/// Each pipeline ID needs to be unique. However, it also needs to be possible to
+/// generate the pipeline ID from an iframe element (this simplifies a lot of other
+/// code that makes use of pipeline IDs).
+///
+/// To achieve this, each pipeline index belongs to a particular namespace. There is
+/// a namespace for the constellation thread, and also one for every script thread.
+/// This allows pipeline IDs to be generated by any of those threads without conflicting
+/// with pipeline IDs created by other script threads or the constellation. The
+/// constellation is the only code that is responsible for creating new *namespaces*.
+/// This ensures that namespaces are always unique, even when using multi-process mode.
+///
+/// It may help conceptually to think of the namespace ID as an identifier for the
+/// thread that created this pipeline ID - however this is really an implementation
+/// detail so shouldn't be relied upon in code logic. It's best to think of the
+/// pipeline ID as a simple unique identifier that doesn't convey any more information.
+#[derive(Clone, Copy)]
+pub struct PipelineNamespace {
+    id: PipelineNamespaceId,
+    next_index: PipelineIndex,
+}
+
+impl PipelineNamespace {
+    pub fn install(namespace_id: PipelineNamespaceId) {
+        PIPELINE_NAMESPACE.with(|tls| {
+            assert!(tls.get().is_none());
+            tls.set(Some(PipelineNamespace {
+                id: namespace_id,
+                next_index: PipelineIndex(0),
+            }));
+        });
+    }
+
+    fn next(&mut self) -> PipelineId {
+        let pipeline_id = PipelineId {
+            namespace_id: self.id,
+            index: self.next_index,
+        };
+
+        let PipelineIndex(current_index) = self.next_index;
+        self.next_index = PipelineIndex(current_index + 1);
+
+        pipeline_id
+    }
+}
+
+thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
+
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
-pub struct PipelineId(pub u32);
+pub struct PipelineNamespaceId(pub u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineIndex(pub u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct PipelineId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: PipelineIndex
+}
+
+impl PipelineId {
+    pub fn new() -> PipelineId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let new_pipeline_id = namespace.next();
+            tls.set(Some(namespace));
+            new_pipeline_id
+        })
+    }
+
+    // TODO(gw): This should be removed. It's only required because of the code
+    // that uses it in the devtools lib.rs file (which itself is a TODO). Once
+    // that is fixed, this should be removed. It also relies on the first
+    // call to PipelineId::new() returning (0,0), which is checked with an
+    // assert in handle_init_load().
+    pub fn fake_root_pipeline_id() -> PipelineId {
+        PipelineId {
+            namespace_id: PipelineNamespaceId(0),
+            index: PipelineIndex(0),
+        }
+    }
+}
+
+impl fmt::Display for PipelineId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let PipelineIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index)
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageId(pub u32);

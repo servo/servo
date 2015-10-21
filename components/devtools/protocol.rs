@@ -8,7 +8,7 @@
 
 use rustc_serialize::json::Json;
 use rustc_serialize::json::ParserError::{IoError, SyntaxError};
-use rustc_serialize::{json, Encodable};
+use rustc_serialize::{Encodable, json};
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;

@@ -9,9 +9,9 @@
 
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 use libc::funcs::posix88::unistd::usleep;
-use rand::{Rng, weak_rng, XorShiftRng};
+use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use task::spawn_named;
 use task_state;
 
@@ -259,13 +259,13 @@ impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
         }
 
         // Connect workers to one another.
-        for i in 0..thread_count {
-            for j in 0..thread_count {
+        for (i, mut thread) in threads.iter_mut().enumerate() {
+            for (j, info) in infos.iter().enumerate() {
                 if i != j {
-                    threads[i].other_deques.push(infos[j].thief.clone())
+                    thread.other_deques.push(info.thief.clone())
                 }
             }
-            assert!(threads[i].other_deques.len() == thread_count - 1)
+            assert!(thread.other_deques.len() == thread_count - 1)
         }
 
         // Spawn threads.

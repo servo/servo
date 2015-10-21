@@ -6,8 +6,8 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
-use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
-use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
+use flow::{MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use script::layout_interface::ReflowGoal;
@@ -16,8 +16,8 @@ use std::cell::RefCell;
 use std::mem;
 use util::opts;
 use util::tid::tid;
+use wrapper::{LayoutNode, layout_node_to_unsafe_layout_node};
 use wrapper::{ThreadSafeLayoutNode, UnsafeLayoutNode};
-use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -128,13 +128,6 @@ pub trait PostorderDomTraversal {
 pub trait PostorderNodeMutTraversal {
     /// The operation to perform. Return true to continue or false to stop.
     fn process<'a>(&'a mut self, node: &ThreadSafeLayoutNode<'a>) -> bool;
-
-    /// Returns true if this node should be pruned. If this returns true, we skip the operation
-    /// entirely and do not process any descendant nodes. This is called *before* child nodes are
-    /// visited. The default implementation never prunes any nodes.
-    fn should_prune<'a>(&'a self, _node: &ThreadSafeLayoutNode<'a>) -> bool {
-        false
-    }
 }
 
 /// The recalc-style-for-node traversal, which styles each node and must run before
@@ -172,26 +165,42 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
             // Check to see whether we can share a style with someone.
             let style_sharing_candidate_cache =
                 &mut self.layout_context.style_sharing_candidate_cache();
-            let sharing_result = unsafe {
-                node.share_style_if_possible(style_sharing_candidate_cache,
-                                             parent_opt.clone())
+
+            let sharing_result = match node.as_element() {
+                Some(element) => {
+                    unsafe {
+                        element.share_style_if_possible(style_sharing_candidate_cache,
+                                                        parent_opt.clone())
+                    }
+                },
+                None => StyleSharingResult::CannotShare,
             };
+
             // Otherwise, match and cascade selectors.
             match sharing_result {
-                StyleSharingResult::CannotShare(mut shareable) => {
+                StyleSharingResult::CannotShare => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
-                    if node.as_element().is_some() {
-                        // Perform the CSS selector matching.
-                        let stylist = unsafe { &*self.layout_context.shared.stylist };
-                        node.match_node(stylist,
-                                        Some(&*bf),
-                                        &mut applicable_declarations,
-                                        &mut shareable);
-                    } else if node.has_changed() {
-                        ThreadSafeLayoutNode::new(&node).set_restyle_damage(
-                            incremental::rebuild_and_reflow())
-                    }
+                    let shareable_element = match node.as_element() {
+                        Some(element) => {
+                            // Perform the CSS selector matching.
+                            let stylist = unsafe { &*self.layout_context.shared.stylist };
+                            if element.match_element(stylist,
+                                                     Some(&*bf),
+                                                     &mut applicable_declarations) {
+                                Some(element)
+                            } else {
+                                None
+                            }
+                        },
+                        None => {
+                            if node.has_changed() {
+                                ThreadSafeLayoutNode::new(&node).set_restyle_damage(
+                                    incremental::rebuild_and_reflow())
+                            }
+                            None
+                        },
+                    };
 
                     // Perform the CSS cascade.
                     unsafe {
@@ -203,10 +212,8 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                     }
 
                     // Add ourselves to the LRU cache.
-                    if shareable {
-                        if let Some(element) = node.as_element() {
-                            style_sharing_candidate_cache.insert_if_possible(&element);
-                        }
+                    if let Some(element) = shareable_element {
+                        style_sharing_candidate_cache.insert_if_possible(&element);
                     }
                 }
                 StyleSharingResult::StyleWasShared(index, damage) => {
@@ -289,23 +296,6 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
                 put_task_local_bloom_filter(bf, &unsafe_parent, self.layout_context);
             },
         };
-    }
-}
-
-/// The flow tree verification traversal. This is only on in debug builds.
-#[cfg(debug)]
-struct FlowTreeVerification;
-
-#[cfg(debug)]
-impl PreorderFlow for FlowTreeVerification {
-    #[inline]
-    fn process(&mut self, flow: &mut Flow) {
-        let base = flow::base(flow);
-        if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
-            println!("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
-            flow.dump();
-            panic!("flow tree verification failed")
-        }
     }
 }
 

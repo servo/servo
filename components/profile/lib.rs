@@ -5,22 +5,23 @@
 #![feature(box_syntax)]
 #![feature(iter_arith)]
 #![feature(slice_splits)]
+#![feature(plugin)]
+#![plugin(plugins)]
 
-#[macro_use] extern crate log;
-
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate profile_traits;
 extern crate hbs_pow;
 extern crate ipc_channel;
 extern crate libc;
-#[macro_use]
-extern crate profile_traits;
 #[cfg(target_os = "linux")]
 extern crate regex;
+extern crate time as std_time;
 #[cfg(target_os = "macos")]
 extern crate task_info;
-extern crate time as std_time;
 extern crate util;
 
+mod heartbeats;
 pub mod mem;
 pub mod time;
-
-mod heartbeats;

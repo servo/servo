@@ -3,15 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
-use constellation_msg::PipelineId;
-use constellation_msg::{Key, KeyState, KeyModifiers};
-use euclid::Matrix4;
-use euclid::{Size2D, Point2D, Rect};
+use constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
+use euclid::{Matrix4, Point2D, Rect, Size2D};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::NativeDisplay;
-use std::fmt;
-use std::fmt::{Formatter, Debug};
+use std::fmt::{self, Debug, Formatter};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
@@ -52,9 +49,9 @@ pub struct LayerId(
     LayerType,
     /// The identifier for this layer's fragment, derived from the fragment memory address.
     usize,
-    /// Whether or not this layer is a companion layer, synthesized to ensure that
+    /// An index for identifying companion layers, synthesized to ensure that
     /// content on top of this layer's fragment has the proper rendering order.
-    bool
+    usize
 );
 
 impl Debug for LayerId {
@@ -67,30 +64,23 @@ impl Debug for LayerId {
             LayerType::AfterPseudoContent => "-AfterPseudoContent",
         };
 
-        let companion_string = if companion {
-            "-companion"
-        } else {
-            ""
-        };
-
-        write!(f, "{}{}{}", id, type_string, companion_string)
+        write!(f, "{}{}-{}", id, type_string, companion)
     }
 }
 
 impl LayerId {
     /// FIXME(#2011, pcwalton): This is unfortunate. Maybe remove this in the future.
     pub fn null() -> LayerId {
-        LayerId(LayerType::FragmentBody, 0, false)
+        LayerId(LayerType::FragmentBody, 0, 0)
     }
 
     pub fn new_of_type(layer_type: LayerType, fragment_id: usize) -> LayerId {
-        LayerId(layer_type, fragment_id, false)
+        LayerId(layer_type, fragment_id, 0)
     }
 
     pub fn companion_layer_id(&self) -> LayerId {
         let LayerId(layer_type, id, companion) = *self;
-        assert!(!companion);
-        LayerId(layer_type, id, true)
+        LayerId(layer_type, id, companion + 1)
     }
 }
 
@@ -127,6 +117,9 @@ pub struct LayerProperties {
     pub transform: Matrix4,
     /// The perspective transform for this layer
     pub perspective: Matrix4,
+    /// The subpage that this layer represents. If this is `Some`, this layer represents an
+    /// iframe.
+    pub subpage_pipeline_id: Option<PipelineId>,
     /// Whether this layer establishes a new 3d rendering context.
     pub establishes_3d_context: bool,
     /// Whether this layer scrolls its overflow area.

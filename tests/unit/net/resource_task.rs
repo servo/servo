@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
 
+
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task("".to_owned(), None);

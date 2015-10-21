@@ -7,17 +7,16 @@
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
-use dom::domexception::{DOMException, DOMErrorName};
+use dom::domexception::{DOMErrorName, DOMException};
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{JSContext, JSObject, RootedValue};
-use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException, JS_ReportPendingException};
-use js::jsapi::{JS_ReportErrorNumber1, JSErrorFormatString, JSExnType};
-use js::jsapi::{JS_SaveFrameChain, JS_RestoreFrameChain};
+use js::jsapi::{JSErrorFormatString, JSExnType, JS_ReportErrorNumber};
+use js::jsapi::{JS_IsExceptionPending, JS_ReportPendingException, JS_SetPendingException};
+use js::jsapi::{JS_RestoreFrameChain, JS_SaveFrameChain};
 use js::jsval::UndefinedValue;
 use libc;
 use std::ffi::CString;
-use std::mem;
-use std::ptr;
+use std::{mem, ptr};
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
@@ -106,22 +105,22 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::Type(message) => {
-            assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+            assert!(unsafe { !JS_IsExceptionPending(cx) });
             throw_type_error(cx, &message);
             return;
         },
         Error::Range(message) => {
-            assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+            assert!(unsafe { !JS_IsExceptionPending(cx) });
             throw_range_error(cx, &message);
             return;
         },
         Error::JSFailed => {
-            assert!(unsafe { JS_IsExceptionPending(cx) } == 1);
+            assert!(unsafe { JS_IsExceptionPending(cx) });
             return;
         }
     };
 
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    assert!(unsafe { !JS_IsExceptionPending(cx) });
     let exception = DOMException::new(global, code);
     let mut thrown = RootedValue::new(cx, UndefinedValue());
     exception.to_jsval(cx, thrown.handle_mut());
@@ -133,13 +132,13 @@ pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
 /// Report a pending exception, thereby clearing it.
 pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
     unsafe {
-        if JS_IsExceptionPending(cx) != 0 {
+        if JS_IsExceptionPending(cx) {
             let saved = JS_SaveFrameChain(cx);
             {
                 let _ac = JSAutoCompartment::new(cx, obj);
                 JS_ReportPendingException(cx);
             }
-            if saved != 0 {
+            if saved {
                 JS_RestoreFrameChain(cx);
             }
         }
@@ -149,7 +148,7 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 /// Throw an exception to signal that a `JSVal` can not be converted to any of
 /// the types in an IDL union type.
 pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
-    assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    assert!(unsafe { !JS_IsExceptionPending(cx) });
     let error = format!("argument could not be converted to any of: {}", names);
     throw_type_error(cx, &error);
 }
@@ -157,7 +156,7 @@ pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
 /// Throw an exception to signal that a `JSObject` can not be converted to a
 /// given DOM type.
 pub fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
-    debug_assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
+    debug_assert!(unsafe { !JS_IsExceptionPending(cx) });
     let error = format!("\"this\" object does not implement interface {}.",
                         proto_id_to_name(proto_id));
     throw_type_error(cx, &error);
@@ -206,7 +205,7 @@ unsafe extern fn get_error_message(_user_ref: *mut libc::c_void,
 fn throw_js_error(cx: *mut JSContext, error: &str, error_number: u32) {
     let error = CString::new(error).unwrap();
     unsafe {
-        JS_ReportErrorNumber1(cx,
+        JS_ReportErrorNumber(cx,
             Some(get_error_message),
             ptr::null_mut(), error_number, error.as_ptr());
     }

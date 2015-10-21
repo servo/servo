@@ -6,14 +6,14 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ErrorEventBinding;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root, MutHeapJSVal};
+use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
-use js::jsapi::{JSContext, HandleValue};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -30,16 +30,10 @@ pub struct ErrorEvent {
     error: MutHeapJSVal,
 }
 
-impl ErrorEventDerived for Event {
-    fn is_errorevent(&self) -> bool {
-        *self.type_id() == EventTypeId::ErrorEvent
-    }
-}
-
 impl ErrorEvent {
-    fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
+    fn new_inherited() -> ErrorEvent {
         ErrorEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(),
             message: DOMRefCell::new("".to_owned()),
             filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
@@ -49,7 +43,7 @@ impl ErrorEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<ErrorEvent> {
-        reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
+        reflect_dom_object(box ErrorEvent::new_inherited(),
                            global,
                            ErrorEventBinding::Wrap)
     }
@@ -102,11 +96,14 @@ impl ErrorEvent {
             EventCancelable::NotCancelable
         };
 
+        // Dictionaries need to be rooted
+        // https://github.com/servo/servo/issues/6381
+        let error = RootedValue::new(global.get_cx(), init.error);
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num,
-                                HandleValue { ptr: &init.error });
+                                error.handle());
         Ok(event)
     }
 

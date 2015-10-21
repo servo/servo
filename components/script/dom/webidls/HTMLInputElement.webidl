@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlinputelement
+// https://html.spec.whatwg.org/multipage/#htmlinputelement
 interface HTMLInputElement : HTMLElement {
   //         attribute DOMString accept;
   //         attribute DOMString alt;
@@ -13,7 +13,7 @@ interface HTMLInputElement : HTMLElement {
            attribute boolean checked;
   //         attribute DOMString dirName;
            attribute boolean disabled;
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
   //readonly attribute FileList? files;
              attribute DOMString formAction;
              attribute DOMString formEnctype;
@@ -71,7 +71,7 @@ interface HTMLInputElement : HTMLElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLInputElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial
 partial interface HTMLInputElement {
   //         attribute DOMString align;
   //         attribute DOMString useMap;

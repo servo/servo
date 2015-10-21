@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmlelement
+// https://html.spec.whatwg.org/multipage/#htmlelement
 interface HTMLElement : Element {
   // metadata attributes
            attribute DOMString title;

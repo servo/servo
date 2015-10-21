@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{self, RGBA, Color};
-use geometry::Au;
+use app_units::Au;
+use cssparser::{self, Color, RGBA};
 use libc::c_char;
 use num_lib::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::ffi::CStr;
-use std::iter::Filter;
+use std::iter::{Filter, Peekable};
 use std::ops::Deref;
-use std::str::{from_utf8, FromStr, Split};
+use std::str::{FromStr, Split, from_utf8};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -47,17 +47,37 @@ pub fn split_html_space_chars<'a>(s: &'a str) ->
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 
-/// Shared implementation to parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers> or
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
-fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
-    fn is_ascii_digit(c: &char) -> bool {
-        match *c {
-            '0'...'9' => true,
-            _ => false,
-        }
+
+fn is_ascii_digit(c: &char) -> bool {
+    match *c {
+        '0'...'9' => true,
+        _ => false,
+    }
+}
+
+
+fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
+    match iter.peek() {
+        Some(c) if is_ascii_digit(c) => (),
+        _ => return None,
     }
 
+    iter.take_while(is_ascii_digit).map(|d| {
+        d as i64 - '0' as i64
+    }).fold(Some(0i64), |accumulator, d| {
+        accumulator.and_then(|accumulator| {
+            accumulator.checked_mul(10)
+        }).and_then(|accumulator| {
+            accumulator.checked_add(d)
+        })
+    })
+}
+
+
+/// Shared implementation to parse an integer according to
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
+fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     let mut input = input.skip_while(|c| {
         HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
     }).peekable();
@@ -75,26 +95,13 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
         Some(_) => 1,
     };
 
-    match input.peek() {
-        Some(c) if is_ascii_digit(c) => (),
-        _ => return None,
-    }
+    let value = read_numbers(input);
 
-    let value = input.take_while(is_ascii_digit).map(|d| {
-        d as i64 - '0' as i64
-    }).fold(Some(0i64), |accumulator, d| {
-        accumulator.and_then(|accumulator| {
-            accumulator.checked_mul(10)
-        }).and_then(|accumulator| {
-            accumulator.checked_add(d)
-        })
-    });
-
-    return value.and_then(|value| value.checked_mul(sign));
+    value.and_then(|value| value.checked_mul(sign))
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers>.
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
 pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
@@ -102,7 +109,7 @@ pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
 pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()
@@ -166,6 +173,61 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 }
 
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
+pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
+    input = input.trim_matches(WHITESPACE);
+
+    enum ParseMode {
+        RelativePlus,
+        RelativeMinus,
+        Absolute,
+    }
+    let mut input_chars = input.chars().peekable();
+    let parse_mode = match input_chars.peek() {
+        // Step 4
+        None => return None,
+
+        // Step 5
+        Some(&'+') => {
+            let _ = input_chars.next();  // consume the '+'
+            ParseMode::RelativePlus
+        }
+        Some(&'-') => {
+            let _ = input_chars.next();  // consume the '-'
+            ParseMode::RelativeMinus
+        }
+        Some(_) => ParseMode::Absolute,
+    };
+
+    // Steps 6, 7, 8
+    let mut value = match read_numbers(input_chars) {
+        Some(v) => v,
+        None => return None,
+    };
+
+    // Step 9
+    match parse_mode {
+        ParseMode::RelativePlus => value = 3 + value,
+        ParseMode::RelativeMinus => value = 3 - value,
+        ParseMode::Absolute => (),
+    }
+
+    // Steps 10, 11, 12
+    Some(match value {
+        n if n >= 7 => "xxx-large",
+        6 => "xx-large",
+        5 => "x-large",
+        4 => "large",
+        3 => "medium",
+        2 => "small",
+        n if n <= 1 => "x-small",
+        _ => unreachable!(),
+    })
+}
+
 /// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
 pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     // Steps 1 and 2.
@@ -182,9 +244,8 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     }
 
     // Step 5.
-    match cssparser::parse_color_keyword(input) {
-        Ok(Color::RGBA(rgba)) => return Ok(rgba),
-        _ => {}
+    if let Ok(Color::RGBA(rgba)) = cssparser::parse_color_keyword(input) {
+        return Ok(rgba);
     }
 
     // Step 6.
@@ -326,9 +387,11 @@ pub unsafe fn c_str_to_string(s: *const c_char) -> String {
     from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
 }
 
-pub fn str_join<T: AsRef<str>>(strs: &[T], join: &str) -> String {
-    strs.iter().fold(String::new(), |mut acc, s| {
-        if !acc.is_empty() { acc.push_str(join); }
+pub fn str_join<I, T>(strs: I, join: &str) -> String
+    where I: IntoIterator<Item=T>, T: AsRef<str>,
+{
+    strs.into_iter().enumerate().fold(String::new(), |mut acc, (i, s)| {
+        if i > 0 { acc.push_str(join); }
         acc.push_str(s.as_ref());
         acc
     })

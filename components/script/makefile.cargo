@@ -3,7 +3,7 @@
 rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) \
   $(filter $(subst *,%,$2),$d))
 
-PYTHON = $(shell which python2.7 2>/dev/null || echo python)
+PYTHON = $(shell which python2.7 2>/dev/null || echo python) -B
 BINDINGS_SRC = $(shell pwd)/dom/bindings/codegen
 WEBIDLS_SRC = $(shell pwd)/dom/webidls
 WEBIDLS = $(call rwildcard,$(WEBIDLS_SRC),*.webidl)

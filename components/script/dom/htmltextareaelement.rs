@@ -8,29 +8,28 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
+use dom::element::{AttributeMutation, IN_ENABLED_STATE};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::FormControl;
+use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
-use dom::node::{NodeTypeId, document_from_node, window_from_node};
+use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
-use script_task::{Runnable, CommonScriptMsg};
+use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
-use textinput::{TextInput, Lines, KeyReaction};
+use textinput::{KeyReaction, Lines, TextInput};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -42,14 +41,6 @@ pub struct HTMLTextAreaElement {
     rows: Cell<u32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
-}
-
-impl HTMLTextAreaElementDerived for EventTarget {
-    fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
-    }
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -93,10 +84,11 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().r().constellation_chan();
+        let chan = document.window().constellation_chan();
         HTMLTextAreaElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned(), chan)),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
@@ -123,11 +115,16 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_limited_uint_setter!(SetCols, "cols", DEFAULT_COLS);
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled);
 
-    // https://www.whatwg.org/html/#dom-fe-disabled
+    // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fae-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner()
+    }
 
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_getter!(Name);
@@ -239,7 +236,7 @@ impl HTMLTextAreaElement {
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -248,16 +245,16 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let node = NodeCast::from_ref(self);
+                let el = ElementCast::from_ref(self);
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        node.set_disabled_state(true);
-                        node.set_enabled_state(false);
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     },
                     AttributeMutation::Removed => {
-                        node.set_disabled_state(false);
-                        node.set_enabled_state(true);
-                        node.check_ancestors_disabled_state_for_form_control();
+                        el.set_disabled_state(false);
+                        el.set_enabled_state(true);
+                        el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },
@@ -282,8 +279,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_ancestors_disabled_state_for_form_control();
+        let el = ElementCast::from_ref(self);
+        el.check_ancestors_disabled_state_for_form_control();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -300,10 +297,11 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
 
         let node = NodeCast::from_ref(self);
+        let el = ElementCast::from_ref(self);
         if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
-            node.check_ancestors_disabled_state_for_form_control();
+            el.check_ancestors_disabled_state_for_form_control();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 
@@ -358,11 +356,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl<'a> FormControl<'a> for &'a HTMLTextAreaElement {
-    fn to_element(self) -> &'a Element {
-        ElementCast::from_ref(self)
-    }
-}
+impl FormControl for HTMLTextAreaElement {}
 
 pub struct ChangeEventRunnable {
     element: Trusted<HTMLTextAreaElement>,

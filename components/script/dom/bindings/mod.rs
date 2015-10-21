@@ -132,9 +132,6 @@
 //! return `Err()` from the method with the appropriate [error value]
 //! (error/enum.Error.html).
 
-#![allow(unsafe_code)]
-#![deny(missing_docs, non_snake_case)]
-
 pub mod callback;
 pub mod cell;
 pub mod conversions;
@@ -168,13 +165,10 @@ pub mod codegen {
     pub mod PrototypeList {
         include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
     }
-    #[allow(non_camel_case_types, non_upper_case_globals,
-            unused_imports, unused_variables, unused_assignments)]
     pub mod RegisterBindings {
         include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
     }
-    #[allow(non_camel_case_types, non_upper_case_globals,
-            unused_imports, unused_variables, unused_assignments)]
+    #[allow(non_camel_case_types, unused_imports, unused_variables)]
     pub mod UnionTypes {
         include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
     }

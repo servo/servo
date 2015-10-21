@@ -31,6 +31,7 @@ box-sizing-border-box-004.xht == reference/box-sizing-border-box-004-ref.xht
 box-sizing-content-box-001.xht == reference/box-sizing-content-box-001-ref.xht
 box-sizing-content-box-002.xht == reference/box-sizing-content-box-002-ref.xht
 box-sizing-content-box-003.xht == reference/box-sizing-content-box-003-ref.xht
+box-sizing-padding-box-block-001.xht == reference/box-sizing-padding-box-block-001-ref.xht
 box-sizing-replaced-001.xht == reference/box-sizing-replaced-001-ref.xht
 box-sizing-replaced-002.xht == reference/box-sizing-replaced-002-ref.xht
 box-sizing-replaced-003.xht == reference/box-sizing-replaced-003-ref.xht
@@ -39,10 +40,11 @@ outline-002.xht == reference/ref-filled-green-100px-square.xht
 outline-color-001.xht == reference/ref-filled-green-100px-square.xht
 outline-offset.xht == reference/outline-offset.xht
 outline-offset-001.xht == reference/ref-filled-green-100px-square.xht
-outline-style-001.xht == reference/outline-style-001-ref.xht
-outline-style-002.xht == reference/outline-style-002-ref.xht
-outline-style-003.xht == reference/outline-style-003-ref.xht
-outline-style-004.xht == reference/outline-style-004-ref.xht
+outline-style-011.xht == reference/outline-style-011-ref.xht
+outline-style-012.xht == reference/outline-style-012-ref.xht
+outline-style-013.xht == reference/outline-style-013-ref.xht
+outline-style-014.xht == reference/outline-style-014-ref.xht
+text-overflow.xht == reference/text-overflow-ref.xht
 text-overflow-001.xht == reference/text-overflow-001-ref.xht
 text-overflow-002.xht == reference/text-overflow-002-ref.xht
 text-overflow-003.xht == reference/text-overflow-001-ref.xht

@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use actor::{Actor, ActorRegistry, ActorMessageStatus};
+use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::framerate::FramerateActor;
 use actors::memory::{MemoryActor, TimelineMemoryReply};
 use devtools_traits::DevtoolScriptControlMsg;
-use devtools_traits::DevtoolScriptControlMsg::{SetTimelineMarkers, DropTimelineMarkers};
+use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::{json, Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder, json};
 use std::cell::RefCell;
 use std::net::TcpStream;
 use std::sync::mpsc::channel;

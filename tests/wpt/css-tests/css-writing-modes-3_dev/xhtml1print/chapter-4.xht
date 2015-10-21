@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Inline-level Alignment (34 tests)</h2>
+  <h2>Inline-level Alignment (30 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -49,7 +49,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.2">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#text-baselines">4.2 Text Baselines</a></th></tr>
-      <!-- 10 tests -->
+      <!-- 8 tests -->
       <tr id="central-baseline-alignment-002-4.2" class="primary ahem">
         <td><strong>
             <a href="central-baseline-alignment-002.xht">central-baseline-alignment-002</a></strong></td>
@@ -130,33 +130,11 @@
       <tr id="text-baseline-007-4.2" class="primary ahem">
         <td><strong>
             <a href="text-baseline-007.xht">text-baseline-007</a></strong></td>
-        <td><a href="reference/text-baseline-007-ref.xht">=</a> </td>
+        <td><a href="reference/text-baseline-006-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>text baseline alignment - alphabetical alignment with vertical layout
           <ul class="assert">
             <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-baseline-008-4.2" class="primary ahem">
-        <td><strong>
-            <a href="text-baseline-008.xht">text-baseline-008</a></strong></td>
-        <td><a href="reference/text-baseline-006-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>text baseline alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="text-baseline-009-4.2" class="primary ahem">
-        <td><strong>
-            <a href="text-baseline-009.xht">text-baseline-009</a></strong></td>
-        <td><a href="reference/text-baseline-006-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>text baseline alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of text baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
           </ul>
         </td>
       </tr>
@@ -171,7 +149,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.3">+</a>
         <a href="http://www.w3.org/TR/css-writing-modes-3/#replaced-baselines">4.3 Atomic Inline Baselines</a></th></tr>
-      <!-- 24 tests -->
+      <!-- 22 tests -->
       <tr id="baseline-inline-non-replaced-002-4.3" class="primary ahem">
         <td><strong>
             <a href="baseline-inline-non-replaced-002.xht">baseline-inline-non-replaced-002</a></strong></td>
@@ -296,33 +274,11 @@
       <tr id="inline-block-alignment-007-4.3" class="primary ahem">
         <td><strong>
             <a href="inline-block-alignment-007.xht">inline-block-alignment-007</a></strong></td>
-        <td><a href="reference/inline-block-alignment-007-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>inline block alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="inline-block-alignment-008-4.3" class="primary ahem">
-        <td><strong>
-            <a href="inline-block-alignment-008.xht">inline-block-alignment-008</a></strong></td>
         <td><a href="reference/inline-block-alignment-006-ref.xht">=</a> </td>
         <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
         <td>inline block alignment - alphabetical alignment with vertical layout
           <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-rl' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="inline-block-alignment-009-4.3" class="primary ahem">
-        <td><strong>
-            <a href="inline-block-alignment-009.xht">inline-block-alignment-009</a></strong></td>
-        <td><a href="reference/inline-block-alignment-009-ref.xht">=</a> </td>
-        <td><abbr class="ahem" title="Requires Ahem font">Ahem</abbr></td>
-        <td>inline block alignment - alphabetical alignment with vertical layout
-          <ul class="assert">
-            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways-right', then the alphabetical baseline is used as the dominant baseline.</li>
+            <li>This test checks the generation of inline-block baseline. When 'writing-mode' is 'vertical-lr' and when 'text-orientation' is 'sideways', then the alphabetical baseline is used as the dominant baseline.</li>
           </ul>
         </td>
       </tr>

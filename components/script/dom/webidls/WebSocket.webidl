@@ -15,7 +15,7 @@ interface WebSocket : EventTarget {
     const unsigned short CLOSING = 2;
     const unsigned short CLOSED = 3;
     readonly attribute unsigned short readyState;
-    //readonly attribute unsigned long bufferedAmount;
+    readonly attribute unsigned long bufferedAmount;
 
     //networking
     attribute EventHandler onopen;
@@ -28,7 +28,7 @@ interface WebSocket : EventTarget {
     //messaging
     attribute EventHandler onmessage;
     attribute BinaryType binaryType;
-    [Throws] void send(optional USVString data);
+    [Throws] void send(USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);

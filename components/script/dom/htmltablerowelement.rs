@@ -4,40 +4,45 @@
 
 use cssparser::RGBA;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
-use dom::bindings::js::Root;
+use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableDataCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableHeaderCellElementDerived, NodeCast};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, Element};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmlelement::HTMLElement;
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{self, DOMString};
 
+
+#[derive(JSTraceable)]
+struct CellsFilter;
+impl CollectionFilter for CellsFilter {
+    fn filter(&self, elem: &Element, root: &Node) -> bool {
+        (elem.is_htmltableheadercellelement() || elem.is_htmltabledatacellelement())
+            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+    }
+}
+
 #[dom_struct]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
+    cells: MutNullableHeap<JS<HTMLCollection>>,
     background_color: Cell<Option<RGBA>>,
-}
-
-impl HTMLTableRowElementDerived for EventTarget {
-    fn is_htmltablerowelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)))
-    }
 }
 
 impl HTMLTableRowElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableRowElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            cells: Default::default(),
             background_color: Cell::new(None),
         }
     }
@@ -55,8 +60,43 @@ impl HTMLTableRowElement {
     }
 }
 
+impl HTMLTableRowElementMethods for HTMLTableRowElement {
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_getter!(BgColor);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-bgcolor
+    make_setter!(SetBgColor, "bgcolor");
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-cells
+    fn Cells(&self) -> Root<HTMLCollection> {
+        self.cells.or_init(|| {
+            let window = window_from_node(self);
+            let filter = box CellsFilter;
+            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
+    fn InsertCell(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+        let node = NodeCast::from_ref(self);
+        node.insert_cell_or_row(
+            index,
+            || self.Cells(),
+            || HTMLTableDataCellElement::new("td".to_owned(), None, node.owner_doc().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    fn DeleteCell(&self, index: i32) -> ErrorResult {
+        let node = NodeCast::from_ref(self);
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is_htmltabledatacellelement())
+    }
+}
+
 impl VirtualMethods for HTMLTableRowElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

@@ -36,9 +36,9 @@ def host_triple():
     elif os_type == "darwin":
         os_type = "apple-darwin"
     elif os_type == "android":
-        os_type == "linux-androideabi"
+        os_type = "linux-androideabi"
     else:
-        os_type == "unknown"
+        os_type = "unknown"
 
     cpu_type = subprocess.check_output(["uname", "-m"]).strip().lower()
     if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:

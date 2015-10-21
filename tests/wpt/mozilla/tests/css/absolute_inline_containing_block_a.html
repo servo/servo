@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=match href=absolute_inline_containing_block_ref.html>
+<style>
+html, body {
+    margin: 0;
+    font-size: 0.1px;
+}
+#a {
+    padding-left: 100px;
+}
+#b {
+    position: relative;
+}
+#c {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    background: purple;
+}
+.cover-up-platform-specific-differences {
+    position: absolute;
+    background: white;
+}
+#cover-up-platform-specific-differences-a, #cover-up-platform-specific-differences-b {
+    left: 0;
+    width: 300px;
+}
+#cover-up-platform-specific-differences-c, #cover-up-platform-specific-differences-d {
+    top: 0;
+    height: 300px;
+}
+#cover-up-platform-specific-differences-a {
+    top: 0;
+    height: 25px;
+}
+#cover-up-platform-specific-differences-b {
+    top: 75px;
+    height: 100px;
+}
+#cover-up-platform-specific-differences-c {
+    left: 0;
+    width: 125px;
+}
+#cover-up-platform-specific-differences-d {
+    left: 175px;
+    width: 100px;
+}
+</style>
+</head>
+<body>
+<div><span id=a>a</span><span id=b><div id=c></div></span></span></div>
+<div class=cover-up-platform-specific-differences id=cover-up-platform-specific-differences-a>
+</div>
+<div class=cover-up-platform-specific-differences id=cover-up-platform-specific-differences-b>
+</div>
+<div class=cover-up-platform-specific-differences id=cover-up-platform-specific-differences-c>
+</div>
+<div class=cover-up-platform-specific-differences id=cover-up-platform-specific-differences-d>
+</div>
+</body>
+</html>
+

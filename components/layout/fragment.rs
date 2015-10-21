@@ -6,12 +6,12 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
-use flow;
-use flow::Flow;
+use flow::{self, Flow};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
@@ -23,7 +23,8 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
-use msg::constellation_msg::{ConstellationChan, Msg, PipelineId, SubpageId};
+use msg::compositor_msg::{LayerId, LayerType};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
@@ -34,9 +35,9 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values::content::ContentItem;
-use style::computed_values::{border_collapse, clear, mix_blend_mode, overflow_wrap, overflow_x};
-use style::computed_values::{position, text_align, text_decoration, transform_style, white_space};
-use style::computed_values::{word_break, z_index};
+use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
+use style::computed_values::{overflow_x, position, text_align, text_decoration, transform_style};
+use style::computed_values::{white_space, word_break, z_index};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
@@ -44,10 +45,10 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::geometry::{Au, ZERO_POINT};
-use util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use util::geometry::ZERO_POINT;
+use util::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use util::range::*;
-use util::str::{is_whitespace, slice_chars};
+use util::str::slice_chars;
 use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -577,17 +578,14 @@ impl ReplacedImageFragmentInfo {
 pub struct IframeFragmentInfo {
     /// The pipeline ID of this iframe.
     pub pipeline_id: PipelineId,
-    /// The subpage ID of this iframe.
-    pub subpage_id: SubpageId,
 }
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
     pub fn new(node: &ThreadSafeLayoutNode) -> IframeFragmentInfo {
-        let (pipeline_id, subpage_id) = node.iframe_pipeline_and_subpage_ids();
+        let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
-            subpage_id: subpage_id,
         }
     }
 
@@ -1250,6 +1248,36 @@ impl Fragment {
         self.style().get_inheritedtext().white_space
     }
 
+    pub fn white_space_allow_wrap(&self) -> bool {
+        match self.white_space() {
+            white_space::T::nowrap |
+            white_space::T::pre => false,
+            white_space::T::normal |
+            white_space::T::pre_wrap |
+            white_space::T::pre_line => true,
+        }
+    }
+
+    pub fn white_space_preserve_newlines(&self) -> bool {
+        match self.white_space() {
+            white_space::T::normal |
+            white_space::T::nowrap => false,
+            white_space::T::pre |
+            white_space::T::pre_wrap |
+            white_space::T::pre_line => true,
+        }
+    }
+
+    pub fn white_space_preserve_spaces(&self) -> bool {
+        match self.white_space() {
+            white_space::T::normal |
+            white_space::T::nowrap |
+            white_space::T::pre_line => false,
+            white_space::T::pre |
+            white_space::T::pre_wrap => true,
+        }
+    }
+
     /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
@@ -1277,10 +1305,9 @@ impl Fragment {
     }
 
     /// Returns true if this element can be split. This is true for text fragments, unless
-    /// `white-space: pre` is set.
+    /// `white-space: pre` or `white-space: nowrap` is set.
     pub fn can_split(&self) -> bool {
-        self.is_scanned_text_fragment() &&
-            self.style.get_inheritedtext().white_space != white_space::T::pre
+        self.is_scanned_text_fragment() && self.white_space_allow_wrap()
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
@@ -1354,9 +1381,10 @@ impl Fragment {
                                                              .metrics_for_range(range)
                                                              .advance_width;
 
-                let min_line_inline_size = match self.style.get_inheritedtext().white_space {
-                    white_space::T::pre | white_space::T::nowrap => max_line_inline_size,
-                    white_space::T::normal => text_fragment_info.run.min_width_for_range(range),
+                let min_line_inline_size = if self.white_space_allow_wrap() {
+                    text_fragment_info.run.min_width_for_range(range)
+                } else {
+                    max_line_inline_size
                 };
 
                 result.union_block(&IntrinsicISizes {
@@ -1481,7 +1509,7 @@ impl Fragment {
                 let character_breaking_strategy =
                     text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
                 flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
-                return self.calculate_split_position_using_breaking_strategy(
+                self.calculate_split_position_using_breaking_strategy(
                     character_breaking_strategy,
                     max_inline_size,
                     flags)
@@ -1535,7 +1563,6 @@ impl Fragment {
                 return None
             };
 
-        let mut pieces_processed_count: u32 = 0;
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
         let mut inline_end_range = None;
@@ -1562,18 +1589,9 @@ impl Fragment {
             // Have we found the split point?
             if advance <= remaining_inline_size || slice.glyphs.is_whitespace() {
                 // Keep going; we haven't found the split point yet.
-                if flags.contains(STARTS_LINE) &&
-                        pieces_processed_count == 0 &&
-                        slice.glyphs.is_whitespace() {
-                    debug!("calculate_split_position_using_breaking_strategy: skipping \
-                            leading trimmable whitespace");
-                    inline_start_range.shift_by(slice.range.length());
-                } else {
-                    debug!("calculate_split_position_using_breaking_strategy: enlarging span");
-                    remaining_inline_size = remaining_inline_size - advance;
-                    inline_start_range.extend_by(slice.range.length());
-                }
-                pieces_processed_count += 1;
+                debug!("calculate_split_position_using_breaking_strategy: enlarging span");
+                remaining_inline_size = remaining_inline_size - advance;
+                inline_start_range.extend_by(slice.range.length());
                 continue
             }
 
@@ -1670,24 +1688,9 @@ impl Fragment {
         self.meld_with_next_inline_fragment(&next_fragment);
     }
 
-    /// Returns true if this fragment is an unscanned text fragment that consists entirely of
-    /// whitespace that should be stripped.
-    pub fn is_ignorable_whitespace(&self) -> bool {
-        match self.white_space() {
-            white_space::T::pre => return false,
-            white_space::T::normal | white_space::T::nowrap => {}
-        }
-        match self.specific {
-            SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
-                is_whitespace(&text_fragment_info.text)
-            }
-            _ => false,
-        }
-    }
-
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
+    pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
@@ -2103,6 +2106,16 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
+    /// Returns true if this fragment unconditionally layerizes.
+    pub fn needs_layered_stacking_context(&self) -> bool {
+        // Canvas and iframes always layerize, as an special case
+        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
+        match self.specific {
+            SpecificFragmentInfo::Canvas(_) => true,
+            _ => false,
+        }
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         if self.flags.contains(HAS_LAYER) {
@@ -2127,9 +2140,7 @@ impl Fragment {
             transform_style::T::auto => {}
         }
 
-        // Canvas always layerizes, as an special case
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
-        if let SpecificFragmentInfo::Canvas(_) = self.specific {
+        if self.needs_layered_stacking_context() {
             return true
         }
 
@@ -2160,11 +2171,31 @@ impl Fragment {
         }
     }
 
+    // Get the effective z-index of this fragment. Z-indices only apply to positioned element
+    // per CSS 2 9.9.1 (http://www.w3.org/TR/CSS2/visuren.html#z-index), so this value may differ
+    // from the value specified in the style.
+    pub fn effective_z_index(&self) -> i32 {
+        match self.style().get_box().position {
+            position::T::static_ => {},
+            _ => return self.style().get_box().z_index.number_or_zero(),
+        }
+
+        if self.style().get_effects().transform.0.is_some() {
+            return self.style().get_box().z_index.number_or_zero();
+        }
+
+        match self.style().get_box().display {
+            display::T::flex => self.style().get_box().z_index.number_or_zero(),
+            _ => 0,
+        }
+    }
+
     /// Computes the overflow rect of this fragment relative to the start of the flow.
-    pub fn compute_overflow(&self, relative_containing_block_size: &LogicalSize<Au>) -> Rect<Au> {
-        // FIXME(pcwalton, #2795): Get the real container size.
-        let container_size = Size2D::zero();
-        let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+    pub fn compute_overflow(&self,
+                            flow_size: &Size2D<Au>,
+                            relative_containing_block_size: &LogicalSize<Au>)
+                            -> Rect<Au> {
+        let mut border_box = self.border_box.to_physical(self.style.writing_mode, *flow_size);
 
         // Relative position can cause us to draw outside our border box.
         //
@@ -2207,23 +2238,6 @@ impl Fragment {
         overflow
     }
 
-    /// Remove any compositor layers associated with this fragment - it is being
-    /// removed from the tree or had its display property set to none.
-    /// TODO(gw): This just hides the compositor layer for now. In the future
-    /// it probably makes sense to provide a hint to the compositor whether
-    /// the layers should be destroyed to free memory.
-    pub fn remove_compositor_layers(&self, constellation_chan: ConstellationChan) {
-        match self.specific {
-            SpecificFragmentInfo::Iframe(ref iframe_info) => {
-                let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(Msg::FrameRect(iframe_info.pipeline_id,
-                                         iframe_info.subpage_id,
-                                         Rect::zero())).unwrap();
-            }
-            _ => {}
-        }
-    }
-
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text) => {
@@ -2234,7 +2248,7 @@ impl Fragment {
     }
 
     pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.style.get_inheritedtext().white_space == white_space::T::pre {
+        if self.white_space_preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 
@@ -2267,7 +2281,7 @@ impl Fragment {
                     CharIndex(leading_whitespace_character_count),
                     -CharIndex(leading_whitespace_character_count));
 
-                return WhitespaceStrippingResult::RetainFragment
+                WhitespaceStrippingResult::RetainFragment
             }
             SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
                 let mut new_text_string = String::new();
@@ -2297,7 +2311,7 @@ impl Fragment {
 
     /// Returns true if the entire fragment was stripped.
     pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.style.get_inheritedtext().white_space == white_space::T::pre {
+        if self.white_space_preserve_spaces() {
             return WhitespaceStrippingResult::RetainFragment
         }
 
@@ -2373,7 +2387,7 @@ impl Fragment {
         }
     }
 
-    pub fn inline_styles<'a>(&'a self) -> InlineStyleIterator<'a> {
+    pub fn inline_styles(&self) -> InlineStyleIterator {
         InlineStyleIterator::new(self)
     }
 
@@ -2431,6 +2445,19 @@ impl Fragment {
                 }
             }
         }
+    }
+
+    pub fn layer_id(&self) -> LayerId {
+        let layer_type = match self.pseudo {
+            PseudoElementType::Normal => LayerType::FragmentBody,
+            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
+            PseudoElementType::After(_) => LayerType::AfterPseudoContent
+        };
+        LayerId::new_of_type(layer_type, self.node.id() as usize)
+    }
+
+    pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
     }
 }
 
@@ -2515,7 +2542,7 @@ impl<'a> Iterator for InlineStyleIterator<'a> {
 }
 
 impl<'a> InlineStyleIterator<'a> {
-    fn new<'b>(fragment: &'b Fragment) -> InlineStyleIterator<'b> {
+    fn new(fragment: &Fragment) -> InlineStyleIterator {
         InlineStyleIterator {
             fragment: fragment,
             inline_style_index: 0,
@@ -2550,4 +2577,3 @@ bitflags! {
         const HAS_LAYER = 0x01,
     }
 }
-

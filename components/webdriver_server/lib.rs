@@ -5,51 +5,53 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(ip_addr)]
+#![feature(ip_addr, plugin)]
+#![plugin(plugins)]
 
 #[macro_use]
 extern crate log;
-
-extern crate webdriver;
+extern crate hyper;
+extern crate image;
+extern crate ipc_channel;
 extern crate msg;
-extern crate png;
+extern crate regex;
+extern crate rustc_serialize;
 extern crate url;
 extern crate util;
-extern crate rustc_serialize;
 extern crate uuid;
-extern crate ipc_channel;
-extern crate regex;
-extern crate hyper;
+extern crate webdriver;
 
 use hyper::method::Method::{self, Post};
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use image::{DynamicImage, ImageFormat, RgbImage};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, LoadData, FrameId, PipelineId};
-use msg::constellation_msg::{NavigationDirection, WebDriverCommandMsg};
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverScriptCommand, WebDriverJSError, WebDriverJSResult, LoadStatus};
+use msg::constellation_msg::{ConstellationChan, FrameId, LoadData, PipelineId};
+use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
+use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
-use rustc_serialize::base64::{Config, ToBase64, CharacterSet, Newline};
+use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::thread::{self, sleep_ms};
 use url::Url;
-use util::prefs::{get_pref, set_pref};
+use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::task::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
-use webdriver::command::{SwitchToFrameParameters, TimeoutsParameters, Parameters};
-use webdriver::command::{WebDriverMessage, WebDriverCommand, WebDriverExtensionCommand};
+use webdriver::command::{Parameters, SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::common::{LocatorStrategy, WebElement};
-use webdriver::error::{WebDriverResult, WebDriverError, ErrorStatus};
+use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
-use webdriver::response::{WebDriverResponse, NewSessionResponse, ValueResponse};
-use webdriver::server::{self, WebDriverHandler, Session};
+use webdriver::response::{NewSessionResponse, ValueResponse, WebDriverResponse};
+use webdriver::server::{self, Session, WebDriverHandler};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
-                (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs)]
+                (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs),
+                (Post, "/session/{sessionId}/servo/prefs/reset", ServoExtensionRoute::ResetPrefs)]
 }
 
 pub fn start_server(port: u16, constellation_chan: ConstellationChan) {
@@ -77,6 +79,7 @@ struct Handler {
 enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
+    ResetPrefs,
 }
 
 impl WebDriverExtensionRoute for ServoExtensionRoute {
@@ -85,14 +88,18 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
     fn command(&self,
                _captures: &Captures,
                body_data: &Json) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
-        let command = match self {
-            &ServoExtensionRoute::GetPrefs => {
+        let command = match *self {
+            ServoExtensionRoute::GetPrefs => {
                 let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::GetPrefs(parameters)
             }
-            &ServoExtensionRoute::SetPrefs => {
+            ServoExtensionRoute::SetPrefs => {
                 let parameters: SetPrefsParameters = try!(Parameters::from_json(&body_data));
                 ServoExtensionCommand::SetPrefs(parameters)
+            }
+            ServoExtensionRoute::ResetPrefs => {
+                let parameters: GetPrefsParameters = try!(Parameters::from_json(&body_data));
+                ServoExtensionCommand::ResetPrefs(parameters)
             }
         };
         Ok(WebDriverCommand::Extension(command))
@@ -102,14 +109,16 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 #[derive(Clone, PartialEq)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
-    SetPrefs(SetPrefsParameters)
+    SetPrefs(SetPrefsParameters),
+    ResetPrefs(GetPrefsParameters),
 }
 
 impl WebDriverExtensionCommand for ServoExtensionCommand {
     fn parameters_json(&self) -> Option<Json> {
-        match self {
-            &ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
-            &ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json())
+        match *self {
+            ServoExtensionCommand::GetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::SetPrefs(ref x) => Some(x.to_json()),
+            ServoExtensionCommand::ResetPrefs(ref x) => Some(x.to_json()),
         }
     }
 }
@@ -150,7 +159,7 @@ impl ToJson for GetPrefsParameters {
 
 #[derive(Clone, PartialEq)]
 struct SetPrefsParameters {
-    prefs: Vec<(String, bool)>
+    prefs: Vec<(String, PrefValue)>
 }
 
 impl Parameters for SetPrefsParameters {
@@ -166,9 +175,9 @@ impl Parameters for SetPrefsParameters {
                 "prefs was not an array")));
         let mut params = Vec::with_capacity(items.len());
         for (name, val) in items.iter() {
-            let value = try!(val.as_boolean().ok_or(
-                WebDriverError::new(ErrorStatus::InvalidArgument,
-                                    "Pref is not a bool")));
+            let value = try!(PrefValue::from_json(val.clone()).or(
+                Err(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                        "Pref is not a boolean or string"))));
             let key = name.to_owned();
             params.push((key, value));
         }
@@ -442,10 +451,10 @@ impl Handler {
         }
 
         let frame = match receiver.recv().unwrap() {
-            Ok(Some((pipeline_id, subpage_id))) => {
+            Ok(Some(pipeline_id)) => {
                 let (sender, receiver) = ipc::channel().unwrap();
                 let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, subpage_id, sender)).unwrap();
+                const_chan.send(ConstellationMsg::GetFrame(pipeline_id, sender)).unwrap();
                 receiver.recv().unwrap()
             },
             Ok(None) => None,
@@ -533,8 +542,8 @@ impl Handler {
             "implicit" => self.implicit_wait_timeout = value,
             "page load" => self.load_timeout = value,
             "script" => self.script_timeout = value,
-            x @ _ => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                                    &format!("Unknown timeout type {}", x)))
+            x => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                                &format!("Unknown timeout type {}", x)))
         }
         Ok(WebDriverResponse::Void)
     }
@@ -607,23 +616,26 @@ impl Handler {
             sleep_ms(interval)
         }
 
-        if img.is_none() {
-            return Err(WebDriverError::new(ErrorStatus::Timeout,
-                                           "Taking screenshot timed out"));
-        }
-
-        let img_vec = match png::to_vec(&mut img.unwrap()) {
-           Ok(x) => x,
-           Err(_) => return Err(WebDriverError::new(ErrorStatus::UnknownError,
-                                                    "Taking screenshot failed"))
+        let img = match img {
+            Some(img) => img,
+            None => return Err(WebDriverError::new(ErrorStatus::Timeout,
+                                                   "Taking screenshot timed out")),
         };
+
+        // The compositor always sends RGB pixels.
+        assert!(img.format == PixelFormat::RGB8, "Unexpected screenshot pixel format");
+        let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+
+        let mut png_data = Vec::new();
+        DynamicImage::ImageRgb8(rgb).save(&mut png_data, ImageFormat::PNG).unwrap();
+
         let config = Config {
             char_set: CharacterSet::Standard,
             newline: Newline::LF,
             pad: true,
             line_length: None
         };
-        let encoded = img_vec.to_base64(config);
+        let encoded = png_data.to_base64(config);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
     }
 
@@ -633,15 +645,30 @@ impl Handler {
             .iter()
             .map(|item| (item.clone(), get_pref(item).to_json()))
             .collect::<BTreeMap<_, _>>();
+
         Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
     }
 
     fn handle_set_prefs(&self,
                         parameters: &SetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            set_pref(key, *value);
+            set_pref(key, value.clone());
         }
         Ok(WebDriverResponse::Void)
+    }
+
+    fn handle_reset_prefs(&self,
+                          parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
+        let prefs = if parameters.prefs.len() == 0 {
+            reset_all_prefs();
+            BTreeMap::new()
+        } else {
+            parameters.prefs
+                .iter()
+                .map(|item| (item.clone(), reset_pref(item).to_json()))
+                .collect::<BTreeMap<_, _>>()
+        };
+        Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
     }
 }
 
@@ -681,9 +708,10 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
             WebDriverCommand::Extension(ref extension) => {
-                match extension {
-                    &ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
-                    &ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                match *extension {
+                    ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
+                    ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                    ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
                 }
             }
             _ => Err(WebDriverError::new(ErrorStatus::UnsupportedOperation,

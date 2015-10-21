@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Running unload handler in window.close()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var t = async_test();
+var w = window.open("close_unload-1.html");
+setTimeout(function() {
+  w.close();
+}, 1000);
+callback = function() {t.done()}
+</script>

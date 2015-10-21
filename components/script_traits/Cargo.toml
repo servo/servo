@@ -13,6 +13,9 @@ path = "../msg"
 [dependencies.net_traits]
 path = "../net_traits"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.profile_traits]
 path = "../profile_traits"
 
@@ -30,8 +33,8 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
+app_units = "0.1"
 libc = "0.1"
 euclid = "0.2"
-serde = "0.5"
+serde = "0.6"
 serde_macros = "0.5"
-

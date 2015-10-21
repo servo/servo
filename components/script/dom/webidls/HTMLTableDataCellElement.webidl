@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#htmltabledatacellelement
+// https://html.spec.whatwg.org/multipage/#htmltabledatacellelement
 interface HTMLTableDataCellElement : HTMLTableCellElement {
   // also has obsolete members
 };
 
-// https://www.whatwg.org/html/#HTMLTableDataCellElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLTableDataCellElement-partial
 partial interface HTMLTableDataCellElement {
   //         attribute DOMString abbr;
 };

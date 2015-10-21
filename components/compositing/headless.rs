@@ -5,12 +5,13 @@
 use compositor_task::{CompositorEventListener, CompositorReceiver};
 use compositor_task::{InitialCompositorState, Msg};
 use euclid::scale_factor::ScaleFactor;
-use euclid::{Size2D, Point2D};
+use euclid::{Point2D, Size2D};
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use profile_traits::mem;
 use profile_traits::time;
+use util::opts;
 use windowing::WindowEvent;
 
 /// Starts the compositor, which listens for messages on the specified port.
@@ -45,9 +46,10 @@ impl NullCompositor {
         {
             let ConstellationChan(ref chan) = compositor.constellation_chan;
             chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
-                initial_viewport: Size2D::typed(640_f32, 480_f32),
-                visible_viewport: Size2D::typed(640_f32, 480_f32),
-                device_pixel_ratio: ScaleFactor::new(1.0),
+                initial_viewport: Size2D::typed(800_f32, 600_f32),
+                visible_viewport: Size2D::typed(800_f32, 600_f32),
+                device_pixel_ratio:
+                    ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
             })).unwrap();
         }
 
@@ -67,6 +69,14 @@ impl CompositorEventListener for NullCompositor {
 
             Msg::ShutdownComplete => {
                 debug!("constellation completed shutdown");
+
+                // Drain compositor port, sometimes messages contain channels that are blocking
+                // another task from finishing (i.e. SetIds)
+                while self.port.try_recv_compositor_msg().is_some() {}
+
+                self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+                self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
                 return false
             }
 
@@ -100,7 +110,6 @@ impl CompositorEventListener for NullCompositor {
             // SetFrameTree.
 
             Msg::InitializeLayersForPipeline(..) |
-            Msg::SetLayerRect(..) |
             Msg::AssignPaintedBuffers(..) |
             Msg::ScrollFragmentPoint(..) |
             Msg::Status(..) |
@@ -122,20 +131,12 @@ impl CompositorEventListener for NullCompositor {
             Msg::HeadParsed => {}
             Msg::ReturnUnusedNativeSurfaces(..) => {}
             Msg::CollectMemoryReports(..) => {}
+            Msg::PipelineExited(..) => {}
         }
         true
     }
 
     fn repaint_synchronously(&mut self) {}
-
-    fn shutdown(&mut self) {
-        // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetIds)
-        while self.port.try_recv_compositor_msg().is_some() {}
-
-        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
-        self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
-    }
 
     fn pinch_zoom_level(&self) -> f32 {
         1.0

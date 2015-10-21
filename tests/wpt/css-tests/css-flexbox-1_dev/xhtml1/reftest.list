@@ -418,7 +418,6 @@ flexbox_flow-column-wrap-reverse.xht == reference/flexbox_flow-column-wrap-rever
 flexbox_flow-row-wrap.xht == reference/flexbox_flow-row-wrap-ref.xht
 flexbox_flow-row-wrap-reverse.xht == reference/flexbox_flow-row-wrap-reverse-ref.xht
 flexbox_generated.xht == reference/flexbox_generated-ref.xht
-flexbox_generated-container.xht == reference/flexbox_generated-container-ref.xht
 flexbox_generated-flex.xht == reference/flexbox_generated-flex-ref.xht
 flexbox_generated-nested-flex.xht == reference/flexbox_generated-flex-ref.xht
 flexbox_inline.xht == reference/flexbox_inline-ref.xht
@@ -445,8 +444,6 @@ flexbox_margin-auto-overflow.xht == reference/flexbox_margin-auto-overflow-ref.x
 flexbox_margin-auto-overflow-2.xht == reference/flexbox_margin-auto-overflow-2-ref.xht
 flexbox_margin-collapse.xht == reference/flexbox_margin-collapse-ref.xht
 flexbox_margin-left-ex.xht == reference/flexbox_margin-left-ex-ref.xht
-flexbox_min-height-auto.xht == reference/flexbox_min-height-auto-ref.xht
-flexbox_min-width-auto.xht == reference/flexbox_min-width-auto-ref.xht
 flexbox_nested-flex.xht == reference/flexbox_generated-flex-ref.xht
 flexbox_object.xht == reference/flexbox_object-ref.xht
 flexbox_order.xht == reference/flexbox_order-ref.xht
@@ -525,6 +522,7 @@ ttwf-reftest-flex-base.xht == reference/ttwf-reftest-flex-base-ref.xht
 ttwf-reftest-flex-direction-column.xht == reference/ttwf-reftest-flex-direction-column-ref.xht
 ttwf-reftest-flex-direction-column-reverse.xht == reference/ttwf-reftest-flex-direction-column-reverse-ref.xht
 ttwf-reftest-flex-direction-row-reverse.xht == reference/ttwf-reftest-flex-direction-row-reverse-ref.xht
+ttwf-reftest-flex-inline.xht == reference/ttwf-reftest-flex-inline-ref.xht
 ttwf-reftest-flex-order.xht == reference/ttwf-reftest-flex-order-ref.xht
 ttwf-reftest-flex-wrap.xht == reference/ttwf-reftest-flex-wrap-ref.xht
 ttwf-reftest-flex-wrap-reverse.xht == reference/ttwf-reftest-flex-wrap-reverse-ref.xht

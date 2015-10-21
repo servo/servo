@@ -3,15 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://html.spec.whatwg.org/#the-body-element
+// https://html.spec.whatwg.org/multipage/#the-body-element
 interface HTMLBodyElement : HTMLElement {
   // also has obsolete members
 };
 HTMLBodyElement implements WindowEventHandlers;
 
-// https://www.whatwg.org/html/#HTMLBodyElement-partial
+// https://html.spec.whatwg.org/multipage/#HTMLBodyElement-partial
 partial interface HTMLBodyElement {
-  //[TreatNullAs=EmptyString] attribute DOMString text;
+    [TreatNullAs=EmptyString] attribute DOMString text;
   //[TreatNullAs=EmptyString] attribute DOMString link;
   //[TreatNullAs=EmptyString] attribute DOMString vLink;
   //[TreatNullAs=EmptyString] attribute DOMString aLink;

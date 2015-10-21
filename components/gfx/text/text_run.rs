@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
@@ -9,7 +10,6 @@ use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-use util::geometry::Au;
 use util::range::Range;
 use util::vec::{Comparator, FullBinarySearchMethods};
 

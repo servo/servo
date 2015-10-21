@@ -1,0 +1,25 @@
+<!doctype html>
+<title>pagehide event on unload</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+pagehide_fired = false;
+var t = async_test();
+
+onload = function() {setTimeout(function() {
+  var iframe = document.getElementsByTagName("iframe")[0]
+
+  iframe.onload = function() {
+                    setTimeout(function() {
+                                 iframe.contentWindow.location="001-2.html";
+                               }, 100);
+                    iframe.onload = t.step_func(function() {assert_true(pagehide_fired); t.done()});
+                  };
+
+  iframe.src = "001-1.html?" + Math.random();
+
+}, 100)};
+
+</script>
+<iframe></iframe>

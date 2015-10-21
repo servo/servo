@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLTableColElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLTableColElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTableColElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLTableColElementDerived for EventTarget {
-    fn is_htmltablecolelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement)))
-    }
 }
 
 impl HTMLTableColElement {
@@ -31,7 +20,7 @@ impl HTMLTableColElement {
                      document: &Document) -> HTMLTableColElement {
         HTMLTableColElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableColElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

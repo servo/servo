@@ -8,28 +8,28 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentTypeCast};
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFormElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, HTMLTemplateElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ProcessingInstructionCast};
+use dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
+use dom::bindings::codegen::InheritTypes::{DocumentTypeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLScriptElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{NodeTypeId, ProcessingInstructionCast};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::js::{RootedReference};
-use dom::characterdata::CharacterDataTypeId;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::document::{DocumentSource, IsHTMLDocument};
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::node::{Node, NodeTypeId};
+use dom::node::Node;
 use dom::node::{document_from_node, window_from_node};
 use dom::servohtmlparser;
-use dom::servohtmlparser::{ServoHTMLParser, FragmentContext};
+use dom::servohtmlparser::{FragmentContext, ServoHTMLParser};
 use encoding::types::Encoding;
 use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
-use html5ever::serialize::TraversalScope::{IncludeNode, ChildrenOnly};
-use html5ever::serialize::{Serializable, Serializer, AttrRef};
+use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
+use html5ever::serialize::{AttrRef, Serializable, Serializer};
 use html5ever::tree_builder::{NextParserState, NodeOrText, QuirksMode, TreeSink};
 use msg::constellation_msg::PipelineId;
 use parse::Parser;
@@ -262,13 +262,13 @@ pub enum ParseContext<'a> {
 
 pub fn parse_html(document: &Document,
                   input: String,
-                  url: &Url,
+                  url: Url,
                   context: ParseContext) {
     let parser = match context {
         ParseContext::Owner(owner) =>
-            ServoHTMLParser::new(Some(url.clone()), document, owner),
+            ServoHTMLParser::new(Some(url), document, owner),
         ParseContext::Fragment(fc) =>
-            ServoHTMLParser::new_for_fragment(Some(url.clone()), document, fc),
+            ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
     parser.r().parse_chunk(input.into());
 }
@@ -300,7 +300,7 @@ pub fn parse_html_fragment(context_node: &Node,
         context_elem: context_node,
         form_elem: form.r(),
     };
-    parse_html(document.r(), input, &url, ParseContext::Fragment(fragment_context));
+    parse_html(document.r(), input, url.clone(), ParseContext::Fragment(fragment_context));
 
     // Step 14.
     let root_element = document.r().GetDocumentElement().expect("no document element");

@@ -3,23 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::element::{StylePriority, Element};
-use dom::node::{window_from_node, document_from_node, NodeDamage};
+use dom::element::{Element, StylePriority};
+use dom::node::{NodeDamage, document_from_node, window_from_node};
 use dom::window::Window;
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
-use std::slice::SliceConcatExt;
 use string_cache::Atom;
 use style::properties::PropertyDeclaration;
 use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
-use util::str::DOMString;
+use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -50,8 +49,8 @@ macro_rules! css_properties(
 );
 
 fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
-    let strings: Vec<_> = list.iter().map(|d| d.value()).collect();
-    strings.join(" ")
+    let str_iter = list.iter().map(|d| d.value());
+    str_join(str_iter, " ")
 }
 
 impl CSSStyleDeclaration {

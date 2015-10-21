@@ -11,16 +11,15 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElemen
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLImageElementDerived, MouseEventCast, NodeCast};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use num::ToPrimitive;
 use std::default::Default;
@@ -34,21 +33,13 @@ pub struct HTMLAnchorElement {
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl HTMLAnchorElementDerived for EventTarget {
-    fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
-    }
-}
-
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -63,7 +54,7 @@ impl HTMLAnchorElement {
 }
 
 impl VirtualMethods for HTMLAnchorElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -122,7 +113,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 }
 
 impl Activatable for HTMLAnchorElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
+    fn as_element(&self) -> &Element {
         ElementCast::from_ref(self)
     }
 

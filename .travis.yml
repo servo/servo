@@ -1,8 +1,27 @@
 language: python
-sudo: false
 
-script:
- - ./mach test-tidy
+matrix:
+  fast_finish: true
+  include:
+    - sudo: false
+      script: ./mach test-tidy
+      cache: false
+    - sudo: 9000
+      dist: trusty
+      script: ./mach build -d --verbose
+      cache:
+        directories:
+          - .cargo
+          - .servo
+      addons:
+        apt:
+          packages:
+            - cmake
+            - freeglut3-dev
+            - gperf
+            - libosmesa6-dev
+            - python-virtualenv
+            - xorg-dev
 
 branches:
   only:

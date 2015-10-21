@@ -112,5 +112,5 @@ pub fn profile<T, F>(category: ProfilerCategory,
     profiler_chan.send(ProfilerMsg::Time((category, meta),
                                          (start_time, end_time),
                                          (start_energy, end_energy)));
-    return val;
+    val
 }

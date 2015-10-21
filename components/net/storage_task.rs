@@ -12,6 +12,8 @@ use url::Url;
 use util::str::DOMString;
 use util::task::spawn_named;
 
+const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+
 pub trait StorageTaskFactory {
     fn new() -> Self;
 }
@@ -29,8 +31,8 @@ impl StorageTaskFactory for StorageTask {
 
 struct StorageManager {
     port: IpcReceiver<StorageTaskMsg>,
-    session_data: HashMap<String, BTreeMap<DOMString, DOMString>>,
-    local_data: HashMap<String, BTreeMap<DOMString, DOMString>>,
+    session_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
+    local_data: HashMap<String, (usize, BTreeMap<DOMString, DOMString>)>,
 }
 
 impl StorageManager {
@@ -53,6 +55,9 @@ impl StorageManager {
                 StorageTaskMsg::Key(sender, url, storage_type, index) => {
                     self.key(sender, url, storage_type, index)
                 }
+                StorageTaskMsg::Keys(sender, url, storage_type) => {
+                    self.keys(sender, url, storage_type)
+                }
                 StorageTaskMsg::SetItem(sender, url, storage_type, name, value) => {
                     self.set_item(sender, url, storage_type, name, value)
                 }
@@ -73,7 +78,7 @@ impl StorageManager {
     }
 
     fn select_data(&self, storage_type: StorageType)
-                   -> &HashMap<String, BTreeMap<DOMString, DOMString>> {
+                   -> &HashMap<String, (usize, BTreeMap<DOMString, DOMString>)> {
         match storage_type {
             StorageType::Session => &self.session_data,
             StorageType::Local => &self.local_data
@@ -81,7 +86,7 @@ impl StorageManager {
     }
 
     fn select_data_mut(&mut self, storage_type: StorageType)
-                       -> &mut HashMap<String, BTreeMap<DOMString, DOMString>> {
+                       -> &mut HashMap<String, (usize, BTreeMap<DOMString, DOMString>)> {
         match storage_type {
             StorageType::Session => &mut self.session_data,
             StorageType::Local => &mut self.local_data
@@ -91,7 +96,7 @@ impl StorageManager {
     fn length(&self, sender: IpcSender<usize>, url: Url, storage_type: StorageType) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
-        sender.send(data.get(&origin).map_or(0, |entry| entry.len())).unwrap();
+        sender.send(data.get(&origin).map_or(0, |&(_, ref entry)| entry.len())).unwrap();
     }
 
     fn key(&self,
@@ -101,35 +106,72 @@ impl StorageManager {
            index: u32) {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
-        sender.send(data.get(&origin)
-                    .and_then(|entry| entry.keys().nth(index as usize))
-                    .map(|key| key.clone())).unwrap();
+        let key = data.get(&origin)
+                      .and_then(|&(_, ref entry)| entry.keys().nth(index as usize))
+                      .cloned();
+        sender.send(key).unwrap();
     }
 
-    /// Sends Some(old_value) in case there was a previous value with the same key name but with different
-    /// value name, otherwise sends None
+    fn keys(&self,
+            sender: IpcSender<Vec<DOMString>>,
+            url: Url,
+            storage_type: StorageType) {
+        let origin = self.origin_as_string(url);
+        let data = self.select_data(storage_type);
+        let keys = data.get(&origin)
+                       .map_or(vec![], |&(_, ref entry)| entry.keys().cloned().collect());
+
+        sender.send(keys).unwrap();
+    }
+
+    /// Sends Ok(changed, Some(old_value)) in case there was a previous
+    /// value with the same key name but with different value name
+    /// otherwise sends Err(()) to indicate that the operation would result in
+    /// exceeding the quota limit
     fn set_item(&mut self,
-                sender: IpcSender<(bool, Option<DOMString>)>,
+                sender: IpcSender<Result<(bool, Option<DOMString>), ()>>,
                 url: Url,
                 storage_type: StorageType,
                 name: DOMString,
                 value: DOMString) {
         let origin = self.origin_as_string(url);
+
+        let current_total_size = {
+            let local_data = self.select_data(StorageType::Local);
+            let session_data = self.select_data(StorageType::Session);
+            let local_data_size = local_data.get(&origin).map_or(0, |&(total, _)| total);
+            let session_data_size = session_data.get(&origin).map_or(0, |&(total, _)| total);
+            local_data_size + session_data_size
+        };
+
         let data = self.select_data_mut(storage_type);
         if !data.contains_key(&origin) {
-            data.insert(origin.clone(), BTreeMap::new());
+            data.insert(origin.clone(), (0, BTreeMap::new()));
         }
 
-        let (changed, old_value) = data.get_mut(&origin).map(|entry| {
-            entry.insert(name, value.clone()).map_or(
-                (true, None),
+        let message = data.get_mut(&origin).map(|&mut (ref mut total, ref mut entry)| {
+            let mut new_total_size = current_total_size + value.as_bytes().len();
+            if let Some(old_value) = entry.get(&name) {
+                new_total_size -= old_value.as_bytes().len();
+            } else {
+                new_total_size += name.as_bytes().len();
+            }
+
+            if new_total_size > QUOTA_SIZE_LIMIT {
+                return Err(());
+            }
+
+            let message = entry.insert(name.clone(), value.clone()).map_or(
+                Ok((true, None)),
                 |old| if old == value {
-                    (false, None)
+                    Ok((false, None))
                 } else {
-                    (true, Some(old))
-                })
+                    Ok((true, Some(old)))
+                });
+            *total = new_total_size;
+            message
         }).unwrap();
-        sender.send((changed, old_value)).unwrap();
+        sender.send(message).unwrap();
     }
 
     fn request_item(&self,
@@ -140,7 +182,7 @@ impl StorageManager {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
-                    .and_then(|entry| entry.get(&name))
+                    .and_then(|&(_, ref entry)| entry.get(&name))
                     .map(|value| value.to_string())).unwrap();
     }
 
@@ -152,8 +194,11 @@ impl StorageManager {
                    name: DOMString) {
         let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
-        let old_value = data.get_mut(&origin).and_then(|entry| {
-            entry.remove(&name)
+        let old_value = data.get_mut(&origin).and_then(|&mut (ref mut total, ref mut entry)| {
+            entry.remove(&name).and_then(|old| {
+                *total -= name.as_bytes().len() + old.as_bytes().len();
+                Some(old)
+            })
         });
         sender.send(old_value).unwrap();
     }
@@ -162,9 +207,10 @@ impl StorageManager {
         let origin = self.origin_as_string(url);
         let data = self.select_data_mut(storage_type);
         sender.send(data.get_mut(&origin)
-                    .map_or(false, |entry| {
+                    .map_or(false, |&mut (ref mut total, ref mut entry)| {
                         if !entry.is_empty() {
                             entry.clear();
+                            *total = 0;
                             true
                         } else {
                             false
@@ -172,7 +218,7 @@ impl StorageManager {
     }
 
     fn origin_as_string(&self, url: Url) -> String {
-        let mut origin = "".to_string();
+        let mut origin = "".to_owned();
         origin.push_str(&url.scheme);
         origin.push_str("://");
         url.domain().map(|domain| origin.push_str(&domain));

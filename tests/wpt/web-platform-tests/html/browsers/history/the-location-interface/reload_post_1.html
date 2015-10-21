@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Reload document with POST</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var win = window.open("reload_post_1-1.html");
+var t = async_test();
+var posted = false;
+var reloaded = false;
+
+next = t.step_func(function() {
+
+if (posted && !reloaded) {
+  reloaded = true;
+  win.location.reload();
+} else if (posted && reloaded) {
+  t.done();
+} else {
+  posted = true;
+  win.document.forms[0].submit();
+}
+
+});
+
+add_completion_callback(function() {win.close()});
+</script>

@@ -1,0 +1,10 @@
+<script>
+addEventListener("beforeunload",
+function() {
+   parent.events.push("beforeunload");
+}, false);
+parent.events.push("before src change");
+
+location.href = "001-2.html&pipe=trickle(d2)";
+parent.events.push("after src change");
+</script>

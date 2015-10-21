@@ -227,9 +227,9 @@ class Descriptor(DescriptorProvider):
 
             if self.proxy:
                 iface = self.interface
-                while iface:
-                    iface.setUserData('hasProxyDescendant', True)
+                while iface.parent:
                     iface = iface.parent
+                    iface.setUserData('hasProxyDescendant', True)
 
         self.name = interface.identifier.name
 
@@ -317,6 +317,14 @@ class Descriptor(DescriptorProvider):
             throws = member.getExtendedAttribute(throwsAttr)
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
+
+    def getParentName(self):
+        assert self.interface.parent is not None
+        return self.interface.parent.identifier.name
+
+    def hasDescendants(self):
+        return (self.interface.getUserData("hasConcreteDescendant", False) or
+                self.interface.getUserData("hasProxyDescendant", False))
 
     def isGlobal(self):
         """

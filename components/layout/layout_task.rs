@@ -8,6 +8,7 @@
 #![allow(unsafe_code)]
 
 use animation;
+use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
@@ -26,9 +27,9 @@ use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUti
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::StackingContext;
-use gfx::display_list::{ClippingRegion, DisplayList, OpaqueNode};
+use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
+use gfx::font_context;
 use gfx::paint_task::{LayoutToPaintMsg, PaintLayer};
 use gfx_traits::color;
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
@@ -37,11 +38,11 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutTaskFactory;
 use log;
-use msg::compositor_msg::{Epoch, ScrollPolicy, LayerId};
+use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
-use net_traits::image_cache_task::{ImageCacheTask, ImageCacheResult, ImageCacheChan};
-use net_traits::{load_bytes_iter, PendingAsyncLoad};
+use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
+use net_traits::{PendingAsyncLoad, load_bytes_iter};
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -54,7 +55,7 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
-use script::layout_interface::{NewLayoutTaskInfo, Msg, Reflow, ReflowGoal, ReflowQueryType};
+use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
 use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
@@ -67,17 +68,20 @@ use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
-use style::media_queries::{MediaType, MediaQueryList, Device};
+use style::media_queries::{Device, MediaQueryList, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_matching::Stylist;
-use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
+use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
+use style::values::AuExtensionMethods;
+use style::viewport::ViewportRule;
 use url::Url;
-use util::geometry::{Au, MAX_RECT, ZERO_POINT};
+use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
 use util::logical_geometry::LogicalPoint;
 use util::mem::HeapSizeOf;
@@ -151,6 +155,9 @@ pub struct LayoutTaskData {
     /// A counter for epoch messages
     epoch: Epoch,
 
+    /// The number of Web fonts that have been requested but not yet loaded.
+    pub outstanding_web_fonts: Arc<AtomicUsize>,
+
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
@@ -186,6 +193,12 @@ pub struct LayoutTask {
 
     /// The channel on which the image cache can send messages to ourself.
     image_cache_sender: ImageCacheChan,
+
+    /// The port on which we receive messages from the font cache task.
+    font_cache_receiver: Receiver<()>,
+
+    /// The channel on which the font cache can send messages to us.
+    font_cache_sender: Sender<()>,
 
     /// The channel on which we or others can send messages to ourselves.
     pub chan: LayoutChan,
@@ -264,7 +277,7 @@ impl LayoutTaskFactory for LayoutTask {
                                              time_profiler_chan,
                                              mem_profiler_chan.clone());
 
-                let reporter_name = format!("layout-reporter-{}", id.0);
+                let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
                     layout.start();
                 }, reporter_name, layout_chan.0, Msg::CollectReports);
@@ -304,10 +317,18 @@ impl<'a> DerefMut for RWGuard<'a> {
     }
 }
 
-fn add_font_face_rules(stylesheet: &Stylesheet, device: &Device, font_cache_task: &FontCacheTask) {
+fn add_font_face_rules(stylesheet: &Stylesheet,
+                       device: &Device,
+                       font_cache_task: &FontCacheTask,
+                       font_cache_sender: &Sender<()>,
+                       outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
-            font_cache_task.add_web_font(font_face.family.clone(), source.clone());
+            let font_cache_task = (*font_cache_task).clone();
+            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+            font_cache_task.add_web_font(font_face.family.clone(),
+                                         (*source).clone(),
+                                         (*font_cache_sender).clone());
         }
     }
 }
@@ -351,9 +372,16 @@ impl LayoutTask {
         let image_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
+        let (font_cache_sender, font_cache_receiver) = channel();
+
         let stylist = box Stylist::new(device);
+        let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         for user_or_user_agent_stylesheet in stylist.stylesheets() {
-            add_font_face_rules(user_or_user_agent_stylesheet, &stylist.device, &font_cache_task);
+            add_font_face_rules(user_or_user_agent_stylesheet,
+                                &stylist.device,
+                                &font_cache_task,
+                                &font_cache_sender,
+                                &outstanding_web_fonts_counter);
         }
 
         LayoutTask {
@@ -373,6 +401,8 @@ impl LayoutTask {
             first_reflow: Cell::new(true),
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
+            font_cache_receiver: font_cache_receiver,
+            font_cache_sender: font_cache_sender,
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             rw_data: Arc::new(Mutex::new(
@@ -395,6 +425,7 @@ impl LayoutTask {
                     new_animations_receiver: new_animations_receiver,
                     new_animations_sender: new_animations_sender,
                     epoch: Epoch(0),
+                    outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
         }
     }
@@ -443,25 +474,30 @@ impl LayoutTask {
             Pipeline,
             Script,
             ImageCache,
+            FontCache,
         }
 
         let port_to_read = {
-            let sel = Select::new();
-            let mut port1 = sel.handle(&self.port);
-            let mut port2 = sel.handle(&self.pipeline_port);
-            let mut port3 = sel.handle(&self.image_cache_receiver);
+            let select = Select::new();
+            let mut port_from_script = select.handle(&self.port);
+            let mut port_from_pipeline = select.handle(&self.pipeline_port);
+            let mut port_from_image_cache = select.handle(&self.image_cache_receiver);
+            let mut port_from_font_cache = select.handle(&self.font_cache_receiver);
             unsafe {
-                port1.add();
-                port2.add();
-                port3.add();
+                port_from_script.add();
+                port_from_pipeline.add();
+                port_from_image_cache.add();
+                port_from_font_cache.add();
             }
-            let ret = sel.wait();
-            if ret == port1.id() {
+            let ret = select.wait();
+            if ret == port_from_script.id() {
                 PortToRead::Script
-            } else if ret == port2.id() {
+            } else if ret == port_from_pipeline.id() {
                 PortToRead::Pipeline
-            } else if ret == port3.id() {
+            } else if ret == port_from_image_cache.id() {
                 PortToRead::ImageCache
+            } else if ret == port_from_font_cache.id() {
+                PortToRead::FontCache
             } else {
                 panic!("invalid select result");
             }
@@ -481,6 +517,10 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetCurrentEpoch(sender),
                                                    possibly_locked_rw_data)
                     }
+                    LayoutControlMsg::GetWebFontLoadState(sender) => {
+                        self.handle_request_helper(Msg::GetWebFontLoadState(sender),
+                                                   possibly_locked_rw_data)
+                    }
                     LayoutControlMsg::ExitNow(exit_type) => {
                         self.handle_request_helper(Msg::ExitNow(exit_type),
                                                    possibly_locked_rw_data)
@@ -494,6 +534,14 @@ impl LayoutTask {
             PortToRead::ImageCache => {
                 let _ = self.image_cache_receiver.recv().unwrap();
                 self.repaint(possibly_locked_rw_data)
+            }
+            PortToRead::FontCache => {
+                let _ = self.font_cache_receiver.recv().unwrap();
+                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
+                font_context::invalidate_font_caches();
+                self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
+                true
             }
         }
     }
@@ -570,6 +618,9 @@ impl LayoutTask {
                                             possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::AddMetaViewport(translated_rule) => {
+                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
+            }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -581,6 +632,9 @@ impl LayoutTask {
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
+            Msg::ReflowWithNewlyLoadedWebFont => {
+                self.reflow_with_newly_loaded_web_font(possibly_locked_rw_data)
+            }
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
             }
@@ -588,13 +642,18 @@ impl LayoutTask {
                 unsafe {
                     self.handle_reap_layout_data(dead_layout_data)
                 }
-            },
+            }
             Msg::CollectReports(reports_chan) => {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
             Msg::GetCurrentEpoch(sender) => {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 sender.send(rw_data.epoch).unwrap();
+            },
+            Msg::GetWebFontLoadState(sender) => {
+                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                let outstanding_web_fonts = rw_data.outstanding_web_fonts.load(Ordering::SeqCst);
+                sender.send(outstanding_web_fonts != 0).unwrap();
             },
             Msg::CreateLayoutTask(info) => {
                 self.create_layout_task(info)
@@ -670,8 +729,7 @@ impl LayoutTask {
                                   info.layout_shutdown_chan);
     }
 
-    /// Enters a quiescent state in which no new messages except for
-    /// `layout_interface::Msg::ReapLayoutData` will be processed until an `ExitNow` is
+    /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
     fn prepare_to_exit<'a>(&'a self,
                            response_chan: Sender<()>,
@@ -756,12 +814,28 @@ impl LayoutTask {
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-
         if mq.evaluate(&rw_data.stylist.device) {
-            add_font_face_rules(&sheet, &rw_data.stylist.device, &self.font_cache_task);
+            add_font_face_rules(&sheet,
+                                &rw_data.stylist.device,
+                                &self.font_cache_task,
+                                &self.font_cache_sender,
+                                &rw_data.outstanding_web_fonts);
             rw_data.stylist.add_stylesheet(sheet);
         }
 
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+    }
+
+    fn handle_add_meta_viewport<'a>(&'a self,
+                                    translated_rule: ViewportRule,
+                                    possibly_locked_rw_data:
+                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
+    {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_stylesheet(Stylesheet {
+            rules: vec![CSSRule::Viewport(translated_rule)],
+            origin: Origin::Author
+        });
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -832,19 +906,6 @@ impl LayoutTask {
                                               self.time_profiler_chan.clone(),
                                               shared_layout_context,
                                               traversal);
-    }
-
-    /// Verifies that every node was either marked as a leaf or as a nonleaf in the flow tree.
-    /// This is only on in debug builds.
-    #[inline(never)]
-    #[cfg(debug)]
-    fn verify_flow_tree(&self, layout_root: &mut FlowRef) {
-        let mut traversal = traversal::FlowTreeVerification;
-        layout_root.traverse_preorder(&mut traversal);
-    }
-
-    #[cfg(not(debug))]
-    fn verify_flow_tree(&self, _: &mut FlowRef) {
     }
 
     fn process_node_geometry_request<'a>(&'a self,
@@ -1055,8 +1116,8 @@ impl LayoutTask {
                 flow::mut_base(flow_ref::deref_mut(layout_root))
                     .display_list_building_result
                     .add_to(&mut *display_list);
+
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                let layer_id = layout_root.layer_id();
                 let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                      &origin,
                                                                      &origin,
@@ -1067,12 +1128,7 @@ impl LayoutTask {
                                                                      Matrix4::identity(),
                                                                      true,
                                                                      false,
-                                                                     ScrollPolicy::Scrollable,
-                                                                     Some(layer_id)));
-                let paint_layer = PaintLayer::new(layer_id,
-                                                  root_background_color,
-                                                  stacking_context.clone());
-
+                                                                     None));
                 if opts::get().dump_display_list {
                     stacking_context.print("DisplayList".to_owned());
                 }
@@ -1080,7 +1136,14 @@ impl LayoutTask {
                     println!("{}", serde_json::to_string_pretty(&stacking_context).unwrap());
                 }
 
-                rw_data.stacking_context = Some(stacking_context);
+                rw_data.stacking_context = Some(stacking_context.clone());
+
+                let layer_info = LayerInfo::new(layout_root.layer_id(),
+                                                ScrollPolicy::Scrollable,
+                                                None);
+                let paint_layer = PaintLayer::new_with_stacking_context(layer_info,
+                                                                        stacking_context,
+                                                                        root_background_color);
 
                 debug!("Layout done!");
 
@@ -1183,9 +1246,6 @@ impl LayoutTask {
 
             // Retrieve the (possibly rebuilt) root flow.
             rw_data.root_flow = self.try_get_layout_root((*node).clone());
-
-            // Kick off animations if any were triggered.
-            animation::process_new_animations(&mut *rw_data, self.id);
         }
 
         // Send new canvas renderers to the paint task
@@ -1322,11 +1382,40 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
+    pub fn reflow_with_newly_loaded_web_font<'a>(
+            &'a self,
+            possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        font_context::invalidate_font_caches();
+
+        let reflow_info = Reflow {
+            goal: ReflowGoal::ForDisplay,
+            page_clip_rect: MAX_RECT,
+        };
+
+        let mut layout_context = self.build_shared_layout_context(&*rw_data,
+                                                                  false,
+                                                                  None,
+                                                                  &self.url,
+                                                                  reflow_info.goal);
+
+        // No need to do a style recalc here.
+        if rw_data.root_flow.as_ref().is_none() {
+            return
+        }
+        self.perform_post_style_recalc_layout_passes(&reflow_info,
+                                                     &mut *rw_data,
+                                                     &mut layout_context);
+    }
+
     fn perform_post_style_recalc_layout_passes<'a>(&'a self,
                                                    data: &Reflow,
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = rw_data.layout_root() {
+            // Kick off animations if any were triggered, expire completed ones.
+            animation::update_animation_state(&mut *rw_data, self.id);
+
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1337,11 +1426,6 @@ impl LayoutTask {
                     flow_ref::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
-
-            // Verification of the flow tree, which ensures that all nodes were either marked as
-            // leaves or as non-leaves. This becomes a no-op in release builds. (It is
-            // inconsequential to memory safety but is a useful debugging tool.)
-            self.verify_flow_tree(&mut root_flow);
 
             if opts::get().trace_layout {
                 layout_debug::begin_trace(root_flow.clone());
@@ -1368,7 +1452,7 @@ impl LayoutTask {
                         // Parallel mode.
                         self.solve_constraints_parallel(parallel,
                                                         &mut root_flow,
-                                                        &mut *layout_context);
+                                                        &*layout_context);
                     }
                 }
             });
@@ -1424,8 +1508,7 @@ impl LayoutTask {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* task
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_layout_data(&self, layout_data: LayoutData) {
-        let layout_data_wrapper: LayoutDataWrapper = transmute(layout_data);
-        layout_data_wrapper.remove_compositor_layers(self.constellation_chan.clone());
+        let _: LayoutDataWrapper = transmute(layout_data);
     }
 
     /// Returns profiling information which is passed to the time profiler.

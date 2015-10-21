@@ -76,15 +76,22 @@ def check_length(file_name, idx, line):
     if file_name.endswith(".lock"):
         raise StopIteration
     max_length = 120
-    if len(line) >= max_length:
+    if len(line.rstrip('\n')) > max_length:
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
-def check_whatwg_url(idx, line):
+def check_whatwg_specific_url(idx, line):
     match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
+
+
+def check_whatwg_single_page_url(idx, line):
+    match = re.search(r"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    if match is not None:
+        preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
+        yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
 def check_whitespace(idx, line):
@@ -109,8 +116,10 @@ def check_by_line(file_name, contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
+            check_whatwg_specific_url(idx, line),
+            check_whatwg_single_page_url(idx, line),
         )
+
         for error in errors:
             yield error
 
@@ -148,7 +157,9 @@ def check_lock(file_name, contents):
     contents = contents.splitlines(True)
     idx = 1
     packages = {}
-    exceptions = ["glutin", "wayland-kbd"]      # package names to be neglected (as named by cargo)
+
+    # package names to be neglected (as named by cargo)
+    exceptions = ["glutin", "wayland-kbd"]
 
     while idx < len(contents):
         content = contents[idx].strip()
@@ -349,6 +360,10 @@ def check_rust(file_name, contents):
                     yield (idx + 1 - len(mods) + i, message + expected + found)
             mods = []
 
+        # There should not be any extra pointer dereferencing
+        if ": &Vec<" in line:
+            yield (idx + 1, "use &[T] instead of &Vec<T>")
+
 
 # Avoid flagging <Item=Foo> constructs
 def is_associated_type(match, line, index):
@@ -398,13 +413,13 @@ def check_webidl_spec(file_name, contents):
         "//dvcs.w3.org/hg",
         "//dom.spec.whatwg.org",
         "//domparsing.spec.whatwg.org",
+        "//drafts.fxtf.org",
         "//encoding.spec.whatwg.org",
         "//html.spec.whatwg.org",
         "//url.spec.whatwg.org",
         "//xhr.spec.whatwg.org",
-        "//www.whatwg.org/html",
-        "//www.whatwg.org/specs",
         "//w3c.github.io",
+        "//heycam.github.io/webidl",
         # Not a URL
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."

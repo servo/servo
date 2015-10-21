@@ -27,6 +27,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use display_list_builder::{FragmentDisplayListBuilding};
@@ -40,7 +41,7 @@ use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
-use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
@@ -48,22 +49,21 @@ use gfx::display_list::{ClippingRegion, DisplayList};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_task::DISPLAY_PORT_SIZE_FACTOR;
+use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{IntrinsicISizes, MarginCollapseInfo};
-use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
-use msg::compositor_msg::{LayerId, LayerType};
-use rustc_serialize::{Encoder, Encodable};
+use msg::compositor_msg::LayerId;
+use rustc_serialize::{Encodable, Encoder};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{transform, transform_style, position, text_align};
+use style::computed_values::{position, text_align, transform, transform_style};
 use style::properties::ComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use util::geometry::{Au, MAX_AU, MAX_RECT};
+use util::geometry::MAX_RECT;
 use util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use util::opts;
-use wrapper::PseudoElementType;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]
@@ -1466,8 +1466,9 @@ impl BlockFlow {
 
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
-            // TODO(#2018, pcwalton): Do this in the cascade instead.
-            flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone());
+            // TODO(#2265, pcwalton): Do this in the cascade instead.
+            let containing_block_text_align = self.fragment.style().get_inheritedtext().text_align;
+            flow::mut_base(kid).flags.set_text_align(containing_block_text_align);
 
             // Handle `text-indent` on behalf of any inline children that we have. This is
             // necessary because any percentages are relative to the containing block, which only
@@ -2076,16 +2077,11 @@ impl Flow for BlockFlow {
     }
 
     fn layer_id(&self) -> LayerId {
-        let layer_type = match self.fragment.pseudo {
-            PseudoElementType::Normal => LayerType::FragmentBody,
-            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
-            PseudoElementType::After(_) => LayerType::AfterPseudoContent
-        };
-        LayerId::new_of_type(layer_type, self.fragment.node.id() as usize)
+        self.fragment.layer_id()
     }
 
     fn layer_id_for_overflow_scroll(&self) -> LayerId {
-        LayerId::new_of_type(LayerType::OverflowScroll, self.fragment.node.id() as usize)
+        self.fragment.layer_id_for_overflow_scroll()
     }
 
     fn is_absolute_containing_block(&self) -> bool {
@@ -2126,7 +2122,9 @@ impl Flow for BlockFlow {
     }
 
     fn compute_overflow(&self) -> Rect<Au> {
-        self.fragment.compute_overflow(&self.base
+        let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
+        self.fragment.compute_overflow(&flow_size,
+                                       &self.base
                                             .early_absolute_position_info
                                             .relative_containing_block_size)
     }
@@ -2274,9 +2272,6 @@ pub trait ISizeAndMarginsComputer {
             (MaybeAuto::Auto, box_sizing::T::border_box) |
             (_, box_sizing::T::content_box) => {}
         }
-
-        // The text alignment of a block flow is the text alignment of its box's style.
-        block.base.flags.set_text_align(style.get_inheritedtext().text_align);
 
         let margin = style.logical_margin();
         let position = style.logical_position();
@@ -2441,6 +2436,7 @@ pub trait ISizeAndMarginsComputer {
         // Check for direction of parent flow (NOT Containing Block)
         let block_mode = block.base.writing_mode;
         let container_mode = block.base.block_container_writing_mode;
+        let block_align = block.base.flags.text_align();
 
         // FIXME (mbrubeck): Handle vertical writing modes.
         let parent_has_same_direction = container_mode.is_bidi_ltr() == block_mode.is_bidi_ltr();
@@ -2469,20 +2465,23 @@ pub trait ISizeAndMarginsComputer {
                 (MaybeAuto::Specified(margin_start),
                  MaybeAuto::Specified(inline_size),
                  MaybeAuto::Specified(margin_end)) => {
-                    match (input.text_align, parent_has_same_direction) {
-                        (text_align::T::servo_center, _) => {
-                            // This is used for `<center>` and friends per HTML5 § 14.3.3. Make the
-                            // inline-start and inline-end margins equal per HTML5 § 14.2.
-                            let margin = (available_inline_size - inline_size).scale_by(0.5);
-                            (margin, inline_size, margin)
-                        }
-                        (_, true) => {
-                            // Ignore the end margin.
+                    // servo_left, servo_right, and servo_center are used to implement
+                    // the "align descendants" rule in HTML5 § 14.2.
+                    if block_align == text_align::T::servo_center {
+                        // Ignore any existing margins, and make the inline-start and
+                        // inline-end margins equal.
+                        let margin = (available_inline_size - inline_size).scale_by(0.5);
+                        (margin, inline_size, margin)
+                    } else {
+                        let ignore_end_margin = match block_align {
+                            text_align::T::servo_left => block_mode.is_bidi_ltr(),
+                            text_align::T::servo_right => !block_mode.is_bidi_ltr(),
+                            _ => parent_has_same_direction,
+                        };
+                        if ignore_end_margin {
                             (margin_start, inline_size, available_inline_size -
                              (margin_start + inline_size))
-                        }
-                        (_, false) => {
-                            // Ignore the start margin.
+                        } else {
                             (available_inline_size - (margin_end + inline_size),
                              inline_size,
                              margin_end)
@@ -3029,4 +3028,3 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
-

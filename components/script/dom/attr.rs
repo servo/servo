@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
-use dom::bindings::js::{Root, RootedReference, LayoutJS};
+use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
+use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
 use std::borrow::ToOwned;
@@ -18,6 +20,7 @@ use std::cell::Ref;
 use std::mem;
 use std::ops::Deref;
 use string_cache::{Atom, Namespace};
+use style::values::specified::Length;
 use util::str::{DOMString, parse_unsigned_integer, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, Clone, HeapSizeOf)]
@@ -26,6 +29,8 @@ pub enum AttrValue {
     TokenList(DOMString, Vec<Atom>),
     UInt(DOMString, u32),
     Atom(Atom),
+    Length(DOMString, Option<Length>),
+    Color(DOMString, Option<RGBA>),
 }
 
 impl AttrValue {
@@ -48,7 +53,7 @@ impl AttrValue {
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
-        let result = if result > 2147483647 {
+        let result = if result > UNSIGNED_LONG_MAX {
             default
         } else {
             result
@@ -59,7 +64,7 @@ impl AttrValue {
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero
     pub fn from_limited_u32(string: DOMString, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
-        let result = if result == 0 || result > 2147483647 {
+        let result = if result == 0 || result > UNSIGNED_LONG_MAX {
             default
         } else {
             result
@@ -72,6 +77,11 @@ impl AttrValue {
         AttrValue::Atom(value)
     }
 
+    /// Assumes the `AttrValue` is a `TokenList` and returns its tokens
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `TokenList`
     pub fn as_tokens(&self) -> &[Atom] {
         match *self {
             AttrValue::TokenList(_, ref tokens) => tokens,
@@ -79,6 +89,11 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is an `Atom` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not an `Atom`
     pub fn as_atom(&self) -> &Atom {
         match *self {
             AttrValue::Atom(ref value) => value,
@@ -86,9 +101,37 @@ impl AttrValue {
         }
     }
 
+    /// Assumes the `AttrValue` is a `Color` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `Color`
+    pub fn as_color(&self) -> Option<&RGBA> {
+        match *self {
+            AttrValue::Color(_, ref color) => color.as_ref(),
+            _ => panic!("Color not found"),
+        }
+    }
+
+    /// Assumes the `AttrValue` is a `Length` and returns its value
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `Length`
+    pub fn as_length(&self) -> Option<&Length> {
+        match *self {
+            AttrValue::Length(_, ref length) => length.as_ref(),
+            _ => panic!("Length not found"),
+        }
+    }
+
     /// Return the AttrValue as its integer representation, if any.
     /// This corresponds to attribute values returned as `AttrValue::UInt(_)`
     /// by `VirtualMethods::parse_plain_attribute()`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the `AttrValue` is not a `UInt`
     pub fn as_uint(&self) -> u32 {
         if let AttrValue::UInt(_, value) = *self {
             value
@@ -105,7 +148,9 @@ impl Deref for AttrValue {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
-                AttrValue::UInt(ref value, _) => &value,
+                AttrValue::UInt(ref value, _) |
+                AttrValue::Length(ref value, _) |
+                AttrValue::Color(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
     }
@@ -135,7 +180,7 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: MutNullableHeap::new(owner.map(JS::from_ref)),
+            owner: MutNullableHeap::new(owner),
         }
     }
 
@@ -270,11 +315,11 @@ impl Attr {
             }
             (old, new) => assert!(old == new)
         }
-        self.owner.set(owner.map(JS::from_ref))
+        self.owner.set(owner);
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
-        self.owner.get().map(Root::from_rooted)
+        self.owner.get_rooted()
     }
 
     pub fn summarize(&self) -> AttrInfo {

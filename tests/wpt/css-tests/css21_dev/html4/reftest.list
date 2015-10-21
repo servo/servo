@@ -418,6 +418,9 @@ abspos-width-002.htm == reference/ref-if-there-is-no-red.htm
 abspos-width-003.htm == reference/ref-if-there-is-no-red.htm
 abspos-width-004.htm == reference/ref-filled-green-100px-square.htm
 abspos-width-005.htm == reference/abspos-width-005-ref.htm
+adjacent-000.htm == reference/adjacent-000-ref.htm
+adjacent-001.htm == reference/adjacent-000-ref.htm
+adjacent-002.htm == reference/adjacent-000-ref.htm
 adjacent-floats-001.htm == reference/adjacent-floats-001-ref.htm
 after-content-display-001.htm == reference/after-content-display-001-ref.htm
 after-content-display-002.htm == reference/after-content-display-002-ref.htm
@@ -542,6 +545,14 @@ at-rules-001.htm == reference/ref-this-text-should-be-green.htm
 at-rules-002.htm == reference/ref-this-text-should-be-green.htm
 at-rules-003.htm == reference/ref-this-text-should-be-green.htm
 at-rules-004.htm == reference/ref-this-text-should-be-green.htm
+attribute-000.htm == reference/attribute-ref.htm
+attribute-001.htm == reference/attribute-ref.htm
+attribute-002.htm == reference/attribute-ref.htm
+attribute-003.htm == reference/attribute-ref.htm
+attribute-004.htm == reference/attribute-ref.htm
+attribute-005.htm == reference/attribute-ref.htm
+attribute-006.htm == reference/attribute-ref.htm
+attribute-007.htm == reference/attribute-ref.htm
 attribute-selector-001.htm == reference/no-red-filler-text-ref.htm
 attribute-selector-002.htm == reference/filler-text-below-green.htm
 attribute-token-selector-002.htm == reference/attribute-token-selector-002-ref.htm
@@ -2662,6 +2673,9 @@ case-sensitive-005.htm == reference/case-sensitive-005-ref.htm
 case-sensitive-006.htm == reference/filler-text-below-green.htm
 case-sensitive-007.htm == reference/no-red-filler-text-ref.htm
 charset-attr-001.htm == reference/at-charset-ref.htm
+child-selector-001.htm == reference/child-selector-001-ref.htm
+child-selector-002.htm == reference/child-selector-002-ref.htm
+child-selector-003.htm == reference/child-selector-003-ref.htm
 class-selector-001.htm == reference/no-red-filler-text-ref.htm
 class-selector-002.htm == reference/filler-text-below-green.htm
 class-selector-003.htm == reference/filler-text-below-green.htm
@@ -3028,8 +3042,19 @@ delete-inline-in-blocks-middle-002.htm == reference/delete-inline-in-blocks-midd
 delete-inline-in-blocks-middle-003.htm == reference/delete-inline-in-blocks-middle-002-ref.htm
 descendant-display-none-001.htm == reference/ref-if-there-is-no-red.htm
 descendant-display-override-001.htm == reference/ref-if-there-is-no-red.htm
+descendant-selector-000.htm == reference/descendant-selector-000-ref.htm
+descendant-selector-001.htm == reference/descendant-selector-000-ref.htm
 descendent-selector-001.htm == reference/no-red-filler-text-ref.htm
+descendent-selector-002.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-003.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-004.htm == reference/descendent-selector-004-ref.htm
 descendent-selector-005.htm == reference/no-red-filler-text-ref.htm
+descendent-selector-006.htm == reference/descendent-selector-004-ref.htm
+descendent-selector-007.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-008.htm == reference/descendent-selector-004-ref.htm
+descendent-selector-009.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-010.htm == reference/descendent-selector-002-ref.htm
+descendent-selector-011.htm == reference/descendent-selector-002-ref.htm
 direction-001.htm == reference/direction-001-ref.htm
 direction-002.htm == reference/direction-002-ref.htm
 direction-003.htm == reference/direction-002-ref.htm
@@ -3066,6 +3091,7 @@ display-change-001.htm == reference/display-change-001-ref.htm
 display-none-001.htm == reference/ref-if-there-is-no-red.htm
 display-none-002.htm == reference/ref-if-there-is-no-red.htm
 display-none-003.htm == reference/ref-if-there-is-no-red.htm
+dynamic-sibling-combinator-001.htm == reference/dynamic-sibling-combinator-001-ref.htm
 dynamic-top-change-001.htm == reference/dynamic-top-change-001-ref.htm
 dynamic-top-change-002.htm == reference/dynamic-top-change-002-ref.htm
 dynamic-top-change-003.htm == reference/dynamic-top-change-002-ref.htm
@@ -3530,6 +3556,9 @@ grid-float-001.htm == reference/ref-filled-green-100px-square.htm
 grid-inline-float-001.htm == reference/ref-filled-green-100px-square.htm
 grid-inline-vertical-align-001.htm == reference/ref-filled-green-100px-square.htm
 grid-vertical-align-001.htm == reference/ref-filled-green-100px-square.htm
+grouping-000.htm == reference/grouping-000-ref.htm != reference/grouping-000-notref.htm
+grouping-001.htm == reference/grouping-000-ref.htm != reference/grouping-000-notref.htm
+grouping-002.htm == reference/grouping-002-ref.htm != reference/grouping-002-notref.htm
 height-001.htm == reference/height-001-ref.htm
 height-002.htm == reference/height-001-ref.htm
 height-003.htm == reference/height-003-ref.htm
@@ -3679,9 +3708,7 @@ inline-block-alignment-003.htm == reference/inline-block-alignment-003-ref.htm
 inline-block-alignment-004.htm == reference/inline-block-alignment-002-ref.htm
 inline-block-alignment-005.htm == reference/inline-block-alignment-003-ref.htm
 inline-block-alignment-006.htm == reference/inline-block-alignment-006-ref.htm
-inline-block-alignment-007.htm == reference/inline-block-alignment-007-ref.htm
-inline-block-alignment-008.htm == reference/inline-block-alignment-006-ref.htm
-inline-block-alignment-009.htm == reference/inline-block-alignment-009-ref.htm
+inline-block-alignment-007.htm == reference/inline-block-alignment-006-ref.htm
 inline-block-height-001.htm == reference/inline-block-height-001-ref.htm
 inline-block-height-002.htm == reference/inline-block-height-002-ref.htm
 inline-block-non-replaced-height-001.htm == reference/height-percentage-001-ref.htm
@@ -4775,10 +4802,11 @@ outline-color-115.htm == reference/outline-color-115-ref.htm
 outline-color-applies-to-005.htm == reference/no-red-on-blank-page-ref.htm
 outline-color-applies-to-006.htm == reference/no-red-on-blank-page-ref.htm
 outline-layout-006.htm == reference/outline-layout-006-ref.htm
-outline-style-001.htm == reference/outline-style-001-ref.htm
-outline-style-002.htm == reference/outline-style-002-ref.htm
-outline-style-003.htm == reference/outline-style-003-ref.htm
-outline-style-004.htm == reference/outline-style-004-ref.htm
+outline-style-001.htm == reference/no-red-filler-text-ref.htm
+outline-style-011.htm == reference/outline-style-011-ref.htm
+outline-style-012.htm == reference/outline-style-012-ref.htm
+outline-style-013.htm == reference/outline-style-013-ref.htm
+outline-style-014.htm == reference/outline-style-014-ref.htm
 outline-style-applies-to-005.htm == reference/no-red-on-blank-page-ref.htm
 outline-style-applies-to-006.htm == reference/no-red-on-blank-page-ref.htm
 outline-width-002.htm == reference/no-red-filler-text-ref.htm
@@ -5468,7 +5496,9 @@ shand-font-000.htm == reference/shand-font-000-ref.htm
 shand-font-001.htm == reference/shand-font-000-ref.htm
 shand-font-002.htm == reference/shand-font-002-ref.htm
 shand-font-003.htm == reference/shand-font-002-ref.htm
+sibling-selector-001.htm == reference/sibling-selector-001-ref.htm
 sibling-selector-002.htm == reference/filler-text-below-green.htm
+sibling-selector-003.htm == reference/sibling-selector-003-ref.htm
 sort-by-order-001.htm == reference/ref-filled-green-100px-square.htm
 specificity-001.htm == reference/filler-text-below-green.htm
 specificity-002.htm == reference/filler-text-below-green.htm
@@ -5488,8 +5518,8 @@ strings-000.htm == reference/ref-this-text-should-be-green.htm
 style-attr-cascade-001.htm == reference/ref-green.htm
 style-attr-cascade-002.htm == reference/ref-green.htm
 style-attr-cascade-003.htm == reference/ref-green.htm
-style-attr-cascade-004.htm == reference/ref-green-background.htm
-style-attr-cascade-005.htm == reference/ref-green-background.htm
+style-attr-cascade-004.htm == reference/ref-white-on-green-background.htm
+style-attr-cascade-005.htm == reference/ref-white-on-green-background.htm
 style-attr-cascade-006.htm == reference/ref-green.htm
 style-attr-cascade-007.htm == reference/style-attr-cascade-007.htm
 style-attr-specificity-001.htm == reference/ref-green-on-green.htm
@@ -5626,6 +5656,7 @@ top-offset-002.htm == reference/bottom-offset-001-ref.htm
 top-offset-003.htm == reference/top-offset-003-ref.htm
 top-offset-percentage-001.htm == reference/top-offset-percentage-001-ref.htm
 top-offset-percentage-002.htm == reference/left-offset-percentage-002-ref.htm
+type-selector-001.htm == reference/type-selector-001-ref.htm
 unicode-bidi-001.htm == reference/direction-002-ref.htm
 unicode-bidi-002.htm == reference/unicode-bidi-002-ref.htm
 unicode-bidi-003.htm == reference/direction-002-ref.htm
@@ -5651,8 +5682,11 @@ units-005.htm == reference/units-005-ref.htm
 units-006.htm == reference/units-006-ref.htm
 units-008.htm == reference/units-006-ref.htm
 units-009.htm == reference/units-006-ref.htm
+universal-selector-001.htm == reference/universal-selector-001-ref.htm != reference/universal-selector-001-notref.htm
+universal-selector-002.htm == reference/universal-selector-002-ref.htm != reference/universal-selector-002-notref.htm
 universal-selector-003.htm == reference/filler-text-below-green.htm
 universal-selector-004.htm == reference/filler-text-below-green.htm
+universal-selector-005.htm == reference/universal-selector-005-ref.htm
 unterminated-string-001.htm == reference/filler-text-below-green.htm
 uri-001.htm == reference/filler-text-below-green.htm
 uri-002.htm == reference/no-red-filler-text-ref.htm

@@ -6,13 +6,14 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use euclid::{Point2D, Rect};
-use flow::{FlowClass, Flow, OpaqueFlow};
+use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
-use rustc_serialize::{Encoder, Encodable};
+use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
@@ -20,7 +21,6 @@ use style::computed_values::{border_collapse, border_spacing};
 use style::properties::ComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row::{self, CollapsedBordersForRow};
-use util::geometry::Au;
 use util::logical_geometry::{LogicalSize, WritingMode};
 
 /// A table formatting context.

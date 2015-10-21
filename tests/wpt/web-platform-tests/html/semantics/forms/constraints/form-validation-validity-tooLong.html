@@ -23,7 +23,8 @@
         {conditions: {maxLength: "4", value: "abc"}, expected: false, name: "[target] Dirty value - value is less than maxlength", dirty: true},
         {conditions: {maxLength: "4", value: "\u0041\u0041\u0041"}, expected: false, name: "[target] Dirty value - length of value(AAA) in unicode is less than maxlength", dirty: true},
         {conditions: {maxLength: "4", value: "abcd"}, expected: false, name: "[target] Dirty value - value equals to maxlength", dirty: true},
-        {conditions: {maxLength: "4", value: "abcde"}, expected: true, name: "[target] Dirty value - length of value is greater than maxlength", dirty: true}
+        // False due to lack of required interactive editing by the user
+        {conditions: {maxLength: "4", value: "abcde"}, expected: false, name: "[target] Dirty value - length of value is greater than maxlength", dirty: true}
       ]
     },
     {
@@ -39,7 +40,8 @@
         {conditions: {maxLength: "4", value: "abc"}, expected: false, name: "[target] Dirty value - value is less than maxlength", dirty: true},
         {conditions: {maxLength: "4", value: "\u000D\u000A"}, expected: false, name: "[target] Dirty value - length of value(LF, CRLF) in unicode is less than maxlength", dirty: true},
         {conditions: {maxLength: "4", value: "abcd"}, expected: false, name: "[target] Dirty value - length of value equals to maxlength", dirty: true},
-        {conditions: {maxLength: "4", value: "abcde"}, expected: true, name: "[target] Dirty value - length of value is greater than maxlength", dirty: true}
+        // False due to lack of required interactive editing by the user
+        {conditions: {maxLength: "4", value: "abcde"}, expected: false, name: "[target] Dirty value - length of value is greater than maxlength", dirty: true}
       ]
     }
   ];

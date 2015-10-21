@@ -7,26 +7,26 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![feature(append)]
 #![feature(fs_walk)]
 #![feature(path_ext)]
-#![feature(result_expect)]
 #![feature(slice_patterns)]
 #![feature(test)]
 
 #[macro_use] extern crate bitflags;
-extern crate png;
+extern crate image;
 extern crate test;
 extern crate url;
 extern crate util;
 
+use image::{DynamicImage, GenericImage, ImageFormat, RgbImage};
 use std::env;
 use std::ffi::OsStr;
 use std::fs::{PathExt, File, walk_dir};
-use std::io::{self, Read, Result};
+use std::io::{self, Read, Result, Write};
 use std::path::{Path, PathBuf};
 use std::process;
-use std::process::{Command, Stdio};
+use std::process::{Command};
+use std::thread::sleep_ms;
 use test::run_tests_console;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldPanic};
 use url::Url;
@@ -49,11 +49,10 @@ fn main() {
     let harness_args = parts.next().unwrap();  // .split() is never empty
     let servo_args = parts.next().unwrap_or(&[]);
 
-    let (render_mode_string, base_path, testname) = match harness_args {
-        [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
-        [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
-        [ref render_mode_string, ref base_path, ref testname, ..] =>
-            (render_mode_string, base_path, Some(testname.clone())),
+    let (render_mode_string, base_path, testnames) = match harness_args {
+        [ref render_mode_string, ref base_path, testnames..] =>
+            (render_mode_string, base_path, testnames),
+        _ => panic!("USAGE: cpu|gpu base_path [testname ...]"),
     };
 
     let mut render_mode = match &**render_mode_string {
@@ -80,7 +79,8 @@ fn main() {
         match maybe_extension {
             Some(extension) => {
                 if extension == OsStr::new("list") && file.is_file() {
-                    let mut tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
+                    let len = all_tests.len();
+                    let mut tests = parse_lists(&file, testnames, servo_args, render_mode, len);
                     println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.append(&mut tests);
                 }
@@ -90,7 +90,7 @@ fn main() {
     }
 
     let test_opts = TestOpts {
-        filter: testname,
+        filter: None,
         run_ignored: false,
         logfile: None,
         run_tests: true,
@@ -101,7 +101,7 @@ fn main() {
 
     match run(test_opts,
               all_tests,
-              servo_args.iter().map(|x| x.clone()).collect()) {
+              servo_args.iter().cloned().collect()) {
         Ok(false) => process::exit(1), // tests failed
         Err(_) => process::exit(2),    // I/O-related failure
         _ => (),
@@ -113,10 +113,22 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     // Verify that we're passing in valid servo arguments. Otherwise, servo
     // will exit before we've run any tests, and it will appear to us as if
     // all the tests are failing.
-    let output = match Command::new(&servo_path()).args(&servo_args).output() {
+    let mut command = Command::new(&servo_path());
+    command
+        .args(&servo_args)
+        .arg("-z")
+        .arg("about:blank");
+
+    let mut child = match command.spawn() {
         Ok(p) => p,
         Err(e) => panic!("failed to execute process: {}", e),
     };
+
+    // Wait for the shell to launch or to fail
+    sleep_ms(1000);
+    child.kill().unwrap();
+    let output = try!(child.wait_with_output());
+
     let stderr = String::from_utf8(output.stderr).unwrap();
 
     if stderr.contains("Unrecognized") {
@@ -154,7 +166,12 @@ struct TestLine<'a> {
     file_right: &'a str,
 }
 
-fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_offset: usize) -> Vec<TestDescAndFn> {
+fn parse_lists(file: &Path,
+               filters: &[String],
+               servo_args: &[String],
+               render_mode: RenderMode,
+               id_offset: usize)
+               -> Vec<TestDescAndFn> {
     let mut tests = Vec::new();
     let contents = {
         let mut f = File::open(file).unwrap();
@@ -243,7 +260,9 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             pixel_ratio: pixel_ratio,
         };
 
-        tests.push(make_test(reftest));
+        if filters.is_empty() || filters.iter().any(|pattern| reftest.name.contains(pattern)) {
+            tests.push(make_test(reftest));
+        }
     }
     tests
 }
@@ -266,8 +285,6 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
     let mut command = Command::new(&servo_path());
     command
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .args(&reftest.servo_args[..])
         .arg("--user-stylesheet").arg(util::resource_files::resources_dir_path().join("ahem.css"))
         // Allows pixel perfect rendering of Ahem font and the HTML canvas for reftests.
@@ -299,18 +316,31 @@ fn capture(reftest: &Reftest, side: usize) -> (u32, u32, Vec<u8>) {
         command.arg("--device-pixel-ratio");
         command.arg(pixel_ratio.to_string());
     }
-    let retval = match command.status() {
-        Ok(status) => status,
+    let (exit_status, stderr, stdout) = match command.output() {
+        Ok(output) => (output.status, output.stderr, output.stdout),
         Err(e) => panic!("failed to execute process: {}", e),
     };
-    assert!(retval.success());
 
-    let image = png::load_png(&png_filename).unwrap();
-    let rgba8_bytes = match image.pixels {
-        png::PixelsByColorType::RGBA8(pixels) => pixels,
+    if !stdout.is_empty() {
+        let stdout_filename = format!("/tmp/servo-reftest-{:06}-{}-stdout.txt", reftest.id, side);
+        let mut stdout_file = File::create(stdout_filename).unwrap();
+        stdout_file.write_all(&stdout[..]).unwrap();
+    }
+
+    if !stderr.is_empty() {
+        let stderr_filename = format!("/tmp/servo-reftest-{:06}-{}-stderr.txt", reftest.id, side);
+        let mut stderr_file = File::create(stderr_filename).unwrap();
+        stderr_file.write_all(&stderr[..]).unwrap();
+    }
+
+    assert!(exit_status.success());
+
+    let image = match image::open(&png_filename) {
+        Ok(DynamicImage::ImageRgb8(image)) => image,
+        Ok(image) => image.to_rgb(),
         _ => panic!(),
     };
-    (image.width, image.height, rgba8_bytes)
+    (image.width(), image.height(), image.into_raw())
 }
 
 fn servo_path() -> PathBuf {
@@ -322,14 +352,17 @@ fn check_reftest(reftest: Reftest) {
     let (left_width, left_height, left_bytes) = capture(&reftest, 0);
     let (right_width, right_height, right_bytes) = capture(&reftest, 1);
 
-    assert_eq!(left_width, right_width);
-    assert_eq!(left_height, right_height);
+    // TODO(gw): This is a workaround for https://github.com/servo/servo/issues/7730
+    if !reftest.is_flaky {
+        assert_eq!(left_width, right_width);
+        assert_eq!(left_height, right_height);
 
-    let left_all_white = left_bytes.iter().all(|&p| p == 255);
-    let right_all_white = right_bytes.iter().all(|&p| p == 255);
+        let left_all_white = left_bytes.iter().all(|&p| p == 255);
+        let right_all_white = right_bytes.iter().all(|&p| p == 255);
 
-    if left_all_white && right_all_white {
-        panic!("Both renderings are empty")
+        if left_all_white && right_all_white {
+            panic!("Both renderings are empty")
+        }
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
@@ -347,14 +380,9 @@ fn check_reftest(reftest: Reftest) {
 
     if pixels.iter().any(|&a| a < 255) {
         let output = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
-
-        let mut img = png::Image {
-            width: left_width,
-            height: left_height,
-            pixels: png::PixelsByColorType::RGBA8(pixels),
-        };
-        let res = png::store_png(&mut img, &output);
-        assert!(res.is_ok());
+        let mut file = File::create(&output).unwrap();
+        let img_buf = RgbImage::from_raw(left_width, left_height, pixels).expect("foo");
+        DynamicImage::ImageRgb8(img_buf).save(&mut file, ImageFormat::PNG).unwrap();
 
         match (reftest.kind, reftest.is_flaky) {
             (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output),

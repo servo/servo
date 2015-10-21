@@ -14,10 +14,10 @@ use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
+use app_units::Au;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use url::Url;
-use util::geometry::Au;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use euclid::SideOffsets2D;
 use euclid::size::Size2D;
@@ -28,6 +28,7 @@ use computed_values;
 use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
+use values::AuExtensionMethods;
 use values::computed::{self, ToComputedValue};
 use values::specified::{Length, BorderStyle};
 
@@ -274,7 +275,7 @@ pub mod longhands {
     <%def name="predefined_type(name, type, initial_value, parse_method='parse')">
         <%self:longhand name="${name}">
             #[allow(unused_imports)]
-            use util::geometry::Au;
+            use app_units::Au;
             pub type SpecifiedValue = specified::${type};
             pub mod computed_value {
                 pub use values::computed::${type} as T;
@@ -317,9 +318,9 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
+            use app_units::Au;
             use cssparser::ToCss;
             use std::fmt;
-            use util::geometry::Au;
             use values::computed::Context;
 
             impl ToCss for SpecifiedValue {
@@ -336,7 +337,7 @@ pub mod longhands {
             #[derive(Clone, PartialEq)]
             pub struct SpecifiedValue(pub specified::Length);
             pub mod computed_value {
-                use util::geometry::Au;
+                use app_units::Au;
                 pub type T = Au;
             }
             #[inline] pub fn get_initial_value() -> computed_value::T {
@@ -385,9 +386,10 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="outline-width">
+        use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
-        use util::geometry::Au;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
@@ -402,7 +404,7 @@ pub mod longhands {
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(pub specified::Length);
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             pub type T = Au;
         }
         pub use super::border_top_width::get_initial_value;
@@ -477,7 +479,8 @@ pub mod longhands {
                 % for value in values[:-1]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled").unwrap_or(false) {
+                            if !::util::prefs::get_pref("layout.${value}.enabled")
+                                .as_boolean().unwrap_or(false) {
                                 return Err(())
                             }
                         % endif
@@ -487,7 +490,8 @@ pub mod longhands {
                 % for value in values[-1:]:
                     "${value}" => {
                         % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled".unwrap_or(false) {
+                            if !::util::prefs::get_pref("layout.${value}.enabled")
+                                .as_boolean().unwrap_or(false) {
                                 return Err(())
                             }
                         % endif
@@ -554,10 +558,14 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn derive_from_display(_: super::display::computed_value::T,
+        pub fn derive_from_display(computed_value: super::display::computed_value::T,
                                    context: &computed::Context)
                                    -> computed_value::T {
-            context.display
+            if context.is_root_element {
+                computed_value
+            } else {
+                context.display
+            }
         }
 
     </%self:longhand>
@@ -643,6 +651,7 @@ pub mod longhands {
     <%self:longhand name="line-height">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::CSSFloat;
         use values::computed::Context;
 
@@ -686,8 +695,8 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
+            use app_units::Au;
             use std::fmt;
-            use util::geometry::Au;
             use values::CSSFloat;
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
             pub enum T {
@@ -785,8 +794,9 @@ pub mod longhands {
             })
         }
         pub mod computed_value {
+            use app_units::Au;
             use std::fmt;
-            use util::geometry::Au;
+            use values::AuExtensionMethods;
             use values::{CSSFloat, computed};
             #[allow(non_camel_case_types)]
             #[derive(PartialEq, Copy, Clone, HeapSizeOf)]
@@ -1391,6 +1401,7 @@ pub mod longhands {
     <%self:longhand name="background-position">
             use cssparser::ToCss;
             use std::fmt;
+            use values::AuExtensionMethods;
             use values::computed::Context;
 
             pub mod computed_value {
@@ -1905,9 +1916,10 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="font-size">
+        use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
-        use util::geometry::Au;
+        use values::FONT_MEDIUM_PX;
         use values::computed::Context;
 
         impl ToCss for SpecifiedValue {
@@ -1919,12 +1931,11 @@ pub mod longhands {
         #[derive(Clone, PartialEq)]
         pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             pub type T = Au;
         }
-        const MEDIUM_PX: i32 = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
-            Au::from_px(MEDIUM_PX)
+            Au::from_px(FONT_MEDIUM_PX)
         }
 
         impl ToComputedValue for SpecifiedValue {
@@ -1947,21 +1958,8 @@ pub mod longhands {
                 specified::LengthOrPercentage::Calc(_) => Err(())
             })
             .or_else(|()| {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
-                    "xx-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 5)),
-                    "x-small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 4)),
-                    "small" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 8 / 9)),
-                    "medium" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX))),
-                    "large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 6 / 5)),
-                    "x-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 3 / 2)),
-                    "xx-large" => Ok(specified::Length::Absolute(Au::from_px(MEDIUM_PX) * 2)),
-
-                    // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-                    "smaller" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(0.85))),
-                    "larger" => Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(1.2)))
-
-                    _ => Err(())
-                }
+                let ident = try!(input.expect_ident());
+                specified::Length::from_str(&ident as &str).ok_or(())
             })
             .map(SpecifiedValue)
         }
@@ -2014,6 +2012,8 @@ pub mod longhands {
                 center("center") => 4,
                 justify("justify") => 5,
                 servo_center("-servo-center") => 6,
+                servo_left("-servo-left") => 7,
+                servo_right("-servo-right") => 8,
             }
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
@@ -2028,6 +2028,7 @@ pub mod longhands {
     <%self:longhand name="letter-spacing">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
@@ -2046,7 +2047,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
@@ -2090,6 +2091,7 @@ pub mod longhands {
     <%self:longhand name="word-spacing">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
@@ -2108,7 +2110,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
@@ -2345,7 +2347,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${single_keyword("white-space", "normal pre nowrap")}
+    ${single_keyword("white-space", "normal pre nowrap pre-wrap pre-line")}
 
     // TODO(pcwalton): `full-width`
     ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
@@ -2366,14 +2368,15 @@ pub mod longhands {
     ${single_keyword("caption-side", "top bottom")}
 
     <%self:longhand name="border-spacing">
+        use app_units::Au;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         use cssparser::ToCss;
         use std::fmt;
-        use util::geometry::Au;
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
 
             #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, HeapSizeOf)]
             pub struct T {
@@ -2530,6 +2533,7 @@ pub mod longhands {
     <%self:longhand name="column-width" experimental="True">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
@@ -2548,7 +2552,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
@@ -2658,6 +2662,7 @@ pub mod longhands {
     <%self:longhand name="column-gap" experimental="True">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, Copy, PartialEq)]
@@ -2676,7 +2681,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             #[derive(Clone, PartialEq, HeapSizeOf)]
             pub struct T(pub Option<Au>);
         }
@@ -2765,6 +2770,7 @@ pub mod longhands {
     <%self:longhand name="box-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, PartialEq)]
@@ -2819,8 +2825,8 @@ pub mod longhands {
         }
 
         pub mod computed_value {
+            use app_units::Au;
             use std::fmt;
-            use util::geometry::Au;
             use values::computed;
 
             #[derive(Clone, PartialEq, HeapSizeOf)]
@@ -2921,7 +2927,7 @@ pub mod longhands {
         }
 
         pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
-            use util::geometry::Au;
+            use app_units::Au;
             let mut lengths = [specified::Length::Absolute(Au(0)); 4];
             let mut lengths_parsed = false;
             let mut color = None;
@@ -2984,13 +2990,14 @@ pub mod longhands {
     <%self:longhand name="clip">
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
 
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
         use values::computed::Context;
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
 
             #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
             pub struct ClipRect {
@@ -3103,8 +3110,8 @@ pub mod longhands {
         }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            use app_units::Au;
             use std::ascii::AsciiExt;
-            use util::geometry::Au;
             use values::specified::Length;
 
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
@@ -3138,7 +3145,7 @@ pub mod longhands {
     <%self:longhand name="text-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
-
+        use values::AuExtensionMethods;
         use values::computed::Context;
 
         #[derive(Clone, PartialEq)]
@@ -3167,8 +3174,8 @@ pub mod longhands {
         }
 
         pub mod computed_value {
+            use app_units::Au;
             use cssparser::Color;
-            use util::geometry::Au;
 
             #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
             pub struct T(pub Vec<TextShadow>);
@@ -3259,7 +3266,7 @@ pub mod longhands {
         }
 
         fn parse_one_text_shadow(input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
-            use util::geometry::Au;
+            use app_units::Au;
             let mut lengths = [specified::Length::Absolute(Au(0)); 3];
             let mut lengths_parsed = false;
             let mut color = None;
@@ -3332,6 +3339,7 @@ pub mod longhands {
         //pub use self::computed_value::T as SpecifiedValue;
         use cssparser::ToCss;
         use std::fmt;
+        use values::AuExtensionMethods;
         use values::CSSFloat;
         use values::specified::{Angle, Length};
 
@@ -3353,7 +3361,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use util::geometry::Au;
+            use app_units::Au;
             use values::CSSFloat;
             use values::specified::{Angle};
 
@@ -3560,12 +3568,12 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="transform">
+        use app_units::Au;
         use values::CSSFloat;
         use values::computed::Context;
 
         use cssparser::ToCss;
         use std::fmt;
-        use util::geometry::Au;
 
         pub mod computed_value {
             use values::CSSFloat;
@@ -4103,12 +4111,13 @@ pub mod longhands {
     ${single_keyword("transform-style", "auto flat preserve-3d")}
 
     <%self:longhand name="transform-origin">
+        use app_units::Au;
+        use values::AuExtensionMethods;
         use values::computed::Context;
         use values::specified::{Length, LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
         use std::fmt;
-        use util::geometry::Au;
 
         pub mod computed_value {
             use values::computed::{Length, LengthOrPercentage};
@@ -5165,7 +5174,7 @@ pub mod shorthands {
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
-        use util::geometry::Au;
+        use app_units::Au;
         use values::specified::{Length, LengthOrPercentage};
         use values::specified::BorderRadiusSize;
 
@@ -5945,7 +5954,8 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     "${property.name}" => {
                         % if property.experimental:
-                            if !::util::prefs::get_pref("${property.experimental}").unwrap_or(false) {
+                            if !::util::prefs::get_pref("${property.experimental}")
+                                .as_boolean().unwrap_or(false) {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
@@ -5964,7 +5974,8 @@ impl PropertyDeclaration {
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
                     % if shorthand.experimental:
-                        if !::util::prefs::get_pref("${shorthand.experimental}").unwrap_or(false) {
+                        if !::util::prefs::get_pref("${shorthand.experimental}")
+                            .as_boolean().unwrap_or(false) {
                             return PropertyDeclarationParseResult::ExperimentalProperty
                         }
                     % endif
@@ -6020,7 +6031,11 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
+        % if style_struct.name == "Font":
+        #[derive(Clone, HeapSizeOf)]
+        % else:
         #[derive(PartialEq, Clone, HeapSizeOf)]
+        % endif
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
@@ -6029,6 +6044,18 @@ pub mod style_structs {
                 pub hash: u64,
             % endif
         }
+        % if style_struct.name == "Font":
+
+        impl PartialEq for ${style_struct.name} {
+            fn eq(&self, other: &${style_struct.name}) -> bool {
+                self.hash == other.hash
+                % for longhand in style_struct.longhands:
+                    && self.${longhand.ident} == other.${longhand.ident}
+                % endfor
+            }
+        }
+        % endif
+
     % endfor
 }
 
@@ -6643,7 +6670,12 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
         let box_ = Arc::make_mut(&mut style.box_);
-        box_.display = box_.display.to_computed_value(&context);
+        let computed_value = box_.display.to_computed_value(&context);
+        box_.display = computed_value;
+        box_._servo_display_for_hypothetical_box =
+            longhands::_servo_display_for_hypothetical_box::derive_from_display(
+                    computed_value,
+                    &context);
     }
 
     // The initial value of outline width may be changed at computed value time.

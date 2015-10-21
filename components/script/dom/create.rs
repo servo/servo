@@ -175,6 +175,8 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("legend")     => make!(HTMLLegendElement),
         atom!("li")         => make!(HTMLLIElement),
         atom!("link")       => make!(HTMLLinkElement),
+        // https://html.spec.whatwg.org/multipage/#other-elements,-attributes-and-apis:listing
+        atom!("listing")    => make!(HTMLPreElement),
         atom!("main")       => make!(HTMLElement),
         atom!("map")        => make!(HTMLMapElement),
         atom!("mark")       => make!(HTMLElement),
@@ -223,7 +225,11 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         atom!("td")         => make!(HTMLTableDataCellElement),
         atom!("template")   => make!(HTMLTemplateElement),
         atom!("textarea")   => make!(HTMLTextAreaElement),
+        // https://html.spec.whatwg.org/multipage/#the-tfoot-element:concept-element-dom
+        atom!("tfoot")      => make!(HTMLTableSectionElement),
         atom!("th")         => make!(HTMLTableHeaderCellElement),
+        // https://html.spec.whatwg.org/multipage/#the-thead-element:concept-element-dom
+        atom!("thead")      => make!(HTMLTableSectionElement),
         atom!("time")       => make!(HTMLTimeElement),
         atom!("title")      => make!(HTMLTitleElement),
         atom!("tr")         => make!(HTMLTableRowElement),
@@ -237,4 +243,3 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
         _                   => make!(HTMLUnknownElement),
     }
 }
-

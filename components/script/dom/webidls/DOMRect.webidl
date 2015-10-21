@@ -3,12 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://dev.w3.org/fxtf/geometry/#DOMRect
-interface DOMRect {
-  readonly attribute float top;
-  readonly attribute float right;
-  readonly attribute float bottom;
-  readonly attribute float left;
-  readonly attribute float width;
-  readonly attribute float height;
+[Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
+             optional unrestricted double width = 0, optional unrestricted double height = 0),
+ /*Exposed=(Window,Worker)*/]
+// https://drafts.fxtf.org/geometry/#domrect
+interface DOMRect : DOMRectReadOnly {
+    inherit attribute unrestricted double x;
+    inherit attribute unrestricted double y;
+    inherit attribute unrestricted double width;
+    inherit attribute unrestricted double height;
 };

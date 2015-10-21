@@ -3,13 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#abstractworker
+// https://html.spec.whatwg.org/multipage/#abstractworker
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface AbstractWorker {
     attribute EventHandler onerror;
 };
 
-// https://www.whatwg.org/html/#worker
+// https://html.spec.whatwg.org/multipage/#worker
 [Constructor(DOMString scriptURL)/*, Exposed=Window,Worker*/]
 interface Worker : EventTarget {
   //void terminate();

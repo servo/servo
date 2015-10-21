@@ -13,8 +13,10 @@ scripts.
 From an HTML or SVG document, start by importing both `testharness.js` and
 `testharnessreport.js` scripts into the document:
 
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
+```html
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+```
 
 Refer to the [Web Workers](#web-workers) section for details and an example on
 testing within a web worker.
@@ -37,12 +39,16 @@ are complete", below.
 
 To create a synchronous test use the test() function:
 
-    test(test_function, name, properties)
+```js
+test(test_function, name, properties)
+```
 
 `test_function` is a function that contains the code to test. For example a
 trivial passing test would be:
 
-    test(function() {assert_true(true)}, "assert_true with true")
+```js
+test(function() {assert_true(true)}, "assert_true with true")
+```
 
 The function passed in is run in the `test()` call.
 
@@ -59,7 +65,9 @@ applicable to many situations.
 
 To create a test, one starts by getting a Test object using async_test:
 
-    async_test(name, properties)
+```js
+async_test(name, properties)
+```
 
 e.g.
     var t = async_test("Simple async test")
@@ -67,21 +75,27 @@ e.g.
 Assertions can be added to the test by calling the step method of the test
 object with a function containing the test assertions:
 
-    t.step(function() {assert_true(true)});
+```js
+t.step(function() {assert_true(true)});
+```
 
 When all the steps are complete, the done() method must be called:
 
-    t.done();
+```js
+t.done();
+```
 
 As a convenience, async_test can also takes a function as first argument.
 This function is called with the test object as both its `this` object and
 first argument. The above example can be rewritten as:
 
-    async_test(function(t) {
-        object.some_event = function() {
-            t.step(function (){assert_true(true); t.done();});
-        };
-    }, "Simple async test");
+```js
+async_test(function(t) {
+    object.some_event = function() {
+        t.step(function (){assert_true(true); t.done();});
+    };
+}, "Simple async test");
+```
 
 which avoids cluttering the global scope with references to async
 tests instances.
@@ -92,12 +106,16 @@ In many cases it is convenient to run a step in response to an event or a
 callback. A convenient method of doing this is through the step_func method
 which returns a function that, when called runs a test step. For example
 
-    object.some_event = t.step_func(function(e) {assert_true(e.a)});
+```js
+object.some_event = t.step_func(function(e) {assert_true(e.a)});
+```
 
 For asynchronous callbacks that should never execute, `unreached_func` can
 be used. For example:
 
-    object.some_event = t.unreached_func("some_event should not fire");
+```js
+object.some_event = t.unreached_func("some_event should not fire");
+```
 
 Keep in mind that other tests could start executing before an Asynchronous
 Test is finished.
@@ -106,7 +124,9 @@ Test is finished.
 
 `promise_test` can be used to test APIs that are based on Promises:
 
-    promise_test(test_function, name, properties)
+```js
+promise_test(test_function, name, properties)
+```
 
 `test_function` is a function that receives a test as an argument and returns a
 promise. The test completes when the returned promise resolves. The test fails
@@ -114,16 +134,18 @@ if the returned promise rejects.
 
 E.g.:
 
-    function foo() {
-      return Promise.resolve("foo");
-    }
+```js
+function foo() {
+  return Promise.resolve("foo");
+}
 
-    promise_test(function() {
-      return foo()
-        .then(function(result) {
-          assert_equals(result, "foo", "foo should return 'foo'");
-        });
-    }, "Simple example");
+promise_test(function() {
+  return foo()
+    .then(function(result) {
+      assert_equals(result, "foo", "foo should return 'foo'");
+    });
+}, "Simple example");
+```
 
 In the example above, `foo()` returns a Promise that resolves with the string
 "foo". The `test_function` passed into `promise_test` invokes `foo` and attaches
@@ -137,7 +159,9 @@ previous Promise Test finishes.
 
 `promise_rejects` can be used to test Promises that need to reject:
 
-    promise_rejects(test_object, code, promise)
+```js
+promise_rejects(test_object, code, promise)
+```
 
 The `code` argument is equivalent to the same argument to the `assert_throws`
 function.
@@ -145,13 +169,15 @@ function.
 Here's an example where the `bar()` function returns a Promise that rejects
 with a TypeError:
 
-    function bar() {
-      return Promise.reject(new TypeError());
-    }
+```js
+function bar() {
+  return Promise.reject(new TypeError());
+}
 
-    promise_test(function(t) {
-      return promise_rejects(t, new TypeError(), bar);
-    }, "Another example");
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(), bar);
+}, "Another example");
+```
 
 `EventWatcher` is a constructor function that allows DOM events to be handled
 using Promises, which can make it a lot easier to test a very specific series
@@ -159,25 +185,27 @@ of events, including ensuring that unexpected events are not fired at any point.
 
 Here's an example of how to use `EventWatcher`:
 
-    var t = async_test("Event order on animation start");
+```js
+var t = async_test("Event order on animation start");
 
-    var animation = watchedNode.getAnimations()[0];
-    var eventWatcher = new EventWatcher(watchedNode, ['animationstart',
-                                                      'animationiteration',
-                                                      'animationend']);
+var animation = watchedNode.getAnimations()[0];
+var eventWatcher = new EventWatcher(watchedNode, ['animationstart',
+                                                  'animationiteration',
+                                                  'animationend']);
 
-    eventWatcher.wait_for(t, 'animationstart').then(t.step_func(function() {
-      assertExpectedStateAtStartOfAnimation();
-      animation.currentTime = END_TIME; // skip to end
-      // We expect two animationiteration events then an animationend event on
-      // skipping to the end of the animation.
-      return eventWatcher.wait_for(['animationiteration',
-                                    'animationiteration',
-                                    'animationend']);
-    })).then(t.step_func(function() {
-      assertExpectedStateAtEndOfAnimation();
-      test.done();
-    }));
+eventWatcher.wait_for(t, 'animationstart').then(t.step_func(function() {
+  assertExpectedStateAtStartOfAnimation();
+  animation.currentTime = END_TIME; // skip to end
+  // We expect two animationiteration events then an animationend event on
+  // skipping to the end of the animation.
+  return eventWatcher.wait_for(['animationiteration',
+                                'animationiteration',
+                                'animationend']);
+})).then(t.step_func(function() {
+  assertExpectedStateAtEndOfAnimation();
+  test.done();
+}));
+```
 
 `wait_for` either takes the name of a single event and returns a Promise that
 will resolve after that event is fired at the watched node, or else it takes an
@@ -203,25 +231,29 @@ must call the `done()` function to indicate that the test is complete. All
 the `assert_*` functions are avaliable as normal, but are called without
 the normal step function wrapper. For example:
 
-    <!doctype html>
-    <title>Example single-page test</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <body>
-      <script>
-        assert_equals(document.body, document.getElementsByTagName("body")[0])
-        done()
-     </script>
+```html
+<!doctype html>
+<title>Example single-page test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    assert_equals(document.body, document.getElementsByTagName("body")[0])
+    done()
+ </script>
+```
 
 The test title for sinple page tests is always taken from `document.title`.
 
 ## Making assertions ##
 
 Functions for making assertions start `assert_`. The full list of
-asserts avaliable is documented in the [asserts](#asserts) section
-below.. The general signature is
+asserts avaliable is documented in the [asserts](#list-of-assertions) section
+below. The general signature is
 
-    assert_something(actual, expected, description)
+```js
+assert_something(actual, expected, description)
+```
 
 although not all assertions precisely match this pattern e.g. `assert_true`
 only takes `actual` and `description` as arguments.
@@ -243,11 +275,13 @@ callbacks to the test. Such callbacks are registered using the `add_cleanup`
 function on the test object. All registered callbacks will be run as soon as
 the test result is known. For example
 
-    test(function() {
-             window.some_global = "example";
-             this.add_cleanup(function() {delete window.some_global});
-             assert_true(false);
-         });
+```js
+test(function() {
+         window.some_global = "example";
+         this.add_cleanup(function() {delete window.some_global});
+         assert_true(false);
+     });
+```
 
 ## Timeouts in Tests ##
 
@@ -263,9 +297,11 @@ that only passes if some event is *not* fired). In this case it is
 *not* permitted to use the standard `setTimeout` function. Instead one
 must use the `step_timeout` function:
 
-    var t = async_test("Some test that does something after a timeout");
+```js
+var t = async_test("Some test that does something after a timeout");
 
-    t.step_timeout(function() {assert_true(true); this.done()}, 2000);
+t.step_timeout(function() {assert_true(true); this.done()}, 2000);
+```
 
 The difference between `setTimeout` and `step_timeout` is that the
 latter takes account of the timeout multiplier when computing the
@@ -287,7 +323,9 @@ when the test is run on hardware with different performance
 characteristics to a common desktop computer.  In order to opt-in
 to the longer test timeout, the test must specify a meta element:
 
-    <meta name="timeout" content="long">
+```html
+<meta name="timeout" content="long">
+```
 
 Occasionally tests may have a race between the harness timing out and
 a particular test failing; typically when the test waits for some event
@@ -302,7 +340,9 @@ Sometimes tests require non-trivial setup that may fail. For this purpose
 there is a `setup()` function, that may be called with one or two arguments.
 The two argument version is:
 
-    setup(func, properties)
+```js
+setup(func, properties)
+```
 
 The one argument versions may omit either argument.
 func is a function to be run synchronously. `setup()` becomes a no-op once
@@ -352,19 +392,25 @@ There are scenarios in which is is desirable to create a large number of
 used. To make this easier, the `generate_tests` function allows a single
 function to be called with each set of parameters in a list:
 
-    generate_tests(test_function, parameter_lists, properties)
+```js
+generate_tests(test_function, parameter_lists, properties)
+```
 
 For example:
 
-    generate_tests(assert_equals, [
-        ["Sum one and one", 1+1, 2],
-        ["Sum one and zero", 1+0, 1]
-        ])
+```js
+generate_tests(assert_equals, [
+    ["Sum one and one", 1+1, 2],
+    ["Sum one and zero", 1+0, 1]
+    ])
+```
 
 Is equivalent to:
 
-    test(function() {assert_equals(1+1, 2)}, "Sum one and one")
-    test(function() {assert_equals(1+0, 1)}, "Sum one and zero")
+```js
+test(function() {assert_equals(1+1, 2)}, "Sum one and one")
+test(function() {assert_equals(1+0, 1)}, "Sum one and zero")
+```
 
 Note that the first item in each parameter list corresponds to the name of
 the test.
@@ -477,28 +523,32 @@ Here's an example that uses a dedicated worker.
 
 `worker.js`:
 
-    importScripts("/resources/testharness.js");
+```js
+importScripts("/resources/testharness.js");
 
-    test(function(t) {
-      assert_true(true, "true is true");
-    }, "Simple test");
+test(function(t) {
+  assert_true(true, "true is true");
+}, "Simple test");
 
-    // done() is needed because the testharness is running as if explicit_done
-    // was specified.
-    done();
+// done() is needed because the testharness is running as if explicit_done
+// was specified.
+done();
+```
 
 `test.html`:
 
-    <!DOCTYPE html>
-    <title>Simple test</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <div id="log"></div>
-    <script>
+```html
+<!DOCTYPE html>
+<title>Simple test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
 
-    fetch_tests_from_worker(new Worker("worker.js"));
+fetch_tests_from_worker(new Worker("worker.js"));
 
-    </script>
+</script>
+```
 
 The argument to the `fetch_tests_from_worker` function can be a
 [`Worker`](https://html.spec.whatwg.org/multipage/workers.html#dedicated-workers-and-the-worker-interface),

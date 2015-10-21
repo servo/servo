@@ -19,7 +19,7 @@ use data::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataWrapper};
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils};
-use flow::{self, AbsoluteDescendants, Flow, ImmutableFlowUtils, IS_ABSOLUTELY_POSITIONED};
+use flow::{self, AbsoluteDescendants, Flow, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
@@ -33,11 +33,9 @@ use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::MulticolFlow;
 use parallel;
-use script::dom::characterdata::CharacterDataTypeId;
-use script::dom::element::ElementTypeId;
-use script::dom::htmlelement::HTMLElementTypeId;
+use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
+use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
-use script::dom::node::NodeTypeId;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
@@ -285,15 +283,6 @@ impl<'a> FlowConstructor<'a> {
     fn set_flow_construction_result(&self,
                                     node: &ThreadSafeLayoutNode,
                                     result: ConstructionResult) {
-        if let ConstructionResult::None = result {
-            let mut layout_data_ref = node.mutate_layout_data();
-            let layout_data = layout_data_ref.as_mut().expect("no layout data");
-            layout_data.remove_compositor_layers(self.layout_context
-                                                     .shared
-                                                     .constellation_chan
-                                                     .clone());
-        }
-
         node.set_flow_construction_result(result);
     }
 
@@ -1384,11 +1373,17 @@ impl<'a> FlowConstructor<'a> {
                             // FIXME(pcwalton): Fragment restyle damage too?
                             flow_ref.repair_style_and_bubble_inline_sizes(&style);
                         }
-                        SpecificFragmentInfo::ScannedText(_) |
+                        SpecificFragmentInfo::ScannedText(_) => {
+                            // Text fragments in ConstructionResult haven't been scanned yet
+                            unreachable!()
+                        }
+                        SpecificFragmentInfo::GeneratedContent(_) |
                         SpecificFragmentInfo::UnscannedText(_) => {
-                            properties::modify_style_for_text(&mut style);
-                            properties::modify_style_for_replaced_content(&mut style);
-                            fragment.repair_style(&style);
+                            // We can't repair this unscanned text; we need to update the
+                            // scanned text fragments.
+                            //
+                            // TODO: Add code to find and repair the ScannedText fragments?
+                            return false
                         }
                         _ => {
                             if node.is_replaced_content() {

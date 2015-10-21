@@ -354,20 +354,24 @@ class LocalChanges(object):
 
         return self
 
-def load(tests_root, manifest_path):
+def load(tests_root, manifest):
     logger = get_logger()
 
-    if os.path.exists(manifest_path):
-        logger.debug("Opening manifest at %s" % manifest_path)
-    else:
-        logger.debug("Creating new manifest at %s" % manifest_path)
-    try:
-        with open(manifest_path) as f:
-            manifest = Manifest.from_json(tests_root, json.load(f))
-    except IOError:
-        manifest = Manifest(None)
+    # "manifest" is a path or file-like object.
+    if isinstance(manifest, basestring):
+        if os.path.exists(manifest):
+            logger.debug("Opening manifest at %s" % manifest)
+        else:
+            logger.debug("Creating new manifest at %s" % manifest)
+        try:
+            with open(manifest) as f:
+                rv = Manifest.from_json(tests_root, json.load(f))
+        except IOError:
+            rv = Manifest(None)
+        return rv
 
-    return manifest
+    return Manifest.from_json(tests_root, json.load(manifest))
+
 
 def write(manifest, manifest_path):
     with open(manifest_path, "w") as f:

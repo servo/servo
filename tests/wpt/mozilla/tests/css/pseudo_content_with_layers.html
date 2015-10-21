@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <link rel='match' href='pseudo_content_with_layers_ref.html'>
+    <body>
+        <style>
+        .before-test::before { 
+            content: " ";
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            background: green;
+        }
+
+        .after-test::after { 
+            content: " ";
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            background: green;
+        }
+
+        div {
+            position: fixed;
+            width: 110px;
+            height: 110px;
+            background: blue;
+        }
+        </style>
+
+        <div class="before-test"> </div>
+        <div style="left: 150px;" class="after-test"> </div>
+    </body>
+</html>

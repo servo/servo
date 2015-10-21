@@ -46,7 +46,7 @@ impl Cookie {
 
         // Step 5
         match PUB_DOMAINS.iter().find(|&x| domain == *x) {
-            Some(val) if *val == url_host => domain = "".to_string(),
+            Some(val) if *val == url_host => domain = "".to_owned(),
             Some(_) => return None,
             None => {}
         }
@@ -154,13 +154,13 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure && url.scheme != "https".to_string() {
+        if self.cookie.secure && url.scheme != "https" {
             return false;
         }
         if self.cookie.httponly && source == CookieSource::NonHTTP {
             return false;
         }
 
-        return true;
+        true
     }
 }

@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLProgressElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLProgressElementDerived for EventTarget {
-    fn is_htmlprogresselement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLProgressElement)))
-    }
 }
 
 impl HTMLProgressElement {
@@ -31,7 +20,7 @@ impl HTMLProgressElement {
                      document: &Document) -> HTMLProgressElement {
         HTMLProgressElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLProgressElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

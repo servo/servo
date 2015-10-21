@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Attribute exists selector: [foo] and [*|foo]</title>
+    <link rel=match href=attr_exists_selector_ref.html>
+    <style>
+      p[data-green] { color: green }
+      p[*|data-red] { color: red }
+    </style>
+  </head>
+  <body>
+    <p data-green="">This text should be green.</p>
+    <p data-red="">This text should be red.</p>
+    <p>This text should be black.</p>
+  </body>
+</html>

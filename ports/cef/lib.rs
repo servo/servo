@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(borrow_state)]
-#![feature(box_raw)]
 #![feature(box_syntax)]
 #![feature(convert)]
 #![feature(core_intrinsics)]
@@ -32,7 +31,6 @@ extern crate gleam;
 extern crate glutin_app;
 extern crate js;
 extern crate layers;
-extern crate png;
 extern crate rustc_unicode;
 extern crate script;
 extern crate script_traits;

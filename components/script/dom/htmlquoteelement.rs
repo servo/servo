@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLQuoteElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLQuoteElementDerived for EventTarget {
-    fn is_htmlquoteelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLQuoteElement)))
-    }
 }
 
 impl HTMLQuoteElement {
@@ -31,7 +20,7 @@ impl HTMLQuoteElement {
                      document: &Document) -> HTMLQuoteElement {
         HTMLQuoteElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLQuoteElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

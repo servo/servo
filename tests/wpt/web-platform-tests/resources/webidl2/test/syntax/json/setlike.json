@@ -1,0 +1,47 @@
+[
+    {
+        "type": "interface",
+        "name": "SetLike",
+        "partial": false,
+        "members": [
+            {
+                "type": "setlike",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "long"
+                },
+                "readonly": false,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "ReadOnlySetLike",
+        "partial": false,
+        "members": [
+            {
+                "type": "setlike",
+                "idlType": {
+                    "sequence": false,
+                    "generic": null,
+                    "nullable": false,
+                    "array": false,
+                    "union": false,
+                    "idlType": "long"
+                },
+                "readonly": true,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
+]
+

@@ -6,29 +6,27 @@ use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, EventCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, EventTargetCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::Error::NotSupported;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root};
+use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId, self};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::element::{self, AttributeMutation};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use js::jsapi::{RootedValue, JSAutoRequest, JSAutoCompartment};
+use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan, MozBrowserEvent, NavigationDirection};
+use msg::constellation_msg::{ConstellationChan, IframeLoadInfo, MozBrowserEvent};
+use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use page::IterablePage;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -40,7 +38,7 @@ use util::str::DOMString;
 use util::str::{self, LengthOrPercentageOrAuto};
 
 pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").unwrap_or(false)
+    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
 }
 
 #[derive(HeapSizeOf)]
@@ -57,20 +55,11 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
+    pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
-
-impl HTMLIFrameElementDerived for EventTarget {
-    fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
-    }
-}
-
-
 
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
@@ -92,6 +81,8 @@ impl HTMLIFrameElement {
     }
 
     pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
+        self.pipeline_id.set(Some(PipelineId::new()));
+
         let old_subpage_id = self.subpage_id.get();
         let win = window_from_node(self);
         let subpage_id = win.r().get_next_subpage_id();
@@ -109,15 +100,20 @@ impl HTMLIFrameElement {
         let window = window_from_node(self);
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
+        let new_pipeline_id = self.pipeline_id.get().unwrap();
 
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
         let ConstellationChan(ref chan) = window.constellation_chan();
-        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
-                                                            window.pipeline(),
-                                                            new_subpage_id,
-                                                            old_subpage_id,
-                                                            sandboxed)).unwrap();
+        let load_info = IframeLoadInfo {
+            url: url,
+            containing_pipeline_id: window.pipeline(),
+            new_subpage_id: new_subpage_id,
+            old_subpage_id: old_subpage_id,
+            new_pipeline_id: new_pipeline_id,
+            sandbox: sandboxed,
+        };
+        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
 
         if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -188,8 +184,8 @@ impl HTMLIFrameElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
@@ -215,6 +211,20 @@ impl HTMLIFrameElement {
     }
 }
 
+pub trait HTMLIFrameElementLayoutMethods {
+    fn pipeline_id(self) -> Option<PipelineId>;
+}
+
+impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
+    #[inline]
+    #[allow(unsafe_code)]
+    fn pipeline_id(self) -> Option<PipelineId> {
+        unsafe {
+            (*self.unsafe_get()).pipeline_id.get()
+        }
+    }
+}
+
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
     if iframe.Mozbrowser() {
         let node = NodeCast::from_ref(iframe);
@@ -232,7 +242,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
         Ok(())
     } else {
         debug!("this frame is not mozbrowser (or experimental_enabled is false)");
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 }
 
@@ -329,12 +339,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
     fn Reload(&self, _hardReload: bool) -> Fallible<()> {
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
     fn Stop(&self) -> Fallible<()> {
-        Err(NotSupported)
+        Err(Error::NotSupported)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dim-width
@@ -349,7 +359,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 }
 
 impl VirtualMethods for HTMLIFrameElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
+    fn super_type(&self) -> Option<&VirtualMethods> {
         let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -408,24 +418,21 @@ impl VirtualMethods for HTMLIFrameElement {
         }
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        match (self.containing_page_pipeline_id(), self.subpage_id()) {
-            (Some(containing_pipeline_id), Some(subpage_id)) => {
-                let window = window_from_node(self);
-                let window = window.r();
+        if let Some(pipeline_id) = self.pipeline_id.get() {
+            let window = window_from_node(self);
+            let window = window.r();
 
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                let msg = ConstellationMsg::RemoveIFrame(containing_pipeline_id,
-                                                         subpage_id);
-                chan.send(msg).unwrap();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            let msg = ConstellationMsg::RemoveIFrame(pipeline_id);
+            chan.send(msg).unwrap();
 
-                // Resetting the subpage id to None is required here so that
-                // if this iframe is subsequently re-added to the document
-                // the load doesn't think that it's a navigation, but instead
-                // a new iframe. Without this, the constellation gets very
-                // confused.
-                self.subpage_id.set(None);
-            }
-            _ => {}
+            // Resetting the subpage id to None is required here so that
+            // if this iframe is subsequently re-added to the document
+            // the load doesn't think that it's a navigation, but instead
+            // a new iframe. Without this, the constellation gets very
+            // confused.
+            self.subpage_id.set(None);
+            self.pipeline_id.set(None);
         }
     }
 }

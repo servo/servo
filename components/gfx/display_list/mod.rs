@@ -14,20 +14,20 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-#![deny(unsafe_code)]
-
+use app_units::Au;
 use azure::azure::AzFloat;
-use azure::azure_hl::Color;
+use azure::azure_hl::{Color, DrawTarget};
 use display_list::optimizer::DisplayListOptimizer;
 use euclid::approxeq::ApproxEq;
 use euclid::num::Zero;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D, Matrix4};
+use euclid::{Matrix2D, Matrix4, Point2D, Rect, SideOffsets2D, Size2D};
 use gfx_traits::color;
 use libc::uintptr_t;
 use msg::compositor_msg::{LayerId, LayerKind, ScrollPolicy};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use paint_context::PaintContext;
-use paint_task::PaintLayer;
+use paint_task::{PaintLayerContents, PaintLayer};
 use self::DisplayItem::*;
 use self::DisplayItemIterator::*;
 use smallvec::SmallVec;
@@ -42,7 +42,7 @@ use style::properties::ComputedValues;
 use text::TextRun;
 use text::glyph::CharIndex;
 use util::cursor::Cursor;
-use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::geometry::{self, MAX_RECT, ZERO_RECT};
 use util::linked_list::prepend_from;
 use util::mem::HeapSizeOf;
 use util::opts;
@@ -77,6 +77,51 @@ impl OpaqueNode {
     }
 }
 
+/// LayerInfo is used to store PaintLayer metadata during DisplayList construction.
+/// It is also used for tracking LayerIds when creating layers to preserve ordering when
+/// layered DisplayItems should render underneath unlayered DisplayItems.
+#[derive(Clone, Copy, Debug, HeapSizeOf, Deserialize, Serialize)]
+pub struct LayerInfo {
+    /// The base LayerId of this layer.
+    pub layer_id: LayerId,
+
+    /// The scroll policy of this layer.
+    pub scroll_policy: ScrollPolicy,
+
+    /// The subpage that this layer represents, if there is one.
+    pub subpage_pipeline_id: Option<PipelineId>,
+
+    /// The id for the next layer in the sequence. This is used for synthesizing
+    /// layers for content that needs to be displayed on top of this layer.
+    pub next_layer_id: LayerId,
+}
+
+impl LayerInfo {
+    pub fn new(id: LayerId,
+               scroll_policy: ScrollPolicy,
+               subpage_pipeline_id: Option<PipelineId>)
+               -> LayerInfo {
+        LayerInfo {
+            layer_id: id,
+            scroll_policy: scroll_policy,
+            subpage_pipeline_id: subpage_pipeline_id,
+            next_layer_id: id.companion_layer_id(),
+        }
+    }
+
+    fn next(&mut self) -> LayerInfo {
+        let new_layer_info = LayerInfo::new(self.next_layer_id, self.scroll_policy, None);
+        self.next_layer_id = self.next_layer_id.companion_layer_id();
+        new_layer_info
+    }
+
+    fn next_with_scroll_policy(&mut self, scroll_policy: ScrollPolicy) -> LayerInfo {
+        let mut new_layer_info = self.next();
+        new_layer_info.scroll_policy = scroll_policy;
+        new_layer_info
+    }
+}
+
 /// Display items that make up a stacking context. "Steps" here refer to the steps in CSS 2.1
 /// Appendix E.
 ///
@@ -99,7 +144,9 @@ pub struct DisplayList {
     /// Child stacking contexts.
     pub children: LinkedList<Arc<StackingContext>>,
     /// Child PaintLayers that will be rendered on top of everything else.
-    pub layered_children: LinkedList<PaintLayer>,
+    pub layered_children: LinkedList<Arc<PaintLayer>>,
+    /// Information about child layers.
+    pub layer_info: LinkedList<LayerInfo>,
 }
 
 impl DisplayList {
@@ -115,27 +162,7 @@ impl DisplayList {
             outlines: LinkedList::new(),
             children: LinkedList::new(),
             layered_children: LinkedList::new(),
-        }
-    }
-
-    /// Sort all children by their z-index and split layered children into their own
-    /// section of the display list.
-    /// TODO(mrobinson): This should properly handle unlayered children that are on
-    /// top of layered children.
-    #[inline]
-    pub fn sort_and_layerize_children(&mut self) {
-        let mut children: SmallVec<[Arc<StackingContext>; 8]> = SmallVec::new();
-        while let Some(stacking_context) = self.children.pop_front() {
-            children.push(stacking_context);
-        }
-        children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
-
-        for stacking_context in children.into_iter() {
-            match stacking_context.layer_id {
-                Some(layer_id) => self.layered_children.push_back(
-                    PaintLayer::new(layer_id, color::transparent(), stacking_context)),
-                None => self.children.push_back(stacking_context),
-            }
+            layer_info: LinkedList::new(),
         }
     }
 
@@ -151,6 +178,7 @@ impl DisplayList {
         self.outlines.append(&mut other.outlines);
         self.children.append(&mut other.children);
         self.layered_children.append(&mut other.layered_children);
+        self.layer_info.append(&mut other.layer_info);
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.
@@ -231,14 +259,329 @@ impl DisplayList {
         print_display_list_section(print_tree, &self.outlines, "Outlines");
 
 
-        for stacking_context in &self.children {
-            stacking_context.print_with_tree(print_tree);
+        if !self.children.is_empty() {
+            print_tree.new_level("Stacking Contexts".to_owned());
+            for stacking_context in &self.children {
+                stacking_context.print_with_tree(print_tree);
+            }
+            print_tree.end_level();
         }
 
-        for paint_layer in &self.layered_children {
-            paint_layer.stacking_context.print_with_tree(print_tree);
+        if !self.layered_children.is_empty() {
+            print_tree.new_level("Layers".to_owned());
+            for paint_layer in &self.layered_children {
+                match paint_layer.contents {
+                    PaintLayerContents::StackingContext(ref stacking_context) =>
+                        stacking_context.print_with_tree(print_tree),
+                    PaintLayerContents::DisplayList(ref display_list) => {
+                        print_tree.new_level(format!("DisplayList Layer with bounds {:?}:",
+                                                     display_list.calculate_bounding_rect()));
+                        display_list.print_with_tree(print_tree);
+                        print_tree.end_level();
+                    }
+                }
+            }
+            print_tree.end_level();
         }
     }
+
+    /// Draws the DisplayList in stacking context order according to the steps in CSS 2.1 § E.2.
+    pub fn draw_into_context(&self,
+                             draw_target: &DrawTarget,
+                             paint_context: &mut PaintContext,
+                             transform: &Matrix4,
+                             clip_rect: Option<&Rect<Au>>) {
+        let mut paint_subcontext = PaintContext {
+            draw_target: draw_target.clone(),
+            font_context: &mut *paint_context.font_context,
+            page_rect: paint_context.page_rect,
+            screen_rect: paint_context.screen_rect,
+            clip_rect: clip_rect.map(|clip_rect| *clip_rect),
+            transient_clip: None,
+            layer_kind: paint_context.layer_kind,
+        };
+
+        let pixels_per_px = paint_subcontext.screen_pixels_per_px();
+
+        if opts::get().dump_display_list_optimized {
+            self.print(format!("Optimized display list. Tile bounds: {:?}",
+                                paint_context.page_rect));
+        }
+
+        // Set up our clip rect and transform.
+        let old_transform = paint_subcontext.draw_target.get_transform();
+        let xform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                     transform.m21, transform.m22,
+                                     transform.m41, transform.m42);
+        paint_subcontext.draw_target.set_transform(&xform_2d);
+        paint_subcontext.push_clip_if_applicable();
+
+        // Steps 1 and 2: Borders and background for the root.
+        for display_item in &self.background_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index >= 0 {
+                break
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 4: Block backgrounds and borders.
+        for display_item in &self.block_backgrounds_and_borders {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 5: Floats.
+        for display_item in &self.floats {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
+
+        // Step 7: Content.
+        for display_item in &self.content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 8: Positioned descendants with `z-index: auto`.
+        for display_item in &self.positioned_content {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Step 9: Positioned descendants with nonnegative, numeric z-indices.
+        for positioned_kid in &self.children {
+            if positioned_kid.z_index < 0 {
+                continue
+            }
+            let new_transform =
+                transform.translate(positioned_kid.bounds
+                                                  .origin
+                                                  .x
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                    positioned_kid.bounds
+                                                  .origin
+                                                  .y
+                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                    0.0);
+            positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
+                                                          &new_transform,
+                                                          Some(&positioned_kid.overflow))
+        }
+
+        // Step 10: Outlines.
+        for display_item in &self.outlines {
+            display_item.draw_into_context(&mut paint_subcontext)
+        }
+
+        // Undo our clipping and transform.
+        paint_subcontext.remove_transient_clip_if_applicable();
+        paint_subcontext.pop_clip_if_applicable();
+        paint_subcontext.draw_target.set_transform(&old_transform)
+    }
+
+    pub fn hit_test(&self,
+                    point: Point2D<Au>,
+                    result: &mut Vec<DisplayItemMetadata>,
+                    topmost_only: bool) {
+        fn hit_test_in_list<'a, I>(point: Point2D<Au>,
+                                   result: &mut Vec<DisplayItemMetadata>,
+                                   topmost_only: bool,
+                                   iterator: I)
+                                   where I: Iterator<Item=&'a DisplayItem> {
+            for item in iterator {
+                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
+                // test elements with `border-radius`, for example.
+                if !item.base().clip.might_intersect_point(&point) {
+                    // Clipped out.
+                    continue
+                }
+                if !geometry::rect_contains_point(item.bounds(), point) {
+                    // Can't possibly hit.
+                    continue
+                }
+                if item.base().metadata.pointing.is_none() {
+                    // `pointer-events` is `none`. Ignore this item.
+                    continue
+                }
+
+                if let DisplayItem::BorderClass(ref border) = *item {
+                    // If the point is inside the border, it didn't hit the border!
+                    let interior_rect =
+                        Rect::new(
+                            Point2D::new(border.base.bounds.origin.x +
+                                         border.border_widths.left,
+                                         border.base.bounds.origin.y +
+                                         border.border_widths.top),
+                            Size2D::new(border.base.bounds.size.width -
+                                            (border.border_widths.left +
+                                             border.border_widths.right),
+                                        border.base.bounds.size.height -
+                                            (border.border_widths.top +
+                                             border.border_widths.bottom)));
+                    if geometry::rect_contains_point(interior_rect, point) {
+                        continue
+                    }
+                }
+
+                // We found a hit!
+                result.push(item.base().metadata);
+                if topmost_only {
+                    return
+                }
+            }
+        }
+
+        // Layers that are positioned on top of this layer should get a shot at the hit test first.
+        for layer in self.layered_children.iter().rev() {
+            match layer.contents {
+                PaintLayerContents::StackingContext(ref stacking_context) =>
+                    stacking_context.hit_test(point, result, topmost_only),
+                PaintLayerContents::DisplayList(ref display_list) =>
+                    display_list.hit_test(point, result, topmost_only),
+            }
+
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Iterate through display items in reverse stacking order. Steps here refer to the
+        // painting steps in CSS 2.1 Appendix E.
+        //
+        // Step 10: Outlines.
+        hit_test_in_list(point, result, topmost_only, self.outlines.iter().rev());
+        if topmost_only && !result.is_empty() {
+            return
+        }
+
+        // Steps 9 and 8: Positioned descendants with nonnegative z-indices.
+        for kid in self.children.iter().rev() {
+            if kid.z_index < 0 {
+                continue
+            }
+            kid.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Steps 8, 7, 5, and 4: Positioned content, content, floats, and block backgrounds and
+        // borders.
+        //
+        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
+        for display_list in &[
+            &self.positioned_content,
+            &self.content,
+            &self.floats,
+            &self.block_backgrounds_and_borders,
+        ] {
+            hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Step 3: Positioned descendants with negative z-indices.
+        for kid in self.children.iter().rev() {
+            if kid.z_index >= 0 {
+                continue
+            }
+            kid.hit_test(point, result, topmost_only);
+            if topmost_only && !result.is_empty() {
+                return
+            }
+        }
+
+        // Steps 2 and 1: Borders and background for the root.
+        hit_test_in_list(point,
+                         result,
+                         topmost_only,
+                         self.background_and_borders.iter().rev())
+
+    }
+
+    /// Returns the PaintLayer in the given DisplayList with a specific layer ID.
+    pub fn find_layer_with_layer_id(&self, layer_id: LayerId) -> Option<Arc<PaintLayer>> {
+        for kid in &self.layered_children {
+            if let Some(paint_layer) = PaintLayer::find_layer_with_layer_id(&kid, layer_id) {
+                return Some(paint_layer);
+            }
+        }
+
+        for kid in &self.children {
+            if let Some(paint_layer) = kid.display_list.find_layer_with_layer_id(layer_id) {
+                return Some(paint_layer);
+            }
+        }
+
+        None
+    }
+
+    /// Calculate the union of all the bounds of all of the items in this display list.
+    /// This is an expensive operation, so it shouldn't be done unless absolutely necessary
+    /// and, if possible, the result should be cached.
+    pub fn calculate_bounding_rect(&self) -> Rect<Au> {
+        fn union_all_items(list: &LinkedList<DisplayItem>, mut bounds: Rect<Au>) -> Rect<Au> {
+            for item in list {
+                bounds = bounds.union(&item.base().bounds);
+            }
+            bounds
+        };
+
+        let mut bounds = Rect::zero();
+        bounds = union_all_items(&self.background_and_borders, bounds);
+        bounds = union_all_items(&self.block_backgrounds_and_borders, bounds);
+        bounds = union_all_items(&self.floats, bounds);
+        bounds = union_all_items(&self.content, bounds);
+        bounds = union_all_items(&self.positioned_content, bounds);
+        bounds = union_all_items(&self.outlines, bounds);
+
+        for stacking_context in &self.children {
+            bounds = bounds.union(&Rect::new(
+                stacking_context.overflow.origin + stacking_context.bounds.origin,
+                stacking_context.overflow.size));
+        }
+
+        bounds
+    }
+
+    #[inline]
+    fn get_section_mut(&mut self, section: DisplayListSection) -> &mut LinkedList<DisplayItem> {
+        match section {
+            DisplayListSection::BackgroundAndBorders => &mut self.background_and_borders,
+            DisplayListSection::BlockBackgroundsAndBorders =>
+                &mut self.block_backgrounds_and_borders,
+            DisplayListSection::Floats => &mut self.floats,
+            DisplayListSection::Content => &mut self.content,
+            DisplayListSection::PositionedContent => &mut self.positioned_content,
+            DisplayListSection::Outlines => &mut self.outlines,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DisplayListSection {
+    BackgroundAndBorders,
+    BlockBackgroundsAndBorders,
+    Floats,
+    Content,
+    PositionedContent,
+    Outlines,
 }
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
@@ -274,12 +617,11 @@ pub struct StackingContext {
     /// Whether this stacking context scrolls its overflow area.
     pub scrolls_overflow_area: bool,
 
-    /// The scrolling policy of this stacking context, if it is promoted
-    /// to a layer.
-    pub scroll_policy: ScrollPolicy,
+    /// The layer info for this stacking context, if there is any.
+    pub layer_info: Option<LayerInfo>,
 
-    /// The layer id for this stacking context, if there is one.
-    pub layer_id: Option<LayerId>,
+    /// The LayerId of the last child layer of this stacking context.
+    pub last_child_layer_info: Option<LayerInfo>,
 }
 
 impl StackingContext {
@@ -295,8 +637,7 @@ impl StackingContext {
                perspective: Matrix4,
                establishes_3d_context: bool,
                scrolls_overflow_area: bool,
-               scroll_policy: ScrollPolicy,
-               layer_id: Option<LayerId>)
+               layer_info: Option<LayerInfo>)
                -> StackingContext {
         let mut stacking_context = StackingContext {
             display_list: display_list,
@@ -309,30 +650,11 @@ impl StackingContext {
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
-            scroll_policy: scroll_policy,
-            layer_id: layer_id,
+            layer_info: layer_info,
+            last_child_layer_info: None,
         };
         StackingContextLayerCreator::add_layers_to_preserve_drawing_order(&mut stacking_context);
         stacking_context
-    }
-
-    pub fn create_layered_child(&self,
-                                layer_id: LayerId,
-                                display_list: Box<DisplayList>) -> StackingContext {
-        StackingContext {
-            display_list: display_list,
-            bounds: self.bounds.clone(),
-            overflow: self.overflow.clone(),
-            z_index: self.z_index,
-            filters: self.filters.clone(),
-            blend_mode: self.blend_mode,
-            transform: Matrix4::identity(),
-            perspective: Matrix4::identity(),
-            establishes_3d_context: false,
-            scrolls_overflow_area: self.scrolls_overflow_area,
-            scroll_policy: self.scroll_policy,
-            layer_id: Some(layer_id),
-        }
     }
 
     /// Draws the stacking context in the proper order according to the steps in CSS 2.1 § E.2.
@@ -343,107 +665,11 @@ impl StackingContext {
                              clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
-        {
-            let mut paint_subcontext = PaintContext {
-                draw_target: temporary_draw_target.clone(),
-                font_context: &mut *paint_context.font_context,
-                page_rect: paint_context.page_rect,
-                screen_rect: paint_context.screen_rect,
-                clip_rect: clip_rect.map(|clip_rect| *clip_rect),
-                transient_clip: None,
-                layer_kind: paint_context.layer_kind,
-            };
 
-            if opts::get().dump_display_list_optimized {
-                display_list.print(format!("Optimized display list. Tile bounds: {:?}",
-                                           paint_context.page_rect));
-            }
-
-            // Set up our clip rect and transform.
-            let old_transform = paint_subcontext.draw_target.get_transform();
-            let xform_2d = Matrix2D::new(transform.m11, transform.m12,
-                                         transform.m21, transform.m22,
-                                         transform.m41, transform.m42);
-            paint_subcontext.draw_target.set_transform(&xform_2d);
-            paint_subcontext.push_clip_if_applicable();
-
-            // Steps 1 and 2: Borders and background for the root.
-            for display_item in &display_list.background_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 3: Positioned descendants with negative z-indices.
-            for positioned_kid in &display_list.children {
-                if positioned_kid.z_index >= 0 {
-                    break
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 4: Block backgrounds and borders.
-            for display_item in &display_list.block_backgrounds_and_borders {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 5: Floats.
-            for display_item in &display_list.floats {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-
-            // Step 7: Content.
-            for display_item in &display_list.content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 8: Positioned descendants with `z-index: auto`.
-            for display_item in &display_list.positioned_content {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Step 9: Positioned descendants with nonnegative, numeric z-indices.
-            for positioned_kid in &self.display_list.children {
-                if positioned_kid.z_index < 0 {
-                    continue
-                }
-                let new_transform =
-                    transform.translate(positioned_kid.bounds
-                                                      .origin
-                                                      .x
-                                                      .to_nearest_px() as AzFloat,
-                                        positioned_kid.bounds
-                                                      .origin
-                                                      .y
-                                                      .to_nearest_px() as AzFloat,
-                                        0.0);
-                positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
-                                                              &new_transform,
-                                                              Some(&positioned_kid.overflow))
-            }
-
-            // Step 10: Outlines.
-            for display_item in &display_list.outlines {
-                display_item.draw_into_context(&mut paint_subcontext)
-            }
-
-            // Undo our clipping and transform.
-            paint_subcontext.remove_transient_clip_if_applicable();
-            paint_subcontext.pop_clip_if_applicable();
-            paint_subcontext.draw_target.set_transform(&old_transform)
-        }
+        display_list.draw_into_context(&temporary_draw_target,
+                                       paint_context,
+                                       transform,
+                                       clip_rect);
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
                                                               &self.filters,
@@ -459,7 +685,7 @@ impl StackingContext {
 
         // If a layer is being used, the transform for this layer
         // will be handled by the compositor.
-        let transform = match self.layer_id {
+        let transform = match self.layer_info {
             Some(..) => *transform,
             None => transform.mul(&self.transform),
         };
@@ -501,128 +727,18 @@ impl StackingContext {
     /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
     /// into the list. `result` must be empty upon entry to this function.
     pub fn hit_test(&self,
-                    mut point: Point2D<Au>,
+                    point: Point2D<Au>,
                     result: &mut Vec<DisplayItemMetadata>,
                     topmost_only: bool) {
-        fn hit_test_in_list<'a, I>(point: Point2D<Au>,
-                                   result: &mut Vec<DisplayItemMetadata>,
-                                   topmost_only: bool,
-                                   iterator: I)
-                                   where I: Iterator<Item=&'a DisplayItem> {
-            for item in iterator {
-                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
-                // test elements with `border-radius`, for example.
-                if !item.base().clip.might_intersect_point(&point) {
-                    // Clipped out.
-                    continue
-                }
-                if !geometry::rect_contains_point(item.bounds(), point) {
-                    // Can't possibly hit.
-                    continue
-                }
-                if item.base().metadata.pointing.is_none() {
-                    // `pointer-events` is `none`. Ignore this item.
-                    continue
-                }
-                match *item {
-                    DisplayItem::BorderClass(ref border) => {
-                        // If the point is inside the border, it didn't hit the border!
-                        let interior_rect =
-                            Rect::new(
-                                Point2D::new(border.base.bounds.origin.x +
-                                             border.border_widths.left,
-                                             border.base.bounds.origin.y +
-                                             border.border_widths.top),
-                                Size2D::new(border.base.bounds.size.width -
-                                                (border.border_widths.left +
-                                                 border.border_widths.right),
-                                            border.base.bounds.size.height -
-                                                (border.border_widths.top +
-                                                 border.border_widths.bottom)));
-                        if geometry::rect_contains_point(interior_rect, point) {
-                            continue
-                        }
-                    }
-                    _ => {}
-                }
-
-                // We found a hit!
-                result.push(item.base().metadata);
-                if topmost_only {
-                    return
-                }
-            }
-        }
-
         // Convert the point into stacking context local space
-        point = point - self.bounds.origin;
+        let point = point - self.bounds.origin;
 
         debug_assert!(!topmost_only || result.is_empty());
         let inv_transform = self.transform.invert();
         let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                      point.y.to_f32_px()));
-        point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
-
-        // Layers are positioned on top of this layer should get a shot at the hit test first.
-        for layer in self.display_list.layered_children.iter().rev() {
-            layer.stacking_context.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Iterate through display items in reverse stacking order. Steps here refer to the
-        // painting steps in CSS 2.1 Appendix E.
-        //
-        // Step 10: Outlines.
-        hit_test_in_list(point, result, topmost_only, self.display_list.outlines.iter().rev());
-        if topmost_only && !result.is_empty() {
-            return
-        }
-
-        // Steps 9 and 8: Positioned descendants with nonnegative z-indices.
-        for kid in self.display_list.children.iter().rev() {
-            if kid.z_index < 0 {
-                continue
-            }
-            kid.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Steps 8, 7, 5, and 4: Positioned content, content, floats, and block backgrounds and
-        // borders.
-        //
-        // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
-        for display_list in &[
-            &self.display_list.positioned_content,
-            &self.display_list.content,
-            &self.display_list.floats,
-            &self.display_list.block_backgrounds_and_borders,
-        ] {
-            hit_test_in_list(point, result, topmost_only, display_list.iter().rev());
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Step 3: Positioned descendants with negative z-indices.
-        for kid in self.display_list.children.iter().rev() {
-            if kid.z_index >= 0 {
-                continue
-            }
-            kid.hit_test(point, result, topmost_only);
-            if topmost_only && !result.is_empty() {
-                return
-            }
-        }
-
-        // Steps 2 and 1: Borders and background for the root.
-        hit_test_in_list(point,
-                         result,
-                         topmost_only,
-                         self.display_list.background_and_borders.iter().rev())
+        let point = Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y));
+        self.display_list.hit_test(point, result, topmost_only)
     }
 
     pub fn print(&self, title: String) {
@@ -631,36 +747,64 @@ impl StackingContext {
     }
 
     fn print_with_tree(&self, print_tree: &mut PrintTree) {
-        if self.layer_id.is_some() {
+        if self.layer_info.is_some() {
             print_tree.new_level(format!("Layered StackingContext at {:?} with overflow {:?}:",
-                                             self.bounds,
-                                             self.overflow));
+                                         self.bounds,
+                                         self.overflow));
         } else {
             print_tree.new_level(format!("StackingContext at {:?} with overflow {:?}:",
-                                             self.bounds,
-                                             self.overflow));
+                                         self.bounds,
+                                         self.overflow));
         }
         self.display_list.print_with_tree(print_tree);
         print_tree.end_level();
     }
+
+    fn scroll_policy(&self) -> ScrollPolicy {
+        match self.layer_info {
+            Some(ref layer_info) => layer_info.scroll_policy,
+            None => ScrollPolicy::Scrollable,
+        }
+    }
+
+    fn get_layer_info(&mut self, layer_id: LayerId) -> &mut LayerInfo {
+        for layer_info in self.display_list.layer_info.iter_mut() {
+            if layer_info.layer_id == layer_id {
+                return layer_info;
+            }
+        }
+
+        panic!("Could not find LayerInfo with id: {:?}", layer_id);
+    }
 }
 
 struct StackingContextLayerCreator {
-    display_list_for_next_layer: Option<Box<DisplayList>>,
-    all_following_children_need_layers: bool,
+    display_list_for_next_layer: Option<DisplayList>,
+    next_layer_info: Option<LayerInfo>,
+    building_ordering_layer: bool,
 }
 
 impl StackingContextLayerCreator {
     fn new() -> StackingContextLayerCreator {
         StackingContextLayerCreator {
             display_list_for_next_layer: None,
-            all_following_children_need_layers: false,
+            next_layer_info: None,
+            building_ordering_layer: false,
         }
     }
 
     #[inline]
     fn add_layers_to_preserve_drawing_order(stacking_context: &mut StackingContext) {
         let mut state = StackingContextLayerCreator::new();
+
+        state.layerize_display_list_section(DisplayListSection::BackgroundAndBorders,
+                                            stacking_context);
+        state.layerize_display_list_section(DisplayListSection::BlockBackgroundsAndBorders,
+                                            stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Floats, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Content, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::PositionedContent, stacking_context);
+        state.layerize_display_list_section(DisplayListSection::Outlines, stacking_context);
 
         // First we need to sort child stacking contexts by z-index, so we can detect
         // situations where unlayered ones should be on top of layered ones.
@@ -670,75 +814,169 @@ impl StackingContextLayerCreator {
         sorted_children.extend(existing_children.into_iter());
         sorted_children.sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
-        // FIXME(#7566, mrobinson): This should properly handle unlayered children that are on
-        // top of unlayered children which have child stacking contexts with layers.
         for child_stacking_context in sorted_children.into_iter() {
-            if state.stacking_context_needs_layer(&child_stacking_context) {
-                state.add_stacking_context(child_stacking_context, stacking_context);
-            } else {
-                stacking_context.display_list.children.push_back(child_stacking_context);
-            }
+            state.add_stacking_context(child_stacking_context, stacking_context);
         }
         state.finish_building_current_layer(stacking_context);
+        stacking_context.last_child_layer_info =
+            StackingContextLayerCreator::find_last_child_layer_info(stacking_context);
     }
 
     #[inline]
-    fn stacking_context_needs_layer(&mut self, stacking_context: &Arc<StackingContext>) -> bool {
-        self.all_following_children_need_layers || stacking_context.layer_id.is_some()
+    fn all_following_children_need_layers(&self) -> bool {
+        self.next_layer_info.is_some()
+    }
+
+    #[inline]
+    fn layerize_display_list_section(&mut self,
+                                     section: DisplayListSection,
+                                     stacking_context: &mut StackingContext) {
+        let section_list = stacking_context.display_list.get_section_mut(section).split_off(0);
+        for item in section_list.into_iter() {
+            self.add_display_item(item, section, stacking_context);
+        }
+    }
+
+    #[inline]
+    fn display_item_needs_layer(&mut self, item: &DisplayItem) -> bool {
+        match *item {
+            LayeredItemClass(_) => true,
+            _ => self.all_following_children_need_layers(),
+        }
+    }
+
+    #[inline]
+    fn prepare_ordering_layer(&mut self,
+                              stacking_context: &mut StackingContext) {
+        if self.building_ordering_layer {
+            assert!(self.next_layer_info.is_some());
+            return;
+        }
+
+        let next_layer_info = Some(stacking_context
+                                   .get_layer_info(self.next_layer_info.unwrap().layer_id)
+                                   .next_with_scroll_policy(ScrollPolicy::Scrollable));
+        self.finish_building_current_layer(stacking_context);
+        self.next_layer_info = next_layer_info;
+
+        self.building_ordering_layer = true;
+    }
+
+    fn add_display_item(&mut self,
+                        item: DisplayItem,
+                        section: DisplayListSection,
+                        stacking_context: &mut StackingContext) {
+        if !self.display_item_needs_layer(&item) {
+            stacking_context.display_list.get_section_mut(section).push_back(item);
+            return;
+        }
+
+        if let LayeredItemClass(ref item) = item {
+            if let Some(ref next_layer_info) = self.next_layer_info {
+                if item.layer_id == next_layer_info.layer_id && !self.building_ordering_layer {
+                    return;
+                }
+            }
+
+            self.finish_building_current_layer(stacking_context);
+            self.building_ordering_layer = false;
+            self.next_layer_info = Some(stacking_context.get_layer_info(item.layer_id).clone());
+        } else {
+            self.prepare_ordering_layer(stacking_context);
+        }
+
+        match item {
+            LayeredItemClass(layered_item) =>
+                self.add_display_item_to_display_list(layered_item.item, section),
+            _ => self.add_display_item_to_display_list(item, section),
+        }
+    }
+
+    fn add_display_item_to_display_list(&mut self,
+                                        item: DisplayItem,
+                                        section: DisplayListSection) {
+        if self.display_list_for_next_layer.is_none() {
+            self.display_list_for_next_layer = Some(DisplayList::new());
+        }
+
+        if let Some(ref mut display_list) = self.display_list_for_next_layer {
+            display_list.get_section_mut(section).push_back(item);
+        }
+    }
+
+    fn find_last_child_layer_info(stacking_context: &mut StackingContext) -> Option<LayerInfo> {
+        if let Some(layer) = stacking_context.display_list.layered_children.back() {
+            return Some(LayerInfo::new(layer.id, ScrollPolicy::Scrollable, None));
+        }
+
+        // We only care about the last child, because a layer in a child's hierarchy
+        // automatically gives following children a layer, so they will be in the
+        // 'layered_children' list instead of 'children'.
+        match stacking_context.display_list.children.back() {
+            Some(child) => child.last_child_layer_info,
+            None => None,
+        }
     }
 
     #[inline]
     fn finish_building_current_layer(&mut self, stacking_context: &mut StackingContext) {
         if let Some(display_list) = self.display_list_for_next_layer.take() {
-            let next_layer_id =
-                stacking_context.display_list.layered_children.back().unwrap().id.companion_layer_id();
-            let child_stacking_context =
-                Arc::new(stacking_context.create_layered_child(next_layer_id, display_list));
+            let layer_info = self.next_layer_info.take().unwrap();
             stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(next_layer_id, color::transparent(), child_stacking_context));
-            self.all_following_children_need_layers = true;
+                Arc::new(PaintLayer::new_with_display_list(layer_info, display_list)));
         }
     }
 
+    #[inline]
     fn add_stacking_context(&mut self,
                             stacking_context: Arc<StackingContext>,
                             parent_stacking_context: &mut StackingContext) {
-        if let Some(layer_id) = stacking_context.layer_id {
-            self.finish_building_current_layer(parent_stacking_context);
-            parent_stacking_context.display_list.layered_children.push_back(
-                PaintLayer::new(layer_id, color::transparent(), stacking_context));
-
-            // We have started processing layered stacking contexts, so any stacking context that
-            // we process from now on needs its own layer to ensure proper rendering order.
-            self.all_following_children_need_layers = true;
+        if self.all_following_children_need_layers() || stacking_context.layer_info.is_some() {
+            self.add_layered_stacking_context(stacking_context, parent_stacking_context);
             return;
         }
 
+        // This StackingContext has a layered child somewhere in its children.
+        // We need to give all new StackingContexts their own layer, so that they
+        // draw on top of this layered child.
+        if let Some(layer_info) = stacking_context.last_child_layer_info {
+            self.building_ordering_layer = true;
+            self.next_layer_info =
+                Some(layer_info.clone().next_with_scroll_policy(ScrollPolicy::Scrollable));
+        }
+
+        parent_stacking_context.display_list.children.push_back(stacking_context);
+    }
+
+    fn add_layered_stacking_context(&mut self,
+                                    stacking_context: Arc<StackingContext>,
+                                    parent_stacking_context: &mut StackingContext) {
+        let layer_info = stacking_context.layer_info.clone();
+        if let Some(mut layer_info) = layer_info {
+            self.finish_building_current_layer(parent_stacking_context);
+
+            // We have started processing layered stacking contexts, so any stacking context that
+            // we process from now on needs its own layer to ensure proper rendering order.
+            self.building_ordering_layer = true;
+            self.next_layer_info =
+                Some(layer_info.next_with_scroll_policy(parent_stacking_context.scroll_policy()));
+
+            parent_stacking_context.display_list.layered_children.push_back(
+                Arc::new(PaintLayer::new_with_stacking_context(layer_info,
+                                                               stacking_context,
+                                                               color::transparent())));
+            return;
+        }
+
+        self.prepare_ordering_layer(parent_stacking_context);
+
         if self.display_list_for_next_layer.is_none() {
-            self.display_list_for_next_layer = Some(box DisplayList::new());
+            self.display_list_for_next_layer = Some(DisplayList::new());
         }
         if let Some(ref mut display_list) = self.display_list_for_next_layer {
             display_list.children.push_back(stacking_context);
         }
     }
-}
-
-/// Returns the stacking context in the given tree of stacking contexts with a specific layer ID.
-pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id: LayerId)
-                                           -> Option<Arc<StackingContext>> {
-    for kid in &this.display_list.layered_children {
-        if let Some(stacking_context) = kid.find_stacking_context_with_layer_id(layer_id) {
-            return Some(stacking_context);
-        }
-    }
-
-    for kid in &this.display_list.children {
-        if let Some(stacking_context) = find_stacking_context_with_layer_id(kid, layer_id) {
-            return Some(stacking_context);
-        }
-    }
-
-    None
 }
 
 /// One drawing command in the list.
@@ -751,6 +989,8 @@ pub enum DisplayItem {
     GradientClass(Box<GradientDisplayItem>),
     LineClass(Box<LineDisplayItem>),
     BoxShadowClass(Box<BoxShadowDisplayItem>),
+    LayeredItemClass(Box<LayeredItem>),
+    NoopClass(Box<BaseDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -1146,8 +1386,23 @@ pub struct BoxShadowDisplayItem {
     /// The spread radius of this shadow.
     pub spread_radius: Au,
 
+    /// The border radius of this shadow.
+    ///
+    /// TODO(pcwalton): Elliptical radii; different radii for each corner.
+    pub border_radius: Au,
+
     /// How we should clip the result.
     pub clip_mode: BoxShadowClipMode,
+}
+
+/// Contains an item that should get its own layer during layer creation.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct LayeredItem {
+    /// Fields common to all display items.
+    pub item: DisplayItem,
+
+    /// The id of the layer this item belongs to.
+    pub layer_id: LayerId,
 }
 
 /// How a box shadow should be clipped.
@@ -1233,8 +1488,12 @@ impl DisplayItem {
                                               box_shadow.color,
                                               box_shadow.blur_radius,
                                               box_shadow.spread_radius,
-                                              box_shadow.clip_mode)
+                                              box_shadow.clip_mode);
             }
+
+            DisplayItem::LayeredItemClass(_) => panic!("Found layered item during drawing."),
+
+            DisplayItem::NoopClass(_) => { }
         }
     }
 
@@ -1247,6 +1506,8 @@ impl DisplayItem {
             DisplayItem::GradientClass(ref gradient) => &gradient.base,
             DisplayItem::LineClass(ref line) => &line.base,
             DisplayItem::BoxShadowClass(ref box_shadow) => &box_shadow.base,
+            DisplayItem::LayeredItemClass(ref layered_item) => layered_item.item.base(),
+            DisplayItem::NoopClass(ref base_item) => base_item,
         }
     }
 
@@ -1259,6 +1520,8 @@ impl DisplayItem {
             DisplayItem::GradientClass(ref mut gradient) => &mut gradient.base,
             DisplayItem::LineClass(ref mut line) => &mut line.base,
             DisplayItem::BoxShadowClass(ref mut box_shadow) => &mut box_shadow.base,
+            DisplayItem::LayeredItemClass(ref mut layered_item) => layered_item.item.mut_base(),
+            DisplayItem::NoopClass(ref mut base_item) => base_item,
         }
     }
 
@@ -1291,6 +1554,9 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::GradientClass(_) => "Gradient".to_owned(),
                 DisplayItem::LineClass(_) => "Line".to_owned(),
                 DisplayItem::BoxShadowClass(_) => "BoxShadow".to_owned(),
+                DisplayItem::LayeredItemClass(ref layered_item) =>
+                    format!("LayeredItem({:?})", layered_item.item),
+                DisplayItem::NoopClass(_) => "Noop".to_owned(),
             },
             self.base().bounds,
             self.base().metadata.node.id()

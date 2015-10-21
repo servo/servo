@@ -7,9 +7,10 @@
 //! to depend on script.
 
 #![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
+#![plugin(plugins, serde_macros)]
 #![deny(missing_docs)]
 
+extern crate app_units;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate ipc_channel;
@@ -18,18 +19,19 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate serde;
-extern crate util;
 extern crate url;
+extern crate util;
 
+use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::compositor_msg::{Epoch, LayerId, ScriptToCompositorMsg};
-use msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
-use msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
-use msg::constellation_msg::{MozBrowserEvent, PipelineExitType};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId, WindowSizeData};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData, SubpageId};
+use msg::constellation_msg::{MozBrowserEvent, PipelineExitType, PipelineNamespaceId};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -38,7 +40,6 @@ use profile_traits::{mem, time};
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
-use util::geometry::Au;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -58,6 +59,9 @@ pub enum LayoutControlMsg {
     TickAnimations,
     /// Informs layout as to which regions of the page are visible.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+    /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
+    /// and `false` is returned if all fonts have loaded.
+    GetWebFontLoadState(IpcSender<bool>),
 }
 
 /// The initial data associated with a newly-created framed pipeline.
@@ -99,7 +103,7 @@ pub enum ScriptState {
     DocumentLoading,
 }
 
-/// Messages sent from the constellation to the script task
+/// Messages sent from the constellation or layout to the script task.
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
@@ -133,6 +137,9 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script task that all animations are done
     TickAllAnimations(PipelineId),
+    /// Notifies the script task that a new Web font has been loaded, and thus the page should be
+    /// reflowed.
+    WebFontLoaded(PipelineId),
     /// Notifies script that a stylesheet has finished loading.
     StylesheetLoadComplete(PipelineId, Url, Box<StylesheetLoadResponder + Send>),
     /// Get the current state of the script task for a given pipeline.
@@ -201,6 +208,8 @@ pub struct InitialScriptState {
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
     pub window_size: Option<WindowSizeData>,
+    /// The ID of the pipeline namespace for this script thread.
+    pub pipeline_namespace_id: PipelineNamespaceId,
 }
 
 /// This trait allows creating a `ScriptTask` without depending on the `script`

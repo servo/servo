@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://www.whatwg.org/html/#window
+// https://html.spec.whatwg.org/multipage/#window
 [PrimaryGlobal]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
@@ -66,7 +66,7 @@
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
-// https://www.whatwg.org/html/#windowtimers
+// https://html.spec.whatwg.org/multipage/#windowtimers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
   long setTimeout(Function handler, optional long timeout = 0, any... arguments);
@@ -78,7 +78,7 @@ interface WindowTimers {
 };
 Window implements WindowTimers;
 
-// https://www.whatwg.org/html/#atob
+// https://html.spec.whatwg.org/multipage/#atob
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowBase64 {
   [Throws]
