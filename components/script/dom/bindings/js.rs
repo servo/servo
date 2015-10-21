@@ -87,13 +87,6 @@ impl<T: Reflectable> JS<T> {
             ptr: unsafe { NonZero::new(&*obj) }
         }
     }
-    /// Store an rooted value in this field. This is safe under the
-    /// assumption that JS<T> values are only used as fields in DOM types that
-    /// are reachable in the GC graph, so this unrooted value becomes
-    /// transitively rooted for the lifetime of its new owner.
-    pub fn assign(&mut self, val: Root<T>) {
-        self.ptr = val.ptr.clone();
-    }
 }
 
 impl<T: Reflectable> Deref for JS<T> {
