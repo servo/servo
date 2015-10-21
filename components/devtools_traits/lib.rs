@@ -264,6 +264,7 @@ pub struct HttpRequest {
     pub method: Method,
     pub headers: Headers,
     pub body: Option<Vec<u8>>,
+	pub pipeline_id: PipelineId,
 }
 
 #[derive(Debug, PartialEq)]
