@@ -43,5 +43,30 @@
             <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
         </div>
 
+        <!-- The canvas should be painted in tree order since it is not positioned and
+             the following div is. -->
+        <div class="test grayest box">
+            <canvas class="box" id="canvas1" style="display: block; padding-left: 10px; padding-top: 10px;" width="50" height="50"></canvas>
+            <div class="gray box" style="position: relative; left: 20px; top: -40px;"> </div>
+        </div>
+
+        <!-- The canvas should be painted in tree order since both it and the inner div are
+             not positioned elements. -->
+        <div class="test grayest box">
+            <canvas class="box" id="canvas2" style="display: block; position: relative; left: 10px; top: 10px;" width="50" height="50"></canvas>
+            <div class="gray box" style="position: relative; left: 20px; top: -30px;"> </div>
+        </div>
+
+        <script>
+            function paintCanvas(id) {
+                var canvas = document.getElementById(id);
+                var context = canvas.getContext("2d");
+                context.fillStyle = "rgb(80, 80, 80)";
+                context.fillRect(0, 0, 100, 100);
+            }
+            paintCanvas("canvas1");
+            paintCanvas("canvas2");
+        </script>
+
     </body>
 </html>

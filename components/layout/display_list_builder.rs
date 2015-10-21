@@ -245,6 +245,7 @@ pub trait FragmentDisplayListBuilding {
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(&mut self,
                                                   display_list: &mut DisplayList,
+                                                  layout_context: &LayoutContext,
                                                   stacking_relative_border_box: &Rect<Au>,
                                                   clip: &ClippingRegion);
 
@@ -252,7 +253,6 @@ pub trait FragmentDisplayListBuilding {
     fn create_stacking_context(&self,
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
-                               layout_context: &LayoutContext,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext>;
@@ -1042,6 +1042,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Create special per-fragment-type display items.
         self.build_fragment_type_specific_display_items(display_list,
+                                                        layout_context,
                                                         &stacking_relative_border_box,
                                                         &clip);
 
@@ -1054,6 +1055,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
     fn build_fragment_type_specific_display_items(&mut self,
                                                   display_list: &mut DisplayList,
+                                                  layout_context: &LayoutContext,
                                                   stacking_relative_border_box: &Rect<Au>,
                                                   clip: &ClippingRegion) {
         // Compute the context box position relative to the parent stacking context.
@@ -1154,30 +1156,48 @@ impl FragmentDisplayListBuilding for Fragment {
                     .computed_inline_size.map_or(0, |w| w.to_px() as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                let (sender, receiver) = ipc::channel::<IpcSharedMemory>().unwrap();
-                let canvas_data = match canvas_fragment_info.ipc_renderer {
-                    Some(ref ipc_renderer) =>  {
-                        ipc_renderer.lock().unwrap().send(CanvasMsg::FromLayout(
+                if width > 0 && height > 0 {
+                    let (sender, receiver) = ipc::channel::<IpcSharedMemory>().unwrap();
+                    let layer_id = self.layer_id();
+                    let canvas_data = match canvas_fragment_info.ipc_renderer {
+                        Some(ref ipc_renderer) =>  {
+                            let ipc_renderer = ipc_renderer.lock().unwrap();
+                            ipc_renderer.send(CanvasMsg::FromLayout(
                                 FromLayoutMsg::SendPixelContents(sender))).unwrap();
-                        receiver.recv().unwrap()
-                    },
-                    None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
-                };
-                display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
-                    base: BaseDisplayItem::new(stacking_relative_content_box,
-                                               DisplayItemMetadata::new(self.node,
-                                                                        &*self.style,
-                                                                        Cursor::DefaultCursor),
-                                               (*clip).clone()),
-                    image: Arc::new(Image {
-                        width: width as u32,
-                        height: height as u32,
-                        format: PixelFormat::RGBA8,
-                        bytes: canvas_data,
-                    }),
-                    stretch_size: stacking_relative_content_box.size,
-                    image_rendering: image_rendering::T::Auto,
-                }));
+                            let data = receiver.recv().unwrap();
+
+                            // Propagate the layer and the renderer to the paint task.
+                            layout_context.shared.canvas_layers_sender.send(
+                                (layer_id, (*ipc_renderer).clone())).unwrap();
+
+                            data
+                        },
+                        None => IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
+                    };
+                    let display_item = DisplayItem::ImageClass(box ImageDisplayItem {
+                        base: BaseDisplayItem::new(stacking_relative_content_box,
+                                                   DisplayItemMetadata::new(self.node,
+                                                                            &*self.style,
+                                                                            Cursor::DefaultCursor),
+                                                   (*clip).clone()),
+                        image: Arc::new(Image {
+                            width: width as u32,
+                            height: height as u32,
+                            format: PixelFormat::RGBA8,
+                            bytes: canvas_data,
+                        }),
+                        stretch_size: stacking_relative_content_box.size,
+                        image_rendering: image_rendering::T::Auto,
+                    });
+
+                    display_list.content.push_back(DisplayItem::LayeredItemClass(box LayeredItem {
+                        item: display_item,
+                        layer_id: layer_id
+                    }));
+
+                    display_list.layer_info.push_back(
+                        LayerInfo::new(layer_id, ScrollPolicy::Scrollable, None));
+                }
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")
@@ -1191,7 +1211,6 @@ impl FragmentDisplayListBuilding for Fragment {
     fn create_stacking_context(&self,
                                base_flow: &BaseFlow,
                                display_list: Box<DisplayList>,
-                               layout_context: &LayoutContext,
                                scroll_policy: ScrollPolicy,
                                mode: StackingContextCreationMode)
                                -> Arc<StackingContext> {
@@ -1305,31 +1324,15 @@ impl FragmentDisplayListBuilding for Fragment {
             filters.push(Filter::Opacity(effects.opacity))
         }
 
-        let canvas = match self.specific {
-            SpecificFragmentInfo::Canvas(_) => true,
-            _ => false
-        };
-
-        // There are three situations that need layers: when the fragment has the HAS_LAYER
-        // flag, when this is a canvas or iframe fragment, and when we are building a layer
-        // tree for overflow scrolling.
+        // There are two situations that need layers: when the fragment has the HAS_LAYER
+        // flag and when we are building a layer tree for overflow scrolling.
         let layer_info = if mode == StackingContextCreationMode::InnerScrollWrapper {
             Some(LayerInfo::new(self.layer_id_for_overflow_scroll(), scroll_policy, None))
-        } else if self.flags.contains(HAS_LAYER) || canvas {
+        } else if self.flags.contains(HAS_LAYER) {
             Some(LayerInfo::new(self.layer_id(), scroll_policy, None))
         } else {
             None
         };
-
-        // If it's a canvas we must propagate the layer and the renderer to the paint task.
-        if let SpecificFragmentInfo::Canvas(ref fragment_info) = self.specific {
-            let layer_id = layer_info.unwrap().layer_id;
-            if let Some(ref ipc_renderer) = fragment_info.ipc_renderer {
-                layout_context.shared
-                              .canvas_layers_sender
-                              .send((layer_id, (*ipc_renderer.lock().unwrap()).clone())).unwrap();
-            }
-        }
 
         let scrolls_overflow_area = mode == StackingContextCreationMode::OuterScrollWrapper;
         let transform_style = self.style().get_used_transform_style();
@@ -1603,7 +1606,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
-                    layout_context,
                     scroll_policy,
                     StackingContextCreationMode::Normal))
         } else {
@@ -1685,13 +1687,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 outer_display_list.children.push_back(self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
-                    layout_context,
                     scroll_policy,
                     StackingContextCreationMode::InnerScrollWrapper));
                 self.fragment.create_stacking_context(
                     &self.base,
                     outer_display_list,
-                    layout_context,
                     scroll_policy,
                     StackingContextCreationMode::OuterScrollWrapper)
             }
@@ -1699,7 +1699,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 self.fragment.create_stacking_context(
                     &self.base,
                     display_list,
-                    layout_context,
                     scroll_policy,
                     StackingContextCreationMode::Normal)
             }
@@ -1723,7 +1722,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             DisplayListBuildingResult::StackingContext(
                 self.fragment.create_stacking_context(&self.base,
                                                       display_list,
-                                                      layout_context,
                                                       ScrollPolicy::Scrollable,
                                                       StackingContextCreationMode::Normal))
         } else {
@@ -1830,7 +1828,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                 self.fragments.fragments[0].create_stacking_context(
                     &self.base,
                     display_list,
-                    layout_context,
                     ScrollPolicy::Scrollable,
                     StackingContextCreationMode::Normal))
         } else {
