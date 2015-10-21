@@ -43,8 +43,7 @@ use script::dom::bindings::conversions::Castable;
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
-use script::dom::element;
-use script::dom::element::{Element, EventState, LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
@@ -56,6 +55,7 @@ use script::dom::text::Text;
 use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
@@ -375,9 +375,9 @@ impl<'le> LayoutDocument<'le> {
         self.as_node().children().find(LayoutNode::is_element)
     }
 
-    pub fn drain_event_state_changes(&self) -> Vec<(LayoutElement, EventState)> {
+    pub fn drain_element_state_changes(&self) -> Vec<(LayoutElement, ElementState)> {
         unsafe {
-            let changes = self.document.drain_event_state_changes();
+            let changes = self.document.drain_element_state_changes();
             Vec::from_iter(changes.iter().map(|&(el, state)|
                 (LayoutElement {
                     element: el,
@@ -408,11 +408,11 @@ impl<'le> LayoutElement<'le> {
         }
     }
 
-    /// Properly marks nodes as dirty in response to event state changes.
+    /// Properly marks nodes as dirty in response to state changes.
     ///
     /// Currently this implementation is very conservative, and basically mirrors node::dirty_impl.
     /// With restyle hints, we can do less work here.
-    pub fn note_event_state_change(&self) {
+    pub fn note_state_change(&self) {
         let node = self.as_node();
 
         // Bail out if we're already dirty. This won't be valid when we start doing more targeted
@@ -453,6 +453,15 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
     })
 }
 
+macro_rules! state_getter {
+    ($(
+        $(#[$Flag_attr: meta])*
+        state $css: expr => $variant: ident / $method: ident /
+        $flag: ident = $value: expr,
+    )+) => {
+        $( fn $method(&self) -> bool { self.element.get_state_for_layout().contains($flag) } )+
+    }
+}
 
 impl<'le> ::selectors::Element for LayoutElement<'le> {
     fn parent_element(&self) -> Option<LayoutElement<'le>> {
@@ -544,46 +553,13 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         false
     }
 
-    #[inline]
-    fn get_hover_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
-    }
-
-    #[inline]
-    fn get_focus_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
-    }
-
-    #[inline]
-    fn get_active_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
-    }
+    state_pseudo_classes!(state_getter);
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
             (*self.element.id_attribute()).clone()
         }
-    }
-
-    #[inline]
-    fn get_disabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
-    }
-
-    #[inline]
-    fn get_enabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
-    }
-
-    #[inline]
-    fn get_checked_state(&self) -> bool {
-        self.element.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    fn get_indeterminate_state(&self) -> bool {
-        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]
