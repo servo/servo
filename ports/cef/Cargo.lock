@@ -7,7 +7,7 @@ dependencies = [
  "cocoa 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "devtools 0.0.1",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -84,7 +84,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-azure#cf625c81bcbc412e3d79303a35fe7828e3fc615d"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -225,7 +225,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -244,7 +244,7 @@ dependencies = [
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "clipboard 0.0.3 (git+https://github.com/aweinstock314/rust-clipboard)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "devtools_traits 0.0.1",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -290,7 +290,7 @@ dependencies = [
 
 [[package]]
 name = "core-graphics"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -303,7 +303,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/core-text-rs#d97cd4ae33509857f956e64c71f43cc71c98430f"
 dependencies = [
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -583,7 +583,7 @@ dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 0.1.0 (git+https://github.com/servo/core-text-rs)",
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -685,7 +685,7 @@ dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cocoa 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_common 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
