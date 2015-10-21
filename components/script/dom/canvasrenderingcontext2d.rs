@@ -794,7 +794,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     Canvas2dMsg::SetStrokeStyle(gradient.r().to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
-            _ => {}
+            StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
+                self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetStrokeStyle(
+                                                            pattern.r().to_fill_or_stroke_style()))).unwrap();
+            }
         }
     }
 
