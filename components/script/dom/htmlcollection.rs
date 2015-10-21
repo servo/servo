@@ -6,13 +6,14 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root, RootedReference, MutHeap};
+use dom::bindings::js::{JS, Root, RootedReference, MutNullableHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, namespace_from_domstring, reflect_dom_object};
 use dom::element::Element;
 use dom::node::{Node, FollowingNodeIterator};
 use dom::window::Window;
 use std::ascii::AsciiExt;
+use std::cell::Cell;
 use string_cache::{Atom, Namespace};
 use util::str::{DOMString, split_html_space_chars};
 
@@ -26,6 +27,10 @@ pub struct HTMLCollection {
     root: JS<Node>,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
     filter: Box<CollectionFilter + 'static>,
+    cached_version: Cell<u32>,
+    cached_length: Cell<u32>,
+    cached_cursor_element: MutNullableHeap<JS<Element>>,
+    cached_cursor_index: Cell<u32>,
 }
 
 impl HTMLCollection {
@@ -35,6 +40,10 @@ impl HTMLCollection {
             reflector_: Reflector::new(),
             root: JS::from_ref(root),
 	    filter: filter,
+            cached_version: Cell::new(root.get_descendents_version()),
+            cached_length: Cell::new(u32::max_value()),
+            cached_cursor_element: MutNullableHeap::new(None),
+            cached_cursor_index: Cell::new(u32::max_value()),
         }
     }
 
@@ -47,6 +56,55 @@ impl HTMLCollection {
     pub fn create(window: &Window, root: &Node,
                   filter: Box<CollectionFilter + 'static>) -> Root<HTMLCollection> {
         HTMLCollection::new(window, root, filter)
+    }
+
+    fn validate_cache(&self) {
+       let cached_version = self.cached_version.get();
+       let curr_version = self.root.get_descendents_version();
+       if curr_version != cached_version {
+           self.cached_version.set(curr_version);
+           self.cached_length.set(u32::max_value());
+           self.cached_cursor_element.set(None);
+           self.cached_cursor_index.set(u32::max_value());
+        }
+    }
+
+    fn get_length(&self) -> u32 {
+        let cached_length = self.cached_length.get();
+	if cached_length == u32::max_value() {
+	    let length = self.elements_iter().count() as u32;
+	    self.cached_length.set(length);
+	    length
+	} else {
+	    cached_length
+	}
+    }
+
+    fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
+        if let Some(element) = element {
+	    self.cached_cursor_index.set(index);
+	    self.cached_cursor_element.set(Some(element.r()));
+	    Some(element)
+	} else {
+	    None
+	}
+    }
+    
+    fn get_item(&self, index: u32) -> Option<Root<Element>> {
+        if let Some(element) = self.cached_cursor_element.get() {
+	    let cached_index = self.cached_cursor_index.get();
+	    if cached_index == index {
+	        Some(element)
+	    } else if cached_index < index {
+	        let offset = index - (cached_index + 1);
+		let node = NodeCast::from_root(element);
+		self.set_cached_cursor(index, self.elements_iter_after(&*node).nth(offset as usize))
+	    } else {
+		self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+	    }
+	} else {
+            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+	}
     }
 
     fn all_elements(window: &Window, root: &Node,
@@ -196,12 +254,14 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
 impl HTMLCollectionMethods for HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(&self) -> u32 {
-        self.elements_iter().count() as u32
+        self.validate_cache();
+	self.get_length()
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(&self, index: u32) -> Option<Root<Element>> {
-        self.elements_iter().nth(index as usize)
+        self.validate_cache();
+	self.get_item(index)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
