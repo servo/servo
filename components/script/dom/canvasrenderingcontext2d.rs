@@ -47,7 +47,7 @@ use util::vec::byte_swap;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
-pub enum CanvasFillOrStrokeStyle {
+enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
     // Pattern(JS<CanvasPattern>),  // https://github.com/servo/servo/pull/6157
