@@ -56,6 +56,7 @@ use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cmp::max;
 use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
 use std::mem;
@@ -103,6 +104,12 @@ pub struct Node {
 
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
+
+    /// The version number for this node.
+    version: Cell<u32>,
+
+    /// The maximum version of any descendent of this node.
+    descendents_version: Cell<u32>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -324,8 +331,8 @@ impl Node {
             node.layout_data.dispose(&node);
         }
 
-        let document = child.owner_doc();
-        document.content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
+        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
+        child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -488,6 +495,16 @@ impl Node {
     }
 
     pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
+
+        // 0. Set version counter
+	let doc = NodeCast::from_root(self.owner_doc());
+	let version = max(self.get_inclusive_descendents_version(), doc.r().get_descendents_version()) + 1;
+	self.version.set(version);
+        for ancestor in self.ancestors() {
+	    ancestor.r().descendents_version.set(version);
+	}
+        doc.r().descendents_version.set(version);
+
         // 1. Dirty self.
         match damage {
             NodeDamage::NodeStyleDamaged => {}
@@ -517,6 +534,21 @@ impl Node {
             if !force_ancestors && ancestor.r().get_has_dirty_descendants() { break }
             ancestor.r().set_has_dirty_descendants(true);
         }
+    }
+
+    /// The version number of this node
+    pub fn get_version(&self) -> u32 {
+        self.version.get()
+    }
+
+    /// The maximum version number of this node's descendents
+    pub fn get_descendents_version(&self) -> u32 {
+        self.descendents_version.get()
+    }
+
+    /// The maximum version number of this node's descendents, including itself
+    pub fn get_inclusive_descendents_version(&self) -> u32 {
+        max(self.get_version(), self.get_descendents_version())
     }
 
     /// Iterates over this node and all its descendants, in preorder.
@@ -1283,6 +1315,8 @@ impl Node {
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
+	    version: Cell::new(0),
+	    descendents_version: Cell::new(0),
 
             layout_data: LayoutDataRef::new(),
 
