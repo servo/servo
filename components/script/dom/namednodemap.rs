@@ -90,7 +90,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
         let owner = self.owner.root();
         let owner = owner.r();
         let attrs = owner.attrs();
-        attrs.iter().map(JS::root).map(|attr| 
+        attrs.iter().map(JS::root).map(|attr|
             (**attr.name()).to_owned()
         ).collect::<Vec<DOMString>>()
     }

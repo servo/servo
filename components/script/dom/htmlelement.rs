@@ -278,9 +278,8 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
-
-/* 
- * https://html.spec.whatwg.org/#attr-data-*
+/*
+ * https://html.spec.whatwg.org/multipage/#attr-data-
  * if this attribute is in snake case with a data- prefix,
  * this function returns a name converted to camel case
  */
