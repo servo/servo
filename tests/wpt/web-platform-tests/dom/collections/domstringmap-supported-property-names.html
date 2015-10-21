@@ -40,7 +40,7 @@ test(function() {
     var element = document.querySelector('#user3');
     element.setAttribute("data-age", 30);
     assert_array_equals(Object.getOwnPropertyNames(element.dataset),
-		'uniqueId', 'age']);
+		['uniqueId', 'age']);
 }, "Object.getOwnPropertyNames on DOMStringMap, attribute set on element in JS");
 
 </script>

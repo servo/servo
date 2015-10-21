@@ -284,18 +284,15 @@ fn to_snake_case(name: DOMString) -> DOMString {
  * this function returns a name converted to camel case
  */
 fn to_camel_case(name: DOMString) -> Option<DOMString> {
-    let has_uppercase = name.chars().fold(false, |exists_rest, curr_char| {
-        curr_char.is_uppercase() | exists_rest
-    });
+    let has_uppercase = name.chars().any(|curr_char|
+        curr_char.is_uppercase()
+    );
     if !name.starts_with("data-") || has_uppercase {
         None
     } else {
         let mut result = "".to_owned();
-        let mut name_chars = name.chars();
-        //iterate through prefix "data-"
-        for _ in 0..5 {
-            let _ = name_chars.next();
-        }
+        //Skip the prefix
+        let mut name_chars = name.chars().skip(5);
         while let Some(curr_char) = name_chars.next() {
             if curr_char == '\x2d' {
                 let next_char_opt = name_chars.next();
@@ -338,16 +335,10 @@ impl HTMLElement {
 
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = ElementCast::from_ref(self);
-        element.attrs().iter().map(JS::root).map(|attr| {
+        element.attrs().iter().map(JS::root).filter_map(|attr| {
             let raw_name = (**attr.r().local_name()).to_owned();
             to_camel_case(raw_name)
-        }).fold(Vec::new(), |mut acc, opt| {
-            match opt {
-                Some(name) => acc.push(name),
-                None => (),
-            }
-            acc
-        })
+        }).collect::<Vec<DOMString>>()
     }
 }
 
