@@ -50,10 +50,11 @@ use util::vec::byte_swap;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
+#[allow(dead_code)]
 enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
-    // Pattern(JS<CanvasPattern>),  // https://github.com/servo/servo/pull/6157
+    Pattern(JS<CanvasPattern>),
 }
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
@@ -922,6 +923,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
+            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(Root::from_ref(&*pattern))
+            }
         }
     }
 
@@ -966,6 +970,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
+            CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
+                StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(Root::from_ref(&*pattern))
+            }
         }
     }
 
