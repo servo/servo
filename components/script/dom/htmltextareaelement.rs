@@ -46,6 +46,8 @@ pub struct HTMLTextAreaElement {
 pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
+    #[allow(unsafe_code)]
+    unsafe fn get_absolute_insertion_point_for_layout(self) -> usize;
 }
 
 pub trait RawLayoutHTMLTextAreaElementHelpers {
@@ -60,6 +62,12 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
+    }
+
+    #[allow(unrooted_must_root)]
+    #[allow(unsafe_code)]
+    unsafe fn get_absolute_insertion_point_for_layout(self) -> usize {
+        (*self.unsafe_get()).textinput.borrow_for_layout().get_absolute_insertion_point()
     }
 }
 

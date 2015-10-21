@@ -71,7 +71,7 @@ use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use url::Url;
-use util::str::is_whitespace;
+use util::str::{is_whitespace, search_index};
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
@@ -918,24 +918,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let this = unsafe {
             self.get_jsmanaged()
         };
-        let input = this.downcast();
-        if let Some(input) = input {
-            let insertion_point = unsafe {
-                input.get_insertion_point_for_layout()
-            };
-            if let Some(insertion_point) = insertion_point {
-                let text = unsafe {
-                    input.get_value_for_layout()
-                };
 
-                let mut character_count = 0;
-                for (character_index, _) in text.char_indices() {
-                    if character_index == insertion_point.index {
-                        return Some(CharIndex(character_count))
-                    }
-                    character_count += 1
-                }
-                return Some(CharIndex(character_count))
+        if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
+            let insertion_point = unsafe { area.get_absolute_insertion_point_for_layout() };
+            let text = unsafe { area.get_value_for_layout() };
+            return Some(CharIndex(search_index(insertion_point, text.char_indices())));
+        }
+        if let Some(input) = this.downcast::<HTMLInputElement>() {
+            let insertion_point = unsafe { input.get_insertion_point_for_layout() };
+            if let Some(insertion_point) = insertion_point {
+                let text = unsafe { input.get_value_for_layout() };
+                return Some(CharIndex(search_index(insertion_point.index, text.char_indices())));
             }
         }
         None
