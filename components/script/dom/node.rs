@@ -325,8 +325,8 @@ impl Node {
             node.layout_data.dispose(&node);
         }
 
-        let document = child.owner_doc();
-        document.content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
+        self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
+        child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
 }
 
