@@ -1171,12 +1171,12 @@ html4/attribute-selector-002.htm	8258ef77fe8bc269d4ad7da52844fb69831f263a	?
 xhtml1/attribute-selector-002.xht	8258ef77fe8bc269d4ad7da52844fb69831f263a	?
 html4/attribute-token-selector-002.htm	e3618655002fbb5400400c7e265d1e7ab68b0ef7	?
 xhtml1/attribute-token-selector-002.xht	e3618655002fbb5400400c7e265d1e7ab68b0ef7	?
-html4/attribute-value-selector-001.htm	5c12dacb95ba85424309f59e8355e56217f96b2f	?
-xhtml1/attribute-value-selector-001.xht	5c12dacb95ba85424309f59e8355e56217f96b2f	?
-html4/attribute-value-selector-002.htm	b6151b834ce6a9223c730d3f9ed09a2eec1497db	?
-xhtml1/attribute-value-selector-002.xht	b6151b834ce6a9223c730d3f9ed09a2eec1497db	?
-html4/attribute-value-selector-003.htm	97394b2c006c24adcc15fda9042a154f051c936b	?
-xhtml1/attribute-value-selector-003.xht	97394b2c006c24adcc15fda9042a154f051c936b	?
+html4/attribute-value-selector-001.htm	0c877fba5365ea5b8e42d174fa3365abb8d3ea56	?
+xhtml1/attribute-value-selector-001.xht	0c877fba5365ea5b8e42d174fa3365abb8d3ea56	?
+html4/attribute-value-selector-002.htm	50f278c723eeaa566495f8a5f0d9224599d49b8f	?
+xhtml1/attribute-value-selector-002.xht	50f278c723eeaa566495f8a5f0d9224599d49b8f	?
+html4/attribute-value-selector-003.htm	508036fcffcc15830d5fdff9d40e8e7c0c1ccda3	?
+xhtml1/attribute-value-selector-003.xht	508036fcffcc15830d5fdff9d40e8e7c0c1ccda3	?
 html4/attribute-value-selector-004.htm	dfb8215a980f61f868127601e02f621b5d8de9a7	?
 xhtml1/attribute-value-selector-004.xht	dfb8215a980f61f868127601e02f621b5d8de9a7	?
 html4/attribute-value-selector-005.htm	4e99118f4f08eb0e71b36b24b986cbe9e1ad15fe	?
@@ -15431,6 +15431,8 @@ html4/min-width-percentage-002.htm	67df25f0981020579be9b88b4bdcddb19197c559	?
 xhtml1/min-width-percentage-002.xht	67df25f0981020579be9b88b4bdcddb19197c559	?
 html4/min-width-percentage-003.htm	266eb2619750f078377888768a215f16d92913ae	?
 xhtml1/min-width-percentage-003.xht	266eb2619750f078377888768a215f16d92913ae	?
+html4/min-width-tables-001.htm	a883cf239dd0589e23d0a444cc1557307a6f9264	?
+xhtml1/min-width-tables-001.xht	a883cf239dd0589e23d0a444cc1557307a6f9264	?
 html4/missing-cell-rendering-001.htm	3f94b88030849e38726cf22d111de906c107bf4a	?
 xhtml1/missing-cell-rendering-001.xht	3f94b88030849e38726cf22d111de906c107bf4a	?
 html4/moz-css21-block-page-break-inside-avoid-1.htm	e6b783656979a7ec8c8a074a4a8b9de3c7add757	?
@@ -19651,6 +19653,8 @@ html4/unicode-bidi-applies-to-014.htm	1ea78d913a72bdf534c9701bc8a771df856e3d2f	?
 xhtml1/unicode-bidi-applies-to-014.xht	1ea78d913a72bdf534c9701bc8a771df856e3d2f	?
 html4/unicode-bidi-applies-to-015.htm	f319b3e86aea3385f390f78d56ba608a6ac94f27	?
 xhtml1/unicode-bidi-applies-to-015.xht	f319b3e86aea3385f390f78d56ba608a6ac94f27	?
+html4/unicode-bidi-parsing-001.htm	72b131c94f05aa0b1ff6a6072b6c6376a39e100a	?
+xhtml1/unicode-bidi-parsing-001.xht	72b131c94f05aa0b1ff6a6072b6c6376a39e100a	?
 html4/units-001.htm	5b9de9d826304839b91722db2351f9384e1e6da0	?
 xhtml1/units-001.xht	5b9de9d826304839b91722db2351f9384e1e6da0	?
 html4/units-002.htm	8820b419ae1f6d8d9712c837909a96f980868396	?
