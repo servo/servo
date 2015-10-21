@@ -1659,6 +1659,11 @@ impl<'a> ::selectors::Element for Root<Element> {
         Element::get_focus_state(self)
     }
 
+    // FIXME(#7720)
+    fn get_target_state(&self) -> bool {
+        false
+    }
+
     fn get_id(&self) -> Option<Atom> {
         self.id_attribute.borrow().clone()
     }
