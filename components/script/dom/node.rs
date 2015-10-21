@@ -129,27 +129,24 @@ bitflags! {
         const HAS_CHANGED = 0x02,
         #[doc = "Specifies whether this node needs style recalc on next reflow."]
         const IS_DIRTY = 0x04,
-        #[doc = "Specifies whether this node has siblings (inclusive of itself) which \
-                  changed since the last reflow."]
-        const HAS_DIRTY_SIBLINGS = 0x08,
         #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
                  have changed since the last reflow."]
-        const HAS_DIRTY_DESCENDANTS = 0x10,
+        const HAS_DIRTY_DESCENDANTS = 0x08,
         // TODO: find a better place to keep this (#4105)
         // https://critic.hoppipolla.co.uk/showcomment?chain=8873
         // Perhaps using a Set in Document?
         #[doc = "Specifies whether or not there is an authentic click in progress on \
                  this element."]
-        const CLICK_IN_PROGRESS = 0x20,
+        const CLICK_IN_PROGRESS = 0x10,
         #[doc = "Specifies whether this node is focusable and whether it is supposed \
                  to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 0x40,
+        const SEQUENTIALLY_FOCUSABLE = 0x20,
     }
 }
 
 impl NodeFlags {
     pub fn new() -> NodeFlags {
-        HAS_CHANGED | IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS
+        HAS_CHANGED | IS_DIRTY | HAS_DIRTY_DESCENDANTS
     }
 }
 
@@ -474,14 +471,6 @@ impl Node {
         self.set_flag(IS_DIRTY, state)
     }
 
-    pub fn get_has_dirty_siblings(&self) -> bool {
-        self.get_flag(HAS_DIRTY_SIBLINGS)
-    }
-
-    pub fn set_has_dirty_siblings(&self, state: bool) {
-        self.set_flag(HAS_DIRTY_SIBLINGS, state)
-    }
-
     pub fn get_has_dirty_descendants(&self) -> bool {
         self.get_flag(HAS_DIRTY_DESCENDANTS)
     }
@@ -514,7 +503,7 @@ impl Node {
             // Stop if this subtree is already dirty.
             if node.get_is_dirty() { return }
 
-            node.set_flag(IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS, true);
+            node.set_flag(IS_DIRTY | HAS_DIRTY_DESCENDANTS, true);
 
             for kid in node.children() {
                 dirty_subtree(kid.r());
@@ -522,22 +511,6 @@ impl Node {
         }
 
         dirty_subtree(self);
-
-        // 3. Dirty siblings.
-        //
-        // TODO(cgaebel): This is a very conservative way to account for sibling
-        // selectors. Maybe we can do something smarter in the future.
-        if !self.get_has_dirty_siblings() {
-            let parent =
-                match self.parent_node.get() {
-                    None         => return,
-                    Some(parent) => parent,
-                };
-
-            for sibling in parent.r().children() {
-                sibling.r().set_has_dirty_siblings(true);
-            }
-        }
 
         // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
