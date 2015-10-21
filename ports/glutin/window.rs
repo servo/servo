@@ -78,6 +78,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
+    navigation_controls_enabled: bool,
 }
 
 #[cfg(feature = "window")]
@@ -110,6 +111,7 @@ impl Window {
 
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
+            navigation_controls_enabled: opts::get().navigation_controls_enabled,
         };
 
         gl::clear_color(0.6, 0.6, 0.6, 1.0);
@@ -161,17 +163,17 @@ impl Window {
                 if virtual_key_code.is_some() {
                     let virtual_key_code = virtual_key_code.unwrap();
 
-                    match (element_state, virtual_key_code) {
-                        (_, VirtualKeyCode::LControl) => self.toggle_modifier(LEFT_CONTROL),
-                        (_, VirtualKeyCode::RControl) => self.toggle_modifier(RIGHT_CONTROL),
-                        (_, VirtualKeyCode::LShift) => self.toggle_modifier(LEFT_SHIFT),
-                        (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
-                        (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
-                        (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
-                        (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
-                        (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
-                        (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
-                        (_, key_code) => {
+                    match (element_state, virtual_key_code, self.navigation_controls_enabled) {
+                        (_, VirtualKeyCode::LControl, _) => self.toggle_modifier(LEFT_CONTROL),
+                        (_, VirtualKeyCode::RControl, _) => self.toggle_modifier(RIGHT_CONTROL),
+                        (_, VirtualKeyCode::LShift, _) => self.toggle_modifier(LEFT_SHIFT),
+                        (_, VirtualKeyCode::RShift, _) => self.toggle_modifier(RIGHT_SHIFT),
+                        (_, VirtualKeyCode::LAlt, _) => self.toggle_modifier(LEFT_ALT),
+                        (_, VirtualKeyCode::RAlt, _) => self.toggle_modifier(RIGHT_ALT),
+                        (_, VirtualKeyCode::LWin, _) => self.toggle_modifier(LEFT_SUPER),
+                        (_, VirtualKeyCode::RWin, _) => self.toggle_modifier(RIGHT_SUPER),
+                        (ElementState::Pressed, VirtualKeyCode::Escape, true) => return true,
+                        (_, key_code, _) => {
                             match Window::glutin_key_to_script_key(key_code) {
                                 Ok(key) => {
                                     let state = match element_state {
@@ -203,7 +205,7 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
-                if self.ctrl_pressed() {
+                if self.ctrl_pressed() && self.navigation_controls_enabled {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
                     let dy = match delta {
                         MouseScrollDelta::LineDelta(_, dy) => dy,
@@ -478,11 +480,11 @@ impl Window {
 
     #[cfg(all(feature = "window", not(target_os = "win")))]
     fn platform_handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-        match (mods, key) {
-            (CMD_OR_CONTROL, Key::LeftBracket) => {
+        match (mods, key, self.navigation_controls_enabled) {
+            (CMD_OR_CONTROL, Key::LeftBracket, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            (CMD_OR_CONTROL, Key::RightBracket) => {
+            (CMD_OR_CONTROL, Key::RightBracket, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             _ => {}
@@ -653,44 +655,44 @@ impl WindowMethods for Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
 
-        match (mods, key) {
-            (_, Key::Equal) if mods & !SHIFT == CMD_OR_CONTROL => {
+        match (mods, key, self.navigation_controls_enabled) {
+            (_, Key::Equal, true) if mods & !SHIFT == CMD_OR_CONTROL => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
-            (CMD_OR_CONTROL, Key::Minus) => {
+            (CMD_OR_CONTROL, Key::Minus, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
             }
-            (CMD_OR_CONTROL, Key::Num0) |
-            (CMD_OR_CONTROL, Key::Kp0) => {
+            (CMD_OR_CONTROL, Key::Num0, true) |
+            (CMD_OR_CONTROL, Key::Kp0, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
             }
 
-            (SHIFT, Key::Backspace) => {
+            (SHIFT, Key::Backspace, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            (NONE, Key::Backspace) => {
+            (NONE, Key::Backspace, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (CMD_OR_ALT, Key::Right) => {
+            (CMD_OR_ALT, Key::Right, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            (CMD_OR_ALT, Key::Left) => {
+            (CMD_OR_ALT, Key::Left, true) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (NONE, Key::PageDown) |
-            (NONE, Key::Space) => {
+            (NONE, Key::PageDown, _) |
+            (NONE, Key::Space, _) => {
                 self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height + 2.0 * LINE_HEIGHT);
             }
-            (NONE, Key::PageUp) |
-            (SHIFT, Key::Space) => {
+            (NONE, Key::PageUp, _) |
+            (SHIFT, Key::Space, _) => {
                 self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height - 2.0 * LINE_HEIGHT);
             }
-            (NONE, Key::Up) => {
+            (NONE, Key::Up, _) => {
                 self.scroll_window(0.0, 3.0 * LINE_HEIGHT);
             }
-            (NONE, Key::Down) => {
+            (NONE, Key::Down, _) => {
                 self.scroll_window(0.0, -3.0 * LINE_HEIGHT);
             }
 

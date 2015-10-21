@@ -173,6 +173,9 @@ pub struct Opts {
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
+
+    /// Handle default navigation keybindings
+    pub navigation_controls_enabled: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -424,6 +427,7 @@ pub fn default_opts() -> Opts {
         parallel_display_list_building: false,
         exit_after_load: false,
         no_native_titlebar: false,
+        navigation_controls_enabled: true,
     }
 }
 
@@ -465,6 +469,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflag("a", "no-navigation-controls", "Disable default navigation keybindings");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -630,6 +635,7 @@ pub fn from_cmdline_args(args: &[String]) {
         parallel_display_list_building: debug_options.parallel_display_list_building,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: opt_match.opt_present("b"),
+        navigation_controls_enabled: !opt_match.opt_present("a"),
     };
 
     set_defaults(opts);
