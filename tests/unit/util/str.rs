@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use util::str::{split_html_space_chars, str_join};
+use util::str::{search_index, split_html_space_chars, str_join};
 
 
 #[test]
@@ -33,4 +33,16 @@ pub fn test_str_join_many() {
     let actual = str_join(&slice, "-");
     let expected = "-alpha--beta-gamma-";
     assert_eq!(actual, expected);
+}
+
+#[test]
+pub fn test_search_index() {
+    let tuples = [("", 1, 0),
+                  ("foo", 8, 3),
+                  ("føo", 8, 3),
+                  ("foo", 2, 2),
+                  ("føo", 2, 3)];
+    for t in tuples.iter() {
+        assert_eq!(search_index(t.1, t.0.char_indices()), t.2);
+    };
 }
