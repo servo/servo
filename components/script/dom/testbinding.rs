@@ -14,7 +14,7 @@ use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::codegen::UnionTypes::EventOrString::eString;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
-use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
@@ -30,7 +30,6 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct TestBinding {
     reflector_: Reflector,
-    global: GlobalField,
 }
 
 impl TestBindingMethods for TestBinding {
@@ -69,8 +68,7 @@ impl TestBindingMethods for TestBinding {
     fn EnumAttribute(&self) -> TestEnum { _empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
-        let global = self.global.root();
-        Blob::new(global.r(), None, "")
+        Blob::new(global_root_from_reflector(self).r(), None, "")
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { eLong(0) }
@@ -124,8 +122,7 @@ impl TestBindingMethods for TestBinding {
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
-        let global = self.global.root();
-        Some(Blob::new(global.r(), None, ""))
+        Some(Blob::new(global_root_from_reflector(self).r(), None, ""))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
@@ -154,8 +151,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { _empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
-        let global = self.global.root();
-        Blob::new(global.r(), None, "")
+        Blob::new(global_root_from_reflector(self).r(), None, "")
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
@@ -180,8 +176,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
-        let global = self.global.root();
-        Some(Blob::new(global.r(), None, ""))
+        Some(Blob::new(global_root_from_reflector(self).r(), None, ""))
     }
     fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
