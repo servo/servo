@@ -160,7 +160,7 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
+    pub fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
         HTMLCollectionElementsIter {
             node_iter: after.following_nodes(&self.root),
 	    root: Root::from_ref(&self.root),
@@ -168,7 +168,7 @@ impl HTMLCollection {
         }
     }
     
-    fn elements_iter(&self) -> HTMLCollectionElementsIter {
+    pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
         self.elements_iter_after(&*self.root)
     }
     
