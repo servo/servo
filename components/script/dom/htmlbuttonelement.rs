@@ -14,7 +14,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, FormSubmitter};
+use dom::htmlformelement::{FormControl, FormSubmitter, ResetFrom};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
@@ -189,7 +189,7 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
-impl<'a> Activatable for &'a HTMLButtonElement {
+impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {
         self.upcast()
     }
@@ -214,19 +214,26 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
-                self.form_owner().map(|o| {
-                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
-                             FormSubmitter::ButtonElement(self.clone()))
-                });
-            },
-            _ => ()
+                // TODO: is document owner fully active?
+                if let Some(owner) = self.form_owner() {
+                    owner.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                 FormSubmitter::ButtonElement(self.clone()));
+                }
+            }
+            ButtonType::Reset => {
+                // TODO: is document owner fully active?
+                if let Some(owner) = self.form_owner() {
+                    owner.reset(ResetFrom::NotFromFormResetMethod);
+                }
+            }
+            _ => (),
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
-        let doc = document_from_node(*self);
+        let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
         if owner.is_none() || self.upcast::<Element>().click_in_progress() {
