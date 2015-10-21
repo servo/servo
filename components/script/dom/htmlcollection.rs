@@ -6,11 +6,11 @@ use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference, MutHeap};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, namespace_from_domstring, reflect_dom_object};
 use dom::element::Element;
-use dom::node::{Node, TreeIterator};
+use dom::node::{Node, FollowingNodeIterator};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use string_cache::{Atom, Namespace};
@@ -160,20 +160,22 @@ impl HTMLCollection {
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
 
-    pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
-        let root = Root::from_ref(self.root);
-        let mut node_iter = root.traverse_preorder();
-        let _ = node_iter.next();  // skip the root node
+    fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
         HTMLCollectionElementsIter {
-            node_iter: node_iter,
-            root: root,
+            node_iter: after.following_nodes(&self.root),
+	    root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
+    
+    fn elements_iter(&self) -> HTMLCollectionElementsIter {
+        self.elements_iter_after(&*self.root)
+    }
+    
 }
 
 pub struct HTMLCollectionElementsIter<'a> {
-    node_iter: TreeIterator,
+    node_iter: FollowingNodeIterator,
     root: Root<Node>,
     filter: &'a Box<CollectionFilter>,
 }
@@ -182,13 +184,13 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
     type Item = Root<Element>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let filter = self.filter;
-        let root = self.root.r();
+        let ref filter = self.filter;
+	let ref root = self.root;
         self.node_iter.by_ref()
                       .filter_map(Root::downcast)
                       .filter(|element| filter.filter(&element, root))
                       .next()
-    }
+   }
 }
 
 impl HTMLCollectionMethods for HTMLCollection {
