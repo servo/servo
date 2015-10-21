@@ -26,6 +26,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::characterdata::CharacterData;
@@ -63,8 +64,8 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use selectors::matching::{DeclarationBlock, matches};
-use selectors::parser::parse_author_origin_selector_list_from_str;
-use selectors::parser::{AttrSelector, NamespaceConstraint};
+use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
+use selectors::states::*;
 use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, ToOwned};
@@ -80,35 +81,12 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use url::UrlParser;
+use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
-bitflags! {
-    #[doc = "Element Event States."]
-    #[derive(JSTraceable, HeapSizeOf)]
-    flags EventState: u16 {
-        #[doc = "The mouse is down on this element. \
-                 (https://html.spec.whatwg.org/multipage/#selector-active). \
-                 FIXME(#7333): set/unset this when appropriate"]
-        const IN_ACTIVE_STATE = 0x01,
-        #[doc = "This element has focus.
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-focus"]
-        const IN_FOCUS_STATE = 0x02,
-        #[doc = "The mouse is hovering over this element. \
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-hover"]
-        const IN_HOVER_STATE = 0x04,
-        #[doc = "Content is enabled (and can be disabled). \
-                 http://www.whatwg.org/html/#selector-enabled"]
-        const IN_ENABLED_STATE = 0x08,
-        #[doc = "Content is disabled. \
-                 http://www.whatwg.org/html/#selector-disabled"]
-        const IN_DISABLED_STATE = 0x10,
-        #[doc = "Content is checked. \
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-checked"]
-        const IN_CHECKED_STATE = 0x20,
-        #[doc = "https://html.spec.whatwg.org/multipage/scripting.html#selector-indeterminate"]
-        const IN_INDETERMINATE_STATE = 0x40,
-    }
-}
+// TODO: Update focus state when the top-level browsing context gains or loses system focus,
+// and when the element enters or leaves a browsing context container.
+// https://html.spec.whatwg.org/multipage/#selector-focus
 
 #[dom_struct]
 pub struct Element {
@@ -121,7 +99,7 @@ pub struct Element {
     style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
-    event_state: Cell<EventState>,
+    state: Cell<ElementState>,
 }
 
 impl PartialEq for Element {
@@ -150,11 +128,11 @@ impl Element {
     pub fn new_inherited(local_name: DOMString,
                          namespace: Namespace, prefix: Option<DOMString>,
                          document: &Document) -> Element {
-        Element::new_inherited_with_state(EventState::empty(), local_name,
+        Element::new_inherited_with_state(ElementState::empty(), local_name,
                                           namespace, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: EventState, local_name: DOMString,
+    pub fn new_inherited_with_state(state: ElementState, local_name: DOMString,
                                     namespace: Namespace, prefix: Option<DOMString>,
                                     document: &Document)
                                     -> Element {
@@ -168,7 +146,7 @@ impl Element {
             style_attribute: DOMRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
-            event_state: Cell::new(state),
+            state: Cell::new(state),
         }
     }
 
@@ -261,7 +239,7 @@ pub trait LayoutElementHelpers {
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
 
-    fn get_event_state_for_layout(&self) -> EventState;
+    fn get_state_for_layout(&self) -> ElementState;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -614,9 +592,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn get_event_state_for_layout(&self) -> EventState {
+    fn get_state_for_layout(&self) -> ElementState {
         unsafe {
-            (*self.unsafe_get()).event_state.get()
+            (*self.unsafe_get()).state.get()
         }
     }
 }
@@ -1592,6 +1570,16 @@ impl VirtualMethods for Element {
     }
 }
 
+macro_rules! state_getter {
+    ($(
+        $(#[$Flag_attr: meta])*
+        state $css: expr => $variant: ident / $method: ident /
+        $flag: ident = $value: expr,
+    )+) => {
+        $( fn $method(&self) -> bool { Element::get_state(self).contains($flag) } )+
+    }
+}
+
 impl<'a> ::selectors::Element for Root<Element> {
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
@@ -1658,41 +1646,10 @@ impl<'a> ::selectors::Element for Root<Element> {
         self.namespace()
     }
 
-    fn get_hover_state(&self) -> bool {
-        Element::get_hover_state(self)
-    }
-
-    fn get_active_state(&self) -> bool {
-        Element::get_active_state(self)
-    }
-
-    fn get_focus_state(&self) -> bool {
-        // TODO: Also check whether the top-level browsing context has the system focus,
-        // and whether this element is a browsing context container.
-        // https://html.spec.whatwg.org/multipage/#selector-focus
-        Element::get_focus_state(self)
-    }
+    state_pseudo_classes!(state_getter);
 
     fn get_id(&self) -> Option<Atom> {
         self.id_attribute.borrow().clone()
-    }
-    fn get_disabled_state(&self) -> bool {
-        Element::get_disabled_state(self)
-    }
-    fn get_enabled_state(&self) -> bool {
-        Element::get_enabled_state(self)
-    }
-    fn get_checked_state(&self) -> bool {
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => input.Checked(),
-            None => false,
-        }
-    }
-    fn get_indeterminate_state(&self) -> bool {
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => input.get_indeterminate_state(),
-            None => false,
-        }
     }
     fn has_class(&self, name: &Atom) -> bool {
         Element::has_class(&**self, name)
@@ -1843,12 +1800,12 @@ impl Element {
         self.set_click_in_progress(false);
     }
 
-    pub fn get_state(&self) -> EventState {
-        self.event_state.get()
+    pub fn get_state(&self) -> ElementState {
+        self.state.get()
     }
 
-    pub fn set_state(&self, which: EventState, value: bool) {
-        let mut state = self.event_state.get();
+    pub fn set_state(&self, which: ElementState, value: bool) {
+        let mut state = self.state.get();
         if state.contains(which) == value {
             return
         }
@@ -1856,14 +1813,14 @@ impl Element {
             true => state.insert(which),
             false => state.remove(which),
         };
-        self.event_state.set(state);
+        self.state.set(state);
 
         let node = self.upcast::<Node>();
-        node.owner_doc().record_event_state_change(self, which);
+        node.owner_doc().record_element_state_change(self, which);
     }
 
     pub fn get_active_state(&self) -> bool {
-        self.event_state.get().contains(IN_ACTIVE_STATE)
+        self.state.get().contains(IN_ACTIVE_STATE)
     }
 
     pub fn set_active_state(&self, value: bool) {
@@ -1871,7 +1828,7 @@ impl Element {
     }
 
     pub fn get_focus_state(&self) -> bool {
-        self.event_state.get().contains(IN_FOCUS_STATE)
+        self.state.get().contains(IN_FOCUS_STATE)
     }
 
     pub fn set_focus_state(&self, value: bool) {
@@ -1879,7 +1836,7 @@ impl Element {
     }
 
     pub fn get_hover_state(&self) -> bool {
-        self.event_state.get().contains(IN_HOVER_STATE)
+        self.state.get().contains(IN_HOVER_STATE)
     }
 
     pub fn set_hover_state(&self, value: bool) {
@@ -1887,7 +1844,7 @@ impl Element {
     }
 
     pub fn get_enabled_state(&self) -> bool {
-        self.event_state.get().contains(IN_ENABLED_STATE)
+        self.state.get().contains(IN_ENABLED_STATE)
     }
 
     pub fn set_enabled_state(&self, value: bool) {
@@ -1895,7 +1852,7 @@ impl Element {
     }
 
     pub fn get_disabled_state(&self) -> bool {
-        self.event_state.get().contains(IN_DISABLED_STATE)
+        self.state.get().contains(IN_DISABLED_STATE)
     }
 
     pub fn set_disabled_state(&self, value: bool) {

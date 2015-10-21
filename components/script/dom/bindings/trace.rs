@@ -62,6 +62,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
 use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
+use selectors::states::*;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -308,6 +309,7 @@ no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
+no_jsmanaged_fields!(ElementState);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
