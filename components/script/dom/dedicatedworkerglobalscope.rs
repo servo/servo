@@ -29,7 +29,8 @@ use msg::constellation_msg::PipelineId;
 use net_traits::load_whole_resource;
 use rand::random;
 use script_task::ScriptTaskEventCategory::WorkerEvent;
-use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask, StackRootTLS, TimerSource};
+use script_task::{ScriptTask, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
+use script_traits::{TimerEvent, TimerEventChan, TimerSource};
 use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
@@ -101,6 +102,29 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, WorkerScriptMsg)> {
     }
 }
 
+/// A TimerEventChan that can be cloned freely and will silently send a TrustedWorkerAddress
+/// with timer events. While this SendableWorkerScriptChan is alive, the associated Worker
+/// object will remain alive.
+struct WorkerThreadTimerEventChan {
+    sender: Sender<(TrustedWorkerAddress, TimerEvent)>,
+    worker: TrustedWorkerAddress,
+}
+
+impl TimerEventChan for WorkerThreadTimerEventChan {
+    fn send(&self, event: TimerEvent) -> Result<(), ()> {
+        self.sender
+            .send((self.worker.clone(), event))
+            .map_err(|_| ())
+    }
+
+    fn clone(&self) -> Box<TimerEventChan + Send> {
+        box WorkerThreadTimerEventChan {
+            sender: self.sender.clone(),
+            worker: self.worker.clone(),
+        }
+    }
+}
+
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
 /// object only lives as long as necessary (ie. while events are being executed), while
@@ -127,6 +151,7 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 
 enum MixedMessage {
     FromWorker((TrustedWorkerAddress, WorkerScriptMsg)),
+    FromScheduler((TrustedWorkerAddress, TimerEvent)),
     FromDevtools(DevtoolScriptControlMsg),
 }
 
@@ -139,6 +164,8 @@ pub struct DedicatedWorkerGlobalScope {
     receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_heap_size_of = "Defined in std"]
     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    #[ignore_heap_size_of = "Defined in std"]
+    timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
     #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
     worker: DOMRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_heap_size_of = "Can't measure trait objects"]
@@ -154,14 +181,18 @@ impl DedicatedWorkerGlobalScope {
                      runtime: Rc<Runtime>,
                      parent_sender: Box<ScriptChan + Send>,
                      own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                     receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
+                     receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                     timer_event_chan: Box<TimerEventChan + Send>,
+                     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
                      -> DedicatedWorkerGlobalScope {
+
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                init, worker_url, runtime, from_devtools_receiver),
+                init, worker_url, runtime, from_devtools_receiver, timer_event_chan),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
+            timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DOMRefCell::new(None),
         }
@@ -174,11 +205,13 @@ impl DedicatedWorkerGlobalScope {
                runtime: Rc<Runtime>,
                parent_sender: Box<ScriptChan + Send>,
                own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>)
+               receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+               timer_event_chan: Box<TimerEventChan + Send>,
+               timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
                -> Root<DedicatedWorkerGlobalScope> {
         let scope = box DedicatedWorkerGlobalScope::new_inherited(
             init, worker_url, id, from_devtools_receiver, runtime.clone(), parent_sender,
-            own_sender, receiver);
+            own_sender, receiver, timer_event_chan, timer_event_port);
         DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
     }
 
@@ -214,9 +247,16 @@ impl DedicatedWorkerGlobalScope {
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
 
+            let (timer_tx, timer_rx) = channel();
+            let timer_event_chan = box WorkerThreadTimerEventChan {
+                sender: timer_tx,
+                worker: worker.clone(),
+            };
+
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime.clone(),
-                parent_sender.clone(), own_sender, receiver);
+                parent_sender.clone(), own_sender, receiver,
+                timer_event_chan, timer_rx);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = global.upcast::<WorkerGlobalScope>();
@@ -263,13 +303,16 @@ impl DedicatedWorkerGlobalScope {
     fn receive_event(&self) -> Result<MixedMessage, RecvError> {
         let scope = self.upcast::<WorkerGlobalScope>();
         let worker_port = &self.receiver;
+        let timer_event_port = &self.timer_event_port;
         let devtools_port = scope.from_devtools_receiver();
 
         let sel = Select::new();
         let mut worker_handle = sel.handle(worker_port);
+        let mut timer_event_handle = sel.handle(timer_event_port);
         let mut devtools_handle = sel.handle(devtools_port);
         unsafe {
             worker_handle.add();
+            timer_event_handle.add();
             if scope.from_devtools_sender().is_some() {
                 devtools_handle.add();
             }
@@ -277,6 +320,8 @@ impl DedicatedWorkerGlobalScope {
         let ret = sel.wait();
         if ret == worker_handle.id() {
             Ok(MixedMessage::FromWorker(try!(worker_port.recv())))
+        } else if ret == timer_event_handle.id() {
+            Ok(MixedMessage::FromScheduler(try!(timer_event_port.recv())))
         } else if ret == devtools_handle.id() {
             Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
         } else {
@@ -301,20 +346,12 @@ impl DedicatedWorkerGlobalScope {
             WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
                 LiveDOMReferences::cleanup(addr);
             },
-            WorkerScriptMsg::Common(
-                CommonScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
-                let scope = self.upcast::<WorkerGlobalScope>();
-                scope.handle_fire_timer(timer_id);
-            },
             WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = ScriptTask::get_reports(cx, path_seg);
                 reports_chan.send(reports);
-            },
-            WorkerScriptMsg::Common(CommonScriptMsg::FireTimer(_, _)) => {
-                panic!("obtained a fire timeout from window for the worker!")
             },
         }
     }
@@ -333,6 +370,18 @@ impl DedicatedWorkerGlobalScope {
                     _ => debug!("got an unusable devtools control message inside the worker!"),
                 }
             },
+            MixedMessage::FromScheduler((linked_worker, timer_event)) => {
+                match timer_event {
+                    TimerEvent(TimerSource::FromWorker, id) => {
+                        let _ar = AutoWorkerReset::new(self, linked_worker);
+                        let scope = self.upcast::<WorkerGlobalScope>();
+                        scope.handle_fire_timer(id);
+                    },
+                    TimerEvent(_, _) => {
+                        panic!("A worker received a TimerEvent from a window.")
+                    }
+                }
+            }
             MixedMessage::FromWorker((linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg);

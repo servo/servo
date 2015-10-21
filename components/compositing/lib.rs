@@ -6,6 +6,7 @@
 #![feature(iter_cmp)]
 #![feature(slice_bytes)]
 #![feature(vec_push_all)]
+#![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
@@ -54,6 +55,7 @@ mod compositor_layer;
 mod headless;
 mod scrolling;
 mod surface_map;
+mod timer_scheduler;
 pub mod compositor_task;
 pub mod constellation;
 pub mod pipeline;
