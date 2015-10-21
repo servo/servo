@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -86,7 +86,7 @@ impl UIEventMethods for UIEvent {
                    cancelable: bool,
                    view: Option<&Window>,
                    detail: i32) {
-        let event: &Event = EventCast::from_ref(self);
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }

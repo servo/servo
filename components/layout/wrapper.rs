@@ -40,20 +40,18 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataCast, CharacterDataTypeId};
-use script::dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLElementTypeId};
-use script::dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLImageElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
-use script::dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
+use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
+use script::dom::bindings::conversions::Castable;
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::element;
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
+use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
-use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
+use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, HAS_DIRTY_SIBLINGS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
@@ -360,14 +358,14 @@ impl<'le> LayoutElement<'le> {
 
     pub fn as_node(&self) -> LayoutNode<'le> {
         LayoutNode {
-            node: NodeCast::from_layout_js(&self.element),
+            node: self.element.upcast(),
             chain: PhantomData,
         }
     }
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
-    ElementCast::to_layout_js(&node).map(|element| {
+    node.downcast().map(|element| {
         LayoutElement {
             element: element,
             chain: PhantomData,
@@ -379,7 +377,7 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
 impl<'le> ::selectors::Element for LayoutElement<'le> {
     fn parent_element(&self) -> Option<LayoutElement<'le>> {
         unsafe {
-            NodeCast::from_layout_js(&self.element).parent_node_ref().and_then(as_element)
+            self.element.upcast().parent_node_ref().and_then(as_element)
         }
     }
 
@@ -424,7 +422,7 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         self.as_node().children().all(|node| match node.type_id() {
             NodeTypeId::Element(..) => false,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
-                CharacterDataCast::to_layout_js(&node.node).unwrap().data_for_layout().is_empty()
+                node.node.downcast().unwrap().data_for_layout().is_empty()
             },
             _ => true
         })
@@ -697,7 +695,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
-            let element = match ElementCast::to_layout_js(self.get_jsmanaged()) {
+            let element = match self.get_jsmanaged().downcast() {
                 Some(e) => e.unsafe_get(),
                 None => panic!("not an element")
             };
@@ -788,12 +786,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_ignorable_whitespace(&self) -> bool {
         unsafe {
-            let text: LayoutJS<Text> = match TextCast::to_layout_js(self.get_jsmanaged()) {
+            let text: LayoutJS<Text> = match self.get_jsmanaged().downcast() {
                 Some(text) => text,
                 None => return false
             };
 
-            if !is_whitespace(CharacterDataCast::from_layout_js(&text).data_for_layout()) {
+            if !is_whitespace(text.upcast().data_for_layout()) {
                 return false
             }
 
@@ -816,8 +814,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
-            let elem: Option<LayoutJS<Element>> = ElementCast::to_layout_js(self.get_jsmanaged());
-            match elem {
+            match self.get_jsmanaged().downcast::<Element>() {
                 Some(element) => {
                     element.get_unsigned_integer_attribute_for_layout(attribute)
                 }
@@ -902,20 +899,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
 
         let this = unsafe { self.get_jsmanaged() };
-        let text = TextCast::to_layout_js(this);
-        if let Some(text) = text {
+        if let Some(text) = this.downcast::<Text>() {
             let data = unsafe {
-                CharacterDataCast::from_layout_js(&text).data_for_layout().to_owned()
+                text.upcast().data_for_layout().to_owned()
             };
             return TextContent::Text(data);
         }
-        let input = HTMLInputElementCast::to_layout_js(this);
-        if let Some(input) = input {
+        if let Some(input) = this.downcast::<HTMLInputElement>() {
             let data = unsafe { input.get_value_for_layout() };
             return TextContent::Text(data);
         }
-        let area = HTMLTextAreaElementCast::to_layout_js(this);
-        if let Some(area) = area {
+        if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
             let data = unsafe { area.get_value_for_layout() };
             return TextContent::Text(data);
         }
@@ -928,7 +922,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let this = unsafe {
             self.get_jsmanaged()
         };
-        let input = HTMLInputElementCast::to_layout_js(this);
+        let input = this.downcast();
         if let Some(input) = input {
             let insertion_point = unsafe {
                 input.get_insertion_point_for_layout()
@@ -956,7 +950,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     /// FIXME(pcwalton): Don't copy URLs.
     pub fn image_url(&self) -> Option<Url> {
         unsafe {
-            HTMLImageElementCast::to_layout_js(self.get_jsmanaged())
+            self.get_jsmanaged().downcast()
                 .expect("not an image!")
                 .image_url()
         }
@@ -964,28 +958,28 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn canvas_renderer_id(&self) -> Option<usize> {
         unsafe {
-            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.and_then(|elem| elem.get_renderer_id())
         }
     }
 
     pub fn canvas_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         unsafe {
-            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.and_then(|elem| elem.get_ipc_renderer())
         }
     }
 
     pub fn canvas_width(&self) -> u32 {
         unsafe {
-            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.unwrap().get_canvas_width()
         }
     }
 
     pub fn canvas_height(&self) -> u32 {
         unsafe {
-            let canvas_element = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            let canvas_element = self.get_jsmanaged().downcast();
             canvas_element.unwrap().get_canvas_height()
         }
     }
@@ -995,7 +989,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn iframe_pipeline_id(&self) -> PipelineId {
         use script::dom::htmliframeelement::HTMLIFrameElementLayoutMethods;
         unsafe {
-            let iframe_element = HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged())
+            let iframe_element = self.get_jsmanaged().downcast::<HTMLIFrameElement>()
                 .expect("not an iframe element!");
             iframe_element.pipeline_id().unwrap()
         }

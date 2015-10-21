@@ -8,16 +8,16 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, IN_ENABLED_STATE, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
@@ -169,14 +169,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
-        node.GetTextContent().unwrap()
+        self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value));
+        self.upcast::<Node>().SetTextContent(Some(value));
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
@@ -218,8 +216,7 @@ impl HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     fn force_relayout(&self) {
         let doc = document_from_node(self);
-        let node = NodeCast::from_ref(self);
-        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage)
     }
 
     fn dispatch_change_event(&self) {
@@ -230,22 +227,20 @@ impl HTMLTextAreaElement {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 
-        let target = EventTargetCast::from_ref(self);
-        target.dispatch_event(event.r());
+        self.upcast::<EventTarget>().dispatch_event(&event);
     }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let el = ElementCast::from_ref(self);
+                let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
@@ -279,8 +274,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let el = ElementCast::from_ref(self);
-        el.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -296,9 +290,9 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        let el = ElementCast::from_ref(self);
-        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
+        let node = self.upcast::<Node>();
+        let el = self.upcast::<Element>();
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -323,11 +317,9 @@ impl VirtualMethods for HTMLTextAreaElement {
         if &*event.Type() == "click" && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
-            let doc = document_from_node(self);
-            doc.r().request_focus(ElementCast::from_ref(self));
+            document_from_node(self).request_focus(self.upcast());
         } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
-            let keyevent: Option<&KeyboardEvent> = KeyboardEventCast::to_ref(event);
-            keyevent.map(|kevent| {
+            if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
@@ -351,7 +343,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                     KeyReaction::Nothing => (),
                 }
-            });
+            }
         }
     }
 }

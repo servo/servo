@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast, NodeCast};
-use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::conversions::StringificationBehavior;
+use dom::bindings::conversions::{Castable, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::js::Root;
+use dom::element::Element;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::Node;
 use dom::window::ScriptHelpers;
 use ipc_channel::ipc::IpcSender;
@@ -27,7 +27,7 @@ use url::Url;
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    let node = NodeCast::from_ref(document.r());
+    let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
         if candidate.r().get_unique_id() == node_id {
@@ -94,7 +94,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
         WebDriverFrameId::Element(x) => {
             match find_node_by_unique_id(page, pipeline, x) {
                 Some(ref node) => {
-                    match HTMLIFrameElementCast::to_ref(node.r()) {
+                    match node.downcast::<HTMLIFrameElement>() {
                         Some(ref elem) => Ok(elem.GetContentWindow()),
                         None => Err(())
                     }
@@ -116,8 +116,7 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
                                reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match page.document().r().QuerySelector(selector.clone()) {
         Ok(node) => {
-            let result = node.map(|x| NodeCast::from_ref(x.r()).get_unique_id());
-            Ok(result)
+            Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
         }
         Err(_) => Err(())
     }).unwrap();
@@ -147,7 +146,7 @@ pub fn handle_get_active_element(page: &Rc<Page>,
                                  _pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
     reply.send(page.document().r().GetActiveElement().map(
-        |elem| NodeCast::from_ref(elem.r()).get_unique_id())).unwrap();
+        |elem| elem.upcast::<Node>().get_unique_id())).unwrap();
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
@@ -172,8 +171,7 @@ pub fn handle_get_name(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(node) => {
-            let element = ElementCast::to_ref(node.r()).unwrap();
-            Ok(element.TagName())
+            Ok(node.downcast::<Element>().unwrap().TagName())
         },
         None => Err(())
     }).unwrap();

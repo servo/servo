@@ -5,15 +5,15 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLLegendElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmllegendelement::HTMLLegendElement;
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -56,10 +56,9 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
@@ -82,8 +81,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 
 impl VirtualMethods for HTMLFieldSetElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -98,15 +96,15 @@ impl VirtualMethods for HTMLFieldSetElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                let node = NodeCast::from_ref(self);
-                let el = ElementCast::from_ref(self);
+                let node = self.upcast::<Node>();
+                let el = self.upcast::<Element>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
                         true
-                    } else if node.is_htmllegendelement() {
+                    } else if node.is::<HTMLLegendElement>() {
                         found_legend = true;
                         false
                     } else {
@@ -136,13 +134,13 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 if disabled_state {
                     for field in fields {
-                        let el = ElementCast::to_ref(field.r()).unwrap();
+                        let el = field.downcast::<Element>().unwrap();
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
                     }
                 } else {
                     for field in fields {
-                        let el = ElementCast::to_ref(field.r()).unwrap();
+                        let el = field.downcast::<Element>().unwrap();
                         el.check_disabled_attribute();
                         el.check_ancestors_disabled_state_for_form_control();
                     }

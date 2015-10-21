@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -37,8 +37,7 @@ impl HTMLHeadElement {
 
 impl VirtualMethods for HTMLHeadElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
     fn bind_to_tree(&self, _tree_in_doc: bool) {
         load_script(self);

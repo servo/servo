@@ -7,14 +7,15 @@ use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, ElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLScriptElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast, TextDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
+use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node};
+use dom::htmlscriptelement::HTMLScriptElement;
+use dom::node::Node;
+use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -54,16 +55,16 @@ impl HTMLOptionElement {
 
 fn collect_text(element: &Element, value: &mut DOMString) {
     let svg_script = *element.namespace() == ns!(SVG) && element.local_name() == &atom!("script");
-    let html_script = element.is_htmlscriptelement();
+    let html_script = element.is::<HTMLScriptElement>();
     if svg_script || html_script {
         return;
     }
 
-    for child in NodeCast::from_ref(element).children() {
-        if child.r().is_text() {
-            let characterdata = CharacterDataCast::to_ref(child.r()).unwrap();
+    for child in element.upcast::<Node>().children() {
+        if child.is::<Text>() {
+            let characterdata = child.downcast::<CharacterData>().unwrap();
             value.push_str(&characterdata.Data());
-        } else if let Some(element_child) = ElementCast::to_ref(&*child) {
+        } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
         }
     }
@@ -75,27 +76,24 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     fn SetDisabled(&self, disabled: bool) {
-        let elem = ElementCast::from_ref(self);
-        elem.set_bool_attribute(&atom!("disabled"), disabled)
+        self.upcast::<Element>().set_bool_attribute(&atom!("disabled"), disabled)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let element = ElementCast::from_ref(self);
         let mut content = String::new();
-        collect_text(element, &mut content);
+        collect_text(self.upcast(), &mut content);
         str_join(split_html_space_chars(&content), " ")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     fn Value(&self) -> DOMString {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let attr = &atom!("value");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -109,7 +107,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#attr-option-label
     fn Label(&self) -> DOMString {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let attr = &atom!("label");
         if element.has_attribute(attr) {
             element.get_string_attribute(attr)
@@ -143,15 +141,14 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
 impl VirtualMethods for HTMLOptionElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!(disabled) => {
-                let el = ElementCast::from_ref(self);
+                let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
@@ -189,8 +186,7 @@ impl VirtualMethods for HTMLOptionElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let el = ElementCast::from_ref(self);
-        el.check_parent_disabled_state_for_option();
+        self.upcast::<Element>().check_parent_disabled_state_for_option();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -198,8 +194,8 @@ impl VirtualMethods for HTMLOptionElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        let el = ElementCast::from_ref(self);
+        let node = self.upcast::<Node>();
+        let el = self.upcast::<Element>();
         if node.GetParentNode().is_some() {
             el.check_parent_disabled_state_for_option();
         } else {

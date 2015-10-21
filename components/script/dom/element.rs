@@ -19,39 +19,43 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, DocumentDerived, ElementCast};
-use dom::bindings::codegen::InheritTypes::{ElementDerived, ElementTypeId, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementCast, HTMLBodyElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFieldSetElementDerived, HTMLFontElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLIFrameElementCast, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLOptGroupElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementCast, HTMLTableElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementCast, HTMLTableSectionElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementCast, HTMLTextAreaElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId, TextCast};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, validate_and_extract, xml_name_type};
+use dom::characterdata::CharacterData;
 use dom::create::create_element;
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
+use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
+use dom::htmlfontelement::HTMLFontElement;
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
-use dom::htmltablecellelement::HTMLTableCellElementLayoutHelpers;
+use dom::htmllegendelement::HTMLLegendElement;
+use dom::htmloptgroupelement::HTMLOptGroupElement;
+use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltextareaelement::RawLayoutHTMLTextAreaElementHelpers;
+use dom::htmltablerowelement::HTMLTableRowElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
+use dom::htmltemplateelement::HTMLTemplateElement;
+use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::namednodemap::NamedNodeMap;
 use dom::node::{CLICK_IN_PROGRESS, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
@@ -281,15 +285,15 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
-        let bgcolor = if let Some(this) = HTMLBodyElementCast::to_layout_js(self) {
+        let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             (*this.unsafe_get()).get_background_color()
-        } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_background_color()
-        } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_background_color()
-        } else if let Some(this) = HTMLTableRowElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
             (*this.unsafe_get()).get_background_color()
-        } else if let Some(this) = HTMLTableSectionElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
             (*this.unsafe_get()).get_background_color()
         } else {
             None
@@ -301,7 +305,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                     CSSColor { parsed: Color::RGBA(color), authored: None }))));
         }
 
-        let background = if let Some(this) = HTMLBodyElementCast::to_layout_js(self) {
+        let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
             (*this.unsafe_get()).get_background()
         } else {
             None
@@ -313,9 +317,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                     background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
         }
 
-        let color = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+        let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
             (*this.unsafe_get()).get_color()
-        } else if let Some(this) = HTMLBodyElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLBodyElement>() {
             // https://html.spec.whatwg.org/multipage/#the-page:the-body-element-20
             (*this.unsafe_get()).get_color()
         } else {
@@ -330,7 +334,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 }))));
         }
 
-        let font_family = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+        let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
             (*this.unsafe_get()).get_face()
         } else {
             None
@@ -345,7 +349,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                                 font_family)])))));
         }
 
-        let font_size = if let Some(this) = HTMLFontElementCast::to_layout_js(self) {
+        let font_size = if let Some(this) = self.downcast::<HTMLFontElement>() {
             (*this.unsafe_get()).get_size()
         } else {
             None
@@ -358,7 +362,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                         font_size::SpecifiedValue(font_size)))))
         }
 
-        let cellspacing = if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+        let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_cellspacing()
         } else {
             None
@@ -375,7 +379,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let size = if let Some(this) = HTMLInputElementCast::to_layout_js(self) {
+        let size = if let Some(this) = self.downcast::<HTMLInputElement>() {
             // FIXME(pcwalton): More use of atoms, please!
             // FIXME(Ms2ger): this is nonsense! Invalid values also end up as
             //                a text field
@@ -401,11 +405,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let width = if let Some(this) = HTMLIFrameElementCast::to_layout_js(self) {
+        let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             (*this.unsafe_get()).get_width()
-        } else if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_width()
-        } else if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -428,7 +432,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let height = if let Some(this) = HTMLIFrameElementCast::to_layout_js(self) {
+        let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             (*this.unsafe_get()).get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -451,7 +455,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let cols = if let Some(this) = HTMLTextAreaElementCast::to_layout_js(self) {
+        let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
             match (*this.unsafe_get()).get_cols_for_layout() {
                 0 => None,
                 c => Some(c as i32),
@@ -473,7 +477,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let rows = if let Some(this) = HTMLTextAreaElementCast::to_layout_js(self) {
+        let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
             match (*this.unsafe_get()).get_rows_for_layout() {
                 0 => None,
                 r => Some(r as i32),
@@ -493,7 +497,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         }
 
 
-        let border = if let Some(this) = HTMLTableElementCast::to_layout_js(self) {
+        let border = if let Some(this) = self.downcast::<HTMLTableElement>() {
             (*this.unsafe_get()).get_border()
         } else {
             None
@@ -522,7 +526,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                                                         -> Option<u32> {
         match attribute {
             UnsignedIntegerAttribute::ColSpan => {
-                if let Some(this) = HTMLTableCellElementCast::to_layout_js(self) {
+                if let Some(this) = self.downcast::<HTMLTableCellElement>() {
                     this.get_colspan()
                 } else {
                     // Don't panic since `display` can cause this to be called on arbitrary
@@ -539,8 +543,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
-        let node = NodeCast::from_layout_js(&self);
-        node.owner_doc_for_layout().is_html_document_for_layout()
+        self.upcast::<Node>().owner_doc_for_layout().is_html_document_for_layout()
     }
 
     #[allow(unsafe_code)]
@@ -580,7 +583,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     fn get_checked_state_for_layout(&self) -> bool {
         // TODO option and menuitem can also have a checked state.
-        match HTMLInputElementCast::to_layout_js(self) {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
                 (*input.unsafe_get()).get_checked_state_for_layout()
             },
@@ -592,7 +595,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     #[allow(unsafe_code)]
     fn get_indeterminate_state_for_layout(&self) -> bool {
         // TODO progress elements can also be matched with :indeterminate
-        match HTMLInputElementCast::to_layout_js(self) {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
                 (*input.unsafe_get()).get_indeterminate_state_for_layout()
             },
@@ -618,8 +621,7 @@ pub enum StylePriority {
 
 impl Element {
     pub fn html_element_in_html_document(&self) -> bool {
-        let node = NodeCast::from_ref(self);
-        self.namespace == ns!(HTML) && node.is_in_html_doc()
+        self.namespace == ns!(HTML) && self.upcast::<Node>().is_in_html_doc()
     }
 
     pub fn local_name(&self) -> &Atom {
@@ -779,9 +781,8 @@ impl Element {
     }
 
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
-        let node = NodeCast::from_ref(self);
         let mut writer = vec![];
-        match serialize(&mut writer, &node,
+        match serialize(&mut writer, &self.upcast::<Node>(),
                         SerializeOpts {
                             traversal_scope: traversal_scope,
                             .. Default::default()
@@ -793,17 +794,14 @@ impl Element {
 
     // https://html.spec.whatwg.org/multipage/#root-element
     pub fn get_root_element(&self) -> Root<Element> {
-        let node = NodeCast::from_ref(self);
-        node.inclusive_ancestors()
-            .filter_map(ElementCast::to_root)
-            .last()
+        self.upcast::<Node>().inclusive_ancestors().filter_map(Root::downcast).last()
             .expect("We know inclusive_ancestors will return `self` which is an element")
     }
 
     // https://dom.spec.whatwg.org/#locate-a-namespace-prefix
     pub fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
-        for node in NodeCast::from_ref(self).inclusive_ancestors() {
-            match ElementCast::to_ref(node.r()) {
+        for node in self.upcast::<Node>().inclusive_ancestors() {
+            match node.downcast::<Element>() {
                 Some(element) => {
                     // Step 1.
                     if *element.namespace() == namespace {
@@ -836,7 +834,7 @@ impl Element {
             return false;
         }
         // TODO: Check whether the element is being rendered (i.e. not hidden).
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if node.get_flag(SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
@@ -853,7 +851,7 @@ impl Element {
     }
 
     pub fn is_actually_disabled(&self) -> bool {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
@@ -884,8 +882,7 @@ impl Element {
         let attr = Attr::new(&window, local_name, value, name, namespace, prefix, Some(self));
         self.attrs.borrow_mut().push(JS::from_rooted(&attr));
         if in_empty_ns {
-            vtable_for(NodeCast::from_ref(self)).attribute_mutated(
-                &attr, AttributeMutation::Set(None));
+            vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Set(None));
         }
     }
 
@@ -969,8 +966,7 @@ impl Element {
     pub fn parse_attribute(&self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue {
         if *namespace == ns!("") {
-            vtable_for(&NodeCast::from_ref(self))
-                .parse_plain_attribute(local_name, value)
+            vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
             AttrValue::String(value)
         }
@@ -996,20 +992,15 @@ impl Element {
             let attr = (*self.attrs.borrow())[idx].root();
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
-            let node = NodeCast::from_ref(self);
             if attr.namespace() == &ns!("") {
-                vtable_for(node).attribute_mutated(&attr, AttributeMutation::Removed);
+                vtable_for(self.upcast()).attribute_mutated(&attr, AttributeMutation::Removed);
             }
             attr
         })
     }
 
     pub fn has_class(&self, name: &Atom) -> bool {
-        let quirks_mode = {
-            let node = NodeCast::from_ref(self);
-            let owner_doc = node.owner_doc();
-            owner_doc.r().quirks_mode()
-        };
+        let quirks_mode = document_from_node(self).quirks_mode();
         let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
@@ -1170,14 +1161,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(&self) -> Root<NamedNodeMap> {
-        self.attr_list.or_init(|| {
-            let doc = {
-                let node = NodeCast::from_ref(self);
-                node.owner_doc()
-            };
-            let window = doc.r().window();
-            NamedNodeMap::new(window, self)
-        })
+        self.attr_list.or_init(|| NamedNodeMap::new(&window_from_node(self), self))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattribute
@@ -1272,27 +1256,26 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), localname)
+        HTMLCollection::by_tag_name(window.r(), self.upcast(), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>,
                               localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), localname, maybe_ns)
+        HTMLCollection::by_tag_name_ns(window.r(), self.upcast(), localname, maybe_ns)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
+        HTMLCollection::by_class_name(window.r(), self.upcast(), classes)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self) -> Root<DOMRectList> {
         let win = window_from_node(self);
-        let node = NodeCast::from_ref(self);
-        let raw_rects = node.get_content_boxes();
+        let raw_rects = self.upcast::<Node>().get_content_boxes();
         let rects = raw_rects.iter().map(|rect| {
             DOMRect::new(GlobalRef::Window(win.r()),
                          rect.origin.x.to_f64_px(),
@@ -1306,8 +1289,7 @@ impl ElementMethods for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
-        let node = NodeCast::from_ref(self);
-        let rect = node.get_bounding_content_box();
+        let rect = self.upcast::<Node>().get_bounding_content_box();
         DOMRect::new(GlobalRef::Window(win.r()),
                      rect.origin.x.to_f64_px(),
                      rect.origin.y.to_f64_px(),
@@ -1317,26 +1299,22 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
-        node.get_client_rect().origin.y
+        self.upcast::<Node>().get_client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
     fn ClientLeft(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
-        node.get_client_rect().origin.x
+        self.upcast::<Node>().get_client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
-        node.get_client_rect().size.width
+        self.upcast::<Node>().get_client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
-        node.get_client_rect().size.height
+        self.upcast::<Node>().get_client_rect().size.height
     }
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
@@ -1347,17 +1325,17 @@ impl ElementMethods for Element {
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML
     fn SetInnerHTML(&self, value: DOMString) -> Fallible<()> {
-        let context_node = NodeCast::from_ref(self);
+        let context_node = self.upcast::<Node>();
         // Step 1.
         let frag = try!(context_node.parse_fragment(value));
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
-        let target = if let Some(template) = HTMLTemplateElementCast::to_ref(self) {
-            NodeCast::from_root(template.Content())
+        let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            Root::upcast(template.Content())
         } else {
             Root::from_ref(context_node)
         };
-        Node::replace_all(Some(NodeCast::from_ref(&*frag)), &target);
+        Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
     }
 
@@ -1369,7 +1347,7 @@ impl ElementMethods for Element {
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn SetOuterHTML(&self, value: DOMString) -> Fallible<()> {
         let context_document = document_from_node(self);
-        let context_node = NodeCast::from_ref(self);
+        let context_node = self.upcast::<Node>();
         // Step 1.
         let context_parent = match context_node.GetParentNode() {
             None => {
@@ -1388,7 +1366,7 @@ impl ElementMethods for Element {
                 let body_elem = Element::create(QualName::new(ns!(HTML), atom!(body)),
                                                 None, context_document.r(),
                                                 ElementCreator::ScriptCreated);
-                NodeCast::from_root(body_elem)
+                Root::upcast(body_elem)
             },
             _ => context_node.GetParentNode().unwrap()
         };
@@ -1396,85 +1374,81 @@ impl ElementMethods for Element {
         // Step 5.
         let frag = try!(parent.r().parse_fragment(value));
         // Step 6.
-        try!(context_parent.r().ReplaceChild(NodeCast::from_ref(frag.r()),
-                                             context_node));
+        try!(context_parent.ReplaceChild(frag.upcast(), context_node));
         Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
     fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).preceding_siblings()
-                                .filter_map(ElementCast::to_root).next()
+        self.upcast::<Node>().preceding_siblings().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).following_siblings()
-                                .filter_map(ElementCast::to_root).next()
+        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
+        HTMLCollection::children(window.r(), self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).child_elements().next()
+        self.upcast::<Node>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(self).rev_children().filter_map(ElementCast::to_root).next()
+        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        NodeCast::from_ref(self).child_elements().count() as u32
+        self.upcast::<Node>().child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
     fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).prepend(nodes)
+        self.upcast::<Node>().prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
     fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).append(nodes)
+        self.upcast::<Node>().append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
-        let root = NodeCast::from_ref(self);
+        let root = self.upcast::<Node>();
         root.query_selector_all(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).before(nodes)
+        self.upcast::<Node>().before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).after(nodes)
+        self.upcast::<Node>().after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).replace_with(nodes)
+        self.upcast::<Node>().replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = NodeCast::from_ref(self);
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 
     // https://dom.spec.whatwg.org/#dom-element-matches
@@ -1492,9 +1466,9 @@ impl ElementMethods for Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(ref selectors) => {
-                let root = NodeCast::from_ref(self);
+                let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
-                    if let Some(element) = ElementCast::to_root(element) {
+                    if let Some(element) = Root::downcast::<Element>(element) {
                         if matches(selectors, &element, None) {
                             return Ok(Some(element));
                         }
@@ -1508,13 +1482,12 @@ impl ElementMethods for Element {
 
 impl VirtualMethods for Element {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let node: &Node = NodeCast::from_ref(self);
-        Some(node as &VirtualMethods)
+        Some(self.upcast::<Node>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         let damage = match attr.local_name() {
             &atom!(style) => {
@@ -1607,7 +1580,7 @@ impl VirtualMethods for Element {
 
 impl<'a> ::selectors::Element for Root<Element> {
     fn parent_element(&self) -> Option<Root<Element>> {
-        NodeCast::from_ref(&**self).GetParentElement()
+        self.upcast::<Node>().GetParentElement()
     }
 
     fn first_child_element(&self) -> Option<Root<Element>> {
@@ -1615,34 +1588,34 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn last_child_element(&self) -> Option<Root<Element>> {
-        self.node.rev_children().filter_map(ElementCast::to_root).next()
+        self.node.rev_children().filter_map(Root::downcast).next()
     }
 
     fn prev_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.preceding_siblings().filter_map(ElementCast::to_root).next()
+        self.node.preceding_siblings().filter_map(Root::downcast).next()
     }
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings().filter_map(ElementCast::to_root).next()
+        self.node.following_siblings().filter_map(Root::downcast).next()
     }
 
     fn is_root(&self) -> bool {
         match self.node.GetParentNode() {
             None => false,
-            Some(node) => node.is_document(),
+            Some(node) => node.is::<Document>(),
         }
     }
 
     fn is_empty(&self) -> bool {
-        self.node.children().all(|node| !node.is_element() && match TextCast::to_ref(&*node) {
+        self.node.children().all(|node| !node.is::<Element>() && match node.downcast::<Text>() {
             None => true,
-            Some(text) => CharacterDataCast::from_ref(text).data().is_empty()
+            Some(text) => text.upcast::<CharacterData>().data().is_empty()
         })
     }
 
     fn is_link(&self) -> bool {
         // FIXME: This is HTML only.
-        let node = NodeCast::from_ref(&**self);
+        let node = self.upcast::<Node>();
         match node.type_id() {
             // https://html.spec.whatwg.org/multipage/#selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -1696,15 +1669,13 @@ impl<'a> ::selectors::Element for Root<Element> {
         Element::get_enabled_state(self)
     }
     fn get_checked_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
-        match input_element {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(&self) -> bool {
-        let input_element: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(&**self);
-        match input_element {
+        match self.downcast::<HTMLInputElement>() {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
@@ -1724,8 +1695,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         }
     }
     fn has_servo_nonzero_border(&self) -> bool {
-        let table_element: Option<&HTMLTableElement> = HTMLTableElementCast::to_ref(&**self);
-        match table_element {
+        match self.downcast::<HTMLTableElement>() {
             None => false,
             Some(this) => {
                 match this.get_border() {
@@ -1769,14 +1739,13 @@ impl<'a> ::selectors::Element for Root<Element> {
 
 impl Element {
     pub fn as_maybe_activatable(&self) -> Option<&Activatable> {
-        let node = NodeCast::from_ref(self);
-        let element = match node.type_id() {
+        let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                let element = HTMLInputElementCast::to_ref(self).unwrap();
+                let element = self.downcast::<HTMLInputElement>().unwrap();
                 Some(element as &Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                let element = HTMLAnchorElementCast::to_ref(self).unwrap();
+                let element = self.downcast::<HTMLAnchorElement>().unwrap();
                 Some(element as &Activatable)
             },
             _ => {
@@ -1793,13 +1762,11 @@ impl Element {
     }
 
     pub fn click_in_progress(&self) -> bool {
-        let node = NodeCast::from_ref(self);
-        node.get_flag(CLICK_IN_PROGRESS)
+        self.upcast::<Node>().get_flag(CLICK_IN_PROGRESS)
     }
 
     pub fn set_click_in_progress(&self, click: bool) {
-        let node = NodeCast::from_ref(self);
-        node.set_flag(CLICK_IN_PROGRESS, click)
+        self.upcast::<Node>().set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/#nearest-activatable-element
@@ -1807,9 +1774,9 @@ impl Element {
         match self.as_maybe_activatable() {
             Some(el) => Some(Root::from_ref(el.as_element())),
             None => {
-                let node = NodeCast::from_ref(self);
+                let node = self.upcast::<Node>();
                 for node in node.ancestors() {
-                    if let Some(node) = ElementCast::to_ref(node.r()) {
+                    if let Some(node) = node.downcast::<Element>() {
                         if node.as_maybe_activatable().is_some() {
                             return Some(Root::from_ref(node))
                         }
@@ -1833,7 +1800,7 @@ impl Element {
         // the script can generate more click events from the handler)
         assert!(!self.click_in_progress());
 
-        let target = EventTargetCast::from_ref(self);
+        let target = self.upcast();
         // Step 2 (requires canvas support)
         // Step 3
         self.set_click_in_progress(true);
@@ -1870,7 +1837,7 @@ impl Element {
         };
         self.event_state.set(state);
 
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
     }
 
@@ -1917,20 +1884,20 @@ impl Element {
 
 impl Element {
     pub fn check_ancestors_disabled_state_for_form_control(&self) {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if self.get_disabled_state() { return; }
         for ancestor in node.ancestors() {
             let ancestor = ancestor;
             let ancestor = ancestor.r();
-            if !ancestor.is_htmlfieldsetelement() { continue; }
-            if !ElementCast::to_ref(ancestor).unwrap().get_disabled_state() { continue; }
+            if !ancestor.is::<HTMLFieldSetElement>() { continue; }
+            if !ancestor.downcast::<Element>().unwrap().get_disabled_state() { continue; }
             if ancestor.is_parent_of(node) {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
                 return;
             }
             match ancestor.children()
-                          .find(|child| child.r().is_htmllegendelement())
+                          .find(|child| child.r().is::<HTMLLegendElement>())
             {
                 Some(ref legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
@@ -1946,9 +1913,9 @@ impl Element {
 
     pub fn check_parent_disabled_state_for_option(&self) {
         if self.get_disabled_state() { return; }
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if let Some(ref parent) = node.GetParentNode() {
-            if parent.r().is_htmloptgroupelement() && ElementCast::to_ref(parent.r()).unwrap().get_disabled_state() {
+            if parent.r().is::<HTMLOptGroupElement>() && parent.downcast::<Element>().unwrap().get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
             }

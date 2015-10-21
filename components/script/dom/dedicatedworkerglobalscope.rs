@@ -8,7 +8,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootCollection};
@@ -219,7 +219,7 @@ impl DedicatedWorkerGlobalScope {
                 parent_sender.clone(), own_sender, receiver);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
-            let scope = WorkerGlobalScopeCast::from_ref(global.r());
+            let scope = global.upcast::<WorkerGlobalScope>();
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
@@ -261,7 +261,7 @@ impl DedicatedWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     fn receive_event(&self) -> Result<MixedMessage, RecvError> {
-        let scope = WorkerGlobalScopeCast::from_ref(self);
+        let scope = self.upcast::<WorkerGlobalScope>();
         let worker_port = &self.receiver;
         let devtools_port = scope.from_devtools_receiver();
 
@@ -287,8 +287,8 @@ impl DedicatedWorkerGlobalScope {
     fn handle_script_event(&self, msg: WorkerScriptMsg) {
         match msg {
             WorkerScriptMsg::DOMMessage(data) => {
-                let scope = WorkerGlobalScopeCast::from_ref(self);
-                let target = EventTargetCast::from_ref(self);
+                let scope = self.upcast::<WorkerGlobalScope>();
+                let target = self.upcast();
                 let _ar = JSAutoRequest::new(scope.get_cx());
                 let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
@@ -303,11 +303,11 @@ impl DedicatedWorkerGlobalScope {
             },
             WorkerScriptMsg::Common(
                 CommonScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
-                let scope = WorkerGlobalScopeCast::from_ref(self);
+                let scope = self.upcast::<WorkerGlobalScope>();
                 scope.handle_fire_timer(timer_id);
             },
             WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
-                let scope = WorkerGlobalScopeCast::from_ref(self);
+                let scope = self.upcast::<WorkerGlobalScope>();
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = ScriptTask::get_reports(cx, path_seg);
@@ -322,7 +322,7 @@ impl DedicatedWorkerGlobalScope {
     fn handle_event(&self, event: MixedMessage) {
         match event {
             MixedMessage::FromDevtools(msg) => {
-                let global_ref = GlobalRef::Worker(WorkerGlobalScopeCast::from_ref(self));
+                let global_ref = GlobalRef::Worker(self.upcast());
                 match msg {
                     DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
                         devtools::handle_evaluate_js(&global_ref, string, sender),

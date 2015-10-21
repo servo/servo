@@ -4,12 +4,13 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
+use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
 use util::str::DOMString;
 
@@ -44,12 +45,11 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is_htmloptionelement()
+                elem.is::<HTMLOptionElement>()
             }
         }
-        let node = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 }

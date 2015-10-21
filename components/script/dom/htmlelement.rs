@@ -9,11 +9,8 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, ElementTypeId};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLBodyElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLHtmlElementDerived, HTMLInputElementCast};
-use dom::bindings::codegen::InheritTypes::{NodeCast, NodeTypeId};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
@@ -21,6 +18,10 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element, EventState};
+use dom::eventtarget::EventTarget;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlframesetelement::HTMLFrameSetElement;
+use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
@@ -70,13 +71,13 @@ impl HTMLElement {
     }
 
     fn is_body_or_frameset(&self) -> bool {
-        let eventtarget = EventTargetCast::from_ref(self);
-        eventtarget.is_htmlbodyelement() || eventtarget.is_htmlframesetelement()
+        let eventtarget = self.upcast::<EventTarget>();
+        eventtarget.is::<HTMLBodyElement>() || eventtarget.is::<HTMLFrameSetElement>()
     }
 
     fn update_sequentially_focusable_status(&self) {
-        let element = ElementCast::from_ref(self);
-        let node = NodeCast::from_ref(self);
+        let element = self.upcast::<Element>();
+        let node = self.upcast::<Node>();
         if element.has_attribute(&atom!("tabindex")) {
             node.set_flag(SEQUENTIALLY_FOCUSABLE, true);
         } else {
@@ -117,7 +118,7 @@ impl HTMLElementMethods for HTMLElement {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
-            CSSStyleDeclaration::new(global.r(), ElementCast::from_ref(self), None, CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(global.r(), self.upcast::<Element>(), None, CSSModificationAccess::ReadWrite)
         })
     }
 
@@ -150,7 +151,7 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().GetOnload()
         } else {
-            let target = EventTargetCast::from_ref(self);
+            let target = self.upcast::<EventTarget>();
             target.get_event_handler_common("load")
         }
     }
@@ -161,41 +162,37 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().SetOnload(listener)
         } else {
-            let target = EventTargetCast::from_ref(self);
-            target.set_event_handler_common("load", listener)
+            self.upcast::<EventTarget>().set_event_handler_common("load", listener)
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        let maybe_input: Option<&HTMLInputElement> = HTMLInputElementCast::to_ref(self);
-        if let Some(i) = maybe_input {
+        if let Some(i) = self.downcast::<HTMLInputElement>() {
             if i.Disabled() {
                 return;
             }
         }
-        let element = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
-        element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
+        self.upcast::<Element>()
+            .as_maybe_activatable()
+            .map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
     fn Focus(&self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let element = ElementCast::from_ref(self);
         let document = document_from_node(self);
-        let document = document.r();
         document.begin_focus_transaction();
-        document.request_focus(element);
+        document.request_focus(self.upcast());
         document.commit_focus_transaction(FocusType::Element);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        let el = ElementCast::from_ref(self);
-        if !el.get_focus_state() {
+        if !self.upcast::<Element>().get_focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
@@ -207,11 +204,11 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
     fn GetOffsetParent(&self) -> Option<Root<Element>> {
-        if self.is_htmlbodyelement() || self.is_htmlhtmlelement() {
+        if self.is::<HTMLBodyElement>() || self.is::<HTMLHtmlElement>() {
             return None;
         }
 
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let window = window_from_node(self);
         let (element, _) = window.offset_parent_query(node.to_trusted_node_address());
 
@@ -220,11 +217,11 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
     fn OffsetTop(&self) -> i32 {
-        if self.is_htmlbodyelement() {
+        if self.is::<HTMLBodyElement>() {
             return 0;
         }
 
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
@@ -233,11 +230,11 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
     fn OffsetLeft(&self) -> i32 {
-        if self.is_htmlbodyelement() {
+        if self.is::<HTMLBodyElement>() {
             return 0;
         }
 
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
@@ -246,7 +243,7 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
     fn OffsetWidth(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
@@ -255,7 +252,7 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
     fn OffsetHeight(&self) -> i32 {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let window = window_from_node(self);
         let (_, rect) = window.offset_parent_query(node.to_trusted_node_address());
 
@@ -285,29 +282,25 @@ impl HTMLElement {
                .nth(1).map_or(false, |ch| ch >= 'a' && ch <= 'z') {
             return Err(Error::Syntax);
         }
-        let element = ElementCast::from_ref(self);
-        element.set_custom_attribute(to_snake_case(name), value)
+        self.upcast::<Element>().set_custom_attribute(to_snake_case(name), value)
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
-        element.get_attribute(&ns!(""), &local_name).map(|attr| {
+        self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
             (**attr.r().value()).to_owned()
         })
     }
 
     pub fn delete_custom_attr(&self, local_name: DOMString) {
-        let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
-        element.remove_attribute(&ns!(""), &local_name);
+        self.upcast::<Element>().remove_attribute(&ns!(""), &local_name);
     }
 }
 
 impl VirtualMethods for HTMLElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let element: &Element = ElementCast::from_ref(self);
-        Some(element as &VirtualMethods)
+        Some(self.upcast::<Element>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -318,7 +311,7 @@ impl VirtualMethods for HTMLElement {
                 let (cx, url, reflector) = (window.r().get_cx(),
                                             window.r().get_url(),
                                             window.r().reflector().get_jsobject());
-                let evtarget = EventTargetCast::from_ref(self);
+                let evtarget = self.upcast::<EventTarget>();
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
                                                       (**attr.value()).to_owned());

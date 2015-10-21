@@ -4,8 +4,8 @@
 
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -83,22 +83,21 @@ impl DocumentTypeMethods for DocumentType {
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).before(nodes)
+        self.upcast::<Node>().before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).after(nodes)
+        self.upcast::<Node>().after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).replace_with(nodes)
+        self.upcast::<Node>().replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = NodeCast::from_ref(self);
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 }

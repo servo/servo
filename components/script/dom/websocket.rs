@@ -6,9 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::InheritTypes::EventCast;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -456,7 +454,7 @@ impl Runnable for ConnectionEstablishedTask {
         let event = Event::new(global.r(), "open".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.fire(EventTargetCast::from_ref(ws.r()));
+        event.fire(ws.upcast());
     }
 }
 
@@ -498,8 +496,7 @@ impl Runnable for CloseTask {
                                    "error".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
-            let target = EventTargetCast::from_ref(ws);
-            event.r().fire(target);
+            event.fire(ws.upcast());
         }
         let rsn = ws.reason.borrow();
         let rsn_clone = rsn.clone();
@@ -513,9 +510,7 @@ impl Runnable for CloseTask {
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           rsn_clone);
-        let target = EventTargetCast::from_ref(ws);
-        let event = EventCast::from_ref(close_event.r());
-        event.fire(target);
+        close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
 
@@ -564,7 +559,6 @@ impl Runnable for MessageReceivedTask {
             },
         }
 
-        let target = EventTargetCast::from_ref(ws.r());
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+        MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
     }
 }
