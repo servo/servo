@@ -284,6 +284,40 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
+
+/* 
+ * https://html.spec.whatwg.org/#attr-data-*
+ * if this attribute is in snake case with a data- prefix,
+ * this function returns a name converted to camel case
+ */
+fn to_camel_case(name: DOMString) -> Option<DOMString> {
+    let has_uppercase = name.chars().fold(false, |exists_rest, curr_char| {
+        curr_char.is_uppercase() | exists_rest
+    });
+    if !name.starts_with("data-") || has_uppercase {
+        None
+    } else {
+        let mut result = "".to_owned();
+        let mut name_chars = name.chars();
+        //iterate through prefix "data-"
+        for _ in 0..5 {
+            let _ = name_chars.next();
+        }
+        while let Some(curr_char) = name_chars.next() {
+            if curr_char == '\x2d' {
+                let next_char_opt = name_chars.next();
+                match next_char_opt {
+                    Some(next_char) => result.extend(next_char.to_uppercase()),
+                    None => break,
+                }
+            } else {
+                result.push(curr_char);
+            }
+        }
+        Some(result)
+    }
+}
+
 impl HTMLElement {
     pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
@@ -307,6 +341,20 @@ impl HTMLElement {
         let element = ElementCast::from_ref(self);
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         element.remove_attribute(&ns!(""), &local_name);
+    }
+
+    pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
+        let element = ElementCast::from_ref(self);
+        element.attrs().iter().map(JS::root).map(|attr| {
+            let raw_name = (**attr.r().local_name()).to_owned();
+            to_camel_case(raw_name)
+        }).fold(Vec::new(), |mut acc, opt| {
+            match opt {
+                Some(name) => acc.push(name),
+                None => (),
+            }
+            acc
+        })
     }
 }
 
