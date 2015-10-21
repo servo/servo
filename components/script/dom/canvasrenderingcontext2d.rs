@@ -41,6 +41,7 @@ use std::cell::RefCell;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
+use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
 use util::str::DOMString;
 use util::vec::byte_swap;
@@ -887,13 +888,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let mut data = receiver.recv().unwrap();
 
         // Un-premultiply alpha
-        // TODO: may want a precomputed un-premultiply table to make this fast.
-        // https://github.com/servo/servo/issues/6969
         for chunk in data.chunks_mut(4) {
-             let alpha = chunk[3] as f32 / 255.;
-             chunk[0] = (chunk[0] as f32 / alpha) as u8;
-             chunk[1] = (chunk[1] as f32 / alpha) as u8;
-             chunk[2] = (chunk[2] as f32 / alpha) as u8;
+            let alpha = chunk[3] as usize;
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
         Ok(ImageData::new(self.global.root().r(), sw, sh, Some(data)))
