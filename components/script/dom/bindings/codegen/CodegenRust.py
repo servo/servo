@@ -1437,12 +1437,12 @@ class MethodDefiner(PropertyDefiner):
             # TODO: Use something like JS_FNSPEC
             # https://github.com/servo/servo/issues/6391
             if "selfHostedName" in m:
-                selfHostedName = '%s as *const u8 as *const i8' % str_to_const_array(m["selfHostedName"])
+                selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
                 accessor = "None"
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                selfHostedName = "0 as *const i8"
+                selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
                     jitinfo = "&%s_methodinfo" % identifier
@@ -1469,7 +1469,7 @@ class MethodDefiner(PropertyDefiner):
             '        call: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
             '        nargs: 0,\n'
             '        flags: 0,\n'
-            '        selfHostedName: 0 as *const i8\n'
+            '        selfHostedName: 0 as *const libc::c_char\n'
             '    }',
             'JSFunctionSpec',
             specData)
