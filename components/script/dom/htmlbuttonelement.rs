@@ -28,10 +28,10 @@ use util::str::DOMString;
 #[allow(dead_code)]
 #[derive(HeapSizeOf)]
 enum ButtonType {
-    ButtonSubmit,
-    ButtonReset,
-    ButtonButton,
-    ButtonMenu
+    Submit,
+    Reset,
+    Button,
+    Menu
 }
 
 #[dom_struct]
@@ -49,7 +49,7 @@ impl HTMLButtonElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             //TODO: implement button_type in attribute_mutated
-            button_type: Cell::new(ButtonType::ButtonSubmit)
+            button_type: Cell::new(ButtonType::Submit)
         }
     }
 
@@ -212,7 +212,7 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
-            ButtonType::ButtonSubmit => {
+            ButtonType::Submit => {
                 self.form_owner().map(|o| {
                     o.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
                                  FormSubmitter::ButtonElement(self.clone()))
