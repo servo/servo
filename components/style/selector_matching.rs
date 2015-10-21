@@ -6,11 +6,13 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use restyle_hints::{RestyleHint, StateDependencySet};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::PseudoElement;
+use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
 use style_traits::viewport::ViewportConstraints;
@@ -41,6 +43,9 @@ pub struct Stylist {
     before_map: PerPseudoElementSelectorMap,
     after_map: PerPseudoElementSelectorMap,
     rules_source_order: usize,
+
+    // Selector state dependencies used to compute restyle hints.
+    state_deps: StateDependencySet,
 }
 
 impl Stylist {
@@ -55,6 +60,7 @@ impl Stylist {
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0,
+            state_deps: StateDependencySet::new(),
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
@@ -102,6 +108,7 @@ impl Stylist {
             self.before_map = PerPseudoElementSelectorMap::new();
             self.after_map = PerPseudoElementSelectorMap::new();
             self.rules_source_order = 0;
+            self.state_deps.clear();
 
             for stylesheet in &self.stylesheets {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
@@ -151,6 +158,9 @@ impl Stylist {
                     append!(style_rule, normal);
                     append!(style_rule, important);
                     rules_source_order += 1;
+                    for selector in &style_rule.selectors {
+                        self.state_deps.note_selector(selector.compound_selectors.clone());
+                    }
                 }
                 self.rules_source_order = rules_source_order;
             }
@@ -160,6 +170,14 @@ impl Stylist {
         }
 
         false
+    }
+
+    pub fn restyle_hint_for_state_change<E>(&self, element: &E,
+                                            current_state: ElementState,
+                                            state_change: ElementState)
+                                            -> RestyleHint
+                                            where E: Element + Clone {
+        self.state_deps.compute_hint(element, current_state, state_change)
     }
 
     pub fn set_device(&mut self, device: Device) {
