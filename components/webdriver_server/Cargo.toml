@@ -27,7 +27,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-image = "0.3.14"
+image = "0.4.0"
 log = "0.3"
 hyper = "0.6"
 rustc-serialize = "0.3.4"

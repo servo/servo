@@ -15,7 +15,7 @@ dependencies = [
  "gfx_tests 0.0.1",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
- "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout 0.0.1",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -260,7 +260,7 @@ dependencies = [
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "layout_traits 0.0.1",
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.3.14"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1224,7 +1224,7 @@ version = "0.0.1"
 dependencies = [
  "euclid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -1996,7 +1996,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "hyper 0.6.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
