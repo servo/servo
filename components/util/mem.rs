@@ -26,6 +26,7 @@ use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
+use selectors::event_state::EventState;
 use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
@@ -417,4 +418,4 @@ known_heap_size!(0, Au, WritingMode, CSSParserColor, Color, RGBA, Cursor, Matrix
 known_heap_size!(0, JSVal, PagePx, ViewportPx, DevicePixel, QuirksMode, OsRng, RawStatus);
 known_heap_size!(0, TokenSerializationType, LengthOrPercentageOrAuto);
 
-known_heap_size!(0, PseudoElement, Combinator, str);
+known_heap_size!(0, EventState, Combinator, PseudoElement, str);

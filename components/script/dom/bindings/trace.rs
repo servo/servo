@@ -60,6 +60,7 @@ use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
 use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
+use selectors::event_state::*;
 use selectors::parser::PseudoElement;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -306,6 +307,7 @@ no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
+no_jsmanaged_fields!(EventState);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

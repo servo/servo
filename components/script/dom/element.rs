@@ -26,6 +26,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::characterdata::CharacterData;
@@ -62,6 +63,7 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
+use selectors::event_state::*;
 use selectors::matching::{DeclarationBlock, matches};
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -80,35 +82,12 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use url::UrlParser;
+use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
-bitflags! {
-    #[doc = "Element Event States."]
-    #[derive(JSTraceable, HeapSizeOf)]
-    flags EventState: u16 {
-        #[doc = "The mouse is down on this element. \
-                 (https://html.spec.whatwg.org/multipage/#selector-active). \
-                 FIXME(#7333): set/unset this when appropriate"]
-        const IN_ACTIVE_STATE = 0x01,
-        #[doc = "This element has focus.
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-focus"]
-        const IN_FOCUS_STATE = 0x02,
-        #[doc = "The mouse is hovering over this element. \
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-hover"]
-        const IN_HOVER_STATE = 0x04,
-        #[doc = "Content is enabled (and can be disabled). \
-                 http://www.whatwg.org/html/#selector-enabled"]
-        const IN_ENABLED_STATE = 0x08,
-        #[doc = "Content is disabled. \
-                 http://www.whatwg.org/html/#selector-disabled"]
-        const IN_DISABLED_STATE = 0x10,
-        #[doc = "Content is checked. \
-                 https://html.spec.whatwg.org/multipage/scripting.html#selector-checked"]
-        const IN_CHECKED_STATE = 0x20,
-        #[doc = "https://html.spec.whatwg.org/multipage/scripting.html#selector-indeterminate"]
-        const IN_INDETERMINATE_STATE = 0x40,
-    }
-}
+// TODO: Update focus state when the top-level browsing context gains or loses system focus,
+// and when the element enters or leaves a browsing context container.
+// https://html.spec.whatwg.org/multipage/#selector-focus
 
 #[dom_struct]
 pub struct Element {
@@ -1652,42 +1631,11 @@ impl<'a> ::selectors::Element for Root<Element> {
     fn get_namespace(&self) -> &Namespace {
         self.namespace()
     }
-
-    fn get_hover_state(&self) -> bool {
-        Element::get_hover_state(self)
+    fn get_state(&self) -> EventState {
+        Element::get_state(self)
     }
-
-    fn get_active_state(&self) -> bool {
-        Element::get_active_state(self)
-    }
-
-    fn get_focus_state(&self) -> bool {
-        // TODO: Also check whether the top-level browsing context has the system focus,
-        // and whether this element is a browsing context container.
-        // https://html.spec.whatwg.org/multipage/#selector-focus
-        Element::get_focus_state(self)
-    }
-
     fn get_id(&self) -> Option<Atom> {
         self.id_attribute.borrow().clone()
-    }
-    fn get_disabled_state(&self) -> bool {
-        Element::get_disabled_state(self)
-    }
-    fn get_enabled_state(&self) -> bool {
-        Element::get_enabled_state(self)
-    }
-    fn get_checked_state(&self) -> bool {
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => input.Checked(),
-            None => false,
-        }
-    }
-    fn get_indeterminate_state(&self) -> bool {
-        match self.downcast::<HTMLInputElement>() {
-            Some(input) => input.get_indeterminate_state(),
-            None => false,
-        }
     }
     fn has_class(&self, name: &Atom) -> bool {
         Element::has_class(&**self, name)
