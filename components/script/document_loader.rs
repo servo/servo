@@ -78,6 +78,7 @@ impl DocumentLoader {
         pending.load_async(listener)
     }
 
+
     /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: LoadType) {
         let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == load);
