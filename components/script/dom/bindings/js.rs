@@ -225,7 +225,7 @@ impl MutHeapJSVal {
         }
     }
 
-    /// Set the value in this `MutHeapJSVal`, calling read barriers as appropriate.
+    /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
     pub fn get(&self) -> JSVal {
         unsafe { (*self.val.get()).get() }
     }
@@ -258,7 +258,7 @@ impl<T: Reflectable> MutHeap<JS<T>> {
         }
     }
 
-    /// Set the value in this `MutHeap`.
+    /// Get the value in this `MutHeap`.
     pub fn get(&self) -> Root<T> {
         unsafe {
             ptr::read(self.val.get()).root()
