@@ -251,6 +251,11 @@ impl<T: Reflectable> MutHeap<JS<T>> {
             ptr::read(self.val.get()).root()
         }
     }
+
+    /// Compare this object to an `&T` value.
+    fn eq(&self, other: &T) -> bool {
+        self.get() == Root::from_ref(other)
+    }
 }
 
 impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
@@ -325,6 +330,11 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
             *self.ptr.get() = val.map(|p| JS::from_ref(p));
         }
     }
+
+    /// Compare this object to an `Option<&T>` value.
+    fn equal(&self, other: Option<&T>) -> bool {
+        self.get() == other.map(|p| Root::from_ref(p))
+    }
 }
 
 impl<T: HeapGCValue> Default for MutNullableHeap<T> {
@@ -344,7 +354,7 @@ impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
 }
 
 impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
-   fn eq(&self, other: &Self>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.get().eq(&other.get())
     }
 }
