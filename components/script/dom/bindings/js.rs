@@ -261,7 +261,7 @@ impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
 }
 
 impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
-   fn eq(&self, other: &MutHeap<JS<T>>) -> bool {
+   fn eq(&self, other: &Self) -> bool {
         self.get().eq(&other.get())
     }
 }
@@ -344,7 +344,7 @@ impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
 }
 
 impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
-   fn eq(&self, other: &MutNullableHeap<JS<T>>) -> bool {
+   fn eq(&self, other: &Self>) -> bool {
         self.get().eq(&other.get())
     }
 }
