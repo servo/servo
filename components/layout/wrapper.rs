@@ -55,6 +55,7 @@ use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEl
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
+use selectors::event_state::*;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
@@ -461,18 +462,8 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
     }
 
     #[inline]
-    fn get_hover_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
-    }
-
-    #[inline]
-    fn get_focus_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
-    }
-
-    #[inline]
-    fn get_active_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
+    fn get_state(&self) -> EventState {
+        self.element.get_event_state_for_layout()
     }
 
     #[inline]
@@ -480,26 +471,6 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         unsafe {
             (*self.element.id_attribute()).clone()
         }
-    }
-
-    #[inline]
-    fn get_disabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
-    }
-
-    #[inline]
-    fn get_enabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
-    }
-
-    #[inline]
-    fn get_checked_state(&self) -> bool {
-        self.element.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    fn get_indeterminate_state(&self) -> bool {
-        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]

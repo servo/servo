@@ -26,6 +26,7 @@ use libc::{c_void, size_t};
 use logical_geometry::WritingMode;
 use rand::OsRng;
 use range::Range;
+use selectors::event_state::EventState;
 use selectors::parser::{Combinator, CompoundSelector, PseudoElement, Selector, SimpleSelector};
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, LinkedList, hash_state};
@@ -319,6 +320,12 @@ impl<T: HeapSizeOf, U: HeapSizeOf> HeapSizeOf for Result<T, U> {
 }
 
 impl HeapSizeOf for () {
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+impl HeapSizeOf for EventState {
     fn heap_size_of_children(&self) -> usize {
         0
     }

@@ -81,6 +81,7 @@ use net_traits::{AsyncResponseTarget, Metadata, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
+use selectors::event_state::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
