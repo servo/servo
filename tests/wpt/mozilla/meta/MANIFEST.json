@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/data_img_a.html": [
+          {
+            "path": "css/data_img_a.html",
+            "references": [
+              [
+                "/_mozilla/css/data_img_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/data_img_a.html"
+          }
+        ],
         "css/filter_inline_a.html": [
           {
             "path": "css/filter_inline_a.html",
@@ -4990,6 +5002,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/data_img_a.html": [
+        {
+          "path": "css/data_img_a.html",
+          "references": [
+            [
+              "/_mozilla/css/data_img_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/data_img_a.html"
         }
       ],
       "css/filter_inline_a.html": [

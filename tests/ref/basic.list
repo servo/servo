@@ -38,7 +38,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == clip_a.html clip_ref.html
 == counters_nested_a.html counters_nested_ref.html
 == counters_simple_a.html counters_simple_ref.html
-== data_img_a.html data_img_b.html
 == empty_cells_a.html empty_cells_ref.html
 == external_media_query_link.html external_media_query_ref.html
 == external_media_query_style.html external_media_query_ref.html
