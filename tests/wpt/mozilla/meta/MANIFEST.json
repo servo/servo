@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/box_sizing_sanity_check_a.html"
           }
         ],
+        "css/calc-basic.html": [
+          {
+            "path": "css/calc-basic.html",
+            "references": [
+              [
+                "/_mozilla/css/calc-basic-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/calc-basic.html"
+          }
+        ],
         "css/canvas_linear_gradient_a.html": [
           {
             "path": "css/canvas_linear_gradient_a.html",
@@ -5098,6 +5110,18 @@
             ]
           ],
           "url": "/_mozilla/css/box_sizing_sanity_check_a.html"
+        }
+      ],
+      "css/calc-basic.html": [
+        {
+          "path": "css/calc-basic.html",
+          "references": [
+            [
+              "/_mozilla/css/calc-basic-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/calc-basic.html"
         }
       ],
       "css/canvas_linear_gradient_a.html": [
