@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/focus_selector.html": [
+          {
+            "path": "css/focus_selector.html",
+            "references": [
+              [
+                "/_mozilla/css/focus_selector_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/focus_selector.html"
+          }
+        ],
         "css/font_advance.html": [
           {
             "path": "css/font_advance.html",
@@ -4798,6 +4810,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/focus_selector.html": [
+        {
+          "path": "css/focus_selector.html",
+          "references": [
+            [
+              "/_mozilla/css/focus_selector_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/focus_selector.html"
         }
       ],
       "css/font_advance.html": [
