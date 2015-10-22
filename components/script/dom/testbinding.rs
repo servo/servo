@@ -6,14 +6,8 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::TestBindingMethods;
-use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
-use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum::_empty;
-use dom::bindings::codegen::UnionTypes::BlobOrString;
-use dom::bindings::codegen::UnionTypes::EventOrString;
-use dom::bindings::codegen::UnionTypes::EventOrString::eString;
-use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
-use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
+use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestEnum};
+use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString, HTMLElementOrLong};
 use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -65,15 +59,15 @@ impl TestBindingMethods for TestBinding {
     fn SetUsvstringAttribute(&self, _: USVString) {}
     fn ByteStringAttribute(&self) -> ByteString { ByteString::new(vec!()) }
     fn SetByteStringAttribute(&self, _: ByteString) {}
-    fn EnumAttribute(&self) -> TestEnum { _empty }
+    fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
         Blob::new(global_root_from_reflector(self).r(), None, "")
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
-    fn UnionAttribute(&self) -> HTMLElementOrLong { eLong(0) }
+    fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
-    fn Union2Attribute(&self) -> EventOrString { eString("".to_owned()) }
+    fn Union2Attribute(&self) -> EventOrString { EventOrString::eString("".to_owned()) }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
@@ -120,16 +114,20 @@ impl TestBindingMethods for TestBinding {
     fn BinaryRenamedAttribute2(&self) -> DOMString { "".to_owned() }
     fn Attr_to_automatically_rename(&self) -> DOMString { "".to_owned() }
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
-    fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
+    fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
         Some(Blob::new(global_root_from_reflector(self).r(), None, ""))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
-    fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
+    fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
+        Some(HTMLElementOrLong::eLong(0))
+    }
     fn SetUnionAttributeNullable(&self, _: Option<HTMLElementOrLong>) {}
-    fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> { Some(eString("".to_owned())) }
+    fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> {
+        Some(EventOrString::eString("".to_owned()))
+    }
     fn SetUnion2AttributeNullable(&self, _: Option<EventOrString>) {}
     fn BinaryRenamedMethod(&self) -> () {}
     fn ReceiveVoid(&self) -> () {}
@@ -149,14 +147,14 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveString(&self) -> DOMString { "".to_owned() }
     fn ReceiveUsvstring(&self) -> USVString { USVString("".to_owned()) }
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
-    fn ReceiveEnum(&self) -> TestEnum { _empty }
+    fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
         Blob::new(global_root_from_reflector(self).r(), None, "")
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
-    fn ReceiveUnion(&self) -> HTMLElementOrLong { eLong(0) }
-    fn ReceiveUnion2(&self) -> EventOrString { eString("".to_owned()) }
+    fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::eLong(0) }
+    fn ReceiveUnion2(&self) -> EventOrString { EventOrString::eString("".to_owned()) }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
@@ -174,13 +172,17 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableString(&self) -> Option<DOMString> { Some("".to_owned()) }
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
-    fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
+    fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
         Some(Blob::new(global_root_from_reflector(self).r(), None, ""))
     }
     fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
-    fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
-    fn ReceiveNullableUnion2(&self) -> Option<EventOrString> { Some(eString("".to_owned())) }
+    fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
+        Some(HTMLElementOrLong::eLong(0))
+    }
+    fn ReceiveNullableUnion2(&self) -> Option<EventOrString> {
+        Some(EventOrString::eString("".to_owned()))
+    }
 
     fn PassBoolean(&self, _: bool) {}
     fn PassByte(&self, _: i8) {}
