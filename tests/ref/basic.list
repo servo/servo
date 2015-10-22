@@ -68,7 +68,6 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == font_color_attribute_a.html font_color_attribute_ref.html
 == font_face_attribute.html font_face_attribute_ref.html
 == font_size.html font_size_ref.html
-== font_style.html font_style_ref.html
 == height_compute_reset.html height_compute.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 == hide_after_create.html hide_after_create_ref.html

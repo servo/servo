@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/font_style.html": [
+          {
+            "path": "css/font_style.html",
+            "references": [
+              [
+                "/_mozilla/css/font_style_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/font_style.html"
+          }
+        ],
         "css/img_block_display_a.html": [
           {
             "path": "css/img_block_display_a.html",
@@ -4762,6 +4774,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/font_style.html": [
+        {
+          "path": "css/font_style.html",
+          "references": [
+            [
+              "/_mozilla/css/font_style_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/font_style.html"
         }
       ],
       "css/img_block_display_a.html": [
