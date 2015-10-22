@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/img_block_display_a.html": [
+          {
+            "path": "css/img_block_display_a.html",
+            "references": [
+              [
+                "/_mozilla/css/img_block_display_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_block_display_a.html"
+          }
+        ],
         "css/img_dynamic_remove.html": [
           {
             "path": "css/img_dynamic_remove.html",
@@ -4762,6 +4774,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/img_block_display_a.html": [
+        {
+          "path": "css/img_block_display_a.html",
+          "references": [
+            [
+              "/_mozilla/css/img_block_display_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_block_display_a.html"
         }
       ],
       "css/img_dynamic_remove.html": [
