@@ -99,7 +99,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == img_block_display_a.html img_block_display_ref.html
 == img_block_maxwidth_a.html img_block_maxwidth_ref.html
 == img_block_maxwidth_b.html img_block_maxwidth_ref.html
-== img_dynamic_remove.html img_dynamic_remove_ref.html
 != img_simple.html img_simple_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_margin_auto_a.html inline_block_margin_auto_ref.html

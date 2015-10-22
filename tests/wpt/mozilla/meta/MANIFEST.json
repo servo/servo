@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/img_dynamic_remove.html": [
+          {
+            "path": "css/img_dynamic_remove.html",
+            "references": [
+              [
+                "/_mozilla/css/img_dynamic_remove_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_dynamic_remove.html"
+          }
+        ],
         "css/img_padding_a.html": [
           {
             "path": "css/img_padding_a.html",
@@ -4750,6 +4762,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/img_dynamic_remove.html": [
+        {
+          "path": "css/img_dynamic_remove.html",
+          "references": [
+            [
+              "/_mozilla/css/img_dynamic_remove_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_dynamic_remove.html"
         }
       ],
       "css/img_padding_a.html": [
