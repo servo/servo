@@ -959,6 +959,18 @@
             "url": "/_mozilla/css/inline_block_border_a.html"
           }
         ],
+        "css/inline_block_border_intrinsic_size_a.html": [
+          {
+            "path": "css/inline_block_border_intrinsic_size_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_border_intrinsic_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_border_intrinsic_size_a.html"
+          }
+        ],
         "css/inline_block_img_a.html": [
           {
             "path": "css/inline_block_img_a.html",
@@ -4894,6 +4906,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_border_a.html"
+        }
+      ],
+      "css/inline_block_border_intrinsic_size_a.html": [
+        {
+          "path": "css/inline_block_border_intrinsic_size_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_border_intrinsic_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_border_intrinsic_size_a.html"
         }
       ],
       "css/inline_block_img_a.html": [
