@@ -935,8 +935,8 @@ impl ScriptTask {
                 self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
-            ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
-                self.handle_reflow_complete_msg(id, reflow_id),
+            ConstellationControlMsg::ReflowComplete(_id, _reflow_id) =>
+                (),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::Viewport(..) =>
@@ -1381,21 +1381,6 @@ impl ScriptTask {
         });
 
         frame_element.r().unwrap().update_subpage_id(new_subpage_id);
-    }
-
-    /// Handles a notification that reflow completed.
-    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: u32) {
-        debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
-        let page = self.root_page();
-        match page.find(pipeline_id) {
-            Some(page) => {
-                let window = page.window();
-                window.r().handle_reflow_complete_msg(reflow_id);
-            }
-            None => {
-                assert!(self.closed_pipelines.borrow().contains(&pipeline_id));
-            }
-        }
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet

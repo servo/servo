@@ -1046,13 +1046,6 @@ impl Window {
         (element, response.rect)
     }
 
-    pub fn handle_reflow_complete_msg(&self, reflow_id: u32) {
-        let last_reflow_id = self.last_reflow_id.get();
-        if last_reflow_id == reflow_id {
-            *self.layout_join_port.borrow_mut() = None;
-        }
-    }
-
     pub fn init_browsing_context(&self, doc: &Document, frame_element: Option<&Element>) {
         let mut browsing_context = self.browsing_context.borrow_mut();
         *browsing_context = Some(BrowsingContext::new(doc, frame_element));
