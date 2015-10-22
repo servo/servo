@@ -839,6 +839,18 @@
             "url": "/_mozilla/css/float_intrinsic_width_a.html"
           }
         ],
+        "css/float_right_intrinsic_width_a.html": [
+          {
+            "path": "css/float_right_intrinsic_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/float_right_intrinsic_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_right_intrinsic_width_a.html"
+          }
+        ],
         "css/float_table_a.html": [
           {
             "path": "css/float_table_a.html",
@@ -4930,6 +4942,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_intrinsic_width_a.html"
+        }
+      ],
+      "css/float_right_intrinsic_width_a.html": [
+        {
+          "path": "css/float_right_intrinsic_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/float_right_intrinsic_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_right_intrinsic_width_a.html"
         }
       ],
       "css/float_table_a.html": [
