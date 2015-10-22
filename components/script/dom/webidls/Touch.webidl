@@ -12,8 +12,8 @@ interface Touch {
     readonly    attribute double      screenY;
     readonly    attribute double      clientX;
     readonly    attribute double      clientY;
-    // readonly    attribute double      pageX;
-    // readonly    attribute double      pageY;
+    readonly    attribute double      pageX;
+    readonly    attribute double      pageY;
     // readonly    attribute float       radiusX;
     // readonly    attribute float       radiusY;
     // readonly    attribute float       rotationAngle;

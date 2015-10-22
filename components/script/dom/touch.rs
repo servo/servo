@@ -20,12 +20,15 @@ pub struct Touch {
     screen_y: f64,
     client_x: f64,
     client_y: f64,
+    page_x: f64,
+    page_y: f64,
 }
 
 impl Touch {
     fn new_inherited(identifier: i32, target: &EventTarget,
                      screen_x: Finite<f64>, screen_y: Finite<f64>,
-                     client_x: Finite<f64>, client_y: Finite<f64>) -> Touch {
+                     client_x: Finite<f64>, client_y: Finite<f64>,
+                     page_x: Finite<f64>, page_y: Finite<f64>) -> Touch {
         Touch {
             reflector_: Reflector::new(),
             identifier: identifier,
@@ -34,15 +37,19 @@ impl Touch {
             screen_y: *screen_y,
             client_x: *client_x,
             client_y: *client_y,
+            page_x: *page_x,
+            page_y: *page_y,
         }
     }
 
     pub fn new(window: &Window, identifier: i32, target: &EventTarget,
               screen_x: Finite<f64>, screen_y: Finite<f64>,
-              client_x: Finite<f64>, client_y: Finite<f64>) -> Root<Touch> {
+              client_x: Finite<f64>, client_y: Finite<f64>,
+              page_x: Finite<f64>, page_y: Finite<f64>) -> Root<Touch> {
         reflect_dom_object(box Touch::new_inherited(identifier, target,
                                                     screen_x, screen_y,
-                                                    client_x, client_y),
+                                                    client_x, client_y,
+                                                    page_x, page_y),
                            GlobalRef::Window(window), TouchBinding::Wrap)
     }
 }
@@ -76,5 +83,15 @@ impl TouchMethods for Touch {
     /// https://w3c.github.io/touch-events/#widl-Touch-clientY
     fn ClientY(&self) -> Finite<f64> {
         Finite::wrap(self.client_y)
+    }
+
+    /// https://w3c.github.io/touch-events/#widl-Touch-clientX
+    fn PageX(&self) -> Finite<f64> {
+        Finite::wrap(self.page_x)
+    }
+
+    /// https://w3c.github.io/touch-events/#widl-Touch-clientY
+    fn PageY(&self) -> Finite<f64> {
+        Finite::wrap(self.page_y)
     }
 }
