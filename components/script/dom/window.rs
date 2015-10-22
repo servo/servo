@@ -946,7 +946,24 @@ impl Window {
 
         debug!("script: layout forked");
 
-        self.join_layout();
+        // FIXME(cgaebel): this is racey. What if the compositor triggers a
+        // reflow between the "join complete" message and returning from this
+        // function?
+        let mut layout_join_port = self.layout_join_port.borrow_mut();
+        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
+            match join_port.try_recv() {
+                Err(Empty) => {
+                    info!("script: waiting on layout");
+                    join_port.recv().unwrap();
+                }
+                Ok(_) => {}
+                Err(Disconnected) => {
+                    panic!("Layout task failed while script was waiting for a result.");
+                }
+            }
+
+            debug!("script: layout joined")
+        }
 
         self.pending_reflow_count.set(0);
 
@@ -975,30 +992,6 @@ impl Window {
         }
 
         self.force_reflow(goal, query_type, reason)
-    }
-
-    // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
-    // reflow between the "join complete" message and returning from this
-    // function?
-
-    /// Sends a ping to layout and waits for the response. The response will arrive when the
-    /// layout task has finished any pending request messages.
-    pub fn join_layout(&self) {
-        let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
-            match join_port.try_recv() {
-                Err(Empty) => {
-                    info!("script: waiting on layout");
-                    join_port.recv().unwrap();
-                }
-                Ok(_) => {}
-                Err(Disconnected) => {
-                    panic!("Layout task failed while script was waiting for a result.");
-                }
-            }
-
-            debug!("script: layout joined")
-        }
     }
 
     pub fn layout(&self) -> &LayoutRPC {
