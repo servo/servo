@@ -7,12 +7,10 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
@@ -54,25 +52,19 @@ impl HTMLTableElement {
 impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
-        let node = NodeCast::from_ref(self);
-        node.children()
-            .filter_map(|c| {
-                HTMLTableCaptionElementCast::to_ref(c.r()).map(Root::from_ref)
-            })
-            .next()
+        self.upcast::<Node>().children().filter_map(Root::downcast).next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) {
-        let node = NodeCast::from_ref(self);
-
         if let Some(ref caption) = self.GetCaption() {
-            NodeCast::from_ref(caption.r()).remove_self();
+            caption.upcast::<Node>().remove_self();
         }
 
         if let Some(caption) = new_caption {
-            assert!(node.InsertBefore(NodeCast::from_ref(caption),
-                                      node.GetFirstChild().as_ref().map(|n| n.r())).is_ok());
+            let node = self.upcast::<Node>();
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().r())
+                .expect("Insertion failed");
         }
     }
 
@@ -88,13 +80,13 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 caption
             }
         };
-        HTMLElementCast::from_root(caption)
+        Root::upcast(caption)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
     fn DeleteCaption(&self) {
         if let Some(caption) = self.GetCaption() {
-            NodeCast::from_ref(caption.r()).remove_self();
+            caption.upcast::<Node>().remove_self();
         }
     }
 
@@ -103,16 +95,16 @@ impl HTMLTableElementMethods for HTMLTableElement {
         let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
                                                  None,
                                                  document_from_node(self).r());
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         let last_tbody =
             node.rev_children()
-                .filter_map(ElementCast::to_root)
-                .find(|n| n.is_htmltablesectionelement() && n.local_name() == &atom!("tbody"));
+                .filter_map(Root::downcast::<Element>)
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody"));
         let reference_element =
-            last_tbody.and_then(|t| NodeCast::from_root(t).GetNextSibling());
+            last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        assert!(node.InsertBefore(NodeCast::from_ref(tbody.r()),
-                                  reference_element.r()).is_ok());
+        node.InsertBefore(tbody.upcast(), reference_element.r())
+            .expect("Insertion failed");
         tbody
     }
 
@@ -144,8 +136,7 @@ impl HTMLTableElement {
 
 impl VirtualMethods for HTMLTableElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -4,13 +4,13 @@
 
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
@@ -192,7 +192,6 @@ impl MainThreadRunnable for StorageEventRunnable {
             ev_url.to_string(),
             Some(storage)
         );
-        let event = EventCast::from_ref(storage_event.r());
 
         let root_page = script_task.root_page();
         for it_page in root_page.iter() {
@@ -202,8 +201,7 @@ impl MainThreadRunnable for StorageEventRunnable {
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
             if ev_window.pipeline() != it_window.pipeline() {
-                let target = EventTargetCast::from_ref(it_window);
-                event.fire(target);
+                storage_event.upcast::<Event>().fire(it_window.upcast());
             }
         }
     }

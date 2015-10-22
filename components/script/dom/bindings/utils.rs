@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::TopTypeId;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
-use dom::bindings::conversions::private_from_proto_chain;
+use dom::bindings::conversions::private_from_proto_check;
 use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
@@ -755,7 +755,10 @@ unsafe fn generic_call(cx: *mut JSContext, argc: libc::c_uint, vp: *mut JSVal,
     let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
     let proto_id = (*info).protoID;
     let depth = (*info).depth;
-    let this = match private_from_proto_chain(obj.ptr, proto_id, depth) {
+    let proto_check = |class: &'static DOMClass| {
+        class.interface_chain[depth as usize] as u16 == proto_id
+    };
+    let this = match private_from_proto_check(obj.ptr, proto_check) {
         Ok(val) => val,
         Err(()) => {
             if is_lenient {

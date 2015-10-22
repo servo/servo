@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
@@ -28,7 +28,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{TrustedNodeAddress, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -52,9 +52,9 @@ use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_task::{MainThreadScriptChan, SendableMainThreadScriptChan};
-use script_task::{MainThreadScriptMsg, ScriptChan, ScriptPort, TimerSource};
-use script_traits::ConstellationControlMsg;
+use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
+use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -70,7 +70,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use time;
-use timers::{IsInterval, TimerCallback, TimerId, TimerManager};
+use timers::{ActiveTimers, IsInterval, TimerCallback};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -129,7 +129,9 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
-    timers: TimerManager,
+    #[ignore_heap_size_of = "channels are hard"]
+    scheduler_chan: Sender<TimerEventRequest>,
+    timers: ActiveTimers,
 
     next_worker_id: Cell<WorkerId>,
 
@@ -425,8 +427,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
@@ -435,8 +436,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-cleartimeout
@@ -450,8 +450,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
@@ -460,8 +459,7 @@ impl WindowMethods for Window {
                                             args,
                                             timeout,
                                             IsInterval::Interval,
-                                            TimerSource::FromWindow(self.id.clone()),
-                                            self.script_chan.clone())
+                                            TimerSource::FromWindow(self.id.clone()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-clearinterval
@@ -793,8 +791,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
 
 impl Window {
     pub fn clear_js_runtime(&self) {
-        let document = self.Document();
-        NodeCast::from_ref(document.r()).teardown();
+        self.Document().upcast::<Node>().teardown();
 
         // The above code may not catch all DOM objects
         // (e.g. DOM objects removed from the tree that haven't
@@ -835,9 +832,7 @@ impl Window {
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let node = NodeCast::from_ref(e.r());
-                let content_size = node.get_bounding_content_box();
-
+                let content_size = e.upcast::<Node>().get_bounding_content_box();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
                 (xfinite.max(0.0f64).min(content_width - width),
@@ -901,7 +896,7 @@ impl Window {
             Some(root) => root,
             None => return,
         };
-        let root = NodeCast::from_ref(root);
+        let root = root.upcast::<Node>();
 
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
@@ -973,7 +968,7 @@ impl Window {
             None => return,
         };
 
-        let root = NodeCast::from_ref(root);
+        let root = root.upcast::<Node>();
         if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
             debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
             return
@@ -1055,7 +1050,7 @@ impl Window {
         let js_runtime = js_runtime.as_ref().unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = from_untrusted_node_address(js_runtime.rt(), parent_node_address);
-            ElementCast::to_root(node)
+            Root::downcast(node)
         });
         (element, response.rect)
     }
@@ -1079,7 +1074,7 @@ impl Window {
             MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
     }
 
-    pub fn handle_fire_timer(&self, timer_id: TimerId) {
+    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
         self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
     }
@@ -1123,6 +1118,10 @@ impl Window {
 
     pub fn constellation_chan(&self) -> ConstellationChan {
         self.constellation_chan.clone()
+    }
+
+    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+        self.scheduler_chan.clone()
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -1270,6 +1269,8 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
+               scheduler_chan: Sender<TimerEventRequest>,
+               timer_event_chan: MainThreadTimerEventChan,
                layout_chan: LayoutChan,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
@@ -1302,7 +1303,8 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
-            timers: TimerManager::new(),
+            scheduler_chan: scheduler_chan.clone(),
+            timers: ActiveTimers::new(box timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,

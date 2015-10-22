@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
@@ -287,7 +287,7 @@ impl Attr {
         assert!(Some(owner) == self.owner().r());
         mem::swap(&mut *self.value.borrow_mut(), &mut value);
         if self.namespace == ns!("") {
-            vtable_for(NodeCast::from_ref(owner)).attribute_mutated(
+            vtable_for(owner.upcast()).attribute_mutated(
                 self, AttributeMutation::Set(Some(&value)));
         }
     }

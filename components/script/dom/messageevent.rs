@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -51,7 +51,7 @@ impl MessageEvent {
                -> Root<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
-            let event = EventCast::from_ref(ev.r());
+            let event = ev.upcast::<Event>();
             event.InitEvent(type_, bubbles, cancelable);
         }
         ev
@@ -78,8 +78,7 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned());
-        let event = EventCast::from_ref(messageevent.r());
-        event.fire(target);
+        messageevent.upcast::<Event>().fire(target);
     }
 }
 

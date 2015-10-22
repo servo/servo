@@ -41,6 +41,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptState, ScriptTaskFactory};
+use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -49,6 +50,7 @@ use std::mem::replace;
 use std::process;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
+use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
@@ -135,6 +137,8 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    scheduler_chan: Sender<TimerEventRequest>,
 }
 
 /// State needed to construct a constellation.
@@ -280,6 +284,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
+                scheduler_chan: TimerScheduler::start(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -317,6 +322,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 id: pipeline_id,
                 parent_info: parent_info,
                 constellation_chan: self.chan.clone(),
+                scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
                 image_cache_task: self.image_cache_task.clone(),

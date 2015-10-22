@@ -37,6 +37,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use encoding::types::EncodingRef;
+use euclid::length::Length as EuclidLength;
 use euclid::matrix2d::Matrix2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -58,7 +59,7 @@ use net_traits::storage_task::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
-use script_traits::UntrustedNodeAddress;
+use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -283,6 +284,7 @@ no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
+no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
 no_jsmanaged_fields!(Runtime);
@@ -293,6 +295,7 @@ no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
+no_jsmanaged_fields!(EuclidLength<Unit, T>);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
@@ -305,6 +308,13 @@ no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
 
 impl JSTraceable for Box<ScriptChan + Send> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Box<TimerEventChan + Send> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

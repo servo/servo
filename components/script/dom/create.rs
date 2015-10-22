@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
@@ -90,11 +89,11 @@ pub fn create_element(name: QualName, prefix: Option<Atom>,
     macro_rules! make(
         ($ctor:ident) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document);
-            ElementCast::from_root(obj)
+            Root::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
             let obj = $ctor::new((*name.local).to_owned(), prefix, document, $($arg),+);
-            ElementCast::from_root(obj)
+            Root::upcast(obj)
         })
     );
 

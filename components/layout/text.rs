@@ -431,9 +431,19 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
 
             string_before =
                 unscanned_text_fragment_info.text[..(position + 1)].to_owned();
-            insertion_point_before = unscanned_text_fragment_info.insertion_point;
             unscanned_text_fragment_info.text =
                 unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_str();
+            let offset = CharIndex(string_before.char_indices().count() as isize);
+            match unscanned_text_fragment_info.insertion_point {
+                Some(insertion_point) if insertion_point >= offset => {
+                    insertion_point_before = None;
+                    unscanned_text_fragment_info.insertion_point = Some(insertion_point - offset);
+                }
+                Some(_) | None => {
+                    insertion_point_before = unscanned_text_fragment_info.insertion_point;
+                    unscanned_text_fragment_info.insertion_point = None;
+                }
+            };
         }
         first_fragment.transform(first_fragment.border_box.size,
                                  SpecificFragmentInfo::UnscannedText(

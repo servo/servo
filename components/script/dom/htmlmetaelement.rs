@@ -4,9 +4,10 @@
 
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -38,7 +39,7 @@ impl HTMLMetaElement {
     }
 
     fn process_attributes(&self) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         if let Some(name) = element.get_attribute(&ns!(""), &atom!("name")).r() {
             let name = name.value().to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
@@ -51,13 +52,12 @@ impl HTMLMetaElement {
     }
 
     fn translate_viewport(&self) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         if let Some(content) = element.get_attribute(&ns!(""), &atom!("content")).r() {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    let node = NodeCast::from_ref(self);
-                    let win = window_from_node(node);
+                    let win = window_from_node(self);
                     let LayoutChan(ref layout_chan) = win.r().layout_chan();
 
                     layout_chan.send(Msg::AddMetaViewport(translated_rule)).unwrap();
@@ -83,8 +83,7 @@ impl HTMLMetaElementMethods for HTMLMetaElement {
 
 impl VirtualMethods for HTMLMetaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {

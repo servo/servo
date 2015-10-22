@@ -8,16 +8,15 @@ use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::node::{NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::webglframebuffer::WebGLFramebuffer;
@@ -121,11 +120,7 @@ impl WebGLRenderingContext {
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
                                                    msg);
-
-                let event = EventCast::from_ref(event.r());
-                let target = EventTargetCast::from_ref(canvas);
-
-                event.fire(target);
+                event.upcast::<Event>().fire(canvas.upcast());
                 None
             }
         }
@@ -157,9 +152,7 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        let canvas = self.canvas.root();
-        let node = NodeCast::from_ref(canvas.r());
-        node.dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 

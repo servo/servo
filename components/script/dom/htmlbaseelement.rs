@@ -4,10 +4,10 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -36,7 +36,7 @@ impl HTMLBaseElement {
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url
     pub fn frozen_base_url(&self) -> Url {
-        let href = ElementCast::from_ref(self).get_attribute(&ns!(""), &atom!("href"))
+        let href = self.upcast::<Element>().get_attribute(&ns!(""), &atom!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");
         let document = document_from_node(self);
@@ -52,7 +52,7 @@ impl HTMLBaseElement {
             return;
         }
 
-        if ElementCast::from_ref(self).has_attribute(&atom!("href")) {
+        if self.upcast::<Element>().has_attribute(&atom!("href")) {
             let document = document_from_node(self);
             document.refresh_base_element();
         }
@@ -61,7 +61,7 @@ impl HTMLBaseElement {
 
 impl VirtualMethods for HTMLBaseElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

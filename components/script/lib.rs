@@ -19,6 +19,7 @@
 #![feature(iter_arith)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
+#![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(slice_patterns)]
@@ -85,7 +86,6 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
-mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
@@ -95,6 +95,7 @@ pub mod parse;
 pub mod script_task;
 pub mod textinput;
 mod timers;
+mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;

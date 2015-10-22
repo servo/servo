@@ -10,15 +10,14 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementCreator};
+use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
@@ -180,7 +179,7 @@ impl HTMLScriptElement {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         if was_parser_inserted && element.has_attribute(&atom!("async")) {
             self.non_blocking.set(true);
         }
@@ -190,8 +189,7 @@ impl HTMLScriptElement {
             return NextParserState::Continue;
         }
         // Step 5.
-        let node = NodeCast::from_ref(self);
-        if !node.is_in_doc() {
+        if !self.upcast::<Node>().is_in_doc() {
             return NextParserState::Continue;
         }
         // Step 6, 7.
@@ -454,7 +452,7 @@ impl HTMLScriptElement {
     }
 
     pub fn is_javascript(&self) -> bool {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let type_attr = element.get_attribute(&ns!(""), &atom!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
@@ -507,16 +505,13 @@ impl HTMLScriptElement {
                                type_,
                                bubbles,
                                cancelable);
-        let event = event.r();
-        let target = EventTargetCast::from_ref(self);
-        event.fire(target)
+        event.fire(self.upcast())
     }
 }
 
 impl VirtualMethods for HTMLScriptElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -524,7 +519,7 @@ impl VirtualMethods for HTMLScriptElement {
         match attr.local_name() {
             &atom!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && NodeCast::from_ref(self).is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
                         self.prepare();
                     }
                 }
@@ -537,8 +532,7 @@ impl VirtualMethods for HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
-        if !self.parser_inserted.get() && node.is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
             self.prepare();
         }
     }
@@ -561,8 +555,7 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            let copy_elem = HTMLScriptElementCast::to_ref(copy).unwrap();
-            copy_elem.mark_already_started();
+            copy.downcast::<HTMLScriptElement>().unwrap().mark_already_started();
         }
     }
 }
@@ -575,13 +568,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
-        Node::collect_text_contents(NodeCast::from_ref(self).children())
+        Node::collect_text_contents(self.upcast::<Node>().children())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 }
 

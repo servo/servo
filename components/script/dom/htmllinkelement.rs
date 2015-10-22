@@ -8,8 +8,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
@@ -18,6 +17,7 @@ use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -89,16 +89,15 @@ fn is_favicon(value: &Option<String>) -> bool {
 
 impl VirtualMethods for HTMLLinkElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if !NodeCast::from_ref(self).is_in_doc() || mutation == AttributeMutation::Removed {
+        if !self.upcast::<Node>().is_in_doc() || mutation == AttributeMutation::Removed {
             return;
         }
-        let rel = get_attr(ElementCast::from_ref(self), &atom!(rel));
+        let rel = get_attr(self.upcast(), &atom!(rel));
         match attr.local_name() {
             &atom!(href) => {
                 if is_stylesheet(&rel) {
@@ -129,7 +128,7 @@ impl VirtualMethods for HTMLLinkElement {
         }
 
         if tree_in_doc {
-            let element = ElementCast::from_ref(self);
+            let element = self.upcast();
 
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
@@ -154,7 +153,7 @@ impl HTMLLinkElement {
         let window = window.r();
         match UrlParser::new().base_url(&window.get_url()).parse(href) {
             Ok(url) => {
-                let element = ElementCast::from_ref(self);
+                let element = self.upcast::<Element>();
 
                 let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
                 let value = mq_attribute.r().map(|a| a.value());
@@ -224,9 +223,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
-        self.rel_list.or_init(|| {
-            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
-        })
+        self.rel_list.or_init(|| DOMTokenList::new(self.upcast(), &atom!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset
@@ -267,7 +264,6 @@ impl StylesheetLoadResponder for StylesheetLoadDispatcher {
         let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        let target = EventTargetCast::from_ref(elem.r());
-        event.r().fire(target);
+        event.fire(elem.upcast::<EventTarget>());
     }
 }

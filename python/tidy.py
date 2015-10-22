@@ -305,13 +305,13 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space before {")
 
-        # ignored cases like {} and }}
-        match = re.search(r"[^\s{}]}", line)
+        # ignored cases like {}, }` and }}
+        match = re.search(r"[^\s{}]}[^`]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space before }")
 
-        # ignored cases like {} and {{
-        match = re.search(r"{[^\s{}]", line)
+        # ignored cases like {}, `{ and {{
+        match = re.search(r"[^`]{[^\s{}]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 

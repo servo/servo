@@ -5,13 +5,14 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
@@ -100,14 +101,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
 impl VirtualMethods for HTMLSelectElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         if attr.local_name() == &atom!(disabled) {
-            let el = ElementCast::from_ref(self);
+            let el = self.upcast::<Element>();
             match mutation {
                 AttributeMutation::Set(_) => {
                     el.set_disabled_state(true);
@@ -127,8 +127,7 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let el = ElementCast::from_ref(self);
-        el.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -136,9 +135,9 @@ impl VirtualMethods for HTMLSelectElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        let el = ElementCast::from_ref(self);
-        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
+        let node = self.upcast::<Node>();
+        let el = self.upcast::<Element>();
+        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();

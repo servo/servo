@@ -12,9 +12,9 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, LayoutJS, Root};
@@ -26,7 +26,7 @@ use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::imagedata::ImageData;
-use dom::node::{NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -41,13 +41,14 @@ use std::cell::RefCell;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
+use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
 use util::str::DOMString;
 use util::vec::byte_swap;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]
-pub enum CanvasFillOrStrokeStyle {
+enum CanvasFillOrStrokeStyle {
     Color(RGBA),
     Gradient(JS<CanvasGradient>),
     // Pattern(JS<CanvasPattern>),  // https://github.com/servo/servo/pull/6157
@@ -147,9 +148,7 @@ impl CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        let canvas = self.canvas.root();
-        let node = NodeCast::from_ref(canvas.r());
-        node.dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_transform(&self) {
@@ -889,13 +888,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let mut data = receiver.recv().unwrap();
 
         // Un-premultiply alpha
-        // TODO: may want a precomputed un-premultiply table to make this fast.
-        // https://github.com/servo/servo/issues/6969
         for chunk in data.chunks_mut(4) {
-             let alpha = chunk[3] as f32 / 255.;
-             chunk[0] = (chunk[0] as f32 / alpha) as u8;
-             chunk[1] = (chunk[1] as f32 / alpha) as u8;
-             chunk[2] = (chunk[2] as f32 / alpha) as u8;
+            let alpha = chunk[3] as usize;
+            chunk[0] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[0] as usize];
+            chunk[1] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[1] as usize];
+            chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
         Ok(ImageData::new(self.global.root().r(), sw, sh, Some(data)))

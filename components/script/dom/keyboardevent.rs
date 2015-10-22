@@ -5,11 +5,12 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
+use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
@@ -761,13 +762,12 @@ impl KeyboardEventMethods for KeyboardEvent {
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        let event = EventCast::from_ref(self);
-        if event.dispatching() {
+        if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        let uievent = UIEventCast::from_ref(self);
-        uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
+        self.upcast::<UIEvent>()
+            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key_string.borrow_mut() = keyArg;
         self.location.set(locationArg);
         self.repeat.set(repeat);

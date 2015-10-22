@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -43,7 +43,7 @@ impl CloseEvent {
         let event = box CloseEvent::new_inherited(wasClean, code, reason);
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
-            let event = EventCast::from_ref(ev.r());
+            let event = ev.upcast::<Event>();
             event.InitEvent(type_,
                             bubbles == EventBubbles::Bubbles,
                             cancelable == EventCancelable::Cancelable);

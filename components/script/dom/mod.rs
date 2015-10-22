@@ -54,21 +54,39 @@
 //! This invariant is enforced by the lint in
 //! `plugins::lints::inheritance_integrity`.
 //!
-//! The same principle applies to typeids,
-//! the derived type enum should
-//! use one addititional type (the parent class) because sometimes the parent
-//! can be the most-derived class of an object.
+//! Interfaces which either derive from or are derived by other interfaces
+//! implement the `Castable` trait, which provides three methods `is::<T>()`,
+//! `downcast::<T>()` and `upcast::<T>()` to cast across the type hierarchy
+//! and check whether a given instance is of a given type.
 //!
 //! ```ignore
-//! pub enum EventTypeId {
-//!     UIEvent(UIEventTypeId),
-//!     //others events
-//! }
+//! use dom::bindings::conversions::Castable;
+//! use dom::element::Element;
+//! use dom::htmlelement::HTMLElement;
+//! use dom::htmlinputelement::HTMLInputElement;
 //!
-//! pub enum UIEventTypeId {
-//!    MouseEvent,
-//!    KeyboardEvent,
-//!    UIEvent, //<- parent of MouseEvent and KeyboardEvent
+//! if let Some(elem) = node.downcast::<Element> {
+//!     if elem.is::<HTMLInputElement>() {
+//!         return elem.upcast::<HTMLElement>();
+//!     }
+//! }
+//! ```
+//!
+//! Furthermore, when discriminating a given instance against multiple
+//! interface types, code generation provides a convenient TypeId enum
+//! which can be used to write `match` expressions instead of multiple
+//! calls to `Castable::is::<T>`. The `type_id()` method of an instance is
+//! provided by the farthest interface it derives from, e.g. `EventTarget`
+//! for `HTMLMediaElement`. For convenience, that method is also provided
+//! on the `Node` interface to avoid unnecessary upcasts to `EventTarget`.
+//!
+//! ```ignore
+//! use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeTypeId};
+//!
+//! match *node.type_id() {
+//!     EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => ...,
+//!     EventTargetTypeId::Node(NodeTypeId::Element(_)) => ...,
+//!     ...,
 //! }
 //! ```
 //!
@@ -151,8 +169,8 @@
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
 //! fn f(element: &Element) {
-//!     let base: &Node = NodeCast::from_ref(element);
-//!     let derived: Option<&HTMLElement> = HTMLElementCast::to_ref(element);
+//!     let base = element.upcast::<Node>();
+//!     let derived = element.downcast::<HTMLElement>();
 //! }
 //! ```
 //!

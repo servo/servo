@@ -24,6 +24,7 @@ use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState};
 use script_traits::{LayoutControlMsg, NewLayoutInfo, ScriptTaskFactory};
+use script_traits::{TimerEventRequest};
 use std::any::Any;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -75,6 +76,8 @@ pub struct InitialPipelineState {
     pub parent_info: Option<(PipelineId, SubpageId)>,
     /// A channel to the associated constellation.
     pub constellation_chan: ConstellationChan,
+    /// A channel to schedule timer events.
+    pub scheduler_chan: Sender<TimerEventRequest>,
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     /// A channel to the developer tools, if applicable.
@@ -181,6 +184,7 @@ impl Pipeline {
             id: state.id,
             parent_info: state.parent_info,
             constellation_chan: state.constellation_chan,
+            scheduler_chan: state.scheduler_chan,
             compositor_proxy: state.compositor_proxy,
             devtools_chan: script_to_devtools_chan,
             image_cache_task: state.image_cache_task,
@@ -316,6 +320,7 @@ pub struct PipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan,
+    scheduler_chan: Sender<TimerEventRequest>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     image_cache_task: ImageCacheTask,
@@ -361,6 +366,7 @@ impl PipelineContent {
             control_chan: self.script_chan.clone(),
             control_port: mem::replace(&mut self.script_port, None).unwrap(),
             constellation_chan: self.constellation_chan.clone(),
+            scheduler_chan: self.scheduler_chan.clone(),
             failure_info: self.failure.clone(),
             resource_task: self.resource_task,
             storage_task: self.storage_task.clone(),
