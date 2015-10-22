@@ -899,6 +899,18 @@
             "url": "/_mozilla/css/float_under_top_margin_a.html"
           }
         ],
+        "css/floated_generated_content_a.html": [
+          {
+            "path": "css/floated_generated_content_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floated_generated_content_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floated_generated_content_a.html"
+          }
+        ],
         "css/floated_list_item_a.html": [
           {
             "path": "css/floated_list_item_a.html",
@@ -5050,6 +5062,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_under_top_margin_a.html"
+        }
+      ],
+      "css/floated_generated_content_a.html": [
+        {
+          "path": "css/floated_generated_content_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floated_generated_content_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floated_generated_content_a.html"
         }
       ],
       "css/floated_list_item_a.html": [
