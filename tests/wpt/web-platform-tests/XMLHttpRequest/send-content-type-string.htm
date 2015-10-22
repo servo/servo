@@ -20,7 +20,7 @@
       request("TEST", "text/plain;charset=UTF-8")
       function init(fr) { request(fr.contentDocument, fr.getAttribute("data-t")) }
     </script>
-    <iframe src='data:text/xml;charset=windows-1252,<%FF/>' onload="init(this)" data-t="application/xml;charset=windows-1252"></iframe>
-    <iframe src='data:text/html;charset=windows-1252,%FF' onload="init(this)" data-t="text/html;charset=windows-1252"></iframe>
+    <iframe src='data:text/xml;charset=windows-1252,<%FF/>' onload="init(this)" data-t="application/xml;charset=UTF-8"></iframe>
+    <iframe src='data:text/html;charset=windows-1252,%FF' onload="init(this)" data-t="text/html;charset=UTF-8"></iframe>
   </body>
 </html>

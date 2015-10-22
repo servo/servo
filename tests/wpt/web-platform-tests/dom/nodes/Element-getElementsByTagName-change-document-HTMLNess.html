@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe src="Element-getElementsByTagName-change-document-HTMLNess-iframe.xml"></iframe>
+<script>
+  onload = function() {
+    var parent = document.createElement("div");
+    var child1 = document.createElementNS("http://www.w3.org/1999/xhtml", "a");
+    child1.textContent = "xhtml:a";
+    var child2 = document.createElementNS("http://www.w3.org/1999/xhtml", "A");
+    child2.textContent = "xhtml:A";
+    var child3 = document.createElementNS("", "a");
+    child3.textContent = "a";
+    var child4 = document.createElementNS("", "A");
+    child4.textContent = "A";
+
+    parent.appendChild(child1);
+    parent.appendChild(child2);
+    parent.appendChild(child3);
+    parent.appendChild(child4);
+
+    var list = parent.getElementsByTagName("A");
+    assert_array_equals(list, [child1, child4],
+      "In an HTML document, should lowercase the tagname passed in for HTML " +
+      "elements only");
+
+    frames[0].document.documentElement.appendChild(parent);
+    assert_array_equals(list, [child1, child4],
+      "After changing document, should still be lowercasing for HTML");
+
+    assert_array_equals(parent.getElementsByTagName("A"),
+                        [child2, child4],
+      "New list with same root and argument should not be lowercasing now");
+
+    // Now reinsert all those nodes into the parent, to blow away caches.
+    parent.appendChild(child1);
+    parent.appendChild(child2);
+    parent.appendChild(child3);
+    parent.appendChild(child4);
+    assert_array_equals(list, [child1, child4],
+      "After blowing away caches, should still have the same list");
+
+    assert_array_equals(parent.getElementsByTagName("A"),
+                        [child2, child4],
+      "New list with same root and argument should still not be lowercasing");
+    done();
+  }
+</script>

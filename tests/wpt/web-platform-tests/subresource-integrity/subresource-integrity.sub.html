@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>Subresource Integrity</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
+<script src="../../../resources/testharness.js"></script>
+<script src="../../../resources/testharnessreport.js"></script>
 
 <div id="log"></div>
 
@@ -10,15 +10,15 @@
 <script>
     // <script> tests
     var xorigin_anon_script = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-anon-script.js';
 
     var xorigin_creds_script = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-creds-script.js';
 
     var xorigin_ineligible_script = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-ineligible-script.js';
 
     var SRIScriptTest = function(pass, name, src, integrityValue, crossoriginValue) {
@@ -52,15 +52,15 @@
     };
 
     var xorigin_anon_style = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-anon-style.css';
 
     var xorigin_creds_style = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-creds-style.css';
 
     var xorigin_ineligible_style = location.protocol
-      + '//www1.' + location.hostname + ':' + location.port
+      + '//' + location.hostname + ':' + {{ports[http][1]}}
       + '/subresource-integrity/crossorigin-ineligible-style.css';
 
     // <link> tests
@@ -540,6 +540,6 @@
     style_tests.execute();
 
 </script>
-<!--TODO check cache-poisoned resources, transfer-encoding, 3xx redirect
+<!-- TODO check cache-poisoned resources, transfer-encoding, 3xx redirect
    to resource with matching hash, and cross-origin leakage test as in sec5.3.
-   -->
+    -->

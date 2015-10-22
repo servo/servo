@@ -1,0 +1,9 @@
+
+calc-in-media-queries-001.xht == reference/all-green.xht
+calc-in-media-queries-002.xht == reference/all-green.xht
+min-width-001.xht == ref.xht
+min-width-tables-001.xht == ref.xht
+mq-calc-002.xht == reference/mq-calc-001-ref.xht
+mq-calc-003.xht == reference/mq-calc-001-ref.xht
+mq-calc-004.xht == reference/mq-calc-001-ref.xht
+mq-calc-005.xht == reference/mq-calc-001-ref.xht
