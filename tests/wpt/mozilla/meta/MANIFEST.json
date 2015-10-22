@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/calc-basic.html"
           }
         ],
+        "css/canvas_as_block_element_a.html": [
+          {
+            "path": "css/canvas_as_block_element_a.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_as_block_element_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_as_block_element_a.html"
+          }
+        ],
         "css/canvas_linear_gradient_a.html": [
           {
             "path": "css/canvas_linear_gradient_a.html",
@@ -5134,6 +5146,18 @@
             ]
           ],
           "url": "/_mozilla/css/calc-basic.html"
+        }
+      ],
+      "css/canvas_as_block_element_a.html": [
+        {
+          "path": "css/canvas_as_block_element_a.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_as_block_element_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_as_block_element_a.html"
         }
       ],
       "css/canvas_linear_gradient_a.html": [
