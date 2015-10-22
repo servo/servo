@@ -102,7 +102,9 @@ impl HTMLCollection {
 		let node = NodeCast::from_root(element);
 		self.set_cached_cursor(index, self.elements_iter_after(&*node).nth(offset as usize))
 	    } else {
-		self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+	        let offset = cached_index - (index + 1);
+		let node = NodeCast::from_root(element);
+		self.set_cached_cursor(index, self.elements_iter_reverse_before(&*node).nth(offset as usize))
 	    }
 	} else if (index < (cached_length - index)) {
             self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
