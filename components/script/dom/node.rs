@@ -598,6 +598,13 @@ impl Node {
         }
     }
 
+    pub fn following_nodes_reverse(&self, root: &Node) -> FollowingNodeReverseIterator {
+        FollowingNodeReverseIterator {
+            current: Some(Root::from_ref(self)),
+            root: Root::from_ref(root),
+        }
+    }
+
     pub fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
         PrecedingNodeIterator {
             current: Some(Root::from_ref(self)),
@@ -1149,6 +1156,50 @@ impl Iterator for FollowingNodeIterator {
             if let Some(next_sibling) = ancestor.r().GetNextSibling() {
                 self.current = Some(next_sibling);
                 return ancestor.r().GetNextSibling()
+            }
+        }
+        self.current = None;
+        None
+    }
+}
+
+pub struct FollowingNodeReverseIterator {
+    current: Option<Root<Node>>,
+    root: Root<Node>,
+}
+
+impl Iterator for FollowingNodeReverseIterator {
+    type Item = Root<Node>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-following
+    fn next(&mut self) -> Option<Root<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        if let Some(last_child) = current.r().GetLastChild() {
+            self.current = Some(last_child);
+            return current.r().GetLastChild()
+        }
+
+        if self.root == current {
+            self.current = None;
+            return None;
+        }
+
+        if let Some(prev_sibling) = current.r().GetPreviousSibling() {
+            self.current = Some(prev_sibling);
+            return current.r().GetPreviousSibling()
+        }
+
+        for ancestor in current.r().inclusive_ancestors() {
+            if self.root == ancestor {
+                break;
+            }
+            if let Some(prev_sibling) = ancestor.r().GetPreviousSibling() {
+                self.current = Some(prev_sibling);
+                return ancestor.r().GetPreviousSibling()
             }
         }
         self.current = None;
