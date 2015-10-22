@@ -875,6 +875,18 @@
             "url": "/_mozilla/css/float_table_a.html"
           }
         ],
+        "css/float_under_top_margin_a.html": [
+          {
+            "path": "css/float_under_top_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/float_under_top_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_under_top_margin_a.html"
+          }
+        ],
         "css/floated_list_item_a.html": [
           {
             "path": "css/floated_list_item_a.html",
@@ -4990,6 +5002,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_table_a.html"
+        }
+      ],
+      "css/float_under_top_margin_a.html": [
+        {
+          "path": "css/float_under_top_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/float_under_top_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_under_top_margin_a.html"
         }
       ],
       "css/floated_list_item_a.html": [

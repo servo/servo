@@ -52,7 +52,6 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
 == float_overflow_area_a.html float_overflow_area_ref.html
 == float_positioned_pseudo_stacking_context.html float_positioned_pseudo_stacking_context_ref.html
-== float_under_top_margin_a.html float_under_top_margin_ref.html
 == floated_generated_content_a.html floated_generated_content_b.html
 == floated_negative_margins_a.html floated_negative_margins_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
