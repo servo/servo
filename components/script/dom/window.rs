@@ -1133,10 +1133,6 @@ impl Window {
         subpage_id
     }
 
-    pub fn layout_is_idle(&self) -> bool {
-        self.layout_join_port.borrow().is_none()
-    }
-
     pub fn get_pending_reflow_count(&self) -> u32 {
         self.pending_reflow_count.get()
     }

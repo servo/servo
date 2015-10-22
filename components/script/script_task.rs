@@ -712,12 +712,10 @@ impl ScriptTask {
                 for page in page.iter() {
                     // Only process a resize if layout is idle.
                     let window = page.window();
-                    if window.r().layout_is_idle() {
-                        let resize_event = window.r().steal_resize_event();
-                        match resize_event {
-                            Some(size) => resizes.push((window.r().pipeline(), size)),
-                            None => ()
-                        }
+                    let resize_event = window.r().steal_resize_event();
+                    match resize_event {
+                        Some(size) => resizes.push((window.r().pipeline(), size)),
+                        None => ()
                     }
                 }
             }
