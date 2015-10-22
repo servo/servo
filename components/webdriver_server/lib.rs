@@ -539,6 +539,20 @@ impl Handler {
         }
     }
 
+    fn handle_element_css(&self, element: &WebElement, name: &String) -> WebDriverResult<WebDriverResponse> {
+        let pipeline_id = try!(self.frame_pipeline());
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetElementCSS(element.id.clone(), name.clone(), sender);
+        let cmd_msg = WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd);
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
+        match receiver.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
+            Err(_) => Err(WebDriverError::new(ErrorStatus::StaleElementReference,
+                                              "Unable to find element in document"))
+        }
+    }
+
     fn handle_set_timeouts(&mut self, parameters: &TimeoutsParameters) -> WebDriverResult<WebDriverResponse> {
         //TODO: this conversion is crazy, spec should limit these to u32 and check upstream
         let value = parameters.ms as u32;
@@ -731,6 +745,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetElementTagName(ref element) => self.handle_element_tag_name(element),
             WebDriverCommand::GetElementAttribute(ref element, ref name) =>
                 self.handle_element_attribute(element, name),
+            WebDriverCommand::GetCSSValue(ref element, ref name) =>
+                self.handle_element_css(element, name),
             WebDriverCommand::ExecuteScript(ref x) => self.handle_execute_script(x),
             WebDriverCommand::ExecuteAsyncScript(ref x) => self.handle_execute_async_script(x),
             WebDriverCommand::ElementSendKeys(ref element, ref keys) =>
