@@ -1223,6 +1223,18 @@
             "url": "/_mozilla/css/height_compute_reset.html"
           }
         ],
+        "css/hide_after_create.html": [
+          {
+            "path": "css/hide_after_create.html",
+            "references": [
+              [
+                "/_mozilla/css/hide_after_create_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/hide_after_create.html"
+          }
+        ],
         "css/img_block_display_a.html": [
           {
             "path": "css/img_block_display_a.html",
@@ -5602,6 +5614,18 @@
             ]
           ],
           "url": "/_mozilla/css/height_compute_reset.html"
+        }
+      ],
+      "css/hide_after_create.html": [
+        {
+          "path": "css/hide_after_create.html",
+          "references": [
+            [
+              "/_mozilla/css/hide_after_create_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/hide_after_create.html"
         }
       ],
       "css/img_block_display_a.html": [
