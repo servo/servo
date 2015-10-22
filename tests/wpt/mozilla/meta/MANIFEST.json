@@ -1355,6 +1355,18 @@
             "url": "/_mozilla/css/hide_after_create.html"
           }
         ],
+        "css/image_rendering_auto_a.html": [
+          {
+            "path": "css/image_rendering_auto_a.html",
+            "references": [
+              [
+                "/_mozilla/css/image_rendering_pixelated_a.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/image_rendering_auto_a.html"
+          }
+        ],
         "css/img_block_display_a.html": [
           {
             "path": "css/img_block_display_a.html",
@@ -5866,6 +5878,18 @@
             ]
           ],
           "url": "/_mozilla/css/hide_after_create.html"
+        }
+      ],
+      "css/image_rendering_auto_a.html": [
+        {
+          "path": "css/image_rendering_auto_a.html",
+          "references": [
+            [
+              "/_mozilla/css/image_rendering_pixelated_a.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/image_rendering_auto_a.html"
         }
       ],
       "css/img_block_display_a.html": [
