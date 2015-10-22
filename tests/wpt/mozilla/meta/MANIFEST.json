@@ -123,6 +123,18 @@
             "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
           }
         ],
+        "css/acid1_a.html": [
+          {
+            "path": "css/acid1_a.html",
+            "references": [
+              [
+                "/_mozilla/css/acid1_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/acid1_a.html"
+          }
+        ],
         "css/after_block_iteration.html": [
           {
             "path": "css/after_block_iteration.html",
@@ -4586,6 +4598,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_z_index_auto_paint_order_a.html"
+        }
+      ],
+      "css/acid1_a.html": [
+        {
+          "path": "css/acid1_a.html",
+          "references": [
+            [
+              "/_mozilla/css/acid1_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/acid1_a.html"
         }
       ],
       "css/after_block_iteration.html": [

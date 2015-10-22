@@ -9,7 +9,6 @@
 # Should be == with expected failure:
 fragment=top != ../html/acid2.html acid2_ref.html
 
-== acid1_a.html acid1_b.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
