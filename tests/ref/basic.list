@@ -107,7 +107,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 != inline_background_a.html inline_background_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
 == inline_block_border_intrinsic_size_a.html inline_block_border_intrinsic_size_ref.html
-== inline_block_margin_auto_a.html inline_block_margin_auto_ref.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
 == inline_block_parent_width_percentage.html inline_block_parent_width_ref.html
 # inline_border_a.html inline_border_b.html
