@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/data_img_a.html"
           }
         ],
+        "css/external_media_query_style.html": [
+          {
+            "path": "css/external_media_query_style.html",
+            "references": [
+              [
+                "/_mozilla/css/external_media_query_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/external_media_query_style.html"
+          }
+        ],
         "css/filter_inline_a.html": [
           {
             "path": "css/filter_inline_a.html",
@@ -5014,6 +5026,18 @@
             ]
           ],
           "url": "/_mozilla/css/data_img_a.html"
+        }
+      ],
+      "css/external_media_query_style.html": [
+        {
+          "path": "css/external_media_query_style.html",
+          "references": [
+            [
+              "/_mozilla/css/external_media_query_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/external_media_query_style.html"
         }
       ],
       "css/filter_inline_a.html": [
