@@ -93,6 +93,7 @@ impl Window {
                             .with_gl(Window::gl_version())
                             .with_visibility(is_foreground)
                             .with_parent(parent)
+                            .with_multitouch()
                             .build()
                             .unwrap();
 
