@@ -899,6 +899,18 @@
             "url": "/_mozilla/css/floated_list_item_a.html"
           }
         ],
+        "css/floated_table_with_margin_a.html": [
+          {
+            "path": "css/floated_table_with_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floated_table_with_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floated_table_with_margin_a.html"
+          }
+        ],
         "css/focus_selector.html": [
           {
             "path": "css/focus_selector.html",
@@ -5038,6 +5050,18 @@
             ]
           ],
           "url": "/_mozilla/css/floated_list_item_a.html"
+        }
+      ],
+      "css/floated_table_with_margin_a.html": [
+        {
+          "path": "css/floated_table_with_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floated_table_with_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floated_table_with_margin_a.html"
         }
       ],
       "css/focus_selector.html": [
