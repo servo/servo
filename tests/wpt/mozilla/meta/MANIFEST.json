@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/float_table_a.html": [
+          {
+            "path": "css/float_table_a.html",
+            "references": [
+              [
+                "/_mozilla/css/float_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_table_a.html"
+          }
+        ],
         "css/floated_list_item_a.html": [
           {
             "path": "css/floated_list_item_a.html",
@@ -4810,6 +4822,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/float_table_a.html": [
+        {
+          "path": "css/float_table_a.html",
+          "references": [
+            [
+              "/_mozilla/css/float_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_table_a.html"
         }
       ],
       "css/floated_list_item_a.html": [
