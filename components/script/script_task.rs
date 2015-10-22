@@ -78,12 +78,12 @@ use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
 use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
-use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
-use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
+use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent, TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
 use script_traits::{TimerEvent, TimerEventChan, TimerEventRequest, TimerSource};
+use script_traits::{TouchEventType};
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -1759,25 +1759,25 @@ impl ScriptTask {
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
-            TouchDownEvent(identifier, point) => {
-                let default_action_allowed =
-                    self.handle_touch_event(pipeline_id, identifier, point, "touchstart");
-                if default_action_allowed {
-                    // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
-                            EventResult::DefaultAllowed)).unwrap();
-                } else {
-                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
-                            EventResult::DefaultPrevented)).unwrap();
+            TouchEvent(event_type, identifier, point) => {
+                let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
+                match event_type {
+                    TouchEventType::Down => {
+                        if handled {
+                            // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultAllowed)).unwrap();
+                        } else {
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultPrevented)).unwrap();
+                        }
+                    }
+                    _ => {
+                        // TODO: Calling preventDefault on a touchup event should prevent clicks.
+                    }
                 }
-            }
-
-            TouchMoveEvent(identifier, point) => {
-                self.handle_touch_event(pipeline_id, identifier, point, "touchmove");
-            }
-
-            TouchUpEvent(identifier, point) => {
-                self.handle_touch_event(pipeline_id, identifier, point, "touchend");
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1801,13 +1801,13 @@ impl ScriptTask {
 
     fn handle_touch_event(&self,
                           pipeline_id: PipelineId,
+                          event_type: TouchEventType,
                           identifier: i32,
-                          point: Point2D<f32>,
-                          event_name: &str) -> bool {
+                          point: Point2D<f32>)
+                          -> bool {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().handle_touch_event(self.js_runtime.rt(), identifier, point,
-                                        event_name.to_owned())
+        document.r().handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents

@@ -84,7 +84,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
-use script_traits::{MouseButton, UntrustedNodeAddress};
+use script_traits::{MouseButton, TouchEventType, UntrustedNodeAddress};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -723,9 +723,17 @@ impl Document {
 
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
+                              event_type: TouchEventType,
                               identifier: i32,
-                              point: Point2D<f32>,
-                              event_name: String) -> bool {
+                              point: Point2D<f32>)
+                              -> bool {
+        let event_name = match event_type {
+            TouchEventType::Down => "touchstart",
+            TouchEventType::Move => "touchmove",
+            TouchEventType::Up => "touchend",
+            TouchEventType::Cancel => "touchcancel",
+        };
+
         let node = match self.hit_test(&point) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false
@@ -758,7 +766,7 @@ impl Document {
         let touches = TouchList::new(window.r(), touches.r());
 
         let event = TouchEvent::new(window.r(),
-                                    event_name,
+                                    event_name.to_owned(),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window.r()),

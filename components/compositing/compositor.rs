@@ -35,8 +35,8 @@ use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, MouseButton};
+use script_traits::CompositorEvent::TouchEvent;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, MouseButton, TouchEventType};
 use scrolling::ScrollingTimerProxy;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -52,7 +52,8 @@ use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::opts;
 use util::print_tree::PrintTree;
-use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
+use windowing::{self, MouseWindowEvent, WindowEvent};
+use windowing::{WindowMethods, WindowNavigateMsg};
 
 const BUFFER_MAP_SIZE: usize = 10000000;
 
@@ -80,13 +81,16 @@ enum TouchState {
     /// Not tracking any touch point
     Nothing,
     /// A touchstart event was dispatched to the page, but the response wasn't received yet.
-    WaitingForScript,
-    /// Script is consuming the current touch point; don't perform default actions.
-    DefaultPrevented,
+    WaitingForScript(u32),
+    /// Script is consuming the current touch sequence; don't perform default actions.
+    /// Track the number of active touch points.
+    DefaultPrevented(u32),
     /// A single touch point is active and may perform click or pan default actions.
     Touching,
     /// A single touch point is active and has started panning.
     Panning,
+    /// A multi-touch gesture is in progress
+    MultiTouch(u32),
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -537,10 +541,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 match self.touch_gesture_state {
-                    TouchState::WaitingForScript => {
+                    TouchState::WaitingForScript(n) => {
                         self.touch_gesture_state = match result {
-                            EventResult::DefaultAllowed => TouchState::Touching,
-                            EventResult::DefaultPrevented => TouchState::DefaultPrevented,
+                            EventResult::DefaultPrevented => TouchState::DefaultPrevented(n),
+                            EventResult::DefaultAllowed => if n > 1 {
+                                TouchState::MultiTouch(n)
+                            } else {
+                                TouchState::Touching
+                            }
                         };
                     }
                     _ => {}
@@ -1056,6 +1064,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_mouse_window_move_event_class(cursor);
             }
 
+            WindowEvent::Touch(event_type, identifier, location) => {
+                match event_type {
+                    TouchEventType::Down => self.on_touch_down(identifier, location),
+                    TouchEventType::Move => self.on_touch_move(identifier, location),
+                    TouchEventType::Up => self.on_touch_up(identifier, location),
+                    TouchEventType::Cancel => self.on_touch_cancel(identifier, location),
+                }
+            }
+
             WindowEvent::Scroll(delta, cursor) => {
                 self.on_scroll_window_event(delta, cursor);
             }
@@ -1157,22 +1174,31 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_touch_down(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
-        match self.touch_gesture_state {
+        self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Nothing => {
                 // TODO: Don't wait for script if we know the page has no touch event listeners.
                 self.first_touch_point = Some(point);
                 self.last_touch_point = Some(point);
-                self.touch_gesture_state = TouchState::WaitingForScript;
+                TouchState::WaitingForScript(1)
             }
-            TouchState::WaitingForScript => {
-                // TODO: Queue events while waiting for script?
+            TouchState::Touching |
+            TouchState::Panning => {
+                // Was a single-touch sequence; now a multi-touch sequence:
+                TouchState::MultiTouch(2)
             }
-            TouchState::DefaultPrevented => {}
-            TouchState::Touching => {}
-            TouchState::Panning => {}
-        }
+            TouchState::WaitingForScript(n) => {
+                TouchState::WaitingForScript(n + 1)
+            }
+            TouchState::DefaultPrevented(n) => {
+                TouchState::DefaultPrevented(n + 1)
+            }
+            TouchState::MultiTouch(n) => {
+                TouchState::MultiTouch(n + 1)
+            }
+        };
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchDownEvent(identifier, result.point.to_untyped()));
+            result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
+                                                     result.point.to_untyped()));
         }
     }
 
@@ -1180,7 +1206,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_gesture_state {
             TouchState::Nothing => warn!("Got unexpected touch move event"),
 
-            TouchState::WaitingForScript => {
+            TouchState::WaitingForScript(_) => {
                 // TODO: Queue events while waiting for script?
             }
             TouchState::Touching => {
@@ -1209,40 +1235,67 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     None => warn!("last_touch_point not set")
                 }
             }
-            TouchState::DefaultPrevented => {
+            TouchState::DefaultPrevented(_) => {
                 // Send the event to script.
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-                    result.layer.send_event(self,
-                                            TouchMoveEvent(identifier, result.point.to_untyped()));
+                    result.layer.send_event(self, TouchEvent(TouchEventType::Move, identifier,
+                                                             result.point.to_untyped()));
                 }
+            }
+            TouchState::MultiTouch(_) => {
+                // TODO: Pinch zooming.
             }
         }
         self.last_touch_point = Some(point);
     }
 
     fn on_touch_up(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
-        // TODO: Track the number of active touch points, and don't reset stuff until it is zero.
-        self.first_touch_point = None;
-        self.last_touch_point = None;
-
         // Send the event to script.
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
-            result.layer.send_event(self, TouchUpEvent(identifier, result.point.to_untyped()));
+            result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
+                                                     result.point.to_untyped()));
         }
 
-        match self.touch_gesture_state {
-            TouchState::Nothing => warn!("Got unexpected touch up event"),
-
-            TouchState::WaitingForScript => {}
+        self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Touching => {
                 // TODO: If the duration exceeds some threshold, send a contextmenu event instead.
                 // TODO: Don't send a click if preventDefault is called on the touchend event.
                 self.simulate_mouse_click(point);
+                TouchState::Nothing
             }
-            TouchState::Panning => {}
-            TouchState::DefaultPrevented => {}
+            TouchState::Nothing |
+            TouchState::Panning |
+            TouchState::WaitingForScript(1) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n) => TouchState::WaitingForScript(n - 1),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
+    }
+
+    fn on_touch_cancel(&mut self, identifier: i32, point: TypedPoint2D<DevicePixel, f32>) {
+        // Send the event to script.
+        if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
+            result.layer.send_event(self, TouchEvent(TouchEventType::Cancel, identifier,
+                                                     result.point.to_untyped()));
         }
-        self.touch_gesture_state = TouchState::Nothing;
+
+        self.touch_gesture_state = match self.touch_gesture_state {
+            TouchState::Nothing |
+            TouchState::Touching |
+            TouchState::Panning |
+            TouchState::WaitingForScript(1) |
+            TouchState::DefaultPrevented(1) |
+            TouchState::MultiTouch(1) => {
+                TouchState::Nothing
+            }
+            TouchState::WaitingForScript(n) => TouchState::WaitingForScript(n - 1),
+            TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
+            TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
+        };
     }
 
     /// http://w3c.github.io/touch-events/#mouse-events
