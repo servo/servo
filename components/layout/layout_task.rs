@@ -1281,11 +1281,7 @@ impl LayoutTask {
         }
 
         // Tell script that we're done.
-        //
-        // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
-        // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(()).unwrap();
-        data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,
