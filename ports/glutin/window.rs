@@ -16,12 +16,14 @@ use gleam::gl;
 use glutin;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
+use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 #[cfg(feature = "window")]
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
+use script_traits::TouchEventType;
 #[cfg(feature = "window")]
 use std::cell::{Cell, RefCell};
 #[cfg(all(feature = "headless", target_os = "linux"))]
@@ -216,6 +218,17 @@ impl Window {
                     self.pinch_zoom(factor);
                 }
             },
+            Event::Touch(touch) => {
+                let phase = match touch.phase {
+                    TouchPhase::Started => TouchEventType::Down,
+                    TouchPhase::Moved => TouchEventType::Move,
+                    TouchPhase::Ended => TouchEventType::Up,
+                    TouchPhase::Cancelled => TouchEventType::Cancel,
+                };
+                let id = touch.id as i32;
+                let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
+                self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
+            }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }

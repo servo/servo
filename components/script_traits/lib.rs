@@ -158,6 +158,19 @@ pub enum MouseButton {
     Right,
 }
 
+/// The type of input represented by a multi-touch event.
+#[derive(Clone, Copy, Debug)]
+pub enum TouchEventType {
+    /// A new touch point came in contact with the screen.
+    Down,
+    /// An existing touch point changed location.
+    Move,
+    /// A touch point was removed from the screen.
+    Up,
+    /// The system stopped tracking a touch point.
+    Cancel,
+}
+
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     /// The window was resized.
@@ -170,12 +183,8 @@ pub enum CompositorEvent {
     MouseUpEvent(MouseButton, Point2D<f32>),
     /// The mouse was moved over a point.
     MouseMoveEvent(Point2D<f32>),
-    /// A touch began at a point.
-    TouchDownEvent(i32, Point2D<f32>),
-    /// A touch was moved over a point.
-    TouchMoveEvent(i32, Point2D<f32>),
-    /// A touch ended at a point.
-    TouchUpEvent(i32, Point2D<f32>),
+    /// A touch event was generated with a touch ID and location.
+    TouchEvent(TouchEventType, i32, Point2D<f32>),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }
