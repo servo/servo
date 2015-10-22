@@ -13,7 +13,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
-use script_traits::MouseButton;
+use script_traits::{MouseButton, TouchEventType, TouchId};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use url::Url;
@@ -26,6 +26,7 @@ pub enum MouseWindowEvent {
     MouseDown(MouseButton, TypedPoint2D<DevicePixel, f32>),
     MouseUp(MouseButton, TypedPoint2D<DevicePixel, f32>),
 }
+
 
 #[derive(Clone)]
 pub enum WindowNavigateMsg {
@@ -59,6 +60,8 @@ pub enum WindowEvent {
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
     MouseWindowMoveEventClass(TypedPoint2D<DevicePixel, f32>),
+    /// Touch event: type, identifier, point
+    Touch(TouchEventType, TouchId, TypedPoint2D<DevicePixel, f32>),
     /// Sent when the user scrolls. The first point is the delta and the second point is the
     /// origin.
     Scroll(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>),
@@ -88,6 +91,7 @@ impl Debug for WindowEvent {
             WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
             WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
+            WindowEvent::Touch(..) => write!(f, "Touch"),
             WindowEvent::Scroll(..) => write!(f, "Scroll"),
             WindowEvent::Zoom(..) => write!(f, "Zoom"),
             WindowEvent::PinchZoom(..) => write!(f, "PinchZoom"),
