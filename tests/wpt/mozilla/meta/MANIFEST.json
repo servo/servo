@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/filter_inline_a.html": [
+          {
+            "path": "css/filter_inline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/filter_inline_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/filter_inline_a.html"
+          }
+        ],
         "css/first_of_type_pseudo_a.html": [
           {
             "path": "css/first_of_type_pseudo_a.html",
@@ -4978,6 +4990,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/filter_inline_a.html": [
+        {
+          "path": "css/filter_inline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/filter_inline_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/filter_inline_a.html"
         }
       ],
       "css/first_of_type_pseudo_a.html": [

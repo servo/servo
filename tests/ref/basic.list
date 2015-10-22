@@ -42,7 +42,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == empty_cells_a.html empty_cells_ref.html
 == external_media_query_link.html external_media_query_ref.html
 == external_media_query_style.html external_media_query_ref.html
-== filter_inline_a.html filter_inline_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
 == filter_sepia_a.html filter_sepia_ref.html
 == first_child_pseudo_a.html first_child_pseudo_b.html
