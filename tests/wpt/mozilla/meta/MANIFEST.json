@@ -815,6 +815,18 @@
             "url": "/_mozilla/css/box_sizing_sanity_check_a.html"
           }
         ],
+        "css/br.html": [
+          {
+            "path": "css/br.html",
+            "references": [
+              [
+                "/_mozilla/css/br-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/br.html"
+          }
+        ],
         "css/calc-basic.html": [
           {
             "path": "css/calc-basic.html",
@@ -5182,6 +5194,18 @@
             ]
           ],
           "url": "/_mozilla/css/box_sizing_sanity_check_a.html"
+        }
+      ],
+      "css/br.html": [
+        {
+          "path": "css/br.html",
+          "references": [
+            [
+              "/_mozilla/css/br-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/br.html"
         }
       ],
       "css/calc-basic.html": [
