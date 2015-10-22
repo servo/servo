@@ -887,6 +887,18 @@
             "url": "/_mozilla/css/font_advance.html"
           }
         ],
+        "css/font_color_attribute_a.html": [
+          {
+            "path": "css/font_color_attribute_a.html",
+            "references": [
+              [
+                "/_mozilla/css/font_color_attribute_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/font_color_attribute_a.html"
+          }
+        ],
         "css/font_style.html": [
           {
             "path": "css/font_style.html",
@@ -4954,6 +4966,18 @@
             ]
           ],
           "url": "/_mozilla/css/font_advance.html"
+        }
+      ],
+      "css/font_color_attribute_a.html": [
+        {
+          "path": "css/font_color_attribute_a.html",
+          "references": [
+            [
+              "/_mozilla/css/font_color_attribute_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/font_color_attribute_a.html"
         }
       ],
       "css/font_style.html": [
