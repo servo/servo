@@ -58,7 +58,6 @@ prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.ht
 == floated_generated_content_a.html floated_generated_content_b.html
 == floated_negative_margins_a.html floated_negative_margins_ref.html
 == floated_table_with_margin_a.html floated_table_with_margin_ref.html
-== font_color_attribute_a.html font_color_attribute_ref.html
 == font_face_attribute.html font_face_attribute_ref.html
 == font_size.html font_size_ref.html
 == height_compute_reset.html height_compute.html
