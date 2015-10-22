@@ -971,6 +971,18 @@
             "url": "/_mozilla/css/filter_inline_a.html"
           }
         ],
+        "css/filter_opacity_a.html": [
+          {
+            "path": "css/filter_opacity_a.html",
+            "references": [
+              [
+                "/_mozilla/css/filter_opacity_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/filter_opacity_a.html"
+          }
+        ],
         "css/filter_sepia_a.html": [
           {
             "path": "css/filter_sepia_a.html",
@@ -5374,6 +5386,18 @@
             ]
           ],
           "url": "/_mozilla/css/filter_inline_a.html"
+        }
+      ],
+      "css/filter_opacity_a.html": [
+        {
+          "path": "css/filter_opacity_a.html",
+          "references": [
+            [
+              "/_mozilla/css/filter_opacity_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/filter_opacity_a.html"
         }
       ],
       "css/filter_sepia_a.html": [
