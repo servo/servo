@@ -28,7 +28,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_shadow_spread_a.html box_shadow_spread_ref.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
 == br.html br-ref.html
-== canvas_as_block_element_a.html canvas_as_block_element_ref.html
 == canvas_radial_gradient_a.html canvas_radial_gradient_ref.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == empty_cells_a.html empty_cells_ref.html
