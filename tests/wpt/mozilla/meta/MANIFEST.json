@@ -887,6 +887,18 @@
             "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
           }
         ],
+        "css/inline_block_baseline_a.html": [
+          {
+            "path": "css/inline_block_baseline_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_baseline_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_baseline_a.html"
+          }
+        ],
         "css/inline_block_block_direction_margins_a.html": [
           {
             "path": "css/inline_block_block_direction_margins_a.html",
@@ -4774,6 +4786,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_absolute_out_of_flow_a.html"
+        }
+      ],
+      "css/inline_block_baseline_a.html": [
+        {
+          "path": "css/inline_block_baseline_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_baseline_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_baseline_a.html"
         }
       ],
       "css/inline_block_block_direction_margins_a.html": [
