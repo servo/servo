@@ -12,7 +12,8 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
+use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
@@ -131,6 +132,11 @@ pub trait CompositorLayer {
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods;
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent)
+                          where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
                                             new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -372,22 +378,22 @@ impl CompositorLayer for Layer<CompositorData> {
             MouseWindowEvent::MouseUp(button, _) =>
                 MouseUpEvent(button, event_point),
         };
-
-        if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
-            pipeline.script_chan
-                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
-                    .unwrap();
-        }
+        self.send_event(compositor, message);
     }
 
     fn send_mouse_move_event<Window>(&self,
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
-        let message = MouseMoveEvent(cursor.to_untyped());
+        self.send_event(compositor, MouseMoveEvent(cursor.to_untyped()));
+    }
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent) where Window: WindowMethods {
         if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
             let _ = pipeline.script_chan
-                            .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), event));
         }
     }
 

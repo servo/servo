@@ -21,6 +21,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
@@ -60,6 +61,9 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
+use dom::touch::Touch;
+use dom::touchevent::TouchEvent;
+use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
@@ -590,7 +594,7 @@ impl Document {
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
                                     clickCount,
-                                    x, y, x, y,
+                                    x, y, x, y, // TODO: Get real screen coordinates?
                                     false, false, false, false,
                                     0i16,
                                     None);
@@ -697,6 +701,60 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    pub fn handle_touch_event(&self,
+                              js_runtime: *mut JSRuntime,
+                              identifier: i32,
+                              point: Point2D<f32>,
+                              event_name: String) -> bool {
+        let node = match self.hit_test(&point) {
+            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            None => return false
+        };
+        let el = match node.downcast::<Element>() {
+            Some(el) => Root::from_ref(el),
+            None => {
+                let parent = node.r().GetParentNode();
+                match parent.and_then(Root::downcast::<Element>) {
+                    Some(parent) => parent,
+                    None => return false
+                }
+            },
+        };
+        let target = el.upcast::<EventTarget>();
+        let window = self.window.root();
+
+        let client_x = Finite::wrap(point.x as f64);
+        let client_y = Finite::wrap(point.y as f64);
+        let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
+        let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
+
+        let touch = Touch::new(window.r(), identifier, target,
+                               client_x, client_y, // TODO: Get real screen coordinates?
+                               client_x, client_y,
+                               page_x, page_y);
+
+        let mut touches = RootedVec::new();
+        touches.push(JS::from_rooted(&touch));
+        let touches = TouchList::new(window.r(), touches.r());
+
+        let event = TouchEvent::new(window.r(),
+                                    event_name,
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(window.r()),
+                                    0i32,
+                                    &touches, &touches, &touches,
+                                    // FIXME: modifier keys
+                                    false, false, false, false);
+        let event = event.upcast::<Event>();
+        let result = event.fire(target);
+
+        window.r().reflow(ReflowGoal::ForDisplay,
+                          ReflowQueryType::NoQuery,
+                          ReflowReason::MouseEvent);
+        result
     }
 
     /// The entry point for all key processing for web content
@@ -1359,6 +1417,21 @@ impl DocumentMethods for Document {
     fn CreateNodeIterator(&self, root: &Node, whatToShow: u32, filter: Option<Rc<NodeFilter>>)
                         -> Root<NodeIterator> {
         NodeIterator::new(self, root, whatToShow, filter)
+    }
+
+    // https://w3c.github.io/touch-events/#idl-def-Document
+    fn CreateTouch(&self,
+                   window: &Window,
+                   target: &EventTarget,
+                   identifier: i32,
+                   pageX: Finite<f64>,
+                   pageY: Finite<f64>,
+                   screenX: Finite<f64>,
+                   screenY: Finite<f64>)
+                   -> Root<Touch> {
+        let clientX = Finite::wrap(*pageX - window.PageXOffset() as f64);
+        let clientY = Finite::wrap(*pageY - window.PageYOffset() as f64);
+        Touch::new(window, identifier, target, screenX, screenY, clientX, clientY, pageX, pageY)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
