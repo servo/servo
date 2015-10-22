@@ -863,6 +863,18 @@
             "url": "/_mozilla/css/incremental_letter_spacing_a.html"
           }
         ],
+        "css/incremental_text_color_a.html": [
+          {
+            "path": "css/incremental_text_color_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_text_color_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_text_color_a.html"
+          }
+        ],
         "css/inline_absolute_hypothetical_clip_a.html": [
           {
             "path": "css/inline_absolute_hypothetical_clip_a.html",
@@ -4762,6 +4774,18 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_letter_spacing_a.html"
+        }
+      ],
+      "css/incremental_text_color_a.html": [
+        {
+          "path": "css/incremental_text_color_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_text_color_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_text_color_a.html"
         }
       ],
       "css/inline_absolute_hypothetical_clip_a.html": [
