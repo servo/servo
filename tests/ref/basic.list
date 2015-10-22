@@ -37,7 +37,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == counters_simple_a.html counters_simple_ref.html
 == empty_cells_a.html empty_cells_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
-== first_child_pseudo_a.html first_child_pseudo_b.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
 prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
 prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
