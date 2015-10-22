@@ -863,6 +863,18 @@
             "url": "/_mozilla/css/float_overflow_area_a.html"
           }
         ],
+        "css/float_positioned_pseudo_stacking_context.html": [
+          {
+            "path": "css/float_positioned_pseudo_stacking_context.html",
+            "references": [
+              [
+                "/_mozilla/css/float_positioned_pseudo_stacking_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_positioned_pseudo_stacking_context.html"
+          }
+        ],
         "css/float_right_intrinsic_width_a.html": [
           {
             "path": "css/float_right_intrinsic_width_a.html",
@@ -5026,6 +5038,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_overflow_area_a.html"
+        }
+      ],
+      "css/float_positioned_pseudo_stacking_context.html": [
+        {
+          "path": "css/float_positioned_pseudo_stacking_context.html",
+          "references": [
+            [
+              "/_mozilla/css/float_positioned_pseudo_stacking_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_positioned_pseudo_stacking_context.html"
         }
       ],
       "css/float_right_intrinsic_width_a.html": [

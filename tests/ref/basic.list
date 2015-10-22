@@ -50,7 +50,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
 prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
 == float_clearance_intrinsic_width_a.html float_clearance_intrinsic_width_ref.html
-== float_positioned_pseudo_stacking_context.html float_positioned_pseudo_stacking_context_ref.html
 == floated_negative_margins_a.html floated_negative_margins_ref.html
 == font_size.html font_size_ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
