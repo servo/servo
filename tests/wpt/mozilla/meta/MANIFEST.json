@@ -815,6 +815,18 @@
             "url": "/_mozilla/css/filter_inline_a.html"
           }
         ],
+        "css/filter_sepia_a.html": [
+          {
+            "path": "css/filter_sepia_a.html",
+            "references": [
+              [
+                "/_mozilla/css/filter_sepia_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/filter_sepia_a.html"
+          }
+        ],
         "css/first_of_type_pseudo_a.html": [
           {
             "path": "css/first_of_type_pseudo_a.html",
@@ -5014,6 +5026,18 @@
             ]
           ],
           "url": "/_mozilla/css/filter_inline_a.html"
+        }
+      ],
+      "css/filter_sepia_a.html": [
+        {
+          "path": "css/filter_sepia_a.html",
+          "references": [
+            [
+              "/_mozilla/css/filter_sepia_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/filter_sepia_a.html"
         }
       ],
       "css/first_of_type_pseudo_a.html": [
