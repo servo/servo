@@ -779,6 +779,18 @@
             "url": "/_mozilla/css/border_spacing_a.html"
           }
         ],
+        "css/box_shadow_paint_order_a.html": [
+          {
+            "path": "css/box_shadow_paint_order_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_paint_order_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_paint_order_a.html"
+          }
+        ],
         "css/box_sizing_border_box_a.html": [
           {
             "path": "css/box_sizing_border_box_a.html",
@@ -5146,6 +5158,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_spacing_a.html"
+        }
+      ],
+      "css/box_shadow_paint_order_a.html": [
+        {
+          "path": "css/box_shadow_paint_order_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_paint_order_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_paint_order_a.html"
         }
       ],
       "css/box_sizing_border_box_a.html": [
