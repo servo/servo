@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/font_advance.html": [
+          {
+            "path": "css/font_advance.html",
+            "references": [
+              [
+                "/_mozilla/css/font_advance_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/font_advance.html"
+          }
+        ],
         "css/font_style.html": [
           {
             "path": "css/font_style.html",
@@ -4774,6 +4786,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/font_advance.html": [
+        {
+          "path": "css/font_advance.html",
+          "references": [
+            [
+              "/_mozilla/css/font_advance_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/font_advance.html"
         }
       ],
       "css/font_style.html": [
