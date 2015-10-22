@@ -63,11 +63,10 @@ use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
-use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
 use time;
 use timers::{ActiveTimers, IsInterval, TimerCallback};
@@ -181,10 +180,6 @@ pub struct Window {
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC + 'static>,
-
-    /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    #[ignore_heap_size_of = "channels are hard"]
-    layout_join_port: DOMRefCell<Option<Receiver<()>>>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
@@ -914,11 +909,6 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        {
-            let mut layout_join_port = self.layout_join_port.borrow_mut();
-            *layout_join_port = Some(join_port);
-        }
-
         let last_reflow_id = &self.last_reflow_id;
         last_reflow_id.set(last_reflow_id.get() + 1);
 
@@ -949,21 +939,18 @@ impl Window {
         // FIXME(cgaebel): this is racey. What if the compositor triggers a
         // reflow between the "join complete" message and returning from this
         // function?
-        let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
-            match join_port.try_recv() {
-                Err(Empty) => {
-                    info!("script: waiting on layout");
-                    join_port.recv().unwrap();
-                }
-                Ok(_) => {}
-                Err(Disconnected) => {
-                    panic!("Layout task failed while script was waiting for a result.");
-                }
+        match join_port.try_recv() {
+            Err(Empty) => {
+                info!("script: waiting on layout");
+                join_port.recv().unwrap();
             }
-
-            debug!("script: layout joined")
+            Ok(_) => {}
+            Err(Disconnected) => {
+                panic!("Layout task failed while script was waiting for a result.");
+            }
         }
+
+        debug!("script: layout joined");
 
         self.pending_reflow_count.set(0);
 
@@ -1300,7 +1287,6 @@ impl Window {
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
-            layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
             pending_reflow_count: Cell::new(0),
