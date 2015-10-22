@@ -887,6 +887,18 @@
             "url": "/_mozilla/css/canvas_linear_gradient_a.html"
           }
         ],
+        "css/case-insensitive-font-family.html": [
+          {
+            "path": "css/case-insensitive-font-family.html",
+            "references": [
+              [
+                "/_mozilla/css/case-insensitive-font-family-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/case-insensitive-font-family.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -5350,6 +5362,18 @@
             ]
           ],
           "url": "/_mozilla/css/canvas_linear_gradient_a.html"
+        }
+      ],
+      "css/case-insensitive-font-family.html": [
+        {
+          "path": "css/case-insensitive-font-family.html",
+          "references": [
+            [
+              "/_mozilla/css/case-insensitive-font-family-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/case-insensitive-font-family.html"
         }
       ],
       "css/class-namespaces.html": [
