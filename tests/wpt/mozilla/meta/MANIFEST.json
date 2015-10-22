@@ -779,6 +779,18 @@
             "url": "/_mozilla/css/border_spacing_a.html"
           }
         ],
+        "css/box_shadow_border_box_a.html": [
+          {
+            "path": "css/box_shadow_border_box_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_border_box_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_border_box_a.html"
+          }
+        ],
         "css/box_shadow_inset_bg.html": [
           {
             "path": "css/box_shadow_inset_bg.html",
@@ -5206,6 +5218,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_spacing_a.html"
+        }
+      ],
+      "css/box_shadow_border_box_a.html": [
+        {
+          "path": "css/box_shadow_border_box_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_border_box_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_border_box_a.html"
         }
       ],
       "css/box_shadow_inset_bg.html": [
