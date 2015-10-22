@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/floated_list_item_a.html": [
+          {
+            "path": "css/floated_list_item_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floated_list_item_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floated_list_item_a.html"
+          }
+        ],
         "css/focus_selector.html": [
           {
             "path": "css/focus_selector.html",
@@ -4810,6 +4822,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/floated_list_item_a.html": [
+        {
+          "path": "css/floated_list_item_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floated_list_item_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floated_list_item_a.html"
         }
       ],
       "css/focus_selector.html": [
