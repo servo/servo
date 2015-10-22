@@ -827,6 +827,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/clear_generated_content_table_a.html": [
+          {
+            "path": "css/clear_generated_content_table_a.html",
+            "references": [
+              [
+                "/_mozilla/css/clear_generated_content_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/clear_generated_content_table_a.html"
+          }
+        ],
         "css/clip_a.html": [
           {
             "path": "css/clip_a.html",
@@ -5146,6 +5158,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/clear_generated_content_table_a.html": [
+        {
+          "path": "css/clear_generated_content_table_a.html",
+          "references": [
+            [
+              "/_mozilla/css/clear_generated_content_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/clear_generated_content_table_a.html"
         }
       ],
       "css/clip_a.html": [
