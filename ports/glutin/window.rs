@@ -170,7 +170,6 @@ impl Window {
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
                         (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
                         (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
-                        (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
                         (_, key_code) => {
                             match Window::glutin_key_to_script_key(key_code) {
                                 Ok(key) => {
@@ -203,24 +202,11 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
-                if self.ctrl_pressed() {
-                    // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
-                    let dy = match delta {
-                        MouseScrollDelta::LineDelta(_, dy) => dy,
-                        MouseScrollDelta::PixelDelta(_, dy) => dy
-                    };
-                    if dy < 0.0 {
-                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
-                    } else if dy > 0.0 {
-                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
+                match delta {
+                    MouseScrollDelta::LineDelta(dx, dy) => {
+                        self.scroll_window(dx, dy * LINE_HEIGHT);
                     }
-                } else {
-                    match delta {
-                        MouseScrollDelta::LineDelta(dx, dy) => {
-                            self.scroll_window(dx, dy * LINE_HEIGHT);
-                        }
-                        MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
-                    }
+                    MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
                 }
             },
             Event::Refresh => {
@@ -233,11 +219,6 @@ impl Window {
         }
 
         false
-    }
-
-    #[inline]
-    fn ctrl_pressed(&self) -> bool {
-        self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL)
     }
 
     fn toggle_modifier(&self, modifier: KeyModifiers) {
@@ -670,6 +651,10 @@ impl WindowMethods for Window {
             }
             (NONE, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            }
+
+            (NONE, Key::Escape) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
 
             (CMD_OR_ALT, Key::Right) => {
