@@ -827,6 +827,18 @@
             "url": "/_mozilla/css/counters_nested_a.html"
           }
         ],
+        "css/counters_simple_a.html": [
+          {
+            "path": "css/counters_simple_a.html",
+            "references": [
+              [
+                "/_mozilla/css/counters_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/counters_simple_a.html"
+          }
+        ],
         "css/data_img_a.html": [
           {
             "path": "css/data_img_a.html",
@@ -5110,6 +5122,18 @@
             ]
           ],
           "url": "/_mozilla/css/counters_nested_a.html"
+        }
+      ],
+      "css/counters_simple_a.html": [
+        {
+          "path": "css/counters_simple_a.html",
+          "references": [
+            [
+              "/_mozilla/css/counters_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/counters_simple_a.html"
         }
       ],
       "css/data_img_a.html": [
