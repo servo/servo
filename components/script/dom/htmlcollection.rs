@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
-use dom::node::{Node, FollowingNodeIterator};
+use dom::node::{Node, FollowingNodeIterator, FollowingNodeReverseIterator};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -92,6 +92,7 @@ impl HTMLCollection {
     }
     
     fn get_item(&self, index: u32) -> Option<Root<Element>> {
+        let cached_length = self.cached_length.get();
         if let Some(element) = self.cached_cursor_element.get() {
 	    let cached_index = self.cached_cursor_index.get();
 	    if cached_index == index {
@@ -103,8 +104,11 @@ impl HTMLCollection {
 	    } else {
 		self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
 	    }
-	} else {
+	} else if (index < (cached_length - index)) {
             self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
+	} else {
+	    let offset = cached_length - (index + 1);
+            self.set_cached_cursor(index, self.elements_iter_reverse().nth(offset as usize))
 	}
     }
 
@@ -231,6 +235,18 @@ impl HTMLCollection {
         self.elements_iter_after(&*self.root)
     }
     
+    pub fn elements_iter_reverse_before(&self, before: &Node) -> HTMLCollectionElementsRevIter {
+        HTMLCollectionElementsRevIter {
+            node_iter: before.following_nodes_reverse(&*self.root),
+	    root: self.root.root(),
+            filter: &self.filter,
+        }
+    }
+    
+    pub fn elements_iter_reverse(&self) -> HTMLCollectionElementsRevIter {
+        self.elements_iter_reverse_before(&*self.root)
+    }
+    
 }
 
 pub struct HTMLCollectionElementsIter<'a> {
@@ -250,6 +266,25 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
                       .filter(|element| filter.filter(&element, root))
                       .next()
    }
+}
+
+pub struct HTMLCollectionElementsRevIter<'a> {
+    node_iter: FollowingNodeReverseIterator,
+    root: Root<Node>,
+    filter: &'a Box<CollectionFilter>,
+}
+
+impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
+    type Item = Root<Element>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ref filter = self.filter;
+	let ref root = self.root;
+        self.node_iter.by_ref()
+            .filter_map(ElementCast::to_root)
+            .filter(|element| filter.filter(element.r(), root.r()))
+            .next()
+    }
 }
 
 impl HTMLCollectionMethods for HTMLCollection {
