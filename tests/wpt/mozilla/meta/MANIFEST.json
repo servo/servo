@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/border_spacing_a.html"
           }
         ],
+        "css/border_spacing_empty_table.html": [
+          {
+            "path": "css/border_spacing_empty_table.html",
+            "references": [
+              [
+                "/_mozilla/css/border_spacing_empty_table_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_spacing_empty_table.html"
+          }
+        ],
         "css/border_style_none_a.html": [
           {
             "path": "css/border_style_none_a.html",
@@ -5278,6 +5290,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_spacing_a.html"
+        }
+      ],
+      "css/border_spacing_empty_table.html": [
+        {
+          "path": "css/border_spacing_empty_table.html",
+          "references": [
+            [
+              "/_mozilla/css/border_spacing_empty_table_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_spacing_empty_table.html"
         }
       ],
       "css/border_style_none_a.html": [
