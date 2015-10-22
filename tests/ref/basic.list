@@ -12,7 +12,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
 == border_spacing_auto_layout_a.html border_spacing_ref.html
-== border_spacing_empty_table.html border_spacing_empty_table_ref.html
 == border_spacing_fixed_layout_a.html border_spacing_ref.html
 == borders_a.html borders_b.html
 == box_shadow_bg.html box_shadow_bg_ref.html
