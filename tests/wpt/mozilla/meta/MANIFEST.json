@@ -935,6 +935,18 @@
             "url": "/_mozilla/css/data_img_a.html"
           }
         ],
+        "css/empty_cells_a.html": [
+          {
+            "path": "css/empty_cells_a.html",
+            "references": [
+              [
+                "/_mozilla/css/empty_cells_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/empty_cells_a.html"
+          }
+        ],
         "css/external_media_query_link.html": [
           {
             "path": "css/external_media_query_link.html",
@@ -5350,6 +5362,18 @@
             ]
           ],
           "url": "/_mozilla/css/data_img_a.html"
+        }
+      ],
+      "css/empty_cells_a.html": [
+        {
+          "path": "css/empty_cells_a.html",
+          "references": [
+            [
+              "/_mozilla/css/empty_cells_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/empty_cells_a.html"
         }
       ],
       "css/external_media_query_link.html": [
