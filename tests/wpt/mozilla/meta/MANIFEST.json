@@ -947,6 +947,18 @@
             "url": "/_mozilla/css/font_style.html"
           }
         ],
+        "css/height_compute_reset.html": [
+          {
+            "path": "css/height_compute_reset.html",
+            "references": [
+              [
+                "/_mozilla/css/height_compute.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/height_compute_reset.html"
+          }
+        ],
         "css/img_block_display_a.html": [
           {
             "path": "css/img_block_display_a.html",
@@ -5050,6 +5062,18 @@
             ]
           ],
           "url": "/_mozilla/css/font_style.html"
+        }
+      ],
+      "css/height_compute_reset.html": [
+        {
+          "path": "css/height_compute_reset.html",
+          "references": [
+            [
+              "/_mozilla/css/height_compute.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/height_compute_reset.html"
         }
       ],
       "css/img_block_display_a.html": [
