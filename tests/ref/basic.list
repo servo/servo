@@ -34,7 +34,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == canvas_radial_gradient_a.html canvas_radial_gradient_ref.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
-== clip_a.html clip_ref.html
 == counters_simple_a.html counters_simple_ref.html
 == empty_cells_a.html empty_cells_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
