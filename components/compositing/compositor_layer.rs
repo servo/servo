@@ -386,9 +386,8 @@ impl CompositorLayer for Layer<CompositorData> {
                                      where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
         if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
-            pipeline.script_chan
-                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
-                    .unwrap();
+            let _ = pipeline.script_chan
+                            .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
         }
     }
 
