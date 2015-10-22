@@ -3325,6 +3325,12 @@
         ]
       },
       "testharness": {
+        "css/float_relative_to_position.html": [
+          {
+            "path": "css/float_relative_to_position.html",
+            "url": "/_mozilla/css/float_relative_to_position.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
