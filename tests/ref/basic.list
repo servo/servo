@@ -27,7 +27,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == box_shadow_paint_order_a.html box_shadow_paint_order_ref.html
 == box_shadow_spread_a.html box_shadow_spread_ref.html
 == box_sizing_border_box_a.html box_sizing_border_box_ref.html
-== box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == br.html br-ref.html
 == calc-basic.html calc-basic-ref.html
 == canvas_as_block_element_a.html canvas_as_block_element_ref.html
