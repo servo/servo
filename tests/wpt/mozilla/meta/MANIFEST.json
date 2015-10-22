@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/first_of_type_pseudo_a.html": [
+          {
+            "path": "css/first_of_type_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/first_of_type_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/first_of_type_pseudo_a.html"
+          }
+        ],
         "css/flex_nochild.html": [
           {
             "path": "css/flex_nochild.html",
@@ -4882,6 +4894,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/first_of_type_pseudo_a.html": [
+        {
+          "path": "css/first_of_type_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/first_of_type_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/first_of_type_pseudo_a.html"
         }
       ],
       "css/flex_nochild.html": [
