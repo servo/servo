@@ -35,7 +35,6 @@ flaky_cpu == append_style_a.html append_style_b.html
 == case-insensitive-font-family.html case-insensitive-font-family-ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
 == clip_a.html clip_ref.html
-== counters_nested_a.html counters_nested_ref.html
 == counters_simple_a.html counters_simple_ref.html
 == empty_cells_a.html empty_cells_ref.html
 == external_media_query_link.html external_media_query_ref.html

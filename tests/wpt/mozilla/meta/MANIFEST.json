@@ -803,6 +803,18 @@
             "url": "/_mozilla/css/class-namespaces.html"
           }
         ],
+        "css/counters_nested_a.html": [
+          {
+            "path": "css/counters_nested_a.html",
+            "references": [
+              [
+                "/_mozilla/css/counters_nested_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/counters_nested_a.html"
+          }
+        ],
         "css/data_img_a.html": [
           {
             "path": "css/data_img_a.html",
@@ -5038,6 +5050,18 @@
             ]
           ],
           "url": "/_mozilla/css/class-namespaces.html"
+        }
+      ],
+      "css/counters_nested_a.html": [
+        {
+          "path": "css/counters_nested_a.html",
+          "references": [
+            [
+              "/_mozilla/css/counters_nested_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/counters_nested_a.html"
         }
       ],
       "css/data_img_a.html": [
