@@ -887,6 +887,18 @@
             "url": "/_mozilla/css/filter_sepia_a.html"
           }
         ],
+        "css/first_child_pseudo_a.html": [
+          {
+            "path": "css/first_child_pseudo_a.html",
+            "references": [
+              [
+                "/_mozilla/css/first_child_pseudo_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/first_child_pseudo_a.html"
+          }
+        ],
         "css/first_of_type_pseudo_a.html": [
           {
             "path": "css/first_of_type_pseudo_a.html",
@@ -5158,6 +5170,18 @@
             ]
           ],
           "url": "/_mozilla/css/filter_sepia_a.html"
+        }
+      ],
+      "css/first_child_pseudo_a.html": [
+        {
+          "path": "css/first_child_pseudo_a.html",
+          "references": [
+            [
+              "/_mozilla/css/first_child_pseudo_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/first_child_pseudo_a.html"
         }
       ],
       "css/first_of_type_pseudo_a.html": [
