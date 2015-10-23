@@ -133,10 +133,24 @@ impl HTMLCollection {
 
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
-        if tag == "*" {
-            return HTMLCollection::all_elements(window, root, None);
-        }
+        let tag_atom = Atom::from_slice(&tag);
+        tag.make_ascii_lowercase();
+        let ascii_lower_tag = Atom::from_slice(&tag);
+        HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
+    }
+    
+    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
+                       -> Root<HTMLCollection> {
 
+        // Can this be lifted out of this function?
+        // const STAR = atom!("*");
+	// results in "error: statics are not allowed to have destructors [E0493]"
+        let STAR = Atom::from_slice("*");
+
+        if tag_atom == STAR {
+            return HTMLCollection::all_elements(window, root, None)
+	}
+	
         #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameFilter {
             tag: Atom,
@@ -151,9 +165,6 @@ impl HTMLCollection {
                 }
             }
         }
-        let tag_atom = Atom::from_slice(&tag);
-        tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from_slice(&tag);
         let filter = TagNameFilter {
             tag: tag_atom,
             ascii_lower_tag: ascii_lower_tag,
