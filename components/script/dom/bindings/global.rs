@@ -198,7 +198,7 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Schedules the given `callback` to be invoked after at least `duration` milliseconds have
+    /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
     /// passed.
     pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
         match *self {
@@ -207,8 +207,7 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Unschedules a previously scheduled callback. Does nothing if the callback was already
-    /// invoked.
+    /// Unschedule a previously-scheduled callback.
     pub fn unschedule_callback(&self, handle: TimerHandle) {
         match *self {
             GlobalRef::Window(window) => window.unschedule_callback(handle),
