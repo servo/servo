@@ -2106,16 +2106,6 @@ impl Fragment {
                               stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
-    /// Returns true if this fragment unconditionally layerizes.
-    pub fn needs_layered_stacking_context(&self) -> bool {
-        // Canvas and iframes always layerize, as an special case
-        // FIXME(pcwalton): Don't unconditionally form stacking contexts for each canvas.
-        match self.specific {
-            SpecificFragmentInfo::Canvas(_) => true,
-            _ => false,
-        }
-    }
-
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         if self.flags.contains(HAS_LAYER) {
@@ -2138,10 +2128,6 @@ impl Fragment {
                 return true
             }
             transform_style::T::auto => {}
-        }
-
-        if self.needs_layered_stacking_context() {
-            return true
         }
 
         // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
