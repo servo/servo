@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='counters_simple_ref.html'>
+<!-- Tests that `counter` works. -->
+<style>
+h1, h2, h3 {
+    font-size: 24px;
+}
+h1 {
+    counter-increment: section 1;
+    counter-reset: subsection 0;
+}
+h1:before {
+    content: counter(section) ". ";
+}
+h2 {
+    counter-increment: subsection 1;
+    counter-reset: subsubsection 0;
+}
+h2:before {
+    content: counter(section) "." counter(subsection) ". ";
+}
+h3 {
+    counter-increment: subsubsection;
+}
+h3:before {
+    content: counter(section) "." counter(subsection) "." counter(subsubsection) ". ";
+}
+</style>
+</head>
+<body>
+<h1>Foo</h1>
+    <h2>Boo</h2>
+    <h2>Quux</h2>
+        <h3>Blah</h3>
+<h1>Bar</h1>
+    <h2>Boo</h2>
+    <h2>Quux</h2>
+<h1>Baz</h1>
+</body>
+</html>
+
