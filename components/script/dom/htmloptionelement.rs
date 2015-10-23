@@ -197,6 +197,15 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
+
+        let node = self.upcast::<Node>();
+        if self.Selected() {
+            if let Some(select) = node.ancestors()
+                    .filter_map(Root::downcast::<HTMLSelectElement>)
+                    .next() {
+                select.pick_option(self);
+            }
+        }
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
