@@ -418,9 +418,7 @@ pub trait Reflectable {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
     /// Initializes the Reflector
-    fn init_reflector(&mut self, _obj: *mut JSObject) {
-        panic!("Cannot call init on this Reflectable");
-    }
+    fn init_reflector(&mut self, obj: *mut JSObject);
 }
 
 /// Create the reflector for a new DOM object and yield ownership to the

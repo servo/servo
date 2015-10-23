@@ -196,10 +196,9 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(worker) => worker.set_devtools_wants_updates(send_updates),
         }
     }
-}
 
-impl<'a> Reflectable for GlobalRef<'a> {
-    fn reflector(&self) -> &Reflector {
+    /// Returns the receiver's reflector.
+    pub fn reflector(&self) -> &Reflector {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
