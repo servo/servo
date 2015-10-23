@@ -63,11 +63,10 @@ use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
-use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
 use time;
 use timers::{ActiveTimers, IsInterval, TimerCallback};
@@ -181,10 +180,6 @@ pub struct Window {
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
     layout_rpc: Box<LayoutRPC + 'static>,
-
-    /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    #[ignore_heap_size_of = "channels are hard"]
-    layout_join_port: DOMRefCell<Option<Receiver<()>>>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
@@ -914,11 +909,6 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        {
-            let mut layout_join_port = self.layout_join_port.borrow_mut();
-            *layout_join_port = Some(join_port);
-        }
-
         let last_reflow_id = &self.last_reflow_id;
         last_reflow_id.set(last_reflow_id.get() + 1);
 
@@ -946,7 +936,21 @@ impl Window {
 
         debug!("script: layout forked");
 
-        self.join_layout();
+        // FIXME(cgaebel): this is racey. What if the compositor triggers a
+        // reflow between the "join complete" message and returning from this
+        // function?
+        match join_port.try_recv() {
+            Err(Empty) => {
+                info!("script: waiting on layout");
+                join_port.recv().unwrap();
+            }
+            Ok(_) => {}
+            Err(Disconnected) => {
+                panic!("Layout task failed while script was waiting for a result.");
+            }
+        }
+
+        debug!("script: layout joined");
 
         self.pending_reflow_count.set(0);
 
@@ -977,30 +981,6 @@ impl Window {
         self.force_reflow(goal, query_type, reason)
     }
 
-    // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
-    // reflow between the "join complete" message and returning from this
-    // function?
-
-    /// Sends a ping to layout and waits for the response. The response will arrive when the
-    /// layout task has finished any pending request messages.
-    pub fn join_layout(&self) {
-        let mut layout_join_port = self.layout_join_port.borrow_mut();
-        if let Some(join_port) = std_mem::replace(&mut *layout_join_port, None) {
-            match join_port.try_recv() {
-                Err(Empty) => {
-                    info!("script: waiting on layout");
-                    join_port.recv().unwrap();
-                }
-                Ok(_) => {}
-                Err(Disconnected) => {
-                    panic!("Layout task failed while script was waiting for a result.");
-                }
-            }
-
-            debug!("script: layout joined")
-        }
-    }
-
     pub fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
@@ -1009,7 +989,6 @@ impl Window {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ContentBoxQuery(content_box_request),
                     ReflowReason::Query);
-        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
@@ -1018,7 +997,6 @@ impl Window {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ContentBoxesQuery(content_boxes_request),
                     ReflowReason::Query);
-        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
@@ -1053,13 +1031,6 @@ impl Window {
             Root::downcast(node)
         });
         (element, response.rect)
-    }
-
-    pub fn handle_reflow_complete_msg(&self, reflow_id: u32) {
-        let last_reflow_id = self.last_reflow_id.get();
-        if last_reflow_id == reflow_id {
-            *self.layout_join_port.borrow_mut() = None;
-        }
     }
 
     pub fn init_browsing_context(&self, doc: &Document, frame_element: Option<&Element>) {
@@ -1133,10 +1104,6 @@ impl Window {
         let SubpageId(id_num) = subpage_id;
         self.next_subpage_id.set(SubpageId(id_num + 1));
         subpage_id
-    }
-
-    pub fn layout_is_idle(&self) -> bool {
-        self.layout_join_port.borrow().is_none()
     }
 
     pub fn get_pending_reflow_count(&self) -> u32 {
@@ -1320,7 +1287,6 @@ impl Window {
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
-            layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(Rect::zero()),
             pending_reflow_count: Cell::new(0),
