@@ -27,6 +27,7 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
@@ -275,27 +276,35 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
-/*
- * https://html.spec.whatwg.org/multipage/#attr-data-
- * if this attribute is in snake case with a data- prefix,
- * this function returns a name converted to camel case
- */
-fn to_camel_case(name: DOMString) -> Option<DOMString> {
-    let has_uppercase = name.chars().any(|curr_char|
-        curr_char.is_uppercase()
-    );
-    if !name.starts_with("data-") || has_uppercase {
+
+//  https://html.spec.whatwg.org/multipage/#attr-data-*
+//  if this attribute is in snake case with a data- prefix,
+//  this function returns a name converted to camel case
+//  without the data prefix
+
+fn to_camel_case(name: &str) -> Option<DOMString> {
+    let has_uppercase = name.chars().any(|curr_char| {
+        curr_char.is_ascii() && curr_char.is_uppercase()
+    });
+    if name.len() < 6 || !name.starts_with("data-") || has_uppercase {
+        println!("returning none for attribute {}, has uppercase is {}", name, has_uppercase);
         None
     } else {
         let mut result = "".to_owned();
         //Skip the prefix
-        let mut name_chars = name.chars().skip(5);
+        let mut name_chars = name[5..].chars();
         while let Some(curr_char) = name_chars.next() {
+            //check for hyphen followed by character
             if curr_char == '\x2d' {
-                let next_char_opt = name_chars.next();
-                match next_char_opt {
-                    Some(next_char) => result.extend(next_char.to_uppercase()),
-                    None => break,
+                if let Some(next_char) = name_chars.next() {
+                    if next_char.is_ascii() && next_char.is_lowercase() {
+                        result.push(next_char.to_ascii_uppercase());
+                    } else {
+                        result.push(curr_char);
+                        result.push(next_char);
+                    }
+                } else {
+                    result.push(curr_char);
                 }
             } else {
                 result.push(curr_char);
@@ -328,9 +337,9 @@ impl HTMLElement {
     }
 
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         element.attrs().iter().map(JS::root).filter_map(|attr| {
-            let raw_name = (**attr.r().local_name()).to_owned();
+            let raw_name = &(**attr.r().local_name());
             to_camel_case(raw_name)
         }).collect::<Vec<DOMString>>()
     }

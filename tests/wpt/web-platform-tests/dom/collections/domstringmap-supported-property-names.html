@@ -5,7 +5,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 
-<div id="simple" data-id="012">Simple</div>
+<div id="edge1" data-="012">Simple</div>
+
+<div id="edge2" data-id-="012">Simple</div>
 
 <div id="user" data-id="1234567890" data-user="johndoe" data-date-of-birth>
     John Doe
@@ -18,10 +20,16 @@
 <script>
 
 test(function() {
-    var element = document.querySelector('#simple');
+    var element = document.querySelector('#edge1');
     assert_array_equals(Object.getOwnPropertyNames(element.dataset),
-        ['id']);
-}, "Object.getOwnPropertyNames on DOMStringMap, one data attribute");
+        []);
+}, "Object.getOwnPropertyNames on DOMStringMap, empty data attribute");
+
+test(function() {
+    var element = document.querySelector('#edge2');
+    assert_array_equals(Object.getOwnPropertyNames(element.dataset),
+        ["id-"]);
+}, "Object.getOwnPropertyNames on DOMStringMap, data attribute trailing hyphen");
 
 test(function() {
     var element = document.querySelector('#user');

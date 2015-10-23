@@ -61,9 +61,6 @@ impl DOMStringMapMethods for DOMStringMap {
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let element = self.element.root();
-        element.r().supported_prop_names_custom_attr().iter().map(|name| {
-            name.clone()
-        }).collect::<Vec<DOMString>>()
+        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
     }
 }

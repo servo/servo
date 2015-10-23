@@ -87,11 +87,8 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let owner = self.owner.root();
-        let owner = owner.r();
-        let attrs = owner.attrs();
-        attrs.iter().map(JS::root).map(|attr|
+        self.owner.attrs().iter().map(JS::root).map(|attr| {
             (**attr.name()).to_owned()
-        ).collect::<Vec<DOMString>>()
+        }).collect::<Vec<DOMString>>()
     }
 }
