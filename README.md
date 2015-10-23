@@ -5,7 +5,8 @@ Servo is a prototype web browser engine written in the
 64bit OS X, 64bit Linux, Android, and Gonk (Firefox OS).
 
 Servo welcomes contribution from everyone.  See
-[`CONTRIBUTING.md`](CONTRIBUTING.md) for help getting started.
+[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md)
+for help getting started.
 
 ## Prerequisites
 
