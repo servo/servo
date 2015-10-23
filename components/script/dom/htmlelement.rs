@@ -277,17 +277,16 @@ fn to_snake_case(name: DOMString) -> DOMString {
 }
 
 
-//  https://html.spec.whatwg.org/multipage/#attr-data-*
-//  if this attribute is in snake case with a data- prefix,
-//  this function returns a name converted to camel case
-//  without the data prefix
+// https://html.spec.whatwg.org/multipage/#attr-data-*
+// if this attribute is in snake case with a data- prefix,
+// this function returns a name converted to camel case
+// without the data prefix.
 
 fn to_camel_case(name: &str) -> Option<DOMString> {
     let has_uppercase = name.chars().any(|curr_char| {
         curr_char.is_ascii() && curr_char.is_uppercase()
     });
     if name.len() < 6 || !name.starts_with("data-") || has_uppercase {
-        println!("returning none for attribute {}, has uppercase is {}", name, has_uppercase);
         None
     } else {
         let mut result = "".to_owned();
@@ -339,9 +338,9 @@ impl HTMLElement {
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.upcast::<Element>();
         element.attrs().iter().map(JS::root).filter_map(|attr| {
-            let raw_name = &(**attr.r().local_name());
+            let raw_name = &**attr.r().local_name();
             to_camel_case(raw_name)
-        }).collect::<Vec<DOMString>>()
+        }).collect::<Vec<_>>()
     }
 }
 
