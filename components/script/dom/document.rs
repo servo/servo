@@ -120,6 +120,7 @@ pub struct Document {
     node: Node,
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
+    tagmap: DOMRefCell<HashMap<Atom, JS<HTMLCollection>>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -1266,6 +1267,7 @@ impl Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
             idmap: DOMRefCell::new(HashMap::new()),
+            tagmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1491,7 +1493,15 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name(&self.window, self.upcast(), tag_name)
+        let tag_atom = Atom::from_slice(&tag_name);
+        let mut tagmap = self.tagmap.borrow_mut();
+        if let Some(elements) = tagmap.get(&tag_atom) { return elements.root(); }
+        let mut tag_copy = tag_name;
+        tag_copy.make_ascii_lowercase();
+        let ascii_lower_tag = Atom::from_slice(&tag_copy);
+	let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom.clone(), ascii_lower_tag);
+	tagmap.insert(tag_atom,JS::from_rooted(&result));
+	return result;
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
