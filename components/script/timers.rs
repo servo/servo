@@ -6,6 +6,7 @@ use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::global_object_for_js_object;
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
 use euclid::length::Length;
@@ -106,12 +107,25 @@ pub enum TimerCallback {
 enum InternalTimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Rc<Function>, Rc<Vec<Heap<JSVal>>>),
+    InternalCallback(Box<ScheduledCallback>),
 }
 
 impl HeapSizeOf for InternalTimerCallback {
     fn heap_size_of_children(&self) -> usize {
         // FIXME: Rc<T> isn't HeapSizeOf and we can't ignore it due to #6870 and #6871
         0
+    }
+}
+
+pub trait ScheduledCallback: JSTraceable + HeapSizeOf {
+    fn invoke(self: Box<Self>);
+
+    fn box_clone(&self) -> Box<ScheduledCallback>;
+}
+
+impl Clone for Box<ScheduledCallback> {
+    fn clone(&self) -> Box<ScheduledCallback> {
+        self.box_clone()
     }
 }
 
@@ -139,17 +153,6 @@ impl ActiveTimers {
                                is_interval: IsInterval,
                                source: TimerSource)
                                -> i32 {
-        assert!(self.suspended_since.get().is_none());
-
-        // step 3
-        let TimerHandle(new_handle) = self.next_timer_handle.get();
-        self.next_timer_handle.set(TimerHandle(new_handle + 1));
-
-        let timeout = cmp::max(0, timeout);
-        // step 7
-        let duration = self.clamp_duration(Length::new(timeout as u64));
-        let next_call = self.base_time() + duration;
-
         let callback = match callback {
             TimerCallback::StringTimerCallback(code_str) =>
                 InternalTimerCallback::StringTimerCallback(code_str),
@@ -166,6 +169,38 @@ impl ActiveTimers {
                 InternalTimerCallback::FunctionTimerCallback(function, Rc::new(args))
             }
         };
+
+        let timeout = cmp::max(0, timeout);
+        // step 7
+        let duration = self.clamp_duration(Length::new(timeout as u64));
+
+        let TimerHandle(handle) = self.schedule_internal_callback(callback, duration, is_interval, source);
+        handle
+    }
+
+    pub fn schedule_callback(&self,
+                             callback: Box<ScheduledCallback>,
+                             duration: MsDuration,
+                             source: TimerSource) -> TimerHandle {
+        self.schedule_internal_callback(InternalTimerCallback::InternalCallback(callback),
+                                        duration,
+                                        IsInterval::NonInterval,
+                                        source)
+    }
+
+    // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    fn schedule_internal_callback(&self,
+                                  callback: InternalTimerCallback,
+                                  duration: MsDuration,
+                                  is_interval: IsInterval,
+                                  source: TimerSource) -> TimerHandle {
+        assert!(self.suspended_since.get().is_none());
+
+        // step 3
+        let TimerHandle(new_handle) = self.next_timer_handle.get();
+        self.next_timer_handle.set(TimerHandle(new_handle + 1));
+
+        let next_call = self.base_time() + duration;
 
         let timer = Timer {
             handle: TimerHandle(new_handle),
@@ -186,11 +221,14 @@ impl ActiveTimers {
         }
 
         // step 10
-        new_handle
+        TimerHandle(new_handle)
     }
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
-        let handle = TimerHandle(handle);
+        self.unschedule_callback(TimerHandle(handle));
+    }
+
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
         let was_next = self.is_next_timer(handle);
 
         self.timers.borrow_mut().retain(|t| t.handle != handle);
@@ -260,7 +298,10 @@ impl ActiveTimers {
                     }).collect();
 
                     let _ = function.Call_(this, arguments, Report);
-                }
+                },
+                InternalTimerCallback::InternalCallback(callback) => {
+                    callback.invoke();
+                },
             };
 
             self.nesting_level.set(0);
