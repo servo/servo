@@ -251,11 +251,6 @@ impl<T: Reflectable> MutHeap<JS<T>> {
             ptr::read(self.val.get()).root()
         }
     }
-
-    /// Compare this object to an `&T` value.
-    fn eq(&self, other: &T) -> bool {
-        self.get() == Root::from_ref(other)
-    }
 }
 
 impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
@@ -267,7 +262,17 @@ impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
 
 impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
    fn eq(&self, other: &Self) -> bool {
-        self.get().eq(&other.get())
+        unsafe {
+            *self.val.get() == *other.val.get()
+        }
+    }
+}
+
+impl<T: Reflectable> PartialEq<T> for MutHeap<JS<T>> {
+    fn eq(&self, other: &T) -> bool {
+        unsafe {
+            *self.val.get() == JS::from_ref(other)
+        }
     }
 }
 
@@ -331,9 +336,21 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         }
     }
 
-    /// Compare this object to an `Option<&T>` value.
-    fn equal(&self, other: Option<&T>) -> bool {
-        self.get() == other.map(|p| Root::from_ref(p))
+}
+
+impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            *self.ptr.get() == *other.ptr.get()
+        }
+    }
+}
+
+impl<'a, T: Reflectable> PartialEq<Option<&'a T>> for MutNullableHeap<JS<T>> {
+    fn eq(&self, other: &Option<&T>) -> bool {
+        unsafe {
+            *self.ptr.get() == other.map(|p| JS::from_ref(p))
+        }
     }
 }
 
@@ -350,12 +367,6 @@ impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
     fn heap_size_of_children(&self) -> usize {
         // See comment on HeapSizeOf for JS<T>.
         0
-    }
-}
-
-impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
-    fn eq(&self, other: &Self) -> bool {
-        self.get().eq(&other.get())
     }
 }
 
