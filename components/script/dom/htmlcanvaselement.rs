@@ -78,8 +78,8 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         if let Some(ref context) = *self.context.borrow() {
             match *context {
-                CanvasContext::Context2d(ref context) => context.root().r().recreate(size),
-                CanvasContext::WebGL(ref context) => context.root().r().recreate(size),
+                CanvasContext::Context2d(ref context) => context.recreate(size),
+                CanvasContext::WebGL(ref context) => context.recreate(size),
             }
         }
     }
@@ -139,8 +139,8 @@ impl HTMLCanvasElement {
     pub fn ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
         self.context.borrow().as_ref().map(|context| {
             match *context {
-                CanvasContext::Context2d(ref context) => context.root().r().ipc_renderer(),
-                CanvasContext::WebGL(ref context) => context.root().r().ipc_renderer(),
+                CanvasContext::Context2d(ref context) => context.ipc_renderer(),
+                CanvasContext::WebGL(ref context) => context.ipc_renderer(),
             }
         })
     }
@@ -182,11 +182,8 @@ impl HTMLCanvasElement {
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx)));
         }
 
-        if let Some(ref context) = *self.context.borrow() {
-            match *context {
-                CanvasContext::WebGL(ref context) => Some(context.root()),
-                _ => None,
-            }
+        if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {
+            Some(context.root())
         } else {
             None
         }
@@ -247,13 +244,11 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         match &*id {
             "2d" => {
                 self.get_or_init_2d_context()
-                    .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D(
-                                   ctx))
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eCanvasRenderingContext2D)
             }
             "webgl" | "experimental-webgl" => {
                 self.get_or_init_webgl_context(cx, attributes.get(0).map(|p| *p))
-                    .map(|ctx| CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext(
-                                   ctx))
+                    .map(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext)
             }
             _ => None
         }
