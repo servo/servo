@@ -83,18 +83,30 @@ impl HTMLSelectElement {
         }
     }
 
-   // https://html.spec.whatwg.org/multipage/#concept-select-size
-   fn display_size(&self) -> u32 {
-        if self.Size() == 0 {
-            if self.Multiple() {
-                4
-            } else {
-                1
+    pub fn pick_option(&self, picked: &HTMLOptionElement) {
+        if !self.Multiple() {
+            let node = self.upcast::<Node>();
+            let picked = picked.upcast();
+            for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+                if opt.upcast::<HTMLElement>() != picked {
+                    opt.set_selectedness(false);
+                }
             }
-        } else {
-            self.Size()
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#concept-select-size
+    fn display_size(&self) -> u32 {
+         if self.Size() == 0 {
+             if self.Multiple() {
+                 4
+             } else {
+                 1
+             }
+         } else {
+             self.Size()
+         }
+     }
 }
 
 impl HTMLSelectElementMethods for HTMLSelectElement {

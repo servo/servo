@@ -141,6 +141,9 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.selectedness.set(selected);
         if let Some(select) = self.upcast::<Node>().ancestors()
             .filter_map(Root::downcast::<HTMLSelectElement>).next() {
+                if selected {
+                    select.pick_option(self);
+                }
                 select.ask_for_reset();
         }
     }
