@@ -14,6 +14,9 @@ follow this format, even those from core contributors.
 
 If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://github.com/servo/servo/labels/E-easy) on GitHub.
 
+See [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md) for more information
+on how to start working on Servo.
+
 ## Pull Request Checklist
 
 - Branch from the master branch and, if needed, rebase to the current master
