@@ -198,8 +198,8 @@ impl VirtualMethods for HTMLOptionElement {
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
 
-        let node = self.upcast::<Node>();
         if self.Selected() {
+            let node = self.upcast::<Node>();
             if let Some(select) = node.ancestors()
                     .filter_map(Root::downcast::<HTMLSelectElement>)
                     .next() {
