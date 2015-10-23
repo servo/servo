@@ -24,12 +24,12 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::{ResourceTask, load_whole_resource};
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{MsDuration, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
-use timers::{ActiveTimers, IsInterval, TimerCallback};
+use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::{Url, UrlParser};
 use util::str::DOMString;
 
@@ -141,6 +141,16 @@ impl WorkerGlobalScope {
 
     pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
         self.scheduler_chan.clone()
+    }
+
+    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+        self.timers.schedule_callback(callback,
+                                      duration,
+                                      TimerSource::FromWorker)
+    }
+
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        self.timers.unschedule_callback(handle);
     }
 
     pub fn get_cx(&self) -> *mut JSContext {

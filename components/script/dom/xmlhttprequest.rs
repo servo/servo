@@ -30,6 +30,7 @@ use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
+use euclid::length::Length;
 use hyper::header::Headers;
 use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
@@ -50,14 +51,13 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
-use std::sync::mpsc::{Sender, TryRecvError, channel};
+use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep_ms;
 use time;
+use timers::{ScheduledCallback, TimerHandle};
 use url::{Url, UrlParser};
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
-use util::task::spawn_named;
 
 pub type SendParam = StringOrURLSearchParams;
 
@@ -137,8 +137,7 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
-    #[ignore_heap_size_of = "Defined in std"]
-    timeout_cancel: DOMRefCell<Option<Sender<()>>>,
+    timeout_cancel: DOMRefCell<Option<TimerHandle>>,
     fetch_time: Cell<i64>,
     #[ignore_heap_size_of = "Cannot calculate Heap size"]
     timeout_target: DOMRefCell<Option<Box<ScriptChan + Send>>>,
@@ -974,36 +973,49 @@ impl XMLHttpRequest {
             }
         }
 
-        // Sets up the object to timeout in a given number of milliseconds
-        // This will cancel all previous timeouts
-        let timeout_target = (*self.timeout_target.borrow().as_ref().unwrap()).clone();
-        let global = self.global.root();
-        let xhr = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
-        let gen_id = self.generation_id.get();
-        let (cancel_tx, cancel_rx) = channel();
-        *self.timeout_cancel.borrow_mut() = Some(cancel_tx);
-        spawn_named("XHR:Timer".to_owned(), move || {
-            sleep_ms(duration_ms);
-            match cancel_rx.try_recv() {
-                Err(TryRecvError::Empty) => {
-                    timeout_target.send(CommonScriptMsg::RunnableMsg(XhrEvent, box XHRTimeout {
-                        xhr: xhr,
-                        gen_id: gen_id,
-                    })).unwrap();
-                },
-                Err(TryRecvError::Disconnected) | Ok(()) => {
-                    // This occurs if xhr.timeout_cancel (the sender) goes out of scope (i.e, xhr went out of scope)
-                    // or if the oneshot timer was overwritten. The former case should not happen due to pinning.
-                    debug!("XHR timeout was overwritten or canceled")
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct ScheduledXHRTimeout {
+            #[ignore_heap_size_of = "Cannot calculate Heap size"]
+            target: Box<ScriptChan + Send>,
+            #[ignore_heap_size_of = "Because it is non-owning"]
+            xhr: Trusted<XMLHttpRequest>,
+            generation_id: GenerationId,
+        }
+
+        impl ScheduledCallback for ScheduledXHRTimeout {
+            fn invoke(self: Box<Self>) {
+                let s = *self;
+                s.target.send(CommonScriptMsg::RunnableMsg(XhrEvent, box XHRTimeout {
+                    xhr: s.xhr,
+                    gen_id: s.generation_id,
+                })).unwrap();
+            }
+
+            fn box_clone(&self) -> Box<ScheduledCallback> {
+                box ScheduledXHRTimeout {
+                    target: self.target.clone(),
+                    xhr: self.xhr.clone(),
+                    generation_id: self.generation_id,
                 }
             }
         }
-    );
+
+        // Sets up the object to timeout in a given number of milliseconds
+        // This will cancel all previous timeouts
+        let global = self.global.root();
+        let callback = ScheduledXHRTimeout {
+            target: (*self.timeout_target.borrow().as_ref().unwrap()).clone(),
+            xhr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
+            generation_id: self.generation_id.get(),
+        };
+        let duration = Length::new(duration_ms as u64);
+        *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(box callback, duration));
     }
 
     fn cancel_timeout(&self) {
-        if let Some(cancel_tx) = self.timeout_cancel.borrow_mut().take() {
-            let _ = cancel_tx.send(());
+        if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
+            let global = self.global.root();
+            global.r().unschedule_callback(handle);
         }
     }
 

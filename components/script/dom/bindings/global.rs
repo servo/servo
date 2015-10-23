@@ -22,8 +22,9 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
-use script_traits::TimerEventRequest;
+use script_traits::{MsDuration, TimerEventRequest};
 use std::sync::mpsc::Sender;
+use timers::{ScheduledCallback, TimerHandle};
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -194,6 +195,23 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.set_devtools_wants_updates(send_updates),
             GlobalRef::Worker(worker) => worker.set_devtools_wants_updates(send_updates),
+        }
+    }
+
+    /// Schedule the given `callback` to be invoked after at least `duration` milliseconds have
+    /// passed.
+    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+        match *self {
+            GlobalRef::Window(window) => window.schedule_callback(callback, duration),
+            GlobalRef::Worker(worker) => worker.schedule_callback(callback, duration),
+        }
+    }
+
+    /// Unschedule a previously-scheduled callback.
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        match *self {
+            GlobalRef::Window(window) => window.unschedule_callback(handle),
+            GlobalRef::Worker(worker) => worker.unschedule_callback(handle),
         }
     }
 

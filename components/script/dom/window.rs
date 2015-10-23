@@ -55,7 +55,7 @@ use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg, RunnableWrapper};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
-use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{MsDuration, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -71,7 +71,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
 use time;
-use timers::{ActiveTimers, IsInterval, TimerCallback};
+use timers::{ActiveTimers, IsInterval, ScheduledCallback, TimerCallback, TimerHandle};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -1081,6 +1081,16 @@ impl Window {
 
     pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
         self.scheduler_chan.clone()
+    }
+
+    pub fn schedule_callback(&self, callback: Box<ScheduledCallback>, duration: MsDuration) -> TimerHandle {
+        self.timers.schedule_callback(callback,
+                                      duration,
+                                      TimerSource::FromWindow(self.id.clone()))
+    }
+
+    pub fn unschedule_callback(&self, handle: TimerHandle) {
+        self.timers.unschedule_callback(handle);
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
