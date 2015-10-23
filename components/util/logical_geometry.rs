@@ -319,8 +319,10 @@ impl<T: Sub<T, Output=T>> Sub for LogicalSize<T> {
 /// A 2D point in flow-relative dimensions
 #[derive(PartialEq, RustcEncodable, Eq, Clone, Copy)]
 pub struct LogicalPoint<T> {
-    pub i: T,  /// inline-axis coordinate
-    pub b: T,  /// block-axis coordinate
+    /// inline-axis coordinate
+    pub i: T,
+    /// block-axis coordinate
+    pub b: T,
     debug_writing_mode: DebugWritingMode,
 }
 
