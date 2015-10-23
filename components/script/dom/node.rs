@@ -498,13 +498,13 @@ impl Node {
     pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
 
         // 0. Set version counter
-	let doc = NodeCast::from_root(self.owner_doc());
-	let version = max(self.get_inclusive_descendents_version(), doc.r().get_descendents_version()) + 1;
+	let doc: Root<Node> = Root::upcast(self.owner_doc());
+	let version = max(self.get_inclusive_descendents_version(), doc.get_descendents_version()) + 1;
 	self.version.set(version);
         for ancestor in self.ancestors() {
-	    ancestor.r().descendents_version.set(version);
+	    ancestor.descendents_version.set(version);
 	}
-        doc.r().descendents_version.set(version);
+        doc.descendents_version.set(version);
 
         // 1. Dirty self.
         match damage {
