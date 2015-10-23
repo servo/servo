@@ -74,23 +74,21 @@ impl CSSStyleDeclaration {
     }
 
     fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
-        let owner = self.owner.root();
-        let node = owner.upcast::<Node>();
+        let node = self.owner.upcast::<Node>();
         if !node.is_in_doc() {
             // TODO: Node should be matched against the style rules of this window.
             // Firefox is currently the only browser to implement this.
             return None;
         }
         let addr = node.to_trusted_node_address();
-        window_from_node(owner.r()).resolved_style_query(addr, self.pseudo.clone(), property)
+        window_from_node(&*self.owner).resolved_style_query(addr, self.pseudo.clone(), property)
     }
 }
 
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        let owner = self.owner.root();
-        let elem = owner.upcast::<Element>();
+        let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
             Some(ref declarations) => declarations.normal.len() + declarations.important.len(),
             None => 0
@@ -101,8 +99,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
     fn Item(&self, index: u32) -> DOMString {
         let index = index as usize;
-        let owner = self.owner.root();
-        let elem = owner.upcast::<Element>();
+        let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
         let result = style_attribute.as_ref().and_then(|declarations| {
             if index > declarations.normal.len() {
@@ -121,7 +118,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, mut property: DOMString) -> DOMString {
-        let owner = self.owner.root();
+        let owner = &self.owner;
 
         // Step 1
         property.make_ascii_lowercase();
@@ -155,7 +152,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 3 & 4
-        // FIXME: redundant let binding https://github.com/rust-lang/rust/issues/22252
         let result = match owner.get_inline_style_declaration(&property) {
             Some(declaration) => declaration.value(),
             None => "".to_owned(),
@@ -181,9 +177,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
         // Step 3
         } else {
-            // FIXME: extra let binding https://github.com/rust-lang/rust/issues/22323
-            let owner = self.owner.root();
-            if owner.get_important_inline_style_declaration(&property).is_some() {
+            if self.owner.get_important_inline_style_declaration(&property).is_some() {
                 return "important".to_owned();
             }
         }
@@ -221,8 +215,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         // Step 6
-        let owner = self.owner.root();
-        let window = window_from_node(owner.r());
+        let window = window_from_node(&*self.owner);
         let declarations = parse_one_declaration(&property, &value, &window.r().get_url());
 
         // Step 7
@@ -232,8 +225,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Ok(());
         };
 
-        let owner = self.owner.root();
-        let element = owner.upcast::<Element>();
+        let element = self.owner.upcast::<Element>();
 
         // Step 8
         for decl in declarations {
@@ -266,8 +258,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             _ => return Ok(()),
         };
 
-        let owner = self.owner.root();
-        let element = owner.upcast::<Element>();
+        let element = self.owner.upcast::<Element>();
 
         // Step 5 & 6
         match longhands_from_shorthand(&property) {
@@ -299,8 +290,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let owner = self.owner.root();
-        let elem = owner.upcast::<Element>();
+        let elem = self.owner.upcast::<Element>();
 
         match longhands_from_shorthand(&property) {
             // Step 4
