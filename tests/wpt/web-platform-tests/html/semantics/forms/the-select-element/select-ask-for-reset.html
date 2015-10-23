@@ -25,11 +25,13 @@ test(function() {
   var select = makeSelect(3);
   select.children[1].selected = true;
 
+  // insert selected option, should remain selected
   var opt4 = document.createElement("option");
   opt4.selected = true;
-  select.appendChild(opt4); // 2 options selected
-  unselectedExcept(select, 3); // last should remain selected
+  select.appendChild(opt4);
+  unselectedExcept(select, 3);
 
+  // insert unselected, should 3 should remain selected
   var opt5 = document.createElement("option");
   select.appendChild(opt5);
 
@@ -39,14 +41,28 @@ test(function() {
 test(function() {
   var select = makeSelect(3);
 
-  select.children[2].selected = true;
-  select.children[2].selected = false; // none selected
+  var options = select.children;
+
+  // select options from first to last
+  for (var i = 0; i < options.length; ++i) {
+    options[i].selected = true;
+    unselectedExcept(select, i);
+  }
+
+  // select options from last to first
+  for (var i = options.length - 1; i >= 0; --i) {
+    options[i].selected = true;
+    unselectedExcept(select, i);
+  }
+
+  options[2].selected = true;
+  options[2].selected = false; // none selected
   unselectedExcept(select, 0);
 
   // disable first so option at index 1 is first eligible
-  select.children[0].disabled = true;
-  select.children[2].selected = true;
-  select.children[2].selected = false; // none selected
+  options[0].disabled = true;
+  options[2].selected = true;
+  options[2].selected = false; // none selected
   unselectedExcept(select, 1);
 }, "change selectedness of option, non multiple.");
 
