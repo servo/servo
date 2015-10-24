@@ -46,6 +46,12 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
         self.form_owner()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_getter!(HtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_atomic_setter!(SetHtmlFor, "for");
+
     // https://html.spec.whatwg.org/multipage/#dom-label-control
     fn GetControl(&self) -> Option<Root<HTMLElement>> {
         if !self.upcast::<Node>().is_in_doc() {
