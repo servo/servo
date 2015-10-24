@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementM
 use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
@@ -44,9 +43,15 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
         self.form_owner()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_getter!(HtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_setter!(SetHtmlFor, "for");
+
     // https://html.spec.whatwg.org/multipage/#dom-label-control
     fn GetControl(&self) -> Option<Root<HTMLElement>> {
-        let for_ = self.upcast::<Element>().get_string_attribute(&atom!("for"));
+        let for_ = self.HtmlFor();
 
         if for_.is_empty() {
             return self.first_labelable_descendant();
