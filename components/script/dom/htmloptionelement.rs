@@ -15,7 +15,7 @@ use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
-use dom::node::Node;
+use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use selectors::states::*;
@@ -207,10 +207,8 @@ impl VirtualMethods for HTMLOptionElement {
         self.pick_if_selected_and_reset();
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
-        }
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();

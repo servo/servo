@@ -18,7 +18,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, UnbindContext, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -471,10 +471,8 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
-        }
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
