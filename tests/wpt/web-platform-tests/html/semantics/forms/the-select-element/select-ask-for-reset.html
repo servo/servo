@@ -19,6 +19,11 @@ test(function() {
 
   select.children[0].remove();
   unselectedExcept(select, 2); // last node still selected
+
+  select.size = 2;
+  select.children[2].remove();
+
+  unselectedExcept(select, null);
 }, "ask for reset on node remove, non multiple.");
 
 test(function() {
@@ -31,11 +36,10 @@ test(function() {
   select.appendChild(opt4);
   unselectedExcept(select, 3);
 
-  // insert unselected, should 3 should remain selected
+  // insert unselected, 3 should remain selected
   var opt5 = document.createElement("option");
   select.appendChild(opt5);
-
-  unselectedExcept(select, 3); // no change in selected element
+  unselectedExcept(select, 3);
   }, "ask for reset on node insert, non multiple.");
 
 test(function() {
@@ -64,6 +68,10 @@ test(function() {
   options[2].selected = true;
   options[2].selected = false; // none selected
   unselectedExcept(select, 1);
+
+  select.size = 2;
+  options[1].selected = false;
+  unselectedExcept(select, null); // size > 1 so should not default to any
 }, "change selectedness of option, non multiple.");
 
 
