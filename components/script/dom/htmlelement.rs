@@ -296,6 +296,26 @@ impl HTMLElement {
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         self.upcast::<Element>().remove_attribute(&ns!(""), &local_name);
     }
+
+    // https://html.spec.whatwg.org/multipage/#category-label
+    pub fn is_labelable_element(&self) -> bool {
+        // Note: HTMLKeygenElement is omitted because Servo doesn't currently implement it
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
+                match type_id {
+                    HTMLElementTypeId::HTMLInputElement =>
+                        self.downcast::<HTMLInputElement>().unwrap().Type() != "hidden",
+                    HTMLElementTypeId::HTMLButtonElement |
+                        HTMLElementTypeId::HTMLMeterElement |
+                        HTMLElementTypeId::HTMLOutputElement |
+                        HTMLElementTypeId::HTMLProgressElement |
+                        HTMLElementTypeId::HTMLSelectElement |
+                        HTMLElementTypeId::HTMLTextAreaElement => true,
+                    _ => false,
+                },
+            _ => false,
+        }
+    }
 }
 
 impl VirtualMethods for HTMLElement {

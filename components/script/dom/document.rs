@@ -1147,7 +1147,7 @@ impl Document {
         })
     }
 
-    fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
+    pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
         self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
     }
 }
