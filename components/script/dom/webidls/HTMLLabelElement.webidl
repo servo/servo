@@ -6,6 +6,6 @@
 // https://html.spec.whatwg.org/multipage/#htmllabelelement
 interface HTMLLabelElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
-  //         attribute DOMString htmlFor;
+  attribute DOMString htmlFor;
   readonly attribute HTMLElement? control;
 };
