@@ -139,8 +139,6 @@ impl ActiveTimers {
                                is_interval: IsInterval,
                                source: TimerSource)
                                -> i32 {
-        assert!(self.suspended_since.get().is_none());
-
         // step 3
         let TimerHandle(new_handle) = self.next_timer_handle.get();
         self.next_timer_handle.set(TimerHandle(new_handle + 1));
@@ -283,7 +281,10 @@ impl ActiveTimers {
     }
 
     fn schedule_timer_call(&self) {
-        assert!(self.suspended_since.get().is_none());
+        if self.suspended_since.get().is_some() {
+            // The timer will be scheduled when the pipeline is thawed.
+            return;
+        }
 
         let timers = self.timers.borrow();
 
@@ -318,7 +319,12 @@ impl ActiveTimers {
     }
 
     fn base_time(&self) -> MsDuration {
-        precise_time_ms() - self.suspension_offset.get()
+        let offset = self.suspension_offset.get();
+
+        match self.suspended_since.get() {
+            Some(time) => time - offset,
+            None => precise_time_ms() - offset,
+        }
     }
 
     // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
