@@ -7,5 +7,5 @@
 interface HTMLLabelElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   //         attribute DOMString htmlFor;
-  //readonly attribute HTMLElement? control;
+  readonly attribute HTMLElement? control;
 };
