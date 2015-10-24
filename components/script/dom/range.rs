@@ -205,7 +205,7 @@ impl RangeMethods for Range {
         unreachable!();
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstartnode-offset
+    // https://dom.spec.whatwg.org/#dom-range-setstart
     fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -220,7 +220,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setendnode-offset
+    // https://dom.spec.whatwg.org/#dom-range-setend
     fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -235,31 +235,31 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstartbeforenode
+    // https://dom.spec.whatwg.org/#dom-range-setstartbefore
     fn SetStartBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstartafternode
+    // https://dom.spec.whatwg.org/#dom-range-setstartafter
     fn SetStartAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetStart(parent.r(), node.index() + 1)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setendbeforenode
+    // https://dom.spec.whatwg.org/#dom-range-setendbefore
     fn SetEndBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setendafternode
+    // https://dom.spec.whatwg.org/#dom-range-setendafter
     fn SetEndAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
         self.SetEnd(parent.r(), node.index() + 1)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-collapsetostart
+    // https://dom.spec.whatwg.org/#dom-range-collapse
     fn Collapse(&self, to_start: bool) {
         if to_start {
             self.end.set(&self.StartContainer(), self.StartOffset());
@@ -268,7 +268,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-selectnodenode
+    // https://dom.spec.whatwg.org/#dom-range-selectnode
     fn SelectNode(&self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
@@ -281,7 +281,7 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-selectnodecontentsnode
+    // https://dom.spec.whatwg.org/#dom-range-selectnodecontents
     fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -296,7 +296,7 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-compareboundarypointshow-sourcerange
+    // https://dom.spec.whatwg.org/#dom-range-compareboundarypoints
     fn CompareBoundaryPoints(&self, how: u16, other: &Range)
                              -> Fallible<i16> {
         if how > RangeConstants::END_TO_START {
@@ -341,7 +341,7 @@ impl RangeMethods for Range {
                    &self.EndContainer(), self.EndOffset())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-ispointinrangenode-offset
+    // https://dom.spec.whatwg.org/#dom-range-ispointinrange
     fn IsPointInRange(&self, node: &Node, offset: u32) -> Fallible<bool> {
         match self.compare_point(node, offset) {
             Ok(Ordering::Less) => Ok(false),
@@ -355,7 +355,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
+    // https://dom.spec.whatwg.org/#dom-range-comparepoint
     fn ComparePoint(&self, node: &Node, offset: u32) -> Fallible<i16> {
         self.compare_point(node, offset).map(|order| {
             match order {
