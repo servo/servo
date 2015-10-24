@@ -22,7 +22,7 @@
 test(function() {
     var element = document.querySelector('#edge1');
     assert_array_equals(Object.getOwnPropertyNames(element.dataset),
-        []);
+        [""]);
 }, "Object.getOwnPropertyNames on DOMStringMap, empty data attribute");
 
 test(function() {
