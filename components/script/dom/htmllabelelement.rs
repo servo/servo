@@ -44,14 +44,19 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
         self.form_owner()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_getter!(HtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-label-htmlfor
+    make_atomic_setter!(SetHtmlFor, "for");
+
     // https://html.spec.whatwg.org/multipage/#dom-label-control
     fn GetControl(&self) -> Option<Root<HTMLElement>> {
         if !self.upcast::<Element>().has_attribute(&atom!("for")) {
             return self.first_labelable_descendant();
         }
 
-        let for_ = self.upcast::<Element>().get_string_attribute(&atom!("for"));
-        document_from_node(self).GetElementById(for_)
+        document_from_node(self).GetElementById(self.HtmlFor())
                                 .and_then(Root::downcast::<HTMLElement>)
                                 .into_iter()
                                 .filter(|e| e.is_labelable_element())
