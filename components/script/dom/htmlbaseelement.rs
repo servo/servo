@@ -9,7 +9,7 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node};
+use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use url::{Url, UrlParser};
 use util::str::DOMString;
@@ -76,8 +76,8 @@ impl VirtualMethods for HTMLBaseElement {
         self.bind_unbind(tree_in_doc);
     }
 
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
-        self.super_type().unwrap().unbind_from_tree(tree_in_doc);
-        self.bind_unbind(tree_in_doc);
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.bind_unbind(context.tree_in_doc);
     }
 }

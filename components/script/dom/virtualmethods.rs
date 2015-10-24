@@ -42,7 +42,7 @@ use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
-use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
+use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -82,9 +82,9 @@ pub trait VirtualMethods {
 
     /// Called when a Node is removed from a tree, where 'tree_in_doc'
     /// indicates whether the tree is part of a Document.
-    fn unbind_from_tree(&self, tree_in_doc: bool) {
+    fn unbind_from_tree(&self, context: &UnbindContext) {
         if let Some(ref s) = self.super_type() {
-            s.unbind_from_tree(tree_in_doc);
+            s.unbind_from_tree(context);
         }
     }
 

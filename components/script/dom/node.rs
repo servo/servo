@@ -318,14 +318,17 @@ impl Node {
             }
         }
 
+        let context = UnbindContext {
+            tree_in_doc: child.is_in_doc(),
+        };
+
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
         child.parent_node.set(None);
 
-        let parent_in_doc = self.is_in_doc();
         for node in child.traverse_preorder() {
             node.set_flag(IS_IN_DOC, false);
-            vtable_for(&&*node).unbind_from_tree(parent_in_doc);
+            vtable_for(&&*node).unbind_from_tree(&context);
             node.layout_data.dispose(&node);
         }
 
@@ -2438,4 +2441,11 @@ impl<'a> ChildrenMutation<'a> {
                    -> ChildrenMutation<'a> {
         ChildrenMutation::ReplaceAll { removed: removed, added: added }
     }
+}
+
+/// The context of the unbinding from a tree of a node when one of its
+/// inclusive ancestors is removed.
+pub struct UnbindContext {
+    /// Whether the tree is in a document.
+    pub tree_in_doc: bool,
 }
