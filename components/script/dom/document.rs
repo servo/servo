@@ -419,7 +419,7 @@ impl Document {
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
-        self.GetElementById(fragid.to_owned()).or_else(|| {
+        self.get_element_by_id(&Atom::from_slice(fragid)).or_else(|| {
             let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
@@ -1146,6 +1146,10 @@ impl Document {
             new_doc
         })
     }
+
+    fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
+        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
+    }
 }
 
 
@@ -1264,8 +1268,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
-        let id = Atom::from_slice(&id);
-        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
+        self.get_element_by_id(&Atom::from_slice(&id))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelement
