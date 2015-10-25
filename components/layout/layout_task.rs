@@ -945,7 +945,7 @@ impl LayoutTask {
         // TODO: we will return neither the computed nor used value for margin and padding.
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
-        match property.clone() {
+        match *property {
             atom!("margin-bottom") | atom!("margin-top") |
             atom!("margin-left") | atom!("margin-right") |
             atom!("padding-bottom") | atom!("padding-top") |
@@ -1007,7 +1007,7 @@ impl LayoutTask {
                 rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
             // FIXME: implement used value computation for line-height
-            property => {
+            ref property => {
                 rw_data.resolved_style_response =
                     style.computed_value_to_string(property.as_slice()).ok();
             }
