@@ -60,7 +60,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
         _ => None,
     };
 
-    let type_ = event.Type();
+    let type_ = event.type_();
 
     /* capturing */
     event.set_phase(EventPhase::Capturing);
