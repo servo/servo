@@ -578,6 +578,7 @@ pub fn load<A>(load_data: LoadData,
             //
             // https://tools.ietf.org/html/rfc7231#section-6.4
             let is_redirected_request = iters != 1;
+			let cloned_data;
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
@@ -585,36 +586,29 @@ pub fn load<A>(load_data: LoadData,
                     // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
                     // in the message
 					
-					if let Some(pipeline_id) = load_data.pipeline_id {
-						send_request_to_devtools(
-                        			devtools_chan.clone(), request_id.clone(), url.clone(),
-                        			method.clone(), request_headers.clone(),
-                        			load_data.data.clone(), pipeline_id
-                    				);
-					}
-					
-					//end
-                    
+					cloned_data = load_data.data.clone();					
+
                     req.send(&load_data.data)
                 }
                 _ => {
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-					//start
-
-					if let Some(pipeline_id) = load_data.pipeline_id {
-								send_request_to_devtools(
-                        			devtools_chan.clone(), request_id.clone(), url.clone(),
-                        			method.clone(), request_headers.clone(),
-                        			None, pipeline_id
-                    				);
-					}
-					//end
+					cloned_data = None;
 
                     req.send(&None)
                 }
             };
+
+			// refactored call to send_request_to_pipelineid
+
+			if let Some(pipeline_id) = load_data.pipeline_id {
+						send_request_to_devtools(
+                        			devtools_chan.clone(), request_id.clone(), url.clone(),
+                        			method.clone(), request_headers.clone(),
+                        			cloned_data, pipeline_id
+                    				);
+			}
 
             response = match maybe_response {
                 Ok(r) => r,
