@@ -28,7 +28,6 @@ use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::JS_NewObjectWithUniqueType;
 use js::jsapi::JS_ObjectToOuterObject;
-use js::jsapi::PropertyDefinitionBehavior;
 use js::jsapi::{CallArgs, GetGlobalForObjectCrossCompartment, JSJitInfo};
 use js::jsapi::{CompartmentOptions, OnNewGlobalHookOption};
 use js::jsapi::{DOMCallbacks, JSWrapObjectCallbacks};
@@ -38,8 +37,7 @@ use js::jsapi::{JSClass, JSContext, JSObject, JSTracer};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JSTraceOp, JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JSVersion, JS_FireOnNewGlobalObject};
-use js::jsapi::{JS_DefineFunctions, JS_DefineProperty, JS_DefineProperty1};
-use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
+use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty, JS_SetProperty};
 use js::jsapi::{JS_GetPrototype, JS_HasPropertyById};
@@ -47,7 +45,7 @@ use js::jsapi::{JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JS_InitStandardClasses, JS_NewGlobalObject};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
 use js::jsval::{PrivateValue, UInt32Value, UndefinedValue};
-use js::rust::{GCMethods, ToString};
+use js::rust::{GCMethods, ToString, define_methods, define_properties};
 use js::{JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JS_CALLEE};
 use js::{JSPROP_PERMANENT, JSPROP_READONLY};
 use libc::{self, c_uint};
@@ -305,28 +303,28 @@ fn create_interface_object(cx: *mut JSContext,
                            ctor_nargs: u32, proto: HandleObject,
                            members: &'static NativeProperties,
                            name: *const libc::c_char) {
-    let constructor = RootedObject::new(cx, create_constructor(cx, constructor_native, ctor_nargs, name));
-    assert!(!constructor.ptr.is_null());
-
-    if let Some(static_methods) = members.static_methods {
-        define_methods(cx, constructor.handle(), static_methods);
-    }
-
-    if let Some(static_properties) = members.static_attrs {
-        define_properties(cx, constructor.handle(), static_properties);
-    }
-
-    if let Some(constants) = members.consts {
-        define_constants(cx, constructor.handle(), constants);
-    }
-
     unsafe {
+        let constructor = RootedObject::new(cx, create_constructor(cx, constructor_native, ctor_nargs, name));
+        assert!(!constructor.ptr.is_null());
+
+        if let Some(static_methods) = members.static_methods {
+            define_methods(cx, constructor.handle(), static_methods).unwrap();
+        }
+
+        if let Some(static_properties) = members.static_attrs {
+            define_properties(cx, constructor.handle(), static_properties).unwrap();
+        }
+
+        if let Some(constants) = members.consts {
+            define_constants(cx, constructor.handle(), constants);
+        }
+
         if !proto.get().is_null() {
             assert!(JS_LinkConstructorAndPrototype(cx, constructor.handle(), proto));
         }
-    }
 
-    define_constructor(cx, receiver, name, constructor.handle());
+        define_constructor(cx, receiver, name, constructor.handle());
+    }
 }
 
 /// Defines constants on `obj`.
@@ -344,26 +342,6 @@ fn define_constants(cx: *mut JSContext, obj: HandleObject,
     }
 }
 
-/// Defines methods on `obj`. The last entry of `methods` must contain zeroed
-/// memory.
-/// Fails on JSAPI failure.
-fn define_methods(cx: *mut JSContext, obj: HandleObject,
-                  methods: &'static [JSFunctionSpec]) {
-    unsafe {
-        assert!(JS_DefineFunctions(cx, obj, methods.as_ptr(), PropertyDefinitionBehavior::DefineAllProperties));
-    }
-}
-
-/// Defines attributes on `obj`. The last entry of `properties` must contain
-/// zeroed memory.
-/// Fails on JSAPI failure.
-fn define_properties(cx: *mut JSContext, obj: HandleObject,
-                     properties: &'static [JSPropertySpec]) {
-    unsafe {
-        assert!(JS_DefineProperties(cx, obj, properties.as_ptr()));
-    }
-}
-
 /// Creates the *interface prototype object*.
 /// Fails on JSAPI failure.
 fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
@@ -375,11 +353,11 @@ fn create_interface_prototype_object(cx: *mut JSContext, global: HandleObject,
         assert!(!rval.get().is_null());
 
         if let Some(methods) = members.methods {
-            define_methods(cx, rval.handle(), methods);
+            define_methods(cx, rval.handle(), methods).unwrap();
         }
 
         if let Some(properties) = members.attrs {
-            define_properties(cx, rval.handle(), properties);
+            define_properties(cx, rval.handle(), properties).unwrap();
         }
 
         if let Some(constants) = members.consts {
