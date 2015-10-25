@@ -70,16 +70,15 @@ impl HTMLSelectElement {
             }
         }
 
-        if last_selected.is_none() {
-            if self.display_size() == 1 {
-                // select the first enabled element
-                if let Some(first_opt) = first_enabled {
-                    first_opt.set_selectedness(true);
+        match last_selected {
+            Some(last_selected) => last_selected.set_selectedness(true),
+            None => {
+                if self.display_size() == 1 {
+                    if let Some(first_enabled) = first_enabled {
+                        first_enabled.set_selectedness(true);
+                    }
                 }
             }
-        } else {
-            // >= 1 selected, reselect last one
-            last_selected.unwrap().set_selectedness(true);
         }
     }
 
