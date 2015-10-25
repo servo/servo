@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Sniffed Content-Type for @font-face is different than XHR</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  @font-face {
+    font-family: MimelessAhem;
+    src: url(resources/no_mime_type.py);
+  }
+  #first {
+    font-family: MimelessAhem, serif;
+  }
+  #second {
+    font-family: serif;
+  }
+</style>
+<span id="first">w</span> <span id="second">w</span>
+<script>
+var t2 = async_test("Sniffed font is loaded and applied");
+
+async_test(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'resources/no_mime_type.py', true);
+  xhr.onload = this.step_func_done(function() {
+    assert_equals(xhr.getResponseHeader('Content-Type'), null);
+    t2.step_timeout(checkFontLoaded, 500);
+  });
+  xhr.send();
+}, "XHR Content-Type is empty");
+
+function checkFontLoaded() {
+    var first = document.getElementById('first');
+    var second = document.getElementById('second');
+    assert_not_equals(first.getBoundingClientRect().width, second.getBoundingClientRect().width);
+    assert_not_equals(first.getBoundingClientRect().height, second.getBoundingClientRect().height);
+    this.done();
+}
+</script>

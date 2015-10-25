@@ -4369,6 +4369,12 @@
             "url": "/_mozilla/mozilla/load_event.html"
           }
         ],
+        "mozilla/mime_sniffing_font_context.html": [
+          {
+            "path": "mozilla/mime_sniffing_font_context.html",
+            "url": "/_mozilla/mozilla/mime_sniffing_font_context.html"
+          }
+        ],
         "mozilla/navigator.html": [
           {
             "path": "mozilla/navigator.html",
