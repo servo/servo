@@ -5,12 +5,12 @@
 use dom::bindings::codegen::Bindings::CustomEventBinding;
 use dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::InheritTypes::{CustomEventDerived, EventCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use util::str::DOMString;
@@ -23,22 +23,16 @@ pub struct CustomEvent {
     detail: MutHeapJSVal,
 }
 
-impl CustomEventDerived for Event {
-    fn is_customevent(&self) -> bool {
-        *self.type_id() == EventTypeId::CustomEvent
-    }
-}
-
 impl CustomEvent {
-    fn new_inherited(type_id: EventTypeId) -> CustomEvent {
+    fn new_inherited() -> CustomEvent {
         CustomEvent {
-            event: Event::new_inherited(type_id),
+            event: Event::new_inherited(),
             detail: MutHeapJSVal::new(),
         }
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Root<CustomEvent> {
-        reflect_dom_object(box CustomEvent::new_inherited(EventTypeId::CustomEvent),
+        reflect_dom_object(box CustomEvent::new_inherited(),
                            global,
                            CustomEventBinding::Wrap)
     }
@@ -51,6 +45,7 @@ impl CustomEvent {
         ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         ev
     }
+    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Root<CustomEvent>>{
@@ -58,7 +53,7 @@ impl CustomEvent {
                             type_,
                             init.parent.bubbles,
                             init.parent.cancelable,
-                            HandleValue { ptr: &init.detail }))
+                            unsafe { HandleValue::from_marked_location(&init.detail) }))
     }
 }
 
@@ -75,7 +70,7 @@ impl CustomEventMethods for CustomEvent {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: HandleValue) {
-        let event = EventCast::from_ref(self);
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }

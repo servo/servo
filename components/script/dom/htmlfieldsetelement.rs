@@ -5,16 +5,16 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::htmllegendelement::HTMLLegendElement;
+use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use util::str::{DOMString, StaticStringVec};
@@ -24,21 +24,14 @@ pub struct HTMLFieldSetElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLFieldSetElementDerived for EventTarget {
-    fn is_htmlfieldsetelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)))
-    }
-}
-
 impl HTMLFieldSetElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLFieldSetElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 
@@ -63,10 +56,9 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
                 TAG_NAMES.iter().any(|&tag_name| tag_name == &**elem.local_name())
             }
         }
-        let node = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
@@ -88,9 +80,8 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
 }
 
 impl VirtualMethods for HTMLFieldSetElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -105,14 +96,15 @@ impl VirtualMethods for HTMLFieldSetElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                let node = NodeCast::from_ref(self);
-                node.set_disabled_state(disabled_state);
-                node.set_enabled_state(!disabled_state);
+                let node = self.upcast::<Node>();
+                let el = self.upcast::<Element>();
+                el.set_disabled_state(disabled_state);
+                el.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
                         true
-                    } else if node.is_htmllegendelement() {
+                    } else if node.is::<HTMLLegendElement>() {
                         found_legend = true;
                         false
                     } else {
@@ -142,13 +134,15 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 if disabled_state {
                     for field in fields {
-                        field.set_disabled_state(true);
-                        field.set_enabled_state(false);
+                        let el = field.downcast::<Element>().unwrap();
+                        el.set_disabled_state(true);
+                        el.set_enabled_state(false);
                     }
                 } else {
                     for field in fields {
-                        field.check_disabled_attribute();
-                        field.check_ancestors_disabled_state_for_form_control();
+                        let el = field.downcast::<Element>().unwrap();
+                        el.check_disabled_attribute();
+                        el.check_ancestors_disabled_state_for_form_control();
                     }
                 }
             },

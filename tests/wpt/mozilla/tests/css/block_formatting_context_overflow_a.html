@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel=match href=block_formatting_context_overflow_ref.html>
+<style>
+section {
+    display: block;
+    width: 0;
+}
+nav {
+    display: block;
+}
+aside {
+    display: block;
+    overflow: hidden;
+}
+main {
+    width: 500px;
+}
+</style>
+<section><main><nav><aside>Hello</aside>world!</nav></main></section>
+

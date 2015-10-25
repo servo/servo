@@ -5,24 +5,17 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
 use util::str::DOMString;
-
-#[derive(JSTraceable, PartialEq, HeapSizeOf)]
-pub enum UIEventTypeId {
-    MouseEvent,
-    KeyboardEvent,
-    UIEvent,
-}
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
 #[dom_struct]
@@ -32,26 +25,17 @@ pub struct UIEvent {
     detail: Cell<i32>
 }
 
-impl UIEventDerived for Event {
-    fn is_uievent(&self) -> bool {
-        match *self.type_id() {
-            EventTypeId::UIEvent(_) => true,
-            _ => false
-        }
-    }
-}
-
 impl UIEvent {
-    pub fn new_inherited(type_id: UIEventTypeId) -> UIEvent {
+    pub fn new_inherited() -> UIEvent {
         UIEvent {
-            event: Event::new_inherited(EventTypeId::UIEvent(type_id)),
+            event: Event::new_inherited(),
             view: Default::default(),
             detail: Cell::new(0),
         }
     }
 
     pub fn new_uninitialized(window: &Window) -> Root<UIEvent> {
-        reflect_dom_object(box UIEvent::new_inherited(UIEventTypeId::UIEvent),
+        reflect_dom_object(box UIEvent::new_inherited(),
                            GlobalRef::Window(window),
                            UIEventBinding::Wrap)
     }
@@ -102,13 +86,13 @@ impl UIEventMethods for UIEvent {
                    cancelable: bool,
                    view: Option<&Window>,
                    detail: i32) {
-        let event: &Event = EventCast::from_ref(self);
+        let event = self.upcast::<Event>();
         if event.dispatching() {
             return;
         }
 
         event.InitEvent(type_, can_bubble, cancelable);
-        self.view.set(view.map(JS::from_ref));
+        self.view.set(view);
         self.detail.set(detail);
     }
 }

@@ -1,7 +1,0 @@
-Patches live here for submodules that should remain as pristine as possible.
-This will allow us to unconditionally update them, then apply necessary
-patches as needed.
-
-* mozjs-stack-bounds.diff:
-    add a public API to overwrite the engine's computed stack bounds for
-    GC scanning.

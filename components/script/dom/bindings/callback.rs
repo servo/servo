@@ -122,13 +122,13 @@ impl CallbackInterface {
         let obj = RootedObject::new(cx, self.callback());
         unsafe {
             let c_name = CString::new(name).unwrap();
-            if JS_GetProperty(cx, obj.handle(), c_name.as_ptr(),
-                              callable.handle_mut()) == 0 {
+            if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(),
+                               callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
             if !callable.ptr.is_object() ||
-               IsCallable(callable.ptr.to_object()) == 0 {
+               !IsCallable(callable.ptr.to_object()) {
                 return Err(Error::Type(
                     format!("The value of the {} property is not callable", name)));
             }
@@ -145,7 +145,7 @@ pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
     assert!(!rval.get().is_null());
 
     unsafe {
-        if JS_WrapObject(cx, rval) == 0 {
+        if !JS_WrapObject(cx, rval) {
             rval.set(ptr::null_mut());
         }
     }
@@ -198,11 +198,11 @@ impl Drop for CallSetup {
         unsafe { JS_LeaveCompartment(self.cx, self.old_compartment); }
         let need_to_deal_with_exception =
             self.handling == ExceptionHandling::Report &&
-            unsafe { JS_IsExceptionPending(self.cx) } != 0;
+            unsafe { JS_IsExceptionPending(self.cx) };
         if need_to_deal_with_exception {
             unsafe {
                 let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
-                let saved = JS_SaveFrameChain(self.cx) != 0;
+                let saved = JS_SaveFrameChain(self.cx);
                 {
                     let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
                     JS_ReportPendingException(self.cx);

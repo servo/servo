@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLPreElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLPreElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLPreElementDerived for EventTarget {
-    fn is_htmlpreelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)))
-    }
 }
 
 impl HTMLPreElement {
@@ -31,7 +20,7 @@ impl HTMLPreElement {
                      document: &Document) -> HTMLPreElement {
         HTMLPreElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLPreElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

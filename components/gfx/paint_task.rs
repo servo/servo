@@ -19,11 +19,10 @@ use gfx_traits::color;
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
-use msg::compositor_msg::{ScrollPolicy, SubpageLayerInfo};
+use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties};
+use msg::compositor_msg::{PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::PipelineExitType;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
@@ -60,8 +59,8 @@ pub struct PaintLayer {
     pub bounds: Rect<Au>,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
-    /// The subpage that this layer represents, if there is one.
-    pub subpage_layer_info: Option<SubpageLayerInfo>,
+    /// The pipeline of the subpage that this layer represents, if there is one.
+    pub subpage_pipeline_id: Option<PipelineId>,
 }
 
 impl PaintLayer {
@@ -78,7 +77,7 @@ impl PaintLayer {
             contents: PaintLayerContents::StackingContext(stacking_context),
             bounds: bounds,
             scroll_policy: layer_info.scroll_policy,
-            subpage_layer_info: layer_info.subpage_layer_info,
+            subpage_pipeline_id: layer_info.subpage_pipeline_id,
         }
     }
 
@@ -93,7 +92,7 @@ impl PaintLayer {
             contents: PaintLayerContents::DisplayList(Arc::new(display_list)),
             bounds: bounds,
             scroll_policy: layer_info.scroll_policy,
-            subpage_layer_info: layer_info.subpage_layer_info,
+            subpage_pipeline_id: layer_info.subpage_pipeline_id,
         }
     }
 
@@ -149,7 +148,7 @@ impl PaintLayer {
             perspective: perspective,
             establishes_3d_context: establishes_3d_context,
             scrolls_overflow_area: scrolls_overflow_area,
-            subpage_layer_info: self.subpage_layer_info,
+            subpage_pipeline_id: self.subpage_pipeline_id,
         }
     }
 

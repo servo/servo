@@ -1,0 +1,39 @@
+<html>
+  <title>Absolute Containing Blocks with an absolute child and a non-CB child which contains an absolute flow.</title>
+  <head>
+    <link rel='match' href='position_abs_cb_with_non_cb_kid_b.html'>
+    <style>
+      .cb {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      border: solid 1px;
+      }
+      #second {
+      width: 30px;
+      height: 30px;
+      }
+      #abs {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      height: 20px;
+      background: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="first-cb" class="cb">
+      <div id="second">
+      </div>
+      <div id="abs">
+      </div>
+      <div id="non-cb-2">
+	<div id="second">
+	</div>
+	<div id="abs">
+	</div>
+      </div>
+    </div>
+  </body>
+</html>

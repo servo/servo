@@ -7,6 +7,7 @@
 #![feature(borrow_state)]
 #![feature(box_syntax)]
 #![feature(cell_extras)]
+#![feature(const_fn)]
 #![feature(core)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
@@ -18,6 +19,7 @@
 #![feature(iter_arith)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
+#![feature(on_unimplemented)]
 #![feature(plugin)]
 #![feature(ref_slice)]
 #![feature(slice_patterns)]
@@ -84,7 +86,6 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
-mod horribly_inefficient_timers;
 pub mod layout_interface;
 mod mem;
 mod network_listener;
@@ -94,6 +95,7 @@ pub mod parse;
 pub mod script_task;
 pub mod textinput;
 mod timers;
+mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
@@ -102,15 +104,37 @@ use dom::bindings::codegen::RegisterBindings;
 #[allow(unsafe_code)]
 fn perform_platform_specific_initialization() {
     use std::mem;
-    const RLIMIT_NOFILE: libc::c_int = 7;
+    // 4096 is default max on many linux systems
+    const MAX_FILE_LIMIT: libc::rlim_t = 4096;
 
     // Bump up our number of file descriptors to save us from impending doom caused by an onslaught
     // of iframes.
     unsafe {
-        let mut rlim = mem::uninitialized();
-        assert!(libc::getrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
-        rlim.rlim_cur = rlim.rlim_max;
-        assert!(libc::setrlimit(RLIMIT_NOFILE, &mut rlim) == 0);
+        let mut rlim: libc::rlimit = mem::uninitialized();
+        match libc::getrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
+            0 => {
+                if rlim.rlim_cur >= MAX_FILE_LIMIT {
+                    // we have more than enough
+                    return;
+                }
+
+                rlim.rlim_cur = match rlim.rlim_max {
+                    libc::RLIM_INFINITY => MAX_FILE_LIMIT,
+                    _ => {
+                        if rlim.rlim_max < MAX_FILE_LIMIT {
+                            rlim.rlim_max
+                        } else {
+                            MAX_FILE_LIMIT
+                        }
+                    }
+                };
+                match libc::setrlimit(libc::RLIMIT_NOFILE, &mut rlim) {
+                    0 => (),
+                    _ => warn!("Failed to set file count limit"),
+                };
+            },
+            _ => warn!("Failed to get file count limit"),
+        };
     }
 }
 
@@ -120,7 +144,7 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        assert_eq!(js::jsapi::JS_Init(), 1);
+        assert_eq!(js::jsapi::JS_Init(), true);
     }
 
     // Create the global vtables used by the (generated) DOM

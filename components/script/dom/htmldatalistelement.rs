@@ -4,29 +4,19 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptionElementDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::node::{Node, window_from_node};
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLDataListElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLDataListElementDerived for EventTarget {
-    fn is_htmldatalistelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
-    }
 }
 
 impl HTMLDataListElement {
@@ -35,7 +25,7 @@ impl HTMLDataListElement {
                      document: &Document) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataListElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
@@ -55,12 +45,11 @@ impl HTMLDataListElementMethods for HTMLDataListElement {
         struct HTMLDataListOptionsFilter;
         impl CollectionFilter for HTMLDataListOptionsFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is_htmloptionelement()
+                elem.is::<HTMLOptionElement>()
             }
         }
-        let node = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
-        let window = window_from_node(node);
-        HTMLCollection::create(window.r(), node, filter)
+        let window = window_from_node(self);
+        HTMLCollection::create(window.r(), self.upcast(), filter)
     }
 }

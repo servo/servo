@@ -18,7 +18,13 @@ connect-src 'self'; script-src 'self' 'unsafe-inline';
         try {
             var xhr = new XMLHttpRequest;
             xhr.open("GET", "http://www1.{{host}}:{{ports[http][0]}}/content-security-policy/support/fail.png", true);
-            log("Fail");
+            xhr.send();
+            xhr.onload = function() {
+                log("Fail");
+            }
+            xhr.onerror = function() {
+                log("Pass");
+            }
         } catch (e) {
             log("Pass");
         }

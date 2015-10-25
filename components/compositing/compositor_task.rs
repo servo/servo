@@ -10,7 +10,7 @@ use headless;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerProperties};
+use msg::compositor_msg::{Epoch, EventResult, FrameTreeId, LayerId, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScriptToCompositorMsg};
 use msg::constellation_msg::{AnimationState, ConstellationChan, PipelineId};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState};
@@ -93,6 +93,10 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
 
             ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
                 compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
+            }
+
+            ScriptToCompositorMsg::TouchEventProcessed(result) => {
+                compositor_proxy.send(Msg::TouchEventProcessed(result))
             }
         }
     }
@@ -189,6 +193,8 @@ pub enum Msg {
     RecompositeAfterScroll,
     /// Sends an unconsumed key event back to the compositor.
     KeyEvent(Key, KeyState, KeyModifiers),
+    /// Script has handled a touch event, and either prevented or allowed default actions.
+    TouchEventProcessed(EventResult),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -238,6 +244,7 @@ impl Debug for Msg {
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::RecompositeAfterScroll => write!(f, "RecompositeAfterScroll"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
+            Msg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
             Msg::CreatePng(..) => write!(f, "CreatePng"),
             Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),

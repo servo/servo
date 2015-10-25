@@ -1645,6 +1645,8 @@ html/unicode-bidi-applies-to-014.htm	1ea78d913a72bdf534c9701bc8a771df856e3d2f	?
 xhtml1/unicode-bidi-applies-to-014.xht	1ea78d913a72bdf534c9701bc8a771df856e3d2f	?
 html/unicode-bidi-applies-to-015.htm	f319b3e86aea3385f390f78d56ba608a6ac94f27	?
 xhtml1/unicode-bidi-applies-to-015.xht	f319b3e86aea3385f390f78d56ba608a6ac94f27	?
+html/unicode-bidi-parsing-001.htm	72b131c94f05aa0b1ff6a6072b6c6376a39e100a	?
+xhtml1/unicode-bidi-parsing-001.xht	72b131c94f05aa0b1ff6a6072b6c6376a39e100a	?
 html/unicode-bidi-parsing-002.htm	94149c4ee2d6fad7f1ba5b12d076637c39479996	?
 xhtml1/unicode-bidi-parsing-002.xht	94149c4ee2d6fad7f1ba5b12d076637c39479996	?
 html/vertical-alignment-002.htm	7976476f1e1577a4f43f628fedad2fcac850e226	?
@@ -1675,12 +1677,12 @@ html/vertical-alignment-vrl-018.htm	7e7e14382efae5767eecdb45ff697dff5e54688d	?
 xhtml1/vertical-alignment-vrl-018.xht	7e7e14382efae5767eecdb45ff697dff5e54688d	?
 html/vertical-alignment-vrl-020.htm	015c20befc16f691e32515ac377698c473da65e5	?
 xhtml1/vertical-alignment-vrl-020.xht	015c20befc16f691e32515ac377698c473da65e5	?
-html/vertical-alignment-vrl-022.htm	c831bb6084a1e44cb93d20880f3c3e3efd446581	?
-xhtml1/vertical-alignment-vrl-022.xht	c831bb6084a1e44cb93d20880f3c3e3efd446581	?
-html/vertical-alignment-vrl-024.htm	c934e3bd41a2a8c605b5752b1f577c654cb83822	?
-xhtml1/vertical-alignment-vrl-024.xht	c934e3bd41a2a8c605b5752b1f577c654cb83822	?
-html/vertical-alignment-vrl-026.htm	7a26be3255ca5f516f5fc18e3892498f1a8523b7	?
-xhtml1/vertical-alignment-vrl-026.xht	7a26be3255ca5f516f5fc18e3892498f1a8523b7	?
+html/vertical-alignment-vrl-022.htm	6dbc7179619268a8ec32d6280cb99b40fb9a2aa0	?
+xhtml1/vertical-alignment-vrl-022.xht	6dbc7179619268a8ec32d6280cb99b40fb9a2aa0	?
+html/vertical-alignment-vrl-024.htm	2e91edb95fd8d7edca1fe75eb83ab9e4b8dfb646	?
+xhtml1/vertical-alignment-vrl-024.xht	2e91edb95fd8d7edca1fe75eb83ab9e4b8dfb646	?
+html/vertical-alignment-vrl-026.htm	fd50bbc488c4ffc9891805e968e71507fdb4a317	?
+xhtml1/vertical-alignment-vrl-026.xht	fd50bbc488c4ffc9891805e968e71507fdb4a317	?
 html/writing-mode-horizontal-001l.htm	820b6baaa9ff63cf1a29b989c8d68ebdafe3c4da	?
 xhtml1/writing-mode-horizontal-001l.xht	820b6baaa9ff63cf1a29b989c8d68ebdafe3c4da	?
 html/writing-mode-horizontal-001r.htm	946a8be6f47e1cdc7ca7539e48e9964bd77c9ba9	?

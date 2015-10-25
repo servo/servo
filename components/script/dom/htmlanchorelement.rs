@@ -10,17 +10,17 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLImageElementDerived};
-use dom::bindings::codegen::InheritTypes::{MouseEventCast, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
+use dom::mouseevent::MouseEvent;
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use num::ToPrimitive;
 use std::default::Default;
@@ -34,21 +34,13 @@ pub struct HTMLAnchorElement {
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl HTMLAnchorElementDerived for EventTarget {
-    fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
-    }
-}
-
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -63,9 +55,8 @@ impl HTMLAnchorElement {
 }
 
 impl VirtualMethods for HTMLAnchorElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -79,20 +70,18 @@ impl VirtualMethods for HTMLAnchorElement {
 impl HTMLAnchorElementMethods for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn Text(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
-        node.GetTextContent().unwrap()
+        self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &atom!("rel"))
         })
     }
 
@@ -122,8 +111,8 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 }
 
 impl Activatable for HTMLAnchorElement {
-    fn as_element<'b>(&'b self) -> &'b Element {
-        ElementCast::from_ref(self)
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
     }
 
     fn is_instance_activatable(&self) -> bool {
@@ -132,7 +121,7 @@ impl Activatable for HTMLAnchorElement {
         // hyperlink"
         // https://html.spec.whatwg.org/multipage/#the-a-element
         // "The activation behaviour of a elements *that create hyperlinks*"
-        ElementCast::from_ref(self).has_attribute(&atom!("href"))
+        self.upcast::<Element>().has_attribute(&atom!("href"))
     }
 
 
@@ -154,13 +143,13 @@ impl Activatable for HTMLAnchorElement {
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
         //Step 3. Handle <img ismap/>.
-        let element = ElementCast::from_ref(self);
-        let mouse_event = MouseEventCast::to_ref(event).unwrap();
+        let element = self.upcast::<Element>();
+        let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
-        if let Some(element) = ElementCast::to_ref(target) {
-            if target.is_htmlimageelement() && element.has_attribute(&atom!("ismap")) {
+        if let Some(element) = target.downcast::<Element>() {
+            if target.is::<HTMLImageElement>() && element.has_attribute(&atom!("ismap")) {
 
-                let target_node = NodeCast::from_ref(element);
+                let target_node = element.upcast::<Node>();
                 let rect = window_from_node(target_node).r().content_box_query(
                     target_node.to_trusted_node_address());
                 ismap_suffix = Some(

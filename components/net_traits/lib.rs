@@ -163,13 +163,13 @@ pub trait AsyncFetchListener {
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
     /// The response headers for a request have been received.
-    fn headers_available(&self, metadata: Metadata);
+    fn headers_available(&mut self, metadata: Metadata);
     /// A portion of the response body has been received. This data is unavailable after
     /// this method returned, and must be stored accordingly.
-    fn data_available(&self, payload: Vec<u8>);
+    fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), String>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -186,7 +186,7 @@ pub enum ResponseAction {
 
 impl ResponseAction {
     /// Execute the default action on a provided listener.
-    pub fn process(self, listener: &AsyncResponseListener) {
+    pub fn process(self, listener: &mut AsyncResponseListener) {
         match self {
             ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
             ResponseAction::DataAvailable(d) => listener.data_available(d),

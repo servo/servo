@@ -16,11 +16,13 @@
       { contentType: 'text/html;charset=UTF-8', responseText : '<body>\uFFFD<\/body>' }, /*invalid character code in document turns into FFFD*/
       { contentType: 'text/html;charset=UTF-8', responseText : '<body>\u30C6\u30b9\u30c8<\/body>' } /* correctly serialized Shift-JIS */,
       { contentType: 'text/html;charset=UTF-8', responseText: 'top' }, /* There's some markup included, but it's not really relevant for this test suite, so we do an indexOf() test */
-      { contentType: 'text/html;charset=UTF-8' }
+      { contentType: 'text/html;charset=UTF-8' },
+      { contentType: 'text/html;charset=UTF-8', responseText: '<img>foo' },
+      { contentType: 'text/html;charset=UTF-8', responseText: '<!DOCTYPE html><html><head></head><body><div></div></body></html>' }
      ]
 
 
-      function request(input, isHTML, title) {
+      function request(input, number, title) {
         test(function() {
           var client = new XMLHttpRequest()
           client.open("POST", "resources/content.py?response_charset_label=UTF-8", false)
@@ -30,12 +32,14 @@
           // The indexOf() assertation will overlook some stuff, i.e. XML prologues that shouldn't be there (looking at you, Presto).
           // However, arguably these things have little to do with the XHR functionality we're testing.
           if(exp.responseText){ // This test does not want to assert anything about what markup a standalone IMG should be wrapped in. Hence the GIF test lacks a responseText expectation.
-            assert_true(client.responseText.indexOf(exp.responseText) != -1);
+            assert_true(client.responseText.indexOf(exp.responseText) != -1,
+                        JSON.stringify(exp.responseText) + " not in " +
+                        JSON.stringify(client.responseText));
           }
           assert_equals(client.responseXML, null)
         }, title)
       }
-      function init(fr, number, title) { request(fr.contentDocument, number) }
+      function init(fr, number, title) { request(fr.contentDocument, number, title) }
     </script>
     <!--
         This test also tests how documents in various encodings are serialized.
@@ -50,6 +54,8 @@
     <iframe src='resources/shift-jis-html.py' onload="init(this, 2, 'HTML document, shift-jis')"></iframe>
     <iframe src='folder.txt' onload="init(this, 3, 'plain text file')"></iframe>
     <iframe src='resources/image.gif' onload="init(this, 4, 'image file')"></iframe>
+    <iframe src='resources/img-utf8-html.py' onload="init(this, 5, 'img tag')"></iframe>
+    <iframe src='resources/empty-div-utf8-html.py' onload="init(this, 6, 'empty div')"></iframe>
 
   </body>
 </html>

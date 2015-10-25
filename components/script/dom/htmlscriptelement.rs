@@ -10,21 +10,18 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLScriptElementCast, HTMLScriptElementDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementCreator, ElementTypeId};
+use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
-use dom::node::{NodeTypeId, document_from_node, window_from_node};
+use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ScriptHelpers;
 use encoding::all::UTF_8;
@@ -40,7 +37,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use url::{Url, UrlParser};
@@ -74,20 +71,12 @@ pub struct HTMLScriptElement {
     block_character_encoding: DOMRefCell<EncodingRef>,
 }
 
-impl HTMLScriptElementDerived for EventTarget {
-    fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
-    }
-}
-
 impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -138,9 +127,9 @@ struct ScriptContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
     /// The response body received to date.
-    data: RefCell<Vec<u8>>,
+    data: Vec<u8>,
     /// The response metadata received to date.
-    metadata: RefCell<Option<Metadata>>,
+    metadata: Option<Metadata>,
     /// Whether the owning document's parser should resume once the response completes.
     resume_on_completion: bool,
     /// The initial URL requested.
@@ -148,19 +137,19 @@ struct ScriptContext {
 }
 
 impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&self, metadata: Metadata) {
-        *self.metadata.borrow_mut() = Some(metadata);
+    fn headers_available(&mut self, metadata: Metadata) {
+        self.metadata = Some(metadata);
     }
 
-    fn data_available(&self, payload: Vec<u8>) {
+    fn data_available(&mut self, payload: Vec<u8>) {
         let mut payload = payload;
-        self.data.borrow_mut().append(&mut payload);
+        self.data.append(&mut payload);
     }
 
-    fn response_complete(&self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), String>) {
         let load = status.map(|_| {
-            let data = mem::replace(&mut *self.data.borrow_mut(), vec!());
-            let metadata = self.metadata.borrow_mut().take().unwrap();
+            let data = mem::replace(&mut self.data, vec!());
+            let metadata = self.metadata.take().unwrap();
             (metadata, data)
         });
         let elem = self.elem.root();
@@ -190,7 +179,7 @@ impl HTMLScriptElement {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         if was_parser_inserted && element.has_attribute(&atom!("async")) {
             self.non_blocking.set(true);
         }
@@ -200,8 +189,7 @@ impl HTMLScriptElement {
             return NextParserState::Continue;
         }
         // Step 5.
-        let node = NodeCast::from_ref(self);
-        if !node.is_in_doc() {
+        if !self.upcast::<Node>().is_in_doc() {
             return NextParserState::Continue;
         }
         // Step 6, 7.
@@ -219,7 +207,7 @@ impl HTMLScriptElement {
         // Step 10.
         let document_from_node_ref = document_from_node(self);
         let document_from_node_ref = document_from_node_ref.r();
-        if self.parser_inserted.get() && self.parser_document.root().r() != document_from_node_ref {
+        if self.parser_inserted.get() && &*self.parser_document != document_from_node_ref {
             return NextParserState::Continue;
         }
 
@@ -293,8 +281,8 @@ impl HTMLScriptElement {
 
                         let context = Arc::new(Mutex::new(ScriptContext {
                             elem: elem,
-                            data: RefCell::new(vec!()),
-                            metadata: RefCell::new(None),
+                            data: vec!(),
+                            metadata: None,
                             resume_on_completion: self.parser_inserted.get(),
                             url: url.clone(),
                         }));
@@ -464,7 +452,7 @@ impl HTMLScriptElement {
     }
 
     pub fn is_javascript(&self) -> bool {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let type_attr = element.get_attribute(&ns!(""), &atom!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
@@ -517,16 +505,13 @@ impl HTMLScriptElement {
                                type_,
                                bubbles,
                                cancelable);
-        let event = event.r();
-        let target = EventTargetCast::from_ref(self);
-        event.fire(target)
+        event.fire(self.upcast())
     }
 }
 
 impl VirtualMethods for HTMLScriptElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -534,7 +519,7 @@ impl VirtualMethods for HTMLScriptElement {
         match attr.local_name() {
             &atom!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && NodeCast::from_ref(self).is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
                         self.prepare();
                     }
                 }
@@ -547,8 +532,7 @@ impl VirtualMethods for HTMLScriptElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
-        if !self.parser_inserted.get() && node.is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
             self.prepare();
         }
     }
@@ -571,8 +555,7 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            let copy_elem = HTMLScriptElementCast::to_ref(copy).unwrap();
-            copy_elem.mark_already_started();
+            copy.downcast::<HTMLScriptElement>().unwrap().mark_already_started();
         }
     }
 }
@@ -585,13 +568,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
-        Node::collect_text_contents(NodeCast::from_ref(self).children())
+        Node::collect_text_contents(self.upcast::<Node>().children())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 }
 

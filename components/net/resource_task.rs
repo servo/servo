@@ -50,6 +50,15 @@ impl ProgressSender {
     }
 }
 
+pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+    let mut metadata: Metadata = Metadata::default(url);
+    metadata.status = None;
+
+    if let Ok(p) = start_sending_opt(start_chan, metadata) {
+        p.send(Done(Err(err))).unwrap();
+    }
+}
+
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: LoadConsumer, metadata: Metadata) -> ProgressSender {
     start_sending_opt(start_chan, metadata).ok().unwrap()
@@ -89,13 +98,13 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             metadata.content_type.map(|ContentType(Mime(toplevel, sublevel, _))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
-        metadata.content_type = classifier.classify(no_sniff, check_for_apache_bug, &supplied_type,
-                                                    &partial_body).map(|(toplevel, sublevel)| {
-            let mime_tp: TopLevel = toplevel.parse().unwrap();
-            let mime_sb: SubLevel = sublevel.parse().unwrap();
-            ContentType(Mime(mime_tp, mime_sb, vec!()))
-        });
-
+        let (toplevel, sublevel) = classifier.classify(no_sniff,
+                                                       check_for_apache_bug,
+                                                       &supplied_type,
+                                                       &partial_body);
+        let mime_tp: TopLevel = toplevel.parse().unwrap();
+        let mime_sb: SubLevel = sublevel.parse().unwrap();
+        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
     }
 
     start_sending_opt(start_chan, metadata)
@@ -226,8 +235,8 @@ impl ResourceManager {
     fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
 
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-            box move |load_data, senders, classifier, _user_agent| {
+                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+            box move |load_data, senders, classifier| {
                 factory(load_data, senders, classifier)
             }
         }
@@ -235,7 +244,8 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
-                http_loader::factory(self.hsts_list.clone(),
+                http_loader::factory(self.user_agent.clone(),
+                                     self.hsts_list.clone(),
                                      self.cookie_storage.clone(),
                                      self.devtools_chan.clone(),
                                      self.connector.clone()),
@@ -250,6 +260,6 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.call_box((load_data, consumer, self.mime_classifier.clone(), self.user_agent.clone()));
+        loader.call_box((load_data, consumer, self.mime_classifier.clone()));
     }
 }

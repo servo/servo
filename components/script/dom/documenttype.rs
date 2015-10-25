@@ -4,13 +4,12 @@
 
 use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
-use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::node::Node;
 use std::borrow::ToOwned;
 use util::str::DOMString;
 
@@ -24,12 +23,6 @@ pub struct DocumentType {
     system_id: DOMString,
 }
 
-impl DocumentTypeDerived for EventTarget {
-    fn is_documenttype(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::DocumentType)
-    }
-}
-
 impl DocumentType {
     fn new_inherited(name: DOMString,
                          public_id: Option<DOMString>,
@@ -37,7 +30,7 @@ impl DocumentType {
                          document: &Document)
             -> DocumentType {
         DocumentType {
-            node: Node::new_inherited(NodeTypeId::DocumentType, document),
+            node: Node::new_inherited(document),
             name: name,
             public_id: public_id.unwrap_or("".to_owned()),
             system_id: system_id.unwrap_or("".to_owned())
@@ -90,22 +83,21 @@ impl DocumentTypeMethods for DocumentType {
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
     fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).before(nodes)
+        self.upcast::<Node>().before(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
     fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).after(nodes)
+        self.upcast::<Node>().after(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
     fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        NodeCast::from_ref(self).replace_with(nodes)
+        self.upcast::<Node>().replace_with(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
-        let node = NodeCast::from_ref(self);
-        node.remove_self();
+        self.upcast::<Node>().remove_self();
     }
 }

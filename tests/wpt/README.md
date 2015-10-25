@@ -43,6 +43,15 @@ to run all the DOM tests.
 There are also a large number of command line options accepted by the
 test harness; these are documented by running with `--help`.
 
+Running all tests
+------------------------------
+
+Running all the WPT tests with debug mode results in a lot of timeout.
+If one wants to run all the tests,
+build with `mach build -r`
+and
+test with `mach test-wpt --release`
+
 Running the tests without mach
 ------------------------------
 
@@ -86,6 +95,26 @@ log is saved, run from the root directory:
 
 For CSSWG tests a similar prcedure works, with `./mach test-css` and
 `./mach update-css`.
+
+Writing new tests
+=================
+
+The simplest way to create a new test is to use the following command:
+
+    ./mach create-wpt tests/wpt/path/to/new/test.html
+
+This will create test.html in the appropriate directory using the WPT
+template for JavaScript tests. To create a new reference test instead,
+use the following:
+
+    ./mach create-wpt --reftest tests/wpt/path/to/new/reftest.html --reference tests/wpt/path/to/reference.html
+
+`reference.html` will be created if it doesn't not exist, and `reftest.html`
+will be created using the WPT reftest template. These new tests can then
+be run in the following manner like any other WPT test:
+
+    ./mach test-wpt tests/wpt/path/to/new/test.html
+    ./mach test-wpt tests/wpt/path/to/new/reftest.html
 
 Editing tests
 =============

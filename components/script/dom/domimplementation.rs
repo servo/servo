@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
@@ -20,6 +20,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
+use dom::node::Node;
 use dom::text::Text;
 use std::borrow::ToOwned;
 use util::str::DOMString;
@@ -42,7 +43,7 @@ impl DOMImplementation {
     pub fn new(document: &Document) -> Root<DOMImplementation> {
         let window = document.window();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(window),
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -53,20 +54,17 @@ impl DOMImplementationMethods for DOMImplementation {
     fn CreateDocumentType(&self, qualified_name: DOMString, pubid: DOMString, sysid: DOMString)
                           -> Fallible<Root<DocumentType>> {
         try!(validate_qualified_name(&qualified_name));
-        let document = self.document.root();
-        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), document.r()))
+        Ok(DocumentType::new(qualified_name, Some(pubid), Some(sysid), &self.document))
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<&DocumentType>) -> Fallible<Root<Document>> {
-        let doc = self.document.root();
-        let doc = doc.r();
-        let win = doc.window();
-        let loader = DocumentLoader::new(&*doc.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1.
-        let doc = Document::new(win.r(), None, IsHTMLDocument::NonHTMLDocument,
+        let doc = Document::new(win, None, IsHTMLDocument::NonHTMLDocument,
                                 None, None, DocumentSource::NotFromParser, loader);
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
@@ -79,23 +77,16 @@ impl DOMImplementationMethods for DOMImplementation {
         };
 
         {
-            let doc_node = NodeCast::from_ref(doc.r());
+            let doc_node = doc.upcast::<Node>();
 
             // Step 4.
-            match maybe_doctype {
-                None => (),
-                Some(ref doctype) => {
-                    let doc_type = NodeCast::from_ref(*doctype);
-                    assert!(doc_node.AppendChild(doc_type).is_ok())
-                }
+            if let Some(doc_type) = maybe_doctype {
+                doc_node.AppendChild(doc_type.upcast()).unwrap();
             }
 
             // Step 5.
-            match maybe_elem {
-                None => (),
-                Some(ref elem) => {
-                    assert!(doc_node.AppendChild(NodeCast::from_ref(elem.r())).is_ok())
-                }
+            if let Some(ref elem) = maybe_elem {
+                doc_node.AppendChild(elem.upcast()).unwrap();
             }
         }
 
@@ -108,54 +99,52 @@ impl DOMImplementationMethods for DOMImplementation {
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(&self, title: Option<DOMString>) -> Root<Document> {
-        let document = self.document.root();
-        let document = document.r();
-        let win = document.window();
-        let loader = DocumentLoader::new(&*document.loader());
+        let win = self.document.window();
+        let loader = DocumentLoader::new(&self.document.loader());
 
         // Step 1-2.
-        let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None, None,
+        let doc = Document::new(win, None, IsHTMLDocument::HTMLDocument, None, None,
                                 DocumentSource::NotFromParser, loader);
 
         {
             // Step 3.
-            let doc_node = NodeCast::from_ref(doc.r());
+            let doc_node = doc.upcast::<Node>();
             let doc_type = DocumentType::new("html".to_owned(), None, None, doc.r());
-            assert!(doc_node.AppendChild(NodeCast::from_ref(doc_type.r())).is_ok());
+            doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
         {
             // Step 4.
-            let doc_node = NodeCast::from_ref(doc.r());
-            let doc_html = NodeCast::from_root(
+            let doc_node = doc.upcast::<Node>();
+            let doc_html = Root::upcast::<Node>(
                 HTMLHtmlElement::new("html".to_owned(), None, doc.r()));
-            assert!(doc_node.AppendChild(doc_html.r()).is_ok());
+            doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
-                let doc_head = NodeCast::from_root(
+                let doc_head = Root::upcast::<Node>(
                     HTMLHeadElement::new("head".to_owned(), None, doc.r()));
-                assert!(doc_html.r().AppendChild(doc_head.r()).is_ok());
+                doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
                 match title {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let doc_title = NodeCast::from_root(
+                        let doc_title = Root::upcast::<Node>(
                             HTMLTitleElement::new("title".to_owned(), None, doc.r()));
-                        assert!(doc_head.r().AppendChild(doc_title.r()).is_ok());
+                        doc_head.AppendChild(&doc_title).unwrap();
 
                         // Step 6.2.
                         let title_text = Text::new(title_str, doc.r());
-                        assert!(doc_title.r().AppendChild(NodeCast::from_ref(title_text.r())).is_ok());
+                        doc_title.AppendChild(title_text.upcast()).unwrap();
                     }
                 }
             }
 
             // Step 7.
             let doc_body = HTMLBodyElement::new("body".to_owned(), None, doc.r());
-            assert!(doc_html.r().AppendChild(NodeCast::from_ref(doc_body.r())).is_ok());
+            doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 
         // Step 8.

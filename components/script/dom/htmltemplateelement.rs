@@ -6,15 +6,12 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTemplateElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTemplateElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{CloneChildrenFlag, Node, NodeTypeId, document_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
 
@@ -26,21 +23,13 @@ pub struct HTMLTemplateElement {
     contents: MutNullableHeap<JS<DocumentFragment>>,
 }
 
-impl HTMLTemplateElementDerived for EventTarget {
-    fn is_htmltemplateelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)))
-    }
-}
-
 impl HTMLTemplateElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document),
+                HTMLElement::new_inherited(localName, prefix, document),
             contents: MutNullableHeap::new(None),
         }
     }
@@ -66,7 +55,7 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
 
 impl VirtualMethods for HTMLTemplateElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     /// https://html.spec.whatwg.org/multipage/#template-adopting-steps
@@ -75,7 +64,7 @@ impl VirtualMethods for HTMLTemplateElement {
         // Step 1.
         let doc = document_from_node(self).appropriate_template_contents_owner_document();
         // Step 2.
-        Node::adopt(NodeCast::from_ref(&*self.Content()), &doc);
+        Node::adopt(self.Content().upcast(), &doc);
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext
@@ -86,11 +75,11 @@ impl VirtualMethods for HTMLTemplateElement {
             // Step 1.
             return;
         }
-        let copy = HTMLTemplateElementCast::to_ref(copy).unwrap();
+        let copy = copy.downcast::<HTMLTemplateElement>().unwrap();
         // Steps 2-3.
-        let copy_contents = NodeCast::from_root(copy.Content());
+        let copy_contents = Root::upcast::<Node>(copy.Content());
         let copy_contents_doc = copy_contents.owner_doc();
-        for child in NodeCast::from_root(self.Content()).children() {
+        for child in self.Content().upcast::<Node>().children() {
             let copy_child = Node::clone(
                 &child, Some(&copy_contents_doc), CloneChildrenFlag::CloneChildren);
             copy_contents.AppendChild(&copy_child).unwrap();

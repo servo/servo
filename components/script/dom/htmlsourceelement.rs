@@ -3,26 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
-use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLSourceElement {
     htmlelement: HTMLElement
-}
-
-impl HTMLSourceElementDerived for EventTarget {
-    fn is_htmlsourceelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)))
-    }
 }
 
 impl HTMLSourceElement {
@@ -31,7 +20,7 @@ impl HTMLSourceElement {
                      document: &Document) -> HTMLSourceElement {
         HTMLSourceElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSourceElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

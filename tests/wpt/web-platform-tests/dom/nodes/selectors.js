@@ -266,10 +266,9 @@ var validSelectors = [
   {name: "Class selector, matching element with specified class",                                           selector: ".class-p",                expect: ["class-p1","class-p2", "class-p3"],                                              level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Class selector, chained, matching only elements with all specified classes",                      selector: "#class .apple.orange.banana",    expect: ["class-div1", "class-div2", "class-p4", "class-div3", "class-p6", "class-div4"], level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Class Selector, chained, with type selector",                                                     selector: "div.apple.banana.orange", expect: ["class-div1", "class-div2", "class-div3", "class-div4"],                         level: 1, testType: TEST_QSA | TEST_MATCH},
-  // Caution: If copying and pasting the folowing non-ASCII classes, ensure unicode normalisation is not performed in the process.
-  {name: "Class selector, matching element with class value using non-ASCII characters",                    selector: ".台北Táiběi",             expect: ["class-span1"],               level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Class selector, matching multiple elements with class value using non-ASCII characters",          selector: ".台北",                     expect: ["class-span1","class-span2"], level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "Class selector, chained, matching element with multiple class values using non-ASCII characters", selector: ".台北Táiběi.台北",          expect: ["class-span1"],               level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "Class selector, matching element with class value using non-ASCII characters (1)",                selector: ".\u53F0\u5317Ta\u0301ibe\u030Ci",             expect: ["class-span1"],               level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "Class selector, matching multiple elements with class value using non-ASCII characters",          selector: ".\u53F0\u5317",                     expect: ["class-span1","class-span2"], level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "Class selector, chained, matching element with multiple class values using non-ASCII characters (1)", selector: ".\u53F0\u5317Ta\u0301ibe\u030Ci.\u53F0\u5317",          expect: ["class-span1"],               level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Class selector, matching element with class with escaped character",                              selector: ".foo\\:bar",              expect: ["class-span3"],               level: 1, testType: TEST_QSA | TEST_MATCH},
   {name: "Class selector, matching element with class with escaped character",                              selector: ".test\\.foo\\[5\\]bar",   expect: ["class-span4"],               level: 1, testType: TEST_QSA | TEST_MATCH},
 
@@ -282,10 +281,9 @@ var validSelectors = [
   {name: "ID selector, not matching non-existent ancestor",           selector: "#none #id-div1",            expect: [] /*no matches*/,      level: 1, testType: TEST_QSA},
   {name: "ID selector, matching multiple elements with duplicate id", selector: "#id-li-duplicate",          expect: ["id-li-duplicate", "id-li-duplicate", "id-li-duplicate", "id-li-duplicate"], level: 1, testType: TEST_QSA | TEST_MATCH},
 
-  // Caution: If copying and pasting the folowing non-ASCII IDs, ensure unicode normalisation is not performed in the process.
-  {name: "ID selector, matching id value using non-ASCII characters",    selector: "#台北Táiběi",           expect: ["台北Táiběi"],       level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "ID selector, matching id value using non-ASCII characters",    selector: "#台北",                   expect: ["台北"],               level: 1, testType: TEST_QSA | TEST_MATCH},
-  {name: "ID selector, matching id values using non-ASCII characters",   selector: "#台北Táiběi, #台北",      expect: ["台北Táiběi", "台北"], level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "ID selector, matching id value using non-ASCII characters (1)",    selector: "#\u53F0\u5317Ta\u0301ibe\u030Ci",           expect: ["\u53F0\u5317Ta\u0301ibe\u030Ci"],       level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "ID selector, matching id value using non-ASCII characters (2)",    selector: "#\u53F0\u5317",                   expect: ["\u53F0\u5317"],               level: 1, testType: TEST_QSA | TEST_MATCH},
+  {name: "ID selector, matching id values using non-ASCII characters (1)", selector: "#\u53F0\u5317Ta\u0301ibe\u030Ci, #\u53F0\u5317",      expect: ["\u53F0\u5317Ta\u0301ibe\u030Ci", "\u53F0\u5317"], level: 1, testType: TEST_QSA | TEST_MATCH},
 
   // XXX runMatchesTest() in level2-lib.js can't handle this because obtaining the expected nodes requires escaping characters when generating the selector from 'expect' values
   {name: "ID selector, matching element with id with escaped character", selector: "#\\#foo\\:bar",         expect: ["#foo:bar"],         level: 1, testType: TEST_QSA},
@@ -631,10 +629,9 @@ var scopedSelectors = [
   {name: "Class selector, matching element with specified class (1)",                                           selector: ".class-p",                ctx: "", expect: ["class-p1","class-p2", "class-p3"],                                              level: 1, testType: TEST_FIND | TEST_MATCH},
   {name: "Class selector, chained, matching only elements with all specified classes (1)",                      selector: "#class .apple.orange.banana",    ctx: "", expect: ["class-div1", "class-div2", "class-p4", "class-div3", "class-p6", "class-div4"], level: 1, testType: TEST_FIND | TEST_MATCH},
   {name: "Class Selector, chained, with type selector (1)",                                                     selector: "div.apple.banana.orange", ctx: "", expect: ["class-div1", "class-div2", "class-div3", "class-div4"],                         level: 1, testType: TEST_FIND | TEST_MATCH},
-  // Caution: If copying and pasting the folowing non-ASCII classes, ensure unicode normalisation is not performed in the process.
-  {name: "Class selector, matching element with class value using non-ASCII characters",                    selector: ".台北Táiběi",             ctx: "", expect: ["class-span1"],               level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Class selector, matching multiple elements with class value using non-ASCII characters (1)",          selector: ".台北",                     ctx: "", expect: ["class-span1","class-span2"], level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "Class selector, chained, matching element with multiple class values using non-ASCII characters", selector: ".台北Táiběi.台北",          ctx: "", expect: ["class-span1"],               level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "Class selector, matching element with class value using non-ASCII characters (2)",                    selector: ".\u53F0\u5317Ta\u0301ibe\u030Ci",             ctx: "", expect: ["class-span1"],               level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "Class selector, matching multiple elements with class value using non-ASCII characters (1)",          selector: ".\u53F0\u5317",                     ctx: "", expect: ["class-span1","class-span2"], level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "Class selector, chained, matching element with multiple class values using non-ASCII characters (2)", selector: ".\u53F0\u5317Ta\u0301ibe\u030Ci.\u53F0\u5317",          ctx: "", expect: ["class-span1"],               level: 1, testType: TEST_FIND | TEST_MATCH},
   {name: "Class selector, matching element with class with escaped character (1)",                              selector: ".foo\\:bar",              ctx: "", expect: ["class-span3"],               level: 1, testType: TEST_FIND | TEST_MATCH},
   {name: "Class selector, matching element with class with escaped character (1)",                              selector: ".test\\.foo\\[5\\]bar",   ctx: "", expect: ["class-span4"],               level: 1, testType: TEST_FIND | TEST_MATCH},
 
@@ -647,10 +644,9 @@ var scopedSelectors = [
   {name: "ID selector, not matching non-existent ancestor",           selector: "#none #id-div1",            ctx: "", expect: [] /*no matches*/,      level: 1, testType: TEST_FIND},
   {name: "ID selector, matching multiple elements with duplicate id (1)", selector: "#id-li-duplicate",          ctx: "", expect: ["id-li-duplicate", "id-li-duplicate", "id-li-duplicate", "id-li-duplicate"], level: 1, testType: TEST_FIND | TEST_MATCH},
 
-  // Caution: If copying and pasting the folowing non-ASCII IDs, ensure unicode normalisation is not performed in the process.
-  {name: "ID selector, matching id value using non-ASCII characters",    selector: "#台北Táiběi",           ctx: "", expect: ["台北Táiběi"],       level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "ID selector, matching id value using non-ASCII characters (1)",    selector: "#台北",                   ctx: "", expect: ["台北"],               level: 1, testType: TEST_FIND | TEST_MATCH},
-  {name: "ID selector, matching id values using non-ASCII characters",   selector: "#台北Táiběi, #台北",      ctx: "", expect: ["台北Táiběi", "台北"], level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "ID selector, matching id value using non-ASCII characters (3)",    selector: "#\u53F0\u5317Ta\u0301ibe\u030Ci",           ctx: "", expect: ["\u53F0\u5317Ta\u0301ibe\u030Ci"],       level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "ID selector, matching id value using non-ASCII characters (4)",    selector: "#\u53F0\u5317",                   ctx: "", expect: ["\u53F0\u5317"],               level: 1, testType: TEST_FIND | TEST_MATCH},
+  {name: "ID selector, matching id values using non-ASCII characters (2)",   selector: "#\u53F0\u5317Ta\u0301ibe\u030Ci, #\u53F0\u5317",      ctx: "", expect: ["\u53F0\u5317Ta\u0301ibe\u030Ci", "\u53F0\u5317"], level: 1, testType: TEST_FIND | TEST_MATCH},
 
   // XXX runMatchesTest() in level2-lib.js can't handle this because obtaining the expected nodes requires escaping characters when generating the selector from 'expect' values
   {name: "ID selector, matching element with id with escaped character", selector: "#\\#foo\\:bar",         ctx: "", expect: ["#foo:bar"],         level: 1, testType: TEST_FIND},

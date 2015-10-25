@@ -26,7 +26,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_task::{start_sending_opt, start_sending_sniffed_opt};
+use resource_task::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -52,12 +52,13 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     Arc::new(Pool::with_connector(Default::default(), connector))
 }
 
-pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
+pub fn factory(user_agent: String,
+               hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>, String) + Send> {
-    box move |load_data: LoadData, senders, classifier, user_agent| {
+               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
+    box move |load_data: LoadData, senders, classifier| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
                               senders,
@@ -68,15 +69,6 @@ pub fn factory(hsts_list: Arc<RwLock<HSTSList>>,
                               devtools_chan,
                               user_agent)
         })
-    }
-}
-
-fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
-    let mut metadata: Metadata = Metadata::default(url);
-    metadata.status = None;
-
-    if let Ok(p) = start_sending_opt(start_chan, metadata) {
-        p.send(Done(Err(err))).unwrap();
     }
 }
 

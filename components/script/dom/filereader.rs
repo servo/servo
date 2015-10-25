@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -13,7 +13,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use encoding::all::UTF_8;
@@ -116,7 +116,7 @@ impl FileReader {
 
         let global = fr.global.root();
         let exception = DOMException::new(global.r(), error);
-        fr.error.set(Some(JS::from_rooted(&exception)));
+        fr.error.set(Some(&exception));
 
         fr.dispatch_progress_event("error".to_owned(), 0, None);
         return_on_abort!();
@@ -292,7 +292,7 @@ impl FileReaderMethods for FileReader {
 
         let global = self.global.root();
         let exception = DOMException::new(global.r(), DOMErrorName::AbortError);
-        self.error.set(Some(JS::from_rooted(&exception)));
+        self.error.set(Some(&exception));
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
@@ -324,10 +324,7 @@ impl FileReader {
         let progressevent = ProgressEvent::new(global.r(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
-
-        let target = EventTargetCast::from_ref(self);
-        let event = EventCast::from_ref(progressevent.r());
-        event.fire(target);
+        progressevent.upcast::<Event>().fire(self.upcast());
     }
 
     fn terminate_ongoing_reading(&self) {
@@ -346,7 +343,7 @@ impl FileReader {
         if blob.IsClosed() {
             let global = self.global.root();
             let exception = DOMException::new(global.r(), DOMErrorName::InvalidStateError);
-            self.error.set(Some(JS::from_rooted(&exception)));
+            self.error.set(Some(&exception));
 
             self.dispatch_progress_event("error".to_owned(), 0, None);
             return Ok(());

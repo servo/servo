@@ -5,14 +5,14 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, MouseEventDerived, UIEventCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventBubbles, EventCancelable, EventTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
@@ -34,16 +34,10 @@ pub struct MouseEvent {
     related_target: MutNullableHeap<JS<EventTarget>>,
 }
 
-impl MouseEventDerived for Event {
-    fn is_mouseevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::MouseEvent)
-    }
-}
-
 impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::MouseEvent),
+            uievent: UIEvent::new_inherited(),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
@@ -195,13 +189,12 @@ impl MouseEventMethods for MouseEvent {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<&EventTarget>) {
-        let event: &Event = EventCast::from_ref(self);
-        if event.dispatching() {
+        if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        let uievent: &UIEvent = UIEventCast::from_ref(self);
-        uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
+        self.upcast::<UIEvent>()
+            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);
         self.screen_y.set(screenYArg);
         self.client_x.set(clientXArg);
@@ -211,6 +204,6 @@ impl MouseEventMethods for MouseEvent {
         self.shift_key.set(shiftKeyArg);
         self.meta_key.set(metaKeyArg);
         self.button.set(buttonArg);
-        self.related_target.set(relatedTargetArg.map(JS::from_ref));
+        self.related_target.set(relatedTargetArg);
     }
 }

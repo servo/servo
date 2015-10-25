@@ -1,25 +1,27 @@
 language: python
 
-before_install:
-  - if [ "$DOCKER" = "1" ]; then docker build -t servo etc/ci/; fi
-
-script:
-  - if [ "$DOCKER" = "0" ]; then sh -c "$CMD"; fi
-  - if [ "$DOCKER" = "1" ]; then docker run -tv `pwd`:/build servo sh -c "$CMD"; fi
-
 matrix:
   fast_finish: true
   include:
     - sudo: false
-      env:
-        - CMD="./mach test-tidy"
-        - DOCKER=0
+      script: ./mach test-tidy
+      cache: false
     - sudo: 9000
-      services:
-        - docker
-      env:
-        - CMD="./mach build -d --verbose"
-        - DOCKER=1
+      dist: trusty
+      script: ./mach build -d --verbose
+      cache:
+        directories:
+          - .cargo
+          - .servo
+      addons:
+        apt:
+          packages:
+            - cmake
+            - freeglut3-dev
+            - gperf
+            - libosmesa6-dev
+            - python-virtualenv
+            - xorg-dev
 
 branches:
   only:

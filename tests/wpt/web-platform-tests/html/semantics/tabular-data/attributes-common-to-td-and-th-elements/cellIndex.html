@@ -38,4 +38,13 @@ test(function() {
   var td = tr.appendChild(document.createElement("td"));
   assert_equals(td.cellIndex, 1);
 }, "For cells whose parent is a tr, cellIndex should be the index.")
+test(function() {
+  var tr = document.createElement("tr");
+  var th = tr.appendChild(document.createElement("th"));
+  assert_equals(th.cellIndex, 0);
+  tr.appendChild(document.createElement("div"));
+  tr.appendChild(document.createTextNode("Hello World"));
+  var td = tr.appendChild(document.createElement("td"));
+  assert_equals(td.cellIndex, 1)
+}, "For cells whose parent is a tr with non td/th sibling, cellIndex should skip those non td/th siblings.")
 </script>

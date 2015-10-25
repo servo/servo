@@ -4,15 +4,12 @@
 
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLBaseElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, document_from_node};
+use dom::element::{AttributeMutation, Element};
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use url::{Url, UrlParser};
 use util::str::DOMString;
@@ -22,18 +19,10 @@ pub struct HTMLBaseElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLBaseElementDerived for EventTarget {
-    fn is_htmlbaseelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBaseElement)))
-    }
-}
-
 impl HTMLBaseElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBaseElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
@@ -47,7 +36,7 @@ impl HTMLBaseElement {
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url
     pub fn frozen_base_url(&self) -> Url {
-        let href = ElementCast::from_ref(self).get_attribute(&ns!(""), &atom!("href"))
+        let href = self.upcast::<Element>().get_attribute(&ns!(""), &atom!("href"))
             .expect("The frozen base url is only defined for base elements \
                      that have a base url.");
         let document = document_from_node(self);
@@ -63,7 +52,7 @@ impl HTMLBaseElement {
             return;
         }
 
-        if ElementCast::from_ref(self).has_attribute(&atom!("href")) {
+        if self.upcast::<Element>().has_attribute(&atom!("href")) {
             let document = document_from_node(self);
             document.refresh_base_element();
         }
@@ -71,8 +60,8 @@ impl HTMLBaseElement {
 }
 
 impl VirtualMethods for HTMLBaseElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

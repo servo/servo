@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel=mismatch href=blur_ref.html>
+<style type="text/css">
+div {
+   width: 200px;
+   height: 200px;
+   background: green;
+   position: relative;
+}
+
+.ex {
+   position: absolute;
+   width: 80px; height: 80px;
+   background: blue;
+   top: 60px; left: 60px;
+   -webkit-filter: blur(30px);
+   -moz-filter: blur(30px);
+   filter: blur(30px);
+}
+
+.coveritup {
+   position: absolute;
+   background: green;
+   top: 60px;
+   left: 60px;
+   width: 80px;
+   height: 80px;
+   transform: translateX(0px);  /* force stacking context */
+}
+
+</style>
+</head>
+<body>
+  <div>
+    <div class="ex"></div>
+    <div class="coveritup"></div>
+  </div>
+</body>
+</html>

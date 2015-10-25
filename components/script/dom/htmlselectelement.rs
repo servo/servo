@@ -5,17 +5,16 @@
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, HTMLSelectElementDerived};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::htmlelement::HTMLElement;
+use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::node::{Node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::borrow::ToOwned;
@@ -27,14 +26,6 @@ pub struct HTMLSelectElement {
     htmlelement: HTMLElement
 }
 
-impl HTMLSelectElementDerived for EventTarget {
-    fn is_htmlselectelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)))
-    }
-}
-
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
@@ -43,7 +34,8 @@ impl HTMLSelectElement {
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document)
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                                                      localName, prefix, document)
         }
     }
 
@@ -108,24 +100,23 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 }
 
 impl VirtualMethods for HTMLSelectElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         if attr.local_name() == &atom!(disabled) {
-            let node = NodeCast::from_ref(self);
+            let el = self.upcast::<Element>();
             match mutation {
                 AttributeMutation::Set(_) => {
-                    node.set_disabled_state(true);
-                    node.set_enabled_state(false);
+                    el.set_disabled_state(true);
+                    el.set_enabled_state(false);
                 },
                 AttributeMutation::Removed => {
-                    node.set_disabled_state(false);
-                    node.set_enabled_state(true);
-                    node.check_ancestors_disabled_state_for_form_control();
+                    el.set_disabled_state(false);
+                    el.set_enabled_state(true);
+                    el.check_ancestors_disabled_state_for_form_control();
                 }
             }
         }
@@ -136,8 +127,7 @@ impl VirtualMethods for HTMLSelectElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        node.check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
@@ -145,11 +135,12 @@ impl VirtualMethods for HTMLSelectElement {
             s.unbind_from_tree(tree_in_doc);
         }
 
-        let node = NodeCast::from_ref(self);
-        if node.ancestors().any(|ancestor| ancestor.r().is_htmlfieldsetelement()) {
-            node.check_ancestors_disabled_state_for_form_control();
+        let node = self.upcast::<Node>();
+        let el = self.upcast::<Element>();
+        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
+            el.check_ancestors_disabled_state_for_form_control();
         } else {
-            node.check_disabled_attribute();
+            el.check_disabled_attribute();
         }
     }
 

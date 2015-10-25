@@ -2347,7 +2347,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${single_keyword("white-space", "normal pre nowrap")}
+    ${single_keyword("white-space", "normal pre nowrap pre-wrap pre-line")}
 
     // TODO(pcwalton): `full-width`
     ${single_keyword("text-transform", "none capitalize uppercase lowercase")}

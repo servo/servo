@@ -23,7 +23,6 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptChan;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 use time::{self, Timespec, now};
 use unicase::UniCase;
@@ -106,20 +105,20 @@ impl CORSRequest {
                             script_chan: Box<ScriptChan + Send>) {
         struct CORSContext {
             listener: Box<AsyncCORSResponseListener + Send>,
-            response: RefCell<Option<CORSResponse>>,
+            response: Option<CORSResponse>,
         }
 
         // This is shoe-horning the CORSReponse stuff into the rest of the async network
         // framework right now. It would be worth redesigning http_fetch to do this properly.
         impl AsyncResponseListener for CORSContext {
-            fn headers_available(&self, _metadata: Metadata) {
+            fn headers_available(&mut self, _metadata: Metadata) {
             }
 
-            fn data_available(&self, _payload: Vec<u8>) {
+            fn data_available(&mut self, _payload: Vec<u8>) {
             }
 
-            fn response_complete(&self, _status: Result<(), String>) {
-                let response = self.response.borrow_mut().take().unwrap();
+            fn response_complete(&mut self, _status: Result<(), String>) {
+                let response = self.response.take().unwrap();
                 self.listener.response_available(response);
             }
         }
@@ -127,7 +126,7 @@ impl CORSRequest {
 
         let context = CORSContext {
             listener: listener,
-            response: RefCell::new(None),
+            response: None,
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
@@ -141,7 +140,7 @@ impl CORSRequest {
             let response = req.http_fetch();
             let mut context = listener.context.lock();
             let context = context.as_mut().unwrap();
-            *context.response.borrow_mut() = Some(response);
+            context.response = Some(response);
             listener.notify(ResponseAction::ResponseComplete(Ok(())));
         });
     }

@@ -12,7 +12,8 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use msg::compositor_msg::{Epoch, LayerId, LayerProperties, ScrollPolicy};
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
+use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::ConstellationControlMsg;
 use std::rc::Rc;
@@ -61,9 +62,7 @@ impl CompositorData {
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
             scroll_offset: Point2D::typed(0., 0.),
-            subpage_info: layer_properties.subpage_layer_info.map(|subpage_layer_info| {
-                subpage_layer_info.pipeline_id
-            }),
+            subpage_info: layer_properties.subpage_pipeline_id,
         };
 
         Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
@@ -133,6 +132,11 @@ pub trait CompositorLayer {
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods;
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent)
+                          where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
                                             new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -374,23 +378,22 @@ impl CompositorLayer for Layer<CompositorData> {
             MouseWindowEvent::MouseUp(button, _) =>
                 MouseUpEvent(button, event_point),
         };
-
-        if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
-            pipeline.script_chan
-                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
-                    .unwrap();
-        }
+        self.send_event(compositor, message);
     }
 
     fn send_mouse_move_event<Window>(&self,
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
-        let message = MouseMoveEvent(cursor.to_untyped());
+        self.send_event(compositor, MouseMoveEvent(cursor.to_untyped()));
+    }
+
+    fn send_event<Window>(&self,
+                          compositor: &IOCompositor<Window>,
+                          event: CompositorEvent) where Window: WindowMethods {
         if let Some(pipeline) = compositor.pipeline(self.pipeline_id()) {
-            pipeline.script_chan
-                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message))
-                    .unwrap();
+            let _ = pipeline.script_chan
+                    .send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), event));
         }
     }
 
@@ -449,17 +452,22 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                 compositor: &mut IOCompositor<Window>,
                 pipeline_id: PipelineId,
                 new_layers: &[LayerProperties],
-                pipelines_removed: &mut Vec<PipelineId>)
+                pipelines_removed: &mut Vec<PipelineId>,
+                layer_pipeline_id: Option<PipelineId>)
                 where Window: WindowMethods {
             // Traverse children first so that layers are removed
             // bottom up - allowing each layer being removed to properly
             // clean up any tiles it owns.
             for kid in &*layer.children() {
+                let extra_data = kid.extra_data.borrow();
+                let layer_pipeline_id = extra_data.subpage_info.or(layer_pipeline_id);
+
                 collect_old_layers_for_pipeline(kid,
                                                 compositor,
                                                 pipeline_id,
                                                 new_layers,
-                                                pipelines_removed);
+                                                pipelines_removed,
+                                                layer_pipeline_id);
             }
 
             // Retain child layers that also exist in the new layer list.
@@ -477,11 +485,11 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                     }
                 }
 
-                if let Some(layer_pipeline_id) = extra_data.subpage_info {
+                if let Some(layer_pipeline_id) = layer_pipeline_id {
                     for layer_properties in new_layers.iter() {
                         // Keep this layer if a reference to it exists.
-                        if let Some(ref subpage_layer_info) = layer_properties.subpage_layer_info {
-                            if subpage_layer_info.pipeline_id == layer_pipeline_id {
+                        if let Some(ref subpage_pipeline_id) = layer_properties.subpage_pipeline_id {
+                            if *subpage_pipeline_id == layer_pipeline_id {
                                 return true
                             }
                         }
@@ -507,7 +515,8 @@ impl RcCompositorLayer for Rc<Layer<CompositorData>> {
                                         compositor,
                                         pipeline_id,
                                         new_layers,
-                                        pipelines_removed);
+                                        pipelines_removed,
+                                        None);
     }
 }
 

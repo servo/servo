@@ -12,9 +12,7 @@ pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
     let builder = thread::Builder::new().name(name);
-    builder.spawn(move || {
-        f()
-    }).unwrap();
+    builder.spawn(f).unwrap();
 }
 
 /// Arrange to send a particular message to a channel if the task fails.

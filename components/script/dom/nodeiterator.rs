@@ -36,7 +36,7 @@ impl NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: JS::from_ref(root_node),
-            reference_node: MutHeap::new(JS::from_ref(root_node)),
+            reference_node: MutHeap::new(root_node),
             pointer_before_reference_node: Cell::new(true),
             what_to_show: what_to_show,
             filter: filter
@@ -47,9 +47,8 @@ impl NodeIterator {
                            root_node: &Node,
                            what_to_show: u32,
                            filter: Filter) -> Root<NodeIterator> {
-        let window = document.window();
         reflect_dom_object(box NodeIterator::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(window.r()),
+                           GlobalRef::Window(document.window()),
                            NodeIteratorBinding::Wrap)
     }
 
@@ -87,7 +86,7 @@ impl NodeIteratorMethods for NodeIterator {
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-referencenode
     fn ReferenceNode(&self) -> Root<Node> {
-        self.reference_node.get().root()
+        self.reference_node.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-nodeiterator-pointerbeforereferencenode
@@ -99,7 +98,7 @@ impl NodeIteratorMethods for NodeIterator {
     fn NextNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
-        let node = self.reference_node.get().root();
+        let node = self.reference_node.get();
 
         // Step 2.
         let mut before_node = self.pointer_before_reference_node.get();
@@ -114,7 +113,7 @@ impl NodeIteratorMethods for NodeIterator {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_ref(node.r()));
+                self.reference_node.set(node.r());
                 self.pointer_before_reference_node.set(before_node);
 
                 return Ok(Some(node));
@@ -122,14 +121,14 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for following_node in node.r().following_nodes(self.root_node.root().r()) {
+        for following_node in node.r().following_nodes(&self.root_node) {
             // Step 3-2.
             let result = try!(self.accept_node(following_node.r()));
 
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_ref(following_node.r()));
+                self.reference_node.set(following_node.r());
                 self.pointer_before_reference_node.set(before_node);
 
                 return Ok(Some(following_node));
@@ -143,7 +142,7 @@ impl NodeIteratorMethods for NodeIterator {
     fn PreviousNode(&self) -> Fallible<Option<Root<Node>>> {
         // https://dom.spec.whatwg.org/#concept-NodeIterator-traverse
         // Step 1.
-        let node = self.reference_node.get().root();
+        let node = self.reference_node.get();
 
         // Step 2.
         let mut before_node = self.pointer_before_reference_node.get();
@@ -158,7 +157,7 @@ impl NodeIteratorMethods for NodeIterator {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_ref(node.r()));
+                self.reference_node.set(node.r());
                 self.pointer_before_reference_node.set(before_node);
 
                 return Ok(Some(node));
@@ -166,7 +165,7 @@ impl NodeIteratorMethods for NodeIterator {
         }
 
         // Step 3-1.
-        for preceding_node in node.r().preceding_nodes(self.root_node.root().r()) {
+        for preceding_node in node.r().preceding_nodes(&self.root_node) {
 
             // Step 3-2.
             let result = try!(self.accept_node(preceding_node.r()));
@@ -174,7 +173,7 @@ impl NodeIteratorMethods for NodeIterator {
             // Step 3-3.
             if result == NodeFilterConstants::FILTER_ACCEPT {
                 // Step 4.
-                self.reference_node.set(JS::from_ref(preceding_node.r()));
+                self.reference_node.set(preceding_node.r());
                 self.pointer_before_reference_node.set(before_node);
 
                 return Ok(Some(preceding_node));

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='linear_gradients_parsing_ref.html'>
+<!-- Tests that parsing linear gradients works. -->
+<style>
+section {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+}
+#a {
+    background: linear-gradient(to left, red, red);
+}
+#b {
+    background: linear-gradient(#abacab, #abacab);
+}
+#c {
+    background: linear-gradient(90deg, violet, violet 1em, violet 2ex, violet 50%, blue 50%, blue, blue);
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c></section>
+</body>
+</html>

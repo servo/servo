@@ -5,13 +5,13 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, KeyboardEventDerived, UIEventCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::event::{Event, EventTypeId};
-use dom::uievent::{UIEvent, UIEventTypeId};
+use dom::event::Event;
+use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
@@ -39,16 +39,10 @@ pub struct KeyboardEvent {
     key_code: Cell<u32>,
 }
 
-impl KeyboardEventDerived for Event {
-    fn is_keyboardevent(&self) -> bool {
-        *self.type_id() == EventTypeId::UIEvent(UIEventTypeId::KeyboardEvent)
-    }
-}
-
 impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
-            uievent: UIEvent::new_inherited(UIEventTypeId::KeyboardEvent),
+            uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
             key_string: RefCell::new("".to_owned()),
             code: RefCell::new("".to_owned()),
@@ -768,13 +762,12 @@ impl KeyboardEventMethods for KeyboardEvent {
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
-        let event = EventCast::from_ref(self);
-        if event.dispatching() {
+        if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        let uievent = UIEventCast::from_ref(self);
-        uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
+        self.upcast::<UIEvent>()
+            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key_string.borrow_mut() = keyArg;
         self.location.set(locationArg);
         self.repeat.set(repeat);

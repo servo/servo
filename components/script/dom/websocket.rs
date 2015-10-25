@@ -6,9 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
-use dom::bindings::codegen::InheritTypes::EventCast;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
@@ -39,6 +37,7 @@ use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
 use websocket::header::Origin;
+use websocket::message::CloseData;
 use websocket::result::WebSocketResult;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
@@ -131,6 +130,8 @@ pub struct WebSocket {
     url: Url,
     global: GlobalField,
     ready_state: Cell<WebSocketRequestState>,
+    buffered_amount: Cell<u32>,
+    clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
     sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
@@ -171,6 +172,8 @@ impl WebSocket {
             url: url,
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(WebSocketRequestState::Connecting),
+            buffered_amount: Cell::new(0),
+            clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
             sender: RefCell::new(None),
             full: Cell::new(false),
@@ -313,6 +316,11 @@ impl WebSocketMethods for WebSocket {
         self.ready_state.get() as u16
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    fn BufferedAmount(&self) -> u32 {
+        self.buffered_amount.get()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-websocket-binarytype
     fn BinaryType(&self) -> BinaryType {
         self.binary_type.get()
@@ -339,14 +347,28 @@ impl WebSocketMethods for WebSocket {
         /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
                 "If argument is a string"
           TODO: Need to buffer data
-          TODO: bufferedAmount attribute returns the size of the buffer in bytes -
-                this is a required attribute defined in the websocket.webidl file
           TODO: The send function needs to flag when full by using the following
           self.full.set(true). This needs to be done when the buffer is full
         */
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
+
+        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
+
         let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let global = self.global.root();
+            let task = box BufferedAmountTask {
+                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
+            };
+            let chan = global.r().script_chan();
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
         Ok(())
     }
 
@@ -358,7 +380,9 @@ impl WebSocketMethods for WebSocket {
             let mut sender = this.sender.borrow_mut();
             //TODO: Also check if the buffer is full
             if let Some(sender) = sender.as_mut() {
-                let _ = sender.lock().unwrap().send_message(Message::Close(None));
+                let code: u16 = this.code.get();
+                let reason = this.reason.borrow().clone();
+                let _ = sender.lock().unwrap().send_message(Message::Close(Some(CloseData::new(code, reason))));
             }
         }
 
@@ -430,7 +454,25 @@ impl Runnable for ConnectionEstablishedTask {
         let event = Event::new(global.r(), "open".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
-        event.fire(EventTargetCast::from_ref(ws.r()));
+        event.fire(ws.upcast());
+    }
+}
+
+struct BufferedAmountTask {
+    addr: Trusted<WebSocket>,
+}
+
+impl Runnable for BufferedAmountTask {
+    // See https://html.spec.whatwg.org/multipage/#dom-websocket-bufferedamount
+    //
+    // To be compliant with standards, we need to reset bufferedAmount only when the event loop
+    // reaches step 1.  In our implementation, the bytes will already have been sent on a background
+    // thread.
+    fn handler(self: Box<Self>) {
+        let ws = self.addr.root();
+
+        ws.buffered_amount.set(0);
+        ws.clearing_buffer.set(false);
     }
 }
 
@@ -454,8 +496,7 @@ impl Runnable for CloseTask {
                                    "error".to_owned(),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
-            let target = EventTargetCast::from_ref(ws);
-            event.r().fire(target);
+            event.fire(ws.upcast());
         }
         let rsn = ws.reason.borrow();
         let rsn_clone = rsn.clone();
@@ -469,9 +510,7 @@ impl Runnable for CloseTask {
                                           ws.clean_close.get(),
                                           ws.code.get(),
                                           rsn_clone);
-        let target = EventTargetCast::from_ref(ws);
-        let event = EventCast::from_ref(close_event.r());
-        event.fire(target);
+        close_event.upcast::<Event>().fire(ws.upcast());
     }
 }
 
@@ -520,7 +559,6 @@ impl Runnable for MessageReceivedTask {
             },
         }
 
-        let target = EventTargetCast::from_ref(ws.r());
-        MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+        MessageEvent::dispatch_jsval(ws.upcast(), global.r(), message.handle());
     }
 }

@@ -5,14 +5,12 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{CharacterDataCast, TextCast};
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
+use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{ChildrenMutation, Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use util::str::DOMString;
@@ -22,18 +20,10 @@ pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
 }
 
-impl HTMLTitleElementDerived for EventTarget {
-    fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
-    }
-}
-
 impl HTMLTitleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTitleElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 
@@ -49,13 +39,10 @@ impl HTMLTitleElement {
 impl HTMLTitleElementMethods for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        let node = NodeCast::from_ref(self);
         let mut content = String::new();
-        for child in node.children() {
-            let text: Option<&Text> = TextCast::to_ref(child.r());
-            match text {
-                Some(text) => content.push_str(&CharacterDataCast::from_ref(text).data()),
-                None => (),
+        for child in self.upcast::<Node>().children() {
+            if let Some(text) = child.downcast::<Text>() {
+                content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
         content
@@ -63,29 +50,27 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString) {
-        let node = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        self.upcast::<Node>().SetTextContent(Some(value))
     }
 }
 
 impl VirtualMethods for HTMLTitleElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if node.is_in_doc() {
             node.owner_doc().title_changed();
         }
     }
 
     fn bind_to_tree(&self, is_in_doc: bool) {
-        let node = NodeCast::from_ref(self);
+        let node = self.upcast::<Node>();
         if is_in_doc {
             let document = node.owner_doc();
             document.r().title_changed();

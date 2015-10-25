@@ -19,11 +19,13 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate serde;
+extern crate time;
 extern crate url;
 extern crate util;
 
 use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
+use euclid::length::Length;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -36,10 +38,11 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceTask;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
-use profile_traits::{mem, time};
+use profile_traits::mem;
 use std::any::Any;
 use std::sync::mpsc::{Receiver, Sender};
 use url::Url;
+use util::mem::HeapSizeOf;
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -115,8 +118,6 @@ pub enum ConstellationControlMsg {
     ExitPipeline(PipelineId, PipelineExitType),
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
-    /// Notifies script that reflow is finished.
-    ReflowComplete(PipelineId, u32),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
@@ -147,7 +148,7 @@ pub enum ConstellationControlMsg {
 }
 
 /// The mouse button involved in the event.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum MouseButton {
     /// The left mouse button.
     Left,
@@ -169,6 +170,12 @@ pub enum CompositorEvent {
     MouseUpEvent(MouseButton, Point2D<f32>),
     /// The mouse was moved over a point.
     MouseMoveEvent(Point2D<f32>),
+    /// A touch began at a point.
+    TouchDownEvent(i32, Point2D<f32>),
+    /// A touch was moved over a point.
+    TouchMoveEvent(i32, Point2D<f32>),
+    /// A touch ended at a point.
+    TouchUpEvent(i32, Point2D<f32>),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }
@@ -176,6 +183,56 @@ pub enum CompositorEvent {
 /// An opaque wrapper around script<->layout channels to avoid leaking message types into
 /// crates that don't need to know about them.
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
+
+/// Requests a TimerEvent-Message be sent after the given duration.
+pub struct TimerEventRequest(pub Box<TimerEventChan + Send>, pub TimerSource, pub TimerEventId, pub MsDuration);
+
+/// Notifies the script task to fire due timers.
+/// TimerSource must be FromWindow when dispatched to ScriptTask and
+/// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
+pub struct TimerEvent(pub TimerSource, pub TimerEventId);
+
+/// A cloneable interface for sending timer events.
+pub trait TimerEventChan {
+    /// Send a timer event to the associated event loop.
+    fn send(&self, msg: TimerEvent) -> Result<(), ()>;
+    /// Clone this handle.
+    fn clone(&self) -> Box<TimerEventChan + Send>;
+}
+
+/// Describes the task that requested the TimerEvent.
+#[derive(Copy, Clone, HeapSizeOf)]
+pub enum TimerSource {
+    /// The event was requested from a window (ScriptTask).
+    FromWindow(PipelineId),
+    /// The event was requested from a worker (DedicatedGlobalWorkerScope).
+    FromWorker
+}
+
+/// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.
+#[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
+pub struct TimerEventId(pub u32);
+
+/// Unit of measurement.
+#[derive(Clone, Copy, HeapSizeOf)]
+pub enum Milliseconds {}
+/// Unit of measurement.
+#[derive(Clone, Copy, HeapSizeOf)]
+pub enum Nanoseconds {}
+
+/// Amount of milliseconds.
+pub type MsDuration = Length<Milliseconds, u64>;
+/// Amount of nanoseconds.
+pub type NsDuration = Length<Nanoseconds, u64>;
+
+/// Returns the duration since an unspecified epoch measured in ms.
+pub fn precise_time_ms() -> MsDuration {
+    Length::new(time::precise_time_ns() / (1000 * 1000))
+}
+/// Returns the duration since an unspecified epoch measured in ns.
+pub fn precise_time_ns() -> NsDuration {
+    Length::new(time::precise_time_ns())
+}
 
 /// Data needed to construct a script thread.
 pub struct InitialScriptState {
@@ -192,6 +249,8 @@ pub struct InitialScriptState {
     pub control_port: Receiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: ConstellationChan,
+    /// A channel to schedule timer events.
+    pub scheduler_chan: Sender<TimerEventRequest>,
     /// Information that script sends out when it panics.
     pub failure_info: Failure,
     /// A channel to the resource manager task.
@@ -201,7 +260,7 @@ pub struct InitialScriptState {
     /// A channel to the image cache task.
     pub image_cache_task: ImageCacheTask,
     /// A channel to the time profiler thread.
-    pub time_profiler_chan: time::ProfilerChan,
+    pub time_profiler_chan: profile_traits::time::ProfilerChan,
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.

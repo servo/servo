@@ -10,10 +10,9 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::Root;
@@ -23,10 +22,9 @@ use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::EventTarget;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
-use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -239,7 +237,7 @@ impl XMLHttpRequest {
                           resource_task: ResourceTask,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
-            fn headers_available(&self, metadata: Metadata) {
+            fn headers_available(&mut self, metadata: Metadata) {
                 let xhr = self.xhr.root();
                 let rv = xhr.r().process_headers_available(self.cors_request.clone(),
                                                            self.gen_id,
@@ -249,13 +247,13 @@ impl XMLHttpRequest {
                 }
             }
 
-            fn data_available(&self, payload: Vec<u8>) {
+            fn data_available(&mut self, payload: Vec<u8>) {
                 self.buf.borrow_mut().push_all(&payload);
                 let xhr = self.xhr.root();
                 xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn response_complete(&self, status: Result<(), String>) {
+            fn response_complete(&mut self, status: Result<(), String>) {
                 let xhr = self.xhr.root();
                 let rv = xhr.r().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
@@ -495,8 +493,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         if !self.sync.get() {
             // Step 8
-            let upload_target = self.upload.root();
-            let event_target = EventTargetCast::from_ref(upload_target.r());
+            let event_target = self.upload.upcast::<EventTarget>();
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -692,10 +689,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let decoded = UTF_8.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.utf16_units().collect();
                 unsafe {
-                    if JS_ParseJSON(cx,
-                                    decoded.as_ptr() as *const i16,
-                                    decoded.len() as u32,
-                                    rval.handle_mut()) == 0 {
+                    if !JS_ParseJSON(cx,
+                                     decoded.as_ptr(),
+                                     decoded.len() as u32,
+                                     rval.handle_mut()) {
                         JS_ClearPendingException(cx);
                         return NullValue();
                     }
@@ -728,16 +725,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 }
 
-
-impl XMLHttpRequestDerived for EventTarget {
-    fn is_xmlhttprequest(&self) -> bool {
-        match *self.type_id() {
-            EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequest) => true,
-            _ => false
-        }
-    }
-}
-
 pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 
@@ -750,8 +737,7 @@ impl XMLHttpRequest {
                                "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
-        let target = EventTargetCast::from_ref(self);
-        event.r().fire(target);
+        event.fire(self.upcast());
     }
 
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
@@ -929,18 +915,16 @@ impl XMLHttpRequest {
 
     fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = self.upload.root();
         let progressevent = ProgressEvent::new(global.r(),
                                                type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
-            EventTargetCast::from_ref(upload_target.r())
+            self.upload.upcast()
         } else {
-            EventTargetCast::from_ref(self)
+            self.upcast()
         };
-        let event = EventCast::from_ref(progressevent.r());
-        event.fire(target);
+        progressevent.upcast::<Event>().fire(target);
     }
 
     fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {

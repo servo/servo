@@ -6,20 +6,17 @@ use dom::attr::{Attr, AttrHelpersForLayout, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::HTMLIFrameElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLElementCast};
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::utils::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
-use dom::element::{self, AttributeMutation, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::element::{self, AttributeMutation, Element};
+use dom::event::Event;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -63,23 +60,13 @@ pub struct HTMLIFrameElement {
     sandbox: Cell<Option<u8>>,
 }
 
-impl HTMLIFrameElementDerived for EventTarget {
-    fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
-    }
-}
-
-
-
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
         self.sandbox.get().is_some()
     }
 
     pub fn get_url(&self) -> Option<Url> {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         element.get_attribute(&ns!(""), &atom!("src")).and_then(|src| {
             let url = src.r().value();
             if url.is_empty() {
@@ -160,9 +147,7 @@ impl HTMLIFrameElement {
                                                 true,
                                                 true,
                                                 detail.handle());
-            let target = EventTargetCast::from_ref(self);
-            let event = EventCast::from_ref(custom_event.r());
-            event.fire(target);
+            custom_event.upcast::<Event>().fire(self.upcast());
         }
     }
 
@@ -173,7 +158,7 @@ impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_width(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_ref(&*self),
+            element::get_attr_for_layout(self.upcast(),
                                          &ns!(""),
                                          &atom!("width")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -184,7 +169,7 @@ impl HTMLIFrameElement {
     #[allow(unsafe_code)]
     pub fn get_height(&self) -> LengthOrPercentageOrAuto {
         unsafe {
-            element::get_attr_for_layout(ElementCast::from_ref(&*self),
+            element::get_attr_for_layout(self.upcast(),
                                          &ns!(""),
                                          &atom!("height")).map(|attribute| {
                 str::parse_length(&**attribute.value_for_layout())
@@ -196,8 +181,7 @@ impl HTMLIFrameElement {
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
             containing_page_pipeline_id: Cell::new(None),
@@ -240,8 +224,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
     if iframe.Mozbrowser() {
-        let node = NodeCast::from_ref(iframe);
-        if node.is_in_doc() {
+        if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
             let window = window.r();
 
@@ -262,26 +245,22 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> F
 impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn Src(&self) -> DOMString {
-        let element = ElementCast::from_ref(self);
-        element.get_string_attribute(&atom!("src"))
+        self.upcast::<Element>().get_string_attribute(&atom!("src"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-src
     fn SetSrc(&self, src: DOMString) {
-        let element = ElementCast::from_ref(self);
-        element.set_url_attribute(&atom!("src"), src)
+        self.upcast::<Element>().set_url_attribute(&atom!("src"), src)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DOMString {
-        let element = ElementCast::from_ref(self);
-        element.get_string_attribute(&atom!("sandbox"))
+        self.upcast::<Element>().get_string_attribute(&atom!("sandbox"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn SetSandbox(&self, sandbox: DOMString) {
-        let element = ElementCast::from_ref(self);
-        element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
+        self.upcast::<Element>().set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
@@ -324,7 +303,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
         if mozbrowser_enabled() {
-            let element = ElementCast::from_ref(self);
+            let element = self.upcast::<Element>();
             element.has_attribute(&Atom::from_slice("mozbrowser"))
         } else {
             false
@@ -334,7 +313,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn SetMozbrowser(&self, value: bool) -> ErrorResult {
         if mozbrowser_enabled() {
-            let element = ElementCast::from_ref(self);
+            let element = self.upcast::<Element>();
             element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
         }
         Ok(())
@@ -372,9 +351,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 }
 
 impl VirtualMethods for HTMLIFrameElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -399,7 +377,7 @@ impl VirtualMethods for HTMLIFrameElement {
             },
             &atom!(src) => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if NodeCast::from_ref(self).is_in_doc() {
+                    if self.upcast::<Node>().is_in_doc() {
                         self.process_the_iframe_attributes();
                     }
                 }

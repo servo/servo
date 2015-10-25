@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='style_is_in_doc_ref.html'>
+<meta charset="UTF-8">
+<style>
+.from_html { color: blue; }
+.is_not_in_doc { color: grey; }
+</style>
+<script type="text/javascript">
+var append_later = document.createElement('style');
+append_later.textContent = ".append_later { color: green; }";
+document.head.appendChild(append_later);
+
+var text_set_later = document.createElement('style');
+document.head.appendChild(text_set_later);
+text_set_later.textContent = ".text_set_later { color: yellow; }";
+
+var is_not_in_doc = document.createElement('style');
+is_not_in_doc = ".is_not_in_doc { color: red; }";
+</script>
+</head>
+<body>
+<p class="from_html">Style from html element</p>
+<p class="append_later">Style from an element added in javascript</p>
+<p class="text_set_later">Style from an element with content set in javascript</p>
+<p class="is_not_in_doc">Style that is never in the document</p>
+</body>
+</html>

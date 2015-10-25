@@ -80,11 +80,18 @@ def check_length(file_name, idx, line):
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
 
-def check_whatwg_url(idx, line):
+def check_whatwg_specific_url(idx, line):
     match = re.search(r"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
+
+
+def check_whatwg_single_page_url(idx, line):
+    match = re.search(r"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    if match is not None:
+        preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
+        yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
 
 
 def check_whitespace(idx, line):
@@ -109,7 +116,8 @@ def check_by_line(file_name, contents):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
-            check_whatwg_url(idx, line),
+            check_whatwg_specific_url(idx, line),
+            check_whatwg_single_page_url(idx, line),
         )
 
         for error in errors:
@@ -297,13 +305,13 @@ def check_rust(file_name, contents):
         if match:
             yield (idx + 1, "missing space before {")
 
-        # ignored cases like {} and }}
-        match = re.search(r"[^\s{}]}", line)
+        # ignored cases like {}, }` and }}
+        match = re.search(r"[^\s{}]}[^`]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space before }")
 
-        # ignored cases like {} and {{
-        match = re.search(r"{[^\s{}]", line)
+        # ignored cases like {}, `{ and {{
+        match = re.search(r"[^`]{[^\s{}]", line)
         if match and not (line.startswith("use") or line.startswith("pub use")):
             yield (idx + 1, "missing space after {")
 
@@ -405,6 +413,7 @@ def check_webidl_spec(file_name, contents):
         "//dvcs.w3.org/hg",
         "//dom.spec.whatwg.org",
         "//domparsing.spec.whatwg.org",
+        "//drafts.fxtf.org",
         "//encoding.spec.whatwg.org",
         "//html.spec.whatwg.org",
         "//url.spec.whatwg.org",

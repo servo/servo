@@ -5,16 +5,13 @@
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
-use dom::bindings::codegen::InheritTypes::ElementCast;
-use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLElementCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::default::Default;
 use string_cache::Atom;
@@ -26,18 +23,10 @@ pub struct HTMLAreaElement {
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
 }
 
-impl HTMLAreaElementDerived for EventTarget {
-    fn is_htmlareaelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)))
-    }
-}
-
 impl HTMLAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAreaElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -52,9 +41,8 @@ impl HTMLAreaElement {
 }
 
 impl VirtualMethods for HTMLAreaElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
@@ -69,7 +57,7 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> Root<DOMTokenList> {
         self.rel_list.or_init(|| {
-            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+            DOMTokenList::new(self.upcast(), &atom!("rel"))
         })
     }
 }

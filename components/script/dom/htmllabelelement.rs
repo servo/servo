@@ -4,27 +4,16 @@
 
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::ElementTypeId;
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, NodeTypeId};
+use dom::node::Node;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLLabelElement {
     htmlelement: HTMLElement,
-}
-
-impl HTMLLabelElementDerived for EventTarget {
-    fn is_htmllabelelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)))
-    }
 }
 
 impl HTMLLabelElement {
@@ -33,7 +22,7 @@ impl HTMLLabelElement {
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
-                HTMLElement::new_inherited(HTMLElementTypeId::HTMLLabelElement, localName, prefix, document)
+                HTMLElement::new_inherited(localName, prefix, document)
         }
     }
 

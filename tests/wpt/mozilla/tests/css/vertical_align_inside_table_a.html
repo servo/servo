@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='match' href='vertical_align_inside_table_ref.html'>
+<!--
+    Tests that layout doesn't treat `vertical-align` on table cells as though it were
+    `vertical-align` on inlines.
+-->
+<style>
+td {
+    vertical-align: top;
+}
+</style>
+</head>
+<body>
+<table>
+<tr><td>What? <a>What?</a></td></tr>
+</table>
+</body>
+</html>
+

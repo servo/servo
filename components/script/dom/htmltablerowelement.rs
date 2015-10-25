@@ -6,18 +6,16 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLTableRowElementDerived;
-use dom::bindings::codegen::InheritTypes::NodeCast;
+use dom::bindings::conversions::Castable;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, ElementTypeId};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, window_from_node};
+use dom::htmlelement::HTMLElement;
+use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
+use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use util::str::{self, DOMString};
@@ -27,8 +25,8 @@ use util::str::{self, DOMString};
 struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is_htmltableheadercellelement() || elem.is_htmltabledatacellelement())
-            && NodeCast::from_ref(elem).GetParentNode().r() == Some(root)
+        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>())
+            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
@@ -39,22 +37,11 @@ pub struct HTMLTableRowElement {
     background_color: Cell<Option<RGBA>>,
 }
 
-impl HTMLTableRowElementDerived for EventTarget {
-    fn is_htmltablerowelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)))
-    }
-}
-
 impl HTMLTableRowElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableRowElement {
         HTMLTableRowElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableRowElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             cells: Default::default(),
             background_color: Cell::new(None),
         }
@@ -85,15 +72,32 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
-            HTMLCollection::create(window.r(), NodeCast::from_ref(self), filter)
+            HTMLCollection::create(window.r(), self.upcast(), filter)
         })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
+    fn InsertCell(&self, index: i32) -> Fallible<Root<HTMLElement>> {
+        let node = self.upcast::<Node>();
+        node.insert_cell_or_row(
+            index,
+            || self.Cells(),
+            || HTMLTableDataCellElement::new("td".to_owned(), None, node.owner_doc().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
+    fn DeleteCell(&self, index: i32) -> ErrorResult {
+        let node = self.upcast::<Node>();
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is::<HTMLTableDataCellElement>())
     }
 }
 
 impl VirtualMethods for HTMLTableRowElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {

@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::front::map as ast_map;
-use rustc::lint::LateContext;
+use rustc::lint::{LateContext, LintContext};
 use rustc::middle::def;
 use rustc::middle::def_id::DefId;
 use rustc_front::hir;
 use syntax::ast;
 use syntax::attr::mark_used;
+use syntax::codemap::{ExpnFormat, Span};
 use syntax::ptr::P;
 
 
@@ -99,4 +100,17 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
 pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
     cx.tcx.with_path(def_id, |iter| iter.map(|elem| elem.name())
         .zip(path.iter()).all(|(nm, p)| &nm.as_str() == p))
+}
+
+pub fn in_derive_expn(cx: &LateContext, span: Span) -> bool {
+    cx.sess().codemap().with_expn_info(span.expn_id,
+            |info| {
+                if let Some(i) = info {
+                    if let ExpnFormat::MacroAttribute(n) = i.callee.format {
+                        if n.as_str().contains("derive") {
+                            true
+                        } else { false }
+                    } else { false }
+                } else { false }
+            })
 }

@@ -24,6 +24,7 @@
 //!
 
 use core::nonzero::NonZero;
+use dom::bindings::conversions::{Castable, DerivedFrom};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -32,13 +33,20 @@ use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::UnsafeCell;
 use std::default::Default;
+use std::mem;
 use std::ops::Deref;
+use std::ptr;
 use util::mem::HeapSizeOf;
 
-/// A traced reference to a DOM object. Must only be used as a field in other
-/// DOM objects.
+/// A traced reference to a DOM object
+///
+/// This type is critical to making garbage collection work with the DOM,
+/// but it is very dangerous; if garbage collection happens with a `JS<T>`
+/// on the stack, the `JS<T>` can point to freed memory.
+///
+/// This should only be used as a field in other DOM objects.
 #[must_root]
 pub struct JS<T> {
     ptr: NonZero<*const T>
@@ -54,12 +62,13 @@ impl<T> HeapSizeOf for JS<T> {
 
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
-    pub unsafe fn to_layout(self) -> LayoutJS<T> {
+    pub unsafe fn to_layout(&self) -> LayoutJS<T> {
         LayoutJS {
             ptr: self.ptr.clone()
         }
     }
 }
+
 impl<T: Reflectable> JS<T> {
     /// Root this JS-owned value to prevent its collection as garbage.
     pub fn root(&self) -> Root<T> {
@@ -67,23 +76,28 @@ impl<T: Reflectable> JS<T> {
     }
     /// Create a JS<T> from a Root<T>
     /// XXX Not a great API. Should be a call on Root<T> instead
+    #[allow(unrooted_must_root)]
     pub fn from_rooted(root: &Root<T>) -> JS<T> {
         JS {
             ptr: unsafe { NonZero::new(&**root) }
         }
     }
     /// Create a JS<T> from a &T
+    #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> JS<T> {
         JS {
             ptr: unsafe { NonZero::new(&*obj) }
         }
     }
-    /// Store an rooted value in this field. This is safe under the
-    /// assumption that JS<T> values are only used as fields in DOM types that
-    /// are reachable in the GC graph, so this unrooted value becomes
-    /// transitively rooted for the lifetime of its new owner.
-    pub fn assign(&mut self, val: Root<T>) {
-        self.ptr = val.ptr.clone();
+}
+
+impl<T: Reflectable> Deref for JS<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        // We can only have &JS<T> from a rooted thing, so it's safe to deref
+        // it to &T.
+        unsafe { &**self.ptr }
     }
 }
 
@@ -100,14 +114,30 @@ pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
 }
 
+impl<T: Castable> LayoutJS<T> {
+    /// Cast a DOM object root upwards to one of the interfaces it derives from.
+    pub fn upcast<U>(&self) -> LayoutJS<U> where U: Castable, T: DerivedFrom<U> {
+        unsafe { mem::transmute_copy(self) }
+    }
+
+    /// Cast a DOM object downwards to one of the interfaces it might implement.
+    pub fn downcast<U>(&self) -> Option<LayoutJS<U>> where U: DerivedFrom<T> {
+        unsafe {
+            if (*self.unsafe_get()).is::<U>() {
+                Some(mem::transmute_copy(self))
+            } else {
+                None
+            }
+        }
+    }
+}
+
 impl<T: Reflectable> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         (**self.ptr).reflector().get_jsobject().get()
     }
 }
-
-impl<T> Copy for JS<T> {}
 
 impl<T> Copy for LayoutJS<T> {}
 
@@ -125,6 +155,7 @@ impl<T> PartialEq for LayoutJS<T> {
 
 impl <T> Clone for JS<T> {
     #[inline]
+    #[allow(unrooted_must_root)]
     fn clone(&self) -> JS<T> {
         JS {
             ptr: self.ptr.clone()
@@ -194,7 +225,7 @@ impl MutHeapJSVal {
         }
     }
 
-    /// Set the value in this `MutHeapJSVal`, calling read barriers as appropriate.
+    /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
     pub fn get(&self) -> JSVal {
         unsafe { (*self.val.get()).get() }
     }
@@ -202,73 +233,76 @@ impl MutHeapJSVal {
 
 
 /// A holder that provides interior mutability for GC-managed values such as
-/// `JS<T>`.
+/// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `JS<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-#[derive(HeapSizeOf)]
-pub struct MutHeap<T: HeapGCValue + Copy> {
-    val: Cell<T>,
+pub struct MutHeap<T: HeapGCValue> {
+    val: UnsafeCell<T>,
 }
 
-impl<T: HeapGCValue + Copy> MutHeap<T> {
+impl<T: Reflectable> MutHeap<JS<T>> {
     /// Create a new `MutHeap`.
-    pub fn new(initial: T) -> MutHeap<T> {
+    pub fn new(initial: &T) -> MutHeap<JS<T>> {
         MutHeap {
-            val: Cell::new(initial),
+            val: UnsafeCell::new(JS::from_ref(initial)),
         }
     }
 
     /// Set this `MutHeap` to the given value.
-    pub fn set(&self, val: T) {
-        self.val.set(val)
-    }
-
-    /// Set the value in this `MutHeap`.
-    pub fn get(&self) -> T {
-        self.val.get()
-    }
-}
-
-/// A mutable holder for GC-managed values such as `JSval` and `JS<T>`, with
-/// nullability represented by an enclosing Option wrapper. Must be used in
-/// place of traditional internal mutability to ensure that the proper GC
-/// barriers are enforced.
-#[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct MutNullableHeap<T: HeapGCValue + Copy> {
-    ptr: Cell<Option<T>>
-}
-
-impl<T: HeapGCValue + Copy> MutNullableHeap<T> {
-    /// Create a new `MutNullableHeap`.
-    pub fn new(initial: Option<T>) -> MutNullableHeap<T> {
-        MutNullableHeap {
-            ptr: Cell::new(initial)
+    pub fn set(&self, val: &T) {
+        unsafe {
+            *self.val.get() = JS::from_ref(val);
         }
     }
 
-    /// Set this `MutNullableHeap` to the given value.
-    pub fn set(&self, val: Option<T>) {
-        self.ptr.set(val);
-    }
-
-    /// Retrieve a copy of the current optional inner value.
-    pub fn get(&self) -> Option<T> {
-        self.ptr.get()
+    /// Get the value in this `MutHeap`.
+    pub fn get(&self) -> Root<T> {
+        unsafe {
+            ptr::read(self.val.get()).root()
+        }
     }
 }
 
+impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // See comment on HeapSizeOf for JS<T>.
+        0
+    }
+}
+
+/// A holder that provides interior mutability for GC-managed values such as
+/// `JS<T>`, with nullability represented by an enclosing Option wrapper.
+/// Essentially a `Cell<Option<JS<T>>>`, but safer.
+///
+/// This should only be used as a field in other DOM objects; see warning
+/// on `JS<T>`.
+#[must_root]
+#[derive(JSTraceable)]
+pub struct MutNullableHeap<T: HeapGCValue> {
+    ptr: UnsafeCell<Option<T>>
+}
+
 impl<T: Reflectable> MutNullableHeap<JS<T>> {
+    /// Create a new `MutNullableHeap`.
+    pub fn new(initial: Option<&T>) -> MutNullableHeap<JS<T>> {
+        MutNullableHeap {
+            ptr: UnsafeCell::new(initial.map(JS::from_ref))
+        }
+    }
+
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     pub fn or_init<F>(&self, cb: F) -> Root<T>
         where F: FnOnce() -> Root<T>
     {
         match self.get() {
-            Some(inner) => Root::from_rooted(inner),
+            Some(inner) => inner,
             None => {
                 let inner = cb();
-                self.set(Some(JS::from_rooted(&inner)));
+                self.set(Some(&inner));
                 inner
             },
         }
@@ -276,22 +310,45 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
 
     /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
     /// For use by layout, which can't use safe types like Temporary.
+    #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
-        self.ptr.get().map(|js| js.to_layout())
+        ptr::read(self.ptr.get()).map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
-    // FIXME(#6684)
+    #[allow(unrooted_must_root)]
+    pub fn get(&self) -> Option<Root<T>> {
+        unsafe {
+            ptr::read(self.ptr.get()).map(|o| o.root())
+        }
+    }
+
+    /// Get a rooted value out of this object
     pub fn get_rooted(&self) -> Option<Root<T>> {
-        self.get().map(|o| o.root())
+        self.get()
+    }
+
+    /// Set this `MutNullableHeap` to the given value.
+    pub fn set(&self, val: Option<&T>) {
+        unsafe {
+            *self.ptr.get() = val.map(|p| JS::from_ref(p));
+        }
     }
 }
 
-impl<T: HeapGCValue + Copy> Default for MutNullableHeap<T> {
+impl<T: HeapGCValue> Default for MutNullableHeap<T> {
+    #[allow(unrooted_must_root)]
     fn default() -> MutNullableHeap<T> {
         MutNullableHeap {
-            ptr: Cell::new(None)
+            ptr: UnsafeCell::new(None)
         }
+    }
+}
+
+impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
+    fn heap_size_of_children(&self) -> usize {
+        // See comment on HeapSizeOf for JS<T>.
+        0
     }
 }
 
@@ -405,6 +462,22 @@ pub struct Root<T: Reflectable> {
     root_list: *const RootCollection,
 }
 
+impl<T: Castable> Root<T> {
+    /// Cast a DOM object root upwards to one of the interfaces it derives from.
+    pub fn upcast<U>(root: Root<T>) -> Root<U> where U: Castable, T: DerivedFrom<U> {
+        unsafe { mem::transmute(root) }
+    }
+
+    /// Cast a DOM object root downwards to one of the interfaces it might implement.
+    pub fn downcast<U>(root: Root<T>) -> Option<Root<U>> where U: DerivedFrom<T> {
+        if root.is::<U>() {
+            Some(unsafe { mem::transmute(root) })
+        } else {
+            None
+        }
+    }
+}
+
 impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it gives
@@ -430,12 +503,6 @@ impl<T: Reflectable> Root<T> {
     /// outlive the lifetime of this root.
     pub fn r(&self) -> &T {
         &**self
-    }
-
-    /// Generate a new root from a JS<T> reference
-    #[allow(unrooted_must_root)]
-    pub fn from_rooted(js: JS<T>) -> Root<T> {
-        js.root()
     }
 }
 

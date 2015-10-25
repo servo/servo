@@ -5,14 +5,14 @@
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::MessageEventBinding;
 use dom::bindings::codegen::Bindings::MessageEventBinding::MessageEventMethods;
-use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use js::jsapi::{HandleValue, Heap, JSContext};
+use js::jsapi::{RootedValue, HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -26,12 +26,6 @@ pub struct MessageEvent {
     lastEventId: DOMString,
 }
 
-impl MessageEventDerived for Event {
-    fn is_messageevent(&self) -> bool {
-        *self.type_id() == EventTypeId::MessageEvent
-    }
-}
-
 impl MessageEvent {
     pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
         MessageEvent::new_initialized(global, HandleValue::undefined(), "".to_owned(), "".to_owned())
@@ -42,7 +36,7 @@ impl MessageEvent {
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
         let mut ev = box MessageEvent {
-            event: Event::new_inherited(EventTypeId::MessageEvent),
+            event: Event::new_inherited(),
             data: Heap::default(),
             origin: origin,
             lastEventId: lastEventId,
@@ -57,7 +51,7 @@ impl MessageEvent {
                -> Root<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId);
         {
-            let event = EventCast::from_ref(ev.r());
+            let event = ev.upcast::<Event>();
             event.InitEvent(type_, bubbles, cancelable);
         }
         ev
@@ -67,8 +61,11 @@ impl MessageEvent {
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Root<MessageEvent>> {
+        // Dictionaries need to be rooted
+        // https://github.com/servo/servo/issues/6381
+        let data = RootedValue::new(global.get_cx(), init.data);
         let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
-                                   HandleValue { ptr: &init.data },
+                                   data.handle(),
                                    init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
@@ -81,8 +78,7 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned());
-        let event = EventCast::from_ref(messageevent.r());
-        event.fire(target);
+        messageevent.upcast::<Event>().fire(target);
     }
 }
 

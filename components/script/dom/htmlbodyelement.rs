@@ -8,15 +8,14 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId, RawLayoutElementHelpers};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::eventtarget::EventTarget;
+use dom::htmlelement::HTMLElement;
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
@@ -39,21 +38,11 @@ pub struct HTMLBodyElement {
     background: DOMRefCell<Option<Url>>
 }
 
-impl HTMLBodyElementDerived for EventTarget {
-    fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLBodyElement)))
-    }
-}
-
 impl HTMLBodyElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
-                                                    localName,
-                                                    prefix,
-                                                    document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             background_color: Cell::new(None),
             background: DOMRefCell::new(None)
         }
@@ -79,7 +68,7 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-body-text
     fn SetText(&self, value: DOMString) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let color = str::parse_legacy_color(&value).ok();
         element.set_attribute(&Atom::from_slice("text"), AttrValue::Color(value, color));
     }
@@ -95,6 +84,18 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         let win = window_from_node(self);
         win.r().SetOnunload(listener)
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        let win = window_from_node(self);
+        win.r().GetOnstorage()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        let win = window_from_node(self);
+        win.r().SetOnstorage(listener)
+    }
 }
 
 
@@ -106,7 +107,7 @@ impl HTMLBodyElement {
     #[allow(unsafe_code)]
     pub fn get_color(&self) -> Option<RGBA> {
         unsafe {
-            ElementCast::from_ref(self)
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(""), &atom!("text"))
                 .and_then(AttrValue::as_color)
                 .cloned()
@@ -122,9 +123,8 @@ impl HTMLBodyElement {
 }
 
 impl VirtualMethods for HTMLBodyElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let element: &HTMLElement = HTMLElementCast::from_ref(self);
-        Some(element as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
@@ -180,8 +180,8 @@ impl VirtualMethods for HTMLBodyElement {
                     &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
                     &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
                     &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
-                      => EventTargetCast::from_ref(window.r()), // forwarded event
-                    _ => EventTargetCast::from_ref(self),
+                      => window.upcast::<EventTarget>(), // forwarded event
+                    _ => self.upcast::<EventTarget>(),
                 };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],

@@ -22,6 +22,8 @@ use msg::constellation_msg::{ConstellationChan, PipelineId, WorkerId};
 use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
+use script_traits::TimerEventRequest;
+use std::sync::mpsc::Sender;
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -65,7 +67,7 @@ impl<'a> GlobalRef<'a> {
 
     /// Extract a `Window`, causing task failure if the global object is not
     /// a `Window`.
-    pub fn as_window<'b>(&'b self) -> &'b window::Window {
+    pub fn as_window(&self) -> &window::Window {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
@@ -93,6 +95,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.constellation_chan(),
             GlobalRef::Worker(worker) => worker.constellation_chan(),
+        }
+    }
+
+    /// Get the scheduler channel to request timer events.
+    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+        match *self {
+            GlobalRef::Window(window) => window.scheduler_chan(),
+            GlobalRef::Worker(worker) => worker.scheduler_chan(),
         }
     }
 
@@ -186,10 +196,9 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(worker) => worker.set_devtools_wants_updates(send_updates),
         }
     }
-}
 
-impl<'a> Reflectable for GlobalRef<'a> {
-    fn reflector<'b>(&'b self) -> &'b Reflector {
+    /// Returns the receiver's reflector.
+    pub fn reflector(&self) -> &Reflector {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
@@ -210,6 +219,7 @@ impl GlobalRoot {
 
 impl GlobalField {
     /// Create a new `GlobalField` from a rooted reference.
+    #[allow(unrooted_must_root)]
     pub fn from_rooted(global: &GlobalRef) -> GlobalField {
         match *global {
             GlobalRef::Window(window) => GlobalField::Window(JS::from_ref(window)),

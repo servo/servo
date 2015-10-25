@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
@@ -27,6 +27,7 @@ pub struct NodeList {
 }
 
 impl NodeList {
+    #[allow(unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
@@ -34,6 +35,7 @@ impl NodeList {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(window: &Window,
                list_type: NodeListType) -> Root<NodeList> {
         reflect_dom_object(box NodeList::new_inherited(list_type),
@@ -64,7 +66,7 @@ impl NodeListMethods for NodeList {
     fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| Root::from_rooted(*node))
+                elems.get(index as usize).map(|node| node.root())
             },
             NodeListType::Children(ref list) => list.item(index),
         }
@@ -103,14 +105,13 @@ impl ChildrenList {
         let last_visited = node.GetFirstChild();
         ChildrenList {
             node: JS::from_ref(node),
-            last_visited:
-                MutNullableHeap::new(last_visited.as_ref().map(JS::from_rooted)),
+            last_visited: MutNullableHeap::new(last_visited.r()),
             last_index: Cell::new(0u32),
         }
     }
 
     pub fn len(&self) -> u32 {
-        self.node.root().children_count()
+        self.node.children_count()
     }
 
     pub fn item(&self, index: u32) -> Option<Root<Node>> {
@@ -122,50 +123,50 @@ impl ChildrenList {
         }
         if index == 0u32 {
             // Item is first child if any, not worth updating last visited.
-            return self.node.root().GetFirstChild();
+            return self.node.GetFirstChild();
         }
         let last_index = self.last_index.get();
         if index == last_index {
             // Item is last visited child, no need to update last visited.
-            return Some(self.last_visited.get().unwrap().root());
+            return Some(self.last_visited.get().unwrap());
         }
         let last_visited = if index - 1u32 == last_index {
             // Item is last visited's next sibling.
-            self.last_visited.get().unwrap().root().GetNextSibling().unwrap()
+            self.last_visited.get().unwrap().GetNextSibling().unwrap()
         } else if last_index > 0 && index == last_index - 1u32 {
             // Item is last visited's previous sibling.
-            self.last_visited.get().unwrap().root().GetPreviousSibling().unwrap()
+            self.last_visited.get().unwrap().GetPreviousSibling().unwrap()
         } else if index > last_index {
             if index == len - 1u32 {
                 // Item is parent's last child, not worth updating last visited.
-                return Some(self.node.root().GetLastChild().unwrap());
+                return Some(self.node.GetLastChild().unwrap());
             }
             if index <= last_index + (len - last_index) / 2u32 {
                 // Item is closer to the last visited child and follows it.
-                self.last_visited.get().unwrap().root()
+                self.last_visited.get().unwrap()
                                  .inclusively_following_siblings()
                                  .nth((index - last_index) as usize).unwrap()
             } else {
                 // Item is closer to parent's last child and obviously
                 // precedes it.
-                self.node.root().GetLastChild().unwrap()
+                self.node.GetLastChild().unwrap()
                     .inclusively_preceding_siblings()
                     .nth((len - index - 1u32) as usize).unwrap()
             }
         } else if index >= last_index / 2u32 {
             // Item is closer to the last visited child and precedes it.
-            self.last_visited.get().unwrap().root()
+            self.last_visited.get().unwrap()
                              .inclusively_preceding_siblings()
                              .nth((last_index - index) as usize).unwrap()
         } else {
             // Item is closer to parent's first child and obviously follows it.
             debug_assert!(index < last_index / 2u32);
-            self.node.root().GetFirstChild().unwrap()
+            self.node.GetFirstChild().unwrap()
                      .inclusively_following_siblings()
                      .nth(index as usize)
                      .unwrap()
         };
-        self.last_visited.set(Some(JS::from_rooted(&last_visited)));
+        self.last_visited.set(Some(last_visited.r()));
         self.last_index.set(index);
         Some(last_visited)
     }
@@ -178,7 +179,7 @@ impl ChildrenList {
             }
             let index = list.last_index.get();
             if index < len {
-                list.last_visited.set(Some(JS::from_ref(added[index as usize])));
+                list.last_visited.set(Some(added[index as usize]));
             } else if index / 2u32 >= len {
                 // If last index is twice as large as the number of added nodes,
                 // updating only it means that less nodes will be traversed if
@@ -187,7 +188,7 @@ impl ChildrenList {
             } else {
                 // If last index is not twice as large but still larger,
                 // it's better to update it to the number of added nodes.
-                list.last_visited.set(Some(JS::from_ref(next)));
+                list.last_visited.set(Some(next));
                 list.last_index.set(len);
             }
         }
@@ -198,7 +199,7 @@ impl ChildrenList {
                    added: &[&Node],
                    next: Option<&Node>) {
             let index = list.last_index.get();
-            if removed == &*list.last_visited.get().unwrap().root() {
+            if removed == &*list.last_visited.get().unwrap() {
                 let visited = match (prev, added, next) {
                     (None, _, None) => {
                         // Such cases where parent had only one child should
@@ -213,7 +214,7 @@ impl ChildrenList {
                         prev
                     },
                 };
-                list.last_visited.set(Some(JS::from_ref(visited)));
+                list.last_visited.set(Some(visited));
             } else if added.len() != 1 {
                 // The replaced child isn't the last visited one, and there are
                 // 0 or more than 1 nodes to replace it. Special care must be
@@ -250,13 +251,13 @@ impl ChildrenList {
                     self.last_visited.set(None);
                     self.last_index.set(0u32);
                 } else if index < len as u32 {
-                    self.last_visited.set(Some(JS::from_ref(added[index as usize])));
+                    self.last_visited.set(Some(added[index as usize]));
                 } else {
                     // Setting last visited to parent's last child serves no purpose,
                     // so the middle is arbitrarily chosen here in case the caller
                     // wants random access.
                     let middle = len / 2;
-                    self.last_visited.set(Some(JS::from_ref(added[middle])));
+                    self.last_visited.set(Some(added[middle]));
                     self.last_index.set(middle as u32);
                 }
             },
@@ -264,8 +265,7 @@ impl ChildrenList {
     }
 
     fn reset(&self) {
-        self.last_visited.set(
-            self.node.root().GetFirstChild().map(|node| JS::from_rooted(&node)));
+        self.last_visited.set(self.node.GetFirstChild().r());
         self.last_index.set(0u32);
     }
 }

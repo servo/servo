@@ -11,7 +11,7 @@ use std::borrow::ToOwned;
 use std::ffi::CStr;
 use std::iter::{Filter, Peekable};
 use std::ops::Deref;
-use std::str::{FromStr, Split, from_utf8};
+use std::str::{CharIndices, FromStr, Split, from_utf8};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -75,8 +75,8 @@ fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
 
 
 /// Shared implementation to parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers> or
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
 fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     let mut input = input.skip_while(|c| {
         HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
@@ -101,7 +101,7 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-integers>.
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
 pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
@@ -109,7 +109,7 @@ pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
 }
 
 /// Parse an integer according to
-/// <https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers>
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
 pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()
@@ -419,4 +419,17 @@ pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
         (_, None) => panic!("slice_chars: `end` is beyond end of string"),
         (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
     }
+}
+
+// searches a character index in CharIndices
+// returns indices.count if not found
+pub fn search_index(index: usize, indices: CharIndices) -> isize {
+    let mut character_count = 0;
+    for (character_index, _) in indices {
+        if character_index == index {
+            return character_count;
+        }
+        character_count += 1
+    }
+    character_count
 }

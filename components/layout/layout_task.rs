@@ -69,7 +69,7 @@ use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
 use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc::{channel, Sender, Receiver, Select};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
@@ -470,42 +470,13 @@ impl LayoutTask {
     fn handle_request<'a>(&'a self,
                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
                           -> bool {
-        enum PortToRead {
-            Pipeline,
-            Script,
-            ImageCache,
-            FontCache,
-        }
-
-        let port_to_read = {
-            let select = Select::new();
-            let mut port_from_script = select.handle(&self.port);
-            let mut port_from_pipeline = select.handle(&self.pipeline_port);
-            let mut port_from_image_cache = select.handle(&self.image_cache_receiver);
-            let mut port_from_font_cache = select.handle(&self.font_cache_receiver);
-            unsafe {
-                port_from_script.add();
-                port_from_pipeline.add();
-                port_from_image_cache.add();
-                port_from_font_cache.add();
-            }
-            let ret = select.wait();
-            if ret == port_from_script.id() {
-                PortToRead::Script
-            } else if ret == port_from_pipeline.id() {
-                PortToRead::Pipeline
-            } else if ret == port_from_image_cache.id() {
-                PortToRead::ImageCache
-            } else if ret == port_from_font_cache.id() {
-                PortToRead::FontCache
-            } else {
-                panic!("invalid select result");
-            }
-        };
-
-        match port_to_read {
-            PortToRead::Pipeline => {
-                match self.pipeline_port.recv().unwrap() {
+        let port_from_script = &self.port;
+        let port_from_pipeline = &self.pipeline_port;
+        let port_from_image_cache = &self.image_cache_receiver;
+        let port_from_font_cache = &self.font_cache_receiver;
+        select! {
+            msg = port_from_pipeline.recv() => {
+                match msg.unwrap() {
                     LayoutControlMsg::SetVisibleRects(new_visible_rects) => {
                         self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
                                                    possibly_locked_rw_data)
@@ -526,17 +497,16 @@ impl LayoutTask {
                                                    possibly_locked_rw_data)
                     }
                 }
-            }
-            PortToRead::Script => {
-                let msg = self.port.recv().unwrap();
-                self.handle_request_helper(msg, possibly_locked_rw_data)
-            }
-            PortToRead::ImageCache => {
-                let _ = self.image_cache_receiver.recv().unwrap();
+            },
+            msg = port_from_script.recv() => {
+                self.handle_request_helper(msg.unwrap(), possibly_locked_rw_data)
+            },
+            msg = port_from_image_cache.recv() => {
+                msg.unwrap();
                 self.repaint(possibly_locked_rw_data)
-            }
-            PortToRead::FontCache => {
-                let _ = self.font_cache_receiver.recv().unwrap();
+            },
+            msg = port_from_font_cache.recv() => {
+                msg.unwrap();
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
@@ -975,7 +945,7 @@ impl LayoutTask {
         // TODO: we will return neither the computed nor used value for margin and padding.
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
-        match property.clone() {
+        match *property {
             atom!("margin-bottom") | atom!("margin-top") |
             atom!("margin-left") | atom!("margin-right") |
             atom!("padding-bottom") | atom!("padding-top") |
@@ -1037,7 +1007,7 @@ impl LayoutTask {
                 rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
             },
             // FIXME: implement used value computation for line-height
-            property => {
+            ref property => {
                 rw_data.resolved_style_response =
                     style.computed_value_to_string(property.as_slice()).ok();
             }
@@ -1281,11 +1251,7 @@ impl LayoutTask {
         }
 
         // Tell script that we're done.
-        //
-        // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
-        // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(()).unwrap();
-        data.script_chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,
@@ -1491,7 +1457,6 @@ impl LayoutTask {
             // "changed":
             // > node.set_changed(true);
             node.set_dirty(true);
-            node.set_dirty_siblings(true);
             node.set_dirty_descendants(true);
         }
     }

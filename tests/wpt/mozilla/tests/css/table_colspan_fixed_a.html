@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<link rel='match' href='table_colspan_fixed_ref.html'>
+<style>
+table {
+    width: 300px;
+    table-layout: fixed;
+    border-spacing: 0;
+}
+td[colspan="2"] {
+    background-color: blue;
+    color: white;
+}
+td[colspan="3"] {
+    background-color: green;
+    color: white;
+}
+</style>
+<body>
+<table border=0 cellspacing=0 cellpadding=0>
+    <tr><td width=100>&nbsp;</td><td width=100>&nbsp;</td><td width=100>&nbsp;</td></tr>
+    <tr><td colspan=2>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td colspan=2>&nbsp;</td></tr>
+    <tr><td colspan=3>&nbsp;</td></tr>
+</table>
+</body>
+</html>
+

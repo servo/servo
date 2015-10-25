@@ -556,6 +556,9 @@ attribute-007.htm == reference/attribute-ref.htm
 attribute-selector-001.htm == reference/no-red-filler-text-ref.htm
 attribute-selector-002.htm == reference/filler-text-below-green.htm
 attribute-token-selector-002.htm == reference/attribute-token-selector-002-ref.htm
+attribute-value-selector-001.htm == reference/attribute-value-selector-001-ref.htm
+attribute-value-selector-002.htm == reference/attribute-value-selector-001-ref.htm
+attribute-value-selector-003.htm == reference/attribute-value-selector-001-ref.htm
 attribute-value-selector-004.htm == reference/no-red-filler-text-ref.htm
 attribute-value-selector-005.htm == reference/filler-text-below-green.htm
 attribute-value-selector-006.htm == reference/filler-text-below-green.htm
@@ -4717,6 +4720,7 @@ min-width-applies-to-015.htm == reference/ref-filled-black-96px-square.htm
 min-width-applies-to-016.htm == reference/ref-filled-green-100px-square.htm
 min-width-percentage-001.htm == reference/max-width-percentage-001-ref.htm
 min-width-percentage-002.htm == reference/ref-if-there-is-no-red.htm
+min-width-tables-001.htm == ref.htm
 moz-css21-block-page-break-inside-avoid-1.htm == reference/moz-css21-block-page-break-inside-avoid-ref.htm
 moz-css21-block-page-break-inside-avoid-10.htm == reference/moz-css21-block-page-break-inside-avoid-ref.htm
 moz-css21-block-page-break-inside-avoid-11.htm == reference/moz-css21-block-page-break-inside-avoid-ref.htm

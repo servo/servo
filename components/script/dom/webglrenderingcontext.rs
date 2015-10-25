@@ -8,16 +8,15 @@ use canvas_traits::{WebGLFramebufferBindingRequest, WebGLShaderParameter};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
-use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, NodeCast};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{Castable, ToJSValConvertible};
 use dom::bindings::global::{GlobalField, GlobalRef};
-use dom::bindings::js::{JS, LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
-use dom::node::{NodeDamage, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::webglframebuffer::WebGLFramebuffer;
@@ -78,8 +77,8 @@ pub struct WebGLRenderingContext {
     canvas: JS<HTMLCanvasElement>,
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
-    bound_texture_2d: Cell<Option<JS<WebGLTexture>>>,
-    bound_texture_cube_map: Cell<Option<JS<WebGLTexture>>>,
+    bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
+    bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
 }
 
 impl WebGLRenderingContext {
@@ -104,12 +103,13 @@ impl WebGLRenderingContext {
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
-                bound_texture_2d: Cell::new(None),
-                bound_texture_cube_map: Cell::new(None),
+                bound_texture_2d: MutNullableHeap::new(None),
+                bound_texture_cube_map: MutNullableHeap::new(None),
             }
         })
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(global: GlobalRef, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Root<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(global, canvas, size, attrs) {
@@ -121,11 +121,7 @@ impl WebGLRenderingContext {
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
                                                    msg);
-
-                let event = EventCast::from_ref(event.r());
-                let target = EventTargetCast::from_ref(canvas);
-
-                event.fire(target);
+                event.upcast::<Event>().fire(canvas.upcast());
                 None
             }
         }
@@ -147,19 +143,17 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn bound_texture_for(&self, target: u32) -> Option<JS<WebGLTexture>> {
+    pub fn bound_texture_for(&self, target: u32) -> Option<Root<WebGLTexture>> {
         match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
+            constants::TEXTURE_2D => self.bound_texture_2d.get_rooted(),
+            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get_rooted(),
 
             _ => unreachable!(),
         }
     }
 
     fn mark_as_dirty(&self) {
-        let canvas = self.canvas.root();
-        let node = NodeCast::from_ref(canvas.r());
-        node.dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -360,7 +354,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if let Some(texture) = texture {
             match texture.bind(target) {
-                Ok(_) => slot.set(Some(JS::from_ref(texture))),
+                Ok(_) => slot.set(Some(texture)),
                 Err(err) => return self.webgl_error(err),
             }
         } else {
@@ -906,7 +900,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Float(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
@@ -924,7 +917,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let texture = texture.root();
                     let result = texture.r().tex_parameter(target, name, TexParameterValue::Int(value));
                     handle_potential_webgl_error!(self, result);
                 } else {

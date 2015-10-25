@@ -13,14 +13,13 @@ use dom::element::Element;
 use dom::window::Window;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, WrapperNew};
 use js::glue::{GetProxyPrivate};
-use js::jsapi::{Handle, HandleValue, Heap, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
+use js::jsapi::{Handle, Heap, JS_ForwardSetPropertyTo, ObjectOpResult, RootedObject, RootedValue};
 use js::jsapi::{HandleId, HandleObject, MutableHandle, MutableHandleValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsapi::{JSContext, JSErrNum, JSObject, JSPropertyDescriptor};
 use js::jsapi::{JS_AlreadyHasOwnPropertyById, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_DefinePropertyById6, JS_GetPropertyDescriptorById};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::{JSFalse, JSTrue};
 use std::default::Default;
 use std::ptr;
 
@@ -45,17 +44,16 @@ impl BrowsingContext {
         }
     }
 
-    pub fn active_document(&self) -> Root<Document> {
-        self.history[self.active_index].document.root()
+    pub fn active_document(&self) -> &Document {
+        &*self.history[self.active_index].document
     }
 
-    pub fn active_window(&self) -> Root<Window> {
-        let doc = self.active_document();
-        doc.r().window()
+    pub fn active_window(&self) -> &Window {
+        self.active_document().window()
     }
 
-    pub fn frame_element(&self) -> Option<Root<Element>> {
-        self.frame_element.map(Root::from_rooted)
+    pub fn frame_element(&self) -> Option<&Element> {
+        self.frame_element.as_ref().map(|element| &**element)
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
@@ -65,8 +63,8 @@ impl BrowsingContext {
 
     #[allow(unsafe_code)]
     pub fn create_window_proxy(&mut self) {
-        let win = self.active_window();
-        let win = win.r();
+        // We inline self.active_window() because we can't borrow *self here.
+        let win = self.history[self.active_index].document.window();
 
         let WindowProxyHandler(handler) = win.windowproxy_handler();
         assert!(!handler.is_null());
@@ -115,20 +113,20 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleI
 
 #[allow(unsafe_code)]
 unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObject, id: HandleId,
-                                          desc: MutableHandle<JSPropertyDescriptor>) -> u8 {
+                                          desc: MutableHandle<JSPropertyDescriptor>) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
         let mut val = RootedValue::new(cx, UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
         (*desc.ptr).value = val.ptr;
         fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, true);
-        return JSTrue;
+        return true;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     // XXX This should be JS_GetOwnPropertyDescriptorById
-    if JS_GetPropertyDescriptorById(cx, target.handle(), id, desc) == 0 {
-        return JSFalse;
+    if !JS_GetPropertyDescriptorById(cx, target.handle(), id, desc) {
+        return false;
     }
 
     if (*desc.ptr).obj != target.ptr {
@@ -138,7 +136,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: HandleObjec
         (*desc.ptr).obj = *proxy.ptr;
     }
 
-    JSTrue
+    true
 }
 
 #[allow(unsafe_code)]
@@ -146,14 +144,14 @@ unsafe extern fn defineProperty(cx: *mut JSContext,
                                 proxy: HandleObject,
                                 id: HandleId,
                                 desc: Handle<JSPropertyDescriptor>,
-                                res: *mut ObjectOpResult) -> u8 {
+                                res: *mut ObjectOpResult) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
         // non-strict mode.
-       (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as u32;
-       return JSTrue;
+       (*res).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_ELEMENT as ::libc::uintptr_t;
+       return true;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
@@ -161,21 +159,21 @@ unsafe extern fn defineProperty(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn hasOwn(cx: *mut JSContext, proxy: HandleObject, id: HandleId, bp: *mut u8) -> u8 {
+unsafe extern fn hasOwn(cx: *mut JSContext, proxy: HandleObject, id: HandleId, bp: *mut bool) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if window.is_some() {
-        *bp = JSTrue;
-        return JSTrue;
+        *bp = true;
+        return true;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-    let mut found = 0;
-    if JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) == 0 {
-        return JSFalse;
+    let mut found = false;
+    if !JS_AlreadyHasOwnPropertyById(cx, target.handle(), id, &mut found) {
+        return false;
     }
 
-    *bp = (found != 0) as u8;
-    JSTrue
+    *bp = found;
+    true
 }
 
 #[allow(unsafe_code)]
@@ -183,11 +181,11 @@ unsafe extern fn get(cx: *mut JSContext,
                      proxy: HandleObject,
                      receiver: HandleObject,
                      id: HandleId,
-                     vp: MutableHandleValue) -> u8 {
+                     vp: MutableHandleValue) -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
         window.to_jsval(cx, vp);
-        return JSTrue;
+        return true;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
@@ -200,16 +198,16 @@ unsafe extern fn set(cx: *mut JSContext,
                      receiver: HandleObject,
                      id: HandleId,
                      vp: MutableHandleValue,
-                     res: *mut ObjectOpResult) -> u8 {
+                     res: *mut ObjectOpResult) -> bool {
     if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
-        (*res).code_ = JSErrNum::JSMSG_READ_ONLY as u32;
-        return JSTrue;
+        (*res).code_ = JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t;
+        return true;
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
     let receiver = RootedValue::new(cx, ObjectValue(&**receiver.ptr));
-    JS_ForwardSetPropertyTo(cx, target.handle(), id, HandleValue { ptr: vp.ptr }, receiver.handle(), res)
+    JS_ForwardSetPropertyTo(cx, target.handle(), id, vp.to_handle(), receiver.handle(), res)
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {

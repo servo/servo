@@ -43,9 +43,9 @@ struct ListenerRunnable<T: AsyncResponseListener + PreInvoke + Send> {
 impl<T: AsyncResponseListener + PreInvoke + Send> Runnable for ListenerRunnable<T> {
     fn handler(self: Box<ListenerRunnable<T>>) {
         let this = *self;
-        let context = this.context.lock().unwrap();
+        let mut context = this.context.lock().unwrap();
         if context.should_invoke() {
-            this.action.process(&*context);
+            this.action.process(&mut *context);
         }
     }
 }

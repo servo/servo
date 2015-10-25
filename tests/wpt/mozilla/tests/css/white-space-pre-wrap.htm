@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>whitespace pre-wrap basic functionality test</title>
+    <link rel=match href=white-space-pre-wrap-ref.htm>
+    <style>
+      div { white-space: pre-wrap; font: 1.25em/1 Ahem; width: 6em }
+    </style>
+  </head>
+<body>
+<div>X<!--newline in pre-wrap-->
+  XX<!--whitespace at start of line-->
+  XX XX<!--wrapping-->
+X  X<!--whitespace in middle line-->
+X          <!--trailing whitespace-->
+X
+</div>
+</body>
+</html>

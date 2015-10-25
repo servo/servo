@@ -9,25 +9,20 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::codegen::InheritTypes::HTMLDataListElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLFormElementCast;
-use dom::bindings::codegen::InheritTypes::HTMLFormElementDerived;
-use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
-use dom::bindings::codegen::InheritTypes::{ElementBase, ElementCast};
-use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::conversions::{Castable, DerivedFrom};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::utils::Reflectable;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlbuttonelement::{HTMLButtonElement};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmldatalistelement::HTMLDataListElement;
+use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{Node, NodeTypeId, document_from_node, window_from_node};
+use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use hyper::header::ContentType;
 use hyper::method::Method;
@@ -53,20 +48,12 @@ impl PartialEq for HTMLFormElement {
     }
 }
 
-impl HTMLFormElementDerived for EventTarget {
-    fn is_htmlformelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)))
-    }
-}
-
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFormElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             marked_for_reset: Cell::new(false),
         }
     }
@@ -175,8 +162,7 @@ impl HTMLFormElement {
                                "submit".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
-        let target = EventTargetCast::from_ref(self);
-        event.r().fire(target);
+        event.fire(self.upcast());
         if event.r().DefaultPrevented() {
             return;
         }
@@ -229,23 +215,25 @@ impl HTMLFormElement {
             win.r().pipeline(), load_data)).unwrap();
     }
 
-    fn get_unclean_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
-        let node = NodeCast::from_ref(self);
+    fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
+        let node = self.upcast::<Node>();
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         node.traverse_preorder().filter_map(|child| {
-            if child.r().get_disabled_state() {
-                return None;
+            match child.downcast::<Element>() {
+                Some(el) if !el.get_disabled_state() => (),
+                _ => return None,
             }
+
             if child.r().ancestors()
-                        .any(|a| HTMLDataListElementCast::to_root(a).is_some()) {
+                        .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
                 return None;
             }
             match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
                     match element {
                         HTMLElementTypeId::HTMLInputElement => {
-                            let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
+                            let input = child.downcast::<HTMLInputElement>().unwrap();
                             input.get_form_datum(submitter)
                         }
                         HTMLElementTypeId::HTMLButtonElement |
@@ -265,7 +253,7 @@ impl HTMLFormElement {
         //       https://html.spec.whatwg.org/multipage/#the-directionality
     }
 
-    pub fn get_form_dataset<'a>(&self, submitter: Option<FormSubmitter<'a>>) -> Vec<FormDatum> {
+    pub fn get_form_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
             // Step 4
@@ -326,21 +314,17 @@ impl HTMLFormElement {
                                "reset".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
-        let target = EventTargetCast::from_ref(self);
-        event.r().fire(target);
+        event.fire(self.upcast());
         if event.r().DefaultPrevented() {
             return;
         }
 
-        let node = NodeCast::from_ref(self);
-
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
-        for child in node.traverse_preorder() {
+        for child in self.upcast::<Node>().traverse_preorder() {
             match child.r().type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
-                    let input = HTMLInputElementCast::to_ref(child.r()).unwrap();
-                    input.reset()
+                    child.downcast::<HTMLInputElement>().unwrap().reset();
                 }
                 // TODO HTMLKeygenElement unimplemented
                 //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
@@ -352,8 +336,7 @@ impl HTMLFormElement {
                     {}
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
-                    let textarea = HTMLTextAreaElementCast::to_ref(child.r()).unwrap();
-                    textarea.reset()
+                    child.downcast::<HTMLTextAreaElement>().unwrap().reset();
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
@@ -474,7 +457,7 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormControl: ElementBase + Reflectable {
+pub trait FormControl: DerivedFrom<Element> + Reflectable {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
     fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
@@ -486,7 +469,7 @@ pub trait FormControl: ElementBase + Reflectable {
             let owner = doc.r().GetElementById(owner);
             match owner {
                 Some(ref o) => {
-                    let maybe_form = HTMLFormElementCast::to_ref(o.r());
+                    let maybe_form = o.downcast::<HTMLFormElement>();
                     if maybe_form.is_some() {
                         return maybe_form.map(Root::from_ref);
                     }
@@ -494,13 +477,7 @@ pub trait FormControl: ElementBase + Reflectable {
                 _ => ()
             }
         }
-        let node = NodeCast::from_ref(elem);
-        for ancestor in node.ancestors() {
-            if let Some(ancestor) = HTMLFormElementCast::to_ref(ancestor.r()) {
-                return Some(Root::from_ref(ancestor))
-            }
-        }
-        None
+        elem.upcast::<Node>().ancestors().filter_map(Root::downcast).next()
     }
 
     fn get_form_attribute<InputFn, OwnerFn>(&self,
@@ -519,13 +496,13 @@ pub trait FormControl: ElementBase + Reflectable {
     }
 
     fn to_element(&self) -> &Element {
-        ElementCast::from_ref(self)
+        self.upcast()
     }
 }
 
 impl VirtualMethods for HTMLFormElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        Some(HTMLElementCast::from_ref(self) as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {

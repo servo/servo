@@ -6,16 +6,18 @@
  </head>
  <body>
   <div id="log" />
-  <x class="a"/>
-  <g:x class="a"/>
-  <x t:class="a" h:class="a" g:class="a"/>
-  <g:x t:class="a" h:class="a" g:class="a"/>
-  <t:x class="a" t:class="a" h:class="a" g:class="a"/>
+  <div id="tests">
+    <x class="a"/>
+    <g:x class="a"/>
+    <x t:class="a" h:class="a" g:class="a"/>
+    <g:x t:class="a" h:class="a" g:class="a"/>
+    <t:x class="a" t:class="a" h:class="a" g:class="a"/>
+  </div>
   <script>
    test(function() {
           var collection = document.getElementsByClassName("a");
-          var test = document.getElementsByTagName("x");
-          assert_array_equals(collection, [test[0], test[1]]);
+          var test = document.getElementById("tests").children;
+          assert_array_equals(collection, [test[0], test[1], test[4]]);
          })
   </script>
  </body>

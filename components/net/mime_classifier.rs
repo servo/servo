@@ -38,10 +38,11 @@ impl MIMEClassifier {
                     no_sniff_flag: NoSniffFlag,
                     apache_bug_flag: ApacheBugFlag,
                     supplied_type: &Option<(String, String)>,
-                    data: &[u8]) -> Option<(String, String)> {
+                    data: &[u8]) -> (String, String) {
         match *supplied_type {
             None => self.sniff_unknown_type(no_sniff_flag, data),
-            Some((ref media_type, ref media_subtype)) => {
+            Some(ref supplied_type) => {
+                let &(ref media_type, ref media_subtype) = supplied_type;
                 if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
                     self.sniff_unknown_type(no_sniff_flag, data)
                 } else {
@@ -51,14 +52,12 @@ impl MIMEClassifier {
                             ApacheBugFlag::ON => self.sniff_text_or_data(data),
                             ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
                                                                                        media_subtype) {
-                                Some(MediaType::Xml) => supplied_type.clone(),
-                                Some(MediaType::Html) =>
-                                    //Implied in section 7.3, but flow is not clear
-                                    self.feeds_classifier.classify(data).or(supplied_type.clone()),
+                                Some(MediaType::Xml) => None,
+                                Some(MediaType::Html) => self.feeds_classifier.classify(data),
                                 Some(MediaType::Image) => self.image_classifier.classify(data),
                                 Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
                                 None => None
-                            }.or(supplied_type.clone())
+                            }.unwrap_or(supplied_type.clone())
                         }
                     }
                 }
@@ -79,8 +78,7 @@ impl MIMEClassifier {
     }
 
     //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) ->
-      Option<(String, String)> {
+    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> (String, String) {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
         let sniffed = if should_sniff_scriptable {
             self.scriptable_classifier.classify(data)
@@ -93,10 +91,11 @@ impl MIMEClassifier {
             .or_else(|| self.audio_video_classifier.classify(data))
             .or_else(|| self.archive_classifier.classify(data))
             .or_else(|| self.binary_or_plaintext.classify(data))
+            .expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
-    fn sniff_text_or_data(&self, data: &[u8]) -> Option<(String, String)> {
-        self.binary_or_plaintext.classify(data)
+    fn sniff_text_or_data(&self, data: &[u8]) -> (String, String) {
+        self.binary_or_plaintext.classify(data).expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
     fn is_xml(tp: &str, sub_tp: &str) -> bool {

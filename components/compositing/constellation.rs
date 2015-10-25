@@ -41,6 +41,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{CompositorEvent, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{ScriptState, ScriptTaskFactory};
+use script_traits::{TimerEventRequest};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -49,6 +50,7 @@ use std::mem::replace;
 use std::process;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::viewport::ViewportConstraints;
+use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::cursor::Cursor;
 use util::geometry::PagePx;
@@ -135,6 +137,8 @@ pub struct Constellation<LTF, STF> {
 
     /// A list of in-process senders to `WebGLPaintTask`s.
     webgl_paint_tasks: Vec<Sender<CanvasMsg>>,
+
+    scheduler_chan: Sender<TimerEventRequest>,
 }
 
 /// State needed to construct a constellation.
@@ -280,6 +284,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 webdriver: WebDriverData::new(),
                 canvas_paint_tasks: Vec::new(),
                 webgl_paint_tasks: Vec::new(),
+                scheduler_chan: TimerScheduler::start(),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -317,6 +322,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 id: pipeline_id,
                 parent_info: parent_info,
                 constellation_chan: self.chan.clone(),
+                scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
                 image_cache_task: self.image_cache_task.clone(),
@@ -475,9 +481,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_pipeline(frame_id, resp_chan);
             }
-            ConstellationMsg::GetFrame(parent_pipeline_id, subpage_id, resp_chan) => {
+            ConstellationMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
-                self.handle_get_frame(parent_pipeline_id, subpage_id, resp_chan);
+                self.handle_get_frame(pipeline_id, resp_chan);
             }
             ConstellationMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
@@ -919,11 +925,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_get_frame(&mut self,
-                        containing_pipeline_id: PipelineId,
-                        subpage_id: SubpageId,
+                        pipeline_id: PipelineId,
                         resp_chan: IpcSender<Option<FrameId>>) {
-        let frame_id = self.subpage_map.get(&(containing_pipeline_id, subpage_id)).and_then(
-            |x| self.pipeline_to_frame_map.get(&x)).map(|x| *x);
+        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|x| *x);
         resp_chan.send(frame_id).unwrap();
     }
 

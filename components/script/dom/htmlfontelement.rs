@@ -7,13 +7,12 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFontElementDerived};
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, ElementTypeId, RawLayoutElementHelpers};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::htmlelement::HTMLElement;
+use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -27,18 +26,11 @@ pub struct HTMLFontElement {
     face: DOMRefCell<Option<Atom>>,
 }
 
-impl HTMLFontElementDerived for EventTarget {
-    fn is_htmlfontelement(&self) -> bool {
-        *self.type_id() ==
-            EventTargetTypeId::Node(
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFontElement)))
-    }
-}
 
 impl HTMLFontElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFontElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             color: Cell::new(None),
             face: DOMRefCell::new(None),
         }
@@ -71,16 +63,15 @@ impl HTMLFontElementMethods for HTMLFontElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
     fn SetSize(&self, value: DOMString) {
-        let element = ElementCast::from_ref(self);
+        let element = self.upcast::<Element>();
         let length = parse_length(&value);
         element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
     }
 }
 
 impl VirtualMethods for HTMLFontElement {
-    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
-        let htmlelement = HTMLElementCast::from_ref(self);
-        Some(htmlelement as &VirtualMethods)
+    fn super_type(&self) -> Option<&VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
@@ -130,7 +121,7 @@ impl HTMLFontElement {
     #[allow(unsafe_code)]
     pub fn get_size(&self) -> Option<specified::Length> {
         unsafe {
-            ElementCast::from_ref(self)
+            self.upcast::<Element>()
                 .get_attr_for_layout(&ns!(""), &atom!("size"))
                 .and_then(AttrValue::as_length)
                 .cloned()

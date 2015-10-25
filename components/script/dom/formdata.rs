@@ -5,9 +5,9 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::InheritTypes::FileCast;
 use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
+use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, Root};
@@ -116,7 +116,7 @@ impl FormDataMethods for FormData {
 impl FormData {
     fn get_file_from_blob(&self, value: &Blob, filename: Option<DOMString>) -> Root<File> {
         let global = self.global.root();
-        let f: Option<&File> = FileCast::to_ref(value);
+        let f = value.downcast::<File>();
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));
         File::new(global.r(), value, name)
     }

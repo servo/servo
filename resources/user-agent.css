@@ -251,6 +251,7 @@ input[type="submit"], select, button {
   box-sizing: border-box;
 }
 
+input, textarea, select, button { display: inline-block; }
 
 hr { color: gray; border-style: inset; border-width: 1px; margin: 0.5em auto; }
 

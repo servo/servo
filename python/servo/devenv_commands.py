@@ -91,6 +91,16 @@ class MachCommands(CommandBase):
                 subprocess.call(["cargo", "update"] + params,
                                 env=self.build_env())
 
+    @Command('clippy',
+             description='Run Clippy',
+             category='devenv')
+    def clippy(self):
+        features = "--features=script/plugins/clippy"
+
+        with cd(path.join(self.context.topdir, "components", "servo")):
+            return subprocess.call(["cargo", "build", features],
+                                   env=self.build_env())
+
     @Command('rustc',
              description='Run the Rust compiler',
              category='devenv')
