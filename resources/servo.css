@@ -1,4 +1,3 @@
-input, textarea, select { display: inline-block; }
 input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; }
 textarea                { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: pre; }
 button,

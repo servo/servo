@@ -947,6 +947,18 @@
             "url": "/_mozilla/css/case-insensitive-font-family.html"
           }
         ],
+        "css/button_css_width.html": [
+          {
+            "path": "css/button_css_width.html",
+            "references": [
+              [
+                "/_mozilla/css/button_css_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/button_css_width.html"
+          }
+        ],
         "css/class-namespaces.html": [
           {
             "path": "css/class-namespaces.html",
@@ -5470,6 +5482,18 @@
             ]
           ],
           "url": "/_mozilla/css/case-insensitive-font-family.html"
+        }
+      ],
+      "css/button_css_width.html": [
+        {
+          "path": "css/button_css_width.html",
+          "references": [
+            [
+              "/_mozilla/css/button_css_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/button_css_width.html"
         }
       ],
       "css/class-namespaces.html": [
