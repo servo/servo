@@ -1,0 +1,85 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Sniffed Content-Type for @font-face is different than XHR</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+  @font-face {
+    font-family: MimelessAhem;
+    src: url(resources/no_mime_type.py);
+  }
+  @font-face {
+    font-family: XMLAhem;
+    src: url(resources/no_mime_type.py?Content-Type=application/xml);
+  }
+  @font-face {
+    font-family: XHTMLXMLAhem;
+    src: url(resources/no_mime_type.py?Content-Type=application/xhtml%2Bxml);
+  }
+  #first {
+    font-family: MimelessAhem, serif;
+  }
+  #second, #fourth, #sixth {
+    font-family: serif;
+  }
+  #third {
+    font-family: XMLAhem, serif;
+  }
+  #fifth {
+    font-family: XHTMLXMLAhem, serif;
+  }
+</style>
+<span id="first">w</span> <span id="second">w</span><br>
+<span id="third">w</span> <span id="fourth">w</span><br>
+<span id="fifth">w</span> <span id="sixth">w</span><br>
+<script>
+var t2 = async_test("Sniffed font is loaded and applied");
+var t3 = async_test("Sniffed font with xml is not loaded");
+var t4 = async_test("Sniffed font with xhtml+xml is not loaded");
+
+async_test(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'resources/no_mime_type.py', true);
+  xhr.onload = this.step_func_done(function() {
+    assert_equals(xhr.getResponseHeader('Content-Type'), null);
+    t2.step_timeout(checkFontLoaded, 500);
+  });
+  xhr.send();
+}, "XHR Content-Type is empty");
+
+async_test(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'resources/no_mime_type.py?Content-Type=application/xhtml%2Bxml', true);
+  xhr.onload = this.step_func_done(function() {
+    t4.step_timeout(checkFontNotLoaded.bind(t4, 'fifth', 'sixth'), 500);
+    assert_equals(xhr.getResponseHeader('Content-Type'), 'application/xhtml+xml');
+  });
+  xhr.send();
+}, "XHR Content-Type has xhtml+xml");
+
+async_test(function() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'resources/no_mime_type.py?Content-Type=application/xml', true);
+  xhr.onload = this.step_func_done(function() {
+    t3.step_timeout(checkFontNotLoaded.bind(t3, 'third', 'fourth'), 500);
+    assert_equals(xhr.getResponseHeader('Content-Type'), 'application/xml');
+  });
+  xhr.send();
+}, "XHR Content-Type has xml");
+
+function checkFontLoaded() {
+    var first = document.getElementById('first');
+    var second = document.getElementById('second');
+    assert_not_equals(first.getBoundingClientRect().width, second.getBoundingClientRect().width);
+    assert_not_equals(first.getBoundingClientRect().height, second.getBoundingClientRect().height);
+    this.done();
+}
+
+function checkFontNotLoaded(id1, id2) {
+    var first = document.getElementById(id1);
+    var second = document.getElementById(id2);
+    assert_equals(first.getBoundingClientRect().width, second.getBoundingClientRect().width);
+    assert_equals(first.getBoundingClientRect().height, second.getBoundingClientRect().height);
+    this.done();
+}
+</script>
