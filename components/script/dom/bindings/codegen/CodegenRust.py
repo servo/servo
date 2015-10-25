@@ -436,14 +436,12 @@ class CGMethodCall(CGThing):
                         type, descriptor, failureCode="break;", isDefinitelyObject=True)
                     template = info.template
                     declType = info.declType
-                    needsRooting = info.needsRooting
 
                     testCode = instantiateJSToNativeConversionTemplate(
                         template,
                         {"val": distinguishingArg},
                         declType,
-                        "arg%d" % distinguishingIndex,
-                        needsRooting)
+                        "arg%d" % distinguishingIndex)
 
                     # Indent by 4, since we need to indent further than our "do" statement
                     caseBody.append(CGIndenter(testCode, 4))
@@ -1079,7 +1077,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
 
 def instantiateJSToNativeConversionTemplate(templateBody, replacements,
-                                            declType, declName, needsRooting):
+                                            declType, declName):
     """
     Take the templateBody and declType as returned by
     getJSToNativeConversionInfo, a set of replacements as required by the
@@ -1165,7 +1163,6 @@ class CGArgumentConverter(CGThing):
         template = info.template
         default = info.default
         declType = info.declType
-        needsRooting = info.needsRooting
 
         if not argument.variadic:
             if argument.optional:
@@ -1184,16 +1181,14 @@ class CGArgumentConverter(CGThing):
                 assert not default
 
             self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, "arg%d" % index,
-                needsRooting)
+                template, replacementVariables, declType, "arg%d" % index)
         else:
             assert argument.optional
             variadicConversion = {
                 "val": string.Template("${args}.get(variadicArg)").substitute(replacer),
             }
             innerConverter = instantiateJSToNativeConversionTemplate(
-                template, variadicConversion, declType, "slot",
-                needsRooting)
+                template, variadicConversion, declType, "slot")
 
             seqType = CGTemplatedType("Vec", declType)
 
@@ -1216,8 +1211,7 @@ class CGArgumentConverter(CGThing):
                                                  CGGeneric("Vec::new()")).define()
 
             self.converter = instantiateJSToNativeConversionTemplate(
-                variadicConversion, replacementVariables, seqType, "arg%d" % index,
-                False)
+                variadicConversion, replacementVariables, seqType, "arg%d" % index)
 
     def define(self):
         return self.converter.define()
@@ -4060,14 +4054,12 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                 exceptionCode="return false;")
             template = info.template
             declType = info.declType
-            needsRooting = info.needsRooting
 
             templateValues = {
                 "val": "value.handle()",
             }
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
-                template, templateValues, declType, argument.identifier.name,
-                needsRooting))
+                template, templateValues, declType, argument.identifier.name))
             self.cgRoot.prepend(CGGeneric("let value = RootedValue::new(cx, desc.get().value);"))
         elif operation.isGetter():
             self.cgRoot.prepend(CGGeneric("let mut found = false;"))
@@ -5593,10 +5585,9 @@ class CallbackMember(CGNativeMember):
             sourceDescription="return value")
         template = info.template
         declType = info.declType
-        needsRooting = info.needsRooting
 
         convertType = instantiateJSToNativeConversionTemplate(
-            template, replacements, declType, "rvalDecl", needsRooting)
+            template, replacements, declType, "rvalDecl")
 
         if self.retvalType is None or self.retvalType.isVoid():
             retval = "()"
