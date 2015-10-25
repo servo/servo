@@ -3784,7 +3784,7 @@
             "path": "css/white-space-mixed-002.htm",
             "references": [
               [
-                "/_mozilla/css/white-space-mixed-002-ref.htm",
+                "/_mozilla/css/reference/white-space-mixed-002-ref.htm",
                 "=="
               ]
             ],
@@ -3796,35 +3796,11 @@
             "path": "css/white-space-normal-001.htm",
             "references": [
               [
-                "/_mozilla/css/white-space-normal-001-ref.htm",
+                "/_mozilla/css/reference/white-space-normal-001-ref.htm",
                 "=="
               ]
             ],
             "url": "/_mozilla/css/white-space-normal-001.htm"
-          }
-        ],
-        "css/white-space-pre-line.htm": [
-          {
-            "path": "css/white-space-pre-line.htm",
-            "references": [
-              [
-                "/_mozilla/css/white-space-pre-line-ref.htm",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/white-space-pre-line.htm"
-          }
-        ],
-        "css/white-space-pre-wrap.htm": [
-          {
-            "path": "css/white-space-pre-wrap.htm",
-            "references": [
-              [
-                "/_mozilla/css/white-space-pre-wrap-ref.htm",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/white-space-pre-wrap.htm"
           }
         ],
         "css/whitespace_nowrap_a.html": [
@@ -4541,6 +4517,12 @@
           {
             "path": "mozilla/proxy_setter.html",
             "url": "/_mozilla/mozilla/proxy_setter.html"
+          }
+        ],
+        "mozilla/response-data-brotli.htm": [
+          {
+            "path": "mozilla/response-data-brotli.htm",
+            "url": "/_mozilla/mozilla/response-data-brotli.htm"
           }
         ],
         "mozilla/script_type.html": [
@@ -8405,7 +8387,7 @@
           "path": "css/white-space-mixed-002.htm",
           "references": [
             [
-              "/_mozilla/css/white-space-mixed-002-ref.htm",
+              "/_mozilla/css/reference/white-space-mixed-002-ref.htm",
               "=="
             ]
           ],
@@ -8417,35 +8399,11 @@
           "path": "css/white-space-normal-001.htm",
           "references": [
             [
-              "/_mozilla/css/white-space-normal-001-ref.htm",
+              "/_mozilla/css/reference/white-space-normal-001-ref.htm",
               "=="
             ]
           ],
           "url": "/_mozilla/css/white-space-normal-001.htm"
-        }
-      ],
-      "css/white-space-pre-line.htm": [
-        {
-          "path": "css/white-space-pre-line.htm",
-          "references": [
-            [
-              "/_mozilla/css/white-space-pre-line-ref.htm",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/white-space-pre-line.htm"
-        }
-      ],
-      "css/white-space-pre-wrap.htm": [
-        {
-          "path": "css/white-space-pre-wrap.htm",
-          "references": [
-            [
-              "/_mozilla/css/white-space-pre-wrap-ref.htm",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/white-space-pre-wrap.htm"
         }
       ],
       "css/whitespace_nowrap_a.html": [
