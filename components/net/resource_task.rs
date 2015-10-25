@@ -25,7 +25,7 @@ use std::boxed::FnBox;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
-use util::opts;
+use util::prefs;
 use util::task::spawn_named;
 
 pub enum ProgressSender {
@@ -77,7 +77,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  classifier: Arc<MIMEClassifier>, partial_body: &[u8],
                                  context: LoadContext)
                                  -> Result<ProgressSender, ()> {
-    if opts::get().sniff_mime_types {
+    if prefs::get_pref("net.mime.sniff").as_boolean().unwrap_or(false) {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let mut no_sniff = NoSniffFlag::OFF;
         let mut check_for_apache_bug = ApacheBugFlag::OFF;
