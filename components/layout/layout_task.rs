@@ -1144,7 +1144,7 @@ impl LayoutTask {
             transmute(&mut doc)
         };
 
-        let mut node: LayoutNode = match doc.root_node() {
+        let node: LayoutNode = match doc.root_node() {
             None => return,
             Some(x) => x,
         };
@@ -1190,7 +1190,7 @@ impl LayoutTask {
         let needs_reflow = screen_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
-                LayoutTask::dirty_all_nodes(&mut node);
+                LayoutTask::dirty_all_nodes(node);
             }
         }
         if needs_reflow {
@@ -1466,7 +1466,7 @@ impl LayoutTask {
         }
     }
 
-    unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
+    unsafe fn dirty_all_nodes(node: LayoutNode) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":
