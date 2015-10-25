@@ -950,8 +950,6 @@ impl ByteMatcher {
         }
     }
     //34 bytes followed by the string "LP", the Embedded OpenType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn application_vnd_ms_font_object() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
@@ -965,8 +963,6 @@ impl ByteMatcher {
         }
     }
     //4 bytes representing the version number 1.0, a TrueType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn true_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
@@ -976,8 +972,6 @@ impl ByteMatcher {
         }
     }
     //The string "OTTO", the OpenType signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn open_type() -> ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
@@ -987,8 +981,6 @@ impl ByteMatcher {
         }
     }
     // The string "ttcf", the TrueType Collection signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn true_type_collection() -> ByteMatcher {
         ByteMatcher {
             pattern: b"ttcf",
@@ -998,8 +990,6 @@ impl ByteMatcher {
         }
     }
     // The string "wOFF", the Web Open Font Format signature.
-    // TODO: Use this in font context classifier
-    #[allow(dead_code)]
     fn application_font_woff() -> ByteMatcher {
         ByteMatcher {
             pattern: b"wOFF",
