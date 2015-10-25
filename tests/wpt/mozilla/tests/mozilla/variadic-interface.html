@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+	var t = new TestBinding;
+	t.passVariadicInterface(new Blob, new Blob);
+}, "Variadic interface arguments work.");
+</script>

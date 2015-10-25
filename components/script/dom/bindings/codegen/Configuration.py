@@ -163,8 +163,8 @@ class Descriptor(DescriptorProvider):
             self.needsRooting = True
             self.returnType = "Root<%s>" % ifaceName
             self.argumentType = "&%s" % ifaceName
-            self.memberType = "Root<%s>" % ifaceName
-            self.nativeType = "Root<%s>" % ifaceName
+            self.memberType = "JS<%s>" % ifaceName
+            self.nativeType = "*const %s" % ifaceName
 
         self.concreteType = ifaceName
         self.register = desc.get('register', True)

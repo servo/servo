@@ -4489,6 +4489,12 @@
             "url": "/_mozilla/mozilla/union.html"
           }
         ],
+        "mozilla/variadic-interface.html": [
+          {
+            "path": "mozilla/variadic-interface.html",
+            "url": "/_mozilla/mozilla/variadic-interface.html"
+          }
+        ],
         "mozilla/webgl_context_creation_error.html": [
           {
             "path": "mozilla/webgl_context_creation_error.html",
