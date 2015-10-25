@@ -172,7 +172,7 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().GetOnresize()
         } else {
-            let target = EventTargetCast::from_ref(self);
+            let target = self.upcast::<EventTarget>();
             target.get_event_handler_common("resize")
         }
     }
@@ -183,7 +183,7 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().SetOnresize(listener)
         } else {
-            let target = EventTargetCast::from_ref(self);
+            let target = self.upcast::<EventTarget>();
             target.set_event_handler_common("resize", listener)
         }
     }
