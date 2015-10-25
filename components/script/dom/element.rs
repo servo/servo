@@ -1461,6 +1461,11 @@ impl ElementMethods for Element {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector
+    fn WebkitMatchesSelector(&self, selectors: DOMString) -> Fallible<bool> {
+        self.Matches(selectors)
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<Root<Element>>> {
         match parse_author_origin_selector_list_from_str(&selectors) {

@@ -55,6 +55,8 @@ interface Element : Node {
 
   [Pure, Throws]
   boolean matches(DOMString selectors);
+  [Pure, Throws]
+  boolean webkitMatchesSelector(DOMString selectors);
 
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
