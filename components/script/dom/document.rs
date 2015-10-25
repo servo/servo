@@ -1396,7 +1396,13 @@ impl DocumentMethods for Document {
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "touchevent" =>
-                Ok(Root::upcast(TouchEvent::new_uninitialized(&self.window, &TouchList::new(&self.window, &[]), &TouchList::new(&self.window, &[]), &TouchList::new(&self.window, &[])))),
+                Ok(Root::upcast(
+                    TouchEvent::new_uninitialized(&self.window,
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                    )
+                )),
             _ =>
                 Err(Error::NotSupported),
         }
