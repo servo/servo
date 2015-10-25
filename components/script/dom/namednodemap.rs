@@ -85,8 +85,10 @@ impl NamedNodeMapMethods for NamedNodeMap {
         item
     }
 
+    // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.owner.attrs().iter().map(JS::root).map(|attr| {
+            (**attr.name()).to_owned()
+        }).collect()
     }
 }

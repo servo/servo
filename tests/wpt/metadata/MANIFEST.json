@@ -13282,6 +13282,14 @@
         "url": "/dom/collections/HTMLCollection-supported-property-names.html"
       },
       {
+        "path": "dom/collections/domstringmap-supported-property-names.html",
+        "url": "/dom/collections/domstringmap-supported-property-names.html"
+      },
+      {
+        "path": "dom/collections/namednodemap-supported-property-names.html",
+        "url": "/dom/collections/namednodemap-supported-property-names.html"
+      },
+      {
         "path": "dom/events/Event-constants.html",
         "url": "/dom/events/Event-constants.html"
       },

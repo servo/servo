@@ -27,6 +27,7 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
 use std::intrinsics;
@@ -275,6 +276,45 @@ fn to_snake_case(name: DOMString) -> DOMString {
     attr_name
 }
 
+
+// https://html.spec.whatwg.org/multipage/#attr-data-*
+// if this attribute is in snake case with a data- prefix,
+// this function returns a name converted to camel case
+// without the data prefix.
+
+fn to_camel_case(name: &str) -> Option<DOMString> {
+    if !name.starts_with("data-") {
+        return None;
+    }
+    let name = &name[5..];
+    let has_uppercase = name.chars().any(|curr_char| {
+        curr_char.is_ascii() && curr_char.is_uppercase()
+    });
+    if has_uppercase {
+        return None;
+    }
+    let mut result = "".to_owned();
+    let mut name_chars = name.chars();
+    while let Some(curr_char) = name_chars.next() {
+        //check for hyphen followed by character
+        if curr_char == '\x2d' {
+            if let Some(next_char) = name_chars.next() {
+                if next_char.is_ascii() && next_char.is_lowercase() {
+                    result.push(next_char.to_ascii_uppercase());
+                } else {
+                    result.push(curr_char);
+                    result.push(next_char);
+                }
+            } else {
+                result.push(curr_char);
+            }
+        } else {
+            result.push(curr_char);
+        }
+    }
+    Some(result)
+}
+
 impl HTMLElement {
     pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.chars()
@@ -315,6 +355,14 @@ impl HTMLElement {
                 },
             _ => false,
         }
+    }
+
+    pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
+        let element = self.upcast::<Element>();
+        element.attrs().iter().map(JS::root).filter_map(|attr| {
+            let raw_name = attr.r().local_name();
+            to_camel_case(&raw_name)
+        }).collect()
     }
 }
 
