@@ -17910,16 +17910,16 @@
         "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection.html"
       },
       {
+        "path": "html/semantics/forms/the-select-element/select-ask-for-reset.html",
+        "url": "/html/semantics/forms/the-select-element/select-ask-for-reset.html"
+      },
+      {
         "path": "html/semantics/forms/the-select-element/select-named-getter.html",
         "url": "/html/semantics/forms/the-select-element/select-named-getter.html"
       },
       {
         "path": "html/semantics/forms/the-select-element/select-remove.html",
         "url": "/html/semantics/forms/the-select-element/select-remove.html"
-      },
-      {
-        "path": "html/semantics/forms/the-select-element/select-ask-for-reset.html",
-        "url": "/html/semantics/forms/the-select-element/select-ask-for-reset.html"
       },
       {
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html",
@@ -29782,7 +29782,28 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "dom/nodes/Node-contains.xml": [
+          {
+            "path": "dom/nodes/Node-contains.xml",
+            "url": "/dom/nodes/Node-contains.xml"
+          }
+        ],
+        "dom/nodes/getElementsByClassName-10.xml": [
+          {
+            "path": "dom/nodes/getElementsByClassName-10.xml",
+            "url": "/dom/nodes/getElementsByClassName-10.xml"
+          }
+        ],
+        "dom/nodes/getElementsByClassName-11.xml": [
+          {
+            "path": "dom/nodes/getElementsByClassName-11.xml",
+            "url": "/dom/nodes/getElementsByClassName-11.xml"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

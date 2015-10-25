@@ -2087,18 +2087,6 @@
             "url": "/_mozilla/css/link_style_order.html"
           }
         ],
-        "css/list_style_fixed_inside_a.html": [
-          {
-            "path": "css/list_style_fixed_inside_a.html",
-            "references": [
-              [
-                "/_mozilla/css/list_style_fixed_inside_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-          }
-        ],
         "css/list_item_overflow.html": [
           {
             "path": "css/list_item_overflow.html",
@@ -2109,6 +2097,18 @@
               ]
             ],
             "url": "/_mozilla/css/list_item_overflow.html"
+          }
+        ],
+        "css/list_style_fixed_inside_a.html": [
+          {
+            "path": "css/list_style_fixed_inside_a.html",
+            "references": [
+              [
+                "/_mozilla/css/list_style_fixed_inside_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
           }
         ],
         "css/list_style_image_sizing_a.html": [
@@ -4555,6 +4555,12 @@
             "url": "/_mozilla/mozilla/proxy_setter.html"
           }
         ],
+        "mozilla/response-data-brotli.htm": [
+          {
+            "path": "mozilla/response-data-brotli.htm",
+            "url": "/_mozilla/mozilla/response-data-brotli.htm"
+          }
+        ],
         "mozilla/script_type.html": [
           {
             "path": "mozilla/script_type.html",
@@ -6552,6 +6558,18 @@
           "url": "/_mozilla/css/last_of_type_pseudo_a.html"
         }
       ],
+      "css/layerization_layer_size.html": [
+        {
+          "path": "css/layerization_layer_size.html",
+          "references": [
+            [
+              "/_mozilla/css/layerization_layer_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/layerization_layer_size.html"
+        }
+      ],
       "css/layerization_z_order_a.html": [
         {
           "path": "css/layerization_z_order_a.html",
@@ -6708,18 +6726,6 @@
           "url": "/_mozilla/css/link_style_order.html"
         }
       ],
-      "css/list_style_fixed_inside_a.html": [
-        {
-          "path": "css/list_style_fixed_inside_a.html",
-          "references": [
-            [
-              "/_mozilla/css/list_style_fixed_inside_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-        }
-      ],
       "css/list_item_overflow.html": [
         {
           "path": "css/list_item_overflow.html",
@@ -6730,6 +6736,18 @@
             ]
           ],
           "url": "/_mozilla/css/list_item_overflow.html"
+        }
+      ],
+      "css/list_style_fixed_inside_a.html": [
+        {
+          "path": "css/list_style_fixed_inside_a.html",
+          "references": [
+            [
+              "/_mozilla/css/list_style_fixed_inside_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
         }
       ],
       "css/list_style_image_sizing_a.html": [

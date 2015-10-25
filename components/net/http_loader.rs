@@ -155,7 +155,10 @@ pub trait HttpResponse: Read {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
                         Some(Encoding::Deflate)
-                    } else {
+                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+                        Some(Encoding::EncodingExt("br".to_owned()))
+                    }
+                    else {
                         // TODO: Is this the correct behaviour?
                         None
                     }
@@ -304,7 +307,7 @@ fn set_default_accept_encoding(headers: &mut Headers) {
     headers.set(AcceptEncoding(vec![
         qitem(Encoding::Gzip),
         qitem(Encoding::Deflate),
-        qitem(Encoding::EncodingExt("Brotli".to_owned()))
+        qitem(Encoding::EncodingExt("br".to_owned()))
     ]));
 }
 
