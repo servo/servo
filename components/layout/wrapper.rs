@@ -81,7 +81,7 @@ pub struct LayoutNode<'a> {
     node: LayoutJS<Node>,
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
-    pub chain: PhantomData<&'a ()>,
+    chain: PhantomData<&'a ()>,
 }
 
 impl<'a> PartialEq for LayoutNode<'a> {
