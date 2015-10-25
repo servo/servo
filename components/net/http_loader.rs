@@ -458,9 +458,10 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>) {
+                             status: Option<RawStatus>,
+							 pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None };
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id};
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
@@ -583,25 +584,17 @@ pub fn load<A>(load_data: LoadData,
 
                     // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
                     // in the message
-
-					let has_pipeline = load_data.pipeline_id;
-					match has_pipeline {
-						// has pipeline Id
-						Some(pipeline_id) => {
-									send_request_to_devtools(
+					
+					if let Some(pipeline_id) = load_data.pipeline_id {
+						send_request_to_devtools(
                         			devtools_chan.clone(), request_id.clone(), url.clone(),
                         			method.clone(), request_headers.clone(),
                         			load_data.data.clone(), pipeline_id
-                    				);	
-							},
-						// LoadData doesn't have pipeline_id
-						None => {
-									// Do nothing.
-							}
-					};
-
+                    				);
+					}
+					
+					//end
                     
-
                     req.send(&load_data.data)
                 }
                 _ => {
@@ -609,23 +602,15 @@ pub fn load<A>(load_data: LoadData,
                         req.headers_mut().set(ContentLength(0))
                     }
 					//start
-					let has_pipeline = load_data.pipeline_id;
-					match has_pipeline {
-						// has pipeline Id
-						Some(pipeline_id) => {
-									send_request_to_devtools(
+
+					if let Some(pipeline_id) = load_data.pipeline_id {
+								send_request_to_devtools(
                         			devtools_chan.clone(), request_id.clone(), url.clone(),
                         			method.clone(), request_headers.clone(),
-                        			load_data.data.clone(), pipeline_id
-                    				);	
-							},
-						// LoadData doesn't have pipeline_id
-						None => {
-									// Do nothing.
-							}
-					};
+                        			None, pipeline_id
+                    				);
+					}
 					//end
-					                   
 
                     req.send(&None)
                 }
@@ -717,11 +702,25 @@ pub fn load<A>(load_data: LoadData,
         // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?	
 		
+		//start
+		let has_pipeline = load_data.pipeline_id;
+					match has_pipeline {
+						// has pipeline Id
+						Some(pipeline_id) => {
+									send_response_to_devtools(
+            						devtools_chan, request_id,
+            						metadata.headers.clone(), metadata.status.clone(),
+       								 pipeline_id);	
+							},
+						// LoadData doesn't have pipeline_id
+						None => {
+									// Do nothing.
+							}
+					};
+
+		//end
 		
-        send_response_to_devtools(
-            devtools_chan, request_id,
-            metadata.headers.clone(), metadata.status.clone()
-        );
+        
 
         return StreamedResponse::from_http_response(response, metadata)
     }
