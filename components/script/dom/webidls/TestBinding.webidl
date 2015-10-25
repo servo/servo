@@ -68,6 +68,7 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
+[Constructor]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
@@ -340,7 +341,7 @@ interface TestBinding {
   void passVariadicUsvstring(USVString... args);
   void passVariadicByteString(ByteString... args);
   void passVariadicEnum(TestEnum... args);
-  // void passVariadicInterface(Blob... args);
+  void passVariadicInterface(Blob... args);
   void passVariadicUnion((HTMLElement or long)... args);
   void passVariadicUnion2((Event or DOMString)... args);
   void passVariadicUnion3((Blob or DOMString)... args);
