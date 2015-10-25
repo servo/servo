@@ -77,13 +77,17 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn SetData(&self, data: DOMString) {
+        let old_length = self.Length();
+        let new_length = data.utf16_units().count() as u32;
         *self.data.borrow_mut() = data;
         self.content_changed();
+        let node = self.upcast::<Node>();
+        node.ranges().replace_code_units(node, 0, old_length, new_length);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-length
     fn Length(&self) -> u32 {
-        self.data.borrow().chars().map(|c| c.len_utf16()).sum::<usize>() as u32
+        self.data.borrow().utf16_units().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-substringdata
@@ -144,7 +148,10 @@ impl CharacterDataMethods for CharacterData {
         };
         *self.data.borrow_mut() = DOMString::from(new_data);
         self.content_changed();
-        // FIXME: Once we have `Range`, we should implement step 8 to step 11
+        // Steps 8-11.
+        let node = self.upcast::<Node>();
+        node.ranges().replace_code_units(
+            node, offset, count, arg.utf16_units().count() as u32);
         Ok(())
     }
 

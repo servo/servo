@@ -16,13 +16,17 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::trace::JSTraceable;
+use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
-use dom::node::Node;
+use dom::node::{Node, UnbindContext};
 use dom::text::Text;
-use std::cell::Cell;
+use js::jsapi::JSTracer;
+use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -51,10 +55,15 @@ impl Range {
                start_container: &Node, start_offset: u32,
                end_container: &Node, end_offset: u32)
                -> Root<Range> {
-        reflect_dom_object(box Range::new_inherited(start_container, start_offset,
-                                                    end_container, end_offset),
-                           GlobalRef::Window(document.window()),
-                           RangeBinding::Wrap)
+        let range = reflect_dom_object(box Range::new_inherited(start_container, start_offset,
+                                                                end_container, end_offset),
+                                       GlobalRef::Window(document.window()),
+                                       RangeBinding::Wrap);
+        start_container.ranges().push(WeakRef::new(&range));
+        if start_container != end_container {
+            end_container.ranges().push(WeakRef::new(&range));
+        }
+        range
     }
 
     // https://dom.spec.whatwg.org/#dom-range
@@ -120,19 +129,31 @@ impl Range {
     }
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
-    pub fn set_start(&self, node: &Node, offset: u32) {
-        self.start.set(node, offset);
-        if !(self.start <= self.end) {
-            self.end.set(node, offset);
+    fn set_start(&self, node: &Node, offset: u32) {
+        if &self.start.node != node {
+            if self.start.node == self.end.node {
+                node.ranges().push(WeakRef::new(&self));
+            } else if &self.end.node == node {
+                self.StartContainer().ranges().remove(self);
+            } else {
+                node.ranges().push(self.StartContainer().ranges().remove(self));
+            }
         }
+        self.start.set(node, offset);
     }
 
     // https://dom.spec.whatwg.org/#concept-range-bp-set
-    pub fn set_end(&self, node: &Node, offset: u32) {
-        self.end.set(node, offset);
-        if !(self.end >= self.start) {
-            self.start.set(node, offset);
+    fn set_end(&self, node: &Node, offset: u32) {
+        if &self.end.node != node {
+            if self.end.node == self.start.node {
+                node.ranges().push(WeakRef::new(&self));
+            } else if &self.start.node == node {
+                self.EndContainer().ranges().remove(self);
+            } else {
+                node.ranges().push(self.EndContainer().ranges().remove(self));
+            }
         }
+        self.end.set(node, offset);
     }
 
     // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
@@ -214,8 +235,12 @@ impl RangeMethods for Range {
             // Step 2.
             Err(Error::IndexSize)
         } else {
-            // Step 3-4.
+            // Step 3.
             self.set_start(node, offset);
+            if !(self.start <= self.end) {
+                // Step 4.
+                self.set_end(node, offset);
+            }
             Ok(())
         }
     }
@@ -229,8 +254,12 @@ impl RangeMethods for Range {
             // Step 2.
             Err(Error::IndexSize)
         } else {
-            // Step 3-4.
+            // Step 3.
             self.set_end(node, offset);
+            if !(self.end >= self.start) {
+                // Step 4.
+                self.set_start(node, offset);
+            }
             Ok(())
         }
     }
@@ -758,10 +787,12 @@ impl BoundaryPoint {
         }
     }
 
-    fn set(&self, node: &Node, offset: u32) {
-        debug_assert!(!node.is_doctype());
-        debug_assert!(offset <= node.len());
+    pub fn set(&self, node: &Node, offset: u32) {
         self.node.set(node);
+        self.set_offset(offset);
+    }
+
+    pub fn set_offset(&self, offset: u32) {
         self.offset.set(offset);
     }
 }
@@ -817,5 +848,261 @@ fn bp_position(a_node: &Node, a_offset: u32,
     } else {
         // Step 4.
         Some(Ordering::Less)
+    }
+}
+
+pub struct WeakRangeVec {
+    cell: UnsafeCell<WeakRefVec<Range>>,
+}
+
+#[allow(unsafe_code)]
+impl WeakRangeVec {
+    /// Create a new vector of weak references.
+    pub fn new() -> Self {
+        WeakRangeVec { cell: UnsafeCell::new(WeakRefVec::new()) }
+    }
+
+    /// Whether that vector of ranges is empty.
+    pub fn is_empty(&self) -> bool {
+        unsafe { (*self.cell.get()).is_empty() }
+    }
+
+    /// Used for steps 2.1-2. when inserting a node.
+    /// https://dom.spec.whatwg.org/#concept-node-insert
+    pub fn increase_above(&self, node: &Node, offset: u32, delta: u32) {
+        self.map_offset_above(node, offset, |offset| offset + delta);
+    }
+
+    /// Used for steps 4-5. when removing a node.
+    /// https://dom.spec.whatwg.org/#concept-node-remove
+    pub fn decrease_above(&self, node: &Node, offset: u32, delta: u32) {
+        self.map_offset_above(node, offset, |offset| offset - delta);
+    }
+
+    /// Used for steps 2-3. when removing a node.
+    /// https://dom.spec.whatwg.org/#concept-node-remove
+    pub fn drain_to_parent(&self, context: &UnbindContext, child: &Node) {
+        if self.is_empty() {
+            return;
+        }
+
+        let offset = context.index();
+        let parent = context.parent;
+        unsafe {
+            let mut ranges = &mut *self.cell.get();
+
+            ranges.update(|entry| {
+                let range = entry.root().unwrap();
+                if &range.start.node == parent || &range.end.node == parent {
+                    entry.remove();
+                }
+                if &range.start.node == child {
+                    range.start.set(context.parent, offset);
+                }
+                if &range.end.node == child {
+                    range.end.set(context.parent, offset);
+                }
+            });
+
+            (*context.parent.ranges().cell.get()).extend(ranges.drain(..));
+        }
+    }
+
+    /// Used for steps 7.1-2. when normalizing a node.
+    /// https://dom.spec.whatwg.org/#dom-node-normalize
+    pub fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
+        if self.is_empty() {
+            return;
+        }
+
+        unsafe {
+            let mut ranges = &mut *self.cell.get();
+
+            ranges.update(|entry| {
+                let range = entry.root().unwrap();
+                if &range.start.node == sibling || &range.end.node == sibling {
+                    entry.remove();
+                }
+                if &range.start.node == node {
+                    range.start.set(sibling, range.StartOffset() + length);
+                }
+                if &range.end.node == node {
+                    range.end.set(sibling, range.EndOffset() + length);
+                }
+            });
+
+            (*sibling.ranges().cell.get()).extend(ranges.drain(..));
+        }
+    }
+
+    /// Used for steps 7.3-4. when normalizing a node.
+    /// https://dom.spec.whatwg.org/#dom-node-normalize
+    pub fn move_to_text_child_at(&self,
+                                 node: &Node, offset: u32,
+                                 child: &Node, new_offset: u32) {
+        unsafe {
+            let child_ranges = &mut *child.ranges().cell.get();
+
+            (*self.cell.get()).update(|entry| {
+                let range = entry.root().unwrap();
+
+                let node_is_start = &range.start.node == node;
+                let node_is_end = &range.end.node == node;
+
+                let move_start = node_is_start && range.StartOffset() == offset;
+                let move_end = node_is_end && range.EndOffset() == offset;
+
+                let remove_from_node = move_start && move_end ||
+                                       move_start && !node_is_end ||
+                                       move_end && !node_is_start;
+
+                let already_in_child = &range.start.node == child || &range.end.node == child;
+                let push_to_child = !already_in_child && (move_start || move_end);
+
+                if remove_from_node {
+                    let ref_ = entry.remove();
+                    if push_to_child {
+                        child_ranges.push(ref_);
+                    }
+                } else if push_to_child {
+                    child_ranges.push(WeakRef::new(&range));
+                }
+
+                if move_start {
+                    range.start.set(child, new_offset);
+                }
+                if move_end {
+                    range.end.set(child, new_offset);
+                }
+            });
+        }
+    }
+
+    /// Used for steps 8-11. when replacing character data.
+    /// https://dom.spec.whatwg.org/#concept-cd-replace
+    pub fn replace_code_units(&self,
+                              node: &Node, offset: u32,
+                              removed_code_units: u32, added_code_units: u32) {
+        self.map_offset_above(node, offset, |range_offset| {
+            if range_offset <= offset + removed_code_units {
+                offset
+            } else {
+                range_offset + added_code_units - removed_code_units
+            }
+        });
+    }
+
+    /// Used for steps 7.2-3. when splitting a text node.
+    /// https://dom.spec.whatwg.org/#concept-text-split
+    pub fn move_to_following_text_sibling_above(&self,
+                                                node: &Node, offset: u32,
+                                                sibling: &Node) {
+        unsafe {
+            let sibling_ranges = &mut *sibling.ranges().cell.get();
+
+            (*self.cell.get()).update(|entry| {
+                let range = entry.root().unwrap();
+                let start_offset = range.StartOffset();
+                let end_offset = range.EndOffset();
+
+                let node_is_start = &range.start.node == node;
+                let node_is_end = &range.end.node == node;
+
+                let move_start = node_is_start && start_offset > offset;
+                let move_end = node_is_end && end_offset > offset;
+
+                let remove_from_node = move_start && move_end ||
+                                       move_start && !node_is_end ||
+                                       move_end && !node_is_start;
+
+                let already_in_sibling =
+                    &range.start.node == sibling || &range.end.node == sibling;
+                let push_to_sibling = !already_in_sibling && (move_start || move_end);
+
+                if remove_from_node {
+                    let ref_ = entry.remove();
+                    if push_to_sibling {
+                        sibling_ranges.push(ref_);
+                    }
+                } else if push_to_sibling {
+                    sibling_ranges.push(WeakRef::new(&range));
+                }
+
+                if move_start {
+                    range.start.set(sibling, start_offset - offset);
+                }
+                if move_end {
+                    range.end.set(sibling, end_offset - offset);
+                }
+            });
+        }
+    }
+
+    /// Used for steps 7.4-5. when splitting a text node.
+    /// https://dom.spec.whatwg.org/#concept-text-split
+    pub fn increment_at(&self, node: &Node, offset: u32) {
+        unsafe {
+            (*self.cell.get()).update(|entry| {
+                let range = entry.root().unwrap();
+                if &range.start.node == node && offset == range.StartOffset() {
+                    range.start.set_offset(offset + 1);
+                }
+                if &range.end.node == node && offset == range.EndOffset() {
+                    range.end.set_offset(offset + 1);
+                }
+            });
+        }
+    }
+
+    /// Used for steps 9.1-2. when splitting a text node.
+    /// https://dom.spec.whatwg.org/#concept-text-split
+    pub fn clamp_above(&self, node: &Node, offset: u32) {
+        self.map_offset_above(node, offset, |_| offset);
+    }
+
+    fn map_offset_above<F: FnMut(u32) -> u32>(&self, node: &Node, offset: u32, mut f: F) {
+        unsafe {
+            (*self.cell.get()).update(|entry| {
+                let range = entry.root().unwrap();
+                let start_offset = range.StartOffset();
+                if &range.start.node == node && start_offset > offset {
+                    range.start.set_offset(f(start_offset));
+                }
+                let end_offset = range.EndOffset();
+                if &range.end.node == node && end_offset > offset {
+                    range.end.set_offset(f(end_offset));
+                }
+            });
+        }
+    }
+
+    fn push(&self, ref_: WeakRef<Range>) {
+        unsafe {
+            (*self.cell.get()).push(ref_);
+        }
+    }
+
+    fn remove(&self, range: &Range) -> WeakRef<Range> {
+        unsafe {
+            let ranges = &mut *self.cell.get();
+            let position = ranges.iter().position(|ref_| {
+                ref_ == range
+            }).unwrap();
+            ranges.swap_remove(position)
+        }
+    }
+}
+
+#[allow(unsafe_code)]
+impl HeapSizeOf for WeakRangeVec {
+    fn heap_size_of_children(&self) -> usize {
+        unsafe { (*self.cell.get()).heap_size_of_children() }
+    }
+}
+
+#[allow(unsafe_code)]
+impl JSTraceable for WeakRangeVec {
+    fn trace(&self, _: *mut JSTracer) {
+        unsafe { (*self.cell.get()).retain_alive() }
     }
 }

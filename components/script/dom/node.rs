@@ -42,6 +42,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::range::WeakRangeVec;
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
@@ -107,6 +108,10 @@ pub struct Node {
 
     /// The maximum version of any inclusive descendant of this node.
     inclusive_descendants_version: Cell<u64>,
+
+    /// A vector of weak references to Range instances of which the start
+    /// or end containers are this node.
+    ranges: WeakRangeVec,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -296,7 +301,7 @@ impl Node {
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
-    fn remove_child(&self, child: &Node) {
+    fn remove_child(&self, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().r() == Some(self));
         let prev_sibling = child.GetPreviousSibling();
         match prev_sibling {
@@ -317,9 +322,7 @@ impl Node {
             }
         }
 
-        let context = UnbindContext {
-            tree_in_doc: child.is_in_doc(),
-        };
+        let context = UnbindContext::new(self, prev_sibling.r(), cached_index);
 
         child.prev_sibling.set(None);
         child.next_sibling.set(None);
@@ -434,6 +437,10 @@ impl Node {
 
     pub fn children_count(&self) -> u32 {
         self.children_count.get()
+    }
+
+    pub fn ranges(&self) -> &WeakRangeVec {
+        &self.ranges
     }
 
     #[inline]
@@ -1312,6 +1319,7 @@ impl Node {
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
+            ranges: WeakRangeVec::new(),
 
             layout_data: LayoutDataRef::new(),
 
@@ -1486,7 +1494,20 @@ impl Node {
         debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) == child.GetParentNode().r()));
 
-        // Steps 1-2: ranges.
+        // Step 1.
+        let count = if node.is::<DocumentFragment>() {
+            node.children_count()
+        } else {
+            1
+        };
+        // Step 2.
+        if let Some(child) = child {
+            if !parent.ranges.is_empty() {
+                let index = child.index();
+                // Steps 2.1-2.
+                parent.ranges.increase_above(parent, index, count);
+            }
+        }
         let mut new_nodes = RootedVec::new();
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
@@ -1576,14 +1597,27 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
-
-        // Step 1-5: ranges.
+        let cached_index = {
+            if parent.ranges.is_empty() {
+                None
+            } else {
+                // Step 1.
+                let index = node.index();
+                // Steps 2-3 are handled in Node::unbind_from_tree.
+                // Steps 4-5.
+                parent.ranges.decrease_above(parent, index, 1);
+                // Parent had ranges, we needed the index, let's keep track of
+                // it to avoid computing it for other ranges when calling
+                // unbind_from_tree recursively.
+                Some(index)
+            }
+        };
         // Step 6.
         let old_previous_sibling = node.GetPreviousSibling();
         // Steps 7-8: mutation observers.
         // Step 9.
         let old_next_sibling = node.GetNextSibling();
-        parent.remove_child(node);
+        parent.remove_child(node, cached_index);
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(&parent).children_changed(
                 &ChildrenMutation::replace(old_previous_sibling.r(),
@@ -2085,28 +2119,26 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(&self) {
-        let mut prev_text: Option<Root<Text>> = None;
-        for child in self.children() {
-            match child.downcast::<Text>() {
-                Some(text) => {
-                    let characterdata = text.upcast::<CharacterData>();
-                    if characterdata.Length() == 0 {
-                        Node::remove(&*child, self, SuppressObserver::Unsuppressed);
-                    } else {
-                        match prev_text {
-                            Some(ref text_node) => {
-                                let prev_characterdata = text_node.upcast::<CharacterData>();
-                                prev_characterdata.append_data(&**characterdata.data());
-                                Node::remove(&*child, self, SuppressObserver::Unsuppressed);
-                            },
-                            None => prev_text = Some(Root::from_ref(text))
-                        }
-                    }
-                },
-                None => {
-                    child.Normalize();
-                    prev_text = None;
+        let mut children = self.children().enumerate().peekable();
+        while let Some((_, node)) = children.next() {
+            if let Some(text) = node.downcast::<Text>() {
+                let cdata = text.upcast::<CharacterData>();
+                let mut length = cdata.Length();
+                if length == 0 {
+                    Node::remove(&node, self, SuppressObserver::Unsuppressed);
+                    continue;
                 }
+                while children.peek().map_or(false, |&(_, ref sibling)| sibling.is::<Text>()) {
+                    let (index, sibling) = children.next().unwrap();
+                    sibling.ranges.drain_to_preceding_text_sibling(&sibling, &node, length);
+                    self.ranges.move_to_text_child_at(self, index as u32, &node, length as u32);
+                    let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
+                    length += sibling_cdata.Length();
+                    cdata.append_data(&sibling_cdata.data());
+                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed);
+                }
+            } else {
+                node.Normalize();
             }
         }
     }
@@ -2361,6 +2393,13 @@ impl VirtualMethods for Node {
             list.as_children_list().children_changed(mutation);
         }
     }
+
+    // This handles the ranges mentioned in steps 2-3 when removing a node.
+    // https://dom.spec.whatwg.org/#concept-node-remove
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.ranges.drain_to_parent(context, self);
+    }
 }
 
 /// A summary of the changes that happened to a node.
@@ -2432,7 +2471,39 @@ impl<'a> ChildrenMutation<'a> {
 
 /// The context of the unbinding from a tree of a node when one of its
 /// inclusive ancestors is removed.
-pub struct UnbindContext {
+pub struct UnbindContext<'a> {
+    /// The index of the inclusive ancestor that was removed.
+    index: Cell<Option<u32>>,
+    /// The parent of the inclusive ancestor that was removed.
+    pub parent: &'a Node,
+    /// The previous sibling of the inclusive ancestor that was removed.
+    prev_sibling: Option<&'a Node>,
     /// Whether the tree is in a document.
     pub tree_in_doc: bool,
+}
+
+impl<'a> UnbindContext<'a> {
+    /// Create a new `UnbindContext` value.
+    fn new(parent: &'a Node,
+           prev_sibling: Option<&'a Node>,
+           cached_index: Option<u32>) -> Self {
+        UnbindContext {
+            index: Cell::new(cached_index),
+            parent: parent,
+            prev_sibling: prev_sibling,
+            tree_in_doc: parent.is_in_doc(),
+        }
+    }
+
+    /// The index of the inclusive ancestor that was removed from the tree.
+    #[allow(unsafe_code)]
+    pub fn index(&self) -> u32 {
+        if let Some(index) = self.index.get() {
+            return index;
+        }
+        let index =
+            self.prev_sibling.map(|sibling| sibling.index() + 1).unwrap_or(0);
+        self.index.set(Some(index));
+        index
+    }
 }
