@@ -30,6 +30,22 @@ impl CharacterData {
             data: DOMRefCell::new(data),
         }
     }
+
+    #[inline]
+    pub fn data(&self) -> Ref<DOMString> {
+        self.data.borrow()
+    }
+
+    #[inline]
+    pub fn append_data(&self, data: &str) {
+        self.data.borrow_mut().push_str(data);
+        self.content_changed();
+    }
+
+    fn content_changed(&self) {
+        let node = self.upcast::<Node>();
+        node.owner_doc().content_changed(node, NodeDamage::OtherNodeDamage);
+    }
 }
 
 impl CharacterDataMethods for CharacterData {
@@ -140,24 +156,6 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
-    }
-}
-
-impl CharacterData {
-    #[inline]
-    pub fn data(&self) -> Ref<DOMString> {
-        self.data.borrow()
-    }
-    #[inline]
-    pub fn append_data(&self, data: &str) {
-        // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.data.borrow_mut().push_str(data);
-        self.content_changed();
-    }
-
-    fn content_changed(&self) {
-        let node = self.upcast::<Node>();
-        node.owner_doc().content_changed(node, NodeDamage::OtherNodeDamage);
     }
 }
 
