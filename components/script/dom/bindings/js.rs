@@ -268,10 +268,10 @@ impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
     }
 }
 
-impl<T: Reflectable> PartialEq<T> for MutHeap<JS<T>> {
+impl<T: Reflectable + PartialEq> PartialEq<T> for MutHeap<JS<T>> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
-            *self.val.get() == JS::from_ref(other)
+            **self.val.get() == *other
         }
     }
 }
@@ -349,7 +349,7 @@ impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
 impl<'a, T: Reflectable> PartialEq<Option<&'a T>> for MutNullableHeap<JS<T>> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
-            *self.ptr.get() == other.map(|p| JS::from_ref(p))
+            *self.ptr.get() == other.map(JS::from_ref)
         }
     }
 }
