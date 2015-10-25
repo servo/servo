@@ -324,7 +324,6 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
-            let font_cache_task = (*font_cache_task).clone();
             outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
             font_cache_task.add_web_font(font_face.family.clone(),
                                          (*source).clone(),
