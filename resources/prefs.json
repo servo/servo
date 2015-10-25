@@ -10,5 +10,6 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
+  "net.mime.sniff": false,
   "shell.homepage": "http://servo.org"
 }
