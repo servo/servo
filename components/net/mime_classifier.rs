@@ -971,7 +971,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(TrueType)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
@@ -982,7 +982,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(OpenType)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
@@ -993,7 +993,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"ttcf",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: ("(TrueType Collection)", ""),
+            content_type: ("application", "font-sfnt"),
             leading_ignore: &[]
         }
     }
