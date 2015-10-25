@@ -109,6 +109,7 @@ impl WebGLRenderingContext {
         })
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(global: GlobalRef, canvas: &HTMLCanvasElement, size: Size2D<i32>, attrs: GLContextAttributes)
                -> Option<Root<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(global, canvas, size, attrs) {
