@@ -101,13 +101,13 @@ Writing new tests
 
 The simplest way to create a new test is to use the following command:
 
-    ./mach create-wpt tests/wpt/path/to/new/test.html --no-run
+    ./mach create-wpt tests/wpt/path/to/new/test.html
 
 This will create test.html in the appropriate directory using the WPT
 template for JavaScript tests. To create a new reference test instead,
 use the following:
 
-    ./mach create-wpt --reftest tests/wpt/path/to/new/reftest.html --no-run --reference tests/wpt/path/to/reference.html
+    ./mach create-wpt --reftest tests/wpt/path/to/new/reftest.html --reference tests/wpt/path/to/reference.html
 
 `reference.html` will be created if it doesn't not exist, and `reftest.html`
 will be created using the WPT reftest template. These new tests can then
