@@ -1723,18 +1723,6 @@ impl DocumentMethods for Document {
         self.window.root()
     }
 
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
-    fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let window = self.window.root();
-        window.r().GetOnresize()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
-    fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let window = self.window.root();
-        window.r().SetOnresize(listener)
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn GetCookie(&self) -> Fallible<DOMString> {
         //TODO: return empty string for cookie-averse Document

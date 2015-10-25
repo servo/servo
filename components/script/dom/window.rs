@@ -513,9 +513,6 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#handler-window-onunload
     event_handler!(unload, GetOnunload, SetOnunload);
 
-    // https://html.spec.whatwg.org/multipage/#handler-onresize
-    event_handler!(resize, GetOnresize, SetOnresize);
-
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     error_event_handler!(error, GetOnerror, SetOnerror);
 
