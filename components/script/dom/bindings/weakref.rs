@@ -19,7 +19,9 @@ use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
 use libc::c_void;
 use std::cell::{Cell, UnsafeCell};
+use std::iter::Iterator;
 use std::mem;
+use std::ops::{Deref, DerefMut, Drop};
 use util::mem::HeapSizeOf;
 
 /// The index of the slot wherein a pointer to the weak holder cell is
@@ -113,6 +115,25 @@ impl<T: WeakReferenceable> HeapSizeOf for WeakRef<T> {
     }
 }
 
+impl<T: WeakReferenceable> PartialEq for WeakRef<T> {
+   fn eq(&self, other: &Self) -> bool {
+        unsafe {
+            (**self.ptr).value.get() == (**other.ptr).value.get()
+        }
+    }
+}
+
+impl<T: WeakReferenceable> PartialEq<T> for WeakRef<T> {
+    fn eq(&self, other: &T) -> bool {
+        unsafe {
+            match (**self.ptr).value.get() {
+                Some(ptr) => *ptr == other,
+                None => false,
+            }
+        }
+    }
+}
+
 no_jsmanaged_fields!(WeakRef<T: WeakReferenceable>);
 
 impl<T: WeakReferenceable> Drop for WeakRef<T> {
@@ -180,5 +201,83 @@ impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
                 mem::drop((*ptr).take().unwrap());
             }
         }
+    }
+}
+
+/// A vector of weak references. On tracing, the vector retains
+/// only references which still point to live objects.
+#[allow_unrooted_interior]
+#[derive(HeapSizeOf)]
+pub struct WeakRefVec<T: WeakReferenceable> {
+    vec: Vec<WeakRef<T>>,
+}
+
+impl<T: WeakReferenceable> WeakRefVec<T> {
+    /// Create a new vector of weak references.
+    pub fn new() -> Self {
+        WeakRefVec { vec: vec![] }
+    }
+
+    /// Calls a function on each reference which still points to a
+    /// live object. The order of the references isn't preserved.
+    pub fn update<F: FnMut(WeakRefEntry<T>)>(&mut self, mut f: F) {
+        let mut i = 0;
+        while i < self.vec.len() {
+            if self.vec[i].is_alive() {
+                f(WeakRefEntry { vec: self, index: &mut i });
+            } else {
+                self.vec.swap_remove(i);
+            }
+        }
+    }
+
+    /// Clears the vector of its dead references.
+    pub fn retain_alive(&mut self) {
+        self.update(|_| ());
+    }
+}
+
+impl<T: WeakReferenceable> Deref for WeakRefVec<T> {
+    type Target = Vec<WeakRef<T>>;
+
+    fn deref(&self) -> &Vec<WeakRef<T>> {
+        &self.vec
+    }
+}
+
+impl<T: WeakReferenceable> DerefMut for WeakRefVec<T> {
+    fn deref_mut(&mut self) -> &mut Vec<WeakRef<T>> {
+        &mut self.vec
+    }
+}
+
+/// An entry of a vector of weak references. Passed to the closure
+/// given to `WeakRefVec::update`.
+#[allow_unrooted_interior]
+pub struct WeakRefEntry<'a, T: WeakReferenceable + 'a> {
+    vec: &'a mut WeakRefVec<T>,
+    index: &'a mut usize,
+}
+
+impl<'a, T: WeakReferenceable + 'a> WeakRefEntry<'a, T> {
+    /// Remove the entry from the underlaying vector of weak references.
+    pub fn remove(self) -> WeakRef<T> {
+        let ref_ = self.vec.swap_remove(*self.index);
+        mem::forget(self);
+        ref_
+    }
+}
+
+impl<'a, T: WeakReferenceable + 'a> Deref for WeakRefEntry<'a, T> {
+    type Target = WeakRef<T>;
+
+    fn deref(&self) -> &WeakRef<T> {
+        &self.vec[*self.index]
+    }
+}
+
+impl<'a, T: WeakReferenceable + 'a> Drop for WeakRefEntry<'a, T> {
+    fn drop(&mut self) {
+        *self.index += 1;
     }
 }
