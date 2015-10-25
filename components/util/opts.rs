@@ -176,6 +176,8 @@ pub struct Opts {
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
+
+    pub graphics_select: String,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -381,6 +383,27 @@ fn default_user_agent_string(agent: UserAgent) -> String {
     }.to_owned()
 }
 
+
+enum GraphicOption {
+    GL,
+    ES2,
+  }
+
+  fn default_graphics_select_string(goption: GraphicOption) -> String {
+      match goption {
+          GraphicOption::GL => {
+                //println!("GL");
+                "GL"
+
+          },
+          GraphicOption::ES2 => {
+              //println!("ES2");
+              "ES2"
+          }
+      }.to_owned()
+  }
+
+const DEFAULT_GRAPHICS: GraphicOption = GraphicOption::GL;
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
@@ -439,6 +462,7 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
+        graphics_select: default_graphics_select_string(DEFAULT_GRAPHICS),
     }
 }
 
@@ -480,6 +504,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflagopt("G", "graphics", "Select graphics backend (GL or ES2)", "GL");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -581,6 +606,13 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
+    let graphics_select = match opt_match.opt_str("G") {
+        Some(ref ga) if ga == "GL" => default_graphics_select_string(GraphicOption::GL),
+        Some(ref ga) if ga == "ES2" => default_graphics_select_string(GraphicOption::ES2),
+        Some(ga) =>  args_fail(&format!("error: unrecognized option:")),
+        None => default_graphics_select_string(GraphicOption::GL),
+    };
+
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
         Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
@@ -623,6 +655,7 @@ pub fn from_cmdline_args(args: &[String]) {
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
+        graphics_select: graphics_select,
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),

@@ -1834,7 +1834,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let show_debug_borders = opts::get().show_debug_borders;
         self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
                                                          show_debug_borders,
-                                                         opts::get().output_file.is_some()))
+                                                         opts::get().output_file.is_some(),
+                                                         opts::get().graphics_select.clone()))
     }
 
     fn find_topmost_layer_at_point_for_layer(&self,
