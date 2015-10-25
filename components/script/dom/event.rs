@@ -13,6 +13,7 @@ use dom::eventtarget::EventTarget;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
+use string_cache::Atom;
 use time;
 use util::str::DOMString;
 
@@ -43,7 +44,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableHeap<JS<EventTarget>>,
     target: MutNullableHeap<JS<EventTarget>>,
-    type_: DOMRefCell<DOMString>,
+    type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<bool>,
     stop_propagation: Cell<bool>,
@@ -63,7 +64,7 @@ impl Event {
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),
-            type_: DOMRefCell::new("".to_owned()),
+            type_: DOMRefCell::new(atom!("")),
             canceled: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),
@@ -153,6 +154,11 @@ impl Event {
     pub fn initialized(&self) -> bool {
         self.initialized.get()
     }
+
+    #[inline]
+    pub fn type_(&self) -> Atom {
+        self.type_.borrow().clone()
+    }
 }
 
 impl EventMethods for Event {
@@ -163,7 +169,7 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(&self) -> DOMString {
-        self.type_.borrow().clone()
+        self.type_.borrow().as_slice().to_owned()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target
@@ -229,7 +235,7 @@ impl EventMethods for Event {
         self.canceled.set(false);
         self.trusted.set(false);
         self.target.set(None);
-        *self.type_.borrow_mut() = type_;
+        *self.type_.borrow_mut() = Atom::from_slice(&type_);
         self.bubbles.set(bubbles);
         self.cancelable.set(cancelable);
     }
