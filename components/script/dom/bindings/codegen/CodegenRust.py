@@ -119,7 +119,7 @@ class CastableObjectUnwrapper():
 
     def __str__(self):
         return string.Template("""\
-match native_from_handle${handletype}(${source}) {
+match root_from_handle${handletype}(${source}) {
     Ok(val) => val,
     Err(()) => {
 ${codeOnFailure}
@@ -1996,7 +1996,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::ConversionBehavior',
-        'dom::bindings::conversions::native_from_handlevalue',
+        'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
@@ -2638,7 +2638,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject().get());\n"
+                glob = "        let global = global_root_from_reflector(this);\n"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -2845,7 +2845,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 """)
         return CGList([preamble, self.generate_code()])
 
@@ -4532,8 +4532,8 @@ class CGAbstractClassHook(CGAbstractExternMethod):
 
     def definition_body_prologue(self):
         return CGGeneric("""\
-let this: *const %s = native_from_reflector::<%s>(obj);
-""" % (self.descriptor.concreteType, self.descriptor.concreteType))
+let this = private_from_object(obj) as *const %s;
+""" % self.descriptor.concreteType)
 
     def definition_body(self):
         return CGList([
@@ -4593,7 +4593,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self._ctor.identifier.name
@@ -4617,7 +4617,7 @@ class CGClassNameConstructHook(CGAbstractExternMethod):
 
     def definition_body(self):
         preamble = CGGeneric("""\
-let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
+let global = global_root_from_object(JS_CALLEE(cx, vp).to_object());
 let args = CallArgs::from_vp(vp, argc);
 """)
         name = self._ctor.identifier.name
@@ -5196,8 +5196,7 @@ class CGBindingRoot(CGThing):
             'js::glue::AppendToAutoIdVector',
             'js::rust::GCMethods',
             'dom::bindings',
-            'dom::bindings::global::GlobalRef',
-            'dom::bindings::global::global_object_for_js_object',
+            'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
@@ -5223,12 +5222,11 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
-            'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBehavior}',
-            'dom::bindings::conversions::{native_from_reflector, native_from_handlevalue, native_from_handleobject}',
-            'dom::bindings::conversions::DOM_OBJECT_SLOT',
-            'dom::bindings::conversions::IDLInterface',
-            'dom::bindings::conversions::jsid_to_str',
-            'dom::bindings::conversions::StringificationBehavior',
+            'dom::bindings::conversions::{ConversionBehavior, DOM_OBJECT_SLOT, IDLInterface}',
+            'dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior}',
+            'dom::bindings::conversions::{ToJSValConvertible, jsid_to_str}',
+            'dom::bindings::conversions::{private_from_object, root_from_object}',
+            'dom::bindings::conversions::{root_from_handleobject, root_from_handlevalue}',
             'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
             'dom::bindings::error::{Fallible, Error, ErrorResult}',

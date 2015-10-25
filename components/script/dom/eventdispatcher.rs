@@ -5,7 +5,7 @@
 use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
+use dom::bindings::global::{GlobalRoot, global_root_from_reflector};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
@@ -49,7 +49,7 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, chain: &[&EventTar
     assert!(!event.stop_propagation());
     assert!(!event.stop_immediate());
 
-    let window = match global_object_for_reflector(target) {
+    let window = match global_root_from_reflector(target) {
         GlobalRoot::Window(window) => {
             if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
                 Some(window)

@@ -9,7 +9,7 @@
 
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::native_from_reflector_jsmanaged;
+use dom::bindings::conversions::root_from_object;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
@@ -255,23 +255,23 @@ impl GlobalField {
 }
 
 /// Returns the global object of the realm that the given DOM object's reflector was created in.
-pub fn global_object_for_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
-    global_object_for_js_object(*reflector.reflector().get_jsobject())
+pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
+    global_root_from_object(*reflector.reflector().get_jsobject())
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalRoot {
+pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match native_from_reflector_jsmanaged(global) {
+        match root_from_object(global) {
             Ok(window) => return GlobalRoot::Window(window),
             Err(_) => (),
         }
 
-        match native_from_reflector_jsmanaged(global) {
+        match root_from_object(global) {
             Ok(worker) => return GlobalRoot::Worker(worker),
             Err(_) => (),
         }

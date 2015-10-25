@@ -5,7 +5,7 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::global::global_object_for_js_object;
+use dom::bindings::global::global_root_from_reflector;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
 use dom::window::ScriptHelpers;
@@ -285,8 +285,7 @@ impl ActiveTimers {
             // step 14
             match callback {
                 InternalTimerCallback::StringTimerCallback(code_str) => {
-                    let proxy = this.reflector().get_jsobject();
-                    let cx = global_object_for_js_object(proxy.get()).r().get_cx();
+                    let cx = global_root_from_reflector(this).r().get_cx();
                     let mut rval = RootedValue::new(cx, UndefinedValue());
 
                     this.evaluate_js_on_global_with_result(&code_str, rval.handle_mut());
