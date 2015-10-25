@@ -272,6 +272,7 @@ pub struct HttpResponse {
     pub headers: Option<Headers>,
     pub status: Option<RawStatus>,
     pub body: Option<Vec<u8>>,
+	pub pipeline_id: PipelineId,
 }
 
 pub enum NetworkEvent {
