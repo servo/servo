@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::conversions::native_from_handleobject;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::utils::get_array_index_from_id;
@@ -103,7 +102,7 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleI
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
         let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-        let win: Root<Window> = native_from_handleobject(target.handle()).unwrap();
+        let win = root_from_handleobject::<Window>(target.handle()).unwrap();
         let mut found = false;
         return win.r().IndexedGetter(index, &mut found);
     }

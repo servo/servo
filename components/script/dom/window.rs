@@ -13,8 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOp
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
-use dom::bindings::global::global_object_for_js_object;
+use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
@@ -763,8 +762,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
     #[allow(unsafe_code)]
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
-        let this = self.reflector().get_jsobject();
-        let global = global_object_for_js_object(this.get());
+        let global = global_root_from_reflector(self);
         let cx = global.r().get_cx();
         let _ar = JSAutoRequest::new(cx);
         let globalhandle = global.r().reflector().get_jsobject();
