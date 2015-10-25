@@ -5,6 +5,7 @@
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use mime::{TopLevel, SubLevel};
 use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceTask, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::for_each_available_family;
@@ -149,15 +150,31 @@ impl FontCache {
                             let channel_to_self = self.channel_to_self.clone();
                             let url = (*url).clone();
                             let bytes = Mutex::new(Vec::new());
+                            let response_valid = Mutex::new(false);
                             ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
                                 let response: ResponseAction = message.to().unwrap();
                                 match response {
-                                    ResponseAction::HeadersAvailable(_) |
+                                    ResponseAction::HeadersAvailable(metadata) => {
+                                        let is_response_valid =
+                                            metadata.content_type.as_ref().map(|content_type| {
+                                                let mime = &content_type.0;
+                                                is_supported_font_type(&mime.0, &mime.1)
+                                            }).unwrap_or(false);
+                                        info!("{} font with MIME type {:?}",
+                                              if is_response_valid { "Loading" } else { "Ignoring" },
+                                              metadata.content_type);
+                                        *response_valid.lock().unwrap() = is_response_valid;
+                                    }
                                     ResponseAction::ResponseComplete(Err(_)) => {}
                                     ResponseAction::DataAvailable(new_bytes) => {
-                                        bytes.lock().unwrap().extend(new_bytes.into_iter())
+                                        if *response_valid.lock().unwrap() {
+                                            bytes.lock().unwrap().extend(new_bytes.into_iter())
+                                        }
                                     }
                                     ResponseAction::ResponseComplete(Ok(_)) => {
+                                        if !*response_valid.lock().unwrap() {
+                                            return;
+                                        }
                                         let mut bytes = bytes.lock().unwrap();
                                         let bytes = mem::replace(&mut *bytes, Vec::new());
                                         let command =
@@ -356,3 +373,15 @@ impl FontCacheTask {
     }
 }
 
+// derived from http://stackoverflow.com/a/10864297/3830
+fn is_supported_font_type(toplevel: &TopLevel, sublevel: &SubLevel) -> bool {
+    match (toplevel, sublevel) {
+        (&TopLevel::Application, &SubLevel::Ext(ref ext)) => {
+            match &ext[..] {
+                "font-sfnt" | "x-font-ttf" | "x-font-truetype" | "x-font-opentype" => true,
+                _ => false,
+            }
+        }
+        _ => false,
+    }
+}
