@@ -6,13 +6,14 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestEnum};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, global_root_from_reflector};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
-use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::blob::Blob;
 use js::jsapi::{HandleValue, JSContext, JSObject};
@@ -25,6 +26,23 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct TestBinding {
     reflector_: Reflector,
+}
+
+impl TestBinding {
+    fn new_inherited() -> TestBinding {
+        TestBinding {
+            reflector_: Reflector::new(),
+        }
+    }
+
+    pub fn new(global: GlobalRef) -> Root<TestBinding> {
+        reflect_dom_object(box TestBinding::new_inherited(),
+                           global, TestBindingBinding::Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<TestBinding>> {
+        Ok(TestBinding::new(global))
+    }
 }
 
 impl TestBindingMethods for TestBinding {
@@ -360,7 +378,7 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUsvstring(&self, _: Vec<USVString>) {}
     fn PassVariadicByteString(&self, _: Vec<ByteString>) {}
     fn PassVariadicEnum(&self, _: Vec<TestEnum>) {}
-    // fn PassVariadicInterface(self, _: Vec<&Blob>) {}
+    fn PassVariadicInterface(&self, _: &[&Blob]) {}
     fn PassVariadicUnion(&self, _: Vec<HTMLElementOrLong>) {}
     fn PassVariadicUnion2(&self, _: Vec<EventOrString>) {}
     fn PassVariadicUnion3(&self, _: Vec<BlobOrString>) {}

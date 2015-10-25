@@ -728,6 +728,14 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F
     }
 }
 
+fn native_from_object<T>(obj: *mut JSObject) -> Result<*const T, ()>
+    where T: Reflectable + IDLInterface
+{
+    unsafe {
+        private_from_proto_check(obj, T::derives).map(|ptr| ptr as *const T)
+    }
+}
+
 /// Get a `Root<T>` for the given DOM object, unwrapping any wrapper
 /// around it first, and checking if the object is of the correct type.
 ///
@@ -737,11 +745,14 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject, proto_check: F
 pub fn root_from_object<T>(obj: *mut JSObject) -> Result<Root<T>, ()>
     where T: Reflectable + IDLInterface
 {
-    unsafe {
-        private_from_proto_check(obj, T::derives).map(|ptr| {
-            Root::from_ref(&*(ptr as *const T))
-        })
-    }
+    native_from_object(obj).map(|ptr| unsafe { Root::from_ref(&*ptr) })
+}
+
+/// Get a `*const T` for a DOM object accessible from a `HandleValue`.
+pub fn native_from_handlevalue<T>(v: HandleValue) -> Result<*const T, ()>
+    where T: Reflectable + IDLInterface
+{
+    native_from_object(v.get().to_object())
 }
 
 /// Get a `Root<T>` for a DOM object accessible from a `HandleValue`.
