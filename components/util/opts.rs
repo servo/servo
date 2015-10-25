@@ -177,6 +177,7 @@ pub struct Opts {
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
 
+    /// Set graphics renderer to be GL or ES2
     pub graphics_select: String,
 }
 
@@ -383,6 +384,9 @@ fn default_user_agent_string(agent: UserAgent) -> String {
     }.to_owned()
 }
 
+#[cfg(target_os = "android")]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
+
 
 enum GraphicOption {
     GL,
@@ -392,20 +396,16 @@ enum GraphicOption {
   fn default_graphics_select_string(goption: GraphicOption) -> String {
       match goption {
           GraphicOption::GL => {
-                //println!("GL");
                 "GL"
-
           },
           GraphicOption::ES2 => {
-              //println!("ES2");
               "ES2"
           }
       }.to_owned()
   }
 
 const DEFAULT_GRAPHICS: GraphicOption = GraphicOption::GL;
-#[cfg(target_os = "android")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
+
 
 // FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
 // correct string in Gonk builds (i.e., it will never be chosen today).
@@ -609,7 +609,7 @@ pub fn from_cmdline_args(args: &[String]) {
     let graphics_select = match opt_match.opt_str("G") {
         Some(ref ga) if ga == "GL" => default_graphics_select_string(GraphicOption::GL),
         Some(ref ga) if ga == "ES2" => default_graphics_select_string(GraphicOption::ES2),
-        Some(ga) =>  args_fail(&format!("error: unrecognized option:")),
+        Some(ga) =>  args_fail(&format!("error: graphics option should be GL or ES2:")),
         None => default_graphics_select_string(GraphicOption::GL),
     };
 
