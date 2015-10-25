@@ -54,6 +54,7 @@ use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEl
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
+use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
@@ -92,6 +93,14 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        let node = LayoutJS::from_trusted_node_address(*address);
+        LayoutNode {
+            node: node,
+            chain: PhantomData,
+        }
+    }
+
     /// Creates a new layout node with the same lifetime as this layout node.
     pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
