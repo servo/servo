@@ -16,6 +16,9 @@ path = "../util"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.brotli]
+git = "https://github.com/ende76/brotli-rs"
+
 [dependencies.plugins]
 path = "../plugins"
 
