@@ -49,6 +49,7 @@ use script::layout_interface::Animation;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
+use script::reporter::CSSErrorReporter;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use sequential;
 use serde_json;
@@ -64,6 +65,7 @@ use style::computed_values::{filter, mix_blend_mode};
 use style::media_queries::{Device, MediaType};
 use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
 use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
+use style_traits::ParseErrorReporter;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
@@ -211,6 +213,10 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     rw_data: Arc<Mutex<LayoutTaskData>>,
+
+    /// The CSS error reporter for all CSS loaded in this layout thread
+    error_reporter: CSSErrorReporter,
+
 }
 
 impl LayoutTaskFactory for LayoutTask {
@@ -438,6 +444,7 @@ impl LayoutTask {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
               })),
+              error_reporter: CSSErrorReporter,
         }
     }
 
@@ -476,6 +483,7 @@ impl LayoutTask {
             goal: goal,
             running_animations: self.running_animations.clone(),
             expired_animations: self.expired_animations.clone(),
+            error_reporter: self.error_reporter.clone(),
         }
     }
 
@@ -557,7 +565,6 @@ impl LayoutTask {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
         };
-
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   &self.url,

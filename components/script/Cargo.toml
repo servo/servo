@@ -36,6 +36,9 @@ path = "../devtools_traits"
 [dependencies.style]
 path = "../style"
 
+[dependencies.style_traits]
+path = "../style_traits"
+
 [dependencies.canvas]
 path = "../canvas"
 

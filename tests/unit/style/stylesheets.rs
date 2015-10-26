@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser;
+use media_queries::CSSErrorReporterTest;
 use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin, Stylesheet};
-
 
 #[test]
 fn test_parse_stylesheet() {
@@ -21,7 +21,7 @@ fn test_parse_stylesheet() {
         #d1 > .ok { background: blue; }
     ";
     let url = url!("about::test");
-    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent);
+    let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent, Box::new(CSSErrorReporterTest));
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,
