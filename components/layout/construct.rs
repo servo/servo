@@ -327,7 +327,8 @@ impl<'a> FlowConstructor<'a> {
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLCanvasElement))) => {
-                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node))
+                let data = node.canvas_data().unwrap();
+                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data))
             }
             _ => {
                 // This includes pseudo-elements.

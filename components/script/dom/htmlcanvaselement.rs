@@ -89,48 +89,41 @@ impl HTMLCanvasElement {
     }
 }
 
+pub struct HTMLCanvasData {
+    pub renderer_id: Option<usize>,
+    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub width: u32,
+    pub height: u32,
+}
+
 pub trait LayoutHTMLCanvasElementHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> Option<usize>;
-    #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>>;
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_width(&self) -> u32;
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_height(&self) -> u32;
+    fn data(&self) -> HTMLCanvasData;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> Option<usize> {
-        let ref canvas = *self.unsafe_get();
-        canvas.context.borrow_for_layout().as_ref().map(|context| {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.to_layout().get_renderer_id(),
-                CanvasContext::WebGL(ref context) => context.to_layout().get_renderer_id(),
+    fn data(&self) -> HTMLCanvasData {
+        unsafe {
+            let canvas = &*self.unsafe_get();
+            let (renderer_id, ipc_renderer) = match canvas.context.borrow_for_layout().as_ref() {
+                Some(&CanvasContext::Context2d(ref context)) => {
+                    let context = context.to_layout();
+                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
+                },
+                Some(&CanvasContext::WebGL(ref context)) => {
+                    let context = context.to_layout();
+                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
+                },
+                None => (None, None),
+            };
+
+            HTMLCanvasData {
+                renderer_id: renderer_id,
+                ipc_renderer: ipc_renderer,
+                width: canvas.width.get(),
+                height: canvas.height.get(),
             }
-        })
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
-        let ref canvas = *self.unsafe_get();
-        canvas.context.borrow_for_layout().as_ref().map(|context| {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.to_layout().get_ipc_renderer(),
-                CanvasContext::WebGL(ref context) => context.to_layout().get_ipc_renderer(),
-            }
-        })
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_width(&self) -> u32 {
-        (*self.unsafe_get()).width.get()
-    }
-
-    #[allow(unsafe_code)]
-    unsafe fn get_canvas_height(&self) -> u32 {
-        (*self.unsafe_get()).height.get()
+        }
     }
 }
 

@@ -30,13 +30,11 @@
 
 #![allow(unsafe_code)]
 
-use canvas_traits::CanvasMsg;
 use context::SharedLayoutContext;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
 use incremental::RestyleDamage;
-use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
@@ -47,7 +45,7 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::element;
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
+use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
@@ -945,31 +943,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
-    pub fn canvas_renderer_id(&self) -> Option<usize> {
+    pub fn canvas_data(&self) -> Option<HTMLCanvasData> {
         unsafe {
             let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.and_then(|elem| elem.get_renderer_id())
-        }
-    }
-
-    pub fn canvas_ipc_renderer(&self) -> Option<IpcSender<CanvasMsg>> {
-        unsafe {
-            let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.and_then(|elem| elem.get_ipc_renderer())
-        }
-    }
-
-    pub fn canvas_width(&self) -> u32 {
-        unsafe {
-            let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.unwrap().get_canvas_width()
-        }
-    }
-
-    pub fn canvas_height(&self) -> u32 {
-        unsafe {
-            let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.unwrap().get_canvas_height()
+            canvas_element.map(|canvas| canvas.data())
         }
     }
 
