@@ -118,8 +118,6 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
-no_jsmanaged_fields!(Metadata);
-
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(String, Url),
@@ -321,7 +319,7 @@ impl HTMLScriptElement {
                   !async {
             doc.r().set_pending_parsing_blocking_script(Some(self));
             // Second part implemented in the load result handler.
-        // Step 15.c, doesn't have src, was parser-inserted, is blocked on stylesheet, is not async.
+        // Step 15.c, doesn't have src, was parser-inserted, is blocked on stylesheet.
         } else if !is_external &&
                   was_parser_inserted &&
                   // TODO: check for script nesting levels.
@@ -329,7 +327,7 @@ impl HTMLScriptElement {
             doc.r().set_pending_parsing_blocking_script(Some(self));
             *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
             self.ready_to_be_parser_executed.set(true);
-        // Step 15.d, has src, is async, isn't non-blocking.
+        // Step 15.d, has src, isn't async, isn't non-blocking.
         } else if is_external &&
                   !async &&
                   !self.non_blocking.get() {
@@ -370,7 +368,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        let load = mem::replace(&mut *self.load.borrow_mut(), None).unwrap();
+        let load = self.load.borrow_mut().take().unwrap();
 
         // Step 2.
         let (source, external, url) = match load {

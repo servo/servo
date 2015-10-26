@@ -1944,11 +1944,8 @@ impl ScriptTask {
         // No more reflow required
         page.set_reflow_status(false);
 
-        // https://html.spec.whatwg.org/multipage/#the-end step 3
+        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.r().process_deferred_scripts();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also implemented in step 3 above.
-        document.r().maybe_dispatch_dom_content_loaded();
 
         window.r().set_fragment_name(final_url.fragment.clone());
 

@@ -107,6 +107,7 @@ pub enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+#[derive(PartialEq)]
 enum ParserBlockedByScript {
     Blocked,
     Unblocked,
@@ -135,7 +136,7 @@ pub struct Document {
     applets: MutNullableHeap<JS<HTMLCollection>>,
     ready_state: Cell<DocumentReadyState>,
     /// Whether the DOMContentLoaded event has already been dispatched.
-    domcontentloaded_triggered: Cell<bool>,
+    domcontentloaded_dispatched: Cell<bool>,
     /// The element that has most recently requested focus for itself.
     possibly_focused: MutNullableHeap<JS<Element>>,
     /// The element that currently has the document focus context.
@@ -1031,9 +1032,8 @@ impl Document {
             self.process_asap_scripts();
         }
 
-        match self.maybe_execute_parser_blocking_script() {
-            ParserBlockedByScript::Blocked => return,
-            ParserBlockedByScript::Unblocked => {},
+        if self.maybe_execute_parser_blocking_script() == ParserBlockedByScript::Blocked {
+            return;
         }
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
@@ -1053,7 +1053,8 @@ impl Document {
     }
 
     /// If document parsing is blocked on a script, and that script is ready to run,
-    /// executed it.
+    /// execute it.
+    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
     fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
         let script = match self.pending_parsing_blocking_script.get_rooted() {
             None => return ParserBlockedByScript::Unblocked,
@@ -1079,9 +1080,6 @@ impl Document {
             return;
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
-        if deferred_scripts.is_empty() {
-            return;
-        }
         while !deferred_scripts.is_empty() {
             let script = deferred_scripts[0].root();
             // Part of substep 1.
@@ -1094,7 +1092,7 @@ impl Document {
             deferred_scripts.remove(0);
             // Substep 4 (implicit).
         }
-        // https://html.spec.whatwg.org/multipage/#the-end step 4. Also triggered by script_task.
+        // https://html.spec.whatwg.org/multipage/#the-end step 4.
         self.maybe_dispatch_dom_content_loaded();
     }
 
@@ -1126,10 +1124,10 @@ impl Document {
     }
 
     pub fn maybe_dispatch_dom_content_loaded(&self) {
-        if self.domcontentloaded_triggered.get() {
+        if self.domcontentloaded_dispatched.get() {
             return;
         }
-        self.domcontentloaded_triggered.set(true);
+        self.domcontentloaded_dispatched.set(true);
         let event = Event::new(GlobalRef::Window(self.window()), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
@@ -1201,7 +1199,7 @@ impl Document {
                      doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
-        let (ready_state, domcontentloaded_triggered) = if source == DocumentSource::FromParser {
+        let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
             (DocumentReadyState::Loading, false)
         } else {
             (DocumentReadyState::Complete, true)
@@ -1237,7 +1235,7 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             ready_state: Cell::new(ready_state),
-            domcontentloaded_triggered: Cell::new(domcontentloaded_triggered),
+            domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             possibly_focused: Default::default(),
             focused: Default::default(),
             current_script: Default::default(),
