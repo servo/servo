@@ -17,11 +17,13 @@ fn assert_parse(url:          &'static str,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
     use net::data_loader::load;
+    use net::resource_task::CancellationListener;
     use std::sync::mpsc::channel;
     use url::Url;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
-    load(LoadData::new(Url::parse(url).unwrap(), None), Channel(start_chan));
+    // since we don't make use of the sender, this shouldn't have any effect
+    load(LoadData::new(Url::parse(url).unwrap(), None), Channel(start_chan), CancellationListener(None));
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);
