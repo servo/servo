@@ -24,3 +24,7 @@ extern crate util;
 #[macro_use]
 pub mod values;
 pub mod viewport;
+
+pub trait ParseErrorReporter {
+    fn report_error(&self);
+}
