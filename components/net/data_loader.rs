@@ -6,21 +6,24 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{send_error, start_sending};
+use resource_task::{CancellationListener, send_error, start_sending};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;
 
-pub fn factory(load_data: LoadData, senders: LoadConsumer, _classifier: Arc<MIMEClassifier>) {
+pub fn factory(load_data: LoadData,
+               senders: LoadConsumer,
+               _classifier: Arc<MIMEClassifier>,
+               cancel_listener: CancellationListener) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, senders)
+    load(load_data, senders, cancel_listener)
 }
 
-pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
+pub fn load(load_data: LoadData, start_chan: LoadConsumer, cancel_listener: CancellationListener) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
@@ -64,6 +67,10 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer) {
     }
     let mut metadata = Metadata::default(url);
     metadata.set_content_type(content_type.as_ref());
+
+    if cancel_listener.is_cancelled() {
+        return;
+    }
 
     let progress_chan = start_sending(start_chan, metadata);
     let bytes = percent_decode(parts[1].as_bytes());
