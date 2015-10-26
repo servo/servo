@@ -937,11 +937,6 @@ pub struct BaseFlow {
     pub flags: FlowFlags,
 }
 
-#[allow(unsafe_code)]
-unsafe impl Send for BaseFlow {}
-#[allow(unsafe_code)]
-unsafe impl Sync for BaseFlow {}
-
 impl fmt::Debug for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
