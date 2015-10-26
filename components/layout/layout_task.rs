@@ -58,6 +58,7 @@ use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
+use script::reporter::CSSErrorReporter;
 use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
@@ -81,6 +82,7 @@ use style::selector_matching::Stylist;
 use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use style::values::AuExtensionMethods;
 use style::viewport::ViewportRule;
+use style_traits::ParseErrorReporter;
 use url::Url;
 use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -237,6 +239,7 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
+    pub error_reporter: CSSErrorReporter,
 }
 
 impl LayoutTaskFactory for LayoutTask {
@@ -372,8 +375,8 @@ impl LayoutTask {
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
 
         let (font_cache_sender, font_cache_receiver) = channel();
-
-        let stylist = box Stylist::new(device);
+        let error_reporter = CSSErrorReporter;
+        let stylist = box Stylist::new(device, error_reporter.clone());
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         for user_or_user_agent_stylesheet in stylist.stylesheets() {
             add_font_face_rules(user_or_user_agent_stylesheet,
@@ -426,6 +429,7 @@ impl LayoutTask {
                     epoch: Epoch(0),
                     outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
+              error_reporter: CSSErrorReporter,
         }
     }
 
@@ -760,11 +764,12 @@ impl LayoutTask {
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
         let final_url = metadata.final_url;
 
+        let error_reporter = CSSErrorReporter;
         let sheet = Stylesheet::from_bytes_iter(iter,
                                                 final_url,
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
-                                                Origin::Author);
+                                                Origin::Author, error_reporter.clone());
 
         //TODO: mark critical subresources as blocking load as well (#5974)
         self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
@@ -813,7 +818,8 @@ impl LayoutTask {
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_quirks_mode_stylesheet();
+        let error_reporter = CSSErrorReporter;
+        rw_data.stylist.add_quirks_mode_stylesheet(error_reporter.clone());
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 

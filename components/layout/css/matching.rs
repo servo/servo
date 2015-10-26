@@ -12,6 +12,7 @@ use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use script::layout_interface::Animation;
+use script::reporter::CSSErrorReporter;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -27,6 +28,7 @@ use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
 use style::properties::{ComputedValues, PropertyDeclaration, cascade};
 use style::selector_matching::{DeclarationBlock, Stylist};
+use style_traits::ParseErrorReporter;
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
@@ -453,7 +455,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 }
             }
         }
-
+        let error_reporter = CSSErrorReporter;
         let mut this_style;
         let cacheable;
         match parent_style {
@@ -467,16 +469,16 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                                         applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
-                                                        cached_computed_values);
+                                                        cached_computed_values, error_reporter.clone());
                 cacheable = is_cacheable;
                 this_style = the_style
             }
             None => {
-                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+            let (the_style, is_cacheable) = cascade(layout_context.screen_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         None,
-                                                        None);
+                                                        None, error_reporter.clone());
                 cacheable = is_cacheable;
                 this_style = the_style
             }

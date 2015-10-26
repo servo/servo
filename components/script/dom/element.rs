@@ -1494,12 +1494,14 @@ impl VirtualMethods for Element {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
+        let win = window_from_node(self);
+        let error_reporter = win.css_error_reporter();
         let damage = match attr.local_name() {
             &atom!(style) => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
-                        parse_style_attribute(&value, &doc.base_url())
+                        parse_style_attribute(&value, &doc.base_url(), error_reporter)
                     });
                 NodeDamage::NodeStyleDamaged
             },

@@ -51,6 +51,7 @@ use net_traits::storage_task::{StorageTask, StorageType};
 use num::traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
+use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
@@ -68,6 +69,7 @@ use std::sync::Arc;
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use string_cache::Atom;
+use style_traits::ParseErrorReporter;
 use time;
 use timers::{ActiveTimers, IsInterval, TimerCallback};
 use url::Url;
@@ -1283,6 +1285,10 @@ impl Window {
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
+    }
+    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
+        let error_reporter = Box::new(CSSErrorReporter);
+        return error_reporter;
     }
 }
 
