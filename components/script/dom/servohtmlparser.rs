@@ -159,7 +159,9 @@ impl AsyncResponseListener for ParserContext {
         }
 
         parser.r().last_chunk_received.set(true);
-        parser.r().parse_sync();
+        if !parser.r().is_suspended() {
+            parser.r().parse_sync();
+        }
     }
 }
 
@@ -188,7 +190,9 @@ impl<'a> Parser for &'a ServoHTMLParser {
     fn parse_chunk(self, input: String) {
         self.document.set_current_parser(Some(self));
         self.pending_input.borrow_mut().push(input);
-        self.parse_sync();
+        if !self.is_suspended() {
+            self.parse_sync();
+        }
     }
 
     fn finish(self) {
@@ -282,21 +286,10 @@ impl ServoHTMLParser {
 
 impl ServoHTMLParser {
     fn parse_sync(&self) {
-        let mut first = true;
-
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
-            if self.suspended.get() {
-                return;
-            }
-
-            if self.pending_input.borrow().is_empty() && !first {
-                break;
-            }
-
-            self.document.reflow_if_reflow_timer_expired();
-
+           self.document.reflow_if_reflow_timer_expired();
             let mut pending_input = self.pending_input.borrow_mut();
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
@@ -305,7 +298,14 @@ impl ServoHTMLParser {
                 self.tokenizer.borrow_mut().run();
             }
 
-            first = false;
+            // Document parsing is blocked on an external resource.
+            if self.suspended.get() {
+                return;
+            }
+
+            if pending_input.is_empty() {
+                break;
+            }
         }
 
         if self.last_chunk_received.get() {
@@ -329,6 +329,10 @@ impl ServoHTMLParser {
         assert!(self.suspended.get());
         self.suspended.set(false);
         self.parse_sync();
+    }
+
+    pub fn is_suspended(&self) -> bool {
+        self.suspended.get()
     }
 }
 
