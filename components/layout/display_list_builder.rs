@@ -556,10 +556,17 @@ impl FragmentDisplayListBuilding for Fragment {
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
             AngleOrCorner::Angle(angle) => {
-                Point2D::new(Au::from_f32_px(angle.radians().sin() *
-                                             absolute_bounds.size.width.to_f32_px() / 2.0),
-                             Au::from_f32_px(-angle.radians().cos() *
-                                             absolute_bounds.size.height.to_f32_px() / 2.0))
+                // Get correct gradient line length, based on:
+                // https://drafts.csswg.org/css-images-3/#linear-gradients
+                let dir = Point2D::new(angle.radians().sin(), -angle.radians().cos());
+
+                let line_length = (dir.x * absolute_bounds.size.width.to_f32_px()).abs() +
+                                  (dir.y * absolute_bounds.size.height.to_f32_px()).abs();
+
+                let inv_dir_length = 1.0 / (dir.x * dir.x + dir.y * dir.y).sqrt();
+
+                Point2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
+                             Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0))
             }
             AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
