@@ -1097,27 +1097,27 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
     pub fn process_asap_scripts(&self) {
-        // Execute the first in-order asap-executed script if its ready, repeat as required.
-        let mut in_order_scripts = self.asap_in_order_scripts_list.borrow_mut();
-        while in_order_scripts.len() > 0 {
-            let script = in_order_scripts[0].root();
+        // Execute the first in-order asap-executed script if it's ready, repeat as required.
+        // Re-borrowing the list for each step because it can also be borrowed under execute.
+        while self.asap_in_order_scripts_list.borrow().len() > 0 {
+            let script = self.asap_in_order_scripts_list.borrow()[0].root();
             if !script.r().is_ready_to_be_executed() {
                 break;
             }
             script.r().execute();
-            in_order_scripts.remove(0);
+            self.asap_in_order_scripts_list.borrow_mut().remove(0);
         }
 
-        let mut asap_scripts_set = self.asap_scripts_set.borrow_mut();
         let mut idx = 0;
-        while idx < asap_scripts_set.len() {
-            let script = asap_scripts_set[idx].root();
+        // Re-borrowing the set for each step because it can also be borrowed under execute.
+        while idx < self.asap_scripts_set.borrow().len() {
+            let script = self.asap_scripts_set.borrow()[idx].root();
             if !script.r().is_ready_to_be_executed() {
                 idx += 1;
                 continue;
             }
             script.r().execute();
-            asap_scripts_set.swap_remove(idx);
+            self.asap_scripts_set.borrow_mut().swap_remove(idx);
         }
     }
 
