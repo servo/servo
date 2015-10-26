@@ -1013,10 +1013,10 @@ impl LayoutTask {
         };
     }
 
-    fn process_offset_parent_query<'a>(&'a self,
-                                       requested_node: TrustedNodeAddress,
-                                       layout_root: &mut FlowRef,
-                                       rw_data: &mut RWGuard<'a>) {
+    fn process_offset_parent_query(&self,
+                                   requested_node: TrustedNodeAddress,
+                                   layout_root: &mut FlowRef)
+                                   -> OffsetParentResponse {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -1026,13 +1026,13 @@ impl LayoutTask {
                 let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
                 let origin = iterator.node_border_box.origin - parent.border_box.origin;
                 let size = iterator.node_border_box.size;
-                rw_data.offset_parent_response = OffsetParentResponse {
+                OffsetParentResponse {
                     node_address: Some(parent.node_address.to_untrusted_node_address()),
                     rect: Rect::new(origin, size),
-                };
+                }
             }
             None => {
-                rw_data.offset_parent_response = OffsetParentResponse::empty();
+                OffsetParentResponse::empty()
             }
         }
     }
@@ -1244,7 +1244,7 @@ impl LayoutTask {
                                                         &mut rw_data)
                 }
                 ReflowQueryType::OffsetParentQuery(node) =>
-                    self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
+                    rw_data.offset_parent_response = self.process_offset_parent_query(node, &mut root_flow),
                 ReflowQueryType::NoQuery => {}
             }
         }
