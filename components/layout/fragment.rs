@@ -28,6 +28,7 @@ use msg::constellation_msg::PipelineId;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::UsePlaceholder;
 use rustc_serialize::{Encodable, Encoder};
+use script::dom::htmlcanvaselement::HTMLCanvasData;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -308,13 +309,13 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
+    pub fn new(node: &ThreadSafeLayoutNode, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
-                Some(Au::from_px(node.canvas_width() as i32)),
-                Some(Au::from_px(node.canvas_height() as i32))),
-            renderer_id: node.canvas_renderer_id(),
-            ipc_renderer: node.canvas_ipc_renderer()
+                Some(Au::from_px(data.width as i32)),
+                Some(Au::from_px(data.height as i32))),
+            renderer_id: data.renderer_id,
+            ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
         }
     }

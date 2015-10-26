@@ -1157,11 +1157,11 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
                 if width > 0 && height > 0 {
-                    let (sender, receiver) = ipc::channel::<IpcSharedMemory>().unwrap();
                     let layer_id = self.layer_id();
                     let canvas_data = match canvas_fragment_info.ipc_renderer {
                         Some(ref ipc_renderer) =>  {
                             let ipc_renderer = ipc_renderer.lock().unwrap();
+                            let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer.send(CanvasMsg::FromLayout(
                                 FromLayoutMsg::SendPixelContents(sender))).unwrap();
                             let data = receiver.recv().unwrap();
