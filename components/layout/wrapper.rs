@@ -1053,9 +1053,7 @@ pub fn layout_node_to_unsafe_layout_node(node: &LayoutNode) -> UnsafeLayoutNode 
     }
 }
 
-// FIXME(#3044): This should be updated to use a real lifetime instead of
-// faking one.
-pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode<'static> {
+pub unsafe fn layout_node_from_unsafe_layout_node(node: &UnsafeLayoutNode) -> LayoutNode {
     let (node, _) = *node;
     mem::transmute(node)
 }
