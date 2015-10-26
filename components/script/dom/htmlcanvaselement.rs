@@ -29,9 +29,9 @@ use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
+use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::cell::Cell;
 use std::iter::repeat;
-use rustc_serialize::base64::{STANDARD, ToBase64};
 use util::str::{DOMString, parse_unsigned_integer};
 
 const DEFAULT_WIDTH: u32 = 300;
