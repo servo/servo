@@ -85,7 +85,7 @@ websocket = "0.12.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
-string_cache = { version = "0.1.9", features = ["unstable"] }
+string_cache = { version = "0.1.15", features = ["unstable"] }
 string_cache_plugin = "0.1"
 euclid = "0.2"
 tendril = "0.1.1"
