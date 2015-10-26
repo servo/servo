@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::conversions::Castable;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
@@ -261,7 +261,8 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    fn ToDataURL(&self, _: Option<DOMString>) -> Fallible<DOMString> {
+    fn ToDataURL(&self, _context: *mut JSContext,
+                 _mime_type: Option<DOMString>, _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
 
         // Step 1: Check the origin-clean flag (should be set in fillText/strokeText
         // and currently unimplemented)
@@ -272,24 +273,27 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
 
         // Step 3.
-        let window = window_from_node(self);
-        let context = self.get_or_init_2d_context().unwrap();
-        let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
-                                                   Finite::wrap(self.Width() as f64),
-                                                   Finite::wrap(self.Height() as f64)));
-        let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            let window = window_from_node(self);
+            let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
+                                                       Finite::wrap(self.Width() as f64),
+                                                       Finite::wrap(self.Height() as f64)));
+            let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
 
-        // Only handle image/png for now.
-        let mime_type = "image/png";
+            // Only handle image/png for now.
+            let mime_type = "image/png";
 
-        let mut encoded = Vec::new();
-        {
-            let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
-            encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+            let mut encoded = Vec::new();
+            {
+                let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+                encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+            }
+
+            let encoded = encoded.to_base64(STANDARD);
+            Ok(format!("data:{};base64,{}", mime_type, encoded))
+        } else {
+            Err(Error::NotSupported)
         }
-
-        let encoded = encoded.to_base64(STANDARD);
-        Ok("data:".to_owned() + mime_type + ";base64," + &encoded)
     }
 }
 

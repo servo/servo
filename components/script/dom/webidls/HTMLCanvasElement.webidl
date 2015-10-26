@@ -19,7 +19,6 @@ interface HTMLCanvasElement : HTMLElement {
   //CanvasProxy transferControlToProxy();
 
   [Throws]
-  DOMString toDataURL(optional DOMString type);
-  //DOMString toDataURL(optional DOMString type, any... arguments);
+  DOMString toDataURL(optional DOMString type, any... arguments);
   //void toBlob(FileCallback? _callback, optional DOMString type, any... arguments);
 };
