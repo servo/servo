@@ -10,7 +10,7 @@ use euclid::rect::Rect;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::{DisplayItemMetadata, OpaqueNode};
-use layout_task::{LayoutTaskData, RWGuard};
+use layout_task::LayoutTaskData;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use opaque_node::OpaqueNodeMethods;
@@ -281,27 +281,27 @@ impl FragmentBorderBoxIterator for MarginRetrievingFragmentBorderBoxIterator {
     }
 }
 
-pub fn process_content_box_request<'a>(requested_node: TrustedNodeAddress,
-                                       layout_root: &mut FlowRef,
-                                       rw_data: &mut RWGuard<'a>) {
+pub fn process_content_box_request(requested_node: TrustedNodeAddress,
+                                   layout_root: &mut FlowRef)
+                                   -> Rect<Au> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
     let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    rw_data.content_box_response = match iterator.rect {
+    match iterator.rect {
         Some(rect) => rect,
         None       => Rect::zero()
-    };
+    }
 }
 
-pub fn process_content_boxes_request<'a>(requested_node: TrustedNodeAddress,
-                                         layout_root: &mut FlowRef,
-                                         rw_data: &mut RWGuard<'a>) {
+pub fn process_content_boxes_request(requested_node: TrustedNodeAddress,
+                                     layout_root: &mut FlowRef)
+                                     -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    rw_data.content_boxes_response = iterator.rects;
+    iterator.rects
 }

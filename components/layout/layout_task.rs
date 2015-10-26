@@ -877,25 +877,24 @@ impl LayoutTask {
                                               traversal);
     }
 
-    fn process_node_geometry_request<'a>(&'a self,
-                                      requested_node: TrustedNodeAddress,
-                                      layout_root: &mut FlowRef,
-                                      rw_data: &mut RWGuard<'a>) {
+    fn process_node_geometry_request(&self,
+                                     requested_node: TrustedNodeAddress,
+                                     layout_root: &mut FlowRef)
+                                     -> Rect<i32> {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.client_rect_response = iterator.client_rect;
+        iterator.client_rect
     }
 
-    // Compute the resolved value of property for a given (pseudo)element.
-    // Stores the result in rw_data.resolved_style_response.
-    // https://drafts.csswg.org/cssom/#resolved-value
-    fn process_resolved_style_request<'a>(&'a self,
-                                          requested_node: TrustedNodeAddress,
-                                          pseudo: &Option<PseudoElement>,
-                                          property: &Atom,
-                                          layout_root: &mut FlowRef,
-                                          rw_data: &mut RWGuard<'a>) {
+    /// Return the resolved value of property for a given (pseudo)element.
+    /// https://drafts.csswg.org/cssom/#resolved-value
+    fn process_resolved_style_request(&self,
+                                      requested_node: TrustedNodeAddress,
+                                      pseudo: &Option<PseudoElement>,
+                                      property: &Atom,
+                                      layout_root: &mut FlowRef)
+                                      -> Option<String> {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -918,8 +917,7 @@ impl LayoutTask {
                 // The pseudo doesn't exist, return nothing.  Chrome seems to query
                 // the element itself in this case, Firefox uses the resolved value.
                 // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
-                rw_data.resolved_style_response = None;
-                return;
+                return None;
             }
             Some(layout_node) => layout_node
         };
@@ -970,7 +968,7 @@ impl LayoutTask {
                                                                    style.writing_mode);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                iterator.result.map(|r| r.to_css_string())
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
@@ -1003,20 +1001,19 @@ impl LayoutTask {
                                                                      position);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                iterator.result.map(|r| r.to_css_string())
             },
             // FIXME: implement used value computation for line-height
             ref property => {
-                rw_data.resolved_style_response =
-                    style.computed_value_to_string(property.as_slice()).ok();
+                style.computed_value_to_string(property.as_slice()).ok()
             }
-        };
+        }
     }
 
-    fn process_offset_parent_query<'a>(&'a self,
-                                       requested_node: TrustedNodeAddress,
-                                       layout_root: &mut FlowRef,
-                                       rw_data: &mut RWGuard<'a>) {
+    fn process_offset_parent_query(&self,
+                                   requested_node: TrustedNodeAddress,
+                                   layout_root: &mut FlowRef)
+                                   -> OffsetParentResponse {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
@@ -1026,13 +1023,13 @@ impl LayoutTask {
                 let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
                 let origin = iterator.node_border_box.origin - parent.border_box.origin;
                 let size = iterator.node_border_box.size;
-                rw_data.offset_parent_response = OffsetParentResponse {
+                OffsetParentResponse {
                     node_address: Some(parent.node_address.to_untrusted_node_address()),
                     rect: Rect::new(origin, size),
-                };
+                }
             }
             None => {
-                rw_data.offset_parent_response = OffsetParentResponse::empty();
+                OffsetParentResponse::empty()
             }
         }
     }
@@ -1231,20 +1228,20 @@ impl LayoutTask {
         if let Some(mut root_flow) = rw_data.layout_root() {
             match data.query_type {
                 ReflowQueryType::ContentBoxQuery(node) =>
-                    process_content_box_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.content_box_response = process_content_box_request(node, &mut root_flow),
                 ReflowQueryType::ContentBoxesQuery(node) =>
-                    process_content_boxes_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow),
                 ReflowQueryType::NodeGeometryQuery(node) =>
-                    self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.client_rect_response = self.process_node_geometry_request(node, &mut root_flow),
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    self.process_resolved_style_request(node,
-                                                        pseudo,
-                                                        property,
-                                                        &mut root_flow,
-                                                        &mut rw_data)
+                    rw_data.resolved_style_response =
+                        self.process_resolved_style_request(node,
+                                                            pseudo,
+                                                            property,
+                                                            &mut root_flow)
                 }
                 ReflowQueryType::OffsetParentQuery(node) =>
-                    self.process_offset_parent_query(node, &mut root_flow, &mut rw_data),
+                    rw_data.offset_parent_response = self.process_offset_parent_query(node, &mut root_flow),
                 ReflowQueryType::NoQuery => {}
             }
         }
