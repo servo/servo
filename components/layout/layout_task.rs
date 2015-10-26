@@ -877,14 +877,14 @@ impl LayoutTask {
                                               traversal);
     }
 
-    fn process_node_geometry_request<'a>(&'a self,
-                                      requested_node: TrustedNodeAddress,
-                                      layout_root: &mut FlowRef,
-                                      rw_data: &mut RWGuard<'a>) {
+    fn process_node_geometry_request(&self,
+                                     requested_node: TrustedNodeAddress,
+                                     layout_root: &mut FlowRef)
+                                     -> Rect<i32> {
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = FragmentLocatingFragmentIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-        rw_data.client_rect_response = iterator.client_rect;
+        iterator.client_rect
     }
 
     /// Return the resolved value of property for a given (pseudo)element.
@@ -1232,7 +1232,7 @@ impl LayoutTask {
                 ReflowQueryType::ContentBoxesQuery(node) =>
                     process_content_boxes_request(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::NodeGeometryQuery(node) =>
-                    self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.client_rect_response = self.process_node_geometry_request(node, &mut root_flow),
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     rw_data.resolved_style_response =
                         self.process_resolved_style_request(node,
