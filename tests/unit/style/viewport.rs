@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Parser, SourcePosition};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
+use media_queries::CSSErrorReporterTest;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContext;
 use style::stylesheets::{Origin, Stylesheet, CSSRuleIteratorExt};
@@ -12,14 +13,15 @@ use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
+use style_traits::ParseErrorReporter;
 use style_traits::viewport::*;
 use url::Url;
 
 macro_rules! stylesheet {
-    ($css:expr, $origin:ident) => {
+        ($css:expr, $origin:ident, $error_reporter:expr) => {
         Stylesheet::from_str($css,
                              Url::parse("http://localhost").unwrap(),
-                             Origin::$origin);
+                             Origin::$origin, $error_reporter);
     }
 }
 
@@ -30,8 +32,8 @@ fn test_viewport_rule<F>(css: &str,
 {
     ::util::prefs::set_pref("layout.viewport.enabled",
                             ::util::prefs::PrefValue::Boolean(true));
-
-    let stylesheet = stylesheet!(css, Author);
+    let error_reporter = CSSErrorReporterTest;
+    let stylesheet = stylesheet!(css, Author, error_reporter.clone());
     let mut rule_count = 0;
     for rule in stylesheet.effective_rules(&device).viewport() {
         rule_count += 1;
@@ -247,11 +249,11 @@ fn multiple_stylesheets_cascading() {
     ::util::prefs::set_pref("layout.viewport.enabled",
                             ::util::prefs::PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
-
+    let error_reporter = CSSErrorReporterTest;
     let stylesheets = vec![
-        stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }", UserAgent),
-        stylesheet!("@viewport { min-width: 200px; min-height: 200px; }", User),
-        stylesheet!("@viewport { min-width: 300px; }", Author)];
+        stylesheet!("@viewport { min-width: 100px; min-height: 100px; zoom: 1; }", UserAgent, error_reporter.clone()),
+        stylesheet!("@viewport { min-width: 200px; min-height: 200px; }", User, error_reporter.clone()),
+        stylesheet!("@viewport { min-width: 300px; }", Author, error_reporter.clone())];
 
     let declarations = stylesheets.iter()
         .flat_map(|s| s.effective_rules(&device).viewport())
@@ -263,11 +265,11 @@ fn multiple_stylesheets_cascading() {
     assert_decl_eq!(&declarations[2], Author, MinWidth: viewport_length!(300., px));
 
     let stylesheets = vec![
-        stylesheet!("@viewport { min-width: 100px !important; }", UserAgent),
-        stylesheet!("@viewport { min-width: 200px !important; min-height: 200px !important; }", User),
-        stylesheet!(
-            "@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }", Author)];
-
+        stylesheet!("@viewport { min-width: 100px !important; }", UserAgent, error_reporter.clone()),
+        stylesheet!("@viewport { min-width: 200px !important; min-height: 200px !important; }",
+        User, error_reporter.clone()),
+        stylesheet!("@viewport { min-width: 300px !important; min-height: 300px !important; zoom: 3 !important; }",
+        Author, error_reporter.clone())];
     let declarations = stylesheets.iter()
         .flat_map(|s| s.effective_rules(&device).viewport())
         .cascade()
@@ -281,7 +283,8 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = Url::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url);
+    let error_reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, error_reporter.clone());
 
     macro_rules! from_css {
         ($css:expr) => {

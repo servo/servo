@@ -27,6 +27,7 @@ use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
 use style::properties::{ComputedValues, PropertyDeclaration, cascade};
 use style::selector_matching::{DeclarationBlock, Stylist};
+use style_traits::ParseErrorReporter;
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
@@ -467,16 +468,18 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                                         applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
-                                                        cached_computed_values);
+                                                        cached_computed_values,
+                                                        layout_context.error_reporter.clone());
                 cacheable = is_cacheable;
                 this_style = the_style
             }
             None => {
-                let (the_style, is_cacheable) = cascade(layout_context.viewport_size,
+            let (the_style, is_cacheable) = cascade(layout_context.screen_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         None,
-                                                        None);
+                                                        None,
+                                                        layout_context.error_reporter.clone());
                 cacheable = is_cacheable;
                 this_style = the_style
             }
