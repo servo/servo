@@ -261,8 +261,10 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
-    fn ToDataURL(&self, _context: *mut JSContext,
-                 _mime_type: Option<DOMString>, _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
+    fn ToDataURL(&self,
+                 _context: *mut JSContext,
+                 _mime_type: Option<DOMString>,
+                 _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
 
         // Step 1: Check the origin-clean flag (should be set in fillText/strokeText
         // and currently unimplemented)
