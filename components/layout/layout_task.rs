@@ -1228,7 +1228,7 @@ impl LayoutTask {
         if let Some(mut root_flow) = rw_data.layout_root() {
             match data.query_type {
                 ReflowQueryType::ContentBoxQuery(node) =>
-                    process_content_box_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.content_box_response = process_content_box_request(node, &mut root_flow),
                 ReflowQueryType::ContentBoxesQuery(node) =>
                     rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow),
                 ReflowQueryType::NodeGeometryQuery(node) =>
