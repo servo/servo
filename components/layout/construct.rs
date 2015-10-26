@@ -1659,7 +1659,9 @@ impl<'ln> ObjectElement<'ln> for ThreadSafeLayoutNode<'ln> {
     }
 }
 
-pub trait FlowConstructionUtils {
+// This must not be public because only the layout constructor can call these
+// methods.
+trait FlowConstructionUtils {
     /// Adds a new flow as a child of this flow. Removes the flow from the given leaf set if
     /// it's present.
     fn add_new_child(&mut self, new_child: FlowRef);
@@ -1675,8 +1677,6 @@ pub trait FlowConstructionUtils {
 
 impl FlowConstructionUtils for FlowRef {
     /// Adds a new flow as a child of this flow. Fails if this flow is marked as a leaf.
-    ///
-    /// This must not be public because only the layout constructor can do this.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
         {
             let kid_base = flow::mut_base(flow_ref::deref_mut(&mut new_child));
@@ -1694,8 +1694,6 @@ impl FlowConstructionUtils for FlowRef {
     ///
     /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
-    ///
-    /// This must not be public because only the layout constructor can do this.
     fn finish(&mut self) {
         if !opts::get().bubble_inline_sizes_separately {
             flow_ref::deref_mut(self).bubble_inline_sizes()
