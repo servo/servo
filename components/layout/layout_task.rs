@@ -1230,7 +1230,7 @@ impl LayoutTask {
                 ReflowQueryType::ContentBoxQuery(node) =>
                     process_content_box_request(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::ContentBoxesQuery(node) =>
-                    process_content_boxes_request(node, &mut root_flow, &mut rw_data),
+                    rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow),
                 ReflowQueryType::NodeGeometryQuery(node) =>
                     rw_data.client_rect_response = self.process_node_geometry_request(node, &mut root_flow),
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {

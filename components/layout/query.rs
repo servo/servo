@@ -295,13 +295,13 @@ pub fn process_content_box_request<'a>(requested_node: TrustedNodeAddress,
     };
 }
 
-pub fn process_content_boxes_request<'a>(requested_node: TrustedNodeAddress,
-                                         layout_root: &mut FlowRef,
-                                         rw_data: &mut RWGuard<'a>) {
+pub fn process_content_boxes_request(requested_node: TrustedNodeAddress,
+                                     layout_root: &mut FlowRef)
+                                     -> Vec<Rect<Au>> {
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    rw_data.content_boxes_response = iterator.rects;
+    iterator.rects
 }
