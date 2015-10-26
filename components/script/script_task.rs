@@ -20,7 +20,7 @@
 use devtools;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use document_loader::{DocumentLoader, LoadType, NotifierData};
+use document_loader::{DocumentLoader, LoadType};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::conversions::{Castable, FromJSValConvertible, StringificationBehavior};
@@ -1614,15 +1614,8 @@ impl ScriptTask {
             _ => None
         };
 
-        let notifier_data =  {
-            let MainThreadScriptChan(ref sender) = self.chan;
-            NotifierData {
-                script_chan: sender.clone(),
-                pipeline: page.pipeline(),
-            }
-        };
         let loader = DocumentLoader::new_with_task(self.resource_task.clone(),
-                                                   Some(notifier_data),
+                                                   Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
         let document = Document::new(window.r(),
                                      Some(final_url.clone()),

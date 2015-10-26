@@ -8,9 +8,7 @@
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
 use net_traits::{Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
-use script_task::MainThreadScriptMsg;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 use url::Url;
 
 #[derive(JSTraceable, PartialEq, Clone, Debug, HeapSizeOf)]
@@ -40,15 +38,9 @@ pub struct DocumentLoader {
     /// are lots of iframes.
     #[ignore_heap_size_of = "channels are hard"]
     pub resource_task: Arc<ResourceTask>,
-    pub notifier_data: Option<NotifierData>,
+    pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct NotifierData {
-    #[ignore_heap_size_of = "trait objects are hard"]
-    pub script_chan: Sender<MainThreadScriptMsg>,
-    pub pipeline: PipelineId,
+    events_inhibited: bool,
 }
 
 impl DocumentLoader {
@@ -59,15 +51,16 @@ impl DocumentLoader {
     /// We use an `Arc<ResourceTask>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
     pub fn new_with_task(resource_task: Arc<ResourceTask>,
-                         data: Option<NotifierData>,
+                         pipeline: Option<PipelineId>,
                          initial_load: Option<Url>)
                          -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
             resource_task: resource_task,
-            notifier_data: data,
+            pipeline: pipeline,
             blocking_loads: initial_loads,
+            events_inhibited: false,
         }
     }
 
@@ -76,8 +69,7 @@ impl DocumentLoader {
     pub fn prepare_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         let url = load.url().clone();
         self.blocking_loads.push(load);
-        let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
-        PendingAsyncLoad::new((*self.resource_task).clone(), url, pipeline)
+        PendingAsyncLoad::new((*self.resource_task).clone(), url, self.pipeline)
     }
 
     /// Create and initiate a new network request.
@@ -106,6 +98,9 @@ impl DocumentLoader {
     }
 
     pub fn inhibit_events(&mut self) {
-        self.notifier_data = None;
+        self.events_inhibited = true;
+    }
+    pub fn events_inhibited(&self) -> bool {
+        self.events_inhibited
     }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::{DocumentLoader, LoadType, NotifierData};
+use document_loader::{DocumentLoader, LoadType};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -105,6 +105,11 @@ use util::str::{DOMString, split_html_space_chars, str_join};
 pub enum IsHTMLDocument {
     HTMLDocument,
     NonHTMLDocument,
+}
+
+enum ParserBlockedByScript {
+    Blocked,
+    Unblocked,
 }
 
 // https://dom.spec.whatwg.org/#document
@@ -1026,9 +1031,9 @@ impl Document {
             self.process_asap_scripts();
         }
 
-        let still_blocked = self.maybe_execute_parser_blocking_script();
-        if still_blocked {
-            return;
+        match self.maybe_execute_parser_blocking_script() {
+            ParserBlockedByScript::Blocked => return,
+            ParserBlockedByScript::Unblocked => {},
         }
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
@@ -1040,19 +1045,18 @@ impl Document {
         }
 
         let loader = self.loader.borrow();
-        if let Some(NotifierData { ref script_chan, pipeline }) = loader.notifier_data {
-            if !loader.is_blocked() {
-                script_chan.send(MainThreadScriptMsg::DocumentLoadsComplete(pipeline)).unwrap();
-            }
+        if !loader.is_blocked() && !loader.events_inhibited() {
+            let win = self.window();
+            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline());
+            win.main_thread_script_chan().send(msg).unwrap();
         }
     }
 
     /// If document parsing is blocked on a script, and that script is ready to run,
     /// executed it.
-    /// Returns true if the document is still blocked on a script, false otherwise.
-    fn maybe_execute_parser_blocking_script(&self) -> bool {
+    fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
         let script = match self.pending_parsing_blocking_script.get_rooted() {
-            None => return false,
+            None => return ParserBlockedByScript::Unblocked,
             Some(script) => script,
         };
 
@@ -1060,9 +1064,9 @@ impl Document {
            script.r().is_ready_to_be_executed() {
             script.r().execute();
             self.pending_parsing_blocking_script.set(None);
-            return false;
+            return ParserBlockedByScript::Unblocked;
         }
-        true
+        ParserBlockedByScript::Blocked
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3

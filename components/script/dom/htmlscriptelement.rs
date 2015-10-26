@@ -118,9 +118,9 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
-no_jsmanaged_fields!(ScriptOrigin);
+no_jsmanaged_fields!(Metadata);
 
-#[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(String, Url),
     External(Result<(Metadata, Vec<u8>), String>),
