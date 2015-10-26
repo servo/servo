@@ -887,15 +887,14 @@ impl LayoutTask {
         rw_data.client_rect_response = iterator.client_rect;
     }
 
-    // Compute the resolved value of property for a given (pseudo)element.
-    // Stores the result in rw_data.resolved_style_response.
-    // https://drafts.csswg.org/cssom/#resolved-value
-    fn process_resolved_style_request<'a>(&'a self,
-                                          requested_node: TrustedNodeAddress,
-                                          pseudo: &Option<PseudoElement>,
-                                          property: &Atom,
-                                          layout_root: &mut FlowRef,
-                                          rw_data: &mut RWGuard<'a>) {
+    /// Return the resolved value of property for a given (pseudo)element.
+    /// https://drafts.csswg.org/cssom/#resolved-value
+    fn process_resolved_style_request(&self,
+                                      requested_node: TrustedNodeAddress,
+                                      pseudo: &Option<PseudoElement>,
+                                      property: &Atom,
+                                      layout_root: &mut FlowRef)
+                                      -> Option<String> {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
@@ -918,8 +917,7 @@ impl LayoutTask {
                 // The pseudo doesn't exist, return nothing.  Chrome seems to query
                 // the element itself in this case, Firefox uses the resolved value.
                 // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
-                rw_data.resolved_style_response = None;
-                return;
+                return None;
             }
             Some(layout_node) => layout_node
         };
@@ -970,7 +968,7 @@ impl LayoutTask {
                                                                    style.writing_mode);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                iterator.result.map(|r| r.to_css_string())
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
@@ -1003,14 +1001,13 @@ impl LayoutTask {
                                                                      position);
                 sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                             &mut iterator);
-                rw_data.resolved_style_response = iterator.result.map(|r| r.to_css_string());
+                iterator.result.map(|r| r.to_css_string())
             },
             // FIXME: implement used value computation for line-height
             ref property => {
-                rw_data.resolved_style_response =
-                    style.computed_value_to_string(property.as_slice()).ok();
+                style.computed_value_to_string(property.as_slice()).ok()
             }
-        };
+        }
     }
 
     fn process_offset_parent_query(&self,
@@ -1237,11 +1234,11 @@ impl LayoutTask {
                 ReflowQueryType::NodeGeometryQuery(node) =>
                     self.process_node_geometry_request(node, &mut root_flow, &mut rw_data),
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
-                    self.process_resolved_style_request(node,
-                                                        pseudo,
-                                                        property,
-                                                        &mut root_flow,
-                                                        &mut rw_data)
+                    rw_data.resolved_style_response =
+                        self.process_resolved_style_request(node,
+                                                            pseudo,
+                                                            property,
+                                                            &mut root_flow)
                 }
                 ReflowQueryType::OffsetParentQuery(node) =>
                     rw_data.offset_parent_response = self.process_offset_parent_query(node, &mut root_flow),
