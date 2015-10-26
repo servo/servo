@@ -221,13 +221,14 @@ impl PositionRetrievingFragmentBorderBoxIterator {
 }
 
 impl FragmentBorderBoxIterator for PositionRetrievingFragmentBorderBoxIterator {
-    fn process(&mut self, _: &Fragment, _: i32, border_box: &Rect<Au>) {
+    fn process(&mut self, fragment: &Fragment, _: i32, border_box: &Rect<Au>) {
+        let border_padding = fragment.border_padding.to_physical(fragment.style.writing_mode);
         self.result =
             Some(match self.property {
                      PositionProperty::Left => self.position.x,
                      PositionProperty::Top => self.position.y,
-                     PositionProperty::Width => border_box.size.width,
-                     PositionProperty::Height => border_box.size.height,
+                     PositionProperty::Width => border_box.size.width - border_padding.horizontal(),
+                     PositionProperty::Height => border_box.size.height - border_padding.vertical(),
                      // TODO: the following 2 calculations are completely wrong.
                      // They should return the difference between the parent's and this
                      // fragment's border boxes.

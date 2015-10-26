@@ -24,7 +24,7 @@
                 assert_equals(cs.getPropertyValue("top"), "auto");
                 assert_equals(cs.getPropertyValue("bottom"), "auto");
                 assert_equals(cs.getPropertyValue("width"), "50px");
-                assert_equals(cs.getPropertyValue("height"), "auto");
+                assert_equals(cs.getPropertyValue("height"), "0px");
                 assert_equals(cs.getPropertyValue("color"), "rgb(0, 0, 0)");
             }, "Element's resolved values");
 
@@ -43,8 +43,8 @@
             test(function() {
                 var div = document.createElement("div");
                 div.id = "foo";
-                assert_equals(getComputedStyle(div).getPropertyValue("width"), "");
-            }, "Blank style for elements not in a document");
+                assert_equals(getComputedStyle(div).getPropertyValue("width"), "50px");
+            }, "getComputedStyle work for elements not in a document");
 
         </script>
     </body>
