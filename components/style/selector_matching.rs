@@ -14,12 +14,14 @@ use selectors::parser::PseudoElement;
 use selectors::states::*;
 use smallvec::VecLike;
 use std::process;
+use style_traits::ParseErrorReporter;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
 use util::opts;
 use util::resource_files::read_resource_file;
 use viewport::{MaybeNew, ViewportRuleCascade};
+
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
@@ -100,9 +102,10 @@ pub struct Stylist {
 
 impl Stylist {
     #[inline]
-    pub fn new(device: Device) -> Stylist {
-        let stylist = Stylist {
-            viewport_constraints: None,
+
+    pub fn new(device: Device, error_reporter: Box<ParseErrorReporter + Send>) -> Stylist {
+        let mut stylist = Stylist {
+            stylesheets: vec!(),
             device: device,
             is_device_dirty: true,
             quirks_mode: false,
@@ -114,6 +117,30 @@ impl Stylist {
             state_deps: DependencySet::new(),
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
+        // FIXME: presentational-hints.css should be at author origin with zero specificity.
+        //        (Does it make a difference?)
+        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
+            match read_resource_file(&[filename]) {
+                Ok(res) => {
+                    let ua_stylesheet = Stylesheet::from_bytes(
+                        &res,
+                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
+                        None,
+                        None,
+                        Origin::UserAgent,
+                        error_reporter.clone());
+                    stylist.add_stylesheet(ua_stylesheet);
+                }
+                Err(..) => {
+                    error!("Stylist::new() failed at loading {}!", filename);
+                    process::exit(1);
+                }
+            }
+        }
+        for &(ref contents, ref url) in &opts::get().user_stylesheets {
+            stylist.add_stylesheet(Stylesheet::from_bytes(
+                &contents, url.clone(), None, None, Origin::User, error_reporter.clone()));
+        }
         stylist
     }
 
@@ -232,8 +259,22 @@ impl Stylist {
         self.is_device_dirty |= is_device_dirty;
     }
 
-    pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
-        &self.viewport_constraints
+    pub fn add_quirks_mode_stylesheet(&mut self, error_reporter: Box<ParseErrorReporter + Send>) {
+        match read_resource_file(&["quirks-mode.css"]) {
+            Ok(res) => {
+            self.add_stylesheet(Stylesheet::from_bytes(
+                &res,
+                Url::parse("chrome:///quirks-mode.css").unwrap(),
+                None,
+                None,
+                Origin::UserAgent,
+                error_reporter));
+            }
+            Err(..) => {
+                error!("Stylist::add_quirks_mode_stylesheet() failed at loading 'quirks-mode.css'!");
+                process::exit(1);
+            }
+        }
     }
 
     pub fn set_quirks_mode(&mut self, enabled: bool) {

@@ -79,7 +79,8 @@ use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
+use style::values::specified::{self, CSSColor, CSSRGBA};
+use style_traits::ParseErrorReporter;
 use url::UrlParser;
 use util::mem::HeapSizeOf;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -1507,12 +1508,13 @@ impl VirtualMethods for Element {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
-        match attr.local_name() {
+        let damage = match attr.local_name() {
             &atom!(style) => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
-                        parse_style_attribute(&value, &doc.base_url())
+                        let win = window_from_node(self);
+                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter())
                     });
                 if node.is_in_doc() {
                     doc.content_changed(node, NodeDamage::NodeStyleDamaged);
