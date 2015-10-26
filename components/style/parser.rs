@@ -18,8 +18,7 @@ pub struct ParserContext<'a> {
 }
 
 impl<'a> ParserContext<'a> {
-    pub fn new(stylesheet_origin: Origin, base_url: &'a Url, error_reporter: &'a (ParseErrorReporter + 'a)) 
-               -> ParserContext<'a> {
+pub fn new(stylesheet_origin: Origin, base_url:&'a Url, error_reporter:&'a(ParseErrorReporter + 'a))->ParserContext<'a>{
         let mut selector_context = SelectorParserContext::new();
         selector_context.in_user_agent_stylesheet = stylesheet_origin == Origin::UserAgent;
         ParserContext {
