@@ -43,8 +43,8 @@
             test(function() {
                 var div = document.createElement("div");
                 div.id = "foo";
-                assert_equals(getComputedStyle(div).getPropertyValue("width"), "");
-            }, "Blank style for elements not in a document");
+                assert_equals(getComputedStyle(div).getPropertyValue("width"), "50px");
+            }, "getComputedStyle work for elements not in a document");
 
         </script>
     </body>
