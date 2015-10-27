@@ -22,12 +22,12 @@ use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net_traits::{LoadData, CookieSource};
+use self::msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, mpsc, RwLock};
 use url::Url;
-use self::msg::constellation_msg::PipelineId;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
@@ -385,7 +385,7 @@ fn test_request_and_response_data_with_network_messages() {
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
-    let optional: Option<PipelineId> = Some(pipeline_id);	
+    let optional: Option<PipelineId> = Some(pipeline_id);
     let mut load_data = LoadData::new(url.clone(), optional);
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
@@ -397,7 +397,7 @@ fn test_request_and_response_data_with_network_messages() {
     let devhttprequest = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
-	//Creating default headers for request	
+    //Creating default headers for request
     let mut headers = Headers::new();
     headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
@@ -415,7 +415,7 @@ fn test_request_and_response_data_with_network_messages() {
         method: Method::Get,
         headers: headers,
         body: None,
-	    pipeline_id: pipeline_id,		
+        pipeline_id: pipeline_id,
     };
 
     let content = "Yay!";
@@ -426,8 +426,8 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
-        body: None,	
-	    pipeline_id: pipeline_id,	
+        body: None,
+        pipeline_id: pipeline_id,
     };
 
     assert_eq!(devhttprequest, httprequest);
@@ -455,7 +455,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-	let optional: Option<PipelineId> = None;
+    let optional: Option<PipelineId> = None;
     let mut load_data = LoadData::new(url.clone(), optional);
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
@@ -465,9 +465,9 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     // notification received from devtools
 
-	 match devtools_port.try_recv() {
-        Ok(_) => {panic!("Devtools should not have returned any notifications");},
-        Err(e) => {e}
+    match devtools_port.try_recv() {
+        Ok(_) => { panic!("Devtools should not have returned any notifications"); },
+        Err(e) => { e }
     };
 }
 
