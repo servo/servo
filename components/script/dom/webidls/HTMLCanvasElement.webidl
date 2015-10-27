@@ -18,6 +18,7 @@ interface HTMLCanvasElement : HTMLElement {
   //void setContext(RenderingContext context);
   //CanvasProxy transferControlToProxy();
 
-  //DOMString toDataURL(optional DOMString type, any... arguments);
+  [Throws]
+  DOMString toDataURL(optional DOMString type, any... arguments);
   //void toBlob(FileCallback? _callback, optional DOMString type, any... arguments);
 };

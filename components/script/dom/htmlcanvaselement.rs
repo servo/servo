@@ -5,13 +5,16 @@
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
 use dom::bindings::conversions::Castable;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
+use dom::bindings::num::Finite;
 use dom::bindings::utils::{Reflectable};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
@@ -21,9 +24,12 @@ use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
 use euclid::size::Size2D;
+use image::ColorType;
+use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
+use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::cell::Cell;
 use std::iter::repeat;
 use util::str::{DOMString, parse_unsigned_integer};
@@ -244,6 +250,44 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                     .map(CanvasRenderingContext2DOrWebGLRenderingContext::eWebGLRenderingContext)
             }
             _ => None
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
+    fn ToDataURL(&self,
+                 _context: *mut JSContext,
+                 _mime_type: Option<DOMString>,
+                 _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
+
+        // Step 1: Check the origin-clean flag (should be set in fillText/strokeText
+        // and currently unimplemented)
+
+        // Step 2.
+        if self.Width() == 0 || self.Height() == 0 {
+            return Ok("data:,".to_owned());
+        }
+
+        // Step 3.
+        if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+            let window = window_from_node(self);
+            let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
+                                                       Finite::wrap(self.Width() as f64),
+                                                       Finite::wrap(self.Height() as f64)));
+            let raw_data = image_data.get_data_array(&GlobalRef::Window(window.r()));
+
+            // Only handle image/png for now.
+            let mime_type = "image/png";
+
+            let mut encoded = Vec::new();
+            {
+                let encoder: PNGEncoder<&mut Vec<u8>> = PNGEncoder::new(&mut encoded);
+                encoder.encode(&raw_data, self.Width(), self.Height(), ColorType::RGBA(8)).unwrap();
+            }
+
+            let encoded = encoded.to_base64(STANDARD);
+            Ok(format!("data:{};base64,{}", mime_type, encoded))
+        } else {
+            Err(Error::NotSupported)
         }
     }
 }
