@@ -6,7 +6,7 @@
 
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::global_object_for_js_object;
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::{Heap, MutableHandleObject, RootedObject, RootedValue};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};

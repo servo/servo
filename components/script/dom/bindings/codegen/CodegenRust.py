@@ -5197,6 +5197,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::global::global_object_for_js_object',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
+            'dom::bindings::reflector::{Reflectable}',
             'dom::bindings::utils::{create_dom_global, do_create_interface_objects}',
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
@@ -5206,7 +5207,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{finalize_global, trace_global}',
             'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
-            'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::set_dictionary_property',
@@ -5915,10 +5915,11 @@ class GlobalGenRoots():
 
         descriptors = config.getDescriptors(register=True, isCallback=False)
         imports = [CGGeneric("use dom::types::*;\n"),
-                   CGGeneric("use dom::bindings::conversions::{Castable, DerivedFrom, get_dom_class};\n"),
+                   CGGeneric("use dom::bindings::conversions::{DerivedFrom, get_dom_class};\n"),
+                   CGGeneric("use dom::bindings::inheritance::Castable;\n"),
                    CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
-                   CGGeneric("use dom::bindings::utils::Reflectable;\n"),
+                   CGGeneric("use dom::bindings::reflector::Reflectable;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),
                    CGGeneric("use std::mem;\n\n")]
         allprotos = []

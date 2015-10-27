@@ -7,7 +7,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use std::borrow::ToOwned;
 use std::cell::RefCell;

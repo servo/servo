@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 

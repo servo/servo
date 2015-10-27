@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLS
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use encoding::types::EncodingRef;
 use url::form_urlencoded::{parse, serialize_with_encoding};
 use util::str::DOMString;

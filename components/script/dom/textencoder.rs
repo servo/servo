@@ -8,7 +8,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::EncodingRef;
 use encoding::{EncoderTrap, Encoding};

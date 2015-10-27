@@ -10,7 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{AttributeMutation, Element};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::vtable_for;

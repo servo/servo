@@ -39,7 +39,7 @@ use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
 use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
 use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
-use script::dom::bindings::conversions::Castable;
+use script::dom::bindings::inheritance::Castable;
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};

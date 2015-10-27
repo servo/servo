@@ -25,7 +25,8 @@
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_reflector;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::reflector::Reflector;
+use dom::bindings::reflector::Reflectable;
 use js::jsapi::{JSContext, JSTracer};
 use libc;
 use script_task::{CommonScriptMsg, ScriptChan};

@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::TouchListBinding;
 use dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::touch::Touch;
 use dom::window::Window;
 

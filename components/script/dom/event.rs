@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use std::borrow::ToOwned;
 use std::cell::Cell;

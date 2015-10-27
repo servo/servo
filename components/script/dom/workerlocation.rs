@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMetho
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::str::USVString;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 use url::Url;

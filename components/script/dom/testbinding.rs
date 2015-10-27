@@ -18,7 +18,7 @@ use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
-use dom::bindings::utils::Reflector;
+use dom::bindings::reflector::Reflector;
 use dom::blob::Blob;
 use js::jsapi::{HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};

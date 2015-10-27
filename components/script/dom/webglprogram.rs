@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;

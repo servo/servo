@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;

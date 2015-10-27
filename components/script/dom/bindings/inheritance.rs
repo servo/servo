@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! The `Castable` trait.
+
 use dom::bindings::conversions::get_dom_class;
 use dom::bindings::conversions::{DerivedFrom, IDLInterface};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use std::mem;
 
 /// A trait to hold the cast functions of IDL interfaces that either derive

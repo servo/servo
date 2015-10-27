@@ -13,7 +13,7 @@ use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;

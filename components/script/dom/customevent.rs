@@ -9,7 +9,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutHeapJSVal, Root};
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;

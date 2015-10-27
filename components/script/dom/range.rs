@@ -15,7 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;

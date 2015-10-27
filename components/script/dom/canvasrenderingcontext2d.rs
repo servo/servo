@@ -19,7 +19,7 @@ use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::node::{ChildrenMutation, Node};
 use dom::window::Window;
 use std::cell::Cell;

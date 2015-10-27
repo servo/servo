@@ -11,7 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;

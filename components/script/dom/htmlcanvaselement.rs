@@ -14,7 +14,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflectable};
+use dom::bindings::reflector::Reflectable;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};

@@ -35,7 +35,8 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, Repetiti
 use cssparser::RGBA;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
+use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::utils::WindowProxyHandler;
 use encoding::types::EncodingRef;
 use euclid::length::Length as EuclidLength;
 use euclid::matrix2d::Matrix2D;

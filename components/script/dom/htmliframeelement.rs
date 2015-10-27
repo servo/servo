@@ -11,7 +11,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{self, AttributeMutation, Element};
