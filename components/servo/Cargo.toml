@@ -114,6 +114,10 @@ optional = true
 path = "../../support/android-rs-glue/glue"
 optional = true
 
+[dependencies.log]
+version = "0.3"
+features = ["release_max_level_info"]
+
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
