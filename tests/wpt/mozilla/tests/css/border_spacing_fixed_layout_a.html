@@ -5,6 +5,7 @@
     Tests that `border-spacing` with automatic table layout works when not all the column sizes
     are specified.
 -->
+<link rel=match href=border_spacing_ref.html>
 <style>
 body, html {
     margin: 0;
@@ -14,6 +15,7 @@ table {
     border-spacing: 6px;
     padding: 0;
     width: 114px;
+    table-layout: fixed;
 }
 tr {
     padding: 0;

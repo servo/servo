@@ -791,6 +791,18 @@
             "url": "/_mozilla/css/border_spacing_a.html"
           }
         ],
+        "css/border_spacing_auto_layout_a.html": [
+          {
+            "path": "css/border_spacing_auto_layout_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_spacing_auto_layout_a.html"
+          }
+        ],
         "css/border_spacing_empty_table.html": [
           {
             "path": "css/border_spacing_empty_table.html",
@@ -801,6 +813,18 @@
               ]
             ],
             "url": "/_mozilla/css/border_spacing_empty_table.html"
+          }
+        ],
+        "css/border_spacing_fixed_layout_a.html": [
+          {
+            "path": "css/border_spacing_fixed_layout_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_spacing_fixed_layout_a.html"
           }
         ],
         "css/border_style_none_a.html": [
@@ -815,6 +839,18 @@
             "url": "/_mozilla/css/border_style_none_a.html"
           }
         ],
+        "css/borders_a.html": [
+          {
+            "path": "css/borders_a.html",
+            "references": [
+              [
+                "/_mozilla/css/borders_b.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/borders_a.html"
+          }
+        ],
         "css/box_shadow_bg.html": [
           {
             "path": "css/box_shadow_bg.html",
@@ -827,6 +863,18 @@
             "url": "/_mozilla/css/box_shadow_bg.html"
           }
         ],
+        "css/box_shadow_blur_a.html": [
+          {
+            "path": "css/box_shadow_blur_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_blur_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_blur_a.html"
+          }
+        ],
         "css/box_shadow_border_box_a.html": [
           {
             "path": "css/box_shadow_border_box_a.html",
@@ -837,6 +885,18 @@
               ]
             ],
             "url": "/_mozilla/css/box_shadow_border_box_a.html"
+          }
+        ],
+        "css/box_shadow_default_color_a.html": [
+          {
+            "path": "css/box_shadow_default_color_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_default_color_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_default_color_a.html"
           }
         ],
         "css/box_shadow_inset_bg.html": [
@@ -899,6 +959,18 @@
             "url": "/_mozilla/css/br.html"
           }
         ],
+        "css/button_css_width.html": [
+          {
+            "path": "css/button_css_width.html",
+            "references": [
+              [
+                "/_mozilla/css/button_css_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/button_css_width.html"
+          }
+        ],
         "css/calc-basic.html": [
           {
             "path": "css/calc-basic.html",
@@ -945,18 +1017,6 @@
               ]
             ],
             "url": "/_mozilla/css/case-insensitive-font-family.html"
-          }
-        ],
-        "css/button_css_width.html": [
-          {
-            "path": "css/button_css_width.html",
-            "references": [
-              [
-                "/_mozilla/css/button_css_width_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/button_css_width.html"
           }
         ],
         "css/class-namespaces.html": [
@@ -5328,6 +5388,18 @@
           "url": "/_mozilla/css/border_spacing_a.html"
         }
       ],
+      "css/border_spacing_auto_layout_a.html": [
+        {
+          "path": "css/border_spacing_auto_layout_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_spacing_auto_layout_a.html"
+        }
+      ],
       "css/border_spacing_empty_table.html": [
         {
           "path": "css/border_spacing_empty_table.html",
@@ -5338,6 +5410,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_spacing_empty_table.html"
+        }
+      ],
+      "css/border_spacing_fixed_layout_a.html": [
+        {
+          "path": "css/border_spacing_fixed_layout_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_spacing_fixed_layout_a.html"
         }
       ],
       "css/border_style_none_a.html": [
@@ -5352,6 +5436,18 @@
           "url": "/_mozilla/css/border_style_none_a.html"
         }
       ],
+      "css/borders_a.html": [
+        {
+          "path": "css/borders_a.html",
+          "references": [
+            [
+              "/_mozilla/css/borders_b.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/borders_a.html"
+        }
+      ],
       "css/box_shadow_bg.html": [
         {
           "path": "css/box_shadow_bg.html",
@@ -5364,6 +5460,18 @@
           "url": "/_mozilla/css/box_shadow_bg.html"
         }
       ],
+      "css/box_shadow_blur_a.html": [
+        {
+          "path": "css/box_shadow_blur_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_blur_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_blur_a.html"
+        }
+      ],
       "css/box_shadow_border_box_a.html": [
         {
           "path": "css/box_shadow_border_box_a.html",
@@ -5374,6 +5482,18 @@
             ]
           ],
           "url": "/_mozilla/css/box_shadow_border_box_a.html"
+        }
+      ],
+      "css/box_shadow_default_color_a.html": [
+        {
+          "path": "css/box_shadow_default_color_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_default_color_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_default_color_a.html"
         }
       ],
       "css/box_shadow_inset_bg.html": [
@@ -5436,6 +5556,18 @@
           "url": "/_mozilla/css/br.html"
         }
       ],
+      "css/button_css_width.html": [
+        {
+          "path": "css/button_css_width.html",
+          "references": [
+            [
+              "/_mozilla/css/button_css_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/button_css_width.html"
+        }
+      ],
       "css/calc-basic.html": [
         {
           "path": "css/calc-basic.html",
@@ -5482,18 +5614,6 @@
             ]
           ],
           "url": "/_mozilla/css/case-insensitive-font-family.html"
-        }
-      ],
-      "css/button_css_width.html": [
-        {
-          "path": "css/button_css_width.html",
-          "references": [
-            [
-              "/_mozilla/css/button_css_width_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/button_css_width.html"
         }
       ],
       "css/class-namespaces.html": [
