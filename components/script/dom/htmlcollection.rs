@@ -39,7 +39,7 @@ impl HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             root: JS::from_ref(root),
-	    filter: filter,
+            filter: filter,
             cached_version: Cell::new(root.get_descendents_version()),
             cached_length: Cell::new(u32::max_value()),
             cached_cursor_element: MutNullableHeap::new(None),
@@ -71,46 +71,46 @@ impl HTMLCollection {
 
     fn get_length(&self) -> u32 {
         let cached_length = self.cached_length.get();
-	if cached_length == u32::max_value() {
-	    let length = self.elements_iter().count() as u32;
-	    self.cached_length.set(length);
-	    length
-	} else {
-	    cached_length
-	}
+        if cached_length == u32::max_value() {
+            let length = self.elements_iter().count() as u32;
+            self.cached_length.set(length);
+            length
+        } else {
+            cached_length
+        }
     }
 
     fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
         if let Some(element) = element {
-	    self.cached_cursor_index.set(index);
-	    self.cached_cursor_element.set(Some(element.r()));
-	    Some(element)
-	} else {
-	    None
-	}
+            self.cached_cursor_index.set(index);
+            self.cached_cursor_element.set(Some(element.r()));
+            Some(element)
+        } else {
+            None
+        }
     }
     
     fn get_item(&self, index: u32) -> Option<Root<Element>> {
         let cached_length = self.cached_length.get();
         if let Some(element) = self.cached_cursor_element.get() {
-	    let cached_index = self.cached_cursor_index.get();
-	    if cached_index == index {
-	        Some(element)
-	    } else if cached_index < index {
-	        let offset = index - (cached_index + 1);
-		let node = NodeCast::from_root(element);
-		self.set_cached_cursor(index, self.elements_iter_after(&*node).nth(offset as usize))
-	    } else {
-	        let offset = cached_index - (index + 1);
-		let node = NodeCast::from_root(element);
-		self.set_cached_cursor(index, self.elements_iter_reverse_before(&*node).nth(offset as usize))
-	    }
-	} else if (index < (cached_length - index)) {
+            let cached_index = self.cached_cursor_index.get();
+            if cached_index == index {
+                Some(element)
+            } else if cached_index < index {
+                let offset = index - (cached_index + 1);
+                let node: Root<Node> = Root::upcast(element);
+                self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
+            } else {
+                let offset = cached_index - (index + 1);
+                let node: Root<Node> = Root::upcast(element);
+                self.set_cached_cursor(index, self.elements_iter_reverse_before(node.r()).nth(offset as usize))
+            }
+        } else if (index < (cached_length - index)) {
             self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
-	} else {
-	    let offset = cached_length - (index + 1);
+        } else {
+            let offset = cached_length - (index + 1);
             self.set_cached_cursor(index, self.elements_iter_reverse().nth(offset as usize))
-	}
+        }
     }
 
     fn all_elements(window: &Window, root: &Node,
@@ -238,7 +238,7 @@ impl HTMLCollection {
     pub fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
         HTMLCollectionElementsIter {
             node_iter: after.following_nodes(&*self.root),
-	    root: self.root.root(),
+            root: self.root.root(),
             filter: &self.filter,
         }
     }
@@ -250,7 +250,7 @@ impl HTMLCollection {
     pub fn elements_iter_reverse_before(&self, before: &Node) -> HTMLCollectionElementsRevIter {
         HTMLCollectionElementsRevIter {
             node_iter: before.following_nodes_reverse(&*self.root),
-	    root: self.root.root(),
+            root: self.root.root(),
             filter: &self.filter,
         }
     }
@@ -272,8 +272,8 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let ref filter = self.filter;
-	let ref root = self.root;
-        self.node_iter.by_ref()
+        let ref root = self.root;
+        self.node_iter.by_ref() 
                       .filter_map(Root::downcast)
                       .filter(|element| filter.filter(&element, root))
                       .next()
@@ -310,7 +310,7 @@ impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let ref filter = self.filter;
-	let ref root = self.root;
+        let ref root = self.root;
         self.node_iter.by_ref()
             .filter_map(ElementCast::to_root)
             .filter(|element| filter.filter(element.r(), root.r()))
@@ -322,13 +322,13 @@ impl HTMLCollectionMethods for HTMLCollection {
     // https://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(&self) -> u32 {
         self.validate_cache();
-	self.get_length()
+        self.get_length()
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(&self, index: u32) -> Option<Root<Element>> {
         self.validate_cache();
-	self.get_item(index)
+        self.get_item(index)
     }
 
     // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
