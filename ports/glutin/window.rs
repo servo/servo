@@ -204,17 +204,7 @@ impl Window {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
-
-                if !self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL) {
-                    self.scroll_window(dx, dy);
-                } else {
-                    let factor = if dy > 0. {
-                        1.1
-                    } else {
-                        1.0 / 1.1
-                    };
-                    self.pinch_zoom(factor);
-                }
+                self.scroll_window(dx, dy);
             },
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
@@ -232,10 +222,6 @@ impl Window {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
-    }
-
-    fn pinch_zoom(&self, factor: f32) {
-        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(factor));
     }
 
     /// Helper function to send a scroll event.
@@ -645,12 +631,23 @@ impl WindowMethods for Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
 
+        // This is prefixed with _ because the compiler will consider it unused otherwise.
+        // It isn't a constant because the compiler does not allow user-defined operations
+        // in constants.
+        let _control_and_alt = CMD_OR_CONTROL | ALT;
         match (mods, key) {
-            (_, Key::Equal) if mods & !SHIFT == CMD_OR_CONTROL => {
-                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+            (_, Key::Equal) => {
+                if mods & !SHIFT == CMD_OR_CONTROL {
+                    self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+                } else if mods & !SHIFT == _control_and_alt {
+                    self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
+                }
             }
             (CMD_OR_CONTROL, Key::Minus) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
+            }
+            (_control_and_alt, Key::Minus) => {
+                self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Key::Num0) |
             (CMD_OR_CONTROL, Key::Kp0) => {
