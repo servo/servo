@@ -498,12 +498,12 @@ impl Node {
     pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
 
         // 0. Set version counter
-	let doc: Root<Node> = Root::upcast(self.owner_doc());
-	let version = max(self.get_inclusive_descendents_version(), doc.get_descendents_version()) + 1;
-	self.version.set(version);
+        let doc: Root<Node> = Root::upcast(self.owner_doc());
+        let version = max(self.get_inclusive_descendents_version(), doc.get_descendents_version()) + 1;
+        self.version.set(version);
         for ancestor in self.ancestors() {
-	    ancestor.descendents_version.set(version);
-	}
+            ancestor.descendents_version.set(version);
+        }
         doc.descendents_version.set(version);
 
         // 1. Dirty self.
@@ -1418,8 +1418,8 @@ impl Node {
             child_list: Default::default(),
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
-	    version: Cell::new(0),
-	    descendents_version: Cell::new(0),
+            version: Cell::new(0),
+            descendents_version: Cell::new(0),
 
             layout_data: LayoutDataRef::new(),
 
