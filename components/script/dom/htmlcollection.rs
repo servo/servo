@@ -14,7 +14,7 @@ use dom::node::{Node, FollowingNodeIterator, FollowingNodeReverseIterator};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, Namespace, QualName};
 use util::str::{DOMString, split_html_space_chars};
 
 pub trait CollectionFilter : JSTraceable {
@@ -141,16 +141,6 @@ impl HTMLCollection {
     
     pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
                        -> Root<HTMLCollection> {
-
-        // Can this be lifted out of this function?
-        // const STAR = atom!("*");
-	// results in "error: statics are not allowed to have destructors [E0493]"
-        let STAR = atom!("*");
-
-        if tag_atom == STAR {
-            return HTMLCollection::all_elements(window, root, None)
-	}
-	
         #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameFilter {
             tag: Atom,
@@ -158,7 +148,9 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                if elem.html_element_in_html_document() {
+                if self.tag == atom!("*") {
+                    true
+                } else if elem.html_element_in_html_document() {
                     *elem.local_name() == self.ascii_lower_tag
                 } else {
                     *elem.local_name() == self.tag
@@ -174,33 +166,25 @@ impl HTMLCollection {
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
-        let namespace_filter = match maybe_ns {
-            Some(ref namespace) if namespace == &"*" => None,
-            ns => Some(namespace_from_domstring(ns)),
-        };
+        let local = Atom::from_slice(&tag);
+        let ns = namespace_from_domstring(maybe_ns);
+        let qname = QualName::new(ns,local);
+        HTMLCollection::by_qual_tag_name(window, root, qname)
+    }
 
-        if tag == "*" {
-            return HTMLCollection::all_elements(window, root, namespace_filter);
-        }
+    pub fn by_qual_tag_name(window: &Window, root: &Node, qname: QualName) -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameNSFilter {
-            tag: Atom,
-            namespace_filter: Option<Namespace>
+            qname: QualName
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                let ns_match = match self.namespace_filter {
-                    Some(ref namespace) => {
-                        *elem.namespace() == *namespace
-                    },
-                    None => true
-                };
-                ns_match && *elem.local_name() == self.tag
+                    ((self.qname.ns == Namespace(atom!("*"))) || (self.qname.ns == *elem.namespace()))
+                &&  ((self.qname.local == atom!("*")) || (self.qname.local == *elem.local_name()))
             }
         }
         let filter = TagNameNSFilter {
-            tag: Atom::from_slice(&tag),
-            namespace_filter: namespace_filter
+            qname: qname
         };
         HTMLCollection::create(window, root, box filter)
     }
