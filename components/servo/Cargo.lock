@@ -1542,6 +1542,7 @@ dependencies = [
  "util 0.0.1",
  "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "websocket 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml5ever 0.1.0 (git+https://github.com/Ygg01/xml5ever)",
 ]
 
 [[package]]
@@ -2059,5 +2060,22 @@ version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "xml5ever"
+version = "0.1.0"
+source = "git+https://github.com/Ygg01/xml5ever#c458d6b09730eb636e1420d46dad1ec164ccf917"
+dependencies = [
+ "log 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
