@@ -122,6 +122,7 @@ pub struct Document {
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
     tagmap: DOMRefCell<HashMap<Atom, JS<HTMLCollection>>>,
     tagnsmap: DOMRefCell<HashMap<QualName, JS<HTMLCollection>>>,
+    classesmap: DOMRefCell<HashMap<Vec<Atom>, JS<HTMLCollection>>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -1270,6 +1271,7 @@ impl Document {
             idmap: DOMRefCell::new(HashMap::new()),
             tagmap: DOMRefCell::new(HashMap::new()),
             tagnsmap: DOMRefCell::new(HashMap::new()),
+            classesmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1521,7 +1523,12 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_class_name(&self.window, self.upcast(), classes)
+        let class_atoms:Vec<Atom> = split_html_space_chars(&classes).map(Atom::from_slice).collect();
+        let mut classesmap = self.classesmap.borrow_mut();
+        if let Some(elements) = classesmap.get(&class_atoms) { return elements.root(); }
+        let result = HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms.clone());
+        classesmap.insert(class_atoms,JS::from_rooted(&result));
+        return result;
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
