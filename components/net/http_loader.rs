@@ -442,7 +442,7 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             method: Method,
                             headers: Headers,
                             body: Option<Vec<u8>>,
-							pipeline_id: PipelineId) {
+                            pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
         let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id};
@@ -459,7 +459,7 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              request_id: String,
                              headers: Option<Headers>,
                              status: Option<RawStatus>,
-							 pipeline_id: PipelineId) {
+                             pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
         let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id};
         let net_event_response = NetworkEvent::HttpResponse(response);
@@ -578,31 +578,31 @@ pub fn load<A>(load_data: LoadData,
             //
             // https://tools.ietf.org/html/rfc7231#section-6.4
             let is_redirected_request = iters != 1;
-			let cloned_data;
+            let cloned_data;
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-					cloned_data = load_data.data.clone();					
+                    cloned_data = load_data.data.clone();					
                     req.send(&load_data.data)
                 }
                 _ => {
                     if load_data.method != Method::Get && load_data.method != Method::Head {
                         req.headers_mut().set(ContentLength(0))
                     }
-					cloned_data = None;
+                    cloned_data = None;
                     req.send(&None)
                 }
             };
 
 			// refactored call to send_request_to_pipelineid
 
-			if let Some(pipeline_id) = load_data.pipeline_id {
-				send_request_to_devtools(
-                			devtools_chan.clone(), request_id.clone(), url.clone(),
-                			method.clone(), request_headers.clone(),
-                			cloned_data, pipeline_id
-            				);
-			}
+            if let Some(pipeline_id) = load_data.pipeline_id {
+                send_request_to_devtools(
+                devtools_chan.clone(), request_id.clone(), url.clone(),
+                method.clone(), request_headers.clone(),
+                cloned_data, pipeline_id
+                );
+}
 
             response = match maybe_response {
                 Ok(r) => r,
