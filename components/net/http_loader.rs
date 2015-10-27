@@ -597,11 +597,11 @@ pub fn load<A>(load_data: LoadData,
 			// refactored call to send_request_to_pipelineid
 
 			if let Some(pipeline_id) = load_data.pipeline_id {
-						send_request_to_devtools(
-                        			devtools_chan.clone(), request_id.clone(), url.clone(),
-                        			method.clone(), request_headers.clone(),
-                        			cloned_data, pipeline_id
-                    				);
+				send_request_to_devtools(
+                			devtools_chan.clone(), request_id.clone(), url.clone(),
+                			method.clone(), request_headers.clone(),
+                			cloned_data, pipeline_id
+            				);
 			}
 
             response = match maybe_response {
@@ -690,10 +690,10 @@ pub fn load<A>(load_data: LoadData,
         // TODO: Send this message even when the load fails?	
 		
         if let Some(pipeline_id) = load_data.pipeline_id {
-						send_response_to_devtools(
-            						devtools_chan, request_id,
-            						metadata.headers.clone(), metadata.status.clone(),
-       								 pipeline_id);
+				send_response_to_devtools(
+					devtools_chan, request_id,
+					metadata.headers.clone(), metadata.status.clone(),
+					 pipeline_id);
 			}
         return StreamedResponse::from_http_response(response, metadata)
     }
