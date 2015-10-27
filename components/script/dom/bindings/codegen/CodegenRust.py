@@ -2163,12 +2163,10 @@ let obj = RootedObject::new(cx, obj);\
                    "    create_dom_global(\n"
                    "        cx,\n"
                    "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
+                   "        raw as *const libc::c_void,\n"
                    "        Some(%s))\n"
                    ");\n"
-                   "assert!(!obj.ptr.is_null());\n"
-                   "\n"
-                   "JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,\n"
-                   "                   PrivateValue(raw as *const libc::c_void));" % TRACE_HOOK_NAME)
+                   "assert!(!obj.ptr.is_null());" % TRACE_HOOK_NAME)
     else:
         create += ("let obj = {\n"
                    "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
