@@ -200,11 +200,20 @@ impl Window {
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
-                match delta {
-                    MouseScrollDelta::LineDelta(dx, dy) => {
-                        self.scroll_window(dx, dy * LINE_HEIGHT);
-                    }
-                    MouseScrollDelta::PixelDelta(dx, dy) => self.scroll_window(dx, dy)
+                let (dx, dy) = match delta {
+                    MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
+                    MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
+                };
+
+                if !self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL) {
+                    self.scroll_window(dx, dy);
+                } else {
+                    let factor = if dy > 0. {
+                        1.1
+                    } else {
+                        1.0 / 1.1
+                    };
+                    self.pinch_zoom(factor);
                 }
             },
             Event::Refresh => {
@@ -223,6 +232,10 @@ impl Window {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
+    }
+
+    fn pinch_zoom(&self, factor: f32) {
+        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(factor));
     }
 
     /// Helper function to send a scroll event.
