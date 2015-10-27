@@ -8,7 +8,7 @@ name = "glutin_app"
 path = "lib.rs"
 
 [features]
-window = ["glutin/window"]
+window = []
 headless = ["glutin/headless"]
 
 [dependencies]
