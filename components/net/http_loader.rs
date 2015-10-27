@@ -582,12 +582,7 @@ pub fn load<A>(load_data: LoadData,
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-
-                    // TODO: Do this only if load_data has some pipeline_id, and send the pipeline_id
-                    // in the message
-					
 					cloned_data = load_data.data.clone();					
-
                     req.send(&load_data.data)
                 }
                 _ => {
@@ -595,7 +590,6 @@ pub fn load<A>(load_data: LoadData,
                         req.headers_mut().set(ContentLength(0))
                     }
 					cloned_data = None;
-
                     req.send(&None)
                 }
             };
@@ -693,29 +687,14 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        // TODO: Send this message only if load_data has a pipeline_id that is not None
         // TODO: Send this message even when the load fails?	
 		
-		//start
-		let has_pipeline = load_data.pipeline_id;
-					match has_pipeline {
-						// has pipeline Id
-						Some(pipeline_id) => {
-									send_response_to_devtools(
+        if let Some(pipeline_id) = load_data.pipeline_id {
+						send_response_to_devtools(
             						devtools_chan, request_id,
             						metadata.headers.clone(), metadata.status.clone(),
-       								 pipeline_id);	
-							},
-						// LoadData doesn't have pipeline_id
-						None => {
-									// Do nothing.
-							}
-					};
-
-		//end
-		
-        
-
+       								 pipeline_id);
+			}
         return StreamedResponse::from_http_response(response, metadata)
     }
 }

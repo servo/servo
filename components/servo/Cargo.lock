@@ -1230,6 +1230,7 @@ dependencies = [
  "flate2 0.2.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
+ "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
  "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
