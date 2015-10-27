@@ -28,6 +28,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{send_error, start_sending_sniffed_opt};
+use self::msg::constellation_msg::{PipelineId};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -39,7 +40,6 @@ use url::{Url, UrlParser};
 use util::resource_files::resources_dir_path;
 use util::task::spawn_named;
 use uuid;
-use self::msg::constellation_msg::{PipelineId};
 
 pub type Connector = HttpsConnector<Openssl>;
 
@@ -445,13 +445,12 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id};
+        let request = DevtoolsHttpRequest { url: url, method: method,
+                      headers: headers, body: body, pipeline_id: pipeline_id };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
-		//let msg2 = DevtoolScriptControlMsg::WantsLiveNotifications(pipeline_id.PipelineNamespaceId, true);
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
-		//chan.send(DevtoolScriptControlMsg::FromChrome(msg2)).unwrap();
     }
 }
 
@@ -461,7 +460,7 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                              status: Option<RawStatus>,
                              pipeline_id: PipelineId) {
     if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id};
+        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
@@ -582,7 +581,7 @@ pub fn load<A>(load_data: LoadData,
             let maybe_response = match load_data.data {
                 Some(ref data) if !is_redirected_request => {
                     req.headers_mut().set(ContentLength(data.len() as u64));
-                    cloned_data = load_data.data.clone();					
+                    cloned_data = load_data.data.clone();
                     req.send(&load_data.data)
                 }
                 _ => {
@@ -594,7 +593,7 @@ pub fn load<A>(load_data: LoadData,
                 }
             };
 
-			// refactored call to send_request_to_pipelineid
+            // refactored call to send_request_to_pipelineid
 
             if let Some(pipeline_id) = load_data.pipeline_id {
                 send_request_to_devtools(
@@ -687,14 +686,13 @@ pub fn load<A>(load_data: LoadData,
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
-        // TODO: Send this message even when the load fails?	
-		
+        // TODO: Send this message even when the load fails?
         if let Some(pipeline_id) = load_data.pipeline_id {
-				send_response_to_devtools(
-					devtools_chan, request_id,
-					metadata.headers.clone(), metadata.status.clone(),
-					 pipeline_id);
-			}
+                send_response_to_devtools(
+                    devtools_chan, request_id,
+                    metadata.headers.clone(), metadata.status.clone(),
+                    pipeline_id);
+         }
         return StreamedResponse::from_http_response(response, metadata)
     }
 }
