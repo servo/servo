@@ -333,6 +333,31 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
+
+        let bufferedAmount = self.buffered_amount.get() + (data.0.as_bytes().len() as u32)
+
+        self.Send_Impl(bufferedAmount)
+
+        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send(&self, data: Blob) -> Fallible<()> {
+
+        let bufferedAmount = self.buffered_amount.get() + (data.size as u32)
+
+        self.Send_Impl(bufferedAmount)
+
+        let _ = data.send(my_sender.lock().unwrap().send_message)
+
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send_Impl(&self, u32: bufferedAmount) -> Fallible<()> {
+
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
@@ -353,9 +378,10 @@ impl WebSocketMethods for WebSocket {
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
 
-        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
+        self.buffered_amount.set(bufferedAmount);
 
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+        /*Previously, the message was sent before this section
+          will this make a difference?*/
 
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
