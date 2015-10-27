@@ -1456,9 +1456,9 @@ impl DocumentMethods for Document {
         let mut tag_copy = tag_name;
         tag_copy.make_ascii_lowercase();
         let ascii_lower_tag = Atom::from_slice(&tag_copy);
-	let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom.clone(), ascii_lower_tag);
-	tagmap.insert(tag_atom,JS::from_rooted(&result));
-	return result;
+        let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom.clone(), ascii_lower_tag);
+        tagmap.insert(tag_atom,JS::from_rooted(&result));
+        return result;
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
