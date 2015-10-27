@@ -282,27 +282,8 @@ impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
         let ref filter = self.filter;
 	let ref root = self.root;
         self.node_iter.by_ref()
-            .filter_map(ElementCast::to_root)
-            .filter(|element| filter.filter(element.r(), root.r()))
-            .next()
-    }
-}
-
-pub struct HTMLCollectionElementsRevIter<'a> {
-    node_iter: FollowingNodeReverseIterator,
-    root: Root<Node>,
-    filter: &'a Box<CollectionFilter>,
-}
-
-impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
-    type Item = Root<Element>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let ref filter = self.filter;
-        let ref root = self.root;
-        self.node_iter.by_ref()
-            .filter_map(ElementCast::to_root)
-            .filter(|element| filter.filter(element.r(), root.r()))
+            .filter_map(Root::downcast)
+            .filter(|element| filter.filter(&element, root))
             .next()
     }
 }
