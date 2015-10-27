@@ -36,8 +36,8 @@ use syntax::parse::token::intern;
 pub mod jstraceable;
 /// Handles the auto-deriving for `#[derive(HeapSizeOf)]`
 pub mod heap_size;
-/// Autogenerates implementations of Reflectable on DOM structs
 pub mod lints;
+/// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
 /// Utilities for writing plugins
 pub mod casing;
