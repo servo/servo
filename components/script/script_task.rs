@@ -31,7 +31,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, tr
 use dom::bindings::trace::{JSTraceable, RootedVec, trace_traceables};
 use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
 use dom::document::{Document, DocumentProgressHandler, IsHTMLDocument};
-use dom::document::{DocumentProgressTask, DocumentSource, MouseEventType};
+use dom::document::{DocumentSource, MouseEventType};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::node::{Node, NodeDamage, window_from_node};
@@ -1220,7 +1220,7 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let addr: Trusted<Document> = Trusted::new(self.get_cx(), doc, self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone(), DocumentProgressTask::Load);
+        let handler = box DocumentProgressHandler::new(addr.clone());
         self.chan.send(CommonScriptMsg::RunnableMsg(ScriptTaskEventCategory::DocumentEvent, handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
