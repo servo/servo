@@ -1470,7 +1470,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // flow here - instead, let it match the inline case
             // below.
             (display::T::block, _, position::T::absolute) |
-            (_, _, position::T::fixed) => {
+            (display::T::block, _, position::T::fixed) => {
                 let construction_result = self.build_flow_for_block(node, None);
                 self.set_flow_construction_result(node, construction_result)
             }
