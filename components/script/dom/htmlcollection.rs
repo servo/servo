@@ -41,7 +41,7 @@ impl HTMLCollection {
             reflector_: Reflector::new(),
             root: JS::from_ref(root),
             filter: filter,
-            cached_version: Cell::new(root.get_descendents_version()),
+            cached_version: Cell::new(root.get_inclusive_descendents_version()),
             cached_length: Cell::new(u32::max_value()),
             cached_cursor_element: MutNullableHeap::new(None),
             cached_cursor_index: Cell::new(u32::max_value()),
@@ -61,7 +61,7 @@ impl HTMLCollection {
 
     fn validate_cache(&self) {
        let cached_version = self.cached_version.get();
-       let curr_version = self.root.get_descendents_version();
+       let curr_version = self.root.get_inclusive_descendents_version();
        if curr_version != cached_version {
            self.cached_version.set(curr_version);
            self.cached_length.set(u32::max_value());
