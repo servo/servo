@@ -34,6 +34,7 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::error::throw_type_error;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::str::{ByteString, USVString};
@@ -105,32 +106,6 @@ impl_as!(u64, u64);
 pub trait IDLInterface {
     /// Returns whether the given DOM class derives that interface.
     fn derives(&'static DOMClass) -> bool;
-}
-
-/// A trait to hold the cast functions of IDL interfaces that either derive
-/// or are derived from other interfaces.
-pub trait Castable: IDLInterface + Reflectable + Sized {
-    /// Check whether a DOM object implements one of its deriving interfaces.
-    fn is<T>(&self) -> bool where T: DerivedFrom<Self> {
-        let class = unsafe {
-            get_dom_class(self.reflector().get_jsobject().get()).unwrap()
-        };
-        T::derives(class)
-    }
-
-    /// Cast a DOM object upwards to one of the interfaces it derives from.
-    fn upcast<T>(&self) -> &T where T: Castable, Self: DerivedFrom<T> {
-        unsafe { mem::transmute(self) }
-    }
-
-    /// Cast a DOM object downwards to one of the interfaces it might implement.
-    fn downcast<T>(&self) -> Option<&T> where T: DerivedFrom<Self> {
-        if self.is::<T>() {
-            Some(unsafe { mem::transmute(self) })
-        } else {
-            None
-        }
-    }
 }
 
 /// A trait to mark an IDL interface as deriving from another one.

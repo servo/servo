@@ -24,7 +24,8 @@
 //!
 
 use core::nonzero::NonZero;
-use dom::bindings::conversions::{Castable, DerivedFrom};
+use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::bindings::utils::{Reflectable, Reflector};

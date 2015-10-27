@@ -12,9 +12,10 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{Json, Text, _empty};
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
-use dom::bindings::conversions::{Castable, ToJSValConvertible};
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::refcounted::Trusted;

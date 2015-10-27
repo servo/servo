@@ -6,7 +6,7 @@
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -22,7 +22,7 @@ macro_rules! make_getter(
 macro_rules! make_bool_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self) -> bool {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -39,7 +39,7 @@ macro_rules! make_bool_getter(
 macro_rules! make_uint_getter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self) -> u32 {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -59,7 +59,7 @@ macro_rules! make_uint_getter(
 macro_rules! make_url_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -77,7 +77,7 @@ macro_rules! make_url_getter(
 macro_rules! make_url_or_base_getter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -99,7 +99,7 @@ macro_rules! make_url_or_base_getter(
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
         fn $attr(&self) -> DOMString {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use std::ascii::AsciiExt;
             use std::borrow::ToOwned;
@@ -125,7 +125,7 @@ macro_rules! make_enumerated_getter(
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -139,7 +139,7 @@ macro_rules! make_setter(
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self, value: bool) {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -153,7 +153,7 @@ macro_rules! make_bool_setter(
 macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self, value: u32) {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use dom::values::UNSIGNED_LONG_MAX;
             use string_cache::Atom;
@@ -176,7 +176,7 @@ macro_rules! make_uint_setter(
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:expr, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use dom::values::UNSIGNED_LONG_MAX;
             use string_cache::Atom;
@@ -205,7 +205,7 @@ macro_rules! make_limited_uint_setter(
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:expr ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use string_cache::Atom;
             let element = self.upcast::<Element>();
@@ -250,14 +250,14 @@ macro_rules! no_jsmanaged_fields(
 macro_rules! define_event_handler(
     ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
             eventtarget.get_event_handler_common(stringify!($event_type))
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            use dom::bindings::conversions::Castable;
+            use dom::bindings::inheritance::Castable;
             use dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
             eventtarget.set_event_handler_common(stringify!($event_type), listener)

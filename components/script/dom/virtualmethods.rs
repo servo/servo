@@ -6,7 +6,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementTypeId;
 use dom::bindings::codegen::InheritTypes::HTMLElementTypeId;
 use dom::bindings::codegen::InheritTypes::NodeTypeId;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::{Root, RootedReference};

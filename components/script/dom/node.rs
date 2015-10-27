@@ -22,9 +22,10 @@ use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingIn
 use dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId, EventTargetTypeId};
 use dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
-use dom::bindings::conversions::{self, Castable, DerivedFrom};
+use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};

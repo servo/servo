@@ -60,7 +60,7 @@
 //! and check whether a given instance is of a given type.
 //!
 //! ```ignore
-//! use dom::bindings::conversions::Castable;
+//! use dom::bindings::inheritance::Castable;
 //! use dom::element::Element;
 //! use dom::htmlelement::HTMLElement;
 //! use dom::htmlinputelement::HTMLInputElement;

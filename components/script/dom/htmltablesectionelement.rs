@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::{self, HTMLTableSectionElementMethods};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
