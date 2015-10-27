@@ -191,6 +191,12 @@ impl HTMLCollection {
 
     pub fn by_class_name(window: &Window, root: &Node, classes: DOMString)
                          -> Root<HTMLCollection> {
+        let class_atoms = split_html_space_chars(&classes).map(Atom::from_slice).collect();
+        HTMLCollection::by_atomic_class_name(window, root, class_atoms)
+    }
+
+    pub fn by_atomic_class_name(window: &Window, root: &Node, classes: Vec<Atom>)
+                         -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct ClassNameFilter {
             classes: Vec<Atom>
@@ -201,9 +207,7 @@ impl HTMLCollection {
             }
         }
         let filter = ClassNameFilter {
-            classes: split_html_space_chars(&classes).map(|class| {
-                         Atom::from_slice(class)
-                     }).collect()
+            classes: classes
         };
         HTMLCollection::create(window, root, box filter)
     }
