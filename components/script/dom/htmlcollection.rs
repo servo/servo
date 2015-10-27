@@ -146,7 +146,7 @@ impl HTMLCollection {
         // Can this be lifted out of this function?
         // const STAR = atom!("*");
 	// results in "error: statics are not allowed to have destructors [E0493]"
-        let STAR = Atom::from_slice("*");
+        let STAR = atom!("*");
 
         if tag_atom == STAR {
             return HTMLCollection::all_elements(window, root, None)
