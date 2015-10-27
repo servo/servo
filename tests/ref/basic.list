@@ -11,7 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== borders_a.html borders_b.html
 != box_shadow_blur_a.html box_shadow_blur_ref.html
 == box_shadow_default_color_a.html box_shadow_default_color_ref.html
 == box_shadow_inset_a.html box_shadow_inset_ref.html
