@@ -338,6 +338,7 @@ pub mod progressevent;
 pub mod range;
 pub mod screen;
 pub mod servohtmlparser;
+pub mod servoxmlparser;
 pub mod storage;
 pub mod storageevent;
 pub mod testbinding;
