@@ -26,7 +26,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::utils::XMLName::InvalidXMLName;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
-use dom::bindings::utils::{validate_and_extract, xml_name_type};
+use dom::bindings::utils::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -121,6 +121,7 @@ pub struct Document {
     window: JS<Window>,
     idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
     tagmap: DOMRefCell<HashMap<Atom, JS<HTMLCollection>>>,
+    tagnsmap: DOMRefCell<HashMap<QualName, JS<HTMLCollection>>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -1226,6 +1227,7 @@ impl Document {
             window: JS::from_ref(window),
             idmap: DOMRefCell::new(HashMap::new()),
             tagmap: DOMRefCell::new(HashMap::new()),
+            tagnsmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1464,7 +1466,14 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name_ns(&self.window, self.upcast(), tag_name, maybe_ns)
+        let ns = namespace_from_domstring(maybe_ns);
+        let local = Atom::from_slice(&tag_name);
+        let qname = QualName::new(ns, local);
+        let mut tagnsmap = self.tagnsmap.borrow_mut();
+        if let Some(elements) = tagnsmap.get(&qname) { return elements.root(); }
+        let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname.clone());
+        tagnsmap.insert(qname,JS::from_rooted(&result));
+        return result;
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
