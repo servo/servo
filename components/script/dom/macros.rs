@@ -283,6 +283,7 @@ macro_rules! error_event_handler(
 macro_rules! global_event_handlers(
     () => (
         event_handler!(load, GetOnload, SetOnload);
+        event_handler!(resize, GetOnresize, SetOnresize);
         global_event_handlers!(NoOnload);
 
     );
@@ -291,8 +292,8 @@ macro_rules! global_event_handlers(
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
-        event_handler!(input, GetOninput, SetOninput);
         event_handler!(change, GetOnchange, SetOnchange);
+        event_handler!(input, GetOninput, SetOninput);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
     )
 );
