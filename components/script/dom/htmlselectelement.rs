@@ -64,7 +64,7 @@ impl HTMLSelectElement {
                 opt.set_selectedness(false);
                 last_selected = Some(Root::from_ref(opt.r()));
             }
-            let element =  opt.upcast::<Element>();
+            let element = opt.upcast::<Element>();
             if first_enabled.is_none() && !element.get_disabled_state() {
                 first_enabled = Some(Root::from_ref(opt.r()));
             }
@@ -82,6 +82,7 @@ impl HTMLSelectElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#concept-select-pick
     pub fn pick_option(&self, picked: &HTMLOptionElement) {
         if !self.Multiple() {
             let node = self.upcast::<Node>();

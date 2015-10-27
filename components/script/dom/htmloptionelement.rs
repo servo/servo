@@ -140,11 +140,11 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         if let Some(select) = self.upcast::<Node>().ancestors()
-            .filter_map(Root::downcast::<HTMLSelectElement>).next() {
-                if selected {
-                    select.pick_option(self);
-                }
-                select.ask_for_reset();
+                .filter_map(Root::downcast::<HTMLSelectElement>).next() {
+            if selected {
+                select.pick_option(self);
+            }
+            select.ask_for_reset();
         }
     }
 }
@@ -198,13 +198,13 @@ impl VirtualMethods for HTMLOptionElement {
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
 
-        if self.Selected() {
-            let node = self.upcast::<Node>();
-            if let Some(select) = node.ancestors()
-                    .filter_map(Root::downcast::<HTMLSelectElement>)
-                    .next() {
+        if let Some(select) = self.upcast::<Node>().ancestors()
+                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .next() {
+            if self.Selected() {
                 select.pick_option(self);
             }
+            select.ask_for_reset();
         }
     }
 
