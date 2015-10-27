@@ -22,7 +22,9 @@
 
         wsocket.addEventListener('open', testOpen.step_func(function (evt) {
             wsocket.binaryType = "blob";
-            data = new ArrayBuffer(datasize);
+            for (var i = 0; i < datasize; i++)
+                data += String.fromCharCode(0);
+            data = new Blob([data]);
             isOpenCalled = true;
             wsocket.send(data);
             testOpen.done();

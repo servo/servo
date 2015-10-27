@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
@@ -291,6 +292,56 @@ impl WebSocket {
         // Step 7.
         Ok(ws)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send_Impl(&self, data_byte_len: u64) -> Fallible<bool> {
+
+        let mut return_after_buffer = false;
+
+        match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => (),
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
+                return_after_buffer = true;
+            }
+        }
+
+        let global = self.global.root();
+        let chan = global.r().script_chan();
+        let address = Trusted::new(global.r().get_cx(), self, chan.clone());
+
+        let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
+        if new_buffer_amount > (u32::max_value() as u64) {
+
+            self.buffered_amount.set(u32::max_value());
+            self.full.set(true);
+
+            let _ = self.Close(None, None);
+            return Ok(false);
+
+        } else {
+            self.buffered_amount.set(new_buffer_amount as u32);
+        }
+
+        if return_after_buffer {
+            return Ok(false);
+        }
+
+        if !self.clearing_buffer.get() &&
+            self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let task = box BufferedAmountTask {
+                addr: address,
+            };
+
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        }
+
+        Ok(true)
+    }
 }
 
 impl WebSocketMethods for WebSocket {
@@ -333,40 +384,33 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
-        match self.ready_state.get() {
-            WebSocketRequestState::Connecting => {
-                return Err(Error::InvalidState);
-            },
-            WebSocketRequestState::Open => (),
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                // TODO: Update bufferedAmount.
-                return Ok(());
-            }
+
+        let data_byte_len = data.0.as_bytes().len() as u64;
+        let send_data = try!(self.Send_Impl(data_byte_len));
+
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
         }
 
-        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
-                "If argument is a string"
-          TODO: Need to buffer data
-          TODO: The send function needs to flag when full by using the following
-          self.full.set(true). This needs to be done when the buffer is full
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn Send_(&self, data: &Blob) -> Fallible<()> {
+
+        /* As per https://html.spec.whatwg.org/multipage/#websocket
+           the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
+           If the buffer limit is reached in the first place, there are likely other major problems
         */
-        let mut other_sender = self.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
+        let data_byte_len = data.Size();
+        let send_data = try!(self.Send_Impl(data_byte_len));
 
-        self.buffered_amount.set(self.buffered_amount.get() + (data.0.as_bytes().len() as u32));
-
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
-
-        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
-            self.clearing_buffer.set(true);
-
-            let global = self.global.root();
-            let task = box BufferedAmountTask {
-                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
-            };
-            let chan = global.r().script_chan();
-
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Binary(data.clone_bytes()));
         }
 
         Ok(())
