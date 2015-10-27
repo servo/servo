@@ -8,7 +8,7 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use canvas_traits::CanvasMsg;
-use display_list::{DisplayList, LayerInfo, StackingContext};
+use display_list::{DisplayItem, DisplayList, LayerInfo, StackingContext};
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -499,13 +499,16 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                                              transform: &Matrix4,
                                              perspective: &Matrix4,
                                              parent_id: Option<LayerId>) {
-            for kid in stacking_context.display_list.children.iter() {
-                build_from_stacking_context(properties,
-                                            &kid,
-                                            &parent_origin,
-                                            &transform,
-                                            &perspective,
-                                            parent_id)
+            for kid in stacking_context.display_list.positioned_content.iter() {
+                if let &DisplayItem::StackingContextClass(ref stacking_context) = kid {
+                    build_from_stacking_context(properties,
+                                                &stacking_context,
+                                                &parent_origin,
+                                                &transform,
+                                                &perspective,
+                                                parent_id)
+
+                }
             }
 
             for kid in stacking_context.display_list.layered_children.iter() {
