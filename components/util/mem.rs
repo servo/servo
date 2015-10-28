@@ -37,7 +37,7 @@ use std::result::Result;
 use std::sync::Arc;
 use str::LengthOrPercentageOrAuto;
 use string_cache::atom::Atom;
-use string_cache::namespace::{QualName,Namespace};
+use string_cache::namespace::{QualName, Namespace};
 use url;
 
 extern {

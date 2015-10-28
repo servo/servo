@@ -106,11 +106,11 @@ pub struct Node {
     /// A bitfield of flags for node items.
     flags: Cell<NodeFlags>,
 
-    /// The version number for this node.
-    version: Cell<u32>,
+    /// The version number for this node, bumped when the node is dirtied.
+    version: Cell<u64>,
 
     /// The maximum version of any descendent of this node.
-    descendents_version: Cell<u32>,
+    descendents_version: Cell<u64>,
 
     /// Layout information. Only the layout task may touch this data.
     ///
@@ -498,6 +498,10 @@ impl Node {
     pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
 
         // 0. Set version counter
+        // The new version counter is 1 plus the max of the node's current version counter,
+        // its descendents version, and the document's version. Normally, this will just be
+        // the document's version, but we do have to deal with the case where the node has moved
+        // document, so may have a higher version count than its owning document.
         let doc: Root<Node> = Root::upcast(self.owner_doc());
         let version = max(self.get_inclusive_descendents_version(), doc.get_descendents_version()) + 1;
         self.version.set(version);
@@ -538,17 +542,17 @@ impl Node {
     }
 
     /// The version number of this node
-    pub fn get_version(&self) -> u32 {
+    pub fn get_version(&self) -> u64 {
         self.version.get()
     }
 
     /// The maximum version number of this node's descendents
-    pub fn get_descendents_version(&self) -> u32 {
+    pub fn get_descendents_version(&self) -> u64 {
         self.descendents_version.get()
     }
 
     /// The maximum version number of this node's descendents, including itself
-    pub fn get_inclusive_descendents_version(&self) -> u32 {
+    pub fn get_inclusive_descendents_version(&self) -> u64 {
         max(self.get_version(), self.get_descendents_version())
     }
 
