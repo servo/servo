@@ -163,9 +163,6 @@ pub struct Window {
     /// Subpage id associated with this page, if any.
     parent_info: Option<(PipelineId, SubpageId)>,
 
-    /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Cell<u32>,
-
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
 
@@ -901,9 +898,6 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        let last_reflow_id = &self.last_reflow_id;
-        last_reflow_id.set(last_reflow_id.get() + 1);
-
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
             debug_reflow_events(&goal, &query_type, &reason);
@@ -1264,7 +1258,6 @@ impl Window {
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
-            last_reflow_id: Cell::new(0),
             resize_event: Cell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
