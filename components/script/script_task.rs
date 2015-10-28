@@ -83,7 +83,7 @@ use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent, TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
-use script_traits::{TimerEvent, TimerEventChan, TimerEventRequest, TimerSource};
+use script_traits::{TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
 use std::borrow::ToOwned;
@@ -353,20 +353,6 @@ impl MainThreadScriptChan {
     }
 }
 
-pub struct MainThreadTimerEventChan(Sender<TimerEvent>);
-
-impl TimerEventChan for MainThreadTimerEventChan {
-    fn send(&self, event: TimerEvent) -> Result<(), ()> {
-        let MainThreadTimerEventChan(ref chan) = *self;
-        chan.send(event).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<TimerEventChan + Send> {
-        let MainThreadTimerEventChan(ref chan) = *self;
-        box MainThreadTimerEventChan((*chan).clone())
-    }
-}
-
 pub struct StackRootTLS<'a>(PhantomData<&'a u32>);
 
 impl<'a> StackRootTLS<'a> {
@@ -449,7 +435,7 @@ pub struct ScriptTask {
     /// List of pipelines that have been owned and closed by this script task.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
     timer_event_chan: Sender<TimerEvent>,
     timer_event_port: Receiver<TimerEvent>,
 }
@@ -1607,6 +1593,10 @@ impl ScriptTask {
         let mut page_remover = AutoPageRemover::new(self, page_to_remove);
         let MainThreadScriptChan(ref sender) = self.chan;
 
+        let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
+        ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
+                                                 self.timer_event_chan.clone());
+
         // Create the window and document objects.
         let window = Window::new(self.js_runtime.clone(),
                                  page.clone(),
@@ -1620,7 +1610,7 @@ impl ScriptTask {
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
                                  self.scheduler_chan.clone(),
-                                 MainThreadTimerEventChan(self.timer_event_chan.clone()),
+                                 ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
