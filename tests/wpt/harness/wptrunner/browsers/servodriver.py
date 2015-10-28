@@ -9,6 +9,7 @@ import tempfile
 from mozprocess import ProcessHandler
 
 from .base import Browser, require_arg, get_free_port, browser_command, ExecutorBrowser
+from .servo import render_arg
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor,
                                              ServoWebDriverRefTestExecutor)
@@ -39,7 +40,9 @@ def check_args(**kwargs):
 
 def browser_kwargs(**kwargs):
     return {"binary": kwargs["binary"],
-            "debug_info": kwargs["debug_info"]}
+            "debug_info": kwargs["debug_info"],
+            "user_stylesheets": kwargs.get("user_stylesheets"),
+            "render_backend": kwargs.get("servo_backend")}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data, **kwargs):
@@ -66,7 +69,8 @@ def make_hosts_file():
 class ServoWebDriverBrowser(Browser):
     used_ports = set()
 
-    def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1"):
+    def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
+                 user_stylesheets=None, render_backend="cpu"):
         Browser.__init__(self, logger)
         self.binary = binary
         self.webdriver_host = webdriver_host
@@ -75,6 +79,8 @@ class ServoWebDriverBrowser(Browser):
         self.debug_info = debug_info
         self.hosts_path = make_hosts_file()
         self.command = None
+        self.user_stylesheets = user_stylesheets if user_stylesheets else []
+        self.render_backend = render_backend
 
     def start(self):
         self.webdriver_port = get_free_port(4444, exclude=self.used_ports)
@@ -84,10 +90,13 @@ class ServoWebDriverBrowser(Browser):
         env["HOST_FILE"] = self.hosts_path
 
         debug_args, command = browser_command(self.binary,
-                                              ["--cpu", "--hard-fail",
+                                              [render_arg(self.render_backend), "--hard-fail",
                                                "--webdriver", str(self.webdriver_port),
                                                "about:blank"],
                                               self.debug_info)
+
+        for stylesheet in self.user_stylesheets:
+            command += ["--user-stylesheet", stylesheet]
 
         self.command = command
 

@@ -165,6 +165,10 @@ def create_parser(product_choices=None):
     servo_group.add_argument("--user-stylesheet",
                              default=[], action="append", dest="user_stylesheets",
                              help="Inject a user CSS stylesheet into every test.")
+    servo_group.add_argument("--servo-backend",
+                             default="cpu", choices=["cpu", "webrender"],
+                             help="Rendering backend to use with Servo.")
+
 
     parser.add_argument("test_list", nargs="*",
                         help="List of URLs for tests to run, or paths including tests to run. "
