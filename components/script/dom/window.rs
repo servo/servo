@@ -54,7 +54,7 @@ use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
-use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -109,8 +109,6 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -1204,7 +1202,6 @@ impl Window {
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
-               control_chan: Sender<ConstellationControlMsg>,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
@@ -1230,7 +1227,6 @@ impl Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
             image_cache_chan: image_cache_chan,
-            control_chan: control_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
