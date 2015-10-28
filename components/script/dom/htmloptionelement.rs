@@ -14,6 +14,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
 use dom::htmlelement::HTMLElement;
 use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
@@ -50,6 +51,21 @@ impl HTMLOptionElement {
                document: &Document) -> Root<HTMLOptionElement> {
         let element = HTMLOptionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
+    }
+
+    pub fn set_selectedness(&self, selected: bool) {
+        self.selectedness.set(selected);
+    }
+
+    fn pick_if_selected_and_reset(&self) {
+        if let Some(select) = self.upcast::<Node>().ancestors()
+                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .next() {
+            if self.Selected() {
+                select.pick_option(self);
+            }
+            select.ask_for_reset();
+        }
     }
 }
 
@@ -134,8 +150,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
-        // FIXME: as per the spec, implement 'ask for a reset'
-        // https://github.com/servo/servo/issues/7774
+        self.pick_if_selected_and_reset();
     }
 }
 
@@ -187,6 +202,8 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
+
+        self.pick_if_selected_and_reset();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
