@@ -56,6 +56,17 @@ impl HTMLOptionElement {
     pub fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
     }
+
+    fn pick_if_selected_and_reset(&self) {
+        if let Some(select) = self.upcast::<Node>().ancestors()
+                .filter_map(Root::downcast::<HTMLSelectElement>)
+                .next() {
+            if self.Selected() {
+                select.pick_option(self);
+            }
+            select.ask_for_reset();
+        }
+    }
 }
 
 fn collect_text(element: &Element, value: &mut DOMString) {
@@ -139,13 +150,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
-        if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>).next() {
-            if selected {
-                select.pick_option(self);
-            }
-            select.ask_for_reset();
-        }
+        self.pick_if_selected_and_reset();
     }
 }
 
@@ -198,14 +203,7 @@ impl VirtualMethods for HTMLOptionElement {
 
         self.upcast::<Element>().check_parent_disabled_state_for_option();
 
-        if let Some(select) = self.upcast::<Node>().ancestors()
-                .filter_map(Root::downcast::<HTMLSelectElement>)
-                .next() {
-            if self.Selected() {
-                select.pick_option(self);
-            }
-            select.ask_for_reset();
-        }
+        self.pick_if_selected_and_reset();
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {

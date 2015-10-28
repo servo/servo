@@ -70,13 +70,12 @@ impl HTMLSelectElement {
             }
         }
 
-        match last_selected {
-            Some(last_selected) => last_selected.set_selectedness(true),
-            None => {
-                if self.display_size() == 1 {
-                    if let Some(first_enabled) = first_enabled {
-                        first_enabled.set_selectedness(true);
-                    }
+        if let Some(last_selected) = last_selected {
+            last_selected.set_selectedness(true);
+        } else {
+            if self.display_size() == 1 {
+                if let Some(first_enabled) = first_enabled {
+                    first_enabled.set_selectedness(true);
                 }
             }
         }
