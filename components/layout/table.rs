@@ -7,8 +7,8 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
+use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
-use block::{self, BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
 use euclid::{Point2D, Rect};
@@ -775,11 +775,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            let mut layers_needed_for_descendants = false;
             for kid in self.base.child_iter() {
-                // Mark flows for layerization if necessary to handle painting order correctly.
-                block::propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
