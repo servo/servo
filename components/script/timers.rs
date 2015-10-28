@@ -9,16 +9,16 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::utils::Reflectable;
 use dom::window::ScriptHelpers;
 use euclid::length::Length;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, Heap, RootedValue};
 use js::jsval::{JSVal, UndefinedValue};
 use num::traits::Saturating;
 use script_traits::{MsDuration, precise_time_ms};
-use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
@@ -29,9 +29,9 @@ pub struct TimerHandle(i32);
 #[privatize]
 pub struct ActiveTimers {
     #[ignore_heap_size_of = "Defined in std"]
-    timer_event_chan: Box<TimerEventChan + Send>,
+    timer_event_chan: IpcSender<TimerEvent>,
     #[ignore_heap_size_of = "Defined in std"]
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
     next_timer_handle: Cell<TimerHandle>,
     timers: DOMRefCell<Vec<Timer>>,
     suspended_since: Cell<Option<MsDuration>>,
@@ -116,8 +116,8 @@ impl HeapSizeOf for InternalTimerCallback {
 }
 
 impl ActiveTimers {
-    pub fn new(timer_event_chan: Box<TimerEventChan + Send>,
-               scheduler_chan: Sender<TimerEventRequest>)
+    pub fn new(timer_event_chan: IpcSender<TimerEvent>,
+               scheduler_chan: IpcSender<TimerEventRequest>)
                -> ActiveTimers {
         ActiveTimers {
             timer_event_chan: timer_event_chan,
