@@ -37,5 +37,5 @@ app_units = {version = "0.1", features = ["plugins"]}
 libc = "0.1"
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 time = "0.1.12"

@@ -35,5 +35,5 @@ log = "0.3"
 time = "0.1"
 rustc-serialize = "0.3"
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 

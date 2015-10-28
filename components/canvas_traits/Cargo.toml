@@ -40,5 +40,5 @@ path = "../util"
 
 [dependencies]
 euclid = {version = "0.3", features = ["plugins"]}
-serde_macros = "0.5"
+serde_macros = "0.6"
 
