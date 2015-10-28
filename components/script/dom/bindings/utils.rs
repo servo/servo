@@ -520,7 +520,7 @@ pub fn find_enum_string_index(cx: *mut JSContext,
                               v: HandleValue,
                               values: &[&'static str])
                               -> Result<Option<usize>, ()> {
-    let jsstr = ToString(cx, v);
+    let jsstr = unsafe { ToString(cx, v) };
     if jsstr.is_null() {
         return Err(());
     }
