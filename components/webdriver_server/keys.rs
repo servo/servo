@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use msg::constellation_msg::{Key, KeyState, KeyModifiers, SHIFT};
 
 fn key_from_char(key_string: &char) -> Option<(Key, bool)> {
@@ -157,7 +161,7 @@ fn key_from_char(key_string: &char) -> Option<(Key, bool)> {
     }
 }
 
-pub fn keycodes_to_keys(key_codes: &Vec<char>) -> Result<Vec<(Key, KeyModifiers, KeyState)>, String> {
+pub fn keycodes_to_keys(key_codes: &[char]) -> Result<Vec<(Key, KeyModifiers, KeyState)>, String> {
     let mut rv = vec![];
 
     for char_code in key_codes.iter() {
