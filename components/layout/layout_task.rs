@@ -52,6 +52,7 @@ use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_re
 use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
 use script::dom::bindings::js::LayoutJS;
+use script::dom::document::Document;
 use script::dom::node::{LayoutData, Node};
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
@@ -67,7 +68,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Drop};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -89,8 +90,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::LayoutNode;
-use wrapper::ThreadSafeLayoutNode;
+use wrapper::{LayoutDocument, LayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -1125,14 +1125,28 @@ impl LayoutTask {
     fn handle_reflow<'a>(&'a self,
                          data: &ScriptReflow,
                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        // FIXME: Isolate this transmutation into a "bridge" module.
-        // FIXME(rust#16366): The following line had to be moved because of a
-        // rustc bug. It should be in the next unsafe block.
-        let mut node: LayoutJS<Node> = unsafe {
-            LayoutJS::from_trusted_node_address(data.document_root)
+
+        // Make sure that every return path from this method joins the script task,
+        // otherwise the script task will panic.
+        struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
+        impl<'a> Drop for AutoJoinScriptTask<'a> {
+            fn drop(&mut self) {
+                self.data.script_join_chan.send(()).unwrap();
+            }
         };
-        let node: &mut LayoutNode = unsafe {
-            transmute(&mut node)
+        let _ajst = AutoJoinScriptTask { data: data };
+
+        // FIXME: Isolate this transmutation into a "bridge" module.
+        let mut doc: LayoutJS<Document> = unsafe {
+            LayoutJS::from_trusted_node_address(data.document).downcast::<Document>().unwrap()
+        };
+        let doc: &mut LayoutDocument = unsafe {
+            transmute(&mut doc)
+        };
+
+        let mut node: LayoutNode = match doc.root_node() {
+            None => return,
+            Some(x) => x,
         };
 
         debug!("layout: received layout request for: {}", self.url.serialize());
@@ -1176,12 +1190,20 @@ impl LayoutTask {
         let needs_reflow = screen_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
-                LayoutTask::dirty_all_nodes(node);
+                LayoutTask::dirty_all_nodes(&mut node);
             }
         }
         if needs_reflow {
-            if let Some(mut flow) = self.try_get_layout_root(*node) {
+            if let Some(mut flow) = self.try_get_layout_root(node) {
                 LayoutTask::reflow_all_nodes(flow_ref::deref_mut(&mut flow));
+            }
+        }
+
+        let event_state_changes = doc.drain_event_state_changes();
+        if !needs_dirtying {
+            for &(el, state) in event_state_changes.iter() {
+                assert!(!state.is_empty());
+                el.note_event_state_change();
             }
         }
 
@@ -1202,16 +1224,16 @@ impl LayoutTask {
                 let rw_data = &mut *rw_data;
                 match rw_data.parallel_traversal {
                     None => {
-                        sequential::traverse_dom_preorder(*node, &shared_layout_context);
+                        sequential::traverse_dom_preorder(node, &shared_layout_context);
                     }
                     Some(ref mut traversal) => {
-                        parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal);
+                        parallel::traverse_dom_preorder(node, &shared_layout_context, traversal);
                     }
                 }
             });
 
             // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = self.try_get_layout_root((*node).clone());
+            rw_data.root_flow = self.try_get_layout_root(node.clone());
         }
 
         // Send new canvas renderers to the paint task
@@ -1245,9 +1267,6 @@ impl LayoutTask {
                 ReflowQueryType::NoQuery => {}
             }
         }
-
-        // Tell script that we're done.
-        data.script_join_chan.send(()).unwrap();
     }
 
     fn set_visible_rects<'a>(&'a self,

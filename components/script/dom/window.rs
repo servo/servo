@@ -885,14 +885,6 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-        let root = root.upcast::<Node>();
-
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
             None => return,
@@ -923,7 +915,7 @@ impl Window {
                 goal: goal,
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document_root: root.to_trusted_node_address(),
+            document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
             script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
@@ -965,16 +957,8 @@ impl Window {
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
-        let document = self.Document();
-        let root = document.r().GetDocumentElement();
-        let root = match root.r() {
-            Some(root) => root,
-            None => return,
-        };
-
-        let root = root.upcast::<Node>();
-        if query_type == ReflowQueryType::NoQuery && !root.get_has_dirty_descendants() {
-            debug!("root has no dirty descendants; avoiding reflow (reason {:?})", reason);
+        if query_type == ReflowQueryType::NoQuery && !self.Document().needs_reflow() {
+            debug!("Document doesn't need reflow - skipping it (reason {:?})", reason);
             return
         }
 
