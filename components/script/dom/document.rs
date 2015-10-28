@@ -1499,16 +1499,17 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
         let tag_atom = Atom::from_slice(&tag_name);
-        let mut tag_map = self.tag_map.borrow_mut();
-        // Return the cached entry if it exists
-        if let Some(elements) = tag_map.get(&tag_atom) { return elements.root(); }
-        // Otherwise build a fresh HTMLCollection
-        let mut tag_copy = tag_name;
-        tag_copy.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from_slice(&tag_copy);
-        let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom.clone(), ascii_lower_tag);
-        tag_map.insert(tag_atom, JS::from_rooted(&result));
-        return result;
+        match self.tag_map.borrow_mut().entry(tag_atom.clone()) {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let mut tag_copy = tag_name;
+                tag_copy.make_ascii_lowercase();
+                let ascii_lower_tag = Atom::from_slice(&tag_copy);
+                let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom, ascii_lower_tag);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
@@ -1517,25 +1518,27 @@ impl DocumentMethods for Document {
         let ns = namespace_from_domstring(maybe_ns);
         let local = Atom::from_slice(&tag_name);
         let qname = QualName::new(ns, local);
-        let mut tagns_map = self.tagns_map.borrow_mut();
-        // Return the cached entry if it exists
-        if let Some(elements) = tagns_map.get(&qname) { return elements.root(); }
-        // Otherwise build a fresh HTMLCollection
-        let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname.clone());
-        tagns_map.insert(qname, JS::from_rooted(&result));
-        return result;
+        match self.tagns_map.borrow_mut().entry(qname.clone()) {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes).map(Atom::from_slice).collect();
-        let mut classes_map = self.classes_map.borrow_mut();
-        // Return the cached entry if it exists
-        if let Some(elements) = classes_map.get(&class_atoms) { return elements.root(); }
-        // Otherwise build a fresh HTMLCollection
-        let result = HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms.clone());
-        classes_map.insert(class_atoms, JS::from_rooted(&result));
-        return result;
+        match self.classes_map.borrow_mut().entry(class_atoms.clone())  {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let result = HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
