@@ -33,7 +33,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 

@@ -9,9 +9,9 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 bitflags = "0.3"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 fnv = "1.0"
 harfbuzz-sys = "0.1"
 lazy_static = "0.1"
@@ -20,7 +20,7 @@ log = "0.3"
 rand = "0.3"
 rustc-serialize = "0.3"
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 smallvec = "0.1"
 string_cache = "0.1"
 time = "0.1.12"
@@ -52,9 +52,11 @@ path = "../style"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.skia]
 git = "https://github.com/servo/skia"

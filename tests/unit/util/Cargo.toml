@@ -17,5 +17,5 @@ path = "../../../components/plugins"
 
 [dependencies]
 libc = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 

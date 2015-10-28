@@ -9,6 +9,7 @@ path = "lib.rs"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.canvas]
 path = "../canvas"
@@ -67,7 +68,7 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
@@ -77,9 +78,9 @@ libc = "0.1"
 smallvec = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 serde_json = "0.5"
 unicode-bidi = "0.2"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }

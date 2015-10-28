@@ -18,9 +18,11 @@ path = "../style_traits"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.hyper]
 version = "0.6"
@@ -41,12 +43,12 @@ features = ["texture_surface"]
 path = "../plugins"
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 bitflags = "0.3"
 rustc-serialize = "0.3.4"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.1"

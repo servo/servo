@@ -40,4 +40,4 @@ regex = "0.1.14"
 regex_macros = "0.1.8"
 flate2 = "0.2.0"
 uuid = "0.1.16"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}

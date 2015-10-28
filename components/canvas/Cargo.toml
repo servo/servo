@@ -9,9 +9,11 @@ path = "lib.rs"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.canvas_traits]
 path = "../canvas_traits"
@@ -40,4 +42,4 @@ features = [ "serde-serialization" ]
 log = "0.3"
 num = "0.1.24"
 gleam = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}

@@ -20,12 +20,14 @@ path = "../plugins"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.cssparser]
 version = "0.3"
@@ -42,7 +44,7 @@ features = [ "serde_serialization" ]
 git = "https://github.com/servo/rust-selectors"
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 log = "0.3"
 bitflags = "0.3"
 html5ever = { version = "0.2.1", features = ["unstable"] }
@@ -52,9 +54,9 @@ rustc-serialize = "0.3"
 smallvec = "0.1"
 num_cpus = "0.2.2"
 num = "0.1.24"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
-serde_macros = "0.5"
+serde_macros = "0.6"
 string_cache = "0.1"
 lazy_static = "0.1"
 getopts = "0.2.11"

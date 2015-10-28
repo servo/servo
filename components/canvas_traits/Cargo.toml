@@ -12,9 +12,11 @@ path = "../gfx_traits"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
@@ -37,6 +39,6 @@ path = "../plugins"
 path = "../util"
 
 [dependencies]
-euclid = "0.2"
-serde_macros = "0.5"
+euclid = {version = "0.3", features = ["plugins"]}
+serde_macros = "0.6"
 

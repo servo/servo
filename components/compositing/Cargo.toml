@@ -48,9 +48,11 @@ path = "../plugins"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.clipboard]
 git = "https://github.com/aweinstock314/rust-clipboard"
@@ -67,13 +69,13 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 image = "0.4.0"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
 gleam = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.1"

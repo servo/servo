@@ -12,7 +12,7 @@ crate-type = ["dylib"]
 log = "*"
 url = "*"
 libc = "*"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 gleam = "0.1"
 
 [dependencies.servo]
@@ -53,12 +53,14 @@ path = "../../components/devtools"
 
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
+features = ["plugins"]
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
