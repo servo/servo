@@ -2161,27 +2161,27 @@ let obj = {
 assert!(!obj.is_null());
 let obj = RootedObject::new(cx, obj);\
 """ % (descriptor.name, parent)
+    elif descriptor.isGlobal():
+        create += ("let obj = RootedObject::new(\n"
+                   "    cx,\n"
+                   "    create_dom_global(\n"
+                   "        cx,\n"
+                   "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
+                   "        raw as *const libc::c_void,\n"
+                   "        Some(%s))\n"
+                   ");\n"
+                   "assert!(!obj.ptr.is_null());" % TRACE_HOOK_NAME)
     else:
-        if descriptor.isGlobal():
-            create += ("let obj = RootedObject::new(\n"
-                       "    cx,\n"
-                       "    create_dom_global(\n"
-                       "        cx,\n"
-                       "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
-                       "        Some(%s))\n"
-                       ");\n" % TRACE_HOOK_NAME)
-        else:
-            create += ("let obj = {\n"
-                       "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
-                       "    JS_NewObjectWithGivenProto(\n"
-                       "        cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle())\n"
-                       "};\n"
-                       "let obj = RootedObject::new(cx, obj);\n")
-        create += """\
-assert!(!obj.ptr.is_null());
-
-JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,
-                   PrivateValue(raw as *const libc::c_void));"""
+        create += ("let obj = {\n"
+                   "    let _ac = JSAutoCompartment::new(cx, proto.ptr);\n"
+                   "    JS_NewObjectWithGivenProto(\n"
+                   "        cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle())\n"
+                   "};\n"
+                   "let obj = RootedObject::new(cx, obj);\n"
+                   "assert!(!obj.ptr.is_null());\n"
+                   "\n"
+                   "JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT,\n"
+                   "                   PrivateValue(raw as *const libc::c_void));")
     return create
 
 

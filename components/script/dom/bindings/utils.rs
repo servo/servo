@@ -9,7 +9,7 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
 use dom::bindings::conversions::private_from_proto_check;
-use dom::bindings::conversions::{is_dom_class, jsstring_to_str};
+use dom::bindings::conversions::{is_dom_class, jsstring_to_str, DOM_OBJECT_SLOT};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
 use dom::bindings::global::GlobalRef;
@@ -625,6 +625,7 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: HandleObject,
 
 /// Create a DOM global object with the given class.
 pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
+                         private: *const libc::c_void,
                          trace: JSTraceOp)
                          -> *mut JSObject {
     unsafe {
@@ -640,6 +641,7 @@ pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass,
             return ptr::null_mut();
         }
         let _ac = JSAutoCompartment::new(cx, obj.ptr);
+        JS_SetReservedSlot(obj.ptr, DOM_OBJECT_SLOT, PrivateValue(private));
         JS_InitStandardClasses(cx, obj.handle());
         initialize_global(obj.ptr);
         JS_FireOnNewGlobalObject(cx, obj.handle());
