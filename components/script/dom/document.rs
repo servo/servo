@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -174,6 +175,8 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
+    /// http://w3c.github.io/touch-events/#dfn-active-touch-point
+    active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
 }
 
 impl PartialEq for Document {
@@ -748,7 +751,7 @@ impl Document {
                 }
             },
         };
-        let target = el.upcast::<EventTarget>();
+        let target = Root::upcast::<EventTarget>(el);
         let window = self.window.root();
 
         let client_x = Finite::wrap(point.x as f64);
@@ -756,14 +759,44 @@ impl Document {
         let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
         let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
 
-        let touch = Touch::new(window.r(), identifier, target,
+        let touch = Touch::new(window.r(), identifier, target.r(),
                                client_x, client_y, // TODO: Get real screen coordinates?
                                client_x, client_y,
                                page_x, page_y);
 
+        match event_type {
+            TouchEventType::Down => {
+                // Add a new touch point
+                self.active_touch_points.borrow_mut().push(JS::from_rooted(&touch));
+            }
+            TouchEventType::Move => {
+                // Replace an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
+                    Some(t) => *t = JS::from_rooted(&touch),
+                    None => warn!("Got a touchmove event for a non-active touch point")
+                }
+            }
+            TouchEventType::Up |
+            TouchEventType::Cancel => {
+                // Remove an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter().position(|t| t.Identifier() == identifier) {
+                    Some(i) => { active_touch_points.swap_remove(i); }
+                    None => warn!("Got a touchend event for a non-active touch point")
+                }
+            }
+        }
+
         let mut touches = RootedVec::new();
-        touches.push(JS::from_rooted(&touch));
-        let touches = TouchList::new(window.r(), touches.r());
+        touches.extend(self.active_touch_points.borrow().iter().cloned());
+
+        let mut changed_touches = RootedVec::new();
+        changed_touches.push(JS::from_rooted(&touch));
+
+        let mut target_touches = RootedVec::new();
+        target_touches.extend(self.active_touch_points.borrow().iter().filter(
+                |t| t.Target() == target).cloned());
 
         let event = TouchEvent::new(window.r(),
                                     event_name.to_owned(),
@@ -771,11 +804,13 @@ impl Document {
                                     EventCancelable::Cancelable,
                                     Some(window.r()),
                                     0i32,
-                                    &touches, &touches, &touches,
+                                    &TouchList::new(window.r(), touches.r()),
+                                    &TouchList::new(window.r(), changed_touches.r()),
+                                    &TouchList::new(window.r(), target_touches.r()),
                                     // FIXME: modifier keys
                                     false, false, false, false);
         let event = event.upcast::<Event>();
-        let result = event.fire(target);
+        let result = event.fire(target.r());
 
         window.r().reflow(ReflowGoal::ForDisplay,
                           ReflowQueryType::NoQuery,
@@ -1260,6 +1295,7 @@ impl Document {
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
+            active_touch_points: DOMRefCell::new(Vec::new()),
         }
     }
 
