@@ -917,9 +917,7 @@ impl Window {
             },
             document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
-            script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
-            id: last_reflow_id.get(),
             query_type: query_type,
         };
 
