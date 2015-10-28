@@ -27,10 +27,15 @@ pub struct HTMLCollection {
     root: JS<Node>,
     #[ignore_heap_size_of = "Contains a trait object; can't measure due to #6870"]
     filter: Box<CollectionFilter + 'static>,
-    cached_version: Cell<u32>,
-    cached_length: Cell<u32>,
+    // We cache the version of the root node and all its decendents,
+    // the length of the collection, and a cursor into the collection.
+    // We use maxint in case the length or cursor index are unset:
+    // it would be nicer to use Option<u32> for this, but that would produce word
+    // alignment issues.
+    cached_version: Cell<u64>,
     cached_cursor_element: MutNullableHeap<JS<Element>>,
     cached_cursor_index: Cell<u32>,
+    cached_length: Cell<u32>,
 }
 
 impl HTMLCollection {
@@ -40,10 +45,11 @@ impl HTMLCollection {
             reflector_: Reflector::new(),
             root: JS::from_ref(root),
             filter: filter,
+            // Default values for the cache
             cached_version: Cell::new(root.get_inclusive_descendents_version()),
-            cached_length: Cell::new(u32::max_value()),
             cached_cursor_element: MutNullableHeap::new(None),
             cached_cursor_index: Cell::new(u32::max_value()),
+            cached_length: Cell::new(u32::max_value()),
         }
     }
 
@@ -59,23 +65,28 @@ impl HTMLCollection {
     }
 
     fn validate_cache(&self) {
-       let cached_version = self.cached_version.get();
-       let curr_version = self.root.get_inclusive_descendents_version();
-       if curr_version != cached_version {
-           self.cached_version.set(curr_version);
-           self.cached_length.set(u32::max_value());
-           self.cached_cursor_element.set(None);
-           self.cached_cursor_index.set(u32::max_value());
+        // Clear the cache if the root version is different from our cached version
+        let cached_version = self.cached_version.get();
+        let curr_version = self.root.get_inclusive_descendents_version();
+        if curr_version != cached_version {
+            // Default values for the cache
+            self.cached_version.set(curr_version);
+            self.cached_length.set(u32::max_value());
+            self.cached_cursor_element.set(None);
+            self.cached_cursor_index.set(u32::max_value());
         }
     }
 
     fn get_length(&self) -> u32 {
+        // Call validate_cache before calling this method!
         let cached_length = self.cached_length.get();
         if cached_length == u32::max_value() {
+            // Cache miss, calculate the length
             let length = self.elements_iter().count() as u32;
             self.cached_length.set(length);
             length
         } else {
+            // Cache hit
             cached_length
         }
     }
@@ -89,25 +100,36 @@ impl HTMLCollection {
             None
         }
     }
-    
+
     fn get_item(&self, index: u32) -> Option<Root<Element>> {
+        // Call validate_cache before calling this method!
         let cached_length = self.cached_length.get();
         if let Some(element) = self.cached_cursor_element.get() {
+            // Cache hit, the cursor element is set
             let cached_index = self.cached_cursor_index.get();
             if cached_index == index {
+                // The cursor is the element we're looking for
                 Some(element)
             } else if cached_index < index {
+                // The cursor is before the element we're looking for
+                // Iterate forwards, starting at the cursor.
                 let offset = index - (cached_index + 1);
                 let node: Root<Node> = Root::upcast(element);
                 self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
             } else {
+                // The cursor is after the element we're looking for
+                // Iterate backwards, starting at the cursor.
                 let offset = cached_index - (index + 1);
                 let node: Root<Node> = Root::upcast(element);
                 self.set_cached_cursor(index, self.elements_iter_reverse_before(node.r()).nth(offset as usize))
             }
         } else if (index < (cached_length - index)) {
+            // Cache miss, the index is close to the beginning of the collection
+            // Note that this is the case that will fire if the cached length is unset
+            // so cached_length is maxint.
             self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
         } else {
+            // Cache miss, the index is close to the end of the collection
             let offset = cached_length - (index + 1);
             self.set_cached_cursor(index, self.elements_iter_reverse().nth(offset as usize))
         }
@@ -138,7 +160,7 @@ impl HTMLCollection {
         let ascii_lower_tag = Atom::from_slice(&tag);
         HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
     }
-    
+
     pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
                        -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
@@ -168,7 +190,7 @@ impl HTMLCollection {
                           maybe_ns: Option<DOMString>) -> Root<HTMLCollection> {
         let local = Atom::from_slice(&tag);
         let ns = namespace_from_domstring(maybe_ns);
-        let qname = QualName::new(ns,local);
+        let qname = QualName::new(ns, local);
         HTMLCollection::by_qual_tag_name(window, root, qname)
     }
 
@@ -224,29 +246,33 @@ impl HTMLCollection {
     }
 
     pub fn elements_iter_after(&self, after: &Node) -> HTMLCollectionElementsIter {
+        // Iterate forwards from a node.
         HTMLCollectionElementsIter {
             node_iter: after.following_nodes(&self.root),
 	    root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
-    
+
     pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
+        // Iterate forwards from the root.
         self.elements_iter_after(&*self.root)
     }
-    
+
     pub fn elements_iter_reverse_before(&self, before: &Node) -> HTMLCollectionElementsRevIter {
+        // Iterate backwards from a node.
         HTMLCollectionElementsRevIter {
             node_iter: before.following_nodes_reverse(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
-    
+
     pub fn elements_iter_reverse(&self) -> HTMLCollectionElementsRevIter {
+        // Iterate backwards from the root
         self.elements_iter_reverse_before(&*self.root)
     }
-    
+
 }
 
 pub struct HTMLCollectionElementsIter<'a> {
@@ -261,7 +287,7 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         let ref filter = self.filter;
         let ref root = self.root;
-        self.node_iter.by_ref() 
+        self.node_iter.by_ref()
                       .filter_map(Root::downcast)
                       .filter(|element| filter.filter(&element, root))
                       .next()
@@ -279,7 +305,7 @@ impl<'a> Iterator for HTMLCollectionElementsRevIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let ref filter = self.filter;
-	let ref root = self.root;
+        let ref root = self.root;
         self.node_iter.by_ref()
             .filter_map(Root::downcast)
             .filter(|element| filter.filter(&element, root))
