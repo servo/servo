@@ -68,6 +68,9 @@ pub struct CompositionPipeline {
 }
 
 /// Initial setup data needed to construct a pipeline.
+///
+/// *DO NOT* add any Senders to this unless you absolutely know what you're doing, or pcwalton will
+/// have to rewrite your code. Use IPC senders instead.
 pub struct InitialPipelineState {
     /// The ID of the pipeline to create.
     pub id: PipelineId,
@@ -77,7 +80,7 @@ pub struct InitialPipelineState {
     /// A channel to the associated constellation.
     pub constellation_chan: ConstellationChan,
     /// A channel to schedule timer events.
-    pub scheduler_chan: Sender<TimerEventRequest>,
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     /// A channel to the developer tools, if applicable.
@@ -320,7 +323,7 @@ pub struct PipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
     constellation_chan: ConstellationChan,
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     image_cache_task: ImageCacheTask,
