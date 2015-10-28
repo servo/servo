@@ -72,6 +72,11 @@ impl Blob {
     pub fn read_out_buffer(&self, send: Sender<Vec<u8>>) {
         send.send(self.bytes.clone().unwrap_or(vec![])).unwrap();
     }
+
+    // simpler to use version of read_out_buffer
+    pub fn clone_bytes(&self) -> Vec<u8> {
+        self.bytes.clone().unwrap_or(vec![])
+    }
 }
 
 impl BlobMethods for Blob {
