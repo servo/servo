@@ -229,10 +229,10 @@ impl ToJSValConvertible for HandleValue {
 }
 
 #[inline]
-fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
-                                option: ConversionBehavior,
-                                convert_fn: fn(*mut JSContext, HandleValue) -> Result<M, ()>)
-                                -> Result<T, ()>
+unsafe fn convert_int_from_jsval<T, M>(cx: *mut JSContext, value: HandleValue,
+                                       option: ConversionBehavior,
+                                       convert_fn: unsafe fn(*mut JSContext, HandleValue) -> Result<M, ()>)
+                                       -> Result<T, ()>
     where T: Bounded + Zero + As<f64>,
           M: Zero + As<T>,
           f64: As<T>
@@ -255,7 +255,7 @@ impl ToJSValConvertible for bool {
 impl FromJSValConvertible for bool {
     type Config = ();
     fn from_jsval(_cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<bool, ()> {
-        Ok(ToBoolean(val))
+        Ok(unsafe { ToBoolean(val) })
     }
 }
 
@@ -270,7 +270,7 @@ impl ToJSValConvertible for i8 {
 impl FromJSValConvertible for i8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i8, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -285,7 +285,7 @@ impl ToJSValConvertible for u8 {
 impl FromJSValConvertible for u8 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u8, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -300,7 +300,7 @@ impl ToJSValConvertible for i16 {
 impl FromJSValConvertible for i16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i16, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -315,7 +315,7 @@ impl ToJSValConvertible for u16 {
 impl FromJSValConvertible for u16 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u16, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint16)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint16) }
     }
 }
 
@@ -330,7 +330,7 @@ impl ToJSValConvertible for i32 {
 impl FromJSValConvertible for i32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i32, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt32) }
     }
 }
 
@@ -345,7 +345,7 @@ impl ToJSValConvertible for u32 {
 impl FromJSValConvertible for u32 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u32, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint32)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint32) }
     }
 }
 
@@ -362,7 +362,7 @@ impl ToJSValConvertible for i64 {
 impl FromJSValConvertible for i64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<i64, ()> {
-        convert_int_from_jsval(cx, val, option, ToInt64)
+        unsafe { convert_int_from_jsval(cx, val, option, ToInt64) }
     }
 }
 
@@ -379,7 +379,7 @@ impl ToJSValConvertible for u64 {
 impl FromJSValConvertible for u64 {
     type Config = ConversionBehavior;
     fn from_jsval(cx: *mut JSContext, val: HandleValue, option: ConversionBehavior) -> Result<u64, ()> {
-        convert_int_from_jsval(cx, val, option, ToUint64)
+        unsafe { convert_int_from_jsval(cx, val, option, ToUint64) }
     }
 }
 
@@ -396,7 +396,7 @@ impl ToJSValConvertible for f32 {
 impl FromJSValConvertible for f32 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f32, ()> {
-        let result = ToNumber(cx, val);
+        let result = unsafe { ToNumber(cx, val) };
         result.map(|f| f as f32)
     }
 }
@@ -414,7 +414,7 @@ impl ToJSValConvertible for f64 {
 impl FromJSValConvertible for f64 {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, val: HandleValue, _option: ()) -> Result<f64, ()> {
-        ToNumber(cx, val)
+        unsafe { ToNumber(cx, val) }
     }
 }
 
@@ -544,7 +544,7 @@ impl FromJSValConvertible for DOMString {
            value.get().is_null() {
             Ok("".to_owned())
         } else {
-            let jsstr = ToString(cx, value);
+            let jsstr = unsafe { ToString(cx, value) };
             if jsstr.is_null() {
                 debug!("ToString failed");
                 Err(())
@@ -567,7 +567,7 @@ impl FromJSValConvertible for USVString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
                   -> Result<USVString, ()> {
-        let jsstr = ToString(cx, value);
+        let jsstr = unsafe { ToString(cx, value) };
         if jsstr.is_null() {
             debug!("ToString failed");
             return Err(());
@@ -604,7 +604,7 @@ impl ToJSValConvertible for ByteString {
 impl FromJSValConvertible for ByteString {
     type Config = ();
     fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ()) -> Result<ByteString, ()> {
-        let string = ToString(cx, value);
+        let string = unsafe { ToString(cx, value) };
         if string.is_null() {
             debug!("ToString failed");
             return Err(());
