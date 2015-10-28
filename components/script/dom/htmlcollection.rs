@@ -135,24 +135,6 @@ impl HTMLCollection {
         }
     }
 
-    fn all_elements(window: &Window, root: &Node,
-                    namespace_filter: Option<Namespace>) -> Root<HTMLCollection> {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct AllElementFilter {
-            namespace_filter: Option<Namespace>
-        }
-        impl CollectionFilter for AllElementFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                match self.namespace_filter {
-                    None => true,
-                    Some(ref namespace) => *elem.namespace() == *namespace
-                }
-            }
-        }
-        let filter = AllElementFilter { namespace_filter: namespace_filter };
-        HTMLCollection::create(window, root, box filter)
-    }
-
     pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
                        -> Root<HTMLCollection> {
         let tag_atom = Atom::from_slice(&tag);
