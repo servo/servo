@@ -23,7 +23,7 @@ use euclid::SideOffsets2D;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
 use string_cache::Atom;
-
+use style_traits::ParseErrorReporter;
 use computed_values;
 use parser::{ParserContext, log_css_error};
 use selectors::matching::DeclarationBlock;
@@ -5614,10 +5614,10 @@ mod property_bit_field {
 
 % for property in LONGHANDS:
     % if property.derived_from is None:
-        fn substitute_variables_${property.ident}<F, R>(
+        fn substitute_variables_${property.ident}<'a, F, R>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
-            f: F)
+            f: F, error_reporter: &'a (ParseErrorReporter + 'a))
             -> R
             where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) -> R
         {
@@ -5629,7 +5629,7 @@ mod property_bit_field {
                     .and_then(|css| {
                         // As of this writing, only the base URL is used for property values:
                         let context = ParserContext::new(
-                            ::stylesheets::Origin::Author, base_url);
+                            ::stylesheets::Origin::Author, base_url, error_reporter);
                         Parser::new(&css).parse_entirely(|input| {
                             match from_shorthand {
                                 Shorthand::None => {
@@ -5673,8 +5673,8 @@ pub struct PropertyDeclarationBlock {
 }
 
 
-pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclarationBlock {
-    let context = ParserContext::new(Origin::Author, base_url);
+pub fn parse_style_attribute<'a>(input: &str, base_url: &Url, error_reporter: &'a (ParseErrorReporter + 'a)) -> PropertyDeclarationBlock {
+    let context = ParserContext::new(Origin::Author, base_url, error_reporter);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 

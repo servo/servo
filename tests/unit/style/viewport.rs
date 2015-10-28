@@ -281,7 +281,7 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = Url::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url);
+    let context = ParserContext::new(Origin::Author, &url, &'a (ParseErrorReporter + 'a));
 
     macro_rules! from_css {
         ($css:expr) => {
