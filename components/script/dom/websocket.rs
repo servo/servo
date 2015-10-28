@@ -294,7 +294,9 @@ impl WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send_Impl(&self, data_byte_len: u32) -> Fallible<()> {
+    fn Send_Impl(&self, data_byte_len: u64) -> Fallible<()> {
+
+        let return_after_buffer = false;
 
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
@@ -302,19 +304,23 @@ impl WebSocket {
             },
             WebSocketRequestState::Open => (),
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                // TODO: Update bufferedAmount.
-                return Ok(());
+                let return_after_buffer = true;
             }
         }
 
-        /*TODO: This is not up to spec see http://html.spec.whatwg.org/multipage/comms.html search for
-                "If argument is a string"
-          TODO: Need to buffer data
-          TODO: The send function needs to flag when full by using the following
-          self.full.set(true). This needs to be done when the buffer is full
-        */
+        let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
+        
+        if new_buffer_amount > (u32::max_value() as u64) {
+            self.full.set(true);
+            // I don't know what to give for the error code or reason
+            // self.Close();
+        } else {
+            self.buffered_amount.set(new_buffer_amount as u32);
+        }
 
-        self.buffered_amount.set(self.buffered_amount.get() + data_byte_len);
+        if return_after_buffer {
+            return Ok(());
+        }
 
         if !self.clearing_buffer.get() && 
             self.ready_state.get() == WebSocketRequestState::Open {
@@ -374,7 +380,7 @@ impl WebSocketMethods for WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> Fallible<()> {
 
-        let data_byte_len = data.0.as_bytes().len() as u32;
+        let data_byte_len = data.0.as_bytes().len() as u64;
         let _ = try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
@@ -391,7 +397,7 @@ impl WebSocketMethods for WebSocket {
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems
         */
-        let data_byte_len = ::std::cmp::min(data.Size(), u32::max_value() as u64) as u32;
+        let data_byte_len = data.Size();
         let _ = try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
