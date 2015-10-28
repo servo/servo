@@ -13,7 +13,6 @@ use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRendering
 use dom::bindings::inheritance::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
-use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
