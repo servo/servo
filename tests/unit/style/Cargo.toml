@@ -21,9 +21,9 @@ path = "../../../components/util"
 git = "https://github.com/servo/rust-selectors"
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 url = "0.2"
 cssparser = "0.3.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}

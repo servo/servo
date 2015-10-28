@@ -119,10 +119,12 @@ version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies.euclid]
-version = "0.2"
+version = "0.3"
+features = ["plugins"]
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
+features = ["plugins"]
 
 [dependencies.gleam]
 version = "0.1"

@@ -71,7 +71,7 @@ version = "0.6"
 features = [ "serde-serialization" ]
 
 [dependencies]
-app_units = "0.1"
+app_units = {version = "0.1", features = ["plugins"]}
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
@@ -87,7 +87,7 @@ smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
 string_cache = { version = "0.1.15", features = ["unstable"] }
 string_cache_plugin = "0.1"
-euclid = "0.2"
+euclid = {version = "0.3", features = ["plugins"]}
 tendril = "0.1.1"
 rand = "0.3"
 serde = "0.6"
