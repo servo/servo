@@ -13,6 +13,7 @@
 #![feature(optin_builtin_traits)]
 #![feature(path_ext)]
 #![feature(plugin)]
+#![feature(reflect_marker)]
 #![feature(slice_splits)]
 #![feature(step_by)]
 #![feature(step_trait)]
