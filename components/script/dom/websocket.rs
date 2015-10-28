@@ -375,7 +375,7 @@ impl WebSocketMethods for WebSocket {
     fn Send(&self, data: USVString) -> Fallible<()> {
 
         let data_byte_len = data.0.as_bytes().len() as u32;
-        let _ = self.Send_Impl(data_byte_len);
+        let _ = try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
@@ -392,7 +392,7 @@ impl WebSocketMethods for WebSocket {
            If the buffer limit is reached in the first place, there are likely other major problems
         */
         let data_byte_len = ::std::cmp::min(data.Size(), u32::max_value() as u64) as u32;
-        let _ = self.Send_Impl(data_byte_len);
+        let _ = try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
