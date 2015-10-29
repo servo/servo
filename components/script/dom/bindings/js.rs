@@ -40,6 +40,7 @@ use std::mem;
 use std::ops::Deref;
 use std::ptr;
 use util::mem::HeapSizeOf;
+use util::task_state;
 
 /// A traced reference to a DOM object
 ///
@@ -64,6 +65,7 @@ impl<T> HeapSizeOf for JS<T> {
 impl<T> JS<T> {
     /// Returns `LayoutJS<T>` containing the same pointer.
     pub unsafe fn to_layout(&self) -> LayoutJS<T> {
+        debug_assert!(task_state::get().is_layout());
         LayoutJS {
             ptr: self.ptr.clone()
         }
@@ -79,6 +81,7 @@ impl<T: Reflectable> JS<T> {
     /// XXX Not a great API. Should be a call on Root<T> instead
     #[allow(unrooted_must_root)]
     pub fn from_rooted(root: &Root<T>) -> JS<T> {
+        debug_assert!(task_state::get().is_script());
         JS {
             ptr: unsafe { NonZero::new(&**root) }
         }
@@ -86,6 +89,7 @@ impl<T: Reflectable> JS<T> {
     /// Create a JS<T> from a &T
     #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> JS<T> {
+        debug_assert!(task_state::get().is_script());
         JS {
             ptr: unsafe { NonZero::new(&*obj) }
         }
@@ -96,6 +100,7 @@ impl<T: Reflectable> Deref for JS<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
+        debug_assert!(task_state::get().is_script());
         // We can only have &JS<T> from a rooted thing, so it's safe to deref
         // it to &T.
         unsafe { &**self.ptr }
@@ -118,11 +123,13 @@ pub struct LayoutJS<T> {
 impl<T: Castable> LayoutJS<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
     pub fn upcast<U>(&self) -> LayoutJS<U> where U: Castable, T: DerivedFrom<U> {
+        debug_assert!(task_state::get().is_layout());
         unsafe { mem::transmute_copy(self) }
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
     pub fn downcast<U>(&self) -> Option<LayoutJS<U>> where U: DerivedFrom<T> {
+        debug_assert!(task_state::get().is_layout());
         unsafe {
             if (*self.unsafe_get()).is::<U>() {
                 Some(mem::transmute_copy(self))
@@ -136,6 +143,7 @@ impl<T: Castable> LayoutJS<T> {
 impl<T: Reflectable> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
+        debug_assert!(task_state::get().is_layout());
         (**self.ptr).reflector().get_jsobject().get()
     }
 }
@@ -170,6 +178,7 @@ impl <T> Clone for JS<T> {
     #[inline]
     #[allow(unrooted_must_root)]
     fn clone(&self) -> JS<T> {
+        debug_assert!(task_state::get().is_script());
         JS {
             ptr: self.ptr.clone()
         }
@@ -179,6 +188,7 @@ impl <T> Clone for JS<T> {
 impl <T> Clone for LayoutJS<T> {
     #[inline]
     fn clone(&self) -> LayoutJS<T> {
+        debug_assert!(task_state::get().is_layout());
         LayoutJS {
             ptr: self.ptr.clone()
         }
@@ -190,6 +200,7 @@ impl LayoutJS<Node> {
     /// `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress)
                                             -> LayoutJS<Node> {
+        debug_assert!(task_state::get().is_layout());
         let TrustedNodeAddress(addr) = inner;
         LayoutJS {
             ptr: NonZero::new(addr as *const Node)
@@ -224,6 +235,7 @@ pub struct MutHeapJSVal {
 impl MutHeapJSVal {
     /// Create a new `MutHeapJSVal`.
     pub fn new() -> MutHeapJSVal {
+        debug_assert!(task_state::get().is_script());
         MutHeapJSVal {
             val: UnsafeCell::new(Heap::default()),
         }
@@ -232,6 +244,7 @@ impl MutHeapJSVal {
     /// Set this `MutHeapJSVal` to the given value, calling write barriers as
     /// appropriate.
     pub fn set(&self, val: JSVal) {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             let cell = self.val.get();
             (*cell).set(val);
@@ -240,6 +253,7 @@ impl MutHeapJSVal {
 
     /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
     pub fn get(&self) -> JSVal {
+        debug_assert!(task_state::get().is_script());
         unsafe { (*self.val.get()).get() }
     }
 }
@@ -259,6 +273,7 @@ pub struct MutHeap<T: HeapGCValue> {
 impl<T: Reflectable> MutHeap<JS<T>> {
     /// Create a new `MutHeap`.
     pub fn new(initial: &T) -> MutHeap<JS<T>> {
+        debug_assert!(task_state::get().is_script());
         MutHeap {
             val: UnsafeCell::new(JS::from_ref(initial)),
         }
@@ -266,6 +281,7 @@ impl<T: Reflectable> MutHeap<JS<T>> {
 
     /// Set this `MutHeap` to the given value.
     pub fn set(&self, val: &T) {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             *self.val.get() = JS::from_ref(val);
         }
@@ -273,6 +289,7 @@ impl<T: Reflectable> MutHeap<JS<T>> {
 
     /// Get the value in this `MutHeap`.
     pub fn get(&self) -> Root<T> {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             ptr::read(self.val.get()).root()
         }
@@ -317,6 +334,7 @@ pub struct MutNullableHeap<T: HeapGCValue> {
 impl<T: Reflectable> MutNullableHeap<JS<T>> {
     /// Create a new `MutNullableHeap`.
     pub fn new(initial: Option<&T>) -> MutNullableHeap<JS<T>> {
+        debug_assert!(task_state::get().is_script());
         MutNullableHeap {
             ptr: UnsafeCell::new(initial.map(JS::from_ref))
         }
@@ -327,6 +345,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     pub fn or_init<F>(&self, cb: F) -> Root<T>
         where F: FnOnce() -> Root<T>
     {
+        debug_assert!(task_state::get().is_script());
         match self.get() {
             Some(inner) => inner,
             None => {
@@ -341,12 +360,14 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     /// For use by layout, which can't use safe types like Temporary.
     #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
+        debug_assert!(task_state::get().is_layout());
         ptr::read(self.ptr.get()).map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
     #[allow(unrooted_must_root)]
     pub fn get(&self) -> Option<Root<T>> {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             ptr::read(self.ptr.get()).map(|o| o.root())
         }
@@ -354,11 +375,13 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
 
     /// Get a rooted value out of this object
     pub fn get_rooted(&self) -> Option<Root<T>> {
+        debug_assert!(task_state::get().is_script());
         self.get()
     }
 
     /// Set this `MutNullableHeap` to the given value.
     pub fn set(&self, val: Option<&T>) {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             *self.ptr.get() = val.map(|p| JS::from_ref(p));
         }
@@ -385,6 +408,7 @@ impl<'a, T: Reflectable> PartialEq<Option<&'a T>> for MutNullableHeap<JS<T>> {
 impl<T: HeapGCValue> Default for MutNullableHeap<T> {
     #[allow(unrooted_must_root)]
     fn default() -> MutNullableHeap<T> {
+        debug_assert!(task_state::get().is_script());
         MutNullableHeap {
             ptr: UnsafeCell::new(None)
         }
@@ -403,6 +427,7 @@ impl<T: Reflectable> LayoutJS<T> {
     /// the only method that be safely accessed from layout. (The fact that
     /// this is unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
+        debug_assert!(task_state::get().is_layout());
         *self.ptr
     }
 }
@@ -454,6 +479,7 @@ impl Clone for RootCollectionPtr {
 impl RootCollection {
     /// Create an empty collection of roots
     pub fn new() -> RootCollection {
+        debug_assert!(task_state::get().is_script());
         RootCollection {
             roots: UnsafeCell::new(vec!()),
         }
@@ -461,6 +487,7 @@ impl RootCollection {
 
     /// Start tracking a stack-based root
     fn root<'b>(&self, untracked_reflector: *const Reflector) {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             let mut roots = &mut *self.roots.get();
             roots.push(untracked_reflector);
@@ -470,6 +497,7 @@ impl RootCollection {
 
     /// Stop tracking a stack-based root, asserting if the reflector isn't found
     fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
+        debug_assert!(task_state::get().is_script());
         unsafe {
             let mut roots = &mut *self.roots.get();
             let old_reflector = &*rooted.r().reflector();
@@ -530,6 +558,7 @@ impl<T: Reflectable> Root<T> {
     /// out references which cannot outlive this new `Root`.
     pub fn new(unrooted: NonZero<*const T>)
                -> Root<T> {
+        debug_assert!(task_state::get().is_script());
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe { (*collection).root(&*(**unrooted).reflector()) }
@@ -555,6 +584,7 @@ impl<T: Reflectable> Root<T> {
 impl<T: Reflectable> Deref for Root<T> {
     type Target = T;
     fn deref(&self) -> &T {
+        debug_assert!(task_state::get().is_script());
         unsafe { &**self.ptr.deref() }
     }
 }
