@@ -310,7 +310,7 @@ impl Document {
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
     pub fn base_element(&self) -> Option<Root<HTMLBaseElement>> {
-        self.base_element.get_rooted()
+        self.base_element.get()
     }
 
     /// Refresh the cached first base element in the DOM.
@@ -508,7 +508,7 @@ impl Document {
     /// Return the element that currently has focus.
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
     pub fn get_focused_element(&self) -> Option<Root<Element>> {
-        self.focused.get_rooted()
+        self.focused.get()
     }
 
     /// Initiate a new round of checking for elements requesting focus. The last element to call
@@ -529,13 +529,13 @@ impl Document {
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
         //TODO: dispatch blur, focus, focusout, and focusin events
 
-        if let Some(ref elem) = self.focused.get_rooted() {
+        if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(false);
         }
 
         self.focused.set(self.possibly_focused.get().r());
 
-        if let Some(ref elem) = self.focused.get_rooted() {
+        if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
 
             // Update the focus state for all elements in the focus chain.
@@ -1045,7 +1045,7 @@ impl Document {
 
         // A finished resource load can potentially unblock parsing. In that case, resume the
         // parser so its loop can find out.
-        if let Some(parser) = self.current_parser.get_rooted() {
+        if let Some(parser) = self.current_parser.get() {
             if parser.is_suspended() {
                 parser.resume();
             }
@@ -1063,7 +1063,7 @@ impl Document {
     /// execute it.
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
     fn maybe_execute_parser_blocking_script(&self) -> ParserBlockedByScript {
-        let script = match self.pending_parsing_blocking_script.get_rooted() {
+        let script = match self.pending_parsing_blocking_script.get() {
             None => return ParserBlockedByScript::Unblocked,
             Some(script) => script,
         };
@@ -1156,7 +1156,7 @@ impl Document {
     }
 
     pub fn get_current_parser(&self) -> Option<Root<ServoHTMLParser>> {
-        self.current_parser.get_rooted()
+        self.current_parser.get()
     }
 
     /// Find an iframe element in the document.
@@ -1735,7 +1735,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
     fn GetCurrentScript(&self) -> Option<Root<HTMLScriptElement>> {
-        self.current_script.get_rooted()
+        self.current_script.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body

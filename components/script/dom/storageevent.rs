@@ -106,6 +106,6 @@ impl StorageEventMethods for StorageEvent {
 
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea
     fn GetStorageArea(&self) -> Option<Root<Storage>> {
-        self.storageArea.get_rooted()
+        self.storageArea.get()
     }
 }

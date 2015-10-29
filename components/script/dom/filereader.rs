@@ -302,7 +302,7 @@ impl FileReaderMethods for FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-error
     fn GetError(&self) -> Option<Root<DOMException>> {
-        self.error.get_rooted()
+        self.error.get()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-result

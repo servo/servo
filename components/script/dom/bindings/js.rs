@@ -373,12 +373,6 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
         }
     }
 
-    /// Get a rooted value out of this object
-    pub fn get_rooted(&self) -> Option<Root<T>> {
-        debug_assert!(task_state::get().is_script());
-        self.get()
-    }
-
     /// Set this `MutNullableHeap` to the given value.
     pub fn set(&self, val: Option<&T>) {
         debug_assert!(task_state::get().is_script());

@@ -319,7 +319,7 @@ impl Attr {
     }
 
     pub fn owner(&self) -> Option<Root<Element>> {
-        self.owner.get_rooted()
+        self.owner.get()
     }
 
     pub fn summarize(&self) -> AttrInfo {
