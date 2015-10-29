@@ -1445,7 +1445,11 @@ class MethodDefiner(PropertyDefiner):
                 selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
                     identifier = m.get("nativeName", m["name"])
-                    jitinfo = "&%s_methodinfo" % identifier
+                    # Go through an intermediate type here, because it's not
+                    # easy to tell whether the methodinfo is a JSJitInfo or
+                    # a JSTypedMethodJitInfo here.  The compiler knows, though,
+                    # so let it do the work.
+                    jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
                     accessor = "Some(generic_method)"
                 else:
                     jitinfo = "0 as *const JSJitInfo"
@@ -3089,6 +3093,26 @@ class CGMemberJITInfo(CGThing):
                 slotIndex=slotIndex)
             return initializer.rstrip()
 
+        if args is not None:
+            argTypes = "%s_argTypes" % infoName
+            args = [CGMemberJITInfo.getJSArgType(arg.type) for arg in args]
+            args.append("ArgType::ArgTypeListEnd as i32")
+            argTypesDecl = (
+                "const %s: [i32; %d] = [ %s ];\n" %
+                (argTypes, len(args), ", ".join(args)))
+            return fill(
+                """
+                $*{argTypesDecl}
+                const ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
+                    base: ${jitInfo},
+                    argTypes: &${argTypes} as *const _ as *const ArgType,
+                };
+                """,
+                argTypesDecl=argTypesDecl,
+                infoName=infoName,
+                jitInfo=indent(jitInfoInitializer(True)),
+                argTypes=argTypes)
+
         return ("\n"
                 "const %s: JSJitInfo = %s;\n"
                 % (infoName, jitInfoInitializer(False)))
@@ -3289,6 +3313,73 @@ class CGMemberJITInfo(CGThing):
             return "JSVAL_TYPE_DOUBLE"
         # Different types
         return "JSVAL_TYPE_UNKNOWN"
+
+    @staticmethod
+    def getJSArgType(t):
+        assert not t.isVoid()
+        if t.nullable():
+            # Sometimes it might return null, sometimes not
+            return "ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
+        if t.isArray():
+            # No idea yet
+            assert False
+        if t.isSequence():
+            return "ArgType::Object as i32"
+        if t.isGeckoInterface():
+            return "ArgType::Object as i32"
+        if t.isString():
+            return "ArgType::String as i32"
+        if t.isEnum():
+            return "ArgType::String as i32"
+        if t.isCallback():
+            return "ArgType::Object as i32"
+        if t.isAny():
+            # The whole point is to return various stuff
+            return "ArgType::Any as i32"
+        if t.isObject():
+            return "ArgType::Object as i32"
+        if t.isSpiderMonkeyInterface():
+            return "ArgType::Object as i32"
+        if t.isUnion():
+            u = t.unroll()
+            type = "JSJitInfo::Null as i32" if u.hasNullableType else ""
+            return reduce(CGMemberJITInfo.getSingleArgType,
+                          u.flatMemberTypes, type)
+        if t.isDictionary():
+            return "ArgType::Object as i32"
+        if t.isDate():
+            return "ArgType::Object as i32"
+        if not t.isPrimitive():
+            raise TypeError("No idea what type " + str(t) + " is.")
+        tag = t.tag()
+        if tag == IDLType.Tags.bool:
+            return "ArgType::Boolean as i32"
+        if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
+                   IDLType.Tags.int16, IDLType.Tags.uint16,
+                   IDLType.Tags.int32]:
+            return "ArgType::Integer as i32"
+        if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
+                   IDLType.Tags.unrestricted_float, IDLType.Tags.float,
+                   IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
+            # These all use JS_NumberValue, which can return int or double.
+            # But TI treats "double" as meaning "int or double", so we're
+            # good to return JSVAL_TYPE_DOUBLE here.
+            return "ArgType::Double as i32"
+        if tag != IDLType.Tags.uint32:
+            raise TypeError("No idea what type " + str(t) + " is.")
+        # uint32 is sometimes int and sometimes double.
+        return "ArgType::Double as i32"
+
+    @staticmethod
+    def getSingleArgType(existingType, t):
+        type = CGMemberJITInfo.getJSArgType(t)
+        if existingType == "":
+            # First element of the list; just return its type
+            return type
+
+        if type == existingType:
+            return existingType
+        return "%s | %s" % (existingType, type)
 
 
 def getEnumValueName(value):
@@ -5086,7 +5177,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{RootedValue, JSNativeWrapper, JSNative, JSObject, JSPropertyDescriptor}',
             'js::jsapi::{RootedId, JS_InternString, RootedString, INTERNED_STRING_TO_JSID}',
             'js::jsapi::{JSPropertySpec}',
-            'js::jsapi::{JSString, JSTracer, JSJitInfo, OpType, AliasSet}',
+            'js::jsapi::{JSString, JSTracer, JSJitInfo, JSTypedMethodJitInfo, OpType, AliasSet, ArgType}',
             'js::jsapi::{MutableHandle, Handle, HandleId, JSType, JSValueType}',
             'js::jsapi::{SymbolCode, ObjectOpResult, HandleValueArray}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitSetterCallArgs, JSJitMethodCallArgs, CallArgs}',

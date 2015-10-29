@@ -1564,6 +1564,14 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "touchevent" =>
+                Ok(Root::upcast(
+                    TouchEvent::new_uninitialized(&self.window,
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                        &TouchList::new(&self.window, &[]),
+                    )
+                )),
             _ =>
                 Err(Error::NotSupported),
         }
@@ -2039,21 +2047,14 @@ fn is_scheme_host_port_tuple(url: &Url) -> bool {
     url.host().is_some() && url.port_or_default().is_some()
 }
 
-#[derive(HeapSizeOf)]
-pub enum DocumentProgressTask {
-    Load,
-}
-
 pub struct DocumentProgressHandler {
-    addr: Trusted<Document>,
-    task: DocumentProgressTask,
+    addr: Trusted<Document>
 }
 
 impl DocumentProgressHandler {
-    pub fn new(addr: Trusted<Document>, task: DocumentProgressTask) -> DocumentProgressHandler {
+    pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
         DocumentProgressHandler {
-            addr: addr,
-            task: task,
+            addr: addr
         }
     }
 
@@ -2099,12 +2100,8 @@ impl Runnable for DocumentProgressHandler {
         let document = self.addr.root();
         let window = document.r().window();
         if window.is_alive() {
-            match self.task {
-                DocumentProgressTask::Load => {
-                    self.set_ready_state_complete();
-                    self.dispatch_load();
-                }
-            }
+            self.set_ready_state_complete();
+            self.dispatch_load();
         }
     }
 }
