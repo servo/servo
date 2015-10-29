@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate msg;
 
 use cookie;
 use cookie_storage::CookieStorage;
@@ -23,12 +22,12 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
+use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_task::{send_error, start_sending_sniffed_opt};
-use self::msg::constellation_msg::{PipelineId};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -445,8 +444,8 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             pipeline_id: PipelineId) {
 
     if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest { url: url, method: method,
-                      headers: headers, body: body, pipeline_id: pipeline_id };
+        let request = DevtoolsHttpRequest {
+            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id };
         let net_event = NetworkEvent::HttpRequest(request);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
@@ -593,13 +592,11 @@ pub fn load<A>(load_data: LoadData,
                 }
             };
 
-            // refactored call to send_request_to_pipelineid
-
             if let Some(pipeline_id) = load_data.pipeline_id {
                 send_request_to_devtools(
-                devtools_chan.clone(), request_id.clone(), url.clone(),
-                method.clone(), request_headers.clone(),
-                cloned_data, pipeline_id
+                    devtools_chan.clone(), request_id.clone(), url.clone(),
+                    method.clone(), request_headers.clone(),
+                    cloned_data, pipeline_id
                 );
 }
 

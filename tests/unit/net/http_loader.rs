@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate msg;
 
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
@@ -17,12 +16,12 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
 use net_traits::{LoadData, CookieSource};
-use self::msg::constellation_msg::PipelineId;
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
@@ -385,8 +384,7 @@ fn test_request_and_response_data_with_network_messages() {
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
-    let optional: Option<PipelineId> = Some(pipeline_id);
-    let mut load_data = LoadData::new(url.clone(), optional);
+    let mut load_data = LoadData::new(url.clone(), Some(pipeline_id));
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
@@ -455,20 +453,12 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let optional: Option<PipelineId> = None;
-    let mut load_data = LoadData::new(url.clone(), optional);
-    let mut request_headers = Headers::new();
-    request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
-    load_data.headers = request_headers.clone();
+    let load_data = LoadData::new(url.clone(), None);
     let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
                                 DEFAULT_USER_AGENT.to_string());
 
     // notification received from devtools
-
-    match devtools_port.try_recv() {
-        Ok(_) => { panic!("Devtools should not have returned any notifications"); },
-        Err(e) => { e }
-    };
+    assert!(devtools_port.try_recv().is_err());
 }
 
 
