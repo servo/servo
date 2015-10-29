@@ -30,7 +30,6 @@
 
 #![allow(unsafe_code)]
 
-use context::SharedLayoutContext;
 use data::{LayoutDataFlags, LayoutDataWrapper, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
@@ -191,16 +190,11 @@ impl<'ln> LayoutNode<'ln> {
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
-    pub fn layout_parent_node(self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
-        match shared.reflow_root {
-            None => panic!("layout_parent_node(): This layout has no access to the DOM!"),
-            Some(reflow_root) => {
-                if self.opaque() == reflow_root {
-                    None
-                } else {
-                    self.parent_node()
-                }
-            }
+    pub fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<LayoutNode<'ln>> {
+        if self.opaque() == reflow_root {
+            None
+        } else {
+            self.parent_node()
         }
     }
 
