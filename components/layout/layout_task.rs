@@ -64,7 +64,7 @@ use selectors::parser::PseudoElement;
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
@@ -177,7 +177,7 @@ pub struct LayoutTask {
     pub id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    pub url: Url,
+    pub url: RefCell<Url>,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     pub is_iframe: bool,
@@ -385,7 +385,7 @@ impl LayoutTask {
 
         LayoutTask {
             id: id,
-            url: url,
+            url: RefCell::new(url),
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
@@ -555,10 +555,11 @@ impl LayoutTask {
             page_clip_rect: MAX_RECT,
         };
 
+        //let url_clone = &self.url.borrow();
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &self.url,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -627,6 +628,10 @@ impl LayoutTask {
             Msg::CreateLayoutTask(info) => {
                 self.create_layout_task(info)
             }
+            Msg::SetFinalUrl(final_url) => {
+                let mut url_ref_cell = self.url.borrow_mut();
+                *url_ref_cell = final_url;
+            },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
@@ -649,15 +654,16 @@ impl LayoutTask {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = self.lock_rw_data(possibly_locked_rw_data);
         let stacking_context = rw_data.stacking_context.as_ref();
+        let ref formatted_url = format!("url({})", *self.url.borrow());
         reports.push(Report {
-            path: path![format!("url({})", self.url), "layout-task", "display-list"],
+            path: path![formatted_url, "layout-task", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: stacking_context.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
         // The LayoutTask has a context in TLS...
         reports.push(Report {
-            path: path![format!("url({})", self.url), "layout-task", "local-context"],
+            path: path![formatted_url, "layout-task", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: heap_size_of_local_context(),
         });
@@ -667,7 +673,7 @@ impl LayoutTask {
             let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
             for (i, size) in sizes.iter().enumerate() {
                 reports.push(Report {
-                    path: path![format!("url({})", self.url),
+                    path: path![formatted_url,
                                 format!("layout-worker-{}-local-context", i)],
                     kind: ReportKind::ExplicitJemallocHeapSize,
                     size: *size,
@@ -1149,7 +1155,8 @@ impl LayoutTask {
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}", self.url.serialize());
+        debug!("layout: received layout request for: {}",
+            self.url.borrow().serialize());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1211,7 +1218,7 @@ impl LayoutTask {
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          screen_size_changed,
                                                                          Some(&node),
-                                                                         &self.url,
+                                                                         &self.url.borrow(),
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
@@ -1320,7 +1327,7 @@ impl LayoutTask {
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &self.url,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
@@ -1343,7 +1350,7 @@ impl LayoutTask {
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
                                                                   None,
-                                                                  &self.url,
+                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = rw_data.layout_root() {
