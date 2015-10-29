@@ -270,7 +270,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                                   ("submit") | ("image") | ("reset") | ("button"));
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_setter!(SetType, "type");
+    make_atomic_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
@@ -579,6 +579,7 @@ impl VirtualMethods for HTMLInputElement {
         match name {
             &atom!(name) => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!(type) => AttrValue::from_atomic(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
