@@ -369,11 +369,7 @@ impl<'le> LayoutDocument<'le> {
     }
 
     pub fn root_node(&self) -> Option<LayoutNode<'le>> {
-        let mut node = self.as_node().first_child();
-        while node.is_some() && !node.unwrap().is_element() {
-            node = node.unwrap().next_sibling();
-        }
-        node
+        self.as_node().children().find(LayoutNode::is_element)
     }
 
     pub fn drain_event_state_changes(&self) -> Vec<(LayoutElement, EventState)> {
