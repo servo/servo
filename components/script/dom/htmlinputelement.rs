@@ -127,6 +127,12 @@ impl HTMLInputElement {
         let element = HTMLInputElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLInputElementBinding::Wrap)
     }
+
+    pub fn type_(&self) -> Atom {
+        self.upcast::<Element>()
+            .get_attribute(&ns!(""), &atom!("type"))
+            .map_or_else(|| atom!(""), |a| a.value().as_atom().to_owned())
+    }
 }
 
 pub trait LayoutHTMLInputElementHelpers {
@@ -268,7 +274,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
                                   ("submit") | ("image") | ("reset") | ("button"));
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
-    make_setter!(SetType, "type");
+    make_atomic_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
@@ -337,7 +343,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> Root<NodeList> {
-        if self.Type() == "hidden" {
+        if &*self.type_() == "hidden" {
             let window = window_from_node(self);
             NodeList::empty(&window)
         } else {
@@ -403,7 +409,7 @@ impl HTMLInputElement {
     }
 
     pub fn get_form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
-        let ty = self.Type();
+        let ty = self.type_();
         let name = self.Name();
         let is_submitter = match submitter {
             Some(FormSubmitter::InputElement(s)) => {
@@ -434,7 +440,7 @@ impl HTMLInputElement {
             }
         }
         Some(FormDatum {
-            ty: ty,
+            ty: DOMString(ty.to_string()),
             name: name,
             value: value
         })
@@ -585,6 +591,7 @@ impl VirtualMethods for HTMLInputElement {
         match name {
             &atom!(name) => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!(type) => AttrValue::from_atomic(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -856,11 +863,11 @@ impl Activatable for HTMLInputElement {
                 let inputs = node.query_selector_iter(DOMString("input".to_owned())).unwrap()
                     .filter_map(Root::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner && match &*input.Type() {
-                            "text" | "search" | "url" | "tel" |
-                            "email" | "password" | "datetime" |
-                            "date" | "month" | "week" | "time" |
-                            "datetime-local" | "number"
+                        input.form_owner() == owner && match input.type_() {
+                            atom!("text") | atom!("search") | atom!("url") | atom!("tel") |
+                            atom!("email") | atom!("password") | atom!("datetime") |
+                            atom!("date") | atom!("month") | atom!("week") | atom!("time") |
+                            atom!("datetime-local") | atom!("number")
                               => true,
                             _ => false
                         }
