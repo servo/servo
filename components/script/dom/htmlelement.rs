@@ -345,7 +345,7 @@ impl HTMLElement {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
                 match type_id {
                     HTMLElementTypeId::HTMLInputElement =>
-                        self.downcast::<HTMLInputElement>().unwrap().Type() != "hidden",
+                        self.downcast::<HTMLInputElement>().unwrap().type_() != atom!("hidden"),
                     HTMLElementTypeId::HTMLButtonElement |
                         HTMLElementTypeId::HTMLMeterElement |
                         HTMLElementTypeId::HTMLOutputElement |
