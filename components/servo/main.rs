@@ -31,8 +31,6 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::net_traits::hosts;
 use servo::util::opts;
-#[cfg(target_os = "android")]
-use std::borrow::ToOwned;
 use std::rc::Rc;
 
 fn main() {
