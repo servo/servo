@@ -296,7 +296,11 @@ impl WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_Impl(&self, data_byte_len: u64) -> Fallible<()> {
 
-        let return_after_buffer = false;
+        let mut return_after_buffer = false;
+
+        let global = self.global.root();
+        let chan = global.r().script_chan();
+        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
 
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
@@ -304,16 +308,24 @@ impl WebSocket {
             },
             WebSocketRequestState::Open => (),
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                let return_after_buffer = true;
+                return_after_buffer = true;
             }
         }
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
-        
+
         if new_buffer_amount > (u32::max_value() as u64) {
+
+            self.buffered_amount.set(u32::max_value());
             self.full.set(true);
-            // I don't know what to give for the error code or reason
-            // self.Close();
+
+            let task = box CloseTask {
+                addr: address,
+            };
+            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+
+            return Ok(());
+
         } else {
             self.buffered_amount.set(new_buffer_amount as u32);
         }
@@ -326,11 +338,9 @@ impl WebSocket {
             self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let global = self.global.root();
             let task = box BufferedAmountTask {
-                addr: Trusted::new(global.r().get_cx(), self, global.r().script_chan()),
+                addr: address,
             };
-            let chan = global.r().script_chan();
 
             chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
         }
