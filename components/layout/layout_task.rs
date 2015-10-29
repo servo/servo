@@ -1144,17 +1144,30 @@ impl LayoutTask {
             transmute(&mut doc)
         };
 
+        debug!("layout: received layout request for: {}", self.url.serialize());
+
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+
         let mut node: LayoutNode = match doc.root_node() {
-            None => return,
+            None => {
+                // Since we cannot compute anything, give spec-required placeholders.
+                debug!("layout: No root node: bailing");
+                match data.query_type {
+                    ReflowQueryType::ContentBoxQuery(_) => rw_data.content_box_response = Rect::zero(),
+                    ReflowQueryType::ContentBoxesQuery(_) => rw_data.content_boxes_response = Vec::new(),
+                    ReflowQueryType::NodeGeometryQuery(_) => rw_data.client_rect_response = Rect::zero(),
+                    ReflowQueryType::ResolvedStyleQuery(_, _, _) => rw_data.resolved_style_response = None,
+                    ReflowQueryType::OffsetParentQuery(_) => rw_data.offset_parent_response = OffsetParentResponse::empty(),
+                    ReflowQueryType::NoQuery => {}
+                }
+                return;
+            },
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}", self.url.serialize());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
-
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_screen_size = rw_data.screen_size;
