@@ -11,6 +11,8 @@ use std::env::var_os;
 use std::error::Error;
 use std::fs::File;
 use std::mem;
+use std::path::Path;
+use util::opts;
 
 
 static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
@@ -72,6 +74,7 @@ pub fn cleanup() {
     }
 }
 
+/// Check if a heartbeat exists for the given category
 pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
     unsafe {
         HBS.map_or(false, |m| (*m).contains_key(category))
@@ -93,22 +96,51 @@ pub fn maybe_heartbeat(category: &ProfilerCategory,
     }
 }
 
-/// Create a heartbeat if the correct environment variable is set
+// TODO(cimes): Android doesn't really do environment variables. Need a better way to configure dynamically.
+
+fn is_create_heartbeat(category: &ProfilerCategory) -> bool {
+    opts::get().profile_heartbeats || var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)).is_some()
+}
+
+fn open_heartbeat_log<P: AsRef<Path>>(name: P) -> Option<File> {
+    match File::create(name) {
+        Ok(f) => Some(f),
+        Err(e) => {
+            warn!("Failed to open heartbeat log: {}", Error::description(&e));
+            None
+        },
+    }
+}
+
+#[cfg(target_os = "android")]
+fn get_heartbeat_log(category: &ProfilerCategory) -> Option<File> {
+    open_heartbeat_log(format!("/sdcard/servo/heartbeat-{:?}.log", category))
+}
+
+#[cfg(not(target_os = "android"))]
+fn get_heartbeat_log(category: &ProfilerCategory) -> Option<File> {
+    var_os(format!("SERVO_HEARTBEAT_LOG_{:?}", category)).and_then(|name| open_heartbeat_log(&name))
+}
+
+fn get_heartbeat_window_size(category: &ProfilerCategory) -> usize {
+    const WINDOW_SIZE_DEFAULT: usize = 1;
+    match var_os(format!("SERVO_HEARTBEAT_WINDOW_{:?}", category)) {
+        Some(w) => match w.into_string() {
+            Ok(s) => s.parse::<usize>().unwrap_or(WINDOW_SIZE_DEFAULT),
+            _ => WINDOW_SIZE_DEFAULT,
+        },
+        None => WINDOW_SIZE_DEFAULT,
+    }
+}
+
+/// Possibly create a heartbeat
 fn maybe_create_heartbeat(hbs: &mut HashMap<ProfilerCategory, Heartbeat>,
                           category: ProfilerCategory) {
-    static WINDOW_SIZE_DEFAULT: usize = 20;
-    if let Some(_) = var_os(format!("SERVO_HEARTBEAT_ENABLE_{:?}", category)) {
+    if is_create_heartbeat(&category) {
         // get optional log file
-        let logfile: Option<File> = var_os(format!("SERVO_HEARTBEAT_LOG_{:?}", category))
-                                    .and_then(|name| File::create(name).ok());
-        // get window size
-        let window_size: usize = match var_os(format!("SERVO_HEARTBEAT_WINDOW_{:?}", category)) {
-            Some(w) => match w.into_string() {
-                Ok(s) => s.parse::<usize>().unwrap_or(WINDOW_SIZE_DEFAULT),
-                _ => WINDOW_SIZE_DEFAULT,
-            },
-            None => WINDOW_SIZE_DEFAULT,
-        };
+        let logfile: Option<File> = get_heartbeat_log(&category);
+        // window size
+        let window_size: usize = get_heartbeat_window_size(&category);
         // create the heartbeat
         match Heartbeat::new(window_size, Some(heartbeat_window_callback), logfile) {
             Ok(hb) => {

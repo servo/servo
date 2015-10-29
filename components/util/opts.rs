@@ -121,6 +121,9 @@ pub struct Opts {
     /// Periodically print out on which events script tasks spend their processing time.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -223,6 +226,9 @@ pub struct DebugOptions {
     /// Profile which events script tasks spend their time on.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -286,6 +292,7 @@ impl DebugOptions {
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
+                "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -433,6 +440,7 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
+        profile_heartbeats: false,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
@@ -620,6 +628,7 @@ pub fn from_cmdline_args(args: &[String]) {
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
         profile_script_events: debug_options.profile_script_events,
+        profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
