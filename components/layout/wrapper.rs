@@ -221,6 +221,15 @@ impl<'ln> LayoutNode<'ln> {
         as_element(self.node)
     }
 
+    pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
+        self.node.downcast().map(|document| {
+            LayoutDocument {
+                document: document,
+                chain: PhantomData,
+            }
+        })
+    }
+
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
