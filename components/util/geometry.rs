@@ -107,3 +107,20 @@ pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
     Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
               Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
 }
+
+pub trait ExpandToPixelBoundaries {
+    fn expand_to_px_boundaries(&self) -> Self;
+}
+
+impl ExpandToPixelBoundaries for Rect<Au> {
+    fn expand_to_px_boundaries(&self) -> Rect<Au> {
+        let bottom_right = self.bottom_right();
+        let bottom_right = Point2D::new(Au::from_px(bottom_right.x.ceil_to_px()),
+                                       Au::from_px(bottom_right.y.ceil_to_px()));
+        let new_origin = Point2D::new(Au::from_px(self.origin.x.to_px()),
+                                      Au::from_px(self.origin.y.to_px()));
+        Rect::new(new_origin,
+                  Size2D::new(bottom_right.x - new_origin.x,
+                              bottom_right.y - new_origin.y))
+    }
+}

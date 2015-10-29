@@ -34,7 +34,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use url::Url;
-use util::geometry::ZERO_POINT;
+use util::geometry::{ExpandToPixelBoundaries, ZERO_POINT};
 use util::opts;
 use util::task::spawn_named;
 use util::task::spawn_named_with_send_on_failure;
@@ -85,7 +85,7 @@ impl PaintLayer {
     pub fn new_with_display_list(layer_info: LayerInfo,
                                  display_list: DisplayList)
                                  -> PaintLayer {
-        let bounds = display_list.calculate_bounding_rect();
+        let bounds = display_list.calculate_bounding_rect().expand_to_px_boundaries();
         PaintLayer {
             id: layer_info.layer_id,
             background_color: color::transparent(),
