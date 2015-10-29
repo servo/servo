@@ -178,7 +178,7 @@ pub struct Opts {
     pub no_native_titlebar: bool,
 
     /// Set graphics renderer to be GL or ES2
-    pub graphics_select: String,
+    pub use_gl: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -388,23 +388,7 @@ fn default_user_agent_string(agent: UserAgent) -> String {
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
 
-enum GraphicOption {
-    GL,
-    ES2,
-  }
 
-  fn default_graphics_select_string(goption: GraphicOption) -> String {
-      match goption {
-          GraphicOption::GL => {
-                "GL"
-          },
-          GraphicOption::ES2 => {
-              "ES2"
-          }
-      }.to_owned()
-  }
-
-const DEFAULT_GRAPHICS: GraphicOption = GraphicOption::GL;
 
 
 // FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
@@ -462,7 +446,7 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
-        graphics_select: default_graphics_select_string(DEFAULT_GRAPHICS),
+        use_gl: true,
     }
 }
 
@@ -504,7 +488,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optflagopt("G", "graphics", "Select graphics backend (GL or ES2)", "GL");
+    opts.optflagopt("G", "graphics", "Set true for GL or false for ES2");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -606,12 +590,7 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
-    let graphics_select = match opt_match.opt_str("G") {
-        Some(ref ga) if ga == "GL" => default_graphics_select_string(GraphicOption::GL),
-        Some(ref ga) if ga == "ES2" => default_graphics_select_string(GraphicOption::ES2),
-        Some(ga) =>  args_fail(&format!("error: graphics option should be GL or ES2:")),
-        None => default_graphics_select_string(GraphicOption::GL),
-    };
+
 
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
@@ -655,7 +634,7 @@ pub fn from_cmdline_args(args: &[String]) {
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
-        graphics_select: graphics_select,
+        use_gl:opt_match.opt_present("G"),
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
