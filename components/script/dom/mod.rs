@@ -81,7 +81,7 @@
 //! on the `Node` interface to avoid unnecessary upcasts to `EventTarget`.
 //!
 //! ```ignore
-//! use dom::bindings::codegen::InheritTypes::{EventTargetTypeId, NodeTypeId};
+//! use dom::bindings::inheritance::{EventTargetTypeId, NodeTypeId};
 //!
 //! match *node.type_id() {
 //!     EventTargetTypeId::Node(NodeTypeId::CharacterData(_)) => ...,
@@ -160,11 +160,11 @@
 //! =======================
 //!
 //! For all DOM interfaces `Foo` in an inheritance chain, a
-//! `dom::bindings::codegen::InheritTypes::FooCast` provides methods to cast
+//! `dom::bindings::inheritance::FooCast` provides methods to cast
 //! to other types in the inheritance chain. For example:
 //!
 //! ```ignore
-//! # use script::dom::bindings::codegen::InheritTypes::{NodeCast, HTMLElementCast};
+//! # use script::dom::bindings::inheritance::{NodeCast, HTMLElementCast};
 //! # use script::dom::element::Element;
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;

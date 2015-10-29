@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;

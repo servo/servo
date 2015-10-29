@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::{JS, MutNullableHeap, Root};

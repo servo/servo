@@ -10,7 +10,7 @@ use animation;
 use context::SharedLayoutContext;
 use data::LayoutDataWrapper;
 use incremental::{self, RestyleDamage};
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
+use script::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use script::layout_interface::Animation;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};

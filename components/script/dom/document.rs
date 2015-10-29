@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;

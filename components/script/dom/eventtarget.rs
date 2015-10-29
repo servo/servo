@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use dom::bindings::codegen::InheritTypes::EventTargetTypeId;
+use dom::bindings::inheritance::EventTargetTypeId;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::Reflectable;

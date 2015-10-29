@@ -4,7 +4,7 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use dom::bindings::codegen::InheritTypes::TopTypeId;
+use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;

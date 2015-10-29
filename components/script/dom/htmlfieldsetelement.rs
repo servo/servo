@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
+use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
