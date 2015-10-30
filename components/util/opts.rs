@@ -488,7 +488,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optflag("G", "graphics", "Set true for GL or false for ES2");
+    opts.optflag("E", "es2", "Select ES2 for backend graphic option");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -590,8 +590,6 @@ pub fn from_cmdline_args(args: &[String]) {
         }
     };
 
-
-
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
         Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
@@ -634,7 +632,7 @@ pub fn from_cmdline_args(args: &[String]) {
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
-        use_gl:opt_match.opt_present("G"),
+        use_gl:!opt_match.opt_present("E"),
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
