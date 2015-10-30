@@ -163,10 +163,9 @@ impl XMLHttpRequest {
             request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
-            send_flag: Cell::new(false),
-
             upload_complete: Cell::new(false),
             upload_events: Cell::new(false),
+            send_flag: Cell::new(false),
 
             global: GlobalField::from_rooted(&global),
             timeout_cancel: DOMRefCell::new(None),

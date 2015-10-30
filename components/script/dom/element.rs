@@ -155,10 +155,10 @@ impl Element {
             namespace: namespace,
             prefix: prefix,
             attrs: DOMRefCell::new(vec!()),
-            attr_list: Default::default(),
-            class_list: Default::default(),
             id_attribute: DOMRefCell::new(None),
             style_attribute: DOMRefCell::new(None),
+            attr_list: Default::default(),
+            class_list: Default::default(),
             event_state: Cell::new(state),
         }
     }
