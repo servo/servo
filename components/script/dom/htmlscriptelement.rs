@@ -562,8 +562,8 @@ impl VirtualMethods for HTMLScriptElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!("src") => {
+        match *attr.local_name() {
+            atom!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
                     if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
                         self.prepare();

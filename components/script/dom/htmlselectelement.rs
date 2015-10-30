@@ -205,8 +205,8 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
+        match *local_name {
+            atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

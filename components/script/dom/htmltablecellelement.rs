@@ -107,18 +107,18 @@ impl VirtualMethods for HTMLTableCellElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(bgcolor) => {
+        match *attr.local_name() {
+            atom!(bgcolor) => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
-            &atom!(colspan) => {
+            atom!(colspan) => {
                 self.colspan.set(mutation.new_value(attr).map(|value| {
                     max(DEFAULT_COLSPAN, value.as_uint())
                 }));
             },
-            &atom!(width) => {
+            atom!(width) => {
                 let width = mutation.new_value(attr).map(|value| {
                     str::parse_length(&value)
                 });
@@ -129,8 +129,8 @@ impl VirtualMethods for HTMLTableCellElement {
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
+        match *local_name {
+            atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
