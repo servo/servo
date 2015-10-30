@@ -179,6 +179,9 @@ pub struct Opts {
 
     /// Do not use native titlebar
     pub no_native_titlebar: bool,
+
+    /// Set graphics renderer to be GL or ES2
+    pub use_gl: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -393,6 +396,10 @@ fn default_user_agent_string(agent: UserAgent) -> String {
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
+
+
+
+
 // FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
 // correct string in Gonk builds (i.e., it will never be chosen today).
 #[cfg(target_os = "gonk")]
@@ -449,6 +456,7 @@ pub fn default_opts() -> Opts {
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
+        use_gl: true,
     }
 }
 
@@ -490,6 +498,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflag("E", "es2", "Select ES2 for backend graphic option");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -634,6 +643,7 @@ pub fn from_cmdline_args(args: &[String]) {
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
+        use_gl:!opt_match.opt_present("E"),
         initial_window_size: initial_window_size,
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
