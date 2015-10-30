@@ -330,11 +330,11 @@ impl DisplayList {
                 transform.translate(positioned_kid.bounds
                                                   .origin
                                                   .x
-                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                                     positioned_kid.bounds
                                                   .origin
                                                   .y
-                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                                     0.0);
             positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                           &new_transform,
@@ -372,11 +372,11 @@ impl DisplayList {
                 transform.translate(positioned_kid.bounds
                                                   .origin
                                                   .x
-                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                                     positioned_kid.bounds
                                                   .origin
                                                   .y
-                                                  .to_nearest_pixel(pixels_per_px) as AzFloat,
+                                                  .to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                                     0.0);
             positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                           &new_transform,
@@ -708,9 +708,9 @@ impl StackingContext {
                                                      inverse_transform.m21, inverse_transform.m22,
                                                      inverse_transform.m41, inverse_transform.m42);
 
-            let tile_size = Size2D::new(paint_context.screen_rect.size.width as f32,
-                                        paint_context.screen_rect.size.height as f32);
-            let tile_rect = Rect::new(Point2D::zero(), tile_size);
+            let tile_size = Size2D::new(paint_context.screen_rect.as_f32().size.width,
+                                        paint_context.screen_rect.as_f32().size.height);
+            let tile_rect = Rect::new(Point2D::zero(), tile_size).to_untyped();
             let tile_rect = inverse_transform_2d.transform_rect(&tile_rect);
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
