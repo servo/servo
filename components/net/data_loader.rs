@@ -68,7 +68,7 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer, cancel_listener: Canc
     let mut metadata = Metadata::default(url);
     metadata.set_content_type(content_type.as_ref());
 
-    if cancel_listener.is_cancelled() {
+    if cancel_listener.is_cancelled().is_ok() {
         return;
     }
 

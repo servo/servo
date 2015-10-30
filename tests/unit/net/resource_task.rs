@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
-use net::resource_task::new_resource_task;
+use net::resource_task::{CancellationListener, new_resource_task};
 use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{ControlMsg, LoadData, LoadConsumer, ProgressMsg};
 use std::borrow::ToOwned;
@@ -170,4 +170,13 @@ fn test_replace_hosts() {
 
     let url = Url::parse("http://a.foo.bar.com").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
+}
+
+#[test]
+fn test_cancelled_listener() {
+    let cancel_listener = {
+        let (_, receiver) = channel();
+        CancellationListener(Some(receiver))
+    };
+    assert!(cancel_listener.is_cancelled().is_err());
 }

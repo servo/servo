@@ -197,21 +197,35 @@ impl ResourceChannelManager {
     }
 }
 
+/// A load cancellation message which is sent on cancellation
 pub struct CancelLoad;
 
+/// Cancellation error to indicate whether we've successfully
+pub enum CancelError {
+    /// The sender has been destroyed, or it does not exist!
+    SenderAbsent,
+    /// Error receiving the cancel message, which is the same as `TryRecvError::Empty
+    RecvError,
+    /// There's no channel in the listener
+    NoChannel,
+}
+
+/// A listener which is basically a wrapped optional receiver which looks
+/// for the `CancelLoad` message. Some of the loading processes always keep
+/// an eye out for this message and stop loading stuff once they receive it.
 pub struct CancellationListener(pub Option<Receiver<CancelLoad>>);
 
 impl CancellationListener {
-    pub fn is_cancelled(&self) -> bool {
+    pub fn is_cancelled(&self) -> Result<(), CancelError> {
         match self.0 {
             Some(ref receiver) => match receiver.try_recv() {
-                Ok(_) => true,
+                Ok(_) => Ok(()),
                 Err(err) => match err {
-                    TryRecvError::Disconnected => true,     // sender has been destroyed
-                    TryRecvError::Empty => false,   // error receiving the cancel message
+                    TryRecvError::Disconnected => Err(CancelError::SenderAbsent),
+                    TryRecvError::Empty => Err(CancelError::RecvError),
                 },
             },
-            None => false,      // channel doesn't exist!
+            None => Err(CancelError::NoChannel),
         }
     }
 }

@@ -724,7 +724,7 @@ fn send_data<R: Read>(reader: &mut R,
             return;
         }
 
-        if cancel_listener.is_cancelled() {
+        if cancel_listener.is_cancelled().is_ok() {
             return;
         }
 

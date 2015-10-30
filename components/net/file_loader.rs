@@ -42,7 +42,7 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
 fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: CancellationListener)
             -> Result<LoadResult, String> {
     loop {
-        if cancel_listener.is_cancelled() {
+        if cancel_listener.is_cancelled().is_ok() {
             return Ok(LoadResult::Cancelled);
         }
 
@@ -66,7 +66,7 @@ pub fn factory(load_data: LoadData,
                 match File::open(&file_path) {
                     Ok(ref mut reader) => {
                         let metadata = Metadata::default(url);
-                        if cancel_listener.is_cancelled() {
+                        if cancel_listener.is_cancelled().is_ok() {
                             return;
                         }
                         let res = read_block(reader);
