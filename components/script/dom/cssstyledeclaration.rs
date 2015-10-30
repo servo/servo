@@ -60,8 +60,8 @@ impl CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_ref(owner),
-            pseudo: pseudo,
             readonly: modification_access == CSSModificationAccess::Readonly,
+            pseudo: pseudo,
         }
     }
 
