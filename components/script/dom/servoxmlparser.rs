@@ -2,7 +2,7 @@
 use dom::bindings::utils::{Reflectable,Reflector};
 use dom::bindings::trace::JSTraceable;
 use util::mem::HeapSizeOf;
-use js::jsapi::JSTracer;
+use js::jsapi::{JSTracer,JSObject};
 
 #[derive(HeapSizeOf)]
 #[must_root]
