@@ -2927,6 +2927,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/restyle_hints_state.html": [
+          {
+            "path": "css/restyle_hints_state.html",
+            "references": [
+              [
+                "/_mozilla/css/restyle_hints_state_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/restyle_hints_state.html"
+          }
+        ],
         "css/root_height_a.html": [
           {
             "path": "css/root_height_a.html",
@@ -7558,6 +7570,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/restyle_hints_state.html": [
+        {
+          "path": "css/restyle_hints_state.html",
+          "references": [
+            [
+              "/_mozilla/css/restyle_hints_state_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/restyle_hints_state.html"
         }
       ],
       "css/root_height_a.html": [
