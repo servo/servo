@@ -6552,6 +6552,18 @@
           "url": "/_mozilla/css/last_of_type_pseudo_a.html"
         }
       ],
+      "css/layerization_layer_size.html": [
+        {
+          "path": "css/layerization_layer_size.html",
+          "references": [
+            [
+              "/_mozilla/css/layerization_layer_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/layerization_layer_size.html"
+        }
+      ],
       "css/layerization_z_order_a.html": [
         {
           "path": "css/layerization_z_order_a.html",
