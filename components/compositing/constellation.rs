@@ -1203,6 +1203,21 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
             let pipeline = self.pipeline(frame.current);
 
+            // Check to see if there are any webfonts still loading.
+            //
+            // If GetWebFontLoadState returns false, either there are no
+            // webfonts loading, or there's a WebFontLoaded message waiting in
+            // script_chan's message queue. Therefore, we need to check this
+            // before we check whether the document is ready; otherwise,
+            // there's a race condition where a webfont has finished loading,
+            // but hasn't yet notified the document.
+            let (sender, receiver) = ipc::channel().unwrap();
+            let msg = LayoutControlMsg::GetWebFontLoadState(sender);
+            pipeline.layout_chan.0.send(msg).unwrap();
+            if receiver.recv().unwrap() {
+                return false;
+            }
+
             // Synchronously query the script task for this pipeline
             // to see if it is idle.
             let (sender, receiver) = channel();
@@ -1210,13 +1225,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             pipeline.script_chan.send(msg).unwrap();
             let result = receiver.recv().unwrap();
             if result == ScriptState::DocumentLoading {
-                return false;
-            }
-
-            let (sender, receiver) = ipc::channel().unwrap();
-            let msg = LayoutControlMsg::GetWebFontLoadState(sender);
-            pipeline.layout_chan.0.send(msg).unwrap();
-            if receiver.recv().unwrap() {
                 return false;
             }
 
