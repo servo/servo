@@ -2087,18 +2087,6 @@
             "url": "/_mozilla/css/link_style_order.html"
           }
         ],
-        "css/list_style_fixed_inside_a.html": [
-          {
-            "path": "css/list_style_fixed_inside_a.html",
-            "references": [
-              [
-                "/_mozilla/css/list_style_fixed_inside_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-          }
-        ],
         "css/list_item_overflow.html": [
           {
             "path": "css/list_item_overflow.html",
@@ -2109,6 +2097,18 @@
               ]
             ],
             "url": "/_mozilla/css/list_item_overflow.html"
+          }
+        ],
+        "css/list_style_fixed_inside_a.html": [
+          {
+            "path": "css/list_style_fixed_inside_a.html",
+            "references": [
+              [
+                "/_mozilla/css/list_style_fixed_inside_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
           }
         ],
         "css/list_style_image_sizing_a.html": [
@@ -6708,18 +6708,6 @@
           "url": "/_mozilla/css/link_style_order.html"
         }
       ],
-      "css/list_style_fixed_inside_a.html": [
-        {
-          "path": "css/list_style_fixed_inside_a.html",
-          "references": [
-            [
-              "/_mozilla/css/list_style_fixed_inside_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-        }
-      ],
       "css/list_item_overflow.html": [
         {
           "path": "css/list_item_overflow.html",
@@ -6730,6 +6718,18 @@
             ]
           ],
           "url": "/_mozilla/css/list_item_overflow.html"
+        }
+      ],
+      "css/list_style_fixed_inside_a.html": [
+        {
+          "path": "css/list_style_fixed_inside_a.html",
+          "references": [
+            [
+              "/_mozilla/css/list_style_fixed_inside_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
         }
       ],
       "css/list_style_image_sizing_a.html": [
