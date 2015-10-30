@@ -304,7 +304,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Mozbrowser(&self) -> bool {
         if mozbrowser_enabled() {
             let element = self.upcast::<Element>();
-            element.has_attribute(&Atom::from_slice("mozbrowser"))
+            element.has_attribute(&atom!("mozbrowser"))
         } else {
             false
         }
@@ -314,7 +314,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn SetMozbrowser(&self, value: bool) -> ErrorResult {
         if mozbrowser_enabled() {
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&Atom::from_slice("mozbrowser"), value);
+            element.set_bool_attribute(&atom!("mozbrowser"), value);
         }
         Ok(())
     }
