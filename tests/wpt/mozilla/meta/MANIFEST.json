@@ -4555,6 +4555,12 @@
             "url": "/_mozilla/mozilla/proxy_setter.html"
           }
         ],
+        "mozilla/response-data-brotli.htm": [
+          {
+            "path": "mozilla/response-data-brotli.htm",
+            "url": "/_mozilla/mozilla/response-data-brotli.htm"
+          }
+        ],
         "mozilla/script_type.html": [
           {
             "path": "mozilla/script_type.html",

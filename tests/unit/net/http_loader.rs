@@ -307,7 +307,9 @@ fn test_check_default_headers_loaded_in_every_request() {
     load_data.method = Method::Get;
 
     let mut headers = Headers::new();
-    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
+    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
+                                    qitem(Encoding::Deflate),
+                                    qitem(Encoding::EncodingExt("br".to_owned()))]));
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
@@ -776,7 +778,9 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let mut accept_encoding_headers = Headers::new();
-    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
+    accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
+                                                    qitem(Encoding::Deflate),
+                                                    qitem(Encoding::EncodingExt("br".to_owned()))]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(url.clone(), None);
