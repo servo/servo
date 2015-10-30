@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::Activatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -9,6 +10,8 @@ use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
@@ -38,6 +41,39 @@ impl HTMLLabelElement {
         let element = HTMLLabelElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
     }
+}
+
+impl Activatable for HTMLLabelElement {
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        return true;
+    }
+
+    // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/#the-button-element:activation-behavior
+    fn pre_click_activation(&self) {
+    }
+
+    // https://html.spec.whatwg.org/multipage/#run-canceled-activation-steps
+    fn canceled_activation(&self) {
+    }
+
+    // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+        self.upcast::<Element>()
+            .as_maybe_activatable()
+            .map(|a| a.synthetic_click_activation(false, false, false, false));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#implicit-submission
+    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+
+    }
+
+
 }
 
 impl HTMLLabelElementMethods for HTMLLabelElement {
