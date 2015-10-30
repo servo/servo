@@ -7,14 +7,14 @@
  * https://url.spec.whatwg.org/#interface-urlsearchparams
  */
 
-[Constructor(optional (DOMString or URLSearchParams) init/* = ""*/)]
+[Constructor(optional (USVString or URLSearchParams) init/* = ""*/)]
 interface URLSearchParams {
-  void append(DOMString name, DOMString value);
-  void delete(DOMString name);
-  DOMString? get(DOMString name);
-  // sequence<DOMString> getAll(DOMString name);
-  boolean has(DOMString name);
-  void set(DOMString name, DOMString value);
+  void append(USVString name, USVString value);
+  void delete(USVString name);
+  USVString? get(USVString name);
+  // sequence<USVString> getAll(USVString name);
+  boolean has(USVString name);
+  void set(USVString name, USVString value);
   // iterable<USVString, USVString>;
   stringifier;
 };
