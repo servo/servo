@@ -62,7 +62,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let length = parse_length(&value);
-        element.set_attribute(&Atom::from_slice("size"), AttrValue::Length(value, length));
+        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
     }
 }
 
