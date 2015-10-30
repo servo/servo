@@ -68,11 +68,11 @@ impl Page {
     }
 
     pub fn window(&self) -> Root<Window> {
-        Root::from_ref(&*(self.frame.borrow().as_ref().unwrap().window))
+        Root::from_ref(&*self.frame.borrow().as_ref().unwrap().window)
     }
 
     pub fn document(&self) -> Root<Document> {
-        Root::from_ref(&*(self.frame.borrow().as_ref().unwrap().document))
+        Root::from_ref(&*self.frame.borrow().as_ref().unwrap().document)
     }
 
     // must handle root case separately

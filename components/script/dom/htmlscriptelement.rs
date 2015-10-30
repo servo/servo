@@ -364,7 +364,7 @@ impl HTMLScriptElement {
 
         // Step 1.
         let doc = document_from_node(self);
-        if self.parser_inserted.get() && doc.r() != Root::from_ref(&*(self.parser_document)).r() {
+        if self.parser_inserted.get() && &*doc != &*self.parser_document {
             return;
         }
 

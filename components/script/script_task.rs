@@ -1741,9 +1741,8 @@ impl ScriptTask {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
-                    let target = Root::from_ref(&**target);
                     if target.upcast::<Node>().is_anchor_element() {
-                        let status = target.r().get_attribute(&ns!(""), &atom!("href"))
+                        let status = target.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.r().url();
