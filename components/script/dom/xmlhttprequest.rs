@@ -1110,7 +1110,7 @@ impl Extractable for SendParam {
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.r().serialize(None).as_bytes().to_owned()
+                usp.r().serialize(None).into_bytes()
             },
         }
     }
