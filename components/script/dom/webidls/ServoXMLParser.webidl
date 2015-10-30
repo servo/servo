@@ -1,0 +1,5 @@
+
+[NoInterfaceObject]
+interface ServoXMLParser {
+};
+
