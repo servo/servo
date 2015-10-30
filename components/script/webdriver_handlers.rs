@@ -114,7 +114,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelector(selector.clone()) {
+    reply.send(match page.document().r().QuerySelector(selector) {
         Ok(node) => {
             Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
         }
@@ -126,7 +126,7 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
                                 _pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelectorAll(selector.clone()) {
+    reply.send(match page.document().r().QuerySelectorAll(selector) {
         Ok(ref nodes) => {
             let mut result = Vec::with_capacity(nodes.r().Length() as usize);
             for i in 0..nodes.r().Length() {

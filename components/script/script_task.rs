@@ -1656,18 +1656,15 @@ impl ScriptTask {
     }
 
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
-        match self.devtools_chan {
-            None => {}
-            Some(ref chan) => {
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: url,
-                };
-                chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                            ids,
-                            self.devtools_sender.clone(),
-                            page_info)).unwrap();
-            }
+        if let Some(ref chan) = self.devtools_chan {
+            let page_info = DevtoolsPageInfo {
+                title: title,
+                url: url,
+            };
+            chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                        ids,
+                        self.devtools_sender.clone(),
+                        page_info)).unwrap();
         }
     }
 
