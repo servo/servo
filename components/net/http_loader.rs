@@ -26,7 +26,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadData, Metadata};
 use openssl::ssl::{SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_task::{send_error, start_sending_sniffed_opt};
+use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -57,8 +57,11 @@ pub fn factory(user_agent: String,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
-               -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-    box move |load_data: LoadData, senders, classifier| {
+               -> Box<FnBox(LoadData,
+                            LoadConsumer,
+                            Arc<MIMEClassifier>,
+                            CancellationListener) + Send> {
+    box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
                               senders,
@@ -67,6 +70,7 @@ pub fn factory(user_agent: String,
                               hsts_list,
                               cookie_jar,
                               devtools_chan,
+                              cancel_listener,
                               user_agent)
         })
     }
@@ -102,6 +106,7 @@ fn load_for_consumer(load_data: LoadData,
                      hsts_list: Arc<RwLock<HSTSList>>,
                      cookie_jar: Arc<RwLock<CookieStorage>>,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                     cancel_listener: CancellationListener,
                      user_agent: String) {
 
     let factory = NetworkHttpRequestFactory {
@@ -130,13 +135,12 @@ fn load_for_consumer(load_data: LoadData,
             image.push("badcert.html");
             let load_data = LoadData::new(Url::from_file_path(&*image).unwrap(), None);
 
-            file_loader::factory(load_data, start_chan, classifier)
-
+            file_loader::factory(load_data, start_chan, classifier, cancel_listener)
         }
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(&mut load_response, start_chan, metadata, classifier)
+            send_data(&mut load_response, start_chan, metadata, classifier, cancel_listener)
         }
     }
 }
@@ -698,7 +702,8 @@ pub fn load<A>(load_data: LoadData,
 fn send_data<R: Read>(reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
-                      classifier: Arc<MIMEClassifier>) {
+                      classifier: Arc<MIMEClassifier>,
+                      cancel_listener: CancellationListener) {
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {
             Ok(ReadResult::Payload(buf)) => buf,
@@ -716,6 +721,11 @@ fn send_data<R: Read>(reader: &mut R,
             // The send errors when the receiver is out of scope,
             // which will happen if the fetch has timed out (or has been aborted)
             // so we don't need to continue with the loading of the file here.
+            return;
+        }
+
+        if cancel_listener.is_cancelled() {
+            let _ = progress_chan.send(Done(Err("Loading has been cancelled!".to_owned()))).unwrap();
             return;
         }
 
