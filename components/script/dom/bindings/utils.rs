@@ -4,7 +4,6 @@
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
-use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
 use dom::bindings::conversions::native_from_handleobject;
@@ -13,6 +12,7 @@ use dom::bindings::conversions::{is_dom_class, jsstring_to_str, DOM_OBJECT_SLOT}
 use dom::bindings::error::throw_type_error;
 use dom::bindings::error::{Error, ErrorResult, Fallible, throw_invalid_this};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::js::Root;
 use dom::bindings::trace::trace_object;
 use dom::browsercontext;

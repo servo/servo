@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::ElementTypeId;
 use dom::bindings::inheritance::HTMLElementTypeId;
 use dom::bindings::inheritance::NodeTypeId;
-use dom::bindings::inheritance::Castable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;

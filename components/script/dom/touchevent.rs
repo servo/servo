@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::TouchEventBinding;
 use dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::inheritance::Castable;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{EventBubbles, EventCancelable};

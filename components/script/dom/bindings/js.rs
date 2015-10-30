@@ -26,10 +26,9 @@
 use core::nonzero::NonZero;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
-use dom::bindings::reflector::Reflector;
-use dom::bindings::reflector::Reflectable;
 use dom::node::Node;
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;

@@ -5,12 +5,11 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::inheritance::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
-use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
