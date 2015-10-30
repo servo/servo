@@ -137,6 +137,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
+    @CommandArgument('--features',
+                     default=None,
+                     help='Space-separated list of features to also build',
+                     nargs='+')
     @CommandArgument('--android',
                      default=None,
                      action='store_true',
@@ -151,12 +155,12 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, dev=False, jobs=None,
-              android=None, verbose=False, debug_mozjs=False, params=None):
+              features=None, android=None, verbose=False, debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
+        features = features or []
 
         opts = params or []
-        features = []
 
         base_path = self.get_target_dir()
         release_path = path.join(base_path, "release", "servo")
