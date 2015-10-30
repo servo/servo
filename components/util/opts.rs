@@ -488,7 +488,7 @@ pub fn from_cmdline_args(args: &[String]) {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optflagopt("G", "graphics", "Set true for GL or false for ES2");
+    opts.optflag("G", "graphics", "Set true for GL or false for ES2");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
