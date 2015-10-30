@@ -16,6 +16,7 @@ use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
+use parse::xml::{self, parse_xml};
 use std::borrow::ToOwned;
 use util::str::DOMString;
 
@@ -68,12 +69,14 @@ impl DOMParserMethods for DOMParser {
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(&self.window, Some(url.clone()),
-                                 IsHTMLDocument::NonHTMLDocument,
-                                 Some(content_type),
-                                 None,
-                                 DocumentSource::NotFromParser,
-                                 loader))
+                let document = Document::new(&self.window, Some(url.clone()),
+                                             IsHTMLDocument::NonHTMLDocument,
+                                             Some(content_type),
+                                             None,
+                                             DocumentSource::NotFromParser,
+                                             loader);
+                parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
+                Ok(document)
             }
         }
     }

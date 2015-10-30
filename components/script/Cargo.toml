@@ -70,6 +70,10 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "serde-serialization" ]
 
+[dependencies.xml5ever]
+git = "https://github.com/Ygg01/xml5ever"
+features = ["unstable"]
+
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 log = "0.3"
