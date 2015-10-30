@@ -51,9 +51,7 @@ use profile_traits::time::{self, ProfilerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
-use script::dom::bindings::js::LayoutJS;
-use script::dom::document::Document;
-use script::dom::node::{LayoutData, Node};
+use script::dom::node::LayoutData;
 use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
@@ -90,7 +88,7 @@ use util::opts;
 use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 use util::workqueue::WorkQueue;
-use wrapper::{LayoutDocument, LayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -892,17 +890,9 @@ impl LayoutTask {
                                       property: &Atom,
                                       layout_root: &mut FlowRef)
                                       -> Option<String> {
-        // FIXME: Isolate this transmutation into a "bridge" module.
-        // FIXME(rust#16366): The following line had to be moved because of a
-        // rustc bug. It should be in the next unsafe block.
-        let node: LayoutJS<Node> = unsafe {
-            LayoutJS::from_trusted_node_address(requested_node)
-        };
-        let node: &LayoutNode = unsafe {
-            transmute(&node)
-        };
+        let node = unsafe { LayoutNode::new(&requested_node) };
 
-        let layout_node = ThreadSafeLayoutNode::new(node);
+        let layout_node = ThreadSafeLayoutNode::new(&node);
         let layout_node = match pseudo {
             &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
             &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
@@ -1133,15 +1123,9 @@ impl LayoutTask {
         };
         let _ajst = AutoJoinScriptTask { data: data };
 
-        // FIXME: Isolate this transmutation into a "bridge" module.
-        let mut doc: LayoutJS<Document> = unsafe {
-            LayoutJS::from_trusted_node_address(data.document).downcast::<Document>().unwrap()
-        };
-        let doc: &mut LayoutDocument = unsafe {
-            transmute(&mut doc)
-        };
-
-        let mut node: LayoutNode = match doc.root_node() {
+        let document = unsafe { LayoutNode::new(&data.document) };
+        let document = document.as_document().unwrap();
+        let node: LayoutNode = match document.root_node() {
             None => return,
             Some(x) => x,
         };
@@ -1187,7 +1171,7 @@ impl LayoutTask {
         let needs_reflow = screen_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
-                LayoutTask::dirty_all_nodes(&mut node);
+                LayoutTask::dirty_all_nodes(node);
             }
         }
         if needs_reflow {
@@ -1196,7 +1180,7 @@ impl LayoutTask {
             }
         }
 
-        let event_state_changes = doc.drain_event_state_changes();
+        let event_state_changes = document.drain_event_state_changes();
         if !needs_dirtying {
             for &(el, state) in event_state_changes.iter() {
                 assert!(!state.is_empty());
@@ -1229,7 +1213,7 @@ impl LayoutTask {
             });
 
             // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = self.try_get_layout_root(node.clone());
+            rw_data.root_flow = self.try_get_layout_root(node);
         }
 
         // Send new canvas renderers to the paint task
@@ -1459,7 +1443,7 @@ impl LayoutTask {
         }
     }
 
-    unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
+    unsafe fn dirty_all_nodes(node: LayoutNode) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":

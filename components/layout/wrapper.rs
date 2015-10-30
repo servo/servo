@@ -53,6 +53,7 @@ use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEl
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
+use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
@@ -80,7 +81,7 @@ pub struct LayoutNode<'a> {
     node: LayoutJS<Node>,
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
-    pub chain: PhantomData<&'a ()>,
+    chain: PhantomData<&'a ()>,
 }
 
 impl<'a> PartialEq for LayoutNode<'a> {
@@ -91,6 +92,14 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        let node = LayoutJS::from_trusted_node_address(*address);
+        LayoutNode {
+            node: node,
+            chain: PhantomData,
+        }
+    }
+
     /// Creates a new layout node with the same lifetime as this layout node.
     pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
@@ -204,6 +213,15 @@ impl<'ln> LayoutNode<'ln> {
 
     pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
         as_element(self.node)
+    }
+
+    pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
+        self.node.downcast().map(|document| {
+            LayoutDocument {
+                document: document,
+                chain: PhantomData,
+            }
+        })
     }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
@@ -354,11 +372,7 @@ impl<'le> LayoutDocument<'le> {
     }
 
     pub fn root_node(&self) -> Option<LayoutNode<'le>> {
-        let mut node = self.as_node().first_child();
-        while node.is_some() && !node.unwrap().is_element() {
-            node = node.unwrap().next_sibling();
-        }
-        node
+        self.as_node().children().find(LayoutNode::is_element)
     }
 
     pub fn drain_event_state_changes(&self) -> Vec<(LayoutElement, EventState)> {
