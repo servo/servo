@@ -42,6 +42,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
@@ -1753,6 +1754,10 @@ impl Element {
                 let element = self.downcast::<HTMLAnchorElement>().unwrap();
                 Some(element as &Activatable)
             },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
+                let element = self.downcast::<HTMLLabelElement>().unwrap();
+                Some(element as &Activatable)
+            },            
             _ => {
                 None
             }
