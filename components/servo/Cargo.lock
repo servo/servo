@@ -139,6 +139,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "brotli"
+version = "0.3.17"
+source = "git+https://github.com/ende76/brotli-rs#4a8c42cce771ded65fe64d6816f5d7303006b2ea"
+
+[[package]]
 name = "byteorder"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1200,6 +1205,7 @@ dependencies = [
 name = "net"
 version = "0.0.1"
 dependencies = [
+ "brotli 0.3.17 (git+https://github.com/ende76/brotli-rs)",
  "cookie 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
