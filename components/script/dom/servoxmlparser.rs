@@ -20,6 +20,9 @@ impl Reflectable for ServoXMLParser{
 	fn reflector<'a>(&'a self) -> &'a Reflector{
 		&self.reflector_
 	}
+
+	fn init_reflector(&mut self, obj: *mut JSObject){
+	}
 }
 
 impl JSTraceable for ServoXMLParser{
