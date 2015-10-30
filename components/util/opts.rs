@@ -121,6 +121,9 @@ pub struct Opts {
     /// Periodically print out on which events script tasks spend their processing time.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -223,6 +226,9 @@ pub struct DebugOptions {
     /// Profile which events script tasks spend their time on.
     pub profile_script_events: bool,
 
+    /// Enable all heartbeats for profiling.
+    pub profile_heartbeats: bool,
+
     /// Paint borders along layer and tile boundaries.
     pub show_compositor_borders: bool,
 
@@ -286,6 +292,7 @@ impl DebugOptions {
                 "relayout-event" => debug_options.relayout_event = true,
                 "profile-tasks" => debug_options.profile_tasks = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
+                "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
                 "show-fragment-borders" => debug_options.show_fragment_borders = true,
                 "show-parallel-paint" => debug_options.show_parallel_paint = true,
@@ -325,6 +332,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-tasks", "Instrument each task, writing the output to a file.");
+    print_option("profile-script-events", "Enable profiling of script-related events.");
+    print_option("profile-heartbeats", "Enable heartbeats for all task categories.");
     print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
     print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
     print_option("show-parallel-paint", "Overlay tiles with colors showing which thread painted them.");
@@ -336,10 +345,10 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("disable-share-style-cache",
                  "Disable the style sharing cache.");
     print_option("parallel-display-list-building", "Build display lists in parallel.");
+    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
-    print_option("convert-mouse-to-touch", "Send touch events instead of mouse events");
 
     println!("");
 
@@ -433,6 +442,7 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         profile_script_events: false,
+        profile_heartbeats: false,
         sniff_mime_types: false,
         disable_share_style_cache: false,
         parallel_display_list_building: false,
@@ -620,6 +630,7 @@ pub fn from_cmdline_args(args: &[String]) {
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_tasks: debug_options.profile_tasks,
         profile_script_events: debug_options.profile_script_events,
+        profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,

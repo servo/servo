@@ -474,18 +474,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "energymon"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-rust.git?rev=67f74732ac#67f74732ac0acc682659f7e81836155a32188fd0"
+source = "git+https://github.com/energymon/energymon-rust.git?rev=eba1d8a#eba1d8a7256b710230ea2c1b26525b88bfcb529d"
 dependencies = [
  "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "energymon-default-sys 0.1.0 (git+https://github.com/energymon/energymon-default-sys.git)",
- "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
+ "energymon-default-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "energymon-default-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-default-sys.git#82dd2f6762b492ced15d8446b70569778200c287"
+source = "git+https://github.com/energymon/energymon-sys.git#82756eee725db3ccb658f14857947a0260743d4d"
 dependencies = [
  "energymon-sys 0.1.0 (git+https://github.com/energymon/energymon-sys.git)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -495,7 +494,7 @@ dependencies = [
 [[package]]
 name = "energymon-sys"
 version = "0.1.0"
-source = "git+https://github.com/energymon/energymon-sys.git#6306f70e5d5c824fa168e43521385798fd1b890b"
+source = "git+https://github.com/energymon/energymon-sys.git#82756eee725db3ccb658f14857947a0260743d4d"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1436,7 +1435,7 @@ name = "profile_traits"
 version = "0.0.1"
 dependencies = [
  "energy-monitor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "energymon 0.1.0 (git+https://github.com/energymon/energymon-rust.git?rev=67f74732ac)",
+ "energymon 0.1.0 (git+https://github.com/energymon/energymon-rust.git?rev=eba1d8a)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "plugins 0.0.1",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
