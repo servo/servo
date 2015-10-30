@@ -394,4 +394,62 @@ test(function() {
   el.removeAttribute("foo")
   assert_equals(attr.ownerElement, null)
 }, "Attribute loses its owner when removed")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttribute("foo", "bar")
+  var attr = el.attributes[0]
+  var attrNode = el.getAttributeNode("foo");
+}, "Basic functionality of getAttributeNode/getAttributeNodeNS")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttribute("foo", "bar")
+  var attrNode = el.getAttributeNode("foo");
+  var attrNodeNS = el.getAttributeNodeNS("", "foo");
+  assert_equals(attrNode, attrNodeNS);
+  el.removeAttribute("foo");
+  var el2 = document.createElement("div");
+  el2.setAttributeNode(attrNode);
+  assert_equals(attrNode, el2.getAttributeNode("foo"));
+  assert_equals(attrNode, el2.attributes[0]);
+  assert_equals(attrNode.ownerElement, el2);
+  assert_equals(attrNode.value, "bar");
+
+   var el3 = document.createElement("div");
+   el2.removeAttribute("foo");
+   el3.setAttribute("foo", "baz");
+   el3.setAttributeNode(attrNode);
+   assert_equals(el3.getAttribute("foo"), "bar");
+}, "Basic functionality of setAttributeNode")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttributeNS("x", "foo", "bar")
+  var attrNode = el.getAttributeNodeNS("x", "foo");
+  el.removeAttribute("foo");
+  var el2 = document.createElement("div");
+  el2.setAttributeNS("x", "foo", "baz");
+  el2.setAttributeNodeNS(attrNode);
+  assert_equals(el2.getAttributeNS("x", "foo"), "bar");
+}, "Basic functionality of setAttributeNodeNS")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttribute("foo", "bar")
+  var attrNode = el.getAttributeNode("foo");
+  el.removeAttributeNode(attrNode);
+  var el2 = document.createElement("div");
+  el2.setAttributeNode(attrNode);
+  assert_equals(el2.attributes[0], attrNode);
+  assert_equals(el.attributes.length, 0);
+}, "Basic functionality of removeAttributeNode")
+
+test(function() {
+  var el = document.createElement("div")
+  el.setAttribute("foo", "bar")
+  var attrNode = el.getAttributeNode("foo");
+  var el2 = document.createElement("div");
+  assert_throws("INUSE_ATTRIBUTE_ERR", function(){el2.setAttributeNode(attrNode)});
+}, "setAttributeNode on bound attribute should throw InUseAttributeError")
 </script>
