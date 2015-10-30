@@ -38,7 +38,7 @@ impl TouchListMethods for TouchList {
 
     /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
     fn Item(&self, index: u32) -> Option<Root<Touch>> {
-        self.touches.get(index as usize).map(JS::root)
+        self.touches.get(index as usize).map(|js| Root::from_ref(&**js))
     }
 
     /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index

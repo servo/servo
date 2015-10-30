@@ -887,7 +887,7 @@ impl Element {
     }
 
     pub fn get_attribute(&self, namespace: &Namespace, local_name: &Atom) -> Option<Root<Attr>> {
-        self.attrs.borrow().iter().map(JS::root).find(|attr| {
+        self.attrs.borrow().iter().map(|js| Root::from_ref(&**js)).find(|attr| {
             attr.local_name() == local_name && attr.namespace() == namespace
         })
     }
@@ -895,7 +895,7 @@ impl Element {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     pub fn get_attribute_by_name(&self, name: DOMString) -> Option<Root<Attr>> {
         let name = &self.parsed_name(name);
-        self.attrs.borrow().iter().map(JS::root)
+        self.attrs.borrow().iter().map(|js| Root::from_ref(&**js))
              .find(|a| a.r().name() == name)
     }
 
@@ -904,7 +904,7 @@ impl Element {
                                      value: DOMString,
                                      prefix: Option<Atom>) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
-        if self.attrs.borrow().iter().map(JS::root)
+        if self.attrs.borrow().iter().map(|js| Root::from_ref(&**js))
                 .any(|a| *a.r().local_name() == qname.local && *a.r().namespace() == qname.ns) {
             return;
         }
@@ -955,7 +955,7 @@ impl Element {
                                        find: F)
                                        where F: Fn(&Attr)
                                        -> bool {
-        let attr = self.attrs.borrow().iter().map(JS::root).find(|attr| find(&attr));
+        let attr = self.attrs.borrow().iter().map(|js| Root::from_ref(&**js)).find(|attr| find(&attr));
         if let Some(attr) = attr {
             attr.set_value(value, self);
         } else {
@@ -986,10 +986,10 @@ impl Element {
     fn remove_first_matching_attribute<F>(&self, find: F) -> Option<Root<Attr>>
         where F: Fn(&Attr) -> bool
     {
-        let idx = self.attrs.borrow().iter().map(JS::root).position(|attr| find(&attr));
+        let idx = self.attrs.borrow().iter().map(|js| Root::from_ref(&**js)).position(|attr| find(&attr));
 
         idx.map(|idx| {
-            let attr = (*self.attrs.borrow())[idx].root();
+            let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!("") {
@@ -1018,7 +1018,7 @@ impl Element {
 
     pub fn has_attribute(&self, local_name: &Atom) -> bool {
         assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
-        self.attrs.borrow().iter().map(JS::root).any(|attr| {
+        self.attrs.borrow().iter().map(|js| Root::from_ref(&**js)).any(|attr| {
             attr.r().local_name() == local_name && attr.r().namespace() == &ns!("")
         })
     }
@@ -1729,7 +1729,7 @@ impl<'a> ::selectors::Element for Root<Element> {
                     })
             },
             NamespaceConstraint::Any => {
-                self.attrs.borrow().iter().map(JS::root).any(|attr| {
+                self.attrs.borrow().iter().map(|js| Root::from_ref(&**js)).any(|attr| {
                      attr.local_name() == local_name && test(&attr.value())
                 })
             }

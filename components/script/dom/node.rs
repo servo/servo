@@ -1648,7 +1648,7 @@ impl Node {
                 let node_elem = node.downcast::<Element>().unwrap();
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
-                for attr in node_elem.attrs().iter().map(JS::root) {
+                for attr in node_elem.attrs().iter().map(|js| Root::from_ref(&**js)) {
                     copy_elem.push_new_attribute(attr.local_name().clone(),
                                                  attr.value().clone(),
                                                  attr.name().clone(),
@@ -1722,7 +1722,7 @@ impl Node {
                 let namespace_attr =
                     element.attrs()
                            .iter()
-                           .map(|attr| attr.root())
+                           .map(|attr| Root::from_ref(&**attr))
                            .find(|attr| attr_defines_namespace(attr.r(),
                                                                &prefix_atom));
 
@@ -2154,9 +2154,9 @@ impl NodeMethods for Node {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attrs = element.attrs();
             attrs.iter().all(|attr| {
-                let attr = attr.root();
+                let attr = Root::from_ref(&**attr);
                 other_element.attrs().iter().any(|other_attr| {
-                    let other_attr = other_attr.root();
+                    let other_attr = Root::from_ref(&**other_attr);
                     (*attr.r().namespace() == *other_attr.r().namespace()) &&
                     (attr.r().local_name() == other_attr.r().local_name()) &&
                     (**attr.r().value() == **other_attr.r().value())

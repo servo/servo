@@ -42,7 +42,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
     fn Item(&self, index: u32) -> Option<Root<Attr>> {
-        self.owner.attrs().get(index as usize).map(JS::root)
+        self.owner.attrs().get(index as usize).map(|js| Root::from_ref(&**js))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem

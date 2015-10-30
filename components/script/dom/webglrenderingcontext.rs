@@ -153,7 +153,7 @@ impl WebGLRenderingContext {
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        Root::from_ref(&*(self.canvas)).upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -166,7 +166,7 @@ impl Drop for WebGLRenderingContext {
 impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn Canvas(&self) -> Root<HTMLCanvasElement> {
-        self.canvas.root()
+        Root::from_ref(&*(self.canvas))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
@@ -848,7 +848,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     None => return,
                 };
 
-                let canvas = self.canvas.root();
+                let canvas = Root::from_ref(&*(self.canvas));
                 let window = window_from_node(canvas.r());
 
                 let img = match canvas_utils::request_image_from_cache(window.r(), img_url) {

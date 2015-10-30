@@ -390,7 +390,7 @@ impl Document {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
-                                       .map(|elem| elem.root())
+                                       .map(|elem| Root::from_ref(&**elem))
                                        .position(|element| element.r() == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
@@ -427,7 +427,7 @@ impl Document {
                 let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
                     if let Some(elem) = node.downcast() {
-                        if (*elements)[head].root().r() == elem {
+                        if Root::from_ref(&*(*elements)[head]).r() == elem {
                             head += 1;
                         }
                         if new_node == node.r() || head == elements.len() {
@@ -684,7 +684,7 @@ impl Document {
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                let target = target.root();
+                let target = Root::from_ref(&**target);
                 let target_ref = target.r();
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
@@ -748,7 +748,7 @@ impl Document {
             },
         };
         let target = el.upcast::<EventTarget>();
-        let window = self.window.root();
+        let window = Root::from_ref(&*self.window);
 
         let client_x = Finite::wrap(point.x as f64);
         let client_y = Finite::wrap(point.y as f64);
@@ -1088,7 +1088,7 @@ impl Document {
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
         while !deferred_scripts.is_empty() {
-            let script = deferred_scripts[0].root();
+            let script = Root::from_ref(&*deferred_scripts[0]);
             // Part of substep 1.
             if !script.is_ready_to_be_executed() {
                 return;
@@ -1109,7 +1109,7 @@ impl Document {
         // Execute the first in-order asap-executed script if it's ready, repeat as required.
         // Re-borrowing the list for each step because it can also be borrowed under execute.
         while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = self.asap_in_order_scripts_list.borrow()[0].root();
+            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
             if !script.r().is_ready_to_be_executed() {
                 break;
             }
@@ -1120,7 +1120,7 @@ impl Document {
         let mut idx = 0;
         // Re-borrowing the set for each step because it can also be borrowed under execute.
         while idx < self.asap_scripts_set.borrow().len() {
-            let script = self.asap_scripts_set.borrow()[idx].root();
+            let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
             if !script.r().is_ready_to_be_executed() {
                 idx += 1;
                 continue;
@@ -1331,7 +1331,7 @@ impl Document {
     }
 
     pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
-        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
+        self.idmap.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
     }
 
     pub fn record_event_state_change(&self, el: &Element, which: EventState) {
@@ -1924,7 +1924,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn DefaultView(&self) -> Root<Window> {
-        self.window.root()
+        Root::from_ref(&*self.window)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie

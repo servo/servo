@@ -45,11 +45,11 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     type Handle = JS<Node>;
 
     fn get_document(&mut self) -> JS<Node> {
-        JS::from_ref(self.document.root().upcast())
+        JS::from_ref(Root::from_ref(&*(self.document)).upcast())
     }
 
     fn get_template_contents(&self, target: JS<Node>) -> JS<Node> {
-        let target = target.root();
+        let target = Root::from_ref(&*target);
         let template = target.downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
         JS::from_ref(template.Content().upcast())
@@ -60,7 +60,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn elem_name(&self, target: JS<Node>) -> QualName {
-        let node: Root<Node> = target.root();
+        let node: Root<Node> = Root::from_ref(&*target);
         let elem = node.downcast::<Element>()
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
@@ -71,7 +71,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
-        let doc = self.document.root();
+        let doc = Root::from_ref(&*(self.document));
         let elem = Element::create(name, None, doc.r(),
                                    ElementCreator::ParserCreated);
 
@@ -83,7 +83,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn create_comment(&mut self, text: StrTendril) -> JS<Node> {
-        let doc = self.document.root();
+        let doc = Root::from_ref(&*(self.document));
         let comment = Comment::new(text.into(), doc.r());
         JS::from_ref(comment.upcast())
     }
@@ -92,7 +92,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             sibling: JS<Node>,
             new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
         // If there is no parent, return the node to the parser.
-        let sibling: Root<Node> = sibling.root();
+        let sibling: Root<Node> = Root::from_ref(&*sibling);
         let parent = match sibling.r().GetParentNode() {
             Some(p) => p,
             None => return Err(new_node),
@@ -108,12 +108,12 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {
-        let doc = self.document.root();
+        let doc = Root::from_ref(&*(self.document));
         doc.r().set_quirks_mode(mode);
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
-        let parent: Root<Node> = parent.root();
+        let parent: Root<Node> = Root::from_ref(&*parent);
         let child = self.get_or_create(child);
 
         // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
@@ -122,14 +122,14 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
                                   system_id: StrTendril) {
-        let doc = self.document.root();
+        let doc = Root::from_ref(&*(self.document));
         let doctype = DocumentType::new(
             name.into(), Some(public_id.into()), Some(system_id.into()), doc.r());
         doc.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
     }
 
     fn add_attrs_if_missing(&mut self, target: JS<Node>, attrs: Vec<Attribute>) {
-        let node: Root<Node> = target.root();
+        let node: Root<Node> = Root::from_ref(&*target);
         let elem = node.downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs {
@@ -138,20 +138,20 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn remove_from_parent(&mut self, target: JS<Node>) {
-        let node = target.root();
+        let node = Root::from_ref(&*target);
         if let Some(ref parent) = node.r().GetParentNode() {
             parent.r().RemoveChild(node.r()).unwrap();
         }
     }
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
-        let node: Root<Node> = node.root();
+        let node: Root<Node> = Root::from_ref(&*node);
         let script = node.downcast::<HTMLScriptElement>();
         script.map(|script| script.mark_already_started());
     }
 
     fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
-        let node: Root<Node> = node.root();
+        let node: Root<Node> = Root::from_ref(&*node);
         let script = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             return script.prepare();
@@ -160,9 +160,9 @@ impl<'a> TreeSink for servohtmlparser::Sink {
     }
 
     fn reparent_children(&mut self, node: JS<Node>, new_parent: JS<Node>) {
-        let new_parent = new_parent.root();
+        let new_parent = Root::from_ref(&*new_parent);
         let new_parent = new_parent.r();
-        let old_parent = node.root();
+        let old_parent = Root::from_ref(&*node);
         let old_parent = old_parent.r();
         while let Some(ref child) = old_parent.GetFirstChild() {
             new_parent.AppendChild(child.r()).unwrap();
@@ -182,7 +182,7 @@ impl<'a> Serializable for &'a Node {
                                          elem.local_name().clone());
                 if traversal_scope == IncludeNode {
                     let attrs = elem.attrs().iter().map(|at| {
-                        let attr = at.root();
+                        let attr = Root::from_ref(&**at);
                         let qname = QualName::new(attr.r().namespace().clone(),
                                                   attr.r().local_name().clone());
                         let value = attr.r().value().clone();

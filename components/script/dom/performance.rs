@@ -46,7 +46,7 @@ impl Performance {
 impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
     fn Timing(&self) -> Root<PerformanceTiming> {
-        self.timing.root()
+        Root::from_ref(&*(self.timing))
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

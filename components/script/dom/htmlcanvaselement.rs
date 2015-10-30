@@ -153,7 +153,7 @@ impl HTMLCanvasElement {
         }
 
         match *self.context.borrow().as_ref().unwrap() {
-            CanvasContext::Context2d(ref context) => Some(context.root()),
+            CanvasContext::Context2d(ref context) => Some(Root::from_ref(&*context)),
             _   => None,
         }
     }
@@ -182,7 +182,7 @@ impl HTMLCanvasElement {
         }
 
         if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {
-            Some(context.root())
+            Some(Root::from_ref(&*context))
         } else {
             None
         }
