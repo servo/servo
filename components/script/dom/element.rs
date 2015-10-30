@@ -189,7 +189,7 @@ pub unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, 
                                       -> Option<LayoutJS<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs = elem.attrs.borrow_for_layout();
-    attrs.iter().find(|attr: & &JS<Attr>| {
+    attrs.iter().find(|attr| {
         let attr = attr.to_layout();
         *name == attr.local_name_atom_forever() &&
         (*attr.unsafe_get()).namespace() == namespace
@@ -216,7 +216,7 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().filter_map(|attr: &JS<Attr>| {
+        attrs.iter().filter_map(|attr| {
             let attr = attr.to_layout();
             if *name == attr.local_name_atom_forever() {
               Some(attr.value_ref_forever())
