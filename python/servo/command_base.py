@@ -137,7 +137,7 @@ class CommandBase(object):
 
     def get_top_dir(self):
         return self.context.topdir
-    
+
     def get_target_dir(self):
         if "CARGO_TARGET_DIR" in os.environ:
             return os.environ["CARGO_TARGET_DIR"]

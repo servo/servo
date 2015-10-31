@@ -199,4 +199,4 @@ class PostBuildCommands(CommandBase):
         except subprocess.CalledProcessError as e:
             print("Packaging Android exited with return value %d" % e.returncode)
             return e.returncode
-#cargo run --verbose -- -o woo-hoo.apk -d -t /Users/larsberg/servo/target/arm-linux-androideabi/debug/ -r /Users/larsberg/servo
+

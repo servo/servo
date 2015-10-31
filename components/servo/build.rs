@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use std::env;
 use std::path::Path;
 use std::process;
@@ -10,6 +14,10 @@ fn main() {
         return;
     }
 
+    android_main()
+}
+
+fn android_main() {
     // Get the NDK path from NDK_HOME env.
     let ndk_path = env::var("NDK_HOME").ok().expect("Please set the NDK_HOME environment variable");
     let ndk_path = Path::new(&ndk_path);
@@ -47,7 +55,7 @@ fn main() {
         println!("Error while executing ar");
         process::exit(1)
     }
-    
+
     println!("cargo:rustc-link-lib=static=android_native_app_glue");
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=log");

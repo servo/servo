@@ -11,5 +11,3 @@ test = false
 doc = false
 bench = false
 
-[dependencies]
-# num = "*"
