@@ -232,7 +232,7 @@ impl HTMLCollection {
         // Iterate forwards from a node.
         HTMLCollectionElementsIter {
             node_iter: after.following_nodes(&self.root),
-	    root: Root::from_ref(&self.root),
+            root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
