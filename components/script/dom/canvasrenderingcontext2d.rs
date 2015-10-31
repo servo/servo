@@ -148,7 +148,7 @@ impl CanvasRenderingContext2D {
     }
 
     fn mark_as_dirty(&self) {
-        self.canvas.root().upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn update_transform(&self) {
@@ -290,7 +290,7 @@ impl CanvasRenderingContext2D {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         // If the source and target canvas are the same
-        let msg = if self.canvas.root().r() == canvas {
+        let msg = if &*self.canvas == canvas {
             CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
             let context = match canvas.get_or_init_2d_context() {
@@ -367,8 +367,7 @@ impl CanvasRenderingContext2D {
 
     #[inline]
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
-        let canvas = self.canvas.root();
-        let window = window_from_node(canvas.r());
+        let window = window_from_node(&*self.canvas);
         canvas_utils::request_image_from_cache(window.r(), url)
     }
 
@@ -422,7 +421,7 @@ impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D
 impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-canvas
     fn Canvas(&self) -> Root<HTMLCanvasElement> {
-        self.canvas.root()
+        Root::from_ref(&*self.canvas)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-save
@@ -764,7 +763,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 StringOrCanvasGradientOrCanvasPattern::eString(result)
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
         }
     }
@@ -804,7 +803,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 StringOrCanvasGradientOrCanvasPattern::eString(result)
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(gradient.root())
+                StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
             },
         }
     }
@@ -881,7 +880,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
-        let canvas_size = self.canvas.root().r().get_size();
+        let canvas_size = self.canvas.get_size();
         let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))
