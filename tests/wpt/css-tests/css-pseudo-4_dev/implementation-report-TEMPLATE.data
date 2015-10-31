@@ -1,0 +1,11 @@
+# UA version OS version
+# UA string (if applicable)
+# http://test.csswg.org/suites/css-pseudo-4_dev/DATESTAMP/
+# See http://wiki.csswg.org/test/implementation-report for instructions
+testname	revision	result	comment
+html/first-letter-001.htm	c24641384eb63b2c0aa812b52a527edfbb9055ec	?
+xhtml1/first-letter-001.xht	c24641384eb63b2c0aa812b52a527edfbb9055ec	?
+html/first-letter-002.htm	ac116d66971ad3a1f90b755f2e1f787dc438ed3d	?
+xhtml1/first-letter-002.xht	ac116d66971ad3a1f90b755f2e1f787dc438ed3d	?
+html/first-letter-003.htm	b88afcc7f30607a8d64f92e9cec01ba9f549fffe	?
+xhtml1/first-letter-003.xht	b88afcc7f30607a8d64f92e9cec01ba9f549fffe	?

@@ -1063,6 +1063,7 @@ before-after-dynamic-restyle-001.xht == reference/before-after-dynamic-restyle-0
 before-after-floated-001.xht == reference/before-after-floated-001-ref.xht
 before-after-images-001.xht == reference/before-after-images-001-ref.xht
 before-after-positioned-001.xht == reference/before-after-positioned-001-ref.xht
+before-after-selector-001.xht == reference/before-after-selector-001-ref.xht
 before-after-table-parts-001.xht == reference/before-after-table-parts-001-ref.xht
 before-after-table-whitespace-001.xht == reference/before-after-table-whitespace-001-ref.xht
 before-content-display-001.xht == reference/after-content-display-001-ref.xht
@@ -3848,6 +3849,7 @@ invalid-decl-at-rule-001.xht == reference/filler-text-below-green.xht
 invalid-decl-at-rule-002.xht == reference/filler-text-below-green.xht
 keywords-000.xht == reference/ref-green-background.xht
 keywords-001.xht == reference/keywords-001-ref.xht
+lang-selector-001.xht == reference/lang-selector-001-ref.xht
 lang-selector-002.xht == reference/no-red-filler-text-ref.xht
 lang-selector-003.xht == reference/filler-text-below-green.xht
 leading-001.xht == reference/leading-001-ref.xht
