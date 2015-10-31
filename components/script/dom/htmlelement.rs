@@ -360,7 +360,7 @@ impl HTMLElement {
 
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.upcast::<Element>();
-        element.attrs().iter().map(JS::root).filter_map(|attr| {
+        element.attrs().iter().map(|js| Root::from_ref(&**js)).filter_map(|attr| {
             let raw_name = attr.r().local_name();
             to_camel_case(&raw_name)
         }).collect()
