@@ -501,19 +501,17 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub fn set_ready_state(&self, state: DocumentReadyState) {
-        let window = self.window.root();
-
         match state {
             DocumentReadyState::Loading => {
-                let dom_loading = *window.Performance().r().Now().deref();
+                let dom_loading = *self.window.Performance().r().Now().deref();
                 self.dom_loading.set(dom_loading as u64);
             },
             DocumentReadyState::Interactive => {
-                let dom_interactive = *window.Performance().r().Now().deref();
+                let dom_interactive = *self.window.Performance().r().Now().deref();
                 self.dom_interactive.set(dom_interactive as u64);
             },
             DocumentReadyState::Complete => {
-                let dom_complete = *window.Performance().r().Now().deref();
+                let dom_complete = *self.window.Performance().r().Now().deref();
                 self.dom_complete.set(dom_complete as u64);
             },
         };
@@ -1215,9 +1213,8 @@ impl Document {
         }
         self.domcontentloaded_dispatched.set(true);
 
-        let dom_content_loaded_event_start = self.window().Performance().r().Now().deref();
-        println!("domContentLoadedEventStart: {:?}", dom_content_loaded_event_start as u64);
-        self.dom_content_loaded_event_start.set(dom_content_loaded_event_start as u64);
+        let dom_content_loaded_event_start = self.window().Performance().r().Now();
+        self.dom_content_loaded_event_start.set(*dom_content_loaded_event_start.deref() as u64);
 
 
         let event = Event::new(GlobalRef::Window(self.window()),
@@ -1228,9 +1225,8 @@ impl Document {
         let _ = doctarget.DispatchEvent(event.r());
         self.window().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::DOMContentLoaded);
 
-        let dom_content_loaded_event_end = self.window().Performance().r().Now().deref();
-        println!("domContentLoadedEventEnd: {:?}", dom_content_loaded_event_end as u64);
-        self.dom_content_loaded_event_end.set(dom_content_loaded_event_end as u64);
+        let dom_content_loaded_event_end = self.window().Performance().r().Now();
+        self.dom_content_loaded_event_end.set(*dom_content_loaded_event_end.deref() as u64);
     }
 
     pub fn notify_constellation_load(&self) {
