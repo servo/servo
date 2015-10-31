@@ -16,13 +16,13 @@ pub struct PerformanceTiming {
     reflector_: Reflector,
     navigationStart: u64,
     navigationStartPrecise: f64,
-    document: JS<Document>,
+    document: Root<Document>,
 }
 
 impl PerformanceTiming {
     fn new_inherited(navStart: u64,
                      navStartPrecise: f64,
-                     document: JS<Document>)
+                     document: Root<Document>)
                          -> PerformanceTiming {
         PerformanceTiming {
             reflector_: Reflector::new(),
@@ -40,7 +40,7 @@ impl PerformanceTiming {
 
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
-                                                      JS::from_rooted(&window.Document()));
+                                                      window.Document());
         reflect_dom_object(box timing, GlobalRef::Window(window),
                            PerformanceTimingBinding::Wrap)
     }
@@ -56,31 +56,31 @@ impl PerformanceTimingMethods for PerformanceTiming {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domloading
     fn DomLoading(&self) -> u64 {
-        self.document.root().get_dom_loading()
+        self.document.get_dom_loading()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-dominteractive
     fn DomInteractive(&self) -> u64 {
-        self.document.root().get_dom_interactive()
+        self.document.get_dom_interactive()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventstart
     fn DomContentLoadedEventStart(&self) -> u64 {
-        self.document.root().get_dom_content_loaded_event_start()
+        self.document.get_dom_content_loaded_event_start()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcontenteventend
     fn DomContentLoadedEventEnd(&self) -> u64 {
-        self.document.root().get_dom_content_loaded_event_end()
+        self.document.get_dom_content_loaded_event_end()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#dom-performancetiming-domcomplete
     fn DomComplete(&self) -> u64 {
-        self.document.root().get_dom_complete()
+        self.document.get_dom_complete()
     }
 }
 
