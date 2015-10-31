@@ -66,7 +66,7 @@ impl NodeListMethods for NodeList {
     fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| node.root())
+                elems.get(index as usize).map(|node| Root::from_ref(&**node))
             },
             NodeListType::Children(ref list) => list.item(index),
         }

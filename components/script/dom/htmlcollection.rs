@@ -164,7 +164,7 @@ impl HTMLCollection {
 
     pub fn elements_iter(&self) -> HTMLCollectionElementsIter {
         let ref filter = self.collection.1;
-        let root = self.collection.0.root();
+        let root = Root::from_ref(&*self.collection.0);
         let mut node_iter = root.traverse_preorder();
         let _ = node_iter.next();  // skip the root node
         HTMLCollectionElementsIter {

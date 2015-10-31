@@ -90,7 +90,7 @@ impl FormDataMethods for FormData {
                  .get(&name)
                  .map(|entry| match entry[0] {
                      FormDatum::StringData(ref s) => eString(s.clone()),
-                     FormDatum::FileData(ref f) => eFile(f.root()),
+                     FormDatum::FileData(ref f) => eFile(Root::from_ref(&*f)),
                  })
     }
 

@@ -45,7 +45,7 @@ impl Sink {
     #[allow(unrooted_must_root)] // method is only run at parse time
     pub fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Root<Node> {
         match child {
-            NodeOrText::AppendNode(n) => n.root(),
+            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
             NodeOrText::AppendText(t) => {
                 let text = Text::new(t.into(), &self.document);
                 Root::upcast(text)
