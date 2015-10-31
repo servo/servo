@@ -1695,8 +1695,9 @@ impl DocumentMethods for Document {
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
                     root.upcast::<Node>()
-                        .AppendChild(elem.upcast())
-                        .unwrap()
+                        .prepend(vec![NodeOrString::eNode(Root::upcast::<Node>(Root::from_ref(&*elem)))])
+                        .unwrap();
+                    Root::upcast::<Node>(elem)
                 }
             }
         } else if root.r().namespace() == &ns!(HTML) {
