@@ -141,24 +141,24 @@ impl VirtualMethods for HTMLTableElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(bgcolor) => {
+        match *attr.local_name() {
+            atom!(bgcolor) => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));
             },
-            &atom!(border) => {
+            atom!(border) => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(mutation.new_value(attr).map(|value| {
                     str::parse_unsigned_integer(value.chars()).unwrap_or(1)
                 }));
             }
-            &atom!(cellspacing) => {
+            atom!(cellspacing) => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_unsigned_integer(value.chars())
                 }));
             },
-            &atom!(width) => {
+            atom!(width) => {
                 let width = mutation.new_value(attr).map(|value| {
                     str::parse_length(&value)
                 });
@@ -169,8 +169,8 @@ impl VirtualMethods for HTMLTableElement {
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("border") => AttrValue::from_u32(value, 1),
+        match *local_name {
+            atom!("border") => AttrValue::from_u32(value, 1),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

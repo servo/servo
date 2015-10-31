@@ -78,7 +78,7 @@ impl Ord for Timer {
     fn cmp(&self, other: &Timer) -> Ordering {
         match self.next_call.cmp(&other.next_call).reverse() {
             Ordering::Equal => self.handle.cmp(&other.handle).reverse(),
-            res @ _ => res
+            res => res
         }
     }
 }

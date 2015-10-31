@@ -246,8 +246,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(disabled) => {
+        match *attr.local_name() {
+            atom!(disabled) => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -261,13 +261,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
-            &atom!(cols) => {
+            atom!(cols) => {
                 let cols = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
                 self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
-            &atom!(rows) => {
+            atom!(rows) => {
                 let rows = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
@@ -286,9 +286,9 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
-        match name {
-            &atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            &atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+        match *name {
+            atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
+            atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
