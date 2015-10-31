@@ -290,7 +290,7 @@ impl CanvasRenderingContext2D {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         // If the source and target canvas are the same
-        let msg = if Root::from_ref(&*self.canvas).r() == canvas {
+        let msg = if &*self.canvas == canvas {
             CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled))
         } else { // Source and target canvases are different
             let context = match canvas.get_or_init_2d_context() {
@@ -367,8 +367,7 @@ impl CanvasRenderingContext2D {
 
     #[inline]
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
-        let canvas = Root::from_ref(&*self.canvas);
-        let window = window_from_node(canvas.r());
+        let window = window_from_node(&*self.canvas);
         canvas_utils::request_image_from_cache(window.r(), url)
     }
 
@@ -881,7 +880,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
         let dest_rect = Rect::new(Point2D::new(sx.to_i32().unwrap(), sy.to_i32().unwrap()),
                                   Size2D::new(sw as i32, sh as i32));
-        let canvas_size = Root::from_ref(&*self.canvas).r().get_size();
+        let canvas_size = self.canvas.get_size();
         let canvas_size = Size2D::new(canvas_size.width as f64, canvas_size.height as f64);
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender)))

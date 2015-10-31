@@ -466,7 +466,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(&self) -> Root<XMLHttpRequestUpload> {
-        Root::from_ref(&*(self.upload))
+        Root::from_ref(&*self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method

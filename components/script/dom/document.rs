@@ -390,8 +390,7 @@ impl Document {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
-                                       .map(|elem| Root::from_ref(&**elem))
-                                       .position(|element| element.r() == to_unregister)
+                                       .position(|element| &**element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 elements.is_empty()
@@ -427,7 +426,7 @@ impl Document {
                 let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
                     if let Some(elem) = node.downcast() {
-                        if Root::from_ref(&*(*elements)[head]).r() == elem {
+                        if &*(*elements)[head] == elem {
                             head += 1;
                         }
                         if new_node == node.r() || head == elements.len() {
@@ -684,8 +683,7 @@ impl Document {
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                let target = Root::from_ref(&**target);
-                let target_ref = target.r();
+                let target_ref = &**target;
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
 
@@ -748,27 +746,27 @@ impl Document {
             },
         };
         let target = el.upcast::<EventTarget>();
-        let window = Root::from_ref(&*self.window);
+        let window = &*self.window;
 
         let client_x = Finite::wrap(point.x as f64);
         let client_y = Finite::wrap(point.y as f64);
         let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
         let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
 
-        let touch = Touch::new(window.r(), identifier, target,
+        let touch = Touch::new(window, identifier, target,
                                client_x, client_y, // TODO: Get real screen coordinates?
                                client_x, client_y,
                                page_x, page_y);
 
         let mut touches = RootedVec::new();
         touches.push(JS::from_rooted(&touch));
-        let touches = TouchList::new(window.r(), touches.r());
+        let touches = TouchList::new(window, touches.r());
 
-        let event = TouchEvent::new(window.r(),
+        let event = TouchEvent::new(window,
                                     event_name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
-                                    Some(window.r()),
+                                    Some(window),
                                     0i32,
                                     &touches, &touches, &touches,
                                     // FIXME: modifier keys
@@ -776,9 +774,9 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(target);
 
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::MouseEvent);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::MouseEvent);
         result
     }
 
@@ -1088,13 +1086,15 @@ impl Document {
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
         while !deferred_scripts.is_empty() {
-            let script = Root::from_ref(&*deferred_scripts[0]);
-            // Part of substep 1.
-            if !script.is_ready_to_be_executed() {
-                return;
+            {
+                let script = &*deferred_scripts[0];
+                // Part of substep 1.
+                if !script.is_ready_to_be_executed() {
+                    return;
+                }
+                // Substep 2.
+                script.execute();
             }
-            // Substep 2.
-            script.execute();
             // Substep 3.
             deferred_scripts.remove(0);
             // Substep 4 (implicit).

@@ -1648,7 +1648,7 @@ impl Node {
                 let node_elem = node.downcast::<Element>().unwrap();
                 let copy_elem = copy.downcast::<Element>().unwrap();
 
-                for attr in node_elem.attrs().iter().map(|js| Root::from_ref(&**js)) {
+                for attr in node_elem.attrs().iter() {
                     copy_elem.push_new_attribute(attr.local_name().clone(),
                                                  attr.value().clone(),
                                                  attr.name().clone(),
@@ -1719,12 +1719,10 @@ impl Node {
                 let prefix_atom = prefix.as_ref().map(|s| Atom::from_slice(s));
 
                 // Step 2.
-                let namespace_attr =
-                    element.attrs()
-                           .iter()
-                           .map(|attr| Root::from_ref(&**attr))
-                           .find(|attr| attr_defines_namespace(attr.r(),
-                                                               &prefix_atom));
+                let attrs = element.attrs();
+                let namespace_attr = attrs.iter().find(|attr| {
+                    attr_defines_namespace(attr, &prefix_atom)
+                });
 
                 // Steps 2.1-2.
                 if let Some(attr) = namespace_attr {
@@ -2154,12 +2152,10 @@ impl NodeMethods for Node {
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let attrs = element.attrs();
             attrs.iter().all(|attr| {
-                let attr = Root::from_ref(&**attr);
                 other_element.attrs().iter().any(|other_attr| {
-                    let other_attr = Root::from_ref(&**other_attr);
-                    (*attr.r().namespace() == *other_attr.r().namespace()) &&
-                    (attr.r().local_name() == other_attr.r().local_name()) &&
-                    (**attr.r().value() == **other_attr.r().value())
+                    (*attr.namespace() == *other_attr.namespace()) &&
+                    (attr.local_name() == other_attr.local_name()) &&
+                    (**attr.value() == **other_attr.value())
                 })
             })
         }
