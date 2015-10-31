@@ -68,8 +68,8 @@ pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 pub struct ParserContext {
     /// The parser that initiated the request.
     parser: Option<Trusted<ServoHTMLParser>>,
-    /// Is this document a synthesized document for a single image?
-    is_image_document: bool,
+    /// Is this a synthesized document
+    is_synthesized_document: bool,
     /// The pipeline associated with this document.
     id: PipelineId,
     /// The subpage associated with this document.
@@ -85,7 +85,7 @@ impl ParserContext {
                url: Url) -> ParserContext {
         ParserContext {
             parser: None,
-            is_image_document: false,
+            is_synthesized_document: false,
             id: id,
             subpage: subpage,
             script_chan: script_chan,
@@ -111,12 +111,12 @@ impl AsyncResponseListener for ParserContext {
 
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
-                self.is_image_document = true;
+                self.is_synthesized_document = true;
                 let page = format!("<html><body><img src='{}' /></body></html>",
                                    self.url.serialize());
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
-            }
+            },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // FIXME: When servo/html5ever#109 is fixed remove <plaintext> usage and
                 // replace with fix from that issue.
@@ -130,12 +130,29 @@ impl AsyncResponseListener for ParserContext {
                 parser.pending_input.borrow_mut().push(page);
                 parser.parse_sync();
             },
-            _ => {}
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {}, // Handle text/html
+            Some(ContentType(Mime(toplevel, sublevel, _))) => {
+                if toplevel.as_str() == "application" && sublevel.as_str() == "xhtml+xml" {
+                    // Handle xhtml (application/xhtml+xml).
+                    return;
+                }
+
+                // Show warning page for unknown mime types.
+                let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
+                    toplevel.as_str(), sublevel.as_str());
+                self.is_synthesized_document = true;
+                parser.pending_input.borrow_mut().push(page);
+                parser.parse_sync();
+            },
+            None => {
+                // No content-type header.
+                // Merge with #4212 when fixed.
+            }
         }
     }
 
     fn data_available(&mut self, payload: Vec<u8>) {
-        if !self.is_image_document {
+        if !self.is_synthesized_document {
             // FIXME: use Vec<u8> (html5ever #34)
             let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
             let parser = match self.parser.as_ref() {
