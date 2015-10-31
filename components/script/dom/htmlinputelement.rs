@@ -15,7 +15,7 @@ use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE, RawLayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -27,6 +27,7 @@ use dom::node::{Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use selectors::states::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -57,10 +58,8 @@ enum InputType {
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
-    checked: Cell<bool>,
     checked_changed: Cell<bool>,
     placeholder: DOMRefCell<DOMString>,
-    indeterminate: Cell<bool>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
     #[ignore_heap_size_of = "#7193"]
@@ -111,9 +110,7 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
-            checked: Cell::new(false),
             placeholder: DOMRefCell::new("".to_owned()),
-            indeterminate: Cell::new(false),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
@@ -204,13 +201,13 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(&self) -> bool {
-        self.checked.get()
+        self.Checked()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
-        self.indeterminate.get()
+        self.Indeterminate()
     }
 
     #[allow(unrooted_must_root)]
@@ -240,7 +237,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
-        self.checked.get()
+        self.upcast::<Element>().get_state().contains(IN_CHECKED_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
@@ -329,12 +326,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
-        self.indeterminate.get()
+        self.upcast::<Element>().get_state().contains(IN_INDETERMINATE_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
-        self.indeterminate.set(val)
+        self.upcast::<Element>().set_state(IN_INDETERMINATE_STATE, val)
     }
 }
 
@@ -443,7 +440,7 @@ impl HTMLInputElement {
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
-        self.checked.set(checked);
+        self.upcast::<Element>().set_state(IN_CHECKED_STATE, checked);
 
         if dirty {
             self.checked_changed.set(true);
@@ -459,7 +456,7 @@ impl HTMLInputElement {
     }
 
     pub fn get_indeterminate_state(&self) -> bool {
-        self.indeterminate.get()
+        self.Indeterminate()
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable

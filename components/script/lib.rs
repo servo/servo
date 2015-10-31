@@ -70,7 +70,7 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate rustc_unicode;
 extern crate script_traits;
-extern crate selectors;
+#[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
 extern crate string_cache;

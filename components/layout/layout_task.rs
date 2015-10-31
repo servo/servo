@@ -1180,11 +1180,11 @@ impl LayoutTask {
             }
         }
 
-        let event_state_changes = document.drain_event_state_changes();
+        let state_changes = document.drain_element_state_changes();
         if !needs_dirtying {
-            for &(el, state) in event_state_changes.iter() {
+            for &(el, state) in state_changes.iter() {
                 assert!(!state.is_empty());
-                el.note_event_state_change();
+                el.note_state_change();
             }
         }
 

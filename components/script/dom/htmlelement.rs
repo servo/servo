@@ -17,7 +17,7 @@ use dom::bindings::utils::Reflectable;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
-use dom::element::{AttributeMutation, Element, EventState};
+use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
@@ -27,6 +27,7 @@ use dom::node::{Node, SEQUENTIALLY_FOCUSABLE};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::FocusType;
+use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -51,10 +52,10 @@ impl PartialEq for HTMLElement {
 impl HTMLElement {
     pub fn new_inherited(tag_name: DOMString, prefix: Option<DOMString>,
                          document: &Document) -> HTMLElement {
-        HTMLElement::new_inherited_with_state(EventState::empty(), tag_name, prefix, document)
+        HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(state: EventState, tag_name: DOMString,
+    pub fn new_inherited_with_state(state: ElementState, tag_name: DOMString,
                                     prefix: Option<DOMString>, document: &Document)
                                     -> HTMLElement {
         HTMLElement {

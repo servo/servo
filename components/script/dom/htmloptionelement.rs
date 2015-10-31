@@ -11,13 +11,14 @@ use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use std::cell::Cell;
 use util::str::{DOMString, split_html_space_chars, str_join};
 
