@@ -672,14 +672,13 @@ impl Document {
                                prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mut mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
-        for node_address in &mouse_over_addresses {
-            let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            mouse_over_targets.push(node.r().inclusive_ancestors()
-                                            .find(|node| node.is::<Element>())
-                                            .map(|node| JS::from_ref(node.downcast::<Element>().unwrap()))
-                                            .unwrap());
-        };
+        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
+            node::from_untrusted_node_address(js_runtime, *node_address)
+                .inclusive_ancestors()
+                .filter_map(Root::downcast::<Element>)
+                .next()
+                .unwrap()
+        }).collect::<RootedVec<JS<Element>>>();
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
