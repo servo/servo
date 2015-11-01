@@ -70,6 +70,7 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -408,38 +409,57 @@ impl<'le> LayoutElement<'le> {
         }
     }
 
-    /// Properly marks nodes as dirty in response to state changes.
-    ///
-    /// Currently this implementation is very conservative, and basically mirrors node::dirty_impl.
-    /// With restyle hints, we can do less work here.
-    pub fn note_state_change(&self) {
-        let node = self.as_node();
+    pub fn get_state(&self) -> ElementState {
+        self.element.get_state_for_layout()
+    }
 
-        // Bail out if we're already dirty. This won't be valid when we start doing more targeted
-        // dirtying with restyle hints.
-        if node.is_dirty() { return }
-
-        // Dirty descendants.
-        fn dirty_subtree(node: LayoutNode) {
-            // Stop if this subtree is already dirty. This won't be valid with restyle hints, see above.
-            if node.is_dirty() { return }
-
-            unsafe {
-                node.set_dirty(true);
-                node.set_dirty_descendants(true);
-            }
-
-            for kid in node.children() {
-                dirty_subtree(kid);
-            }
+    /// Properly marks nodes as dirty in response to restyle hints.
+    pub fn note_restyle_hint(&self, hint: RestyleHint) {
+        // Bail early if there's no restyling to do.
+        if hint.is_empty() {
+            return;
         }
-        dirty_subtree(node);
 
+        // If the restyle hint is non-empty, we need to restyle either this element
+        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
+        let node = self.as_node();
         let mut curr = node;
         while let Some(parent) = curr.parent_node() {
             if parent.has_dirty_descendants() { break }
             unsafe { parent.set_dirty_descendants(true); }
             curr = parent;
+        }
+
+        // Set up our helpers.
+        fn dirty_node(node: &LayoutNode) {
+            unsafe {
+                node.set_dirty(true);
+                node.set_dirty_descendants(true);
+            }
+        }
+        fn dirty_descendants(node: &LayoutNode) {
+            for ref child in node.children() {
+                dirty_node(child);
+                dirty_descendants(child);
+            }
+        }
+
+        // Process hints.
+        if hint.contains(RESTYLE_SELF) {
+            dirty_node(&node);
+        }
+        if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
+            dirty_descendants(&node);
+        }
+        if hint.contains(RESTYLE_LATER_SIBLINGS) {
+            let mut next = ::selectors::Element::next_sibling_element(self);
+            while let Some(sib) = next {
+                let sib_node = sib.as_node();
+                dirty_node(&sib_node);
+                dirty_descendants(&sib_node);
+                next = ::selectors::Element::next_sibling_element(&sib);
+            }
         }
     }
 }

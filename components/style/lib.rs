@@ -34,7 +34,7 @@ extern crate euclid;
 extern crate fnv;
 extern crate num;
 extern crate rustc_serialize;
-extern crate selectors;
+#[macro_use(state_pseudo_classes)] extern crate selectors;
 extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
@@ -48,6 +48,7 @@ pub mod legacy;
 pub mod media_queries;
 pub mod node;
 pub mod parser;
+pub mod restyle_hints;
 pub mod selector_matching;
 pub mod stylesheets;
 #[macro_use]
