@@ -593,7 +593,7 @@ impl LayoutTask {
                 profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
-                        || self.handle_reflow(&*data, possibly_locked_rw_data));
+                        || self.handle_reflow(&data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
             Msg::ReflowWithNewlyLoadedWebFont => {

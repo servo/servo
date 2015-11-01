@@ -910,7 +910,7 @@ impl Window {
         }
 
         // Send new document and relevant styles to layout.
-        let reflow = box ScriptReflow {
+        let reflow = ScriptReflow {
             reflow_info: Reflow {
                 goal: goal,
                 page_clip_rect: self.page_clip_rect.get(),
