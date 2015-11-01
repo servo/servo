@@ -133,6 +133,9 @@ features = ["plugins"]
 [dependencies.gleam]
 version = "0.1"
 
+[dependencies.offscreen_gl_context]
+git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
+
 [dependencies]
 env_logger = "0.3"
 time = "0.1.12"
