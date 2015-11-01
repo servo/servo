@@ -1187,7 +1187,7 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#05a1ea3a7cb6fac044e2c6133ab334ca522d2b92"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aae6e57969c553973c43ce5e4246831ccc2868f0"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1536,6 +1536,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
