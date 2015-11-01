@@ -47,7 +47,7 @@ pub enum Msg {
     SetQuirksMode,
 
     /// Requests a reflow.
-    Reflow(Box<ScriptReflow>),
+    Reflow(ScriptReflow),
 
     /// Get an RPC interface.
     GetRPC(Sender<Box<LayoutRPC + Send>>),
