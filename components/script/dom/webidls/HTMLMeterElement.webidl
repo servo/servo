@@ -11,5 +11,5 @@ interface HTMLMeterElement : HTMLElement {
   //         attribute double low;
   //         attribute double high;
   //         attribute double optimum;
-  //readonly attribute NodeList labels;
+  readonly attribute NodeList labels;
 };

@@ -25,6 +25,7 @@ use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use selectors::states::*;
@@ -332,6 +333,16 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
         self.upcast::<Element>().set_state(IN_INDETERMINATE_STATE, val)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        if self.Type() == "hidden" {
+            let window = window_from_node(self);
+            NodeList::empty(&window)
+        } else {
+            self.upcast::<HTMLElement>().labels()
+        }
     }
 }
 
