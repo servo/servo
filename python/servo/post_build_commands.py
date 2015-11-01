@@ -199,4 +199,3 @@ class PostBuildCommands(CommandBase):
         except subprocess.CalledProcessError as e:
             print("Packaging Android exited with return value %d" % e.returncode)
             return e.returncode
-
