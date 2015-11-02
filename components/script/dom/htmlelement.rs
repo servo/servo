@@ -157,7 +157,7 @@ impl HTMLElementMethods for HTMLElement {
             win.r().GetOnload()
         } else {
             let target = self.upcast::<EventTarget>();
-            target.get_event_handler_common("load")
+            target.get_event_handler_common(&atom!("load"))
         }
     }
 
@@ -167,7 +167,7 @@ impl HTMLElementMethods for HTMLElement {
             let win = window_from_node(self);
             win.r().SetOnload(listener)
         } else {
-            self.upcast::<EventTarget>().set_event_handler_common("load", listener)
+            self.upcast::<EventTarget>().set_event_handler_common(atom!("load"), listener)
         }
     }
 
@@ -424,7 +424,7 @@ impl VirtualMethods for HTMLElement {
                                             window.r().reflector().get_jsobject());
                 let evtarget = self.upcast::<EventTarget>();
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                      &name[2..],
+                                                      Atom::from_slice(&name[2..]),
                                                       (**attr.value()).to_owned());
             },
             _ => {}

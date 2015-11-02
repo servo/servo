@@ -184,7 +184,7 @@ impl VirtualMethods for HTMLBodyElement {
                     _ => self.upcast::<EventTarget>(),
                 };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                      &name[2..],
+                                                      Atom::from_slice(&name[2..]),
                                                       (**attr.value()).to_owned());
             },
             _ => {}

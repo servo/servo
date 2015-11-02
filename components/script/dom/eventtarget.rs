@@ -201,10 +201,10 @@ impl EventTarget {
                                     cx: *mut JSContext,
                                     url: Url,
                                     scope: HandleObject,
-                                    ty: &str,
+                                    ty: Atom,
                                     source: DOMString) {
         let url = CString::new(url.serialize()).unwrap();
-        let name = CString::new(ty).unwrap();
+        let name = CString::new((*ty).to_owned()).unwrap();
         let lineno = 0; //XXXjdm need to get a real number here
 
         let nargs = 1; //XXXjdm not true for onerror
@@ -239,15 +239,15 @@ impl EventTarget {
     }
 
     pub fn set_event_handler_common<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<Rc<T>>)
+        &self, ty: Atom, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
                                           EventHandlerNonNull::new(listener.callback()));
-        self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
+        self.set_inline_event_listener(ty, event_listener);
     }
 
-    pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
-        let listener = self.get_inline_event_listener(&Atom::from_slice(ty));
+    pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &Atom) -> Option<Rc<T>> {
+        let listener = self.get_inline_event_listener(ty);
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 

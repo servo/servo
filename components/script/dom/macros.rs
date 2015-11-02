@@ -253,14 +253,14 @@ macro_rules! define_event_handler(
             use dom::bindings::conversions::Castable;
             use dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type))
+            eventtarget.get_event_handler_common(&atom!($event_type))
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
             use dom::bindings::conversions::Castable;
             use dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.set_event_handler_common(stringify!($event_type), listener)
+            eventtarget.set_event_handler_common(atom!($event_type), listener)
         }
     )
 );
