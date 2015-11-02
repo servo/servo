@@ -1031,6 +1031,10 @@ impl LayoutTask {
                                                   layout_root: &mut FlowRef,
                                                   shared_layout_context: &mut SharedLayoutContext,
                                                   rw_data: &mut LayoutTaskData) {
+        if !flow::mut_base(flow_ref::deref_mut(layout_root)).restyle_damage.contains(REPAINT) {
+            return
+        }
+
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(),
