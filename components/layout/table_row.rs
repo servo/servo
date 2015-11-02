@@ -16,6 +16,7 @@ use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils,
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::MaybeAuto;
 use rustc_serialize::{Encodable, Encoder};
@@ -171,6 +172,8 @@ impl TableRowFlow {
                     relative_containing_block_mode: self.block_flow.fragment.style().writing_mode,
                 };
         }
+
+        self.block_flow.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     pub fn populate_collapsed_border_spacing<'a, I>(
