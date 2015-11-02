@@ -463,7 +463,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                     None => None,
                     Some(ref style) => Some(&**style),
                 };
-                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                let (the_style, is_cacheable) = cascade(layout_context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         Some(&***parent_style),
@@ -472,7 +472,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                 this_style = the_style
             }
             None => {
-                let (the_style, is_cacheable) = cascade(layout_context.screen_size,
+                let (the_style, is_cacheable) = cascade(layout_context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
                                                         None,
