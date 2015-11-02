@@ -83,15 +83,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
-    fn Type(&self) -> DOMString {
-        let mut ty = self.upcast::<Element>().get_string_attribute(&atom!("type"));
-        ty.make_ascii_lowercase();
-        // https://html.spec.whatwg.org/multipage/#attr-button-type
-        match &*ty {
-            "reset" | "button" | "menu" => ty,
-            _ => "submit".to_owned()
-        }
-    }
+    make_enumerated_getter!(Type, "submit", ("reset") | ("button") | ("menu"));
 
     // https://html.spec.whatwg.org/multipage/#dom-button-type
     make_setter!(SetType, "type");

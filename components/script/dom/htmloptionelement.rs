@@ -92,9 +92,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     make_bool_getter!(Disabled);
 
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
-    fn SetDisabled(&self, disabled: bool) {
-        self.upcast::<Element>().set_bool_attribute(&atom!("disabled"), disabled)
-    }
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
