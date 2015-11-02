@@ -678,7 +678,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "glutin"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/glutin?branch=servo#6525e224e3b5b3ad4f0af8d87460512eb64e8c59"
 dependencies = [
  "android_glue 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -702,6 +702,7 @@ dependencies = [
  "wayland-kbd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "wayland-window 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11-dl 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1192,14 +1193,14 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#a33af19355dfdd0076a3f2836dc66e0fea44bcab"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aae6e57969c553973c43ce5e4246831ccc2868f0"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glutin 0.4.0 (git+https://github.com/servo/glutin?branch=servo)",
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1541,6 +1542,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
