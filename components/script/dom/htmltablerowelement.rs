@@ -102,8 +102,8 @@ impl VirtualMethods for HTMLTableRowElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(bgcolor) => {
+        match *attr.local_name() {
+            atom!(bgcolor) => {
                 self.background_color.set(mutation.new_value(attr).and_then(|value| {
                     str::parse_legacy_color(&value).ok()
                 }));

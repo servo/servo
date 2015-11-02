@@ -593,7 +593,7 @@ impl LayoutTask {
                 profile(time::ProfilerCategory::LayoutPerform,
                         self.profiler_metadata(),
                         self.time_profiler_chan.clone(),
-                        || self.handle_reflow(&*data, possibly_locked_rw_data));
+                        || self.handle_reflow(&data, possibly_locked_rw_data));
             },
             Msg::TickAnimations => self.tick_all_animations(possibly_locked_rw_data),
             Msg::ReflowWithNewlyLoadedWebFont => {
@@ -1180,11 +1180,12 @@ impl LayoutTask {
             }
         }
 
-        let event_state_changes = document.drain_event_state_changes();
+        let state_changes = document.drain_element_state_changes();
         if !needs_dirtying {
-            for &(el, state) in event_state_changes.iter() {
-                assert!(!state.is_empty());
-                el.note_event_state_change();
+            for &(el, state_change) in state_changes.iter() {
+                debug_assert!(!state_change.is_empty());
+                let hint = rw_data.stylist.restyle_hint_for_state_change(&el, el.get_state(), state_change);
+                el.note_restyle_hint(hint);
             }
         }
 

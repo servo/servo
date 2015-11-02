@@ -14,7 +14,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::AttributeMutation;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
@@ -196,11 +196,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap);
-
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
-    fn SetIsMap(&self, is_map: bool) {
-        self.upcast::<Element>().set_string_attribute(&atom!("ismap"), is_map.to_string())
-    }
+    make_bool_setter!(SetIsMap, "ismap");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
@@ -210,9 +207,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(&self, width: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("width"), width)
-    }
+    make_uint_setter!(SetWidth, "width");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
@@ -222,9 +217,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(&self, height: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("height"), height)
-    }
+    make_uint_setter!(SetHeight, "height");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {

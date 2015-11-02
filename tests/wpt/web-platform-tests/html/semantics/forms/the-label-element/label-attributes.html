@@ -53,6 +53,7 @@
                       "A label element not in a document should not label an element in a document.");
     document.body.appendChild(label);
     assert_equals(label.control, document.getElementById("test1"));
+    label.remove();
   }, "A label element not in a document can not label any element in the document.");
 
   test(function () {
@@ -63,6 +64,7 @@
     document.getElementById("lbl1").insertBefore(input, document.getElementById("test2"));
     assert_equals(document.getElementById("lbl1").control, input,
                   "The first labelable descendant of a label element in tree order should be its labeled control.");
+    input.remove();
   }, "The labeled control for a label element that has no 'for' attribute is the first labelable element which is a descendant of that label element.");
 
   test(function () {
@@ -95,12 +97,19 @@
     document.getElementById("fm").insertBefore(newLabel, document.getElementById("lbl0"));
     assert_array_equals(document.getElementById("test7").labels, [newLabel, document.getElementById("lbl5"), document.getElementById("lbl6")],
                         "The labels for a form control should be returned in tree order.");
+    newLabel.remove();
   }, "A form control has multiple labels.");
+
+  test(function () {
+    var labels = document.getElementById("test3").labels;
+    assert_true(labels instanceof NodeList, "A form control's 'labels' property should be an instance of a NodeList.");
+    assert_equals(labels.length, 1, "The form control has an ancestor with no explicit associated label, and is the first labelable descendant.");
+  }, "A form control has an implicit label.");
 
   test(function () {
     var labels = document.getElementById("test4").labels;
     assert_true(labels instanceof NodeList, "A form control's 'labels' property should be an instance of a NodeList.");
-    assert_equals(labels.length, 0, "The number of labels should be 0 if the associated form control isn't referenced by any <label>.");
+    assert_equals(labels.length, 0, "The form control has an ancestor with no explicit associated label, but is *not* the first labelable descendant");
   }, "A form control has no label 1.");
 
   test(function () {

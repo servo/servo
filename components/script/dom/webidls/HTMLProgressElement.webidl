@@ -8,5 +8,5 @@ interface HTMLProgressElement : HTMLElement {
   //         attribute double value;
   //         attribute double max;
   //readonly attribute double position;
-  //readonly attribute NodeList labels;
+  readonly attribute NodeList labels;
 };

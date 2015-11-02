@@ -1669,12 +1669,21 @@ impl ScriptTask {
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, element: &Element) {
-        let rect = element.upcast::<Node>().get_bounding_content_box();
-        let point = Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px());
-        // FIXME(#2003, pcwalton): This is pretty bogus when multiple layers are involved.
+        // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
+        let rect = element.upcast::<Node>().get_bounding_content_box();
+
+        // In order to align with element edges, we snap to unscaled pixel boundaries, since the
+        // paint task currently does the same for drawing elements. This is important for pages
+        // that require pixel perfect scroll positioning for proper display (like Acid2). Since we
+        // don't have the device pixel ratio here, this might not be accurate, but should work as
+        // long as the ratio is a whole number. Once #8275 is fixed this should actually take into
+        // account the real device pixel ratio.
+        let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
+                                 rect.origin.y.to_nearest_px() as f32);
+
         self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
                                                  pipeline_id, LayerId::null(), point, false)).unwrap();
     }
@@ -1738,9 +1747,8 @@ impl ScriptTask {
 
                 // Notify Constellation about the topmost anchor mouse over target.
                 for target in &*mouse_over_targets {
-                    let target = target.root();
                     if target.upcast::<Node>().is_anchor_element() {
-                        let status = target.r().get_attribute(&ns!(""), &atom!("href"))
+                        let status = target.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
                                 let url = document.r().url();

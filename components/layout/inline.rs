@@ -27,6 +27,7 @@ use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
 use util;
@@ -953,15 +954,15 @@ impl InlineFlow {
                         offset_from_baseline = offset_from_baseline - *depth_below_baseline
                     }
                 },
-                vertical_align::T::Length(length) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
                     offset_from_baseline = offset_from_baseline - length
                 }
-                vertical_align::T::Percentage(p) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(p)) => {
                     let line_height = fragment.calculate_line_height(layout_context);
                     let percent_offset = line_height.scale_by(p);
                     offset_from_baseline = offset_from_baseline - percent_offset
                 }
-                vertical_align::T::Calc(calc) => {
+                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(calc)) => {
                     let line_height = fragment.calculate_line_height(layout_context);
                     let percent_offset = line_height.scale_by(calc.percentage());
                     offset_from_baseline = offset_from_baseline - percent_offset - calc.length()

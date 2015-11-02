@@ -2927,6 +2927,18 @@
             "url": "/_mozilla/css/quotes_simple_a.html"
           }
         ],
+        "css/restyle_hints_state.html": [
+          {
+            "path": "css/restyle_hints_state.html",
+            "references": [
+              [
+                "/_mozilla/css/restyle_hints_state_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/restyle_hints_state.html"
+          }
+        ],
         "css/root_height_a.html": [
           {
             "path": "css/root_height_a.html",
@@ -4066,6 +4078,78 @@
             ],
             "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
           }
+        ],
+        "mozilla/webgl/clearcolor.html": [
+          {
+            "path": "mozilla/webgl/clearcolor.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/clearcolor.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas2d.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_simple.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_simple.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
+          }
+        ],
+        "mozilla/webgl/draw_arrays_simple.html": [
+          {
+            "path": "mozilla/webgl/draw_arrays_simple.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+          }
         ]
       },
       "testharness": {
@@ -4553,6 +4637,12 @@
           {
             "path": "mozilla/proxy_setter.html",
             "url": "/_mozilla/mozilla/proxy_setter.html"
+          }
+        ],
+        "mozilla/response-data-brotli.htm": [
+          {
+            "path": "mozilla/response-data-brotli.htm",
+            "url": "/_mozilla/mozilla/response-data-brotli.htm"
           }
         ],
         "mozilla/script_type.html": [
@@ -7558,6 +7648,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/restyle_hints_state.html": [
+        {
+          "path": "css/restyle_hints_state.html",
+          "references": [
+            [
+              "/_mozilla/css/restyle_hints_state_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/restyle_hints_state.html"
         }
       ],
       "css/root_height_a.html": [

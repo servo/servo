@@ -19,7 +19,6 @@ use js::jsapi::{HandleObject, JSContext, RootedFunction};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
@@ -27,6 +26,7 @@ use std::default::Default;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::{intrinsics, ptr};
+use string_cache::Atom;
 use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
@@ -114,7 +114,7 @@ pub struct EventListenerEntry {
 #[dom_struct]
 pub struct EventTarget {
     reflector_: Reflector,
-    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
+    handlers: DOMRefCell<HashMap<Atom, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
 }
 
 impl EventTarget {
@@ -125,13 +125,13 @@ impl EventTarget {
         }
     }
 
-    pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListenerType>> {
+    pub fn get_listeners(&self, type_: &Atom) -> Option<Vec<EventListenerType>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.clone()).collect()
         })
     }
 
-    pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
+    pub fn get_listeners_for(&self, type_: &Atom, desired_phase: ListenerPhase)
         -> Option<Vec<EventListenerType>> {
         self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
@@ -150,8 +150,8 @@ impl EventTarget {
     }
 
     pub fn set_inline_event_listener(&self,
-                                 ty: DOMString,
-                                 listener: Option<Rc<EventHandler>>) {
+                                     ty: Atom,
+                                     listener: Option<Rc<EventHandler>>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
@@ -185,9 +185,9 @@ impl EventTarget {
         }
     }
 
-    pub fn get_inline_event_listener(&self, ty: DOMString) -> Option<Rc<EventHandler>> {
+    pub fn get_inline_event_listener(&self, ty: &Atom) -> Option<Rc<EventHandler>> {
         let handlers = self.handlers.borrow();
-        let entries = handlers.get(&ty);
+        let entries = handlers.get(ty);
         entries.and_then(|entries| entries.iter().filter_map(|entry| {
             match entry.listener {
                 EventListenerType::Inline(ref handler) => Some(handler.clone()),
@@ -243,11 +243,11 @@ impl EventTarget {
     {
         let event_listener = listener.map(|listener|
                                           EventHandlerNonNull::new(listener.callback()));
-        self.set_inline_event_listener(ty.to_owned(), event_listener);
+        self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
     }
 
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
-        let listener = self.get_inline_event_listener(ty.to_owned());
+        let listener = self.get_inline_event_listener(&Atom::from_slice(ty));
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 
@@ -265,7 +265,7 @@ impl EventTargetMethods for EventTarget {
         match listener {
             Some(listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let entry = match handlers.entry(ty) {
+                let entry = match handlers.entry(Atom::from_slice(&ty)) {
                     Occupied(entry) => entry.into_mut(),
                     Vacant(entry) => entry.insert(vec!()),
                 };
@@ -291,7 +291,7 @@ impl EventTargetMethods for EventTarget {
         match listener {
             Some(ref listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let entry = handlers.get_mut(&ty);
+                let entry = handlers.get_mut(&Atom::from_slice(&ty));
                 for entry in entry {
                     let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {

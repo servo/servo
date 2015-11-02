@@ -121,7 +121,7 @@ impl WebGLShader {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id))).unwrap()
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id)));
         }
     }
 
@@ -150,5 +150,11 @@ impl WebGLShader {
     /// glShaderSource
     pub fn set_source(&self, source: String) {
         *self.source.borrow_mut() = Some(source);
+    }
+}
+
+impl Drop for WebGLShader {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

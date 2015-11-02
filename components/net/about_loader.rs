@@ -9,7 +9,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{send_error, start_sending};
+use resource_task::{send_error, start_sending_sniffed_opt};
 use std::fs::PathExt;
 use std::sync::Arc;
 use url::Url;
@@ -18,14 +18,16 @@ use util::resource_files::resources_dir_path;
 pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
-            let chan = start_sending(start_chan, Metadata {
+            let metadata = Metadata {
                 final_url: load_data.url,
                 content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
                 charset: Some("utf-8".to_owned()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".into())),
-            });
-            chan.send(Done(Ok(()))).unwrap();
+            };
+            if let Ok(chan) = start_sending_sniffed_opt(start_chan, metadata, classifier, &[]) {
+                let _ = chan.send(Done(Ok(())));
+            }
             return
         }
         "crash" => panic!("Loading the about:crash URL."),

@@ -11,14 +11,16 @@ use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE};
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
+use selectors::states::*;
 use std::borrow::ToOwned;
 use string_cache::Atom;
 use util::str::DOMString;
@@ -157,6 +159,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
             "select-one".to_owned()
         }
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
+    }
 }
 
 impl VirtualMethods for HTMLSelectElement {
@@ -205,8 +212,8 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
-        match local_name {
-            &atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
+        match *local_name {
+            atom!("size") => AttrValue::from_u32(value, DEFAULT_SELECT_SIZE),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

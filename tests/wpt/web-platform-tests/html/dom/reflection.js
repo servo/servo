@@ -139,10 +139,9 @@ var maxUnsigned = 4294967295;
  *
  * Note that all tests/expected values are only baselines, and can be expanded
  * with additional tests hardcoded into the function for particular types if
- * necessary (e.g., enum).  null means "default" as a DOM expected value, and
- * "throw an INDEX_SIZE_ERR exception" as an IDL expected value.  (This is a
- * kind of stupid and fragile convention, but it's simple and works for now.)
- * Expected DOM values are cast to strings by adding "".
+ * necessary. For example, a special codepath is used for enums, and for
+ * IDL setters which throw an exception. null means "defaultVal" is the
+ * expected value. Expected DOM values are cast to strings by adding "".
  *
  * TODO: Test strings that aren't valid UTF-16.  Desired behavior is not clear
  * here at the time of writing, see
@@ -379,8 +378,8 @@ ReflectionTests.typeMap = {
             }
             return parsed;
         },
-        "idlTests":       [minInt, -36,  -1,   0, 1, maxInt],
-        "idlDomExpected": [null,   null, null, 0, 1, maxInt]
+        "idlTests":       [minInt, -36,  -1, 0, 1, maxInt],
+        "idlDomExpected": [null/*exception*/, null/*exception*/, null/*exception*/, 0, 1, maxInt]
     },
     /**
      * "If a reflecting IDL attribute is an unsigned integer type (unsigned
@@ -416,8 +415,9 @@ ReflectionTests.typeMap = {
             }
             return parsed;
         },
-        "idlTests": [0, 1, 257, 2147483647, "-0"],
-        "idlIdlExpected": [0, 1, 257, 2147483647, 0]
+        "idlTests": [0, 1, 257, maxInt, "-0", maxInt + 1, maxUnsigned],
+        "idlIdlExpected": [0, 1, 257, maxInt, 0, null, null],
+        "idlDomExpected": [0, 1, 257, maxInt, 0, null, null],
     },
     /**
      * "If a reflecting IDL attribute is an unsigned integer type (unsigned
@@ -457,8 +457,8 @@ ReflectionTests.typeMap = {
             }
             return parsed;
         },
-        "idlTests":       [0,    1, 2147483647],
-        "idlDomExpected": [null, 1, 2147483647]
+        "idlTests":       [0, 1, maxInt, maxInt + 1, maxUnsigned],
+        "idlDomExpected": [null/*exception*/, 1, maxInt, null, null]
     },
     /**
      * "If a reflecting IDL attribute is a floating point number type (double),
@@ -610,8 +610,8 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
     var domTests = typeInfo.domTests.slice(0);
     var domExpected = typeInfo.domExpected.map(function(val) { return val === null ? defaultVal : val; });
     var idlTests = typeInfo.idlTests.slice(0);
-    var idlDomExpected = typeInfo.idlDomExpected.slice(0);
-    var idlIdlExpected = typeInfo.idlIdlExpected.slice(0);
+    var idlDomExpected = typeInfo.idlDomExpected.map(function(val) { return val === null ? defaultVal : val; });
+    var idlIdlExpected = typeInfo.idlIdlExpected.map(function(val) { return val === null ? defaultVal : val; });
     switch (data.type) {
         // Extra tests and other special-casing
         case "boolean":
@@ -712,7 +712,8 @@ ReflectionTests.doReflects = function(data, idlName, idlObj, domName, domObj) {
     }
 
     for (var i = 0; i < idlTests.length; i++) {
-        if (idlDomExpected[i] === null && data.type != "enum") {
+        if ((data.type == "limited long" && idlTests[i] < 0) ||
+            (data.type == "limited unsigned long" && idlTests[i] == 0)) {
             ReflectionHarness.testException("INDEX_SIZE_ERR", function() {
                 idlObj[idlName] = idlTests[i];
             }, "IDL set to " + ReflectionHarness.stringRep(idlTests[i]) + " must throw INDEX_SIZE_ERR");

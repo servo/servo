@@ -17,6 +17,7 @@ extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate flate2;
+extern crate brotli;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate net_traits;
