@@ -15,6 +15,7 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use gfx::display_list::DisplayList;
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::MaybeAuto;
 use std::fmt;
@@ -74,7 +75,11 @@ impl TableCellFlow {
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size_block_base(
             layout_context,
-            MarginsMayCollapseFlag::MarginsMayNotCollapse)
+            MarginsMayCollapseFlag::MarginsMayNotCollapse);
+
+        // We have to do this explicitly here. As we're a block formatting context,
+        // `assign_block_size_block_base` won't do it for us.
+        self.block_flow.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 }
 
