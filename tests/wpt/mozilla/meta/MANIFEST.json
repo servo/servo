@@ -1007,6 +1007,18 @@
             "url": "/_mozilla/css/canvas_linear_gradient_a.html"
           }
         ],
+        "css/canvas_over_area.html": [
+          {
+            "path": "css/canvas_over_area.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_over_area_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_over_area.html"
+          }
+        ],
         "css/case-insensitive-font-family.html": [
           {
             "path": "css/case-insensitive-font-family.html",
@@ -4153,18 +4165,6 @@
         ]
       },
       "testharness": {
-        "css/canvas_over_area.html": [
-          {
-            "path": "css/canvas_over_area.html",
-            "references": [
-              [
-                "/_mozilla/css/canvas_over_area_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/canvas_over_area.html"
-          }
-        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
@@ -5740,6 +5740,18 @@
             ]
           ],
           "url": "/_mozilla/css/canvas_linear_gradient_a.html"
+        }
+      ],
+      "css/canvas_over_area.html": [
+        {
+          "path": "css/canvas_over_area.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_over_area_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_over_area.html"
         }
       ],
       "css/case-insensitive-font-family.html": [
