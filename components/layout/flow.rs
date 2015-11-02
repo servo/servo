@@ -28,13 +28,12 @@
 use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildingResult;
 use euclid::{Point2D, Rect, Size2D};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::ClippingRegion;
+use gfx::display_list::{ClippingRegion, DisplayList};
 use incremental::{self, RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -906,7 +905,7 @@ pub struct BaseFlow {
     pub stacking_relative_position_of_display_port: Rect<Au>,
 
     /// The results of display list building for this flow.
-    pub display_list_building_result: DisplayListBuildingResult,
+    pub display_list_building_result: Option<Box<DisplayList>>,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -1052,7 +1051,7 @@ impl BaseFlow {
             block_container_writing_mode: writing_mode,
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
-            display_list_building_result: DisplayListBuildingResult::None,
+            display_list_building_result: None,
             early_absolute_position_info: EarlyAbsolutePositionInfo::new(writing_mode),
             late_absolute_position_info: LateAbsolutePositionInfo::new(),
             clip: ClippingRegion::max(),
@@ -1083,11 +1082,8 @@ impl BaseFlow {
         let bounds = Rect::new(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {
-            DisplayListBuildingResult::None => Vec::new(),
-            DisplayListBuildingResult::StackingContext(ref stacking_context) => {
-                stacking_context.display_list.flatten()
-            }
-            DisplayListBuildingResult::Normal(ref display_list) => display_list.flatten(),
+            Some(ref display_list) => display_list.flatten(),
+            None => Vec::new(),
         };
 
         for item in &all_items {

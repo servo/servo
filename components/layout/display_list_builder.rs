@@ -66,31 +66,6 @@ use util::range::Range;
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
-/// The results of display list building for a single flow.
-pub enum DisplayListBuildingResult {
-    None,
-    StackingContext(Arc<StackingContext>),
-    Normal(Box<DisplayList>),
-}
-
-impl DisplayListBuildingResult {
-    /// Adds the display list items contained within this display list building result to the given
-    /// display list, preserving stacking order. If this display list building result does not
-    /// consist of an entire stacking context, it will be emptied.
-    pub fn add_to(&mut self, display_list: &mut DisplayList) {
-        match *self {
-            DisplayListBuildingResult::None => return,
-            DisplayListBuildingResult::StackingContext(ref mut stacking_context) => {
-                display_list.positioned_content.push_back(
-                    DisplayItem::StackingContextClass((*stacking_context).clone()))
-            }
-            DisplayListBuildingResult::Normal(ref mut source_display_list) => {
-                display_list.append_from(&mut **source_display_list)
-            }
-        }
-    }
-}
-
 pub trait FragmentDisplayListBuilding {
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
@@ -1587,7 +1562,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         // Add children.
         for kid in self.base.children.iter_mut() {
-            flow::mut_base(kid).display_list_building_result.add_to(display_list);
+            display_list.append_from(&mut flow::mut_base(kid).display_list_building_result);
         }
 
         self.base.build_display_items_for_debugging_tint(display_list, self.fragment.node);
@@ -1610,17 +1585,16 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 ScrollPolicy::Scrollable
             };
 
-            DisplayListBuildingResult::StackingContext(
-                self.fragment.create_stacking_context(
-                    &self.base,
-                    display_list,
-                    scroll_policy,
-                    StackingContextCreationMode::Normal))
+            Some(DisplayList::new_with_stacking_context(
+                self.fragment.create_stacking_context(&self.base,
+                                                      display_list,
+                                                      scroll_policy,
+                                                      StackingContextCreationMode::Normal)))
         } else {
             if self.fragment.style.get_box().position != position::T::static_ {
                 display_list.form_pseudo_stacking_context_for_positioned_content();
             }
-            DisplayListBuildingResult::Normal(display_list)
+            Some(display_list)
         }
     }
 
@@ -1655,7 +1629,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 // Add the fragments of our children to the display list we'll use for the inner
                 // stacking context.
                 for kid in self.base.children.iter_mut() {
-                    flow::mut_base(kid).display_list_building_result.add_to(&mut *display_list);
+                    display_list.append_from(&mut flow::mut_base(kid).display_list_building_result);
                 }
 
                 Some(outer_display_list_for_overflow_scroll)
@@ -1678,8 +1652,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         if !self.fragment.flags.contains(HAS_LAYER) && !self.fragment.establishes_stacking_context() {
             display_list.form_pseudo_stacking_context_for_positioned_content();
-            self.base.display_list_building_result =
-                DisplayListBuildingResult::Normal(display_list);
+            self.base.display_list_building_result = Some(display_list);
             return;
         }
 
@@ -1714,7 +1687,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         self.base.display_list_building_result =
-            DisplayListBuildingResult::StackingContext(stacking_context)
+            Some(DisplayList::new_with_stacking_context(stacking_context));
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1728,16 +1701,16 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(
+            Some(DisplayList::new_with_stacking_context(
                 self.fragment.create_stacking_context(&self.base,
                                                       display_list,
                                                       ScrollPolicy::Scrollable,
-                                                      StackingContextCreationMode::Normal))
+                                                      StackingContextCreationMode::Normal)))
         } else {
             if self.fragment.style.get_box().position != position::T::static_ {
                 display_list.form_pseudo_stacking_context_for_positioned_content();
             }
-            DisplayListBuildingResult::Normal(display_list)
+            Some(display_list)
         }
     }
 
@@ -1796,18 +1769,18 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    flow::mut_base(block_flow).display_list_building_result
-                                              .add_to(&mut *display_list)
+                    display_list.append_from(
+                        &mut flow::mut_base(block_flow).display_list_building_result)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
                     let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    flow::mut_base(block_flow).display_list_building_result
-                                              .add_to(&mut *display_list)
+                    display_list.append_from(
+                        &mut flow::mut_base(block_flow).display_list_building_result)
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut block_flow) => {
                     let block_flow = flow_ref::deref_mut(&mut block_flow.flow_ref);
-                    flow::mut_base(block_flow).display_list_building_result
-                                              .add_to(&mut *display_list)
+                    display_list.append_from(
+                        &mut flow::mut_base(block_flow).display_list_building_result)
                 }
                 _ => {}
             }
@@ -1833,14 +1806,14 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         }
 
         self.base.display_list_building_result = if has_stacking_context {
-            DisplayListBuildingResult::StackingContext(
+            Some(DisplayList::new_with_stacking_context(
                 self.fragments.fragments[0].create_stacking_context(
                     &self.base,
                     display_list,
                     ScrollPolicy::Scrollable,
-                    StackingContextCreationMode::Normal))
+                    StackingContextCreationMode::Normal)))
         } else {
-            DisplayListBuildingResult::Normal(display_list)
+            Some(display_list)
         };
 
         if opts::get().validate_display_list_geometry {
