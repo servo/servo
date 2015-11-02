@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <body>
+        <form name="my" action="about:blank">
+            <input type="submit" value="Submit about:blank"/>
+        </form>
+    </body>
+    <script type="text/javascript">
+        window.onload = function() {
+            document.forms["my"].submit();
+            setTimeout(function() {
+                document.documentElement.classList.remove("reftest-wait");
+            }, 100);
+        }
+    </script>
+</html>

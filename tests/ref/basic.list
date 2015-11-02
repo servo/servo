@@ -20,6 +20,7 @@ prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_directi
 prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
 == floated_negative_margins_a.html floated_negative_margins_ref.html
 == font_size.html font_size_ref.html
+!= form_submit_about.html form_submit_about_ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
 == iframe/bg_color.html iframe/bg_color_ref.html
