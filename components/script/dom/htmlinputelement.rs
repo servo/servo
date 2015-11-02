@@ -15,7 +15,7 @@ use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -136,15 +136,10 @@ pub trait LayoutHTMLInputElementHelpers {
     unsafe fn get_size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
     unsafe fn get_insertion_point_for_layout(self) -> Option<TextPoint>;
-}
-
-pub trait RawLayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool;
+    unsafe fn get_checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(&self) -> u32;
+    unsafe fn get_indeterminate_state_for_layout(self) -> bool;
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
@@ -184,7 +179,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32 {
-        (*self.unsafe_get()).get_size_for_layout()
+        (*self.unsafe_get()).size.get()
     }
 
     #[allow(unrooted_must_root)]
@@ -196,25 +191,17 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
           _ => None
         }
     }
-}
 
-impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool {
-        self.Checked()
+    unsafe fn get_checked_state_for_layout(self) -> bool {
+        self.upcast::<Element>().get_state_for_layout().contains(IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
-        self.Indeterminate()
-    }
-
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(&self) -> u32 {
-        self.size.get()
+    unsafe fn get_indeterminate_state_for_layout(self) -> bool {
+        self.upcast::<Element>().get_state_for_layout().contains(IN_INDETERMINATE_STATE)
     }
 }
 

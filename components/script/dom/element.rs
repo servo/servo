@@ -42,7 +42,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::HTMLFontElement;
 use dom::htmliframeelement::HTMLIFrameElement;
-use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
@@ -374,7 +374,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             //                a text field
             match (*self.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("type")) {
                 Some("text") | Some("password") => {
-                    match (*this.unsafe_get()).get_size_for_layout() {
+                    match this.get_size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
                     }
@@ -574,7 +574,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         // TODO option and menuitem can also have a checked state.
         match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
-                (*input.unsafe_get()).get_checked_state_for_layout()
+                input.get_checked_state_for_layout()
             },
             None => false,
         }
@@ -586,7 +586,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         // TODO progress elements can also be matched with :indeterminate
         match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
-                (*input.unsafe_get()).get_indeterminate_state_for_layout()
+                input.get_indeterminate_state_for_layout()
             },
             None => false,
         }
