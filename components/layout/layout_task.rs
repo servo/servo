@@ -1196,7 +1196,9 @@ impl LayoutTask {
         if !needs_dirtying {
             for &(el, state_change) in state_changes.iter() {
                 debug_assert!(!state_change.is_empty());
-                let hint = rw_data.stylist.restyle_hint_for_state_change(&el, el.get_state(), state_change);
+                let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
+                                                                         el.get_state(),
+                                                                         state_change);
                 el.note_restyle_hint(hint);
             }
         }
