@@ -58,7 +58,7 @@ use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, Timer
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
@@ -144,9 +144,9 @@ pub struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     #[ignore_heap_size_of = "TODO(#6909) need to measure HashSet"]
-    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
-    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
+    devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -208,7 +208,7 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_heap_size_of = "channels are hard"]
-    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DOMRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -1276,10 +1276,10 @@ impl Window {
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 
-            devtools_marker_sender: RefCell::new(None),
-            devtools_markers: RefCell::new(HashSet::new()),
+            devtools_marker_sender: DOMRefCell::new(None),
+            devtools_markers: DOMRefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
-            webdriver_script_chan: RefCell::new(None),
+            webdriver_script_chan: DOMRefCell::new(None),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

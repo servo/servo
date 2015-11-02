@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -10,7 +11,6 @@ use dom::bindings::str::USVString;
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use url::{Host, ParseResult, Url, UrlParser};
 use util::str::DOMString;
 
@@ -20,7 +20,7 @@ pub struct URL {
     reflector_: Reflector,
 
     // https://url.spec.whatwg.org/#concept-urlutils-url
-    url: RefCell<Url>,
+    url: DOMRefCell<Url>,
 
     // https://url.spec.whatwg.org/#concept-urlutils-get-the-base
     base: Option<Url>,
@@ -30,7 +30,7 @@ impl URL {
     fn new_inherited(url: Url, base: Option<Url>) -> URL {
         URL {
             reflector_: Reflector::new(),
-            url: RefCell::new(url),
+            url: DOMRefCell::new(url),
             base: base,
         }
     }

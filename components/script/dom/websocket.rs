@@ -28,7 +28,7 @@ use net_traits::hosts::replace_hosts;
 use script_task::ScriptTaskEventCategory::WebSocketEvent;
 use script_task::{CommonScriptMsg, Runnable};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use std::{ptr, slice};
 use util::str::DOMString;
@@ -133,7 +133,7 @@ pub struct WebSocket {
     buffered_amount: Cell<u32>,
     clearing_buffer: Cell<bool>, //Flag to tell if there is a running task to clear buffered_amount
     #[ignore_heap_size_of = "Defined in std"]
-    sender: RefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
+    sender: DOMRefCell<Option<Arc<Mutex<Sender<WebSocketStream>>>>>,
     failed: Cell<bool>, //Flag to tell if websocket was closed due to failure
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
@@ -175,7 +175,7 @@ impl WebSocket {
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
             failed: Cell::new(false),
-            sender: RefCell::new(None),
+            sender: DOMRefCell::new(None),
             full: Cell::new(false),
             clean_close: Cell::new(true),
             code: Cell::new(0),
