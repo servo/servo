@@ -74,7 +74,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == marker_block_direction_placement_a.html marker_block_direction_placement_ref.html
 != noteq_attr_exists_selector.html attr_exists_selector_ref.html
 != octicons_a.html octicons_ref.html
-== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
+flaky_macos == ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
 != ol_japanese_iroha_bullet_styles.html ol_japanese_iroha_ref.html
 != outset_blackborder.html blackborder_ref.html
 # Should be == with expected failure. See #2797
