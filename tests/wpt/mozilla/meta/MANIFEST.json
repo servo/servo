@@ -4153,6 +4153,18 @@
         ]
       },
       "testharness": {
+        "css/canvas_over_area.html": [
+          {
+            "path": "css/canvas_over_area.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_over_area_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_over_area.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
