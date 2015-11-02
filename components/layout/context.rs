@@ -82,8 +82,8 @@ pub struct SharedLayoutContext {
     /// A channel for the image cache to send responses to.
     pub image_cache_sender: ImageCacheChan,
 
-    /// The current screen size.
-    pub screen_size: Size2D<Au>,
+    /// The current viewport size.
+    pub viewport_size: Size2D<Au>,
 
     /// Screen sized changed?
     pub screen_size_changed: bool,
