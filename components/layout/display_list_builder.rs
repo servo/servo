@@ -32,6 +32,7 @@ use gfx::display_list::{StackingContext, TextDisplayItem, TextOrientation};
 use gfx::paint_task::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::color;
+use incremental::REPAINT;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
@@ -1759,6 +1760,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                      border_painting_mode,
                                                      BackgroundAndBorderLevel::Block);
         }
+
+        self.base.restyle_damage.remove(REPAINT);
     }
 }
 
@@ -1844,6 +1847,8 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();
         }
+
+        self.base.restyle_damage.remove(REPAINT);
     }
 }
 
