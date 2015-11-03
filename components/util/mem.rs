@@ -35,7 +35,7 @@ use std::mem::{size_of, transmute};
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
-use str::LengthOrPercentageOrAuto;
+use str::{DOMString, LengthOrPercentageOrAuto};
 use string_cache::atom::Atom;
 use string_cache::namespace::Namespace;
 use url;
@@ -98,6 +98,12 @@ impl<T: HeapSizeOf> HeapSizeOf for Box<T> {
 impl HeapSizeOf for String {
     fn heap_size_of_children(&self) -> usize {
         heap_size_of(self.as_ptr() as *const c_void)
+    }
+}
+
+impl HeapSizeOf for DOMString {
+    fn heap_size_of_children(&self) -> usize {
+        self.0.heap_size_of_children()
     }
 }
 

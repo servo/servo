@@ -73,7 +73,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
         let caption = match self.GetCaption() {
             Some(caption) => caption,
             None => {
-                let caption = HTMLTableCaptionElement::new("caption".to_owned(),
+                let caption = HTMLTableCaptionElement::new(DOMString("caption".to_owned()),
                                                            None,
                                                            document_from_node(self).r());
                 self.SetCaption(Some(caption.r()));
@@ -92,7 +92,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {
-        let tbody = HTMLTableSectionElement::new("tbody".to_owned(),
+        let tbody = HTMLTableSectionElement::new(DOMString("tbody".to_owned()),
                                                  None,
                                                  document_from_node(self).r());
         let node = self.upcast::<Node>();

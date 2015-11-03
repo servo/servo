@@ -821,7 +821,7 @@ impl KeyboardEventMethods for KeyboardEvent {
 
     // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-getModifierState
     fn GetModifierState(&self, keyArg: DOMString) -> bool {
-        match &*keyArg {
+        match &**keyArg {
             "Ctrl" => self.CtrlKey(),
             "Alt" => self.AltKey(),
             "Shift" => self.ShiftKey(),

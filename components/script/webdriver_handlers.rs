@@ -23,6 +23,7 @@ use page::Page;
 use script_task::get_page;
 use std::rc::Rc;
 use url::Url;
+use util::str::DOMString;
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
@@ -47,9 +48,8 @@ pub fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDriverJSRe
         Ok(WebDriverJSValue::Number(FromJSValConvertible::from_jsval(cx, val, ()).unwrap()))
     } else if val.get().is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        Ok(
-            WebDriverJSValue::String(
-                FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap()))
+        let string: DOMString = FromJSValConvertible::from_jsval(cx, val, StringificationBehavior::Default).unwrap();
+        Ok(WebDriverJSValue::String(string.0))
     } else if val.get().is_null() {
         Ok(WebDriverJSValue::Null)
     } else {
@@ -114,7 +114,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelector(selector) {
+    reply.send(match page.document().r().QuerySelector(DOMString(selector)) {
         Ok(node) => {
             Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
         }
@@ -126,7 +126,7 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
                                 _pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelectorAll(selector) {
+    reply.send(match page.document().r().QuerySelectorAll(DOMString(selector)) {
         Ok(ref nodes) => {
             let mut result = Vec::with_capacity(nodes.r().Length() as usize);
             for i in 0..nodes.r().Length() {
@@ -150,7 +150,7 @@ pub fn handle_get_active_element(page: &Rc<Page>,
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
-    reply.send(page.document().r().Title()).unwrap();
+    reply.send(page.document().r().Title().0).unwrap();
 }
 
 pub fn handle_get_text(page: &Rc<Page>,
@@ -159,7 +159,7 @@ pub fn handle_get_text(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(ref node) => {
-            Ok(node.r().GetTextContent().unwrap_or("".to_owned()))
+            Ok(node.r().GetTextContent().map(|x| x.0).unwrap_or("".to_owned()))
         },
         None => Err(())
     }).unwrap();
@@ -171,7 +171,7 @@ pub fn handle_get_name(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(node) => {
-            Ok(node.downcast::<Element>().unwrap().TagName())
+            Ok(node.downcast::<Element>().unwrap().TagName().0)
         },
         None => Err(())
     }).unwrap();
