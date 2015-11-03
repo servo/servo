@@ -7,7 +7,7 @@
 
 use msg::constellation_msg::{PipelineId};
 use net_traits::AsyncResponseTarget;
-use net_traits::{Metadata, PendingAsyncLoad, ResourceTask, load_whole_resource};
+use net_traits::{PendingAsyncLoad, ResourceTask};
 use std::sync::Arc;
 use url::Url;
 
@@ -76,14 +76,6 @@ impl DocumentLoader {
     pub fn load_async(&mut self, load: LoadType, listener: AsyncResponseTarget) {
         let pending = self.prepare_async_load(load);
         pending.load_async(listener)
-    }
-
-    /// Create, initiate, and await the response for a new network request.
-    pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
-        self.blocking_loads.push(load.clone());
-        let result = load_whole_resource(&self.resource_task, load.url().clone());
-        self.finish_load(load);
-        result
     }
 
     /// Mark an in-progress network request complete.
