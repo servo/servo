@@ -111,11 +111,11 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
-            placeholder: DOMRefCell::new("".to_owned()),
+            placeholder: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_owned(), chan)),
+            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan)),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }

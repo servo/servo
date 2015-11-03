@@ -10,7 +10,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::node::Node;
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documenttype
@@ -32,8 +31,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
             name: name,
-            public_id: public_id.unwrap_or("".to_owned()),
-            system_id: system_id.unwrap_or("".to_owned())
+            public_id: public_id.unwrap_or(DOMString::new()),
+            system_id: system_id.unwrap_or(DOMString::new())
         }
     }
     #[allow(unrooted_must_root)]

@@ -58,7 +58,7 @@ impl WebGLContextEvent {
                        init: &WebGLContextEventInit) -> Fallible<Root<WebGLContextEvent>> {
         let status_message = match init.statusMessage.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
 
         let bubbles = if init.parent.bubbles {

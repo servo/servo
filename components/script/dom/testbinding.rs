@@ -62,7 +62,7 @@ impl TestBindingMethods for TestBinding {
     fn SetUnrestrictedDoubleAttribute(&self, _: f64) {}
     fn DoubleAttribute(&self) -> Finite<f64> { Finite::wrap(0.) }
     fn SetDoubleAttribute(&self, _: Finite<f64>) {}
-    fn StringAttribute(&self) -> DOMString { "".to_owned() }
+    fn StringAttribute(&self) -> DOMString { DOMString::new() }
     fn SetStringAttribute(&self, _: DOMString) {}
     fn UsvstringAttribute(&self) -> USVString { USVString("".to_owned()) }
     fn SetUsvstringAttribute(&self, _: USVString) {}
@@ -77,7 +77,7 @@ impl TestBindingMethods for TestBinding {
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { eLong(0) }
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
-    fn Union2Attribute(&self) -> EventOrString { eString("".to_owned()) }
+    fn Union2Attribute(&self) -> EventOrString { eString(DOMString::new()) }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
     fn Union3Attribute(&self) -> EventOrUSVString { eUSVString(USVString("".to_owned())) }
     fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
@@ -115,16 +115,16 @@ impl TestBindingMethods for TestBinding {
     fn SetDoubleAttributeNullable(&self, _: Option<Finite<f64>>) {}
     fn GetByteStringAttributeNullable(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn SetByteStringAttributeNullable(&self, _: Option<ByteString>) {}
-    fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some("".to_owned()) }
+    fn GetStringAttributeNullable(&self) -> Option<DOMString> { Some(DOMString::new()) }
     fn SetStringAttributeNullable(&self, _: Option<DOMString>) {}
     fn GetUsvstringAttributeNullable(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn SetUsvstringAttributeNullable(&self, _: Option<USVString>) {}
     fn SetBinaryRenamedAttribute(&self, _: DOMString) {}
     fn ForwardedAttribute(&self) -> Root<TestBinding> { Root::from_ref(self) }
-    fn BinaryRenamedAttribute(&self) -> DOMString { "".to_owned() }
+    fn BinaryRenamedAttribute(&self) -> DOMString { DOMString::new() }
     fn SetBinaryRenamedAttribute2(&self, _: DOMString) {}
-    fn BinaryRenamedAttribute2(&self) -> DOMString { "".to_owned() }
-    fn Attr_to_automatically_rename(&self) -> DOMString { "".to_owned() }
+    fn BinaryRenamedAttribute2(&self) -> DOMString { DOMString::new() }
+    fn Attr_to_automatically_rename(&self) -> DOMString { DOMString::new() }
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
@@ -136,7 +136,7 @@ impl TestBindingMethods for TestBinding {
     fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn SetUnionAttributeNullable(&self, _: Option<HTMLElementOrLong>) {}
-    fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> { Some(eString("".to_owned())) }
+    fn GetUnion2AttributeNullable(&self) -> Option<EventOrString> { Some(eString(DOMString::new())) }
     fn SetUnion2AttributeNullable(&self, _: Option<EventOrString>) {}
     fn BinaryRenamedMethod(&self) -> () {}
     fn ReceiveVoid(&self) -> () {}
@@ -153,7 +153,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveFloat(&self) -> Finite<f32> { Finite::wrap(0.) }
     fn ReceiveUnrestrictedDouble(&self) -> f64 { 0. }
     fn ReceiveDouble(&self) -> Finite<f64> { Finite::wrap(0.) }
-    fn ReceiveString(&self) -> DOMString { "".to_owned() }
+    fn ReceiveString(&self) -> DOMString { DOMString::new() }
     fn ReceiveUsvstring(&self) -> USVString { USVString("".to_owned()) }
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { _empty }
@@ -164,7 +164,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { eLong(0) }
-    fn ReceiveUnion2(&self) -> EventOrString { eString("".to_owned()) }
+    fn ReceiveUnion2(&self) -> EventOrString { eString(DOMString::new()) }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(&self) -> Option<i8> { Some(0) }
@@ -179,7 +179,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableFloat(&self) -> Option<Finite<f32>> { Some(Finite::wrap(0.)) }
     fn ReceiveNullableUnrestrictedDouble(&self) -> Option<f64> { Some(0.) }
     fn ReceiveNullableDouble(&self) -> Option<Finite<f64>> { Some(Finite::wrap(0.)) }
-    fn ReceiveNullableString(&self) -> Option<DOMString> { Some("".to_owned()) }
+    fn ReceiveNullableString(&self) -> Option<DOMString> { Some(DOMString::new()) }
     fn ReceiveNullableUsvstring(&self) -> Option<USVString> { Some(USVString("".to_owned())) }
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(_empty) }
@@ -189,7 +189,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
-    fn ReceiveNullableUnion2(&self) -> Option<EventOrString> { Some(eString("".to_owned())) }
+    fn ReceiveNullableUnion2(&self) -> Option<EventOrString> { Some(eString(DOMString::new())) }
 
     fn PassBoolean(&self, _: bool) {}
     fn PassByte(&self, _: i8) {}

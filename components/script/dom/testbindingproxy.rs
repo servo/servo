@@ -17,16 +17,16 @@ pub struct TestBindingProxy {
 impl TestBindingProxyMethods for TestBindingProxy {
     fn Length(&self) -> u32 { 0 }
     fn SupportedPropertyNames(&self) -> Vec<DOMString> { vec![] }
-    fn GetNamedItem(&self, _: DOMString) -> DOMString { "".to_owned() }
+    fn GetNamedItem(&self, _: DOMString) -> DOMString { DOMString::new() }
     fn SetNamedItem(&self, _: DOMString, _: DOMString) -> () {}
-    fn GetItem(&self, _: u32) -> DOMString { "".to_owned() }
+    fn GetItem(&self, _: u32) -> DOMString { DOMString::new() }
     fn SetItem(&self, _: u32, _: DOMString) -> () {}
     fn RemoveItem(&self, _: DOMString) -> () {}
-    fn Stringifier(&self) -> DOMString { "".to_owned() }
-    fn IndexedGetter(&self, _: u32, _: &mut bool) -> DOMString { "".to_owned() }
+    fn Stringifier(&self) -> DOMString { DOMString::new() }
+    fn IndexedGetter(&self, _: u32, _: &mut bool) -> DOMString { DOMString::new() }
     fn NamedDeleter(&self, _: DOMString) -> () {}
     fn IndexedSetter(&self, _: u32, _: DOMString) -> () {}
     fn NamedSetter(&self, _: DOMString, _: DOMString) -> () {}
-    fn NamedGetter(&self, _: DOMString, _: &mut bool) -> DOMString { "".to_owned() }
+    fn NamedGetter(&self, _: DOMString, _: &mut bool) -> DOMString { DOMString::new() }
 
 }

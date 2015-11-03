@@ -28,7 +28,10 @@ pub struct MessageEvent {
 
 impl MessageEvent {
     pub fn new_uninitialized(global: GlobalRef) -> Root<MessageEvent> {
-        MessageEvent::new_initialized(global, HandleValue::undefined(), "".to_owned(), "".to_owned())
+        MessageEvent::new_initialized(global,
+                                      HandleValue::undefined(),
+                                      DOMString::new(),
+                                      DOMString::new())
     }
 
     pub fn new_initialized(global: GlobalRef,
@@ -77,7 +80,7 @@ impl MessageEvent {
                           message: HandleValue) {
         let messageevent = MessageEvent::new(
             scope, "message".to_owned(), false, false, message,
-            "".to_owned(), "".to_owned());
+            DOMString::new(), DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }
 }

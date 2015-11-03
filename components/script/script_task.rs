@@ -1642,9 +1642,9 @@ impl ScriptTask {
             window.evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
                                                           StringificationBehavior::Empty);
-            strval.unwrap_or("".to_owned())
+            strval.unwrap_or(DOMString::new())
         } else {
-            "".to_owned()
+            DOMString::new()
         };
 
         parse_html(document.r(), parse_input, final_url,

@@ -124,7 +124,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_begin.is_none() {
             self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
-        self.replace_selection("".to_owned());
+        self.replace_selection(DOMString::new());
     }
 
     /// Insert a character at the current editing point

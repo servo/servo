@@ -1014,7 +1014,7 @@ impl Element {
     pub fn set_bool_attribute(&self, local_name: &Atom, value: bool) {
         if self.has_attribute(local_name) == value { return; }
         if value {
-            self.set_string_attribute(local_name, String::new());
+            self.set_string_attribute(local_name, DOMString::new());
         } else {
             self.remove_attribute(&ns!(""), local_name);
         }
@@ -1023,7 +1023,7 @@ impl Element {
     pub fn get_url_attribute(&self, local_name: &Atom) -> DOMString {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
-            return "".to_owned();
+            return DOMString::new();
         }
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self);
@@ -1042,7 +1042,7 @@ impl Element {
     pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
             Some(x) => x.Value(),
-            None => "".to_owned()
+            None => DOMString::new()
         }
     }
     pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
