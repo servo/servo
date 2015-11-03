@@ -1,32 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::utils::{Reflectable,Reflector};
-use dom::bindings::trace::JSTraceable;
-use util::mem::HeapSizeOf;
-use js::jsapi::{JSTracer,JSObject};
+use dom::bindings::utils::Reflector;
 
-#[derive(HeapSizeOf)]
 #[must_root]
-pub struct ServoXMLParser{
-	reflector_: Reflector,
+#[dom_struct]
+pub struct ServoXMLParser {
+       reflector_: Reflector,
 }
 
 impl ServoXMLParser {
-pub fn new(){
-       
+         pub fn new() {
+         }
 }
-}
-
-impl Reflectable for ServoXMLParser{
-	fn reflector<'a>(&'a self) -> &'a Reflector{
-		&self.reflector_
-	}
-
-	fn init_reflector(&mut self, obj: *mut JSObject){
-	}
-}
-
-impl JSTraceable for ServoXMLParser{
-	fn trace(&self, trc: *mut JSTracer){
-	}
-}
-
