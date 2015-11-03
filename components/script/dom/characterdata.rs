@@ -80,7 +80,7 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, "".to_owned())
+        self.ReplaceData(offset, count, DOMString::new())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-replacedata

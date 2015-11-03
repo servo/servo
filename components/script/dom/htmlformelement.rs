@@ -491,7 +491,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_owned(), |t| owner(t.r()))
+            self.form_owner().map_or(DOMString::new(), |t| owner(t.r()))
         }
     }
 

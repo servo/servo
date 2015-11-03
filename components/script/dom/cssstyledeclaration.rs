@@ -126,7 +126,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(&property).unwrap_or("".to_owned());
+            return self.get_computed_style(&property).unwrap_or(DOMString::new());
         }
 
         // Step 2
@@ -143,7 +143,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                 // Step 2.2.2 & 2.2.3
                 match declaration {
                     Some(declaration) => list.push(declaration),
-                    None => return "".to_owned(),
+                    None => return DOMString::new(),
                 }
             }
 
@@ -154,7 +154,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3 & 4
         let result = match owner.get_inline_style_declaration(&property) {
             Some(declaration) => declaration.value(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
         result
     }
@@ -183,7 +183,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 4
-        "".to_owned()
+        DOMString::new()
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
@@ -274,7 +274,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(&self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, "".to_owned())
+        self.SetProperty(property, value, DOMString::new())
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty

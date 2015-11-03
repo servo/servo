@@ -54,7 +54,6 @@ use js::rust::{ToInt64, ToUint64};
 use libc;
 use num::Float;
 use num::traits::{Bounded, Zero};
-use std::borrow::ToOwned;
 use std::mem;
 use std::rc::Rc;
 use std::{char, ptr, slice};
@@ -542,7 +541,7 @@ impl FromJSValConvertible for DOMString {
                   -> Result<DOMString, ()> {
         if null_behavior == StringificationBehavior::Empty &&
            value.get().is_null() {
-            Ok("".to_owned())
+            Ok(DOMString::new())
         } else {
             let jsstr = unsafe { ToString(cx, value) };
             if jsstr.is_null() {

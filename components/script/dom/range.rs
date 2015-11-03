@@ -23,6 +23,7 @@ use dom::node::Node;
 use dom::text::Text;
 use std::cell::Cell;
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct Range {
@@ -524,7 +525,7 @@ impl RangeMethods for Range {
                 // Step 4.4.
                 try!(end_data.ReplaceData(start_offset,
                                           end_offset - start_offset,
-                                          "".to_owned()));
+                                          DOMString::new()));
                 // Step 4.5.
                 return Ok(fragment);
             }
@@ -560,7 +561,7 @@ impl RangeMethods for Range {
                 // Step 15.4.
                 try!(start_data.ReplaceData(start_offset,
                                             start_node.len() - start_offset,
-                                            "".to_owned()));
+                                            DOMString::new()));
             } else {
                 // Step 16.1.
                 let clone = child.CloneNode(false);
@@ -595,7 +596,7 @@ impl RangeMethods for Range {
                 // Step 18.3.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 18.4.
-                try!(end_data.ReplaceData(0, end_offset, "".to_owned()));
+                try!(end_data.ReplaceData(0, end_offset, DOMString::new()));
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(false);
