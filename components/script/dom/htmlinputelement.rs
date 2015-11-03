@@ -170,7 +170,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_owned()),
             InputType::InputPassword => {
                 let raw = get_raw_textinput_value(self);
-                // the implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars
+                // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
                 raw.chars().map(|_| '●').collect()
             }
             _ => get_raw_textinput_value(self),
@@ -193,8 +193,8 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
                                   raw.char_indices()))
             }
             InputType::InputPassword => {
-                // use the raw textinput to get the index as long as we use a 1:1 char mapping
-                // in get_input_value_for_layout
+                // Use the raw textinput to get the index as long as we use a 1:1 char mapping
+                // in get_input_value_for_layout.
                 let raw = get_raw_textinput_value(self);
                 Some(search_index((*self.unsafe_get()).textinput.borrow_for_layout().edit_point.index,
                                   raw.char_indices()))
