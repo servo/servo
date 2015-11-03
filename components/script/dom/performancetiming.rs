@@ -16,19 +16,19 @@ pub struct PerformanceTiming {
     reflector_: Reflector,
     navigationStart: u64,
     navigationStartPrecise: f64,
-    document: Root<Document>,
+    document: JS<Document>,
 }
 
 impl PerformanceTiming {
     fn new_inherited(navStart: u64,
                      navStartPrecise: f64,
-                     document: Root<Document>)
+                     document: &Document)
                          -> PerformanceTiming {
         PerformanceTiming {
             reflector_: Reflector::new(),
             navigationStart: navStart,
             navigationStartPrecise: navStartPrecise,
-            document: document,
+            document: JS::from_ref(document),
         }
     }
 
@@ -40,7 +40,7 @@ impl PerformanceTiming {
 
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
-                                                      window.Document());
+                                                      window.Document().r());
         reflect_dom_object(box timing, GlobalRef::Window(window),
                            PerformanceTimingBinding::Wrap)
     }
