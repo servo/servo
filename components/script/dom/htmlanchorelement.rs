@@ -170,7 +170,7 @@ impl Activatable for HTMLAnchorElement {
 }
 
 /// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
-fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<DOMString>) {
+fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.

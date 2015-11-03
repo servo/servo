@@ -120,7 +120,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
-    Internal(String, Url),
+    Internal(DOMString, Url),
     External(Result<(Metadata, Vec<u8>), String>),
 }
 
@@ -401,7 +401,8 @@ impl HTMLScriptElement {
                 // TODO: Otherwise, decode the file to Unicode, using character
                 // encoding as the fallback encoding.
 
-                (UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap(), true,
+                (DOMString(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                 true,
                  metadata.final_url)
             },
 
@@ -542,13 +543,13 @@ impl HTMLScriptElement {
     }
 
     fn dispatch_event(&self,
-                      type_: DOMString,
+                      type_: String,
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> bool {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               type_,
+                               DOMString(type_),
                                bubbles,
                                cancelable);
         event.fire(self.upcast())

@@ -225,7 +225,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
                 name: actors.new_name("tab"),
-                title: title,
+                title: title.0,
                 url: url.serialize(),
                 console: console.name(),
                 inspector: inspector.name(),

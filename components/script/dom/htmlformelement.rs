@@ -159,7 +159,7 @@ impl HTMLFormElement {
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "submit".to_owned(),
+                               DOMString("submit".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -171,7 +171,7 @@ impl HTMLFormElement {
         // Step 7-8
         let mut action = submitter.action();
         if action.is_empty() {
-            action = base.serialize();
+            action = DOMString(base.serialize());
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
@@ -283,14 +283,14 @@ impl HTMLFormElement {
             if prev == '\r' {
                 buf.push('\n');
             }
-            buf
+            DOMString(buf)
         }
 
         let mut ret = self.get_unclean_dataset(submitter);
         // https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
         // Step 4
         for datum in &mut ret {
-            match &*datum.ty {
+            match &**datum.ty {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
@@ -311,7 +311,7 @@ impl HTMLFormElement {
 
         let win = window_from_node(self);
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "reset".to_owned(),
+                               DOMString("reset".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -410,7 +410,7 @@ impl<'a> FormSubmitter<'a> {
                                                   |f| f.Action())
             }
         };
-        match &*attr {
+        match &**attr {
             "multipart/form-data" => FormEncType::FormDataEncoded,
             "text/plain" => FormEncType::TextPlainEncoded,
             // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
@@ -433,7 +433,7 @@ impl<'a> FormSubmitter<'a> {
                                                   |f| f.Action())
             }
         };
-        match &*attr {
+        match &**attr {
             "dialog" => FormMethod::FormDialog,
             "post" => FormMethod::FormPost,
             _ => FormMethod::FormGet

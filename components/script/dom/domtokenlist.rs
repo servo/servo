@@ -64,7 +64,7 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
-            attr.value().as_tokens().get(index as usize).map(|token| (**token).to_owned())
+            attr.value().as_tokens().get(index as usize).map(|token| DOMString((**token).to_owned()))
         })
     }
 
@@ -134,7 +134,7 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
         let tokenlist = self.element.get_tokenlist_attribute(&self.local_name);
-        str_join(&tokenlist, "\x20")
+        DOMString(str_join(&tokenlist, "\x20"))
     }
 
     // check-tidy: no specs after this line

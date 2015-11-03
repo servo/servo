@@ -153,11 +153,11 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-type
     fn Type(&self) -> DOMString {
-        if self.Multiple() {
-            "select-multiple".to_owned()
+        DOMString(if self.Multiple() {
+            "select-multiple"
         } else {
-            "select-one".to_owned()
-        }
+            "select-one"
+        }.to_owned())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels

@@ -119,7 +119,7 @@ impl URLSearchParamsMethods for URLSearchParams {
 
     // https://url.spec.whatwg.org/#stringification-behavior
     fn Stringifier(&self) -> DOMString {
-        self.serialize(None)
+        DOMString(self.serialize(None))
     }
 }
 
