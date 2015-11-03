@@ -1588,7 +1588,6 @@ impl ScriptTask {
                                  page.clone(),
                                  MainThreadScriptChan(sender.clone()),
                                  self.image_cache_channel.clone(),
-                                 self.control_chan.clone(),
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),

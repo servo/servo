@@ -54,7 +54,7 @@ use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
-use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -109,8 +109,6 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -162,9 +160,6 @@ pub struct Window {
 
     /// Subpage id associated with this page, if any.
     parent_info: Option<(PipelineId, SubpageId)>,
-
-    /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Cell<u32>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -901,9 +896,6 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        let last_reflow_id = &self.last_reflow_id;
-        last_reflow_id.set(last_reflow_id.get() + 1);
-
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
             debug_reflow_events(&goal, &query_type, &reason);
@@ -917,9 +909,7 @@ impl Window {
             },
             document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
-            script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
-            id: last_reflow_id.get(),
             query_type: query_type,
         };
 
@@ -1212,7 +1202,6 @@ impl Window {
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
-               control_chan: Sender<ConstellationControlMsg>,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
@@ -1238,7 +1227,6 @@ impl Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
             image_cache_chan: image_cache_chan,
-            control_chan: control_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
@@ -1266,7 +1254,6 @@ impl Window {
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
-            last_reflow_id: Cell::new(0),
             resize_event: Cell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
