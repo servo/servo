@@ -34,8 +34,8 @@ use std::cell::Cell;
 use string_cache::Atom;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
-use textinput::{TextInput, TextPoint};
-use util::str::DOMString;
+use textinput::TextInput;
+use util::str::{DOMString, search_index};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -135,26 +135,26 @@ pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_for_layout(self) -> Option<TextPoint>;
+    unsafe fn get_insertion_point_index_for_layout(self) -> Option<isize>;
     #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
     unsafe fn get_indeterminate_state_for_layout(self) -> bool;
 }
 
+#[allow(unsafe_code)]
+unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> String {
+    let textinput = (*input.unsafe_get()).textinput.borrow_for_layout().get_content();
+    if !textinput.is_empty() {
+        textinput
+    } else {
+        (*input.unsafe_get()).placeholder.borrow_for_layout().to_owned()
+    }
+}
+
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
-        #[allow(unsafe_code)]
-        unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> String {
-            let textinput = (*input.unsafe_get()).textinput.borrow_for_layout().get_content();
-            if !textinput.is_empty() {
-                textinput
-            } else {
-                (*input.unsafe_get()).placeholder.borrow_for_layout().to_owned()
-            }
-        }
-
         #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>) -> Option<String> {
             let elem = input.upcast::<Element>();
@@ -170,6 +170,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_owned()),
             InputType::InputPassword => {
                 let raw = get_raw_textinput_value(self);
+                // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
                 raw.chars().map(|_| '●').collect()
             }
             _ => get_raw_textinput_value(self),
@@ -184,11 +185,21 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_for_layout(self) -> Option<TextPoint> {
+    unsafe fn get_insertion_point_index_for_layout(self) -> Option<isize> {
         match (*self.unsafe_get()).input_type.get() {
-          InputType::InputText | InputType::InputPassword =>
-              Some((*self.unsafe_get()).textinput.borrow_for_layout().edit_point),
-          _ => None
+            InputType::InputText  => {
+                let raw = self.get_value_for_layout();
+                Some(search_index((*self.unsafe_get()).textinput.borrow_for_layout().edit_point.index,
+                                  raw.char_indices()))
+            }
+            InputType::InputPassword => {
+                // Use the raw textinput to get the index as long as we use a 1:1 char mapping
+                // in get_input_value_for_layout.
+                let raw = get_raw_textinput_value(self);
+                Some(search_index((*self.unsafe_get()).textinput.borrow_for_layout().edit_point.index,
+                                  raw.char_indices()))
+            }
+            _ => None
         }
     }
 
