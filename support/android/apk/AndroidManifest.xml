@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application android:label="Servo" android:icon="@mipmap/servo">
-        <activity android:name="rust.glutin.MainActivity"
+        <activity android:name="com.mozilla.servo.MainActivity"
                 android:label="Servo"
                 android:configChanges="orientation|keyboardHidden">
             <intent-filter>

@@ -1,4 +1,4 @@
-package rust.glutin;
+package com.mozilla.servo;
 import android.util.Log;
 
 public class MainActivity extends android.app.NativeActivity {
