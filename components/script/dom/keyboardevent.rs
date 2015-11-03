@@ -86,19 +86,15 @@ impl KeyboardEvent {
         let ev = KeyboardEvent::new_uninitialized(window);
         ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
                              "".to_owned(), repeat, "".to_owned());
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        {
-            let ev = ev.r();
-            ev.key.set(key);
-            *ev.code.borrow_mut() = code;
-            ev.ctrl.set(ctrlKey);
-            ev.alt.set(altKey);
-            ev.shift.set(shiftKey);
-            ev.meta.set(metaKey);
-            ev.char_code.set(char_code);
-            ev.key_code.set(key_code);
-            ev.is_composing.set(isComposing);
-        }
+        ev.key.set(key);
+        *ev.code.borrow_mut() = code;
+        ev.ctrl.set(ctrlKey);
+        ev.alt.set(altKey);
+        ev.shift.set(shiftKey);
+        ev.meta.set(metaKey);
+        ev.char_code.set(char_code);
+        ev.key_code.set(key_code);
+        ev.is_composing.set(isComposing);
         ev
     }
 

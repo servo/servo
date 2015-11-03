@@ -38,9 +38,8 @@ full_cef_class_impl! {
             this.browser.borrow_mut().as_mut().unwrap().send_window_event(event);
         }}
         fn get_url(&this,) -> cef_string_userfree_t {{
-            let this = this.downcast();
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let url = this.url.borrow();
+            let url = this.downcast().url.borrow();
             (*url).clone()
         }}
         fn get_text(&this, visitor: *mut cef_string_visitor_t [CefStringVisitor],) -> () {{

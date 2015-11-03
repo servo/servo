@@ -1188,9 +1188,7 @@ impl Window {
 
         browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element);
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let r = window.r();
-            let context = r.browsing_context();
+            let context = window.browsing_context();
             Root::from_ref(context.as_ref().unwrap().active_window())
         })
     }
