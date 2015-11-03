@@ -82,7 +82,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableDataCellElement::new("td".to_owned(), None, node.owner_doc().r()))
+            || HTMLTableDataCellElement::new(DOMString("td".to_owned()), None, node.owner_doc().r()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell

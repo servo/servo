@@ -274,7 +274,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
             attr_name.push(ch);
         }
     }
-    attr_name
+    DOMString(attr_name)
 }
 
 
@@ -313,7 +313,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
             result.push(curr_char);
         }
     }
-    Some(result)
+    Some(DOMString(result))
 }
 
 impl HTMLElement {
@@ -329,7 +329,7 @@ impl HTMLElement {
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
-            (**attr.value()).to_owned()
+            DOMString((**attr.value()).to_owned())
         })
     }
 
@@ -422,7 +422,7 @@ impl VirtualMethods for HTMLElement {
                 let evtarget = self.upcast::<EventTarget>();
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
-                                                      (**attr.value()).to_owned());
+                                                      DOMString((**attr.value()).to_owned()));
             },
             _ => {}
         }

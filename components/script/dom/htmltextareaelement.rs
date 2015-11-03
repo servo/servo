@@ -63,7 +63,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
-        (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
+        (*self.unsafe_get()).textinput.borrow_for_layout().get_content().0
     }
 
     #[allow(unrooted_must_root)]
@@ -174,7 +174,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-type
     fn Type(&self) -> DOMString {
-        "textarea".to_owned()
+        DOMString("textarea".to_owned())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
@@ -238,7 +238,7 @@ impl HTMLTextAreaElement {
         let window = window_from_node(self);
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               "input".to_owned(),
+                               DOMString("input".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
 

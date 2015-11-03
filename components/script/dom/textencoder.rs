@@ -66,7 +66,7 @@ impl TextEncoder {
 impl TextEncoderMethods for TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
     fn Encoding(&self) -> DOMString {
-        self.encoder.name().to_owned()
+        DOMString(self.encoder.name().to_owned())
     }
 
     #[allow(unsafe_code)]

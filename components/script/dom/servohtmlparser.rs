@@ -33,6 +33,7 @@ use script_task::{ScriptChan, ScriptTask};
 use std::cell::Cell;
 use std::default::Default;
 use url::Url;
+use util::str::DOMString;
 
 #[must_root]
 #[derive(JSTraceable, HeapSizeOf)]
@@ -47,7 +48,7 @@ impl Sink {
         match child {
             NodeOrText::AppendNode(n) => Root::from_ref(&*n),
             NodeOrText::AppendText(t) => {
-                let text = Text::new(t.into(), &self.document);
+                let text = Text::new(DOMString(t.into()), &self.document);
                 Root::upcast(text)
             }
         }

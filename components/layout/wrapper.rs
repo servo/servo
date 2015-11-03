@@ -982,7 +982,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
             let data = unsafe { input.get_value_for_layout() };
-            return TextContent::Text(data);
+            return TextContent::Text(data.0);
         }
         if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
             let data = unsafe { area.get_value_for_layout() };

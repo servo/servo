@@ -264,7 +264,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
         // Step 2.
         if self.Width() == 0 || self.Height() == 0 {
-            return Ok("data:,".to_owned());
+            return Ok(DOMString("data:,".to_owned()));
         }
 
         // Step 3.
@@ -285,7 +285,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
             }
 
             let encoded = encoded.to_base64(STANDARD);
-            Ok(format!("data:{};base64,{}", mime_type, encoded))
+            Ok(DOMString(format!("data:{};base64,{}", mime_type, encoded)))
         } else {
             Err(Error::NotSupported)
         }

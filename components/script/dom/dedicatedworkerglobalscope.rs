@@ -35,6 +35,7 @@ use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use url::Url;
+use util::str::DOMString;
 use util::task::spawn_named;
 use util::task_state;
 use util::task_state::{IN_WORKER, SCRIPT};
@@ -263,7 +264,7 @@ impl DedicatedWorkerGlobalScope {
 
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
-                scope.execute_script(source);
+                scope.execute_script(DOMString(source));
             }
 
             let reporter_name = format!("worker-reporter-{}", random::<u64>());

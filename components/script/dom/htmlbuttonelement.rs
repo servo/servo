@@ -226,7 +226,7 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         if owner.is_none() || self.upcast::<Element>().click_in_progress() {
             return;
         }
-        node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
+        node.query_selector_iter(DOMString("button[type=submit]".to_owned())).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
             .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));

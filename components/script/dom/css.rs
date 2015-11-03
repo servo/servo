@@ -20,7 +20,7 @@ impl CSS {
             return Err(Error::InvalidCharacter);
         }
         let mut escaped = DOMString::new();
-        serialize_identifier(&ident, &mut escaped).unwrap();
+        serialize_identifier(&ident, &mut escaped.0).unwrap();
         Ok(escaped)
     }
 }

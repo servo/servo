@@ -70,7 +70,7 @@ impl DOMExceptionMethods for DOMException {
 
     // https://heycam.github.io/webidl/#idl-DOMException-error-names
     fn Name(&self) -> DOMString {
-        format!("{:?}", self.code)
+        DOMString(format!("{:?}", self.code))
     }
 
     // https://heycam.github.io/webidl/#error-names
@@ -102,11 +102,11 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
-        message.to_owned()
+        DOMString(message.to_owned())
     }
 
     // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-error.prototype.tostring
-    fn Stringifier(&self) -> String {
-        format!("{}: {}", self.Name(), self.Message())
+    fn Stringifier(&self) -> DOMString {
+        DOMString(format!("{}: {}", self.Name(), self.Message()))
     }
 }

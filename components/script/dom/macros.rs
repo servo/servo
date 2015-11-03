@@ -84,7 +84,7 @@ macro_rules! make_url_or_base_getter(
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             if url.is_empty() {
                 let window = window_from_node(self);
-                window.get_url().serialize()
+                DOMString(window.get_url().serialize())
             } else {
                 url
             }
@@ -110,7 +110,7 @@ macro_rules! make_enumerated_getter(
             // https://html.spec.whatwg.org/multipage/#attr-fs-method
             match &*val {
                 $($choices)|+ => val,
-                _ => $default.to_owned()
+                _ => DOMString($default.to_owned())
             }
         }
     );

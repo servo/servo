@@ -181,7 +181,7 @@ impl VirtualMethods for HTMLBodyElement {
                 };
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],
-                                                      (**attr.value()).to_owned());
+                                                      DOMString((**attr.value()).to_owned()));
             },
             _ => {}
         }

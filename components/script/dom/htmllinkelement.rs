@@ -261,7 +261,8 @@ impl StylesheetLoadResponder for StylesheetLoadDispatcher {
     fn respond(self: Box<StylesheetLoadDispatcher>) {
         let elem = self.elem.root();
         let window = window_from_node(elem.r());
-        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
+        let event = Event::new(GlobalRef::Window(window.r()),
+                               DOMString("load".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(elem.upcast::<EventTarget>());

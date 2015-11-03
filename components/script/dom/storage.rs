@@ -186,10 +186,10 @@ impl MainThreadRunnable for StorageEventRunnable {
 
         let storage_event = StorageEvent::new(
             global_ref,
-            "storage".to_owned(),
+            DOMString("storage".to_owned()),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key, this.old_value, this.new_value,
-            ev_url.to_string(),
+            DOMString(ev_url.to_string()),
             Some(storage)
         );
 

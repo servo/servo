@@ -829,7 +829,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            default = '"%s".to_owned()' % defaultValue.value
+            default = 'DOMString("%s".to_owned())' % defaultValue.value
             if type.nullable():
                 default = "Some(%s)" % default
 

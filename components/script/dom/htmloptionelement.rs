@@ -80,7 +80,7 @@ fn collect_text(element: &Element, value: &mut DOMString) {
     for child in element.upcast::<Node>().children() {
         if child.is::<Text>() {
             let characterdata = child.downcast::<CharacterData>().unwrap();
-            value.push_str(&characterdata.Data());
+            value.0.push_str(&characterdata.Data());
         } else if let Some(element_child) = child.downcast() {
             collect_text(element_child, value);
         }
@@ -98,7 +98,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     fn Text(&self) -> DOMString {
         let mut content = DOMString::new();
         collect_text(self.upcast(), &mut content);
-        str_join(split_html_space_chars(&content), " ")
+        DOMString(str_join(split_html_space_chars(&content), " "))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text

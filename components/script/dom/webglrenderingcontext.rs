@@ -118,10 +118,11 @@ impl WebGLRenderingContext {
                                                WebGLRenderingContextBinding::Wrap)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
-                let event = WebGLContextEvent::new(global, "webglcontextcreationerror".to_owned(),
+                let event = WebGLContextEvent::new(global,
+                                                   DOMString("webglcontextcreationerror".to_owned()),
                                                    EventBubbles::DoesNotBubble,
                                                    EventCancelable::Cancelable,
-                                                   msg);
+                                                   DOMString(msg));
                 event.upcast::<Event>().fire(canvas.upcast());
                 None
             }
@@ -622,7 +623,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderInfoLog(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
         if let Some(shader) = shader {
-            shader.info_log()
+            shader.info_log().map(DOMString)
         } else {
             None
         }
