@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use block::{AbsoluteAssignBSizesTraversal, AbsoluteStoreOverflowTraversal};
+use block::AbsoluteAssignBSizesTraversal;
 use context::LayoutContext;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
@@ -1598,11 +1598,6 @@ impl Flow for InlineFlow {
             // the block-size of its containing block, which may also be an absolute flow.
             (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
                 &mut AbsoluteAssignBSizesTraversal(layout_context));
-            // Store overflow for all absolute descendants.
-            (&mut *self as &mut Flow).traverse_postorder_absolute_flows(
-                &mut AbsoluteStoreOverflowTraversal {
-                    layout_context: layout_context,
-                });
         }
 
         self.base.position.size.block = match self.lines.last() {
@@ -1627,7 +1622,6 @@ impl Flow for InlineFlow {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
-                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let block = flow_ref::deref_mut(&mut info.flow_ref);
@@ -1635,7 +1629,6 @@ impl Flow for InlineFlow {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
-                    (block.as_mut_block() as &mut Flow).late_store_overflow(layout_context);
                 }
                 _ => (),
             }

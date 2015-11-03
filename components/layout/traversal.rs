@@ -7,7 +7,7 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use css::matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
-use flow::{MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
+use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
@@ -360,7 +360,6 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
         }
 
         flow.assign_block_size(self.layout_context);
-        flow.early_store_overflow(self.layout_context);
     }
 
     #[inline]
@@ -378,6 +377,7 @@ impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_absolute_position(self.layout_context);
+        flow.store_overflow(self.layout_context);
     }
 }
 
