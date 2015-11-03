@@ -220,11 +220,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         if impacted {
             mut_base(self).thread_id = parent_thread_id;
             self.assign_block_size(layout_context);
-            // FIXME(pcwalton): Should use `early_store_overflow()` here but that fails due to a
-            // compiler bug (`Self` does not have a constant size).
-            if !self.contains_relatively_positioned_fragments() {
-                self.store_overflow(layout_context)
-            }
             mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
@@ -252,9 +247,6 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
                 // FIXME(#2795): Get the real container size.
                 let container_size = Size2D::zero();
                 for kid in mut_base(self).children.iter_mut() {
-                    if base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                        continue
-                    }
                     let kid_overflow = base(kid).overflow;
                     let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
                                                                       container_size);
@@ -461,11 +453,6 @@ pub trait ImmutableFlowUtils {
     /// Returns true if this flow is an inline flow.
     fn is_inline_flow(self) -> bool;
 
-    /// Returns true if this flow can have its overflow area calculated early (during its
-    /// block-size assignment) or false if it must have its overflow area calculated late (during
-    /// its parent's block-size assignment).
-    fn can_calculate_overflow_area_early(self) -> bool;
-
     /// Dumps the flow tree for debugging.
     fn dump(self);
 
@@ -502,12 +489,6 @@ pub trait MutableFlowUtils {
     /// Calls `repair_style` and `bubble_inline_sizes`. You should use this method instead of
     /// calling them individually, since there is no reason not to perform both operations.
     fn repair_style_and_bubble_inline_sizes(self, style: &Arc<ComputedValues>);
-
-    /// Calls `store_overflow()` if the overflow can be calculated early.
-    fn early_store_overflow(self, layout_context: &LayoutContext);
-
-    /// Calls `store_overflow()` if the overflow cannot be calculated early.
-    fn late_store_overflow(self, layout_context: &LayoutContext);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -1310,13 +1291,6 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
     }
 
-    /// Returns true if this flow can have its overflow area calculated early (during its
-    /// block-size assignment) or false if it must have its overflow area calculated late (during
-    /// its parent's block-size assignment).
-    fn can_calculate_overflow_area_early(self) -> bool {
-        !self.contains_relatively_positioned_fragments()
-    }
-
     /// Dumps the flow tree for debugging.
     fn dump(self) {
         self.dump_with_level(0)
@@ -1394,20 +1368,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
         }
 
         traversal.process(*self)
-    }
-
-    /// Calls `store_overflow()` if the overflow can be calculated early.
-    fn early_store_overflow(self, layout_context: &LayoutContext) {
-        if self.can_calculate_overflow_area_early() {
-            self.store_overflow(layout_context)
-        }
-    }
-
-    /// Calls `store_overflow()` if the overflow cannot be calculated early.
-    fn late_store_overflow(self, layout_context: &LayoutContext) {
-        if !self.can_calculate_overflow_area_early() {
-            self.store_overflow(layout_context)
-        }
     }
 }
 
