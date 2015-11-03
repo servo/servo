@@ -1007,6 +1007,18 @@
             "url": "/_mozilla/css/canvas_linear_gradient_a.html"
           }
         ],
+        "css/canvas_over_area.html": [
+          {
+            "path": "css/canvas_over_area.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_over_area_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_over_area.html"
+          }
+        ],
         "css/case-insensitive-font-family.html": [
           {
             "path": "css/case-insensitive-font-family.html",
@@ -2087,18 +2099,6 @@
             "url": "/_mozilla/css/link_style_order.html"
           }
         ],
-        "css/list_style_fixed_inside_a.html": [
-          {
-            "path": "css/list_style_fixed_inside_a.html",
-            "references": [
-              [
-                "/_mozilla/css/list_style_fixed_inside_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-          }
-        ],
         "css/list_item_overflow.html": [
           {
             "path": "css/list_item_overflow.html",
@@ -2109,6 +2109,18 @@
               ]
             ],
             "url": "/_mozilla/css/list_item_overflow.html"
+          }
+        ],
+        "css/list_style_fixed_inside_a.html": [
+          {
+            "path": "css/list_style_fixed_inside_a.html",
+            "references": [
+              [
+                "/_mozilla/css/list_style_fixed_inside_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/list_style_fixed_inside_a.html"
           }
         ],
         "css/list_style_image_sizing_a.html": [
@@ -2925,6 +2937,18 @@
               ]
             ],
             "url": "/_mozilla/css/quotes_simple_a.html"
+          }
+        ],
+        "css/restyle_hints_state.html": [
+          {
+            "path": "css/restyle_hints_state.html",
+            "references": [
+              [
+                "/_mozilla/css/restyle_hints_state_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/restyle_hints_state.html"
           }
         ],
         "css/root_height_a.html": [
@@ -4066,6 +4090,78 @@
             ],
             "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
           }
+        ],
+        "mozilla/webgl/clearcolor.html": [
+          {
+            "path": "mozilla/webgl/clearcolor.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/clearcolor.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas2d.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_simple.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_simple.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
+          }
+        ],
+        "mozilla/webgl/draw_arrays_simple.html": [
+          {
+            "path": "mozilla/webgl/draw_arrays_simple.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+          }
         ]
       },
       "testharness": {
@@ -4553,6 +4649,12 @@
           {
             "path": "mozilla/proxy_setter.html",
             "url": "/_mozilla/mozilla/proxy_setter.html"
+          }
+        ],
+        "mozilla/response-data-brotli.htm": [
+          {
+            "path": "mozilla/response-data-brotli.htm",
+            "url": "/_mozilla/mozilla/response-data-brotli.htm"
           }
         ],
         "mozilla/script_type.html": [
@@ -5640,6 +5742,18 @@
           "url": "/_mozilla/css/canvas_linear_gradient_a.html"
         }
       ],
+      "css/canvas_over_area.html": [
+        {
+          "path": "css/canvas_over_area.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_over_area_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_over_area.html"
+        }
+      ],
       "css/case-insensitive-font-family.html": [
         {
           "path": "css/case-insensitive-font-family.html",
@@ -6552,6 +6666,18 @@
           "url": "/_mozilla/css/last_of_type_pseudo_a.html"
         }
       ],
+      "css/layerization_layer_size.html": [
+        {
+          "path": "css/layerization_layer_size.html",
+          "references": [
+            [
+              "/_mozilla/css/layerization_layer_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/layerization_layer_size.html"
+        }
+      ],
       "css/layerization_z_order_a.html": [
         {
           "path": "css/layerization_z_order_a.html",
@@ -6708,18 +6834,6 @@
           "url": "/_mozilla/css/link_style_order.html"
         }
       ],
-      "css/list_style_fixed_inside_a.html": [
-        {
-          "path": "css/list_style_fixed_inside_a.html",
-          "references": [
-            [
-              "/_mozilla/css/list_style_fixed_inside_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
-        }
-      ],
       "css/list_item_overflow.html": [
         {
           "path": "css/list_item_overflow.html",
@@ -6730,6 +6844,18 @@
             ]
           ],
           "url": "/_mozilla/css/list_item_overflow.html"
+        }
+      ],
+      "css/list_style_fixed_inside_a.html": [
+        {
+          "path": "css/list_style_fixed_inside_a.html",
+          "references": [
+            [
+              "/_mozilla/css/list_style_fixed_inside_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/list_style_fixed_inside_a.html"
         }
       ],
       "css/list_style_image_sizing_a.html": [
@@ -7546,6 +7672,18 @@
             ]
           ],
           "url": "/_mozilla/css/quotes_simple_a.html"
+        }
+      ],
+      "css/restyle_hints_state.html": [
+        {
+          "path": "css/restyle_hints_state.html",
+          "references": [
+            [
+              "/_mozilla/css/restyle_hints_state_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/restyle_hints_state.html"
         }
       ],
       "css/root_height_a.html": [

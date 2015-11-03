@@ -51,6 +51,10 @@ impl NodeList {
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
         NodeList::new(window, NodeListType::Children(ChildrenList::new(node)))
     }
+
+    pub fn empty(window: &Window) -> Root<NodeList> {
+        NodeList::new(window, NodeListType::Simple(vec![]))
+    }
 }
 
 impl NodeListMethods for NodeList {
@@ -66,7 +70,7 @@ impl NodeListMethods for NodeList {
     fn Item(&self, index: u32) -> Option<Root<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => {
-                elems.get(index as usize).map(|node| node.root())
+                elems.get(index as usize).map(|node| Root::from_ref(&**node))
             },
             NodeListType::Children(ref list) => list.item(index),
         }

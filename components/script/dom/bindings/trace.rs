@@ -63,10 +63,11 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_task::ScriptChan;
 use script_traits::{TimerEventChan, TimerEventId, TimerSource, UntrustedNodeAddress};
 use selectors::parser::PseudoElement;
+use selectors::states::*;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
-use std::cell::{Cell, RefCell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell};
 use std::collections::hash_state::HashState;
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
@@ -139,12 +140,6 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
     }
 }
 
-impl<T: JSTraceable> JSTraceable for RefCell<T> {
-    fn trace(&self, trc: *mut JSTracer) {
-        self.borrow().trace(trc)
-    }
-}
-
 impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
@@ -154,26 +149,6 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
 impl<T: JSTraceable> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for *const T {
-    fn trace(&self, trc: *mut JSTracer) {
-        if !self.is_null() {
-            unsafe {
-                (**self).trace(trc)
-            }
-        }
-    }
-}
-
-impl<T: JSTraceable> JSTraceable for *mut T {
-    fn trace(&self, trc: *mut JSTracer) {
-        if !self.is_null() {
-            unsafe {
-                (**self).trace(trc)
-            }
-        }
     }
 }
 
@@ -309,6 +284,7 @@ no_jsmanaged_fields!(TimeProfilerChan);
 no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
+no_jsmanaged_fields!(ElementState);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

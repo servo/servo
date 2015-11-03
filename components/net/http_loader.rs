@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use brotli::Decompressor;
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -154,10 +155,9 @@ pub trait HttpResponse: Read {
                         Some(Encoding::Gzip)
                     } else if encodings.contains(&Encoding::Deflate) {
                         Some(Encoding::Deflate)
-                    } else {
-                        // TODO: Is this the correct behaviour?
-                        None
-                    }
+                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+                        Some(Encoding::EncodingExt("br".to_owned()))
+                    } else { None }
                 }
             }
         })
@@ -302,7 +302,8 @@ fn set_default_accept_encoding(headers: &mut Headers) {
 
     headers.set(AcceptEncoding(vec![
         qitem(Encoding::Gzip),
-        qitem(Encoding::Deflate)
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned()))
     ]));
 }
 
@@ -394,6 +395,7 @@ impl<R: HttpResponse> Read for StreamedResponse<R> {
         match self.decoder {
             Decoder::Gzip(ref mut d) => d.read(buf),
             Decoder::Deflate(ref mut d) => d.read(buf),
+            Decoder::Brotli(ref mut d) => d.read(buf),
             Decoder::Plain(ref mut d) => d.read(buf)
         }
     }
@@ -421,6 +423,10 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let response_decoding = DeflateDecoder::new(response);
                 Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
             }
+            Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
+                let response_decoding = Decompressor::new(response);
+                Ok(StreamedResponse::new(m, Decoder::Brotli(response_decoding)))
+            }
             _ => {
                 Ok(StreamedResponse::new(m, Decoder::Plain(response)))
             }
@@ -431,6 +437,7 @@ impl<R: HttpResponse> StreamedResponse<R> {
 enum Decoder<R: Read> {
     Gzip(GzDecoder<R>),
     Deflate(DeflateDecoder<R>),
+    Brotli(Decompressor<R>),
     Plain(R)
 }
 

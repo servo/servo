@@ -13,7 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
-use dom::element::{AttributeMutation, IN_ENABLED_STATE, Element};
+use dom::element::{AttributeMutation, Element};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -22,10 +22,12 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_task::ScriptTaskEventCategory::InputEvent;
 use script_task::{CommonScriptMsg, Runnable};
+use selectors::states::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -204,6 +206,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         self.force_relayout();
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
+    }
 }
 
 
@@ -246,8 +253,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &atom!(disabled) => {
+        match *attr.local_name() {
+            atom!(disabled) => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -261,13 +268,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
-            &atom!(cols) => {
+            atom!(cols) => {
                 let cols = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
                 self.cols.set(cols.unwrap_or(DEFAULT_COLS));
             },
-            &atom!(rows) => {
+            atom!(rows) => {
                 let rows = mutation.new_value(attr).map(|value| {
                     value.as_uint()
                 });
@@ -286,9 +293,9 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
-        match name {
-            &atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            &atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+        match *name {
+            atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
+            atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -322,11 +329,11 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.handle_event(event);
         }
 
-        if &*event.Type() == "click" && !event.DefaultPrevented() {
+        if event.type_() == atom!("click") && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
-        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() {
+        } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 match self.textinput.borrow_mut().handle_keydown(kevent) {
                     KeyReaction::TriggerDefaultAction => (),

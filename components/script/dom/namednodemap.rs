@@ -43,7 +43,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
     fn Item(&self, index: u32) -> Option<Root<Attr>> {
-        self.owner.attrs().get(index as usize).map(JS::root)
+        self.owner.attrs().get(index as usize).map(|js| Root::from_ref(&**js))
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-getnameditem
@@ -86,8 +86,10 @@ impl NamedNodeMapMethods for NamedNodeMap {
         item
     }
 
+    // https://heycam.github.io/webidl/#dfn-supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.owner.attrs().iter().map(|attr| {
+            (**attr.name()).to_owned()
+        }).collect()
     }
 }

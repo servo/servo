@@ -103,7 +103,7 @@ fn test_parse_stylesheet() {
                             simple_selectors: vec![
                                 SimpleSelector::Class(Atom::from_slice("ok")),
                             ],
-                            next: Some((Box::new(CompoundSelector {
+                            next: Some((Arc::new(CompoundSelector {
                                 simple_selectors: vec![
                                     SimpleSelector::ID(Atom::from_slice("d1")),
                                 ],

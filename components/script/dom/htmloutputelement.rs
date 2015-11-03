@@ -4,11 +4,13 @@
 
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
+use dom::bindings::conversions::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use util::str::DOMString;
 
@@ -46,6 +48,11 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
     fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
         self.form_owner()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        self.upcast::<HTMLElement>().labels()
     }
 }
 

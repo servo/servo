@@ -611,7 +611,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(computed_value::T::Auto)
             } else {
-                Ok(computed_value::T::Number(try!(input.expect_integer()) as i32))
+                specified::parse_integer(input).map(computed_value::T::Number)
             }
         }
     </%self:longhand>
@@ -658,18 +658,16 @@ pub mod longhands {
         #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
-            Length(specified::Length),
             Number(CSSFloat),
-            Percentage(CSSFloat),
+            LengthOrPercentage(specified::LengthOrPercentage),
         }
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     SpecifiedValue::Normal => dest.write_str("normal"),
-                    SpecifiedValue::Length(length) => length.to_css(dest),
+                    SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                     SpecifiedValue::Number(number) => write!(dest, "{}", number),
-                    SpecifiedValue::Percentage(number) => write!(dest, "{}%", number * 100.),
                 }
             }
         }
@@ -677,22 +675,19 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use cssparser::Token;
             use std::ascii::AsciiExt;
-            match try!(input.next()) {
-                Token::Number(ref value) if value.value >= 0. => {
-                    Ok(SpecifiedValue::Number(value.value))
+            input.try(specified::LengthOrPercentage::parse_non_negative)
+            .map(SpecifiedValue::LengthOrPercentage)
+            .or_else(|()| {
+                match try!(input.next()) {
+                    Token::Number(ref value) if value.value >= 0. => {
+                        Ok(SpecifiedValue::Number(value.value))
+                    }
+                    Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
+                        Ok(SpecifiedValue::Normal)
+                    }
+                    _ => Err(()),
                 }
-                Token::Percentage(ref value) if value.unit_value >= 0. => {
-                    Ok(SpecifiedValue::Percentage(value.unit_value))
-                }
-                Token::Dimension(ref value, ref unit) if value.value >= 0. => {
-                    specified::Length::parse_dimension(value.value, unit)
-                    .map(SpecifiedValue::Length)
-                }
-                Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
-                    Ok(SpecifiedValue::Normal)
-                }
-                _ => Err(()),
-            }
+            })
         }
         pub mod computed_value {
             use app_units::Au;
@@ -733,13 +728,22 @@ pub mod longhands {
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 match *self {
                     SpecifiedValue::Normal => computed_value::T::Normal,
-                    SpecifiedValue::Length(value) => {
-                        computed_value::T::Length(value.to_computed_value(context))
-                    }
                     SpecifiedValue::Number(value) => computed_value::T::Number(value),
-                    SpecifiedValue::Percentage(value) => {
-                        let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
-                        computed_value::T::Length(fr.to_computed_value(context))
+                    SpecifiedValue::LengthOrPercentage(value) => {
+                        match value {
+                            specified::LengthOrPercentage::Length(value) =>
+                                computed_value::T::Length(value.to_computed_value(context)),
+                            specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
+                                let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                                computed_value::T::Length(fr.to_computed_value(context))
+                            },
+                            specified::LengthOrPercentage::Calc(calc) => {
+                                let calc = calc.to_computed_value(context);
+                                let fr = specified::FontRelativeLength::Em(calc.percentage());
+                                let fr = specified::Length::FontRelative(fr);
+                                computed_value::T::Length(calc.length() + fr.to_computed_value(context))
+                            }
+                        }
                     }
                 }
             }
@@ -804,9 +808,7 @@ pub mod longhands {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
                 % endfor
-                Length(Au),
-                Percentage(CSSFloat),
-                Calc(computed::Calc),
+                LengthOrPercentage(computed::LengthOrPercentage),
             }
             impl fmt::Debug for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -814,9 +816,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                         % endfor
-                        T::Length(length) => write!(f, "{:?}", length),
-                        T::Percentage(number) => write!(f, "{}%", number),
-                        T::Calc(calc) => write!(f, "{:?}", calc)
+                        T::LengthOrPercentage(value) => write!(f, "{:?}", value),
                     }
                 }
             }
@@ -826,9 +826,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                         % endfor
-                        T::Length(value) => value.to_css(dest),
-                        T::Percentage(percentage) => write!(dest, "{}%", percentage * 100.),
-                        T::Calc(calc) => calc.to_css(dest),
+                        T::LengthOrPercentage(value) => value.to_css(dest),
                     }
                 }
             }
@@ -847,16 +845,8 @@ pub mod longhands {
                             computed_value::T::${to_rust_ident(keyword)}
                         }
                     % endfor
-                    SpecifiedValue::LengthOrPercentage(value) => {
-                        match value.to_computed_value(context) {
-                            computed::LengthOrPercentage::Length(value) =>
-                                computed_value::T::Length(value),
-                            computed::LengthOrPercentage::Percentage(value) =>
-                                computed_value::T::Percentage(value),
-                            computed::LengthOrPercentage::Calc(value) =>
-                                computed_value::T::Calc(value),
-                        }
-                    }
+                    SpecifiedValue::LengthOrPercentage(value) =>
+                        computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
                 }
             }
         }
@@ -1311,7 +1301,8 @@ pub mod longhands {
                 if content::counter_name_is_illegal(&counter_name) {
                     return Err(())
                 }
-                let counter_delta = input.try(|input| input.expect_integer()).unwrap_or(1) as i32;
+                let counter_delta =
+                    input.try(|input| specified::parse_integer(input)).unwrap_or(1);
                 counters.push((counter_name, counter_delta))
             }
 
@@ -1478,8 +1469,7 @@ pub mod longhands {
                         PositionCategory::VerticalKeyword,
                     specified::PositionComponent::Center =>
                         PositionCategory::OtherKeyword,
-                    specified::PositionComponent::Length(_) |
-                    specified::PositionComponent::Percentage(_) =>
+                    specified::PositionComponent::LengthOrPercentage(_) =>
                         PositionCategory::LengthOrPercentage,
                 }
             }
@@ -1929,7 +1919,7 @@ pub mod longhands {
         }
 
         #[derive(Clone, PartialEq)]
-        pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
+        pub struct SpecifiedValue(pub specified::LengthOrPercentage);
         pub mod computed_value {
             use app_units::Au;
             pub type T = Au;
@@ -1949,17 +1939,14 @@ pub mod longhands {
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            use values::specified::{Length, LengthOrPercentage};
+
             input.try(specified::LengthOrPercentage::parse_non_negative)
-            .and_then(|value| match value {
-                specified::LengthOrPercentage::Length(value) => Ok(value),
-                specified::LengthOrPercentage::Percentage(value) =>
-                    Ok(specified::Length::FontRelative(specified::FontRelativeLength::Em(value.0))),
-                // FIXME(dzbarsky) handle calc for font-size
-                specified::LengthOrPercentage::Calc(_) => Err(())
-            })
             .or_else(|()| {
                 let ident = try!(input.expect_ident());
-                specified::Length::from_str(&ident as &str).ok_or(())
+                specified::Length::from_str(&ident as &str)
+                    .ok_or(())
+                    .map(specified::LengthOrPercentage::Length)
             })
             .map(SpecifiedValue)
         }
@@ -2649,7 +2636,7 @@ pub mod longhands {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 Ok(SpecifiedValue::Auto)
             } else {
-                let count = try!(input.expect_integer());
+                let count = try!(specified::parse_integer(input));
                 // Zero is invalid
                 if count <= 0 {
                     return Err(())
@@ -2763,7 +2750,7 @@ pub mod longhands {
             }
         }
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.expect_number().map(SpecifiedValue)
+            specified::parse_number(input).map(SpecifiedValue)
         }
     </%self:longhand>
 
@@ -3628,10 +3615,10 @@ pub mod longhands {
         }
 
         fn parse_two_floats(input: &mut Parser) -> Result<(CSSFloat,CSSFloat),()> {
-            let first = try!(input.expect_number());
+            let first = try!(specified::parse_number(input));
             let second = input.try(|input| {
                 try!(input.expect_comma());
-                input.expect_number()
+                specified::parse_number(input)
             }).unwrap_or(first);
             Ok((first, second))
         }
@@ -3771,7 +3758,7 @@ pub mod longhands {
                     "matrix" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 6 {
                                 return Err(())
@@ -3789,7 +3776,7 @@ pub mod longhands {
                     "matrix3d" => {
                         try!(input.parse_nested_block(|input| {
                             let values = try!(input.parse_comma_separated(|input| {
-                                input.expect_number()
+                                specified::parse_number(input)
                             }));
                             if values.len() != 16 {
                                 return Err(())
@@ -3872,32 +3859,32 @@ pub mod longhands {
                     },
                     "scalex" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
                             Ok(())
                         }))
                     },
                     "scaley" => {
                         try!(input.parse_nested_block(|input| {
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
                             Ok(())
                         }))
                     },
                     "scalez" => {
                         try!(input.parse_nested_block(|input| {
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
                             Ok(())
                         }))
                     },
                     "scale3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let sx = try!(input.expect_number());
+                            let sx = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sy = try!(input.expect_number());
+                            let sy = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let sz = try!(input.expect_number());
+                            let sz = try!(specified::parse_number(input));
                             result.push(SpecifiedOperation::Scale(sx, sy, sz));
                             Ok(())
                         }))
@@ -3932,11 +3919,11 @@ pub mod longhands {
                     },
                     "rotate3d" => {
                         try!(input.parse_nested_block(|input| {
-                            let ax = try!(input.expect_number());
+                            let ax = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let ay = try!(input.expect_number());
+                            let ay = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            let az = try!(input.expect_number());
+                            let az = try!(specified::parse_number(input));
                             try!(input.expect_comma());
                             let theta = try!(specified::Angle::parse(input));
                             // TODO(gw): Check the axis can be normalized!!
@@ -4539,13 +4526,13 @@ pub mod longhands {
                     "cubic-bezier" => {
                         let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                         try!(input.parse_nested_block(|input| {
-                            p1x = try!(input.expect_number());
+                            p1x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p1y = try!(input.expect_number());
+                            p1y = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2x = try!(input.expect_number());
+                            p2x = try!(specified::parse_number(input));
                             try!(input.expect_comma());
-                            p2y = try!(input.expect_number());
+                            p2y = try!(specified::parse_number(input));
                             Ok(())
                         }));
                         let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
@@ -4554,7 +4541,7 @@ pub mod longhands {
                     "steps" => {
                         let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
                         try!(input.parse_nested_block(|input| {
-                            step_count = try!(input.expect_integer());
+                            step_count = try!(specified::parse_integer(input));
                             try!(input.expect_comma());
                             start_end = try!(match_ignore_ascii_case! {
                                 try!(input.expect_ident()),
@@ -6520,6 +6507,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // Initialize `context`
     // Declarations blocks are already stored in increasing precedence order.
     for sub_list in applicable_declarations {
+        use values::specified::{LengthOrPercentage, Percentage};
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
@@ -6528,14 +6516,23 @@ pub fn cascade(viewport_size: Size2D<Au>,
                         value, &custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 match specified_value.0 {
-                                    Length::FontRelative(value) => {
+                                    LengthOrPercentage::Length(Length::FontRelative(value)) => {
                                         value.to_computed_value(context.inherited_font_size,
                                                                 context.root_font_size)
                                     }
-                                    Length::ServoCharacterWidth(value) => {
+                                    LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
                                         value.to_computed_value(context.inherited_font_size)
                                     }
-                                    _ => specified_value.0.to_computed_value(&context)
+                                    LengthOrPercentage::Length(l) => {
+                                        l.to_computed_value(&context)
+                                    }
+                                    LengthOrPercentage::Percentage(Percentage(value)) => {
+                                        context.inherited_font_size.scale_by(value)
+                                    }
+                                    LengthOrPercentage::Calc(calc) => {
+                                        let calc = calc.to_computed_value(&context);
+                                        calc.length() + context.inherited_font_size.scale_by(calc.percentage())
+                                    }
                                 }
                             }
                             DeclaredValue::Initial => longhands::font_size::get_initial_value(),

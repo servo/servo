@@ -89,6 +89,7 @@ interface TestBinding {
            attribute Blob interfaceAttribute;
            attribute (HTMLElement or long) unionAttribute;
            attribute (Event or DOMString) union2Attribute;
+           attribute (Event or USVString) union3Attribute;
   readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
            attribute object objectAttribute;

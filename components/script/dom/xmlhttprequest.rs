@@ -164,10 +164,9 @@ impl XMLHttpRequest {
             request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
-            send_flag: Cell::new(false),
-
             upload_complete: Cell::new(false),
             upload_events: Cell::new(false),
+            send_flag: Cell::new(false),
 
             global: GlobalField::from_rooted(&global),
             timeout_cancel: DOMRefCell::new(None),
@@ -467,7 +466,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     // https://xhr.spec.whatwg.org/#the-upload-attribute
     fn Upload(&self) -> Root<XMLHttpRequestUpload> {
-        self.upload.root()
+        Root::from_ref(&*self.upload)
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
@@ -882,7 +881,7 @@ impl XMLHttpRequest {
                     _ => "error",
                 };
 
-                let upload_complete: &Cell<bool> = &self.upload_complete;
+                let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
                     self.dispatch_upload_progress_event("progress".to_owned(), None);
@@ -1111,7 +1110,7 @@ impl Extractable for SendParam {
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.r().serialize(None).as_bytes().to_owned()
+                usp.r().serialize(None).into_bytes()
             },
         }
     }

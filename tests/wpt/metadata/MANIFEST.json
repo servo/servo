@@ -11438,6 +11438,10 @@
         "url": "/IndexedDB/idbobjectstore_openCursor_invalid.htm"
       },
       {
+        "path": "IndexedDB/idbobjectstore_openKeyCursor.htm",
+        "url": "/IndexedDB/idbobjectstore_openKeyCursor.htm"
+      },
+      {
         "path": "IndexedDB/idbobjectstore_put.htm",
         "url": "/IndexedDB/idbobjectstore_put.htm"
       },
@@ -13280,6 +13284,14 @@
       {
         "path": "dom/collections/HTMLCollection-supported-property-names.html",
         "url": "/dom/collections/HTMLCollection-supported-property-names.html"
+      },
+      {
+        "path": "dom/collections/domstringmap-supported-property-names.html",
+        "url": "/dom/collections/domstringmap-supported-property-names.html"
+      },
+      {
+        "path": "dom/collections/namednodemap-supported-property-names.html",
+        "url": "/dom/collections/namednodemap-supported-property-names.html"
       },
       {
         "path": "dom/events/Event-constants.html",
@@ -17910,16 +17922,16 @@
         "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection.html"
       },
       {
+        "path": "html/semantics/forms/the-select-element/select-ask-for-reset.html",
+        "url": "/html/semantics/forms/the-select-element/select-ask-for-reset.html"
+      },
+      {
         "path": "html/semantics/forms/the-select-element/select-named-getter.html",
         "url": "/html/semantics/forms/the-select-element/select-named-getter.html"
       },
       {
         "path": "html/semantics/forms/the-select-element/select-remove.html",
         "url": "/html/semantics/forms/the-select-element/select-remove.html"
-      },
-      {
-        "path": "html/semantics/forms/the-select-element/select-ask-for-reset.html",
-        "url": "/html/semantics/forms/the-select-element/select-ask-for-reset.html"
       },
       {
         "path": "html/semantics/forms/the-textarea-element/textarea-type.html",
@@ -29740,6 +29752,9 @@
         "path": "webdriver/element_state/method_test.py"
       },
       {
+        "path": "webdriver/element_state/properties.py"
+      },
+      {
         "path": "webdriver/element_state/visibility_test.py"
       },
       {
@@ -29770,6 +29785,12 @@
         "path": "webdriver/navigation/refresh-page.py"
       },
       {
+        "path": "webdriver/navigation/refresh_page.py"
+      },
+      {
+        "path": "webdriver/screenshot/take_screenshot.py"
+      },
+      {
         "path": "webdriver/timeouts/implicit_waits_tests.py"
       },
       {
@@ -29777,6 +29798,12 @@
       },
       {
         "path": "webdriver/user_input/clear_test.py"
+      },
+      {
+        "path": "webdriver/windows/tabbing.py"
+      },
+      {
+        "path": "webdriver/windows/window_manipulation.py"
       }
     ]
   },
@@ -35319,7 +35346,7 @@
       }
     ]
   },
-  "rev": "4b25d322ac6ed466f992669e5408b15d37d56436",
+  "rev": "7123012427f92f0dc38a120e6e86a75b6c03aab5",
   "url_base": "/",
   "version": 2
 }

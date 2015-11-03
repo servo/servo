@@ -59,7 +59,7 @@ impl WebGLRenderbuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteRenderbuffer(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteRenderbuffer(self.id)));
         }
     }
 }

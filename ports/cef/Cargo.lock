@@ -129,6 +129,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "brotli"
+version = "0.3.17"
+source = "git+https://github.com/ende76/brotli-rs#4a8c42cce771ded65fe64d6816f5d7303006b2ea"
+
+[[package]]
 name = "byteorder"
 version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -700,36 +705,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glutin"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "android_glue 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cocoa 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-graphics 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gdi32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_common 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "kernel32-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "osmesa-sys 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "shared_library 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "user32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "wayland-client 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "wayland-kbd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "wayland-window 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11-dl 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "glutin_app"
 version = "0.0.1"
 dependencies = [
@@ -989,7 +964,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "script 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "selectors 0.2.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1150,6 +1125,7 @@ dependencies = [
 name = "net"
 version = "0.0.1"
 dependencies = [
+ "brotli 0.3.17 (git+https://github.com/ende76/brotli-rs)",
  "cookie 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1237,14 +1213,14 @@ dependencies = [
 [[package]]
 name = "offscreen_gl_context"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#a33af19355dfdd0076a3f2836dc66e0fea44bcab"
+source = "git+https://github.com/ecoal95/rust-offscreen-rendering-context#aae6e57969c553973c43ce5e4246831ccc2868f0"
 dependencies = [
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glutin 0.4.0 (git+https://github.com/servo/glutin?branch=servo)",
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1480,7 +1456,7 @@ dependencies = [
  "rand 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "selectors 0.2.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1517,8 +1493,8 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-selectors#1e1e44c2f4090e8beb95a8d27f184aefcf91a362"
+version = "0.2.0"
+source = "git+https://github.com/servo/rust-selectors#53f5e09a37684f6a42eb894d7a6fd0b14380a1c6"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1587,6 +1563,7 @@ dependencies = [
  "msg 0.0.1",
  "net 0.0.1",
  "net_traits 0.0.1",
+ "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
@@ -1708,7 +1685,7 @@ dependencies = [
  "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "selectors 0.2.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1730,7 +1707,7 @@ dependencies = [
  "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "selectors 0.2.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1875,7 +1852,7 @@ dependencies = [
  "plugins 0.0.1",
  "rand 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.1.0 (git+https://github.com/servo/rust-selectors)",
+ "selectors 0.2.0 (git+https://github.com/servo/rust-selectors)",
  "serde 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",

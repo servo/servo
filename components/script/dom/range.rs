@@ -809,7 +809,7 @@ fn bp_position(a_node: &Node, a_offset: u32,
     } else if position & NodeConstants::DOCUMENT_POSITION_CONTAINS != 0 {
         // Step 3-1, 3-2.
         let mut b_ancestors = b_node.inclusive_ancestors();
-        let ref child = b_ancestors.find(|child| {
+        let child = b_ancestors.find(|child| {
             child.r().GetParentNode().unwrap().r() == a_node
         }).unwrap();
         // Step 3-3.

@@ -78,7 +78,7 @@ impl WebGLTexture {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteTexture(self.id)));
         }
     }
 
@@ -143,5 +143,11 @@ impl WebGLTexture {
 
             _ => Err(WebGLError::InvalidEnum),
         }
+    }
+}
+
+impl Drop for WebGLTexture {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

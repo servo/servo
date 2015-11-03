@@ -42,8 +42,7 @@ use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
-use script::dom::element;
-use script::dom::element::{Element, EventState, LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
@@ -52,8 +51,10 @@ use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaEl
 use script::dom::node::{HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, SharedLayoutData};
 use script::dom::text::Text;
+use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
@@ -68,6 +69,7 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -79,7 +81,7 @@ pub struct LayoutNode<'a> {
     node: LayoutJS<Node>,
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
-    pub chain: PhantomData<&'a ()>,
+    chain: PhantomData<&'a ()>,
 }
 
 impl<'a> PartialEq for LayoutNode<'a> {
@@ -90,6 +92,14 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> LayoutNode<'ln> {
+    pub unsafe fn new(address: &TrustedNodeAddress) -> LayoutNode {
+        let node = LayoutJS::from_trusted_node_address(*address);
+        LayoutNode {
+            node: node,
+            chain: PhantomData,
+        }
+    }
+
     /// Creates a new layout node with the same lifetime as this layout node.
     pub unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
@@ -203,6 +213,15 @@ impl<'ln> LayoutNode<'ln> {
 
     pub fn as_element(&self) -> Option<LayoutElement<'ln>> {
         as_element(self.node)
+    }
+
+    pub fn as_document(&self) -> Option<LayoutDocument<'ln>> {
+        self.node.downcast().map(|document| {
+            LayoutDocument {
+                document: document,
+                chain: PhantomData,
+            }
+        })
     }
 
     fn parent_node(&self) -> Option<LayoutNode<'ln>> {
@@ -353,16 +372,12 @@ impl<'le> LayoutDocument<'le> {
     }
 
     pub fn root_node(&self) -> Option<LayoutNode<'le>> {
-        let mut node = self.as_node().first_child();
-        while node.is_some() && !node.unwrap().is_element() {
-            node = node.unwrap().next_sibling();
-        }
-        node
+        self.as_node().children().find(LayoutNode::is_element)
     }
 
-    pub fn drain_event_state_changes(&self) -> Vec<(LayoutElement, EventState)> {
+    pub fn drain_element_state_changes(&self) -> Vec<(LayoutElement, ElementState)> {
         unsafe {
-            let changes = self.document.drain_event_state_changes();
+            let changes = self.document.drain_element_state_changes();
             Vec::from_iter(changes.iter().map(|&(el, state)|
                 (LayoutElement {
                     element: el,
@@ -393,38 +408,57 @@ impl<'le> LayoutElement<'le> {
         }
     }
 
-    /// Properly marks nodes as dirty in response to event state changes.
-    ///
-    /// Currently this implementation is very conservative, and basically mirrors node::dirty_impl.
-    /// With restyle hints, we can do less work here.
-    pub fn note_event_state_change(&self) {
-        let node = self.as_node();
+    pub fn get_state(&self) -> ElementState {
+        self.element.get_state_for_layout()
+    }
 
-        // Bail out if we're already dirty. This won't be valid when we start doing more targeted
-        // dirtying with restyle hints.
-        if node.is_dirty() { return }
-
-        // Dirty descendants.
-        fn dirty_subtree(node: LayoutNode) {
-            // Stop if this subtree is already dirty. This won't be valid with restyle hints, see above.
-            if node.is_dirty() { return }
-
-            unsafe {
-                node.set_dirty(true);
-                node.set_dirty_descendants(true);
-            }
-
-            for kid in node.children() {
-                dirty_subtree(kid);
-            }
+    /// Properly marks nodes as dirty in response to restyle hints.
+    pub fn note_restyle_hint(&self, hint: RestyleHint) {
+        // Bail early if there's no restyling to do.
+        if hint.is_empty() {
+            return;
         }
-        dirty_subtree(node);
 
+        // If the restyle hint is non-empty, we need to restyle either this element
+        // or one of its siblings. Mark our ancestor chain as having dirty descendants.
+        let node = self.as_node();
         let mut curr = node;
         while let Some(parent) = curr.parent_node() {
             if parent.has_dirty_descendants() { break }
             unsafe { parent.set_dirty_descendants(true); }
             curr = parent;
+        }
+
+        // Set up our helpers.
+        fn dirty_node(node: &LayoutNode) {
+            unsafe {
+                node.set_dirty(true);
+                node.set_dirty_descendants(true);
+            }
+        }
+        fn dirty_descendants(node: &LayoutNode) {
+            for ref child in node.children() {
+                dirty_node(child);
+                dirty_descendants(child);
+            }
+        }
+
+        // Process hints.
+        if hint.contains(RESTYLE_SELF) {
+            dirty_node(&node);
+        }
+        if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
+            dirty_descendants(&node);
+        }
+        if hint.contains(RESTYLE_LATER_SIBLINGS) {
+            let mut next = ::selectors::Element::next_sibling_element(self);
+            while let Some(sib) = next {
+                let sib_node = sib.as_node();
+                dirty_node(&sib_node);
+                dirty_descendants(&sib_node);
+                next = ::selectors::Element::next_sibling_element(&sib);
+            }
         }
     }
 }
@@ -438,6 +472,15 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<LayoutElement<'le>> {
     })
 }
 
+macro_rules! state_getter {
+    ($(
+        $(#[$Flag_attr: meta])*
+        state $css: expr => $variant: ident / $method: ident /
+        $flag: ident = $value: expr,
+    )+) => {
+        $( fn $method(&self) -> bool { self.element.get_state_for_layout().contains($flag) } )+
+    }
+}
 
 impl<'le> ::selectors::Element for LayoutElement<'le> {
     fn parent_element(&self) -> Option<LayoutElement<'le>> {
@@ -529,46 +572,13 @@ impl<'le> ::selectors::Element for LayoutElement<'le> {
         false
     }
 
-    #[inline]
-    fn get_hover_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_HOVER_STATE)
-    }
-
-    #[inline]
-    fn get_focus_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_FOCUS_STATE)
-    }
-
-    #[inline]
-    fn get_active_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ACTIVE_STATE)
-    }
+    state_pseudo_classes!(state_getter);
 
     #[inline]
     fn get_id(&self) -> Option<Atom> {
         unsafe {
             (*self.element.id_attribute()).clone()
         }
-    }
-
-    #[inline]
-    fn get_disabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_DISABLED_STATE)
-    }
-
-    #[inline]
-    fn get_enabled_state(&self) -> bool {
-        self.element.get_event_state_for_layout().contains(element::IN_ENABLED_STATE)
-    }
-
-    #[inline]
-    fn get_checked_state(&self) -> bool {
-        self.element.get_checked_state_for_layout()
-    }
-
-    #[inline]
-    fn get_indeterminate_state(&self) -> bool {
-        self.element.get_indeterminate_state_for_layout()
     }
 
     #[inline]

@@ -340,6 +340,10 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
+            (LengthOrPercentageOrNone::Calc(calc), Some(block_container_block_size)) => {
+                Some(block_container_block_size.scale_by(calc.percentage()) + calc.length())
+            }
+            (LengthOrPercentageOrNone::Calc(_), _) |
             (LengthOrPercentageOrNone::Percentage(_), None) |
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
@@ -1024,17 +1028,12 @@ impl BlockFlow {
             let mut candidate_block_size_iterator = CandidateBSizeIterator::new(
                 &self.fragment,
                 self.base.block_container_explicit_block_size);
-            loop {
-                match candidate_block_size_iterator.next() {
-                    Some(candidate_block_size) => {
-                        candidate_block_size_iterator.candidate_value =
-                            match candidate_block_size {
-                                MaybeAuto::Auto => block_size,
-                                MaybeAuto::Specified(value) => value
-                            }
+            while let Some(candidate_block_size) = candidate_block_size_iterator.next() {
+                candidate_block_size_iterator.candidate_value =
+                    match candidate_block_size {
+                        MaybeAuto::Auto => block_size,
+                        MaybeAuto::Specified(value) => value
                     }
-                    None => break,
-                }
             }
 
             // Adjust `cur_b` as necessary to account for the explicitly-specified block-size.

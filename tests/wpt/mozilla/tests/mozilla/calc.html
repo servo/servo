@@ -39,8 +39,8 @@ var widthTests = [
     ['calc(1px + 1pt + 1pc + 1in + 1cm + 1mm)', '155.88333333333333px', '155.88333333333333px'],
 
     // Alphabetical order
-    ['calc(0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
-     'calc(0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0%)',
+    ['calc(0ch + 0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
+     'calc(0ch + 0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0%)',
      '0px'],
 
     // Simplification
@@ -59,7 +59,6 @@ widthTests.forEach(function(item) {
 });
 
 var lengthProperties = [
-  'border-width',
   'border-top-width',
   'border-left-width',
   'border-right-width',
@@ -68,7 +67,6 @@ var lengthProperties = [
   'outline-offset',
   'letter-spacing',
   'word-spacing',
-  'border-spacing',
   'column-width',
   'column-gap',
   'perspective',
@@ -78,15 +76,10 @@ lengthProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px)');
         assert_equals(div.style.getPropertyValue(prop), '1px');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
     }, 'calc for ' + prop);
 });
 
 var lengthOrPercentageProperties = [
-  'border-top-left-radius',
-  'border-bottom-left-radius',
-  'border-top-right-radius',
-  'border-bottom-right-radius',
   'top',
   'left',
   'bottom',
@@ -99,31 +92,26 @@ var lengthOrPercentageProperties = [
   'max-height',
   'line-height',
   'vertical-align',
-  'background-position',
-  'background-size',
   'font-size',
   'text-indent',
-  'transform-origin',
-  'perspective-origin',
 ];
 
 lengthOrPercentageProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px + 0%)');
         assert_equals(div.style.getPropertyValue(prop), 'calc(1px + 0%)');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1px');
     }, 'calc for ' + prop);
 });
 
 var timeProperties = [
   'transition-delay',
+  'transition-duration',
 ];
 
 timeProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1s)');
         assert_equals(div.style.getPropertyValue(prop), '1s');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1s');
     }, 'calc for ' + prop);
 });
 
@@ -131,22 +119,40 @@ var numberProperties = [
   'z-index',
   'column-count',
   'opacity',
-  'transition-duration',
 ];
 
 numberProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1)');
         assert_equals(div.style.getPropertyValue(prop), '1');
-        assert_equals(window.getComputedStyle(div).getPropertyValue(prop), '1');
     }, 'calc for ' + prop);
 });
 
+var otherProperties = [
+  ['border-width', 'calc(1px)', '1px 1px 1px 1px'],
+  ['border-spacing', 'calc(1px)', '1px 1px'],
+  ['transform-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50% 0px'],
+  ['perspective-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50%'],
+  ['background-size', 'calc(1px + 0%)', 'calc(1px + 0%) auto'],
+  ['background-position', 'calc(1px + 0%) calc(2px + 0%)', 'calc(1px + 0%) calc(2px + 0%)'],
+  ['border-top-left-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+  ['border-bottom-left-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+  ['border-top-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+  ['border-bottom-right-radius', 'calc(1px + 0%)', 'calc(1px + 0%) calc(1px + 0%)'],
+];
+
+otherProperties.forEach(function(testcase) {
+    test(function() {
+        div.style.setProperty(testcase[0], testcase[1]);
+        assert_equals(div.style.getPropertyValue(testcase[0]), testcase[2]);
+    }, 'calc for ' + testcase[0]);
+});
 
 /* TODO: test these: 
   counter-increment, counter-reset,
   color, box-shadow, clip, text-shadow, transform
   transition-timing-function
+  angles
   */
 </script>
 </head>

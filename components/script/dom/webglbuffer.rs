@@ -71,7 +71,13 @@ impl WebGLBuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteBuffer(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteBuffer(self.id)));
         }
+    }
+}
+
+impl Drop for WebGLBuffer {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

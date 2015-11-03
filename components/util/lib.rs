@@ -11,7 +11,7 @@
 #![feature(heap_api)]
 #![feature(oom)]
 #![feature(optin_builtin_traits)]
-#![feature(path_ext)]
+#![cfg_attr(not(target_os = "android"), feature(path_ext))]
 #![feature(plugin)]
 #![feature(slice_splits)]
 #![feature(step_by)]

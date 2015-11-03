@@ -22,22 +22,20 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct TextEncoder {
     reflector_: Reflector,
-    encoding: DOMString,
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     encoder: EncodingRef,
 }
 
 impl TextEncoder {
-    fn new_inherited(encoding: DOMString, encoder: EncodingRef) -> TextEncoder {
+    fn new_inherited(encoder: EncodingRef) -> TextEncoder {
         TextEncoder {
             reflector_: Reflector::new(),
-            encoding: encoding,
             encoder: encoder,
         }
     }
 
-    pub fn new(global: GlobalRef, encoding: DOMString, encoder: EncodingRef) -> Root<TextEncoder> {
-        reflect_dom_object(box TextEncoder::new_inherited(encoding, encoder),
+    pub fn new(global: GlobalRef, encoder: EncodingRef) -> Root<TextEncoder> {
+        reflect_dom_object(box TextEncoder::new_inherited(encoder),
                            global,
                            TextEncoderBinding::Wrap)
     }
@@ -55,7 +53,7 @@ impl TextEncoder {
 
         match encoding.name() {
             "utf-8" | "utf-16be" | "utf-16le" => {
-                Ok(TextEncoder::new(global, encoding.name().to_owned(), encoding))
+                Ok(TextEncoder::new(global, encoding))
             }
             _ => {
                 debug!("Encoding Not UTF");
@@ -68,7 +66,7 @@ impl TextEncoder {
 impl TextEncoderMethods for TextEncoder {
     // https://encoding.spec.whatwg.org/#dom-textencoder-encoding
     fn Encoding(&self) -> DOMString {
-        self.encoding.clone()
+        self.encoder.name().to_owned()
     }
 
     #[allow(unsafe_code)]

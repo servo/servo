@@ -31,7 +31,7 @@ use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ElementCreator, EventState};
+use dom::element::{Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget};
 use dom::htmlanchorelement::HTMLAnchorElement;
@@ -84,10 +84,11 @@ use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
 use script_traits::{MouseButton, UntrustedNodeAddress};
+use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -161,7 +162,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: RefCell<HashMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<HashMap<u32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -173,8 +174,8 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
-    // The collection of EventStates that have been changed since the last restyle.
-    event_state_changes: DOMRefCell<HashMap<JS<Element>, EventState>>,
+    // The collection of ElementStates that have been changed since the last restyle.
+    element_state_changes: DOMRefCell<HashMap<JS<Element>, ElementState>>,
 }
 
 impl PartialEq for Document {
@@ -304,7 +305,7 @@ impl Document {
 
     pub fn needs_reflow(&self) -> bool {
         self.GetDocumentElement().is_some() &&
-        (self.upcast::<Node>().get_has_dirty_descendants() || !self.event_state_changes.borrow().is_empty())
+        (self.upcast::<Node>().get_has_dirty_descendants() || !self.element_state_changes.borrow().is_empty())
     }
 
     /// Returns the first `base` element in the DOM that has an `href` attribute.
@@ -389,8 +390,7 @@ impl Document {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
-                                       .map(|elem| elem.root())
-                                       .position(|element| element.r() == to_unregister)
+                                       .position(|element| &**element == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 elements.is_empty()
@@ -426,7 +426,7 @@ impl Document {
                 let root = root.upcast::<Node>();
                 for node in root.traverse_preorder() {
                     if let Some(elem) = node.downcast() {
-                        if (*elements)[head].root().r() == elem {
+                        if &*(*elements)[head] == elem {
                             head += 1;
                         }
                         if new_node == node.r() || head == elements.len() {
@@ -670,21 +670,19 @@ impl Document {
                                prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
         let mouse_over_addresses = self.get_nodes_under_mouse(&point);
-        let mut mouse_over_targets: RootedVec<JS<Element>> = RootedVec::new();
-        for node_address in &mouse_over_addresses {
-            let node = node::from_untrusted_node_address(js_runtime, *node_address);
-            mouse_over_targets.push(node.r().inclusive_ancestors()
-                                            .find(|node| node.is::<Element>())
-                                            .map(|node| JS::from_ref(node.downcast::<Element>().unwrap()))
-                                            .unwrap());
-        };
+        let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
+            node::from_untrusted_node_address(js_runtime, *node_address)
+                .inclusive_ancestors()
+                .filter_map(Root::downcast::<Element>)
+                .next()
+                .unwrap()
+        }).collect::<RootedVec<JS<Element>>>();
 
         // Remove hover from any elements in the previous list that are no longer
         // under the mouse.
         for target in prev_mouse_over_targets.iter() {
             if !mouse_over_targets.contains(target) {
-                let target = target.root();
-                let target_ref = target.r();
+                let target_ref = &**target;
                 if target_ref.get_hover_state() {
                     target_ref.set_hover_state(false);
 
@@ -747,27 +745,27 @@ impl Document {
             },
         };
         let target = el.upcast::<EventTarget>();
-        let window = self.window.root();
+        let window = &*self.window;
 
         let client_x = Finite::wrap(point.x as f64);
         let client_y = Finite::wrap(point.y as f64);
         let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
         let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
 
-        let touch = Touch::new(window.r(), identifier, target,
+        let touch = Touch::new(window, identifier, target,
                                client_x, client_y, // TODO: Get real screen coordinates?
                                client_x, client_y,
                                page_x, page_y);
 
         let mut touches = RootedVec::new();
         touches.push(JS::from_rooted(&touch));
-        let touches = TouchList::new(window.r(), touches.r());
+        let touches = TouchList::new(window, touches.r());
 
-        let event = TouchEvent::new(window.r(),
+        let event = TouchEvent::new(window,
                                     event_name,
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
-                                    Some(window.r()),
+                                    Some(window),
                                     0i32,
                                     &touches, &touches, &touches,
                                     // FIXME: modifier keys
@@ -775,9 +773,9 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(target);
 
-        window.r().reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::MouseEvent);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::MouseEvent);
         result
     }
 
@@ -1087,13 +1085,15 @@ impl Document {
         }
         let mut deferred_scripts = self.deferred_scripts.borrow_mut();
         while !deferred_scripts.is_empty() {
-            let script = deferred_scripts[0].root();
-            // Part of substep 1.
-            if !script.is_ready_to_be_executed() {
-                return;
+            {
+                let script = &*deferred_scripts[0];
+                // Part of substep 1.
+                if !script.is_ready_to_be_executed() {
+                    return;
+                }
+                // Substep 2.
+                script.execute();
             }
-            // Substep 2.
-            script.execute();
             // Substep 3.
             deferred_scripts.remove(0);
             // Substep 4 (implicit).
@@ -1108,7 +1108,7 @@ impl Document {
         // Execute the first in-order asap-executed script if it's ready, repeat as required.
         // Re-borrowing the list for each step because it can also be borrowed under execute.
         while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = self.asap_in_order_scripts_list.borrow()[0].root();
+            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
             if !script.r().is_ready_to_be_executed() {
                 break;
             }
@@ -1119,7 +1119,7 @@ impl Document {
         let mut idx = 0;
         // Re-borrowing the set for each step because it can also be borrowed under execute.
         while idx < self.asap_scripts_set.borrow().len() {
-            let script = self.asap_scripts_set.borrow()[idx].root();
+            let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
             if !script.r().is_ready_to_be_executed() {
                 idx += 1;
                 continue;
@@ -1184,7 +1184,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_event_state_changes(&self) -> Vec<(LayoutJS<Element>, EventState)>;
+    unsafe fn drain_element_state_changes(&self) -> Vec<(LayoutJS<Element>, ElementState)>;
 }
 
 #[allow(unsafe_code)]
@@ -1196,8 +1196,8 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn drain_event_state_changes(&self) -> Vec<(LayoutJS<Element>, EventState)> {
-        let mut changes = (*self.unsafe_get()).event_state_changes.borrow_mut_for_layout();
+    unsafe fn drain_element_state_changes(&self) -> Vec<(LayoutJS<Element>, ElementState)> {
+        let mut changes = (*self.unsafe_get()).element_state_changes.borrow_mut_for_layout();
         let drain = changes.drain();
         let layout_drain = drain.map(|(k, v)| (k.to_layout(), v));
         Vec::from_iter(layout_drain)
@@ -1261,13 +1261,13 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec!()),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: RefCell::new(HashMap::new()),
+            animation_frame_list: DOMRefCell::new(HashMap::new()),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
-            event_state_changes: DOMRefCell::new(HashMap::new()),
+            element_state_changes: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -1330,15 +1330,15 @@ impl Document {
     }
 
     pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
-        self.idmap.borrow().get(&id).map(|ref elements| (*elements)[0].root())
+        self.idmap.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
     }
 
-    pub fn record_event_state_change(&self, el: &Element, which: EventState) {
-        let mut map = self.event_state_changes.borrow_mut();
+    pub fn record_element_state_change(&self, el: &Element, which: ElementState) {
+        let mut map = self.element_state_changes.borrow_mut();
         let empty;
         {
             let states = map.entry(JS::from_ref(el))
-                            .or_insert(EventState::empty());
+                            .or_insert(ElementState::empty());
             states.toggle(which);
             empty = states.is_empty();
         }
@@ -1923,7 +1923,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn DefaultView(&self) -> Root<Window> {
-        self.window.root()
+        Root::from_ref(&*self.window)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie

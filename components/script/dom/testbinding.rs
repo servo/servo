@@ -12,6 +12,8 @@ use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum::_empty;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::codegen::UnionTypes::EventOrString::eString;
+use dom::bindings::codegen::UnionTypes::EventOrUSVString;
+use dom::bindings::codegen::UnionTypes::EventOrUSVString::eUSVString;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
 use dom::bindings::global::{GlobalField, GlobalRef};
@@ -77,6 +79,8 @@ impl TestBindingMethods for TestBinding {
     fn SetUnionAttribute(&self, _: HTMLElementOrLong) {}
     fn Union2Attribute(&self) -> EventOrString { eString("".to_owned()) }
     fn SetUnion2Attribute(&self, _: EventOrString) {}
+    fn Union3Attribute(&self) -> EventOrUSVString { eUSVString(USVString("".to_owned())) }
+    fn SetUnion3Attribute(&self, _: EventOrUSVString) {}
     fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}

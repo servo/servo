@@ -15,7 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element, IN_ENABLED_STATE, RawLayoutElementHelpers};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -25,8 +25,10 @@ use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage};
 use dom::node::{document_from_node, window_from_node};
+use dom::nodelist::NodeList;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use selectors::states::*;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -57,10 +59,8 @@ enum InputType {
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
-    checked: Cell<bool>,
     checked_changed: Cell<bool>,
     placeholder: DOMRefCell<DOMString>,
-    indeterminate: Cell<bool>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
     #[ignore_heap_size_of = "#7193"]
@@ -111,9 +111,7 @@ impl HTMLInputElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
-            checked: Cell::new(false),
             placeholder: DOMRefCell::new("".to_owned()),
-            indeterminate: Cell::new(false),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
@@ -138,15 +136,10 @@ pub trait LayoutHTMLInputElementHelpers {
     unsafe fn get_size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
     unsafe fn get_insertion_point_for_layout(self) -> Option<TextPoint>;
-}
-
-pub trait RawLayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool;
+    unsafe fn get_checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
-    #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(&self) -> u32;
+    unsafe fn get_indeterminate_state_for_layout(self) -> bool;
 }
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
@@ -186,7 +179,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32 {
-        (*self.unsafe_get()).get_size_for_layout()
+        (*self.unsafe_get()).size.get()
     }
 
     #[allow(unrooted_must_root)]
@@ -198,25 +191,17 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
           _ => None
         }
     }
-}
 
-impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(&self) -> bool {
-        self.checked.get()
+    unsafe fn get_checked_state_for_layout(self) -> bool {
+        self.upcast::<Element>().get_state_for_layout().contains(IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
-        self.indeterminate.get()
-    }
-
-    #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(&self) -> u32 {
-        self.size.get()
+    unsafe fn get_indeterminate_state_for_layout(self) -> bool {
+        self.upcast::<Element>().get_state_for_layout().contains(IN_INDETERMINATE_STATE)
     }
 }
 
@@ -240,7 +225,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
-        self.checked.get()
+        self.upcast::<Element>().get_state().contains(IN_CHECKED_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
@@ -329,12 +314,22 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
-        self.indeterminate.get()
+        self.upcast::<Element>().get_state().contains(IN_INDETERMINATE_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn SetIndeterminate(&self, val: bool) {
-        self.indeterminate.set(val)
+        self.upcast::<Element>().set_state(IN_INDETERMINATE_STATE, val)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
+    fn Labels(&self) -> Root<NodeList> {
+        if self.Type() == "hidden" {
+            let window = window_from_node(self);
+            NodeList::empty(&window)
+        } else {
+            self.upcast::<HTMLElement>().labels()
+        }
     }
 }
 
@@ -443,7 +438,7 @@ impl HTMLInputElement {
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
-        self.checked.set(checked);
+        self.upcast::<Element>().set_state(IN_CHECKED_STATE, checked);
 
         if dirty {
             self.checked_changed.set(true);
@@ -459,7 +454,7 @@ impl HTMLInputElement {
     }
 
     pub fn get_indeterminate_state(&self) -> bool {
-        self.indeterminate.get()
+        self.Indeterminate()
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -610,7 +605,7 @@ impl VirtualMethods for HTMLInputElement {
             s.handle_event(event);
         }
 
-        if &*event.Type() == "click" && !event.DefaultPrevented() {
+        if event.type_() == atom!("click") && !event.DefaultPrevented() {
             match self.input_type.get() {
                 InputType::InputRadio => self.update_checked_state(true, true),
                 _ => {}
@@ -622,7 +617,7 @@ impl VirtualMethods for HTMLInputElement {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
-        } else if &*event.Type() == "keydown" && !event.DefaultPrevented() &&
+        } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
                 if let Some(keyevent) = event.downcast::<KeyboardEvent>() {

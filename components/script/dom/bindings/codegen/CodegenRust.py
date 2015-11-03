@@ -2000,6 +2000,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::str::USVString',
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
@@ -3492,6 +3493,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isDOMString():
         name = type.name
         typeName = "DOMString"
+    elif type.isUSVString():
+        name = type.name
+        typeName = "USVString"
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]

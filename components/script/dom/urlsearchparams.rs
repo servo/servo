@@ -5,11 +5,12 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
+use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
+use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams::{eUSVString, eURLSearchParams};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::str::USVString;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use encoding::types::EncodingRef;
 use url::form_urlencoded::{parse, serialize_with_encoding};
@@ -20,7 +21,7 @@ use util::str::DOMString;
 pub struct URLSearchParams {
     reflector_: Reflector,
     // https://url.spec.whatwg.org/#concept-urlsearchparams-list
-    list: DOMRefCell<Vec<(DOMString, DOMString)>>,
+    list: DOMRefCell<Vec<(String, String)>>,
 }
 
 impl URLSearchParams {
@@ -37,14 +38,14 @@ impl URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
-    pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) ->
+    pub fn Constructor(global: GlobalRef, init: Option<USVStringOrURLSearchParams>) ->
                        Fallible<Root<URLSearchParams>> {
         // Step 1.
         let query = URLSearchParams::new(global);
         match init {
-            Some(eString(init)) => {
+            Some(eUSVString(init)) => {
                 // Step 2.
-                *query.r().list.borrow_mut() = parse(init.as_bytes());
+                *query.r().list.borrow_mut() = parse(init.0.as_bytes());
             },
             Some(eURLSearchParams(init)) => {
                 // Step 3.
@@ -59,27 +60,27 @@ impl URLSearchParams {
 
 impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-append
-    fn Append(&self, name: DOMString, value: DOMString) {
+    fn Append(&self, name: USVString, value: USVString) {
         // Step 1.
-        self.list.borrow_mut().push((name, value));
+        self.list.borrow_mut().push((name.0, value.0));
         // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
-    fn Delete(&self, name: DOMString) {
+    fn Delete(&self, name: USVString) {
         // Step 1.
-        self.list.borrow_mut().retain(|&(ref k, _)| k != &name);
+        self.list.borrow_mut().retain(|&(ref k, _)| k != &name.0);
         // Step 2.
         self.update_steps();
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-get
-    fn Get(&self, name: DOMString) -> Option<DOMString> {
+    fn Get(&self, name: USVString) -> Option<USVString> {
         let list = self.list.borrow();
         list.iter().filter_map(|&(ref k, ref v)| {
-            if k == &name {
-                Some(v.clone())
+            if k == &name.0 {
+                Some(USVString(v.clone()))
             } else {
                 None
             }
@@ -87,31 +88,31 @@ impl URLSearchParamsMethods for URLSearchParams {
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
-    fn Has(&self, name: DOMString) -> bool {
+    fn Has(&self, name: USVString) -> bool {
         let list = self.list.borrow();
-        list.iter().find(|&&(ref k, _)| k == &name).is_some()
+        list.iter().any(|&(ref k, _)| k == &name.0)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
-    fn Set(&self, name: DOMString, value: DOMString) {
+    fn Set(&self, name: USVString, value: USVString) {
         let mut list = self.list.borrow_mut();
         let mut index = None;
         let mut i = 0;
         list.retain(|&(ref k, _)| {
             if index.is_none() {
-                if k == &name {
+                if k == &name.0 {
                     index = Some(i);
                 } else {
                     i += 1;
                 }
                 true
             } else {
-                k != &name
+                k != &name.0
             }
         });
         match index {
-            Some(index) => list[index].1 = value,
-            None => list.push((name, value)),
+            Some(index) => list[index].1 = value.0,
+            None => list.push((name.0, value.0)),
         };
         self.update_steps();
     }
@@ -125,7 +126,7 @@ impl URLSearchParamsMethods for URLSearchParams {
 
 impl URLSearchParams {
     // https://url.spec.whatwg.org/#concept-urlencoded-serializer
-    pub fn serialize(&self, encoding: Option<EncodingRef>) -> DOMString {
+    pub fn serialize(&self, encoding: Option<EncodingRef>) -> String {
         let list = self.list.borrow();
         serialize_with_encoding(list.iter(), encoding)
     }

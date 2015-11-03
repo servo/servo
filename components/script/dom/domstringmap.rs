@@ -61,7 +61,6 @@ impl DOMStringMapMethods for DOMStringMap {
 
     // https://html.spec.whatwg.org/multipage/#the-domstringmap-interface:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        // FIXME: unimplemented (https://github.com/servo/servo/issues/7273)
-        vec![]
+        self.element.supported_prop_names_custom_attr().iter().cloned().collect()
     }
 }

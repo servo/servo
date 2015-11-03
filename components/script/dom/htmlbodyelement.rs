@@ -70,7 +70,7 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     fn SetText(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let color = str::parse_legacy_color(&value).ok();
-        element.set_attribute(&Atom::from_slice("text"), AttrValue::Color(value, color));
+        element.set_attribute(&atom!("text"), AttrValue::Color(value, color));
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element

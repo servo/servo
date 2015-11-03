@@ -74,10 +74,6 @@ impl<T> JS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Root this JS-owned value to prevent its collection as garbage.
-    pub fn root(&self) -> Root<T> {
-        Root::new(self.ptr)
-    }
     /// Create a JS<T> from a Root<T>
     /// XXX Not a great API. Should be a call on Root<T> instead
     #[allow(unrooted_must_root)]
@@ -292,7 +288,7 @@ impl<T: Reflectable> MutHeap<JS<T>> {
     pub fn get(&self) -> Root<T> {
         debug_assert!(task_state::get().is_script());
         unsafe {
-            ptr::read(self.val.get()).root()
+            Root::from_ref(&*ptr::read(self.val.get()))
         }
     }
 }
@@ -370,7 +366,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     pub fn get(&self) -> Option<Root<T>> {
         debug_assert!(task_state::get().is_script());
         unsafe {
-            ptr::read(self.ptr.get()).map(|o| o.root())
+            ptr::read(self.ptr.get()).map(|o| Root::from_ref(&*o))
         }
     }
 

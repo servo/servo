@@ -230,8 +230,8 @@ impl GlobalField {
     /// Create a stack-bounded root for this reference.
     pub fn root(&self) -> GlobalRoot {
         match *self {
-            GlobalField::Window(ref window) => GlobalRoot::Window(window.root()),
-            GlobalField::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
+            GlobalField::Window(ref window) => GlobalRoot::Window(Root::from_ref(window)),
+            GlobalField::Worker(ref worker) => GlobalRoot::Worker(Root::from_ref(worker)),
         }
     }
 }

@@ -58,7 +58,7 @@ impl WebGLProgram {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id))).unwrap();
+            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id)));
         }
     }
 
@@ -123,5 +123,11 @@ impl WebGLProgram {
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name, sender))).unwrap();
         Ok(receiver.recv().unwrap())
+    }
+}
+
+impl Drop for WebGLProgram {
+    fn drop(&mut self) {
+        self.delete();
     }
 }

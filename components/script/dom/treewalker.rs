@@ -65,7 +65,7 @@ impl TreeWalker {
 impl TreeWalkerMethods for TreeWalker {
     // https://dom.spec.whatwg.org/#dom-treewalker-root
     fn Root(&self) -> Root<Node> {
-        self.root_node.root()
+        Root::from_ref(&*self.root_node)
     }
 
     // https://dom.spec.whatwg.org/#dom-treewalker-whattoshow

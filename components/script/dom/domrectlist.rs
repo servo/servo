@@ -42,7 +42,7 @@ impl DOMRectListMethods for DOMRectList {
     fn Item(&self, index: u32) -> Option<Root<DOMRect>> {
         let rects = &self.rects;
         if index < rects.len() as u32 {
-            Some(rects[index as usize].root())
+            Some(Root::from_ref(&*rects[index as usize]))
         } else {
             None
         }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventConstants, KeyboardEventMethods};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
@@ -17,7 +18,7 @@ use msg::constellation_msg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
@@ -26,8 +27,8 @@ no_jsmanaged_fields!(Key);
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: Cell<Option<Key>>,
-    key_string: RefCell<DOMString>,
-    code: RefCell<DOMString>,
+    key_string: DOMRefCell<DOMString>,
+    code: DOMRefCell<DOMString>,
     location: Cell<u32>,
     ctrl: Cell<bool>,
     alt: Cell<bool>,
@@ -44,8 +45,8 @@ impl KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
-            key_string: RefCell::new("".to_owned()),
-            code: RefCell::new("".to_owned()),
+            key_string: DOMRefCell::new("".to_owned()),
+            code: DOMRefCell::new("".to_owned()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),
