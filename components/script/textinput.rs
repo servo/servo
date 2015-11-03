@@ -137,7 +137,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         if self.selection_begin.is_none() {
             self.selection_begin = Some(self.edit_point);
         }
-        self.replace_selection(s.into());
+        self.replace_selection(DOMString(s.into()));
     }
 
     pub fn get_sorted_selection(&self) -> Option<(TextPoint, TextPoint)> {
@@ -170,7 +170,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         })
     }
 
-    pub fn replace_selection(&mut self, insert: String) {
+    pub fn replace_selection(&mut self, insert: DOMString) {
         if let Some((begin, end)) = self.get_sorted_selection() {
             self.clear_selection();
 
@@ -181,20 +181,20 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let lines_suffix = &self.lines[end.line + 1..];
 
                 let mut insert_lines = if self.multiline {
-                    insert.split('\n').map(|s| s.to_owned()).collect()
+                    insert.split('\n').map(|s| DOMString(s.to_owned())).collect()
                 } else {
                     vec!(insert)
                 };
 
                 let mut new_line = prefix.to_owned();
                 new_line.push_str(&insert_lines[0]);
-                insert_lines[0] = new_line;
+                insert_lines[0] = DOMString(new_line);
 
                 let last_insert_lines_index = insert_lines.len() - 1;
                 self.edit_point.index = insert_lines[last_insert_lines_index].len();
                 self.edit_point.line = begin.line + last_insert_lines_index;
 
-                insert_lines[last_insert_lines_index].push_str(suffix);
+                insert_lines[last_insert_lines_index].0.push_str(suffix);
 
                 let mut new_lines = vec!();
                 new_lines.push_all(lines_prefix);
@@ -441,14 +441,14 @@ impl<T: ClipboardProvider> TextInput<T> {
                 content.push('\n');
             }
         }
-        content
+        DOMString(content)
     }
 
     /// Set the current contents of the text input. If this is control supports multiple lines,
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.split('\n').map(|s| s.to_owned()).collect()
+            content.split('\n').map(|s| DOMString(s.to_owned())).collect()
         } else {
             vec!(content)
         };

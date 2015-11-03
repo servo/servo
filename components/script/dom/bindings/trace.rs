@@ -82,7 +82,7 @@ use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
 use style::values::specified::Length;
 use url::Url;
-use util::str::{LengthOrPercentageOrAuto};
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 
 /// A trait to allow tracing (only) DOM objects.
@@ -284,6 +284,7 @@ no_jsmanaged_fields!(MemProfilerChan);
 no_jsmanaged_fields!(PseudoElement);
 no_jsmanaged_fields!(Length);
 no_jsmanaged_fields!(ElementState);
+no_jsmanaged_fields!(DOMString);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

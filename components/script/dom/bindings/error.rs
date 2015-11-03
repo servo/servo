@@ -18,7 +18,6 @@ use libc;
 use std::ffi::CString;
 use std::{mem, ptr};
 use util::mem::HeapSizeOf;
-use util::str::DOMString;
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Debug, Clone, HeapSizeOf)]
@@ -65,9 +64,9 @@ pub enum Error {
     TypeMismatch,
 
     /// TypeError JavaScript Error
-    Type(DOMString),
+    Type(String),
     /// RangeError JavaScript Error
-    Range(DOMString),
+    Range(String),
 
     /// A JavaScript exception is already pending.
     JSFailed,

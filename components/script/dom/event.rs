@@ -169,7 +169,7 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-type
     fn Type(&self) -> DOMString {
-        (*self.type_()).to_owned()
+        DOMString((*self.type_()).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-target

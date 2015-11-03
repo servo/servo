@@ -456,6 +456,13 @@ impl ToJSValConvertible for str {
 }
 
 //http://heycam.github.io/webidl/#es-DOMString
+impl ToJSValConvertible for String {
+    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        (**self).to_jsval(cx, rval);
+    }
+}
+
+//http://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
@@ -476,7 +483,7 @@ pub enum StringificationBehavior {
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     let mut length = 0;
     let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
-    if latin1 {
+    DOMString(if latin1 {
         let chars = unsafe {
             JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
@@ -521,7 +528,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
             }
         }
         s
-    }
+    })
 }
 
 /// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
@@ -573,7 +580,7 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr)));
+            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
         }
         unsafe {
             let mut length = 0;

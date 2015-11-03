@@ -86,7 +86,7 @@ impl TextMethods for Text {
         let mut text = DOMString::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();
-            text.push_str(&cdata.data());
+            text.0.push_str(&cdata.data());
         }
         text
     }

@@ -1675,7 +1675,7 @@ impl Node {
         copy
     }
 
-    pub fn collect_text_contents<T: Iterator<Item=Root<Node>>>(iterator: T) -> String {
+    pub fn collect_text_contents<T: Iterator<Item=Root<Node>>>(iterator: T) -> DOMString {
         let mut content = String::new();
         for node in iterator {
             match node.downcast::<Text>() {
@@ -1683,13 +1683,13 @@ impl Node {
                 None => (),
             }
         }
-        content
+        DOMString(content)
     }
 
     pub fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
         match namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some((**ns).to_owned())
+            Namespace(ref ns) => Some(DOMString((**ns).to_owned()))
         }
     }
 
@@ -1785,16 +1785,16 @@ impl NodeMethods for Node {
             NodeTypeId::Element(..) => {
                 self.downcast::<Element>().unwrap().TagName()
             }
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => "#text".to_owned(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => DOMString("#text".to_owned()),
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 self.downcast::<ProcessingInstruction>().unwrap().Target()
             }
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => "#comment".to_owned(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => DOMString("#comment".to_owned()),
             NodeTypeId::DocumentType => {
                 self.downcast::<DocumentType>().unwrap().name().clone()
             },
-            NodeTypeId::DocumentFragment => "#document-fragment".to_owned(),
-            NodeTypeId::Document => "#document".to_owned()
+            NodeTypeId::DocumentFragment => DOMString("#document-fragment".to_owned()),
+            NodeTypeId::Document => DOMString("#document".to_owned())
         }
     }
 
