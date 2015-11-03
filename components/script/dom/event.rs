@@ -88,7 +88,7 @@ impl Event {
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
         let event = Event::new_uninitialized(global);
-        event.r().InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         event
     }
 

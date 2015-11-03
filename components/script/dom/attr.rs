@@ -225,7 +225,7 @@ impl AttrMethods for Attr {
         match self.owner() {
             None => *self.value.borrow_mut() = AttrValue::String(value),
             Some(owner) => {
-                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
+                let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
                 self.set_value(value, owner.r());
             }
         }

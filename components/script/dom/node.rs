@@ -269,7 +269,7 @@ impl Node {
                     None => self.first_child.set(Some(new_child)),
                     Some(ref last_child) => {
                         assert!(last_child.next_sibling.get().is_none());
-                        last_child.r().next_sibling.set(Some(new_child));
+                        last_child.next_sibling.set(Some(new_child));
                         new_child.prev_sibling.set(Some(&last_child));
                     }
                 }
@@ -367,7 +367,7 @@ impl Node {
     pub fn teardown(&self) {
         self.layout_data.dispose(self);
         for kid in self.children() {
-            kid.r().teardown();
+            kid.teardown();
         }
     }
 
@@ -388,7 +388,7 @@ impl Node {
 
         // FIXME: this should have a pure version?
         for kid in self.children() {
-            kid.r().dump_indent(indent + 1)
+            kid.dump_indent(indent + 1)
         }
     }
 
@@ -514,8 +514,8 @@ impl Node {
 
         // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
-            if !force_ancestors && ancestor.r().get_has_dirty_descendants() { break }
-            ancestor.r().set_has_dirty_descendants(true);
+            if !force_ancestors && ancestor.get_has_dirty_descendants() { break }
+            ancestor.set_has_dirty_descendants(true);
         }
     }
 
@@ -584,15 +584,15 @@ impl Node {
     }
 
     pub fn get_bounding_content_box(&self) -> Rect<Au> {
-        window_from_node(self).r().content_box_query(self.to_trusted_node_address())
+        window_from_node(self).content_box_query(self.to_trusted_node_address())
     }
 
     pub fn get_content_boxes(&self) -> Vec<Rect<Au>> {
-        window_from_node(self).r().content_boxes_query(self.to_trusted_node_address())
+        window_from_node(self).content_boxes_query(self.to_trusted_node_address())
     }
 
     pub fn get_client_rect(&self) -> Rect<i32> {
-        window_from_node(self).r().client_rect_query(self.to_trusted_node_address())
+        window_from_node(self).client_rect_query(self.to_trusted_node_address())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
@@ -657,9 +657,9 @@ impl Node {
             Some(ref parent_node) => {
                 // Step 2.
                 let doc = self.owner_doc();
-                let node = try!(doc.r().node_from_nodes_and_strings(nodes));
+                let node = try!(doc.node_from_nodes_and_strings(nodes));
                 // Step 3.
-                parent_node.r().ReplaceChild(node.r(), self).map(|_| ())
+                parent_node.ReplaceChild(node.r(), self).map(|_| ())
             },
         }
     }
@@ -668,7 +668,7 @@ impl Node {
     pub fn prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = try!(doc.r().node_from_nodes_and_strings(nodes));
+        let node = try!(doc.node_from_nodes_and_strings(nodes));
         // Step 2.
         let first_child = self.first_child.get();
         Node::pre_insert(node.r(), self, first_child.r()).map(|_| ())
@@ -678,7 +678,7 @@ impl Node {
     pub fn append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = try!(doc.r().node_from_nodes_and_strings(nodes));
+        let node = try!(doc.node_from_nodes_and_strings(nodes));
         // Step 2.
         self.AppendChild(node.r()).map(|_| ())
     }
@@ -744,7 +744,7 @@ impl Node {
     }
 
     pub fn is_in_html_doc(&self) -> bool {
-        self.owner_doc().r().is_html_document()
+        self.owner_doc().is_html_document()
     }
 
     pub fn children(&self) -> NodeSiblingIterator {
@@ -781,11 +781,11 @@ impl Node {
         NodeInfo {
             uniqueId: self.get_unique_id(),
             baseURI: self.BaseURI(),
-            parent: self.GetParentNode().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
+            parent: self.GetParentNode().map(|node| node.get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
             namespaceURI: "".to_owned(), //FIXME
             nodeName: self.NodeName(),
-            numChildren: self.ChildNodes().r().Length() as usize,
+            numChildren: self.ChildNodes().Length() as usize,
 
             //FIXME doctype nodes only
             name: "".to_owned(),
@@ -808,7 +808,7 @@ impl Node {
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_document = document_from_node(self);
         let fragment = DocumentFragment::new(context_document.r());
-        if context_document.r().is_html_document() {
+        if context_document.is_html_document() {
             parse_html_fragment(self.upcast(), markup, fragment.upcast());
         } else {
             // FIXME: XML case
@@ -1051,7 +1051,7 @@ impl Iterator for NodeSiblingIterator {
             None => return None,
             Some(current) => current,
         };
-        self.current = current.r().GetNextSibling();
+        self.current = current.GetNextSibling();
         Some(current)
     }
 }
@@ -1068,7 +1068,7 @@ impl Iterator for ReverseSiblingIterator {
             None => return None,
             Some(current) => current,
         };
-        self.current = current.r().GetPreviousSibling();
+        self.current = current.GetPreviousSibling();
         Some(current)
     }
 }
@@ -1088,9 +1088,9 @@ impl Iterator for FollowingNodeIterator {
             Some(current) => current,
         };
 
-        if let Some(first_child) = current.r().GetFirstChild() {
+        if let Some(first_child) = current.GetFirstChild() {
             self.current = Some(first_child);
-            return current.r().GetFirstChild()
+            return current.GetFirstChild()
         }
 
         if self.root == current {
@@ -1098,18 +1098,18 @@ impl Iterator for FollowingNodeIterator {
             return None;
         }
 
-        if let Some(next_sibling) = current.r().GetNextSibling() {
+        if let Some(next_sibling) = current.GetNextSibling() {
             self.current = Some(next_sibling);
-            return current.r().GetNextSibling()
+            return current.GetNextSibling()
         }
 
-        for ancestor in current.r().inclusive_ancestors() {
+        for ancestor in current.inclusive_ancestors() {
             if self.root == ancestor {
                 break;
             }
-            if let Some(next_sibling) = ancestor.r().GetNextSibling() {
+            if let Some(next_sibling) = ancestor.GetNextSibling() {
                 self.current = Some(next_sibling);
-                return ancestor.r().GetNextSibling()
+                return ancestor.GetNextSibling()
             }
         }
         self.current = None;
@@ -1138,24 +1138,24 @@ impl Iterator for PrecedingNodeIterator {
         }
 
         let node = current;
-        if let Some(previous_sibling) = node.r().GetPreviousSibling() {
+        if let Some(previous_sibling) = node.GetPreviousSibling() {
             if self.root == previous_sibling {
                 self.current = None;
                 return None
             }
 
-            if let Some(last_child) = previous_sibling.r().descending_last_children().last() {
+            if let Some(last_child) = previous_sibling.descending_last_children().last() {
                 self.current = Some(last_child);
-                return previous_sibling.r().descending_last_children().last()
+                return previous_sibling.descending_last_children().last()
             }
 
             self.current = Some(previous_sibling);
-            return node.r().GetPreviousSibling()
+            return node.GetPreviousSibling()
         };
 
-        if let Some(parent_node) = node.r().GetParentNode() {
+        if let Some(parent_node) = node.GetParentNode() {
             self.current = Some(parent_node);
-            return node.r().GetParentNode()
+            return node.GetParentNode()
         }
 
         self.current = None;
@@ -1175,7 +1175,7 @@ impl Iterator for LastChildIterator {
             None => return None,
             Some(current) => current,
         };
-        self.current = current.r().GetLastChild();
+        self.current = current.GetLastChild();
         Some(current)
     }
 }
@@ -1192,7 +1192,7 @@ impl Iterator for AncestorIterator {
             None => return None,
             Some(current) => current,
         };
-        self.current = current.r().GetParentNode();
+        self.current = current.GetParentNode();
         Some(current)
     }
 }
@@ -1220,16 +1220,16 @@ impl Iterator for TreeIterator {
             None => return None,
             Some(current) => current,
         };
-        if let Some(first_child) = current.r().GetFirstChild() {
+        if let Some(first_child) = current.GetFirstChild() {
             self.current = Some(first_child);
             self.depth += 1;
             return Some(current);
         };
-        for ancestor in current.r().inclusive_ancestors() {
+        for ancestor in current.inclusive_ancestors() {
             if self.depth == 0 {
                 break;
             }
-            if let Some(next_sibling) = ancestor.r().GetNextSibling() {
+            if let Some(next_sibling) = ancestor.GetNextSibling() {
                 self.current = Some(next_sibling);
                 return Some(current);
             }
@@ -1358,7 +1358,7 @@ impl Node {
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
                     if node.children()
-                           .any(|c| c.r().is::<Text>())
+                           .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -1371,7 +1371,7 @@ impl Node {
                             }
                             if let Some(child) = child {
                                 if child.inclusively_following_siblings()
-                                    .any(|child| child.r().is_doctype()) {
+                                    .any(|child| child.is_doctype()) {
                                         return Err(Error::HierarchyRequest);
                                 }
                             }
@@ -1387,7 +1387,7 @@ impl Node {
                     }
                     if let Some(ref child) = child {
                         if child.inclusively_following_siblings()
-                            .any(|child| child.r().is_doctype()) {
+                            .any(|child| child.is_doctype()) {
                                 return Err(Error::HierarchyRequest);
                         }
                     }
@@ -1395,7 +1395,7 @@ impl Node {
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if parent.children()
-                             .any(|c| c.r().is_doctype())
+                             .any(|c| c.is_doctype())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -1403,7 +1403,7 @@ impl Node {
                         Some(child) => {
                             if parent.children()
                                      .take_while(|c| c.r() != child)
-                                     .any(|c| c.r().is::<Element>())
+                                     .any(|c| c.is::<Element>())
                             {
                                 return Err(Error::HierarchyRequest);
                             }
@@ -1634,7 +1634,7 @@ impl Node {
             Some(doc) => Root::from_ref(doc),
             None => Root::from_ref(document.r()),
         };
-        assert!(copy.r().owner_doc() == document);
+        assert!(copy.owner_doc() == document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
@@ -1833,7 +1833,7 @@ impl NodeMethods for Node {
     fn ChildNodes(&self) -> Root<NodeList> {
         self.child_list.or_init(|| {
             let doc = self.owner_doc();
-            let window = doc.r().window();
+            let window = doc.window();
             NodeList::new_child_list(window, self)
         })
     }
@@ -1922,7 +1922,7 @@ impl NodeMethods for Node {
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc();
-                document.r().content_changed(self, NodeDamage::OtherNodeDamage);
+                document.content_changed(self, NodeDamage::OtherNodeDamage);
             }
             NodeTypeId::DocumentType |
             NodeTypeId::Document => {}
@@ -2101,7 +2101,7 @@ impl NodeMethods for Node {
                     }
                 },
                 None => {
-                    child.r().Normalize();
+                    child.Normalize();
                     prev_text = None;
                 }
             }
@@ -2240,7 +2240,7 @@ impl NodeMethods for Node {
                     NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
-            for child in lastself.r().traverse_preorder() {
+            for child in lastself.traverse_preorder() {
                 if child.r() == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -2278,13 +2278,13 @@ impl NodeMethods for Node {
             },
             NodeTypeId::Document => {
                 self.downcast::<Document>().unwrap().GetDocumentElement().and_then(|element| {
-                    element.r().lookup_prefix(namespace)
+                    element.lookup_prefix(namespace)
                 })
             },
             NodeTypeId::DocumentType | NodeTypeId::DocumentFragment => None,
             _ => {
                 self.GetParentElement().and_then(|element| {
-                    element.r().lookup_prefix(namespace)
+                    element.lookup_prefix(namespace)
                 })
             }
         }
@@ -2329,7 +2329,7 @@ pub fn document_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Ro
 
 pub fn window_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Window> {
     let document = document_from_node(derived);
-    Root::from_ref(document.r().window())
+    Root::from_ref(document.window())
 }
 
 impl VirtualMethods for Node {

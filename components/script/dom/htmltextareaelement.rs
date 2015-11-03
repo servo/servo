@@ -372,6 +372,6 @@ pub struct ChangeEventRunnable {
 impl Runnable for ChangeEventRunnable {
     fn handler(self: Box<ChangeEventRunnable>) {
         let target = self.element.root();
-        target.r().dispatch_change_event();
+        target.dispatch_change_event();
     }
 }

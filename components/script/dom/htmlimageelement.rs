@@ -85,7 +85,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         event.fire(element.upcast());
 
         // Trigger reflow
-        window.r().add_pending_reflow();
+        window.add_pending_reflow();
     }
 }
 
@@ -94,7 +94,7 @@ impl HTMLImageElement {
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
         let document = document_from_node(self);
-        let window = document.r().window();
+        let window = document.window();
         let image_cache = window.image_cache_task();
         match value {
             None => {

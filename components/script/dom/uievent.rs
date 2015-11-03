@@ -47,7 +47,7 @@ impl UIEvent {
                view: Option<&Window>,
                detail: i32) -> Root<UIEvent> {
         let ev = UIEvent::new_uninitialized(window);
-        ev.r().InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
+        ev.InitUIEvent(type_, can_bubble == EventBubbles::Bubbles,
                            cancelable == EventCancelable::Cancelable, view, detail);
         ev
     }

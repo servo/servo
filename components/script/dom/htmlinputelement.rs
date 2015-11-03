@@ -356,8 +356,8 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
                 .filter_map(Root::downcast::<HTMLInputElement>)
                 .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r());
         for ref r in iter {
-            if r.r().Checked() {
-                r.r().SetChecked(false);
+            if r.Checked() {
+                r.SetChecked(false);
             }
         }
     }
@@ -368,11 +368,9 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
 // https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
                  group: Option<&Atom>) -> bool {
-    let other_owner = other.form_owner();
-    let other_owner = other_owner.r();
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
-    other_owner == owner &&
+    other.form_owner().r() == owner &&
     match (other.get_radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
@@ -703,7 +701,7 @@ impl Activatable for HTMLInputElement {
                             .filter_map(Root::downcast::<HTMLInputElement>)
                             .find(|r| {
                                 in_same_group(r.r(), owner.r(), group.as_ref()) &&
-                                r.r().Checked()
+                                r.Checked()
                             });
                     cache.checked_radio = checked_member.r().map(JS::from_ref);
                     cache.checked_changed = self.checked_changed.get();
@@ -778,8 +776,8 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
-                        o.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                     FormSubmitter::InputElement(self.clone()))
+                        o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                 FormSubmitter::InputElement(self.clone()))
                     });
                 }
             },
@@ -788,7 +786,7 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
-                        o.r().reset(ResetFrom::NotFromFormResetMethod)
+                        o.reset(ResetFrom::NotFromFormResetMethod)
                     });
                 }
             },
@@ -833,18 +831,18 @@ impl Activatable for HTMLInputElement {
         let submit_button;
         submit_button = node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
             .filter_map(Root::downcast::<HTMLInputElement>)
-            .find(|r| r.r().form_owner() == owner);
+            .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
-                if button.r().is_instance_activatable() {
-                    button.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
+                if button.is_instance_activatable() {
+                    button.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey)
                 }
             }
             None => {
                 let inputs = node.query_selector_iter("input".to_owned()).unwrap()
                     .filter_map(Root::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.r().form_owner() == owner && match &*input.r().Type() {
+                        input.form_owner() == owner && match &*input.Type() {
                             "text" | "search" | "url" | "tel" |
                             "email" | "password" | "datetime" |
                             "date" | "month" | "week" | "time" |
@@ -858,8 +856,8 @@ impl Activatable for HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                FormSubmitter::FormElement(form.r()));
+                form.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                            FormSubmitter::FormElement(form.r()));
             }
         }
     }

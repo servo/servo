@@ -448,7 +448,7 @@ impl Document {
             let check_anchor = |node: &HTMLAnchorElement| {
                 let elem = node.upcast::<Element>();
                 elem.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                    &**attr.r().value() == fragid
+                    &**attr.value() == fragid
                 })
             };
             let doc_node = self.upcast::<Node>();
@@ -497,7 +497,7 @@ impl Document {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let target = self.upcast::<EventTarget>();
-        let _ = event.r().fire(target);
+        let _ = event.fire(target);
     }
 
     /// Return whether scripting is enabled or not
@@ -566,7 +566,7 @@ impl Document {
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
         for node in root.traverse_preorder() {
-            node.r().dirty(NodeDamage::OtherNodeDamage)
+            node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
 
@@ -590,7 +590,7 @@ impl Document {
         let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
             None => {
-                let parent = node.r().GetParentNode();
+                let parent = node.GetParentNode();
                 match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return,
@@ -738,7 +738,7 @@ impl Document {
         let el = match node.downcast::<Element>() {
             Some(el) => Root::from_ref(el),
             None => {
-                let parent = node.r().GetParentNode();
+                let parent = node.GetParentNode();
                 match parent.and_then(Root::downcast::<Element>) {
                     Some(parent) => parent,
                     None => return false
@@ -882,13 +882,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::eNode(node) => {
-                        try!(fragment.r().AppendChild(node.r()));
+                        try!(fragment.AppendChild(node.r()));
                     },
                     NodeOrString::eString(string) => {
                         let node = Root::upcast::<Node>(self.CreateTextNode(string));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.r().AppendChild(node.r()).unwrap();
+                        fragment.AppendChild(node.r()).unwrap();
                     }
                 }
             }
@@ -1067,8 +1067,8 @@ impl Document {
         };
 
         if self.script_blocking_stylesheets_count.get() == 0 &&
-           script.r().is_ready_to_be_executed() {
-            script.r().execute();
+           script.is_ready_to_be_executed() {
+            script.execute();
             self.pending_parsing_blocking_script.set(None);
             return ParserBlockedByScript::Unblocked;
         }
@@ -1110,10 +1110,10 @@ impl Document {
         // Re-borrowing the list for each step because it can also be borrowed under execute.
         while self.asap_in_order_scripts_list.borrow().len() > 0 {
             let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
-            if !script.r().is_ready_to_be_executed() {
+            if !script.is_ready_to_be_executed() {
                 break;
             }
-            script.r().execute();
+            script.execute();
             self.asap_in_order_scripts_list.borrow_mut().remove(0);
         }
 
@@ -1121,11 +1121,11 @@ impl Document {
         // Re-borrowing the set for each step because it can also be borrowed under execute.
         while idx < self.asap_scripts_set.borrow().len() {
             let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
-            if !script.r().is_ready_to_be_executed() {
+            if !script.is_ready_to_be_executed() {
                 idx += 1;
                 continue;
             }
-            script.r().execute();
+            script.execute();
             self.asap_scripts_set.borrow_mut().swap_remove(idx);
         }
     }
@@ -1164,7 +1164,7 @@ impl Document {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.r().subpage_id() == Some(subpage_id))
+            .find(|node| node.subpage_id() == Some(subpage_id))
     }
 }
 
@@ -1651,11 +1651,11 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
         let title = self.GetDocumentElement().and_then(|root| {
-            if root.r().namespace() == &ns!(SVG) && root.r().local_name() == &atom!("svg") {
+            if root.namespace() == &ns!(SVG) && root.local_name() == &atom!("svg") {
                 // Step 1.
                 root.upcast::<Node>().child_elements().find(|node| {
-                    node.r().namespace() == &ns!(SVG) &&
-                    node.r().local_name() == &atom!("title")
+                    node.namespace() == &ns!(SVG) &&
+                    node.local_name() == &atom!("title")
                 }).map(Root::upcast::<Node>)
             } else {
                 // Step 2.
@@ -1669,7 +1669,7 @@ impl DocumentMethods for Document {
             None => DOMString::new(),
             Some(ref title) => {
                 // Steps 3-4.
-                let value = Node::collect_text_contents(title.r().children());
+                let value = Node::collect_text_contents(title.children());
                 str_join(split_html_space_chars(&value), " ")
             },
         }
@@ -1682,11 +1682,11 @@ impl DocumentMethods for Document {
             None => return,
         };
 
-        let elem = if root.r().namespace() == &ns!(SVG) &&
-                       root.r().local_name() == &atom!("svg") {
+        let elem = if root.namespace() == &ns!(SVG) &&
+                       root.local_name() == &atom!("svg") {
             let elem = root.upcast::<Node>().child_elements().find(|node| {
-                node.r().namespace() == &ns!(SVG) &&
-                node.r().local_name() == &atom!("title")
+                node.namespace() == &ns!(SVG) &&
+                node.local_name() == &atom!("title")
             });
             match elem {
                 Some(elem) => Root::upcast::<Node>(elem),
@@ -1699,10 +1699,10 @@ impl DocumentMethods for Document {
                         .unwrap()
                 }
             }
-        } else if root.r().namespace() == &ns!(HTML) {
+        } else if root.namespace() == &ns!(HTML) {
             let elem = root.upcast::<Node>()
                            .traverse_preorder()
-                           .find(|node| node.r().is::<HTMLTitleElement>());
+                           .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
                 None => {
@@ -1723,7 +1723,7 @@ impl DocumentMethods for Document {
             return
         };
 
-        elem.r().SetTextContent(Some(title));
+        elem.SetTextContent(Some(title));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
@@ -1743,7 +1743,7 @@ impl DocumentMethods for Document {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children().find(|child| {
-                match child.r().type_id() {
+                match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
@@ -1803,7 +1803,7 @@ impl DocumentMethods for Document {
                 return false;
             }
             element.get_attribute(&ns!(""), &atom!("name")).map_or(false, |attr| {
-                &**attr.r().value() == &*name
+                &**attr.value() == &*name
             })
         })
     }
@@ -1986,10 +1986,10 @@ impl DocumentMethods for Document {
             match html_elem_type {
                 HTMLElementTypeId::HTMLAppletElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) if attr.r().value().as_atom() == name => true,
+                        Some(ref attr) if attr.value().as_atom() == name => true,
                         _ => {
                             match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                Some(ref attr) => attr.r().value().as_atom() == name,
+                                Some(ref attr) => attr.value().as_atom() == name,
                                 None => false,
                             }
                         },
@@ -1997,18 +1997,18 @@ impl DocumentMethods for Document {
                 },
                 HTMLElementTypeId::HTMLFormElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
-                        Some(ref attr) => attr.r().value().as_atom() == name,
+                        Some(ref attr) => attr.value().as_atom() == name,
                         None => false,
                     }
                 },
                 HTMLElementTypeId::HTMLImageElement => {
                     match elem.get_attribute(&ns!(""), &atom!("name")) {
                         Some(ref attr) => {
-                            if attr.r().value().as_atom() == name {
+                            if attr.value().as_atom() == name {
                                 true
                             } else {
                                 match elem.get_attribute(&ns!(""), &atom!("id")) {
-                                    Some(ref attr) => attr.r().value().as_atom() == name,
+                                    Some(ref attr) => attr.value().as_atom() == name,
                                     None => false,
                                 }
                             }
@@ -2032,7 +2032,7 @@ impl DocumentMethods for Document {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.r().reflector().get_jsobject().get()
+                    return first.reflector().get_jsobject().get()
                 }
             } else {
                 *found = false;
@@ -2043,7 +2043,7 @@ impl DocumentMethods for Document {
         *found = true;
         let filter = NamedElementFilter { name: name };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        collection.r().reflector().get_jsobject().get()
+        collection.reflector().get_jsobject().get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -2091,17 +2091,17 @@ impl DocumentProgressHandler {
 
     fn set_ready_state_complete(&self) {
         let document = self.addr.root();
-        document.r().set_ready_state(DocumentReadyState::Complete);
+        document.set_ready_state(DocumentReadyState::Complete);
     }
 
     fn dispatch_load(&self) {
         let document = self.addr.root();
-        let window = document.r().window();
+        let window = document.window();
         let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
-        event.r().set_trusted(true);
+        event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         let browsing_context = window.browsing_context();
@@ -2115,10 +2115,10 @@ impl DocumentProgressHandler {
             event.fire(frame_element.upcast());
         };
 
-        document.r().notify_constellation_load();
+        document.notify_constellation_load();
 
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
-        document.r().trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
+        document.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
@@ -2129,7 +2129,7 @@ impl DocumentProgressHandler {
 impl Runnable for DocumentProgressHandler {
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
-        let window = document.r().window();
+        let window = document.window();
         if window.is_alive() {
             self.set_ready_state_complete();
             self.dispatch_load();

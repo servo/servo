@@ -75,26 +75,22 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let win = window_from_node(self);
-        win.r().GetOnunload()
+        window_from_node(self).GetOnunload()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn SetOnunload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let win = window_from_node(self);
-        win.r().SetOnunload(listener)
+        window_from_node(self).SetOnunload(listener)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        let win = window_from_node(self);
-        win.r().GetOnstorage()
+        window_from_node(self).GetOnstorage()
     }
 
     // https://html.spec.whatwg.org/multipage/#the-body-element
     fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        let win = window_from_node(self);
-        win.r().SetOnstorage(listener)
+        window_from_node(self).SetOnstorage(listener)
     }
 }
 
@@ -137,9 +133,9 @@ impl VirtualMethods for HTMLBodyElement {
         }
 
         let window = window_from_node(self);
-        let document = window.r().Document();
-        document.r().set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let ConstellationChan(ref chan) = window.r().constellation_chan();
+        let document = window.Document();
+        document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
+        let ConstellationChan(ref chan) = window.constellation_chan();
         let event = ConstellationMsg::HeadParsed;
         chan.send(event).unwrap();
     }

@@ -155,7 +155,7 @@ impl HTMLFormElement {
         // Step 1
         let doc = document_from_node(self);
         let win = window_from_node(self);
-        let base = doc.r().url();
+        let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
@@ -163,7 +163,7 @@ impl HTMLFormElement {
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
-        if event.r().DefaultPrevented() {
+        if event.DefaultPrevented() {
             return;
         }
         // Step 6
@@ -211,8 +211,8 @@ impl HTMLFormElement {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/#planned-navigation
-        win.r().main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
-            win.r().pipeline(), load_data)).unwrap();
+        win.main_thread_script_chan().send(MainThreadScriptMsg::Navigate(
+            win.pipeline(), load_data)).unwrap();
     }
 
     fn get_unclean_dataset(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
@@ -225,11 +225,11 @@ impl HTMLFormElement {
                 _ => return None,
             }
 
-            if child.r().ancestors()
-                        .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
+            if child.ancestors()
+                    .any(|a| Root::downcast::<HTMLDataListElement>(a).is_some()) {
                 return None;
             }
-            match child.r().type_id() {
+            match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => {
                     match element {
                         HTMLElementTypeId::HTMLInputElement => {
@@ -315,14 +315,14 @@ impl HTMLFormElement {
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
-        if event.r().DefaultPrevented() {
+        if event.DefaultPrevented() {
             return;
         }
 
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         for child in self.upcast::<Node>().traverse_preorder() {
-            match child.r().type_id() {
+            match child.type_id() {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     child.downcast::<HTMLInputElement>().unwrap().reset();
                 }
@@ -466,7 +466,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(elem);
-            let owner = doc.r().GetElementById(owner);
+            let owner = doc.GetElementById(owner);
             match owner {
                 Some(ref o) => {
                     let maybe_form = o.downcast::<HTMLFormElement>();

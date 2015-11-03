@@ -45,11 +45,11 @@ impl URLSearchParams {
         match init {
             Some(eUSVString(init)) => {
                 // Step 2.
-                *query.r().list.borrow_mut() = parse(init.0.as_bytes());
+                *query.list.borrow_mut() = parse(init.0.as_bytes());
             },
             Some(eURLSearchParams(init)) => {
                 // Step 3.
-                *query.r().list.borrow_mut() = init.r().list.borrow().clone();
+                *query.list.borrow_mut() = init.list.borrow().clone();
             },
             None => {}
         }

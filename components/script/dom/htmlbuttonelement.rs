@@ -173,7 +173,7 @@ impl VirtualMethods for HTMLButtonElement {
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.r().is::<HTMLFieldSetElement>()) {
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -209,8 +209,8 @@ impl<'a> Activatable for &'a HTMLButtonElement {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
             ButtonType::Submit => {
                 self.form_owner().map(|o| {
-                    o.r().submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                 FormSubmitter::ButtonElement(self.clone()))
+                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                             FormSubmitter::ButtonElement(self.clone()))
                 });
             },
             _ => ()
@@ -228,7 +228,7 @@ impl<'a> Activatable for &'a HTMLButtonElement {
         }
         node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
-            .find(|r| r.r().form_owner() == owner)
+            .find(|r| r.form_owner() == owner)
             .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }

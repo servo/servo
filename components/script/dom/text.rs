@@ -58,7 +58,7 @@ impl TextMethods for Text {
         // Step 5.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.r().CreateTextNode(new_data);
+        let new_node = owner_doc.CreateTextNode(new_data);
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
@@ -79,10 +79,10 @@ impl TextMethods for Text {
     // https://dom.spec.whatwg.org/#dom-text-wholetext
     fn WholeText(&self) -> DOMString {
         let first = self.upcast::<Node>().inclusively_preceding_siblings()
-                                         .take_while(|node| node.r().is::<Text>())
+                                         .take_while(|node| node.is::<Text>())
                                          .last().unwrap();
-        let nodes = first.r().inclusively_following_siblings()
-                             .take_while(|node| node.r().is::<Text>());
+        let nodes = first.inclusively_following_siblings()
+                         .take_while(|node| node.is::<Text>());
         let mut text = DOMString::new();
         for ref node in nodes {
             let cdata = node.downcast::<CharacterData>().unwrap();
