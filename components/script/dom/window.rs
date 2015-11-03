@@ -53,8 +53,9 @@ use page::Page;
 use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
-use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
-use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan};
+use script_traits::{ConstellationControlMsg, TimerEvent, TimerEventId, TimerEventRequest};
+use script_traits::{TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -129,7 +130,7 @@ pub struct Window {
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
     #[ignore_heap_size_of = "channels are hard"]
-    scheduler_chan: Sender<TimerEventRequest>,
+    scheduler_chan: IpcSender<TimerEventRequest>,
     timers: ActiveTimers,
 
     next_worker_id: Cell<WorkerId>,
@@ -1075,7 +1076,7 @@ impl Window {
         self.constellation_chan.clone()
     }
 
-    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
         self.scheduler_chan.clone()
     }
 
@@ -1220,8 +1221,8 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan,
-               scheduler_chan: Sender<TimerEventRequest>,
-               timer_event_chan: MainThreadTimerEventChan,
+               scheduler_chan: IpcSender<TimerEventRequest>,
+               timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
@@ -1255,7 +1256,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             scheduler_chan: scheduler_chan.clone(),
-            timers: ActiveTimers::new(box timer_event_chan, scheduler_chan),
+            timers: ActiveTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
             parent_info: parent_info,

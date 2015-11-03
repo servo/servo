@@ -23,7 +23,6 @@ use net_traits::ResourceTask;
 use profile_traits::mem;
 use script_task::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptTask};
 use script_traits::TimerEventRequest;
-use std::sync::mpsc::Sender;
 use url::Url;
 use util::mem::HeapSizeOf;
 
@@ -99,7 +98,7 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Get the scheduler channel to request timer events.
-    pub fn scheduler_chan(&self) -> Sender<TimerEventRequest> {
+    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
         match *self {
             GlobalRef::Window(window) => window.scheduler_chan(),
             GlobalRef::Worker(worker) => worker.scheduler_chan(),
