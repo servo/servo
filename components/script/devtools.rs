@@ -155,12 +155,12 @@ pub fn handle_modify_attribute(page: &Rc<Page>,
     let node = find_node_by_unique_id(&*page, pipeline, node_id);
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
 
-    for modification in &modifications {
+    for modification in modifications {
         match modification.newValue {
-            Some(ref string) => {
-                let _ = elem.SetAttribute(modification.attributeName.clone(), string.clone());
+            Some(string) => {
+                let _ = elem.SetAttribute(modification.attributeName, string);
             },
-            None => elem.RemoveAttribute(modification.attributeName.clone()),
+            None => elem.RemoveAttribute(modification.attributeName),
         }
     }
 }

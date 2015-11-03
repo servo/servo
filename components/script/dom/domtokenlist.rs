@@ -64,10 +64,7 @@ impl DOMTokenListMethods for DOMTokenList {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.attribute().and_then(|attr| {
-            let attr = attr.r();
-            Some(attr.value().as_tokens()).and_then(|tokens| {
-                tokens.get(index as usize).map(|token| (**token).to_owned())
-            })
+            attr.value().as_tokens().get(index as usize).map(|token| (**token).to_owned())
         })
     }
 
