@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::Element;

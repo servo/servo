@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::characterdata::CharacterData;
 use dom::document::Document;

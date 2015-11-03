@@ -15,12 +15,12 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWin
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalField, GlobalRef};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;

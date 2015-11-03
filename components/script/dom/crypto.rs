@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetArrayBufferViewType, JS_GetObjectAsArrayBufferView, Type};
 use rand::{OsRng, Rng};

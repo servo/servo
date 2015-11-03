@@ -137,14 +137,17 @@ pub mod cell;
 pub mod conversions;
 pub mod error;
 pub mod global;
+pub mod inheritance;
 pub mod js;
 pub mod num;
 pub mod proxyhandler;
 pub mod refcounted;
+pub mod reflector;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;
 pub mod utils;
+pub mod xmlname;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]

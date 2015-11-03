@@ -5,11 +5,11 @@
 use dom::bindings::codegen::Bindings::CloseEventBinding;
 use dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use script_task::ScriptChan;
 use util::str::DOMString;

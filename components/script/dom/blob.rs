@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;

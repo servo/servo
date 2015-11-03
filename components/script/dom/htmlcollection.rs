@@ -4,11 +4,12 @@
 
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflector, namespace_from_domstring, reflect_dom_object};
+use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::node::{Node, TreeIterator};
 use dom::window::Window;

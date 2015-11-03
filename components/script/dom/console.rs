@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalField, GlobalRef};
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console

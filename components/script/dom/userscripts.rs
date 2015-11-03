@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{RootedReference};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::Node;

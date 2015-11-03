@@ -6,7 +6,7 @@ use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};

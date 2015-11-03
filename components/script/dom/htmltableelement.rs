@@ -7,7 +7,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};

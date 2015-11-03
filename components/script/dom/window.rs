@@ -11,14 +11,15 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::conversions::Castable;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global::global_object_for_js_object;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{GlobalStaticData, Reflectable, WindowProxyHandler};
+use dom::bindings::reflector::Reflectable;
+use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsercontext::BrowsingContext;
 use dom::console::Console;
 use dom::crypto::Crypto;

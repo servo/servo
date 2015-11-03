@@ -10,7 +10,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::canvasrenderingcontext2d::parse_color;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient

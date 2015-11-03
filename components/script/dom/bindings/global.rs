@@ -11,7 +11,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::native_from_reflector_jsmanaged;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
