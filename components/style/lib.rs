@@ -42,6 +42,7 @@ extern crate url;
 extern crate util;
 
 pub mod animation;
+pub mod attr;
 mod custom_properties;
 pub mod font_face;
 pub mod legacy;

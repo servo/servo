@@ -82,6 +82,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace, QualName};
+use style::attr::AttrValue;
 use style::properties::PropertyDeclarationBlock;
 use style::values::specified::Length;
 use url::Url;
@@ -289,6 +290,7 @@ no_jsmanaged_fields!(Length);
 no_jsmanaged_fields!(ElementState);
 no_jsmanaged_fields!(DOMString);
 no_jsmanaged_fields!(Mime);
+no_jsmanaged_fields!(AttrValue);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
