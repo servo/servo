@@ -9,13 +9,16 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{send_error, start_sending_sniffed_opt};
+use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::fs::PathExt;
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;
 
-pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>) {
+pub fn factory(mut load_data: LoadData,
+               start_chan: LoadConsumer,
+               classifier: Arc<MIMEClassifier>,
+               cancel_listener: CancellationListener) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
             let metadata = Metadata {
@@ -42,5 +45,5 @@ pub fn factory(mut load_data: LoadData, start_chan: LoadConsumer, classifier: Ar
             return
         }
     };
-    file_loader::factory(load_data, start_chan, classifier)
+    file_loader::factory(load_data, start_chan, classifier, cancel_listener)
 }

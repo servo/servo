@@ -23,7 +23,7 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
@@ -170,4 +170,32 @@ fn test_replace_hosts() {
 
     let url = Url::parse("http://a.foo.bar.com").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
+}
+
+#[test]
+fn test_cancelled_listener() {
+    use std::net::TcpListener;
+
+    let mut host_table_box = Box::new(HashMap::new());
+    host_table_box.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
+    let hosts_table: *mut HashMap<String, String> = Box::into_raw(host_table_box);
+
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let resource_task = new_resource_task("".to_owned(), None);
+    let (sender, receiver) = ipc::channel().unwrap();
+    let (id_sender, id_receiver) = ipc::channel().unwrap();
+
+    let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(host_replacement(hosts_table, &url), None),
+                                        LoadConsumer::Channel(sender),
+                                        Some(id_sender))).unwrap();
+    let res_id = id_receiver.recv().unwrap();
+    resource_task.send(ControlMsg::Cancel(res_id)).unwrap();
+    let response = receiver.recv().unwrap();
+    match response.progress_port.recv().unwrap() {
+        ProgressMsg::Done(result) => assert_eq!(result.unwrap_err(), "Loading has been cancelled!".to_owned()),
+        _ => unreachable!(),
+    }
+    resource_task.send(ControlMsg::Exit).unwrap();
 }
