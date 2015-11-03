@@ -1272,7 +1272,7 @@ pub mod longhands {
         use super::content;
         use values::computed::ComputedValueAsSpecified;
 
-        use cssparser::{ToCss, Token};
+        use cssparser::{ToCss, Token, serialize_identifier};
         use std::borrow::{Cow, ToOwned};
 
         pub use self::computed_value::T as SpecifiedValue;
@@ -1297,7 +1297,7 @@ pub mod longhands {
                         try!(dest.write_str(" "));
                     }
                     first = false;
-                    try!(Token::QuotedString(Cow::from(&*pair.0)).to_css(dest));
+                    try!(serialize_identifier(&pair.0, dest));
                     try!(write!(dest, " {}", pair.1));
                 }
                 Ok(())
