@@ -217,7 +217,7 @@ pub mod longhands {
                                     css: css.into_owned(),
                                     first_token_type: first_token_type,
                                     base_url: context.base_url.clone(),
-                                    from_shorthand: Shorthand::None,
+                                    from_shorthand: None,
                                 })
                             }
                             specified
@@ -4922,7 +4922,7 @@ pub mod shorthands {
                                 css: css.clone().into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
-                                from_shorthand: Shorthand::${shorthand.camel_case},
+                                from_shorthand: Some(Shorthand::${shorthand.camel_case}),
                             }
                         ));
                     % endfor
@@ -5644,12 +5644,12 @@ mod property_bit_field {
                             ::stylesheets::Origin::Author, base_url);
                         Parser::new(&css).parse_entirely(|input| {
                             match from_shorthand {
-                                Shorthand::None => {
+                                None => {
                                     longhands::${property.ident}::parse_specified(&context, input)
                                 }
                                 % for shorthand in SHORTHANDS:
                                     % if property in shorthand.sub_properties:
-                                        Shorthand::${shorthand.camel_case} => {
+                                        Some(Shorthand::${shorthand.camel_case}) => {
                                             shorthands::${shorthand.ident}::parse_value(&context, input)
                                             .map(|result| match result.${property.ident} {
                                                 Some(value) => DeclaredValue::Value(value),
@@ -5813,12 +5813,39 @@ impl CSSWideKeyword {
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum Shorthand {
-    None,
     % for property in SHORTHANDS:
         ${property.camel_case},
     % endfor
 }
 
+impl Shorthand {
+    pub fn from_name(name: &str) -> Option<Shorthand> {
+        match_ignore_ascii_case! { name,
+            % for property in SHORTHANDS[:-1]:
+                "${property.name}" => Some(Shorthand::${property.camel_case}),
+            % endfor
+            % for property in SHORTHANDS[-1:]:
+                "${property.name}" => Some(Shorthand::${property.camel_case})
+            % endfor
+            _ => None
+        }
+    }
+
+    pub fn longhands(&self) -> &'static [&'static str] {
+        % for property in SHORTHANDS:
+            static ${property.ident.upper()}: &'static [&'static str] = &[
+                % for sub in property.sub_properties:
+                    "${sub.name}",
+                % endfor
+            ];
+        % endfor
+        match *self {
+            % for property in SHORTHANDS:
+                Shorthand::${property.camel_case} => ${property.ident.upper()},
+            % endfor
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DeclaredValue<T> {
@@ -5827,7 +5854,7 @@ pub enum DeclaredValue<T> {
         css: String,
         first_token_type: TokenSerializationType,
         base_url: Url,
-        from_shorthand: Shorthand
+        from_shorthand: Option<Shorthand>,
     },
     Initial,
     Inherit,
@@ -5840,7 +5867,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables { ref css, from_shorthand: Shorthand::None, .. } => {
+            DeclaredValue::WithVariables { ref css, from_shorthand: None, .. } => {
                 dest.write_str(css)
             }
             // https://drafts.csswg.org/css-variables/#variables-in-shorthands
@@ -5927,6 +5954,41 @@ impl PropertyDeclaration {
             % endfor
             PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
             ref decl => panic!("unsupported property declaration: {}", decl.name()),
+        }
+    }
+
+    /// If this is a pending-substitution value from the given shorthand, return that value
+    // Extra space here because < seems to be removed by Mako when immediately followed by &.
+    //                                                                          ↓
+    pub fn with_variables_from_shorthand(&self, shorthand: Shorthand) -> Option< &str> {
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::WithVariables { ref css, from_shorthand: Some(s), .. }
+                    if s == shorthand => {
+                        Some(&**css)
+                    }
+                    _ => None
+                },
+            % endfor
+            PropertyDeclaration::Custom(..) => None,
+        }
+    }
+
+    /// Return whether this is a pending-substitution value.
+    /// https://drafts.csswg.org/css-variables/#variables-in-shorthands
+    pub fn with_variables(&self) -> bool {
+        match *self {
+            % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::WithVariables { .. } => true,
+                    _ => false,
+                },
+            % endfor
+            PropertyDeclaration::Custom(_, ref value) => match *value {
+                DeclaredValue::WithVariables { .. } => true,
+                _ => false,
+            }
         }
     }
 
@@ -6909,27 +6971,6 @@ macro_rules! longhand_properties_idents {
                 ${property.ident}
             % endfor
         }
-    }
-}
-
-// Extra space here because < seems to be removed by Mako when immediately followed by &.
-//                                                         ↓
-pub fn longhands_from_shorthand(shorthand: &str) -> Option< &'static [&'static str]> {
-    % for property in SHORTHANDS:
-        static ${property.ident.upper()}: &'static [&'static str] = &[
-            % for sub in property.sub_properties:
-                "${sub.name}",
-            % endfor
-        ];
-    % endfor
-    match_ignore_ascii_case!{ shorthand,
-        % for property in SHORTHANDS[:-1]:
-            "${property.name}" => Some(${property.ident.upper()}),
-        % endfor
-        % for property in SHORTHANDS[-1:]:
-            "${property.name}" => Some(${property.ident.upper()})
-        % endfor
-        _ => None
     }
 }
 
