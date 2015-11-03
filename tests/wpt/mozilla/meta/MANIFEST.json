@@ -4103,28 +4103,16 @@
             "url": "/_mozilla/mozilla/webgl/clearcolor.html"
           }
         ],
-        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+        "mozilla/webgl/draw_arrays_simple.html": [
           {
-            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "path": "mozilla/webgl/draw_arrays_simple.html",
             "references": [
               [
-                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context_ref.html",
+                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
                 "=="
               ]
             ],
-            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
-          }
-        ],
-        "mozilla/webgl/tex_image_2d_canvas2d.html": [
-          {
-            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
-            "references": [
-              [
-                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
           }
         ],
         "mozilla/webgl/tex_image_2d_canvas.html": [
@@ -4139,6 +4127,30 @@
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
           }
         ],
+        "mozilla/webgl/tex_image_2d_canvas2d.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+          }
+        ],
         "mozilla/webgl/tex_image_2d_simple.html": [
           {
             "path": "mozilla/webgl/tex_image_2d_simple.html",
@@ -4149,18 +4161,6 @@
               ]
             ],
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
-          }
-        ],
-        "mozilla/webgl/draw_arrays_simple.html": [
-          {
-            "path": "mozilla/webgl/draw_arrays_simple.html",
-            "references": [
-              [
-                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
           }
         ]
       },
@@ -8824,6 +8824,78 @@
             ]
           ],
           "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
+        }
+      ],
+      "mozilla/webgl/clearcolor.html": [
+        {
+          "path": "mozilla/webgl/clearcolor.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/clearcolor.html"
+        }
+      ],
+      "mozilla/webgl/draw_arrays_simple.html": [
+        {
+          "path": "mozilla/webgl/draw_arrays_simple.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas2d.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_simple.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_simple.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
         }
       ]
     }
