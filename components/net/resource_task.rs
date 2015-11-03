@@ -19,10 +19,12 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceTask, ResponseAction};
-use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse};
+use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::sync::mpsc::{Sender, channel};
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
 use util::opts;
@@ -170,21 +172,56 @@ impl ResourceChannelManager {
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
-                ControlMsg::Load(load_data, consumer) => {
-                    self.resource_manager.load(load_data, consumer)
-                }
-                ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
-                    self.resource_manager.set_cookies_for_url(request, cookie_list, source)
-                }
+                ControlMsg::Load(load_data, consumer, id_sender) =>
+                    self.resource_manager.load(load_data, consumer, id_sender),
+                ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
+                    self.resource_manager.set_cookies_for_url(request, cookie_list, source),
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
                     let cookie_jar = &self.resource_manager.cookie_storage;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
-                ControlMsg::Exit => {
-                    break
+                ControlMsg::Cancel(res_id) => {
+                    if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
+                        let _ = cancel_sender.send(CancelLoad);
+                    }
+                    self.resource_manager.cancel_load_map.remove(&res_id);
                 }
+                ControlMsg::Exit => break,
             }
+        }
+    }
+}
+
+/// A load cancellation message which is sent to the listener on cancellation
+pub struct CancelLoad;
+
+/// A listener which is basically a wrapped optional receiver which looks
+/// for the `CancelLoad` message. Some of the loading processes always keep
+/// an eye out for this message and stop loading stuff once they receive it.
+pub struct CancellationListener {
+    receiver: Option<Receiver<CancelLoad>>,
+    cancel_status: Cell<bool>,
+}
+
+impl CancellationListener {
+    pub fn new(receiver: Option<Receiver<CancelLoad>>) -> CancellationListener {
+        CancellationListener {
+            receiver: receiver,
+            cancel_status: Cell::new(false),
+        }
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        match self.receiver {
+            Some(ref receiver) => match receiver.try_recv() {
+                Ok(_) => {
+                    self.cancel_status.set(true);
+                    true
+                },
+                Err(_) => self.cancel_status.get(),
+            },
+            None => false,      // channel doesn't exist!
         }
     }
 }
@@ -196,6 +233,8 @@ pub struct ResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     hsts_list: Arc<RwLock<HSTSList>>,
     connector: Arc<Pool<Connector>>,
+    cancel_load_map: HashMap<ResourceId, Sender<CancelLoad>>,
+    next_resource_id: ResourceId,
 }
 
 impl ResourceManager {
@@ -209,11 +248,11 @@ impl ResourceManager {
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
             connector: create_http_connector(),
+            cancel_load_map: HashMap::new(),
+            next_resource_id: ResourceId(0),
         }
     }
-}
 
-impl ResourceManager {
     fn set_cookies_for_url(&mut self, request: Url, cookie_list: String, source: CookieSource) {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
@@ -227,15 +266,31 @@ impl ResourceManager {
         }
     }
 
-    fn load(&mut self, load_data: LoadData, consumer: LoadConsumer) {
+    fn load(&mut self,
+            load_data: LoadData,
+            consumer: LoadConsumer,
+            id_sender: Option<IpcSender<ResourceId>>) {
 
-        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>))
-                        -> Box<FnBox(LoadData, LoadConsumer, Arc<MIMEClassifier>) + Send> {
-            box move |load_data, senders, classifier| {
-                factory(load_data, senders, classifier)
+        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
+                        -> Box<FnBox(LoadData,
+                                     LoadConsumer,
+                                     Arc<MIMEClassifier>,
+                                     CancellationListener) + Send> {
+            box move |load_data, senders, classifier, cancel_listener| {
+                factory(load_data, senders, classifier, cancel_listener)
             }
         }
 
+        let cancel_receiver = id_sender.map(|sender| {
+            let resource_id = self.next_resource_id;
+            let _ = sender.send(resource_id);
+            let (cancel_sender, cancel_receiver) = channel();
+            self.cancel_load_map.insert(resource_id, cancel_sender);
+            self.next_resource_id.0 += 1;
+            cancel_receiver
+        });
+
+        let cancel_listener = CancellationListener::new(cancel_receiver);
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" =>
@@ -254,6 +309,9 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.call_box((load_data, consumer, self.mime_classifier.clone()));
+        loader.call_box((load_data,
+                         consumer,
+                         self.mime_classifier.clone(),
+                         cancel_listener));
     }
 }
