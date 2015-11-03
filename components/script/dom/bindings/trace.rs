@@ -403,7 +403,7 @@ impl RootedTraceableSet {
         }
     }
 
-    fn remove<T: JSTraceable>(traceable: &T) {
+    unsafe fn remove<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             let mut traceables = traceables.borrow_mut();
             let idx =
@@ -416,7 +416,7 @@ impl RootedTraceableSet {
         });
     }
 
-    fn add<T: JSTraceable>(traceable: &T) {
+    unsafe fn add<T: JSTraceable>(traceable: &T) {
         ROOTED_TRACEABLES.with(|ref traceables| {
             fn trace<T: JSTraceable>(obj: *const libc::c_void, tracer: *mut JSTracer) {
                 let obj: &T = unsafe { &*(obj as *const T) };
@@ -453,14 +453,18 @@ pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
 impl<'a, T: JSTraceable> RootedTraceable<'a, T> {
     /// Root a JSTraceable thing for the life of this RootedTraceable
     pub fn new(traceable: &'a T) -> RootedTraceable<'a, T> {
-        RootedTraceableSet::add(traceable);
+        unsafe {
+            RootedTraceableSet::add(traceable);
+        }
         RootedTraceable { ptr: traceable }
     }
 }
 
 impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
     fn drop(&mut self) {
-        RootedTraceableSet::remove(self.ptr);
+        unsafe {
+            RootedTraceableSet::remove(self.ptr);
+        }
     }
 }
 
@@ -482,15 +486,13 @@ impl<T: JSTraceable> RootedVec<T> {
             return_address() as *const libc::c_void
         };
 
-        RootedVec::new_with_destination_address(addr)
+        unsafe { RootedVec::new_with_destination_address(addr) }
     }
 
     /// Create a vector of items of type T. This constructor is specific
     /// for RootTraceableSet.
-    pub fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
-        unsafe {
-            RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
-        }
+    pub unsafe fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
+        RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
         RootedVec::<T> { v: vec!() }
     }
 }
@@ -498,13 +500,15 @@ impl<T: JSTraceable> RootedVec<T> {
 impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
     /// Obtain a safe slice of references that can't outlive that RootedVec.
     pub fn r(&self) -> &[&T] {
-        unsafe { mem::transmute(&*self.v) }
+        unsafe { mem::transmute(&self.v[..]) }
     }
 }
 
 impl<T: JSTraceable> Drop for RootedVec<T> {
     fn drop(&mut self) {
-        RootedTraceableSet::remove(self);
+        unsafe {
+            RootedTraceableSet::remove(self);
+        }
     }
 }
 
@@ -524,9 +528,9 @@ impl<T: JSTraceable> DerefMut for RootedVec<T> {
 impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
     #[allow(moved_no_move)]
     fn from_iter<T>(iterable: T) -> RootedVec<JS<A>> where T: IntoIterator<Item=Root<A>> {
-        let mut vec = RootedVec::new_with_destination_address(unsafe {
-            return_address() as *const libc::c_void
-        });
+        let mut vec = unsafe {
+            RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
+        };
         vec.extend(iterable.into_iter().map(|item| JS::from_rooted(&item)));
         vec
     }

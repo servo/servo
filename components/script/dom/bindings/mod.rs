@@ -149,9 +149,7 @@ pub mod utils;
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
 pub mod codegen {
-    // FIXME(#5853) we shouldn't need to
-    // allow moved_no_move here
-    #[allow(unrooted_must_root, moved_no_move)]
+    #[allow(unrooted_must_root)]
     pub mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }
