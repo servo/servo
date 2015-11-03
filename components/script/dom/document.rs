@@ -900,7 +900,7 @@ impl Document {
             Some(ref body) => {
                 body.upcast::<Element>().get_string_attribute(local_name)
             },
-            None => "".to_owned()
+            None => DOMString::new()
         }
     }
 
@@ -1500,7 +1500,7 @@ impl DocumentMethods for Document {
         let name = Atom::from_slice(&local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(&local_name);
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
 
         Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
     }
@@ -1510,7 +1510,7 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
         let qualified_name = Atom::from_slice(&qualified_name);
         Ok(Attr::new(&self.window, local_name, value, qualified_name,
                      namespace, prefix, None))

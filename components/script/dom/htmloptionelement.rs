@@ -96,7 +96,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn Text(&self) -> DOMString {
-        let mut content = String::new();
+        let mut content = DOMString::new();
         collect_text(self.upcast(), &mut content);
         str_join(split_html_space_chars(&content), " ")
     }

@@ -783,14 +783,14 @@ impl Node {
             baseURI: self.BaseURI(),
             parent: self.GetParentNode().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType(),
-            namespaceURI: "".to_owned(), //FIXME
+            namespaceURI: DOMString::new(), //FIXME
             nodeName: self.NodeName(),
             numChildren: self.ChildNodes().r().Length() as usize,
 
             //FIXME doctype nodes only
-            name: "".to_owned(),
-            publicId: "".to_owned(),
-            systemId: "".to_owned(),
+            name: DOMString::new(),
+            publicId: DOMString::new(),
+            systemId: DOMString::new(),
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
 
             isDocumentElement:
@@ -799,7 +799,7 @@ impl Node {
                     .map(|elem| elem.upcast::<Node>() == self)
                     .unwrap_or(false),
 
-            shortValue: self.GetNodeValue().unwrap_or("".to_owned()), //FIXME: truncate
+            shortValue: self.GetNodeValue().unwrap_or(DOMString::new()), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
     }
@@ -1902,7 +1902,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-textcontent
     fn SetTextContent(&self, value: Option<DOMString>) {
-        let value = value.unwrap_or(String::new());
+        let value = value.unwrap_or(DOMString::new());
         match self.type_id() {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
