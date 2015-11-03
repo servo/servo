@@ -4,9 +4,9 @@
 
 from mozlog.formatters import base
 import collections
-import mozlog.commandline
 import os
 import sys
+
 
 class GroupingFormatter(base.BaseFormatter):
     """Formatter designed to produce unexpected test results grouped
@@ -22,7 +22,7 @@ class GroupingFormatter(base.BaseFormatter):
         self.tests_with_failing_subtests = []
         self.interactive = os.isatty(sys.stdout.fileno())
 
-        self.expected  = {
+        self.expected = {
             'OK': 0,
             'PASS': 0,
             'FAIL': 0,
@@ -32,7 +32,7 @@ class GroupingFormatter(base.BaseFormatter):
             'CRASH': 0,
         }
 
-        self.unexpected_tests  = {
+        self.unexpected_tests = {
             'OK': [],
             'PASS': [],
             'FAIL': [],
@@ -54,7 +54,7 @@ class GroupingFormatter(base.BaseFormatter):
         output = self.text_to_erase_display()
         if text:
             output += text
-        if new_display != None:
+        if new_display is not None:
             self.current_display = new_display
         return output + self.current_display
 
@@ -235,7 +235,7 @@ class GroupingFormatter(base.BaseFormatter):
         # We are logging messages that begin with STDERR, because that is how exceptions
         # in this formatter are indicated.
         if data['message'].startswith('STDERR'):
-            return self.generate_output(text=data['message']+"\n")
+            return self.generate_output(text=data['message'] + "\n")
 
         if data['level'] in ('CRITICAL', 'ERROR'):
-            return self.generate_output(text=data['message']+"\n")
+            return self.generate_output(text=data['message'] + "\n")
