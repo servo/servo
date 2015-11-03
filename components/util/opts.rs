@@ -23,6 +23,8 @@ use url::{self, Url};
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone)]
 pub struct Opts {
+    pub is_running_problem_test: bool,
+
     /// The initial URL to load.
     pub url: Option<Url>,
 
@@ -403,6 +405,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
     Opts {
+        is_running_problem_test: false,
         url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
         gpu_painting: false,
@@ -524,6 +527,15 @@ pub fn from_cmdline_args(args: &[String]) {
     } else {
         homepage_pref.as_string()
     };
+    let is_running_problem_test =
+        url_opt
+        .as_ref()
+        .map(|url|
+             url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
+             url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html"))
+        .unwrap_or(false);
+
     let url = match url_opt {
         Some(url_string) => {
             parse_url_or_filename(&cwd, url_string)
@@ -611,6 +623,7 @@ pub fn from_cmdline_args(args: &[String]) {
     }).collect();
 
     let opts = Opts {
+        is_running_problem_test: is_running_problem_test,
         url: Some(url),
         paint_threads: paint_threads,
         gpu_painting: gpu_painting,
