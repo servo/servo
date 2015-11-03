@@ -477,6 +477,39 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool
     }
 }
 
+pub fn modify_request_headers(headers: &mut Headers,
+                              doc_url: &Url,
+                              user_agent: &str,
+                              cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    // Ensure that the host header is set from the original url
+    let host = Host {
+        hostname: doc_url.serialize_host().unwrap(),
+        port: doc_url.port_or_default()
+    };
+    headers.set(host);
+    headers.set(UserAgent(user_agent.to_owned()));
+
+    set_default_accept(headers);
+    set_default_accept_encoding(headers);
+    set_request_cookies(doc_url.clone(), headers, cookie_jar);
+}
+
+pub fn process_response_headers(response: &HttpResponse,
+                                url: &Url,
+                                doc_url: &Url,
+                                cookie_jar: &Arc<RwLock<CookieStorage>>,
+                                hsts_list: &Arc<RwLock<HSTSList>>) {
+    info!("got HTTP response {}, headers:", response.status());
+    if log_enabled!(log::LogLevel::Info) {
+        for header in response.headers().iter() {
+            info!(" - {}", header);
+        }
+    }
+
+    set_cookies_from_response(doc_url.clone(), response, cookie_jar);
+    update_sts_list_from_response(url, response, hsts_list);
+}
+
 pub fn load<A>(load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
@@ -526,12 +559,6 @@ pub fn load<A>(load_data: LoadData,
 
         info!("requesting {}", url.serialize());
 
-        // Ensure that the host header is set from the original url
-        let host = Host {
-            hostname: doc_url.serialize_host().unwrap(),
-            port: doc_url.port_or_default()
-        };
-
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
@@ -544,13 +571,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        request_headers.set(host);
-
-        request_headers.set(UserAgent(user_agent.clone()));
-
-        set_default_accept(&mut request_headers);
-        set_default_accept_encoding(&mut request_headers);
-        set_request_cookies(doc_url.clone(), &mut request_headers, &cookie_jar);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar);
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
@@ -621,15 +642,7 @@ pub fn load<A>(load_data: LoadData,
             break;
         }
 
-        info!("got HTTP response {}, headers:", response.status());
-        if log_enabled!(log::LogLevel::Info) {
-            for header in response.headers().iter() {
-                info!(" - {}", header);
-            }
-        }
-
-        set_cookies_from_response(doc_url.clone(), &response, &cookie_jar);
-        update_sts_list_from_response(&url, &response, &hsts_list);
+        process_response_headers(&response, &url, &doc_url, &cookie_jar, &hsts_list);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
