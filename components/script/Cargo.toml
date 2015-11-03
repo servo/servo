@@ -70,6 +70,10 @@ git = "https://github.com/pcwalton/ipc-channel"
 version = "0.6"
 features = [ "serde-serialization" ]
 
+[dependencies.xml5ever]
+git = "https://github.com/Ygg01/xml5ever"
+features = ["unstable"]
+
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 log = "0.3"
@@ -85,7 +89,6 @@ websocket = "0.12.0"
 uuid = "0.1.16"
 smallvec = "0.1"
 html5ever = { version = "0.2.1", features = ["unstable"] }
-xml5ever = {git = "https://github.com/Ygg01/xml5ever", features = ["unstable"] }
 string_cache = { version = "0.1.15", features = ["unstable"] }
 string_cache_plugin = "0.1"
 euclid = {version = "0.3", features = ["plugins"]}
