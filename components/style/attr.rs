@@ -168,3 +168,11 @@ impl Deref for AttrValue {
         }
     }
 }
+
+#[derive(Clone, HeapSizeOf, Debug)]
+pub struct AttrIdentifier {
+    pub local_name: Atom,
+    pub name: Atom,
+    pub namespace: Namespace,
+    pub prefix: Option<Atom>,
+}
