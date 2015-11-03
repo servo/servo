@@ -8,6 +8,7 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
 use canvas_traits::{FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasWindingRule;
@@ -37,7 +38,6 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_task::ImageResponse;
 use num::{Float, ToPrimitive};
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::str::FromStr;
 use std::sync::mpsc::channel;
 use std::{cmp, fmt};
@@ -63,8 +63,8 @@ pub struct CanvasRenderingContext2D {
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
-    state: RefCell<CanvasContextState>,
-    saved_states: RefCell<Vec<CanvasContextState>>,
+    state: DOMRefCell<CanvasContextState>,
+    saved_states: DOMRefCell<Vec<CanvasContextState>>,
 }
 
 #[must_root]
@@ -126,8 +126,8 @@ impl CanvasRenderingContext2D {
             renderer_id: renderer_id,
             ipc_renderer: ipc_renderer,
             canvas: JS::from_ref(canvas),
-            state: RefCell::new(CanvasContextState::new()),
-            saved_states: RefCell::new(Vec::new()),
+            state: DOMRefCell::new(CanvasContextState::new()),
+            saved_states: DOMRefCell::new(Vec::new()),
         }
     }
 

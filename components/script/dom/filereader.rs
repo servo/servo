@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConstants, FileReaderMethods};
@@ -23,7 +24,7 @@ use hyper::mime::{Attr, Mime};
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_task::ScriptTaskEventCategory::FileRead;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan, ScriptPort};
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use util::str::DOMString;
@@ -72,7 +73,7 @@ pub struct FileReader {
     global: GlobalField,
     ready_state: Cell<FileReaderReadyState>,
     error: MutNullableHeap<JS<DOMException>>,
-    result: RefCell<Option<DOMString>>,
+    result: DOMRefCell<Option<DOMString>>,
     generation_id: Cell<GenerationId>,
 }
 
@@ -83,7 +84,7 @@ impl FileReader {
             global: GlobalField::from_rooted(&global),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),
-            result: RefCell::new(None),
+            result: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }
     }

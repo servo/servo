@@ -414,7 +414,7 @@ pub struct ScriptTask {
     mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
     /// List of pipelines that have been owned and closed by this script task.
-    closed_pipelines: RefCell<HashSet<PipelineId>>,
+    closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
     scheduler_chan: Sender<TimerEventRequest>,
     timer_event_chan: Sender<TimerEvent>,
@@ -643,7 +643,7 @@ impl ScriptTask {
 
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
-            closed_pipelines: RefCell::new(HashSet::new()),
+            closed_pipelines: DOMRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
             timer_event_chan: timer_event_chan,
