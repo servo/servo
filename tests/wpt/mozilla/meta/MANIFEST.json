@@ -923,6 +923,18 @@
             "url": "/_mozilla/css/box_shadow_inset_bg.html"
           }
         ],
+        "css/box_shadow_inset_parsing_a.html": [
+          {
+            "path": "css/box_shadow_inset_parsing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_inset_parsing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_inset_parsing_a.html"
+          }
+        ],
         "css/box_shadow_paint_order_a.html": [
           {
             "path": "css/box_shadow_paint_order_a.html",
@@ -5668,6 +5680,18 @@
             ]
           ],
           "url": "/_mozilla/css/box_shadow_inset_bg.html"
+        }
+      ],
+      "css/box_shadow_inset_parsing_a.html": [
+        {
+          "path": "css/box_shadow_inset_parsing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_inset_parsing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_inset_parsing_a.html"
         }
       ],
       "css/box_shadow_paint_order_a.html": [
