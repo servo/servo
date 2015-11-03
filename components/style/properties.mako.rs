@@ -14,7 +14,7 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
-use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
+use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use url::Url;
 use util::logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
@@ -4846,7 +4846,10 @@ pub mod shorthands {
                          -> Result<(), ()> {
                 input.look_for_var_functions();
                 let start = input.position();
-                let value = parse_value(context, input);
+                let value = input.parse_entirely(|input| parse_value(context, input));
+                if value.is_err() {
+                    while let Ok(_) = input.next() {}  // Look for var() after the error.
+                }
                 let var = input.seen_var_functions();
                 if let Ok(value) = value {
                     % for sub_property in shorthand.sub_properties:
@@ -5663,10 +5666,12 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 
     fn parse_value(&self, name: &str, input: &mut Parser) -> Result<(Vec<PropertyDeclaration>, bool), ()> {
         let mut results = vec![];
-        match PropertyDeclaration::parse(name, self.context, input, &mut results) {
-            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-            _ => return Err(())
-        }
+        try!(input.parse_until_before(Delimiter::Bang, |input| {
+            match PropertyDeclaration::parse(name, self.context, input, &mut results) {
+                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
+                _ => Err(())
+            }
+        }));
         let important = input.try(parse_important).is_ok();
         Ok((results, important))
     }

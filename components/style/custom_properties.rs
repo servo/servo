@@ -270,6 +270,8 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
     let name = try!(input.expect_ident());
     let name = try!(parse_name(&name));
     if input.try(|input| input.expect_comma()).is_ok() {
+        // Exclude `!` and `;` at the top level
+        // https://drafts.csswg.org/css-syntax/#typedef-declaration-value
         try!(input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
             // At least one non-comment token.
             try!(input.next_including_whitespace());
