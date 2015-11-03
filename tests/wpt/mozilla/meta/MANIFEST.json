@@ -1055,6 +1055,18 @@
             "url": "/_mozilla/css/canvas_over_area.html"
           }
         ],
+        "css/canvas_radial_gradient_a.html": [
+          {
+            "path": "css/canvas_radial_gradient_a.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_radial_gradient_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_radial_gradient_a.html"
+          }
+        ],
         "css/case-insensitive-font-family.html": [
           {
             "path": "css/case-insensitive-font-family.html",
@@ -5824,6 +5836,18 @@
             ]
           ],
           "url": "/_mozilla/css/canvas_over_area.html"
+        }
+      ],
+      "css/canvas_radial_gradient_a.html": [
+        {
+          "path": "css/canvas_radial_gradient_a.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_radial_gradient_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_radial_gradient_a.html"
         }
       ],
       "css/case-insensitive-font-family.html": [
