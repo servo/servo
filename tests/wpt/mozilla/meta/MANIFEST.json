@@ -899,6 +899,18 @@
             "url": "/_mozilla/css/box_shadow_default_color_a.html"
           }
         ],
+        "css/box_shadow_inset_a.html": [
+          {
+            "path": "css/box_shadow_inset_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_inset_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_inset_a.html"
+          }
+        ],
         "css/box_shadow_inset_bg.html": [
           {
             "path": "css/box_shadow_inset_bg.html",
@@ -911,6 +923,18 @@
             "url": "/_mozilla/css/box_shadow_inset_bg.html"
           }
         ],
+        "css/box_shadow_inset_parsing_a.html": [
+          {
+            "path": "css/box_shadow_inset_parsing_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_inset_parsing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_inset_parsing_a.html"
+          }
+        ],
         "css/box_shadow_paint_order_a.html": [
           {
             "path": "css/box_shadow_paint_order_a.html",
@@ -921,6 +945,18 @@
               ]
             ],
             "url": "/_mozilla/css/box_shadow_paint_order_a.html"
+          }
+        ],
+        "css/box_shadow_spread_a.html": [
+          {
+            "path": "css/box_shadow_spread_a.html",
+            "references": [
+              [
+                "/_mozilla/css/box_shadow_spread_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/box_shadow_spread_a.html"
           }
         ],
         "css/box_sizing_border_box_a.html": [
@@ -1005,6 +1041,30 @@
               ]
             ],
             "url": "/_mozilla/css/canvas_linear_gradient_a.html"
+          }
+        ],
+        "css/canvas_over_area.html": [
+          {
+            "path": "css/canvas_over_area.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_over_area_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_over_area.html"
+          }
+        ],
+        "css/canvas_radial_gradient_a.html": [
+          {
+            "path": "css/canvas_radial_gradient_a.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_radial_gradient_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_radial_gradient_a.html"
           }
         ],
         "css/case-insensitive-font-family.html": [
@@ -4091,28 +4151,16 @@
             "url": "/_mozilla/mozilla/webgl/clearcolor.html"
           }
         ],
-        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+        "mozilla/webgl/draw_arrays_simple.html": [
           {
-            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "path": "mozilla/webgl/draw_arrays_simple.html",
             "references": [
               [
-                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context_ref.html",
+                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
                 "=="
               ]
             ],
-            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
-          }
-        ],
-        "mozilla/webgl/tex_image_2d_canvas2d.html": [
-          {
-            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
-            "references": [
-              [
-                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
           }
         ],
         "mozilla/webgl/tex_image_2d_canvas.html": [
@@ -4127,6 +4175,30 @@
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
           }
         ],
+        "mozilla/webgl/tex_image_2d_canvas2d.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+          }
+        ],
         "mozilla/webgl/tex_image_2d_simple.html": [
           {
             "path": "mozilla/webgl/tex_image_2d_simple.html",
@@ -4138,21 +4210,15 @@
             ],
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
           }
-        ],
-        "mozilla/webgl/draw_arrays_simple.html": [
-          {
-            "path": "mozilla/webgl/draw_arrays_simple.html",
-            "references": [
-              [
-                "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
-          }
         ]
       },
       "testharness": {
+        "css/float_relative_to_position.html": [
+          {
+            "path": "css/float_relative_to_position.html",
+            "url": "/_mozilla/css/float_relative_to_position.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
@@ -5622,6 +5688,18 @@
           "url": "/_mozilla/css/box_shadow_default_color_a.html"
         }
       ],
+      "css/box_shadow_inset_a.html": [
+        {
+          "path": "css/box_shadow_inset_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_inset_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_inset_a.html"
+        }
+      ],
       "css/box_shadow_inset_bg.html": [
         {
           "path": "css/box_shadow_inset_bg.html",
@@ -5634,6 +5712,18 @@
           "url": "/_mozilla/css/box_shadow_inset_bg.html"
         }
       ],
+      "css/box_shadow_inset_parsing_a.html": [
+        {
+          "path": "css/box_shadow_inset_parsing_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_inset_parsing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_inset_parsing_a.html"
+        }
+      ],
       "css/box_shadow_paint_order_a.html": [
         {
           "path": "css/box_shadow_paint_order_a.html",
@@ -5644,6 +5734,18 @@
             ]
           ],
           "url": "/_mozilla/css/box_shadow_paint_order_a.html"
+        }
+      ],
+      "css/box_shadow_spread_a.html": [
+        {
+          "path": "css/box_shadow_spread_a.html",
+          "references": [
+            [
+              "/_mozilla/css/box_shadow_spread_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/box_shadow_spread_a.html"
         }
       ],
       "css/box_sizing_border_box_a.html": [
@@ -5728,6 +5830,30 @@
             ]
           ],
           "url": "/_mozilla/css/canvas_linear_gradient_a.html"
+        }
+      ],
+      "css/canvas_over_area.html": [
+        {
+          "path": "css/canvas_over_area.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_over_area_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_over_area.html"
+        }
+      ],
+      "css/canvas_radial_gradient_a.html": [
+        {
+          "path": "css/canvas_radial_gradient_a.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_radial_gradient_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_radial_gradient_a.html"
         }
       ],
       "css/case-insensitive-font-family.html": [
@@ -8800,6 +8926,78 @@
             ]
           ],
           "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
+        }
+      ],
+      "mozilla/webgl/clearcolor.html": [
+        {
+          "path": "mozilla/webgl/clearcolor.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/clearcolor_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/clearcolor.html"
+        }
+      ],
+      "mozilla/webgl/draw_arrays_simple.html": [
+        {
+          "path": "mozilla/webgl/draw_arrays_simple.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/draw_arrays_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas2d.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas2d.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas2d.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_canvas_no_context.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_canvas_no_context.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_simple.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_simple.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
         }
       ]
     }

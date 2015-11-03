@@ -37,7 +37,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_task::ScriptTaskEventCategory::ScriptEvent;
 use script_task::{CommonScriptMsg, Runnable, ScriptChan};
 use std::ascii::AsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use url::{Url, UrlParser};
@@ -65,7 +65,7 @@ pub struct HTMLScriptElement {
     parser_document: JS<Document>,
 
     /// The source this script was loaded from
-    load: RefCell<Option<ScriptOrigin>>,
+    load: DOMRefCell<Option<ScriptOrigin>>,
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
@@ -83,7 +83,7 @@ impl HTMLScriptElement {
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
-            load: RefCell::new(None),
+            load: DOMRefCell::new(None),
             block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
         }
     }

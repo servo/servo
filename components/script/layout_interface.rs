@@ -175,14 +175,10 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
-    /// The channel through which messages can be sent back to the script task.
-    pub script_chan: Sender<ConstellationControlMsg>,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.
     pub script_join_chan: Sender<()>,
-    /// Unique identifier
-    pub id: u32,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
 }

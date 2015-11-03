@@ -58,6 +58,12 @@ pub fn update_animation_state(rw_data: &mut LayoutTaskData, pipeline_id: Pipelin
 
     let mut running_animations_hash = (*rw_data.running_animations).clone();
 
+    if running_animations_hash.is_empty() && new_running_animations.is_empty() {
+        // Nothing to do. Return early so we don't flood the compositor with
+        // `ChangeRunningAnimationsState` messages.
+        return
+    }
+
     // Expire old running animations.
     let now = clock_ticks::precise_time_s();
     let mut keys_to_remove = Vec::new();

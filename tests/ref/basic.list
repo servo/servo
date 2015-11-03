@@ -11,10 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== box_shadow_inset_a.html box_shadow_inset_ref.html
-== box_shadow_inset_parsing_a.html box_shadow_inset_parsing_ref.html
-== box_shadow_spread_a.html box_shadow_spread_ref.html
-== canvas_radial_gradient_a.html canvas_radial_gradient_ref.html
 == fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
 prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
 prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html

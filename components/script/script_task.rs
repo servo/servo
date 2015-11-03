@@ -78,12 +78,12 @@ use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{ClickEvent, ResizeEvent};
 use script_traits::CompositorEvent::{KeyEvent, MouseMoveEvent};
-use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
-use script_traits::CompositorEvent::{TouchDownEvent, TouchMoveEvent, TouchUpEvent};
+use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent, TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{InitialScriptState, MouseButton, NewLayoutInfo};
 use script_traits::{OpaqueScriptLayoutChannel, ScriptState, ScriptTaskFactory};
 use script_traits::{TimerEvent, TimerEventChan, TimerEventRequest, TimerSource};
+use script_traits::{TouchEventType, TouchId};
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -414,7 +414,7 @@ pub struct ScriptTask {
     mouse_over_targets: DOMRefCell<Vec<JS<Element>>>,
 
     /// List of pipelines that have been owned and closed by this script task.
-    closed_pipelines: RefCell<HashSet<PipelineId>>,
+    closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
 
     scheduler_chan: Sender<TimerEventRequest>,
     timer_event_chan: Sender<TimerEvent>,
@@ -643,7 +643,7 @@ impl ScriptTask {
 
             js_runtime: Rc::new(runtime),
             mouse_over_targets: DOMRefCell::new(vec!()),
-            closed_pipelines: RefCell::new(HashSet::new()),
+            closed_pipelines: DOMRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,
             timer_event_chan: timer_event_chan,
@@ -1588,7 +1588,6 @@ impl ScriptTask {
                                  page.clone(),
                                  MainThreadScriptChan(sender.clone()),
                                  self.image_cache_channel.clone(),
-                                 self.control_chan.clone(),
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_task.clone(),
                                  self.resource_task.clone(),
@@ -1764,25 +1763,25 @@ impl ScriptTask {
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
             }
 
-            TouchDownEvent(identifier, point) => {
-                let default_action_allowed =
-                    self.handle_touch_event(pipeline_id, identifier, point, "touchstart");
-                if default_action_allowed {
-                    // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
-                            EventResult::DefaultAllowed)).unwrap();
-                } else {
-                    self.compositor.borrow_mut().send(ScriptToCompositorMsg::TouchEventProcessed(
-                            EventResult::DefaultPrevented)).unwrap();
+            TouchEvent(event_type, identifier, point) => {
+                let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
+                match event_type {
+                    TouchEventType::Down => {
+                        if handled {
+                            // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultAllowed)).unwrap();
+                        } else {
+                            self.compositor.borrow_mut()
+                                .send(ScriptToCompositorMsg::TouchEventProcessed(
+                                        EventResult::DefaultPrevented)).unwrap();
+                        }
+                    }
+                    _ => {
+                        // TODO: Calling preventDefault on a touchup event should prevent clicks.
+                    }
                 }
-            }
-
-            TouchMoveEvent(identifier, point) => {
-                self.handle_touch_event(pipeline_id, identifier, point, "touchmove");
-            }
-
-            TouchUpEvent(identifier, point) => {
-                self.handle_touch_event(pipeline_id, identifier, point, "touchend");
             }
 
             KeyEvent(key, state, modifiers) => {
@@ -1806,13 +1805,13 @@ impl ScriptTask {
 
     fn handle_touch_event(&self,
                           pipeline_id: PipelineId,
-                          identifier: i32,
-                          point: Point2D<f32>,
-                          event_name: &str) -> bool {
+                          event_type: TouchEventType,
+                          identifier: TouchId,
+                          point: Point2D<f32>)
+                          -> bool {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().handle_touch_event(self.js_runtime.rt(), identifier, point,
-                                        event_name.to_owned())
+        document.r().handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents

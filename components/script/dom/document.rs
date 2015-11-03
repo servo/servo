@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
+use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -84,12 +85,12 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_task::{MainThreadScriptMsg, Runnable};
-use script_traits::{MouseButton, UntrustedNodeAddress};
+use script_traits::{MouseButton, TouchEventType, TouchId, UntrustedNodeAddress};
 use selectors::states::*;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
@@ -163,7 +164,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: RefCell<HashMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<HashMap<u32, Box<FnBox(f64)>>>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -175,8 +176,10 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
-    // The collection of ElementStates that have been changed since the last restyle.
+    /// The collection of ElementStates that have been changed since the last restyle.
     element_state_changes: DOMRefCell<HashMap<JS<Element>, ElementState>>,
+    /// http://w3c.github.io/touch-events/#dfn-active-touch-point
+    active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
 }
 
 impl PartialEq for Document {
@@ -347,7 +350,6 @@ impl Document {
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
         node.force_dirty_ancestors(damage);
-        node.dirty(damage);
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
@@ -728,9 +730,17 @@ impl Document {
 
     pub fn handle_touch_event(&self,
                               js_runtime: *mut JSRuntime,
-                              identifier: i32,
-                              point: Point2D<f32>,
-                              event_name: String) -> bool {
+                              event_type: TouchEventType,
+                              TouchId(identifier): TouchId,
+                              point: Point2D<f32>)
+                              -> bool {
+        let event_name = match event_type {
+            TouchEventType::Down => "touchstart",
+            TouchEventType::Move => "touchmove",
+            TouchEventType::Up => "touchend",
+            TouchEventType::Cancel => "touchcancel",
+        };
+
         let node = match self.hit_test(&point) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return false
@@ -745,7 +755,7 @@ impl Document {
                 }
             },
         };
-        let target = el.upcast::<EventTarget>();
+        let target = Root::upcast::<EventTarget>(el);
         let window = &*self.window;
 
         let client_x = Finite::wrap(point.x as f64);
@@ -753,26 +763,58 @@ impl Document {
         let page_x = Finite::wrap(point.x as f64 + window.PageXOffset() as f64);
         let page_y = Finite::wrap(point.y as f64 + window.PageYOffset() as f64);
 
-        let touch = Touch::new(window, identifier, target,
+        let touch = Touch::new(window, identifier, target.r(),
                                client_x, client_y, // TODO: Get real screen coordinates?
                                client_x, client_y,
                                page_x, page_y);
 
+        match event_type {
+            TouchEventType::Down => {
+                // Add a new touch point
+                self.active_touch_points.borrow_mut().push(JS::from_rooted(&touch));
+            }
+            TouchEventType::Move => {
+                // Replace an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
+                    Some(t) => *t = JS::from_rooted(&touch),
+                    None => warn!("Got a touchmove event for a non-active touch point")
+                }
+            }
+            TouchEventType::Up |
+            TouchEventType::Cancel => {
+                // Remove an existing touch point
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                match active_touch_points.iter().position(|t| t.Identifier() == identifier) {
+                    Some(i) => { active_touch_points.swap_remove(i); }
+                    None => warn!("Got a touchend event for a non-active touch point")
+                }
+            }
+        }
+
         let mut touches = RootedVec::new();
-        touches.push(JS::from_rooted(&touch));
-        let touches = TouchList::new(window, touches.r());
+        touches.extend(self.active_touch_points.borrow().iter().cloned());
+
+        let mut changed_touches = RootedVec::new();
+        changed_touches.push(JS::from_rooted(&touch));
+
+        let mut target_touches = RootedVec::new();
+        target_touches.extend(self.active_touch_points.borrow().iter().filter(
+                |t| t.Target() == target).cloned());
 
         let event = TouchEvent::new(window,
-                                    event_name,
+                                    event_name.to_owned(),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window),
                                     0i32,
-                                    &touches, &touches, &touches,
+                                    &TouchList::new(window, touches.r()),
+                                    &TouchList::new(window, changed_touches.r()),
+                                    &TouchList::new(window, target_touches.r()),
                                     // FIXME: modifier keys
                                     false, false, false, false);
         let event = event.upcast::<Event>();
-        let result = event.fire(target);
+        let result = event.fire(target.r());
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
@@ -1262,13 +1304,14 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec!()),
             scripting_enabled: Cell::new(true),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: RefCell::new(HashMap::new()),
+            animation_frame_list: DOMRefCell::new(HashMap::new()),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             element_state_changes: DOMRefCell::new(HashMap::new()),
+            active_touch_points: DOMRefCell::new(Vec::new()),
         }
     }
 

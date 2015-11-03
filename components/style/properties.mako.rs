@@ -546,7 +546,25 @@ pub mod longhands {
     </%self:longhand>
 
     ${single_keyword("position", "static absolute relative fixed")}
-    ${single_keyword("float", "none left right")}
+
+    <%self:single_keyword_computed name="float" values="none left right">
+        use values::computed::Context;
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                if context.positioned {
+                    SpecifiedValue::none
+                } else {
+                    *self
+                }
+            }
+        }
+
+    </%self:single_keyword_computed>
+
     ${single_keyword("clear", "none left right both")}
 
     <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">

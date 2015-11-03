@@ -54,11 +54,11 @@ use profile_traits::mem;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_task::{ScriptChan, ScriptPort, MainThreadScriptMsg};
 use script_task::{SendableMainThreadScriptChan, MainThreadScriptChan, MainThreadTimerEventChan};
-use script_traits::{ConstellationControlMsg, TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
+use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource};
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref};
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
@@ -109,8 +109,6 @@ pub struct Window {
     eventtarget: EventTarget,
     #[ignore_heap_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    control_chan: Sender<ConstellationControlMsg>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
@@ -144,9 +142,9 @@ pub struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     #[ignore_heap_size_of = "TODO(#6909) need to measure HashSet"]
-    devtools_markers: RefCell<HashSet<TimelineMarkerType>>,
+    devtools_markers: DOMRefCell<HashSet<TimelineMarkerType>>,
     #[ignore_heap_size_of = "channels are hard"]
-    devtools_marker_sender: RefCell<Option<IpcSender<TimelineMarker>>>,
+    devtools_marker_sender: DOMRefCell<Option<IpcSender<TimelineMarker>>>,
 
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
@@ -162,9 +160,6 @@ pub struct Window {
 
     /// Subpage id associated with this page, if any.
     parent_info: Option<(PipelineId, SubpageId)>,
-
-    /// Unique id for last reflow request; used for confirming completion reply.
-    last_reflow_id: Cell<u32>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -208,7 +203,7 @@ pub struct Window {
 
     /// A channel for communicating results of async scripts back to the webdriver server
     #[ignore_heap_size_of = "channels are hard"]
-    webdriver_script_chan: RefCell<Option<IpcSender<WebDriverJSResult>>>,
+    webdriver_script_chan: DOMRefCell<Option<IpcSender<WebDriverJSResult>>>,
 
     /// The current state of the window object
     current_state: Cell<WindowState>,
@@ -901,9 +896,6 @@ impl Window {
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();
 
-        let last_reflow_id = &self.last_reflow_id;
-        last_reflow_id.set(last_reflow_id.get() + 1);
-
         // On debug mode, print the reflow event information.
         if opts::get().relayout_event {
             debug_reflow_events(&goal, &query_type, &reason);
@@ -917,9 +909,7 @@ impl Window {
             },
             document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
-            script_chan: self.control_chan.clone(),
             script_join_chan: join_chan,
-            id: last_reflow_id.get(),
             query_type: query_type,
         };
 
@@ -1212,7 +1202,6 @@ impl Window {
                page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                image_cache_chan: ImageCacheChan,
-               control_chan: Sender<ConstellationControlMsg>,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_task: ImageCacheTask,
                resource_task: Arc<ResourceTask>,
@@ -1238,7 +1227,6 @@ impl Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
             image_cache_chan: image_cache_chan,
-            control_chan: control_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
@@ -1266,7 +1254,6 @@ impl Window {
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
-            last_reflow_id: Cell::new(0),
             resize_event: Cell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
@@ -1276,10 +1263,10 @@ impl Window {
             pending_reflow_count: Cell::new(0),
             current_state: Cell::new(WindowState::Alive),
 
-            devtools_marker_sender: RefCell::new(None),
-            devtools_markers: RefCell::new(HashSet::new()),
+            devtools_marker_sender: DOMRefCell::new(None),
+            devtools_markers: DOMRefCell::new(HashSet::new()),
             devtools_wants_updates: Cell::new(false),
-            webdriver_script_chan: RefCell::new(None),
+            webdriver_script_chan: DOMRefCell::new(None),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)

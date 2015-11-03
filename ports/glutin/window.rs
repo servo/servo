@@ -16,6 +16,7 @@ use gleam::gl;
 use glutin;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
+use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 #[cfg(feature = "window")]
@@ -157,6 +158,8 @@ impl Window {
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
+        use script_traits::{TouchEventType, TouchId};
+
         match event {
             Event::KeyboardInput(element_state, _scan_code, virtual_key_code) => {
                 if virtual_key_code.is_some() {
@@ -204,18 +207,19 @@ impl Window {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
-
-                if !self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL) {
-                    self.scroll_window(dx, dy);
-                } else {
-                    let factor = if dy > 0. {
-                        1.1
-                    } else {
-                        1.0 / 1.1
-                    };
-                    self.pinch_zoom(factor);
-                }
+                self.scroll_window(dx, dy);
             },
+            Event::Touch(touch) => {
+                let phase = match touch.phase {
+                    TouchPhase::Started => TouchEventType::Down,
+                    TouchPhase::Moved => TouchEventType::Move,
+                    TouchPhase::Ended => TouchEventType::Up,
+                    TouchPhase::Cancelled => TouchEventType::Cancel,
+                };
+                let id = TouchId(touch.id as i32);
+                let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
+                self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
+            }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             }
@@ -232,10 +236,6 @@ impl Window {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
-    }
-
-    fn pinch_zoom(&self, factor: f32) {
-        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(factor));
     }
 
     /// Helper function to send a scroll event.
@@ -646,11 +646,18 @@ impl WindowMethods for Window {
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
 
         match (mods, key) {
-            (_, Key::Equal) if mods & !SHIFT == CMD_OR_CONTROL => {
-                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+            (_, Key::Equal) => {
+                if mods & !SHIFT == CMD_OR_CONTROL {
+                    self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
+                } else if mods & !SHIFT == CMD_OR_CONTROL | ALT {
+                    self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
+                }
             }
             (CMD_OR_CONTROL, Key::Minus) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
+            }
+            (_, Key::Minus) if mods == CMD_OR_CONTROL | ALT => {
+                self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Key::Num0) |
             (CMD_OR_CONTROL, Key::Kp0) => {
