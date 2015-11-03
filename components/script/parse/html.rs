@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-
 use dom::bindings::js::{JS, RootedReference};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;

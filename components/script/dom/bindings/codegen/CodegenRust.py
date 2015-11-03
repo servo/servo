@@ -5960,8 +5960,8 @@ class GlobalGenRoots():
             ("ID used by interfaces that are not castable.", "Alone"),
         ]
         topTypeVariants += [
-            ("ID used by interfaces that derive from %s." % name, "%s(%sTypeId)" % (name, name))
-            for name in topTypes
+            ("ID used by interfaces that derive from %s." % typeName, "%s(%sTypeId)" % (typeName, typeName))
+            for typeName in topTypes
         ]
         topTypeVariantsAsStrings = [CGGeneric("/// %s\n%s," % variant) for variant in topTypeVariants]
         typeIdCode.append(CGWrapper(CGIndenter(CGList(topTypeVariantsAsStrings, "\n"), 4),
@@ -5978,7 +5978,7 @@ class GlobalGenRoots():
             variants = []
             if not config.getInterface(base).getExtendedAttribute("Abstract"):
                 variants.append(CGGeneric(base))
-            variants += [CGGeneric(type_id_variant(name)) for name in derived]
+            variants += [CGGeneric(type_id_variant(derivedName)) for derivedName in derived]
             derives = "Clone, Copy, Debug"
             if base != 'EventTarget' and base != 'HTMLElement':
                 derives += ", PartialEq"
