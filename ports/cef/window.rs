@@ -469,10 +469,7 @@ impl WindowMethods for Window {
             Some(ref browser) => browser,
         };
         let frame = browser.get_main_frame();
-        let servoframe = frame.downcast();
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut frame_url = servoframe.url.borrow_mut();
-        *frame_url = url.to_string();
+        *frame_url = frame.downcast().url.borrow_mut().to_string()
         let utf16_chars: Vec<u16> = Utf16Encoder::new((*frame_url).chars()).collect();
         if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
