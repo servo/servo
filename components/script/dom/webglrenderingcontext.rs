@@ -844,7 +844,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 (image_data.get_data_array(&global.r()), image_data.get_size())
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::eHTMLImageElement(image) => {
-                let img_url = match image.r().get_url() {
+                let img_url = match image.get_url() {
                     Some(url) => url,
                     None => return,
                 };
@@ -900,7 +900,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.r().tex_parameter(target, name, TexParameterValue::Float(value));
+                    let result = texture.tex_parameter(target, name, TexParameterValue::Float(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);
@@ -917,7 +917,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => {
                 if let Some(texture) = self.bound_texture_for(target) {
-                    let result = texture.r().tex_parameter(target, name, TexParameterValue::Int(value));
+                    let result = texture.tex_parameter(target, name, TexParameterValue::Int(value));
                     handle_potential_webgl_error!(self, result);
                 } else {
                     return self.webgl_error(InvalidOperation);

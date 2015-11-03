@@ -205,7 +205,7 @@ impl XMLHttpRequest {
                 if response.network_error {
                     let mut context = self.xhr.lock().unwrap();
                     let xhr = context.xhr.root();
-                    xhr.r().process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
+                    xhr.process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
                     *context.sync_status.borrow_mut() = Some(Err(Error::Network));
                     return;
                 }
@@ -239,9 +239,9 @@ impl XMLHttpRequest {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&mut self, metadata: Metadata) {
                 let xhr = self.xhr.root();
-                let rv = xhr.r().process_headers_available(self.cors_request.clone(),
-                                                           self.gen_id,
-                                                           metadata);
+                let rv = xhr.process_headers_available(self.cors_request.clone(),
+                                                       self.gen_id,
+                                                       metadata);
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
@@ -249,21 +249,18 @@ impl XMLHttpRequest {
 
             fn data_available(&mut self, payload: Vec<u8>) {
                 self.buf.borrow_mut().push_all(&payload);
-                let xhr = self.xhr.root();
-                xhr.r().process_data_available(self.gen_id, self.buf.borrow().clone());
+                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
             fn response_complete(&mut self, status: Result<(), String>) {
-                let xhr = self.xhr.root();
-                let rv = xhr.r().process_response_complete(self.gen_id, status);
+                let rv = self.xhr.root().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
         }
 
         impl PreInvoke for XHRContext {
             fn should_invoke(&self) -> bool {
-                let xhr = self.xhr.root();
-                xhr.r().generation_id.get() == self.gen_id
+                self.xhr.root().generation_id.get() == self.gen_id
             }
         }
 
@@ -949,8 +946,8 @@ impl XMLHttpRequest {
             fn handler(self: Box<XHRTimeout>) {
                 let this = *self;
                 let xhr = this.xhr.root();
-                if xhr.r().ready_state.get() != XMLHttpRequestState::Done {
-                    xhr.r().process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
+                if xhr.ready_state.get() != XMLHttpRequestState::Done {
+                    xhr.process_partial_response(XHRProgress::Errored(this.gen_id, Error::Timeout));
                 }
             }
         }
@@ -1110,7 +1107,7 @@ impl Extractable for SendParam {
             },
             eURLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
-                usp.r().serialize(None).into_bytes()
+                usp.serialize(None).into_bytes()
             },
         }
     }

@@ -31,7 +31,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
-        if candidate.r().get_unique_id() == node_id {
+        if candidate.get_unique_id() == node_id {
             return Some(candidate);
         }
     }
@@ -64,9 +64,9 @@ pub fn handle_execute_script(page: &Rc<Page>,
                              reply: IpcSender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
-    let cx = window.r().get_cx();
+    let cx = window.get_cx();
     let mut rval = RootedValue::new(cx, UndefinedValue());
-    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+    window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
     reply.send(jsval_to_webdriver(cx, rval.handle())).unwrap();
 }
@@ -77,10 +77,10 @@ pub fn handle_execute_async_script(page: &Rc<Page>,
                                    reply: IpcSender<WebDriverJSResult>) {
     let page = get_page(&*page, pipeline);
     let window = page.window();
-    let cx = window.r().get_cx();
-    window.r().set_webdriver_script_chan(Some(reply));
+    let cx = window.get_cx();
+    window.set_webdriver_script_chan(Some(reply));
     let mut rval = RootedValue::new(cx, UndefinedValue());
-    window.r().evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+    window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
 pub fn handle_get_frame_id(page: &Rc<Page>,
@@ -105,17 +105,17 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
         },
         WebDriverFrameId::Parent => {
             let window = page.window();
-            Ok(window.r().parent())
+            Ok(window.parent())
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.r().pipeline()));
+    let frame_id = window.map(|x| x.map(|x| x.pipeline()));
     reply.send(frame_id).unwrap()
 }
 
 pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelector(selector) {
+    reply.send(match page.document().QuerySelector(selector) {
         Ok(node) => {
             Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
         }
@@ -127,12 +127,12 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
                                 _pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
-    reply.send(match page.document().r().QuerySelectorAll(selector) {
+    reply.send(match page.document().QuerySelectorAll(selector) {
         Ok(ref nodes) => {
-            let mut result = Vec::with_capacity(nodes.r().Length() as usize);
-            for i in 0..nodes.r().Length() {
-                if let Some(ref node) = nodes.r().Item(i) {
-                    result.push(node.r().get_unique_id());
+            let mut result = Vec::with_capacity(nodes.Length() as usize);
+            for i in 0..nodes.Length() {
+                if let Some(ref node) = nodes.Item(i) {
+                    result.push(node.get_unique_id());
                 }
             }
             Ok(result)
@@ -146,12 +146,12 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
 pub fn handle_get_active_element(page: &Rc<Page>,
                                  _pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
-    reply.send(page.document().r().GetActiveElement().map(
+    reply.send(page.document().GetActiveElement().map(
         |elem| elem.upcast::<Node>().get_unique_id())).unwrap();
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
-    reply.send(page.document().r().Title()).unwrap();
+    reply.send(page.document().Title()).unwrap();
 }
 
 pub fn handle_get_text(page: &Rc<Page>,
@@ -160,7 +160,7 @@ pub fn handle_get_text(page: &Rc<Page>,
                        reply: IpcSender<Result<String, ()>>) {
     reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
         Some(ref node) => {
-            Ok(node.r().GetTextContent().unwrap_or("".to_owned()))
+            Ok(node.GetTextContent().unwrap_or("".to_owned()))
         },
         None => Err(())
     }).unwrap();
@@ -182,6 +182,6 @@ pub fn handle_get_url(page: &Rc<Page>,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
     let document = page.document();
-    let url = document.r().url();
+    let url = document.url();
     reply.send((*url).clone()).unwrap();
 }

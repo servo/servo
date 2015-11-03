@@ -42,7 +42,7 @@ impl CustomEvent {
                cancelable: bool,
                detail: HandleValue) -> Root<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(global);
-        ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         ev
     }
     #[allow(unsafe_code)]

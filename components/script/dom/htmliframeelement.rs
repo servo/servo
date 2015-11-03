@@ -69,12 +69,12 @@ impl HTMLIFrameElement {
     pub fn get_url(&self) -> Option<Url> {
         let element = self.upcast::<Element>();
         element.get_attribute(&ns!(""), &atom!("src")).and_then(|src| {
-            let url = src.r().value();
+            let url = src.value();
             if url.is_empty() {
                 None
             } else {
                 let window = window_from_node(self);
-                UrlParser::new().base_url(&window.r().get_url())
+                UrlParser::new().base_url(&window.get_url())
                     .parse(&url).ok()
             }
         })
@@ -85,7 +85,7 @@ impl HTMLIFrameElement {
 
         let old_subpage_id = self.subpage_id.get();
         let win = window_from_node(self);
-        let subpage_id = win.r().get_next_subpage_id();
+        let subpage_id = win.get_next_subpage_id();
         self.subpage_id.set(Some(subpage_id));
         (subpage_id, old_subpage_id)
     }
@@ -138,7 +138,7 @@ impl HTMLIFrameElement {
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
-            let cx = window.r().get_cx();
+            let cx = window.get_cx();
             let _ar = JSAutoRequest::new(cx);
             let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
             let mut detail = RootedValue::new(cx, UndefinedValue());
@@ -272,7 +272,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             let children = window.page().children.borrow();
             children.iter().find(|page| {
                 let window = page.window();
-                window.r().subpage() == Some(subpage_id)
+                window.subpage() == Some(subpage_id)
             }).map(|page| page.window())
         })
     }
@@ -284,10 +284,10 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
                 Some(self_url) => self_url,
                 None => return None,
             };
-            let win_url = window_from_node(self).r().get_url();
+            let win_url = window_from_node(self).get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.r().Document())
+                Some(window.Document())
             } else {
                 None
             }

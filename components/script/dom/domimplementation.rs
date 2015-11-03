@@ -70,7 +70,7 @@ impl DOMImplementationMethods for DOMImplementation {
         let maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.r().CreateElementNS(namespace, qname) {
+            match doc.CreateElementNS(namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }

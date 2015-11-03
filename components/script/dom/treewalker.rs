@@ -151,7 +151,7 @@ impl TreeWalkerMethods for TreeWalker {
         // "2. While node is not root, run these substeps:"
         while !self.is_root_node(node.r()) {
             // "1. Let sibling be the previous sibling of node."
-            let mut sibling_op = node.r().GetPreviousSibling();
+            let mut sibling_op = node.GetPreviousSibling();
             // "2. While sibling is not null, run these subsubsteps:"
             while sibling_op.is_some() {
                 // "1. Set node to sibling."
@@ -183,7 +183,7 @@ impl TreeWalkerMethods for TreeWalker {
                 return Ok(None)
             }
             // "4. Set node to its parent."
-            match node.r().GetParentNode() {
+            match node.GetParentNode() {
                 None =>
                     // This can happen if the user set the current node to somewhere
                     // outside of the tree rooted at the original root.
@@ -214,7 +214,7 @@ impl TreeWalkerMethods for TreeWalker {
                 if NodeFilterConstants::FILTER_REJECT == result {
                     break;
                 }
-                match node.r().GetFirstChild() {
+                match node.GetFirstChild() {
                     None => break,
                     Some (child) => {
                         // "1. Set node to its first child."

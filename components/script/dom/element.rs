@@ -642,9 +642,9 @@ impl Element {
     pub fn summarize(&self) -> Vec<AttrInfo> {
         let attrs = self.Attributes();
         let mut summarized = vec!();
-        for i in 0..attrs.r().Length() {
-            let attr = attrs.r().Item(i).unwrap();
-            summarized.push(attr.r().summarize());
+        for i in 0..attrs.Length() {
+            let attr = attrs.Item(i).unwrap();
+            summarized.push(attr.summarize());
         }
         summarized
     }
@@ -800,11 +800,11 @@ impl Element {
 
                     // Step 2.
                     let attrs = element.Attributes();
-                    for i in 0..attrs.r().Length() {
-                        let attr = attrs.r().Item(i).unwrap();
-                        if *attr.r().prefix() == Some(atom!("xmlns")) &&
-                           **attr.r().value() == *namespace.0 {
-                            return Some(attr.r().LocalName());
+                    for i in 0..attrs.Length() {
+                        let attr = attrs.Item(i).unwrap();
+                        if *attr.prefix() == Some(atom!("xmlns")) &&
+                           **attr.value() == *namespace.0 {
+                            return Some(attr.LocalName());
                         }
                     }
                 },
@@ -994,7 +994,7 @@ impl Element {
             Quirks => lhs.eq_ignore_ascii_case(&rhs)
         };
         self.get_attribute(&ns!(""), &atom!("class")).map(|attr| {
-            attr.r().value().as_tokens().iter().any(|atom| is_equal(name, atom))
+            attr.value().as_tokens().iter().any(|atom| is_equal(name, atom))
         }).unwrap_or(false)
     }
 
@@ -1027,7 +1027,7 @@ impl Element {
         }
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self);
-        let base = doc.r().url();
+        let base = doc.url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match UrlParser::new().base_url(&base).parse(&url) {
@@ -1041,7 +1041,7 @@ impl Element {
 
     pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
-            Some(x) => x.r().Value(),
+            Some(x) => x.Value(),
             None => "".to_owned()
         }
     }
@@ -1076,7 +1076,7 @@ impl Element {
         let attribute = self.get_attribute(&ns!(""), local_name);
         match attribute {
             Some(ref attribute) => {
-                match *attribute.r().value() {
+                match *attribute.value() {
                     AttrValue::UInt(_, value) => value,
                     _ => panic!("Expected an AttrValue::UInt: \
                                  implement parse_plain_attribute"),
@@ -1155,7 +1155,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
         self.GetAttributeNode(name)
-                     .map(|s| s.r().Value())
+                     .map(|s| s.Value())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributens
@@ -1163,7 +1163,7 @@ impl ElementMethods for Element {
                       namespace: Option<DOMString>,
                       local_name: DOMString) -> Option<DOMString> {
         self.GetAttributeNodeNS(namespace, local_name)
-                     .map(|attr| attr.r().Value())
+                     .map(|attr| attr.Value())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenode
@@ -1345,7 +1345,7 @@ impl ElementMethods for Element {
             Some(parent) => parent,
         };
 
-        let parent = match context_parent.r().type_id() {
+        let parent = match context_parent.type_id() {
             // Step 3.
             NodeTypeId::Document => return Err(Error::NoModificationAllowed),
 
@@ -1360,7 +1360,7 @@ impl ElementMethods for Element {
         };
 
         // Step 5.
-        let frag = try!(parent.r().parse_fragment(value));
+        let frag = try!(parent.parse_fragment(value));
         // Step 6.
         try!(context_parent.ReplaceChild(frag.upcast(), context_node));
         Ok(())
@@ -1659,7 +1659,7 @@ impl<'a> ::selectors::Element for Root<Element> {
         where F: FnMut(&Atom)
     {
         if let Some(ref attr) = self.get_attribute(&ns!(""), &atom!("class")) {
-            let tokens = attr.r().value();
+            let tokens = attr.value();
             let tokens = tokens.as_tokens();
             for token in tokens {
                 callback(token);
@@ -1692,7 +1692,7 @@ impl<'a> ::selectors::Element for Root<Element> {
             NamespaceConstraint::Specific(ref ns) => {
                 self.get_attribute(ns, local_name)
                     .map_or(false, |attr| {
-                        test(&attr.r().value())
+                        test(&attr.value())
                     })
             },
             NamespaceConstraint::Any => {
@@ -1783,7 +1783,7 @@ impl Element {
         // Step 4
         let e = self.nearest_activable_element();
         match e {
-            Some(ref el) => match el.r().as_maybe_activatable() {
+            Some(ref el) => match el.as_maybe_activatable() {
                 Some(elem) => {
                     // Step 5-6
                     elem.pre_click_activation();
@@ -1880,7 +1880,7 @@ impl Element {
                 return;
             }
             match ancestor.children()
-                          .find(|child| child.r().is::<HTMLLegendElement>())
+                          .find(|child| child.is::<HTMLLegendElement>())
             {
                 Some(ref legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?
@@ -1898,7 +1898,7 @@ impl Element {
         if self.get_disabled_state() { return; }
         let node = self.upcast::<Node>();
         if let Some(ref parent) = node.GetParentNode() {
-            if parent.r().is::<HTMLOptGroupElement>() && parent.downcast::<Element>().unwrap().get_disabled_state() {
+            if parent.is::<HTMLOptGroupElement>() && parent.downcast::<Element>().unwrap().get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
             }

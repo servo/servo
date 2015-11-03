@@ -58,7 +58,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
     let elem = element.get_attribute(&ns!(""), local_name);
-    elem.r().map(|e| {
+    elem.map(|e| {
         let value = e.value();
         (**value).to_owned()
     })
@@ -168,7 +168,7 @@ impl HTMLLinkElement {
                 let link_element = Trusted::new(window.get_cx(), self, window.script_chan().clone());
                 let load_dispatcher = StylesheetLoadDispatcher::new(link_element);
 
-                let pending = doc.r().prepare_async_load(LoadType::Stylesheet(url.clone()));
+                let pending = doc.prepare_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
                 layout_chan.send(Msg::LoadStylesheet(url, media, pending, box load_dispatcher)).unwrap();
             }

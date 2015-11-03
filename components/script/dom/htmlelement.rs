@@ -153,19 +153,16 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self);
-            win.r().GetOnload()
+            window_from_node(self).GetOnload()
         } else {
-            let target = self.upcast::<EventTarget>();
-            target.get_event_handler_common("load")
+            self.upcast::<EventTarget>().get_event_handler_common("load")
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let win = window_from_node(self);
-            win.r().SetOnload(listener)
+            window_from_node(self).SetOnload(listener)
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("load", listener)
         }
@@ -202,9 +199,9 @@ impl HTMLElementMethods for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self);
-        document.r().begin_focus_transaction();
+        document.begin_focus_transaction();
         // If `request_focus` is not called, focus will be set to None.
-        document.r().commit_focus_transaction(FocusType::Element);
+        document.commit_focus_transaction(FocusType::Element);
     }
 
     // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
@@ -332,7 +329,7 @@ impl HTMLElement {
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         let local_name = Atom::from_slice(&to_snake_case(local_name));
         self.upcast::<Element>().get_attribute(&ns!(""), &local_name).map(|attr| {
-            (**attr.r().value()).to_owned()
+            (**attr.value()).to_owned()
         })
     }
 
@@ -419,9 +416,9 @@ impl VirtualMethods for HTMLElement {
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
-                let (cx, url, reflector) = (window.r().get_cx(),
-                                            window.r().get_url(),
-                                            window.r().reflector().get_jsobject());
+                let (cx, url, reflector) = (window.get_cx(),
+                                            window.get_url(),
+                                            window.reflector().get_jsobject());
                 let evtarget = self.upcast::<EventTarget>();
                 evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                       &name[2..],

@@ -379,7 +379,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
-        self.Document().r().Location()
+        self.Document().Location()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
@@ -533,13 +533,13 @@ impl WindowMethods for Window {
             let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
         };
 
-        doc.r().request_animation_frame(Box::new(callback))
+        doc.request_animation_frame(Box::new(callback))
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
-        doc.r().cancel_animation_frame(ident);
+        doc.cancel_animation_frame(ident);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
@@ -908,7 +908,7 @@ impl Window {
                 goal: goal,
                 page_clip_rect: self.page_clip_rect.get(),
             },
-            document: self.Document().r().upcast::<Node>().to_trusted_node_address(),
+            document: self.Document().upcast::<Node>().to_trusted_node_address(),
             window_size: window_size,
             script_join_chan: join_chan,
             query_type: query_type,
@@ -1042,8 +1042,7 @@ impl Window {
     }
 
     pub fn get_url(&self) -> Url {
-        let doc = self.Document();
-        (*doc.r().url()).clone()
+        (*self.Document().url()).clone()
     }
 
     pub fn resource_task(&self) -> ResourceTask {
@@ -1140,8 +1139,7 @@ impl Window {
 
         // Push the document title to the compositor since we are
         // activating this document due to a navigation.
-        let document = self.Document();
-        document.r().title_changed();
+        self.Document().title_changed();
     }
 
     pub fn freeze(&self) {

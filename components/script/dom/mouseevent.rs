@@ -74,11 +74,11 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<&EventTarget>) -> Root<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
-        ev.r().InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
-                              view, detail,
-                              screenX, screenY, clientX, clientY,
-                              ctrlKey, altKey, shiftKey, metaKey,
-                              button, relatedTarget);
+        ev.InitMouseEvent(type_, canBubble == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable,
+                          view, detail,
+                          screenX, screenY, clientX, clientY,
+                          ctrlKey, altKey, shiftKey, metaKey,
+                          button, relatedTarget);
         ev
     }
 
