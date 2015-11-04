@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectReadOnlyMe
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use std::cell::Cell;
 
 #[dom_struct]

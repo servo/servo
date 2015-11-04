@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
-use dom::bindings::conversions::Castable;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::Element;

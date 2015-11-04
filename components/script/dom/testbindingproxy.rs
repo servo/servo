@@ -5,7 +5,7 @@
 // check-tidy: no specs after this line
 
 use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
-use dom::bindings::utils::Reflector;
+use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
 
 

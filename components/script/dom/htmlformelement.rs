@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::conversions::{Castable, DerivedFrom};
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{Root};
-use dom::bindings::utils::Reflectable;
+use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};

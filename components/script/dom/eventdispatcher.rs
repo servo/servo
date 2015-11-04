@@ -5,8 +5,8 @@
 use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::conversions::Castable;
 use dom::bindings::global::{GlobalRoot, global_object_for_reflector};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::trace::RootedVec;
 use dom::event::{Event, EventPhase};

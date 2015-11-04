@@ -37,9 +37,8 @@ use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use script::dom::attr::AttrValue;
-use script::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, ElementTypeId};
-use script::dom::bindings::codegen::InheritTypes::{HTMLElementTypeId, NodeTypeId};
-use script::dom::bindings::conversions::Castable;
+use script::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
@@ -1005,10 +1004,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             return Some(CharIndex(search_index(insertion_point, text.char_indices())));
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
-            let insertion_point = unsafe { input.get_insertion_point_for_layout() };
-            if let Some(insertion_point) = insertion_point {
-                let text = unsafe { input.get_value_for_layout() };
-                return Some(CharIndex(search_index(insertion_point.index, text.char_indices())));
+            let insertion_point_index = unsafe { input.get_insertion_point_index_for_layout() };
+            if let Some(insertion_point_index) = insertion_point_index {
+                return Some(CharIndex(insertion_point_index));
             }
         }
         None

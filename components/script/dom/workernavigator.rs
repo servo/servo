@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::navigatorinfo;
 use dom::workerglobalscope::WorkerGlobalScope;
 use util::str::DOMString;

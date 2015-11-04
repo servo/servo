@@ -8,8 +8,9 @@ use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker, T
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
-use dom::bindings::conversions::{Castable, FromJSValConvertible, jsstring_to_str};
+use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::element::Element;
 use dom::node::Node;

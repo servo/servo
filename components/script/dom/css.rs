@@ -5,7 +5,7 @@
 use cssparser::serialize_identifier;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::utils::Reflector;
+use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
 
 #[dom_struct]
