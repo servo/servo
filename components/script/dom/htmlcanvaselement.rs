@@ -4,6 +4,7 @@
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg};
 use dom::attr::Attr;
+use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -18,7 +19,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::{AttributeMutation, Element};
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -30,9 +31,9 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
-use std::cell::Cell;
 use std::iter::repeat;
-use util::str::{DOMString, parse_unsigned_integer};
+use string_cache::Atom;
+use util::str::DOMString;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -50,8 +51,6 @@ impl HeapGCValue for CanvasContext {}
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DOMRefCell<Option<CanvasContext>>,
-    width: Cell<u32>,
-    height: Cell<u32>,
 }
 
 impl PartialEq for HTMLCanvasElement {
@@ -67,8 +66,6 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             context: DOMRefCell::new(None),
-            width: Cell::new(DEFAULT_WIDTH),
-            height: Cell::new(DEFAULT_HEIGHT),
         }
     }
 
@@ -91,7 +88,7 @@ impl HTMLCanvasElement {
     }
 
     pub fn get_size(&self) -> Size2D<i32> {
-        Size2D::new(self.width.get() as i32, self.height.get() as i32)
+        Size2D::new(self.Width() as i32, self.Height() as i32)
     }
 }
 
@@ -123,11 +120,13 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
                 None => (None, None),
             };
 
+            let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(""), &atom!(width));
+            let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(""), &atom!(height));
             HTMLCanvasData {
                 renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
-                width: canvas.width.get(),
-                height: canvas.height.get(),
+                width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
+                height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             }
         }
     }
@@ -189,7 +188,7 @@ impl HTMLCanvasElement {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.height.get() != 0 && self.width.get() != 0
+        self.Height() != 0 && self.Width() != 0
     }
 
     pub fn fetch_all_data(&self) -> Option<(Vec<u8>, Size2D<i32>)> {
@@ -215,24 +214,16 @@ impl HTMLCanvasElement {
 
 impl HTMLCanvasElementMethods for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn Width(&self) -> u32 {
-        self.width.get()
-    }
+    make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    fn SetWidth(&self, width: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("width"), width)
-    }
+    make_uint_setter!(SetWidth, "width", DEFAULT_WIDTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn Height(&self) -> u32 {
-        self.height.get()
-    }
+    make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn SetHeight(&self, height: u32) {
-        self.upcast::<Element>().set_uint_attribute(&atom!("height"), height)
-    }
+    make_uint_setter!(SetHeight, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-getcontext
     fn GetContext(&self,
@@ -299,25 +290,17 @@ impl VirtualMethods for HTMLCanvasElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        let recreate = match attr.local_name() {
-            &atom!(width) => {
-                let width = mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars())
-                });
-                self.width.set(width.unwrap_or(DEFAULT_WIDTH));
-                true
-            },
-            &atom!(height) => {
-                let height = mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars())
-                });
-                self.height.set(height.unwrap_or(DEFAULT_HEIGHT));
-                true
-            },
-            _ => false,
+        match attr.local_name() {
+            &atom!(width) | &atom!(height) => self.recreate_contexts(),
+            _ => (),
         };
-        if recreate {
-            self.recreate_contexts();
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("width") => AttrValue::from_u32(value, DEFAULT_WIDTH),
+            &atom!("height") => AttrValue::from_u32(value, DEFAULT_HEIGHT),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 }
