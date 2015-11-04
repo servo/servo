@@ -24,7 +24,7 @@
             wsocket.binaryType = "blob";
             for (var i = 0; i < datasize; i++)
                 data += String.fromCharCode(0);
-            data = new Blob(data);
+            data = new Blob([data]);
             isOpenCalled = true;
             wsocket.send(data);
             testOpen.done();

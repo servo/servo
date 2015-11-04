@@ -294,13 +294,9 @@ impl WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send_Impl(&self, data_byte_len: u64) -> Fallible<()> {
+    fn Send_Impl(&self, data_byte_len: u64) -> Fallible<bool> {
 
         let mut return_after_buffer = false;
-
-        let global = self.global.root();
-        let chan = global.r().script_chan();
-        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
 
         match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
@@ -311,6 +307,10 @@ impl WebSocket {
                 return_after_buffer = true;
             }
         }
+
+        let global = self.global.root();
+        let chan = global.r().script_chan();
+        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
 
@@ -324,14 +324,14 @@ impl WebSocket {
             };
             chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
 
-            return Ok(());
+            return Ok(false);
 
         } else {
             self.buffered_amount.set(new_buffer_amount as u32);
         }
 
         if return_after_buffer {
-            return Ok(());
+            return Ok(true);
         }
 
         if !self.clearing_buffer.get() && 
@@ -345,7 +345,7 @@ impl WebSocket {
             chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
         }
 
-        Ok(())
+        Ok(true)
     }
 }
 
@@ -391,7 +391,7 @@ impl WebSocketMethods for WebSocket {
     fn Send(&self, data: USVString) -> Fallible<()> {
 
         let data_byte_len = data.0.as_bytes().len() as u64;
-        let _ = try!(self.Send_Impl(data_byte_len));
+        try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
@@ -408,7 +408,7 @@ impl WebSocketMethods for WebSocket {
            If the buffer limit is reached in the first place, there are likely other major problems
         */
         let data_byte_len = data.Size();
-        let _ = try!(self.Send_Impl(data_byte_len));
+        try!(self.Send_Impl(data_byte_len));
 
         let mut other_sender = self.sender.borrow_mut();
         let my_sender = other_sender.as_mut().unwrap();
