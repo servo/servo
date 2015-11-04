@@ -167,9 +167,10 @@ class GroupingFormatter(base.BaseFormatter):
             self.expected[test_status] += 1
             return self.generate_output(text=None, new_display=new_display)
 
-        # If the test crashed, we also include any process output, because there is a good
-        # chance that the test produced a stack trace.
-        if test_status == "CRASH":
+        # If the test crashed or timed out, we also include any process output,
+        # because there is a good chance that the test produced a stack trace
+        # or other error messages.
+        if test_status in ("CRASH", "TIMEOUT"):
             stack = self.test_output[test_name] + data.get('stack', "")
         else:
             stack = data.get('stack', None)
