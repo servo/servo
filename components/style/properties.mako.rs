@@ -1272,7 +1272,7 @@ pub mod longhands {
         use super::content;
         use values::computed::ComputedValueAsSpecified;
 
-        use cssparser::{ToCss, Token};
+        use cssparser::{ToCss, Token, serialize_identifier};
         use std::borrow::{Cow, ToOwned};
 
         pub use self::computed_value::T as SpecifiedValue;
@@ -1297,7 +1297,7 @@ pub mod longhands {
                         try!(dest.write_str(" "));
                     }
                     first = false;
-                    try!(Token::QuotedString(Cow::from(&*pair.0)).to_css(dest));
+                    try!(serialize_identifier(&pair.0, dest));
                     try!(write!(dest, " {}", pair.1));
                 }
                 Ok(())
@@ -1305,6 +1305,10 @@ pub mod longhands {
         }
 
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            parse_common(1, input)
+        }
+
+        pub fn parse_common(default_value: i32, input: &mut Parser) -> Result<SpecifiedValue,()> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                 return Ok(SpecifiedValue(Vec::new()))
             }
@@ -1320,7 +1324,7 @@ pub mod longhands {
                     return Err(())
                 }
                 let counter_delta =
-                    input.try(|input| specified::parse_integer(input)).unwrap_or(1);
+                    input.try(|input| specified::parse_integer(input)).unwrap_or(default_value);
                 counters.push((counter_name, counter_delta))
             }
 
@@ -1334,7 +1338,11 @@ pub mod longhands {
 
     <%self:longhand name="counter-reset">
         pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
-        pub use super::counter_increment::{parse};
+        use super::counter_increment::{parse_common};
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            parse_common(0, input)
+        }
     </%self:longhand>
 
     // CSS 2.1, Section 13 - Paged media
