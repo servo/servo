@@ -22,6 +22,33 @@ pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
+// An optional u32, using maxint to represent None.
+// It would be nicer just to use Option<u32> for this, but that would produce word
+// alignment issues since Option<u32> uses 33 bits.
+#[allow(non_camel_case_types)]
+#[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
+struct ou32 {
+    bits: u32,
+}
+
+impl ou32 {
+    fn to_option(self) -> Option<u32> {
+        if self.bits == u32::max_value() {
+            None
+        } else {
+            Some(self.bits)
+        }
+    }
+
+    fn some(bits: u32) -> ou32 {
+        ou32 { bits: bits }
+    }
+
+    fn none() -> ou32 {
+        ou32 { bits: u32::max_value() }
+    }
+}
+
 #[dom_struct]
 pub struct HTMLCollection {
     reflector_: Reflector,
@@ -30,13 +57,10 @@ pub struct HTMLCollection {
     filter: Box<CollectionFilter + 'static>,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
-    // We use maxint in case the length or cursor index are unset:
-    // it would be nicer to use Option<u32> for this, but that would produce word
-    // alignment issues.
     cached_version: Cell<u64>,
     cached_cursor_element: MutNullableHeap<JS<Element>>,
-    cached_cursor_index: Cell<u32>,
-    cached_length: Cell<u32>,
+    cached_cursor_index: Cell<ou32>,
+    cached_length: Cell<ou32>,
 }
 
 impl HTMLCollection {
@@ -49,8 +73,8 @@ impl HTMLCollection {
             // Default values for the cache
             cached_version: Cell::new(root.get_inclusive_descendents_version()),
             cached_cursor_element: MutNullableHeap::new(None),
-            cached_cursor_index: Cell::new(u32::max_value()),
-            cached_length: Cell::new(u32::max_value()),
+            cached_cursor_index: Cell::new(ou32::none()),
+            cached_length: Cell::new(ou32::none()),
         }
     }
 
@@ -72,29 +96,28 @@ impl HTMLCollection {
         if curr_version != cached_version {
             // Default values for the cache
             self.cached_version.set(curr_version);
-            self.cached_length.set(u32::max_value());
             self.cached_cursor_element.set(None);
-            self.cached_cursor_index.set(u32::max_value());
+            self.cached_length.set(ou32::none());
+            self.cached_cursor_index.set(ou32::none());
         }
     }
 
     fn get_length(&self) -> u32 {
         // Call validate_cache before calling this method!
-        let cached_length = self.cached_length.get();
-        if cached_length == u32::max_value() {
-            // Cache miss, calculate the length
-            let length = self.elements_iter().count() as u32;
-            self.cached_length.set(length);
-            length
-        } else {
+        if let Some(cached_length) = self.cached_length.get().to_option() {
             // Cache hit
             cached_length
+        } else {
+            // Cache miss, calculate the length
+            let length = self.elements_iter().count() as u32;
+            self.cached_length.set(ou32::some(length));
+            length
         }
     }
 
     fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
         if let Some(element) = element {
-            self.cached_cursor_index.set(index);
+            self.cached_cursor_index.set(ou32::some(index));
             self.cached_cursor_element.set(Some(element.r()));
             Some(element)
         } else {
