@@ -91,6 +91,31 @@
             }, "live HTMLCollection byTagName");
 
             test(function() {
+                var element = document.createElement("div");
+                var coll = element.getElementsByTagName("div");
+                assert_equals(coll.length, 0);
+
+                element.innerHTML = '<div id="n0"><div id="n1"><div id="n2"></div><div id="n3"></div></div></div>';
+                assert_equals(coll.length, 4);
+
+	        assert_equals(coll[3].id, "n3");
+	        assert_equals(coll[2].id, "n2");
+	        assert_equals(coll[2].id, "n2");
+	        assert_equals(coll[1].id, "n1");
+	        assert_equals(coll[2].id, "n2");
+	        assert_equals(coll[0].id, "n0");
+
+	        assert_equals(coll[0].id, "n0");
+	        assert_equals(coll[2].id, "n2");
+	        assert_equals(coll[1].id, "n1");
+	        assert_equals(coll[2].id, "n2");
+	        assert_equals(coll[3].id, "n3");
+
+                assert_equals(coll.length, 4);
+
+            }, "HTMLCollection cursoring");
+
+            test(function() {
                 assert_equals(document.getElementsByTagName("DIV").length, 5);
 
                 assert_equals(document.getElementsByTagName("div").length,
