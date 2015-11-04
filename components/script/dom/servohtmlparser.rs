@@ -159,7 +159,7 @@ impl AsyncResponseListener for ParserContext {
                 Some(parser) => parser.root(),
                 None => return,
             };
-            parser.r().parse_chunk(data);
+            parser.parse_chunk(data);
         }
     }
 
@@ -175,9 +175,9 @@ impl AsyncResponseListener for ParserContext {
             // TODO(Savago): we should send a notification to callers #5463.
         }
 
-        parser.r().last_chunk_received.set(true);
-        if !parser.r().is_suspended() {
-            parser.r().parse_sync();
+        parser.last_chunk_received.set(true);
+        if !parser.is_suspended() {
+            parser.parse_sync();
         }
     }
 }

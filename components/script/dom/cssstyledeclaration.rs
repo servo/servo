@@ -216,7 +216,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let declarations = parse_one_declaration(&property, &value, &window.r().get_url());
+        let declarations = parse_one_declaration(&property, &value, &window.get_url());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {
@@ -235,7 +235,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         let document = document_from_node(element);
         let node = element.upcast();
-        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -268,7 +268,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         let document = document_from_node(element);
         let node = element.upcast();
-        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 

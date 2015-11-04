@@ -71,7 +71,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
                                    ElementCreator::ParserCreated);
 
         for attr in attrs {
-            elem.r().set_attribute_from_parser(attr.name, attr.value.into(), None);
+            elem.set_attribute_from_parser(attr.name, attr.value.into(), None);
         }
 
         JS::from_ref(elem.upcast())
@@ -92,7 +92,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         };
 
         let child = self.get_or_create(new_node);
-        assert!(parent.r().InsertBefore(child.r(), Some(&*sibling)).is_ok());
+        assert!(parent.InsertBefore(child.r(), Some(&*sibling)).is_ok());
         Ok(())
     }
 
@@ -129,7 +129,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn remove_from_parent(&mut self, target: JS<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
-            parent.r().RemoveChild(&*target).unwrap();
+            parent.RemoveChild(&*target).unwrap();
         }
     }
 
@@ -246,7 +246,7 @@ pub fn parse_html(document: &Document,
         ParseContext::Fragment(fc) =>
             ServoHTMLParser::new_for_fragment(Some(url), document, fc),
     };
-    parser.r().parse_chunk(input.into());
+    parser.parse_chunk(input.into());
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
@@ -267,11 +267,11 @@ pub fn parse_html_fragment(context_node: &Node,
                                  loader);
 
     // Step 2.
-    document.r().set_quirks_mode(context_document.quirks_mode());
+    document.set_quirks_mode(context_document.quirks_mode());
 
     // Step 11.
     let form = context_node.inclusive_ancestors()
-                           .find(|element| element.r().is::<HTMLFormElement>());
+                           .find(|element| element.is::<HTMLFormElement>());
     let fragment_context = FragmentContext {
         context_elem: context_node,
         form_elem: form.r(),
@@ -279,7 +279,7 @@ pub fn parse_html_fragment(context_node: &Node,
     parse_html(document.r(), input, url.clone(), ParseContext::Fragment(fragment_context));
 
     // Step 14.
-    let root_element = document.r().GetDocumentElement().expect("no document element");
+    let root_element = document.GetDocumentElement().expect("no document element");
     for child in root_element.upcast::<Node>().children() {
         output.AppendChild(child.r()).unwrap();
     }

@@ -45,12 +45,11 @@ impl HTMLStyleElement {
         assert!(node.is_in_doc());
 
         let win = window_from_node(node);
-        let win = win.r();
         let url = win.get_url();
 
         let mq_attribute = element.get_attribute(&ns!(""), &atom!("media"));
         let mq_str = match mq_attribute {
-            Some(a) => String::from(&**a.r().value()),
+            Some(a) => String::from(&**a.value()),
             None => String::new(),
         };
         let mut css_parser = CssParser::new(&mq_str);

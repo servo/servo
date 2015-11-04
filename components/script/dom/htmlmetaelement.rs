@@ -58,7 +58,7 @@ impl HTMLMetaElement {
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     let win = window_from_node(self);
-                    let LayoutChan(ref layout_chan) = win.r().layout_chan();
+                    let LayoutChan(ref layout_chan) = win.layout_chan();
 
                     layout_chan.send(Msg::AddMetaViewport(translated_rule)).unwrap();
                 }

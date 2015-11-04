@@ -298,7 +298,7 @@ impl CanvasRenderingContext2D {
                 None => return Err(Error::InvalidState),
             };
 
-            let renderer = context.r().get_ipc_renderer();
+            let renderer = context.get_ipc_renderer();
             let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
             // Reads pixels from source image
             renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
@@ -787,7 +787,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Gradient(
                                                            JS::from_ref(gradient.r()));
                 let msg = CanvasMsg::Canvas2d(
-                    Canvas2dMsg::SetStrokeStyle(gradient.r().to_fill_or_stroke_style()));
+                    Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
             _ => {}
@@ -824,12 +824,12 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Gradient(
                                                         JS::from_rooted(&gradient));
                 let msg = CanvasMsg::Canvas2d(
-                    Canvas2dMsg::SetFillStyle(gradient.r().to_fill_or_stroke_style()));
+                    Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::eCanvasPattern(pattern) => {
                 self.ipc_renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::SetFillStyle(
-                                                       pattern.r().to_fill_or_stroke_style()))).unwrap();
+                                                       pattern.to_fill_or_stroke_style()))).unwrap();
             }
         }
     }
@@ -944,17 +944,15 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     repetition: DOMString) -> Fallible<Root<CanvasPattern>> {
         let (image_data, image_size) = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLImageElement(image) => {
-                let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                match self.fetch_image_data(&image_element) {
+                match self.fetch_image_data(&image.r()) {
                     Some((data, size)) => (data, size),
                     None => return Err(Error::InvalidState),
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eHTMLCanvasElement(canvas) => {
-                let canvas = canvas.r();
                 let _ = canvas.get_or_init_2d_context();
 
                 match canvas.fetch_all_data() {
@@ -963,8 +961,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 }
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::eCanvasRenderingContext2D(context) => {
-                let canvas = context.r().Canvas();
-                let canvas = canvas.r();
+                let canvas = context.Canvas();
                 let _ = canvas.get_or_init_2d_context();
 
                 match canvas.fetch_all_data() {

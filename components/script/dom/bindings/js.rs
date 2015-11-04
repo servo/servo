@@ -491,7 +491,7 @@ impl RootCollection {
         debug_assert!(task_state::get().is_script());
         unsafe {
             let mut roots = &mut *self.roots.get();
-            let old_reflector = &*rooted.r().reflector();
+            let old_reflector = &*rooted.reflector();
             match roots.iter().rposition(|r| *r == old_reflector) {
                 Some(idx) => {
                     roots.remove(idx);

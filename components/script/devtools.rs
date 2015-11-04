@@ -67,7 +67,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSen
 pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    let document_element = document.r().GetDocumentElement().unwrap();
+    let document_element = document.GetDocumentElement().unwrap();
 
     let node = document_element.upcast::<Node>();
     reply.send(node.summarize()).unwrap();
@@ -79,7 +79,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
-        if candidate.r().get_unique_id() == node_id {
+        if candidate.get_unique_id() == node_id {
             return candidate;
         }
     }
@@ -89,8 +89,8 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
 
 pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: IpcSender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id);
-    let children = parent.r().children().map(|child| {
-        child.r().summarize()
+    let children = parent.children().map(|child| {
+        child.summarize()
     }).collect();
     reply.send(children).unwrap();
 }
@@ -187,7 +187,7 @@ pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, actor_nam
     let page = page.find(id).expect("There is no such page");
     let doc = page.document();
     let devtools_sender = page.window().devtools_chan().unwrap();
-    doc.r().request_animation_frame(box move |time| {
+    doc.request_animation_frame(box move |time| {
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();
     });

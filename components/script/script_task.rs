@@ -451,7 +451,7 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
                     let page = owner.page.borrow_for_script_deallocation();
                     for page in page.iter() {
                         let window = page.window();
-                        window.r().clear_js_runtime_for_script_deallocation();
+                        window.clear_js_runtime_for_script_deallocation();
                     }
                 }
             }
@@ -714,9 +714,9 @@ impl ScriptTask {
                 for page in page.iter() {
                     // Only process a resize if layout is idle.
                     let window = page.window();
-                    let resize_event = window.r().steal_resize_event();
+                    let resize_event = window.steal_resize_event();
                     match resize_event {
-                        Some(size) => resizes.push((window.r().pipeline(), size)),
+                        Some(size) => resizes.push((window.pipeline(), size)),
                         None => ()
                     }
                 }
@@ -866,11 +866,11 @@ impl ScriptTask {
         if let Some(page) = page.as_ref() {
             for page in page.iter() {
                 let window = page.window();
-                let pending_reflows = window.r().get_pending_reflow_count();
+                let pending_reflows = window.get_pending_reflow_count();
                 if pending_reflows > 0 {
-                    window.r().reflow(ReflowGoal::ForDisplay,
-                                      ReflowQueryType::NoQuery,
-                                      ReflowReason::ImageLoaded);
+                    window.reflow(ReflowGoal::ForDisplay,
+                                  ReflowQueryType::NoQuery,
+                                  ReflowReason::ImageLoaded);
                 }
             }
         }
@@ -1014,7 +1014,7 @@ impl ScriptTask {
             pipeline ID not associated with this script task. This is a bug.");
         let window = page.window();
 
-        window.r().handle_fire_timer(id);
+        window.handle_fire_timer(id);
     }
 
     fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
@@ -1086,7 +1086,7 @@ impl ScriptTask {
         if let Some(ref page) = page.as_ref() {
             if let Some(ref page) = page.find(id) {
                 let window = page.window();
-                window.r().set_resize_event(size);
+                window.set_resize_event(size);
                 return;
             }
         }
@@ -1103,7 +1103,7 @@ impl ScriptTask {
         if let Some(page) = page.as_ref() {
             if let Some(ref inner_page) = page.find(id) {
                 let window = inner_page.window();
-                if window.r().set_page_clip_rect_with_new_viewport(rect) {
+                if window.set_page_clip_rect_with_new_viewport(rect) {
                     let page = get_page(page, id);
                     self.rebuild_and_force_reflow(&*page, ReflowReason::Viewport);
                 }
@@ -1122,7 +1122,7 @@ impl ScriptTask {
     fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
         let page = get_page(&self.root_page(), pipeline);
         let doc = page.document();
-        doc.r().finish_load(load);
+        doc.finish_load(load);
     }
 
     /// Get the current state of a given pipeline.
@@ -1143,15 +1143,15 @@ impl ScriptTask {
         // has been kicked off. Since the script task does a join with
         // layout, this ensures there are no race conditions that can occur
         // between load completing and the first layout completing.
-        let load_pending = doc.r().ReadyState() != DocumentReadyState::Complete;
+        let load_pending = doc.ReadyState() != DocumentReadyState::Complete;
         if load_pending {
             return ScriptState::DocumentLoading;
         }
 
         // Checks if the html element has reftest-wait attribute present.
         // See http://testthewebforward.org/docs/reftests.html
-        let html_element = doc.r().GetDocumentElement();
-        let reftest_wait = html_element.r().map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
+        let html_element = doc.GetDocumentElement();
+        let reftest_wait = html_element.map_or(false, |elem| elem.has_class(&Atom::from_slice("reftest-wait")));
         if reftest_wait {
             return ScriptState::DocumentLoading;
         }
@@ -1204,7 +1204,7 @@ impl ScriptTask {
 
         // Kick off the fetch for the new resource.
         let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
-                                           layout_chan, parent_window.r().window_size(),
+                                           layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
     }
@@ -1317,7 +1317,7 @@ impl ScriptTask {
         let page = page.find(id).expect("ScriptTask: received freeze msg for a
                     pipeline ID not associated with this script task. This is a bug.");
         let window = page.window();
-        window.r().freeze();
+        window.freeze();
     }
 
     /// Handles thaw message
@@ -1332,7 +1332,7 @@ impl ScriptTask {
         }
 
         let window = page.window();
-        window.r().thaw();
+        window.thaw();
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1345,9 +1345,9 @@ impl ScriptTask {
         let frame_element = doc.find_iframe(subpage_id);
 
         if let Some(ref frame_element) = frame_element {
-            doc.r().begin_focus_transaction();
-            doc.r().request_focus(frame_element.upcast());
-            doc.r().commit_focus_transaction(FocusType::Parent);
+            doc.begin_focus_transaction();
+            doc.request_focus(frame_element.upcast());
+            doc.commit_focus_transaction(FocusType::Parent);
         }
     }
 
@@ -1365,7 +1365,7 @@ impl ScriptTask {
         });
 
         if let Some(ref frame_element) = frame_element {
-            frame_element.r().dispatch_mozbrowser_event(event);
+            frame_element.dispatch_mozbrowser_event(event);
         }
     }
 
@@ -1380,7 +1380,7 @@ impl ScriptTask {
             doc.find_iframe(old_subpage_id)
         });
 
-        frame_element.r().unwrap().update_subpage_id(new_subpage_id);
+        frame_element.unwrap().update_subpage_id(new_subpage_id);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -1389,7 +1389,7 @@ impl ScriptTask {
         let page = page.find(id).expect("Received resize message for PipelineId not associated
             with a page in the page tree. This is a bug.");
         let window = page.window();
-        window.r().set_window_size(new_size);
+        window.set_window_size(new_size);
         page.set_reflow_status(true);
     }
 
@@ -1432,7 +1432,7 @@ impl ScriptTask {
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().send_title_to_compositor();
+        document.send_title_to_compositor();
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -1468,7 +1468,7 @@ impl ScriptTask {
         // If root is being exited, shut down all pages
         let page = self.root_page();
         let window = page.window();
-        if window.r().pipeline() == id {
+        if window.pipeline() == id {
             debug!("shutting down layout for root page {:?}", id);
             shut_down_layout(&page, exit_type);
             return true
@@ -1485,7 +1485,7 @@ impl ScriptTask {
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let page = get_page(&self.root_page(), id);
         let document = page.document();
-        document.r().run_the_animation_frame_callbacks();
+        document.run_the_animation_frame_callbacks();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -1626,7 +1626,7 @@ impl ScriptTask {
                                      loader);
 
         let frame_element = frame_element.r().map(Castable::upcast);
-        window.r().init_browsing_context(document.r(), frame_element);
+        window.init_browsing_context(document.r(), frame_element);
 
         // Create the root frame
         page.set_frame(Some(Frame {
@@ -1639,7 +1639,7 @@ impl ScriptTask {
             let _ar = JSAutoRequest::new(self.get_cx());
             let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
             let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
-            window.r().evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
+            window.evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
                                                           StringificationBehavior::Empty);
             strval.unwrap_or("".to_owned())
@@ -1652,7 +1652,7 @@ impl ScriptTask {
 
         page_remover.neuter();
 
-        document.r().get_current_parser().unwrap()
+        document.get_current_parser().unwrap()
     }
 
     fn notify_devtools(&self, title: DOMString, url: Url, ids: (PipelineId, Option<WorkerId>)) {
@@ -1691,9 +1691,9 @@ impl ScriptTask {
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, page: &Page, reason: ReflowReason) {
         let document = page.document();
-        document.r().dirty_all_nodes();
+        document.dirty_all_nodes();
         let window = window_from_node(document.r());
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
+        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1731,7 +1731,7 @@ impl ScriptTask {
                 // handle_mouse_move_event() in a safe RootedVec container.
                 let mut mouse_over_targets = RootedVec::new();
                 std_mem::swap(&mut *self.mouse_over_targets.borrow_mut(), &mut *mouse_over_targets);
-                document.r().handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
+                document.handle_mouse_move_event(self.js_runtime.rt(), point, &mut mouse_over_targets);
 
                 // Notify Constellation about anchors that are no longer mouse over targets.
                 for target in &*prev_mouse_over_targets {
@@ -1751,7 +1751,7 @@ impl ScriptTask {
                         let status = target.get_attribute(&ns!(""), &atom!("href"))
                             .and_then(|href| {
                                 let value = href.value();
-                                let url = document.r().url();
+                                let url = document.url();
                                 UrlParser::new().base_url(&url).parse(&value).map(|url| url.serialize()).ok()
                             });
                         let event = ConstellationMsg::NodeStatus(status);
@@ -1788,7 +1788,7 @@ impl ScriptTask {
             KeyEvent(key, state, modifiers) => {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
-                document.r().dispatch_key_event(
+                document.dispatch_key_event(
                     key, state, modifiers, &mut self.compositor.borrow_mut());
             }
         }
@@ -1801,7 +1801,7 @@ impl ScriptTask {
                           point: Point2D<f32>) {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
+        document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
 
     fn handle_touch_event(&self,
@@ -1812,7 +1812,7 @@ impl ScriptTask {
                           -> bool {
         let page = get_page(&self.root_page(), pipeline_id);
         let document = page.document();
-        document.r().handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
+        document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
@@ -1861,14 +1861,14 @@ impl ScriptTask {
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window();
-        window.r().set_window_size(new_size);
-        window.r().force_reflow(ReflowGoal::ForDisplay,
-                                ReflowQueryType::NoQuery,
-                                ReflowReason::WindowResize);
+        window.set_window_size(new_size);
+        window.force_reflow(ReflowGoal::ForDisplay,
+                            ReflowQueryType::NoQuery,
+                            ReflowReason::WindowResize);
 
         let document = page.document();
-        let fragment_node = window.r().steal_fragment_name()
-                                      .and_then(|name| document.r().find_fragment_node(&*name));
+        let fragment_node = window.steal_fragment_name()
+                                  .and_then(|name| document.find_fragment_node(&*name));
         match fragment_node {
             Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
             None => {}
@@ -1931,33 +1931,33 @@ impl ScriptTask {
         };
 
         let document = page.document();
-        let final_url = document.r().url();
+        let final_url = document.url();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 1
-        document.r().set_ready_state(DocumentReadyState::Interactive);
+        document.set_ready_state(DocumentReadyState::Interactive);
 
         // TODO: Execute step 2 here.
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
-        document.r().disarm_reflow_timeout();
-        document.r().content_changed(document.upcast(),
-                                     NodeDamage::OtherNodeDamage);
+        document.disarm_reflow_timeout();
+        document.content_changed(document.upcast(),
+                                 NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
-        window.r().reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
+        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
         // No more reflow required
         page.set_reflow_status(false);
 
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
-        document.r().process_deferred_scripts();
+        document.process_deferred_scripts();
 
-        window.r().set_fragment_name(final_url.fragment.clone());
+        window.set_fragment_name(final_url.fragment.clone());
 
         // Notify devtools that a new script global exists.
         //TODO: should this happen as soon as the global is created, or at least once the first
         // script runs?
-        self.notify_devtools(document.r().Title(), (*final_url).clone(), (id, None));
+        self.notify_devtools(document.Title(), (*final_url).clone(), (id, None));
     }
 }
 
@@ -1978,7 +1978,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = page.window();
-        let LayoutChan(chan) = window.r().layout_chan();
+        let LayoutChan(chan) = window.layout_chan();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();
@@ -1988,7 +1988,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
     // Drop our references to the JSContext and DOM objects.
     for page in page_tree.iter() {
         let window = page.window();
-        window.r().clear_js_runtime();
+        window.clear_js_runtime();
         // Sever the connection between the global and the DOM tree
         page.set_frame(None);
     }

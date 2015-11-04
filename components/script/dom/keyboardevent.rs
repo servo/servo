@@ -84,8 +84,8 @@ impl KeyboardEvent {
                char_code: Option<u32>,
                key_code: u32) -> Root<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
-        ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
-                                 "".to_owned(), repeat, "".to_owned());
+        ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
+                             "".to_owned(), repeat, "".to_owned());
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         {
             let ev = ev.r();

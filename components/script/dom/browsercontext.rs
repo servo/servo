@@ -106,7 +106,7 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: HandleObject, id: HandleI
         let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
         let win: Root<Window> = native_from_handleobject(target.handle()).unwrap();
         let mut found = false;
-        return win.r().IndexedGetter(index, &mut found);
+        return win.IndexedGetter(index, &mut found);
     }
 
     None

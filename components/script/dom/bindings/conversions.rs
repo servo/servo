@@ -760,7 +760,7 @@ pub fn native_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 
 impl<T: Reflectable> ToJSValConvertible for Root<T> {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.r().reflector().to_jsval(cx, rval);
+        self.reflector().to_jsval(cx, rval);
     }
 }
 

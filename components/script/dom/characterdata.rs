@@ -156,8 +156,7 @@ impl CharacterData {
 
     fn content_changed(&self) {
         let node = self.upcast::<Node>();
-        let document = node.owner_doc();
-        document.r().content_changed(node, NodeDamage::OtherNodeDamage);
+        node.owner_doc().content_changed(node, NodeDamage::OtherNodeDamage);
     }
 }
 

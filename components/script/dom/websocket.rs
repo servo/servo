@@ -439,7 +439,7 @@ impl Runnable for ConnectionEstablishedTask {
     fn handler(self: Box<Self>) {
         let ws = self.addr.root();
 
-        *ws.r().sender.borrow_mut() = Some(self.sender);
+        *ws.sender.borrow_mut() = Some(self.sender);
 
         // Step 1: Protocols.
 

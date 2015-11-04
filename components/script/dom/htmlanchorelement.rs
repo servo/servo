@@ -138,7 +138,7 @@ impl Activatable for HTMLAnchorElement {
     fn activation_behavior(&self, event: &Event, target: &EventTarget) {
         //Step 1. If the node document is not fully active, abort.
         let doc = document_from_node(self);
-        if !doc.r().is_fully_active() {
+        if !doc.is_fully_active() {
             return;
         }
         //TODO: Step 2. Check if browsing context is specified and act accordingly.
@@ -150,7 +150,7 @@ impl Activatable for HTMLAnchorElement {
             if target.is::<HTMLImageElement>() && element.has_attribute(&atom!("ismap")) {
 
                 let target_node = element.upcast::<Node>();
-                let rect = window_from_node(target_node).r().content_box_query(
+                let rect = window_from_node(target_node).content_box_query(
                     target_node.to_trusted_node_address());
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
