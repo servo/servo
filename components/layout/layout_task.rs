@@ -109,8 +109,12 @@ pub struct LayoutTaskData {
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// The size of the viewport.
+    /// The size of the screen.
     pub screen_size: Size2D<Au>,
+
+    /// The size of the viewport. This may be different from the size of the screen due to viewport
+    /// constraints.
+    pub viewport_size: Size2D<Au>,
 
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
@@ -408,6 +412,7 @@ impl LayoutTask {
                     image_cache_task: image_cache_task,
                     constellation_chan: constellation_chan,
                     screen_size: screen_size,
+                    viewport_size: screen_size,
                     stacking_context: None,
                     stylist: stylist,
                     parallel_traversal: parallel_traversal,
@@ -445,7 +450,7 @@ impl LayoutTask {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
             image_cache_sender: self.image_cache_sender.clone(),
-            screen_size: rw_data.screen_size.clone(),
+            viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
             constellation_chan: rw_data.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
@@ -1033,7 +1038,7 @@ impl LayoutTask {
                 || {
             flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             rw_data.screen_size);
+                                                             rw_data.viewport_size);
 
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
@@ -1138,24 +1143,31 @@ impl LayoutTask {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
         let initial_viewport = data.window_size.initial_viewport;
-        let old_screen_size = rw_data.screen_size;
+        let old_viewport_size = rw_data.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                               Au::from_f32_px(initial_viewport.height.get()));
         rw_data.screen_size = current_screen_size;
 
-        // Handle conditions where the entire flow tree is invalid.
-        let screen_size_changed = current_screen_size != old_screen_size;
-        if screen_size_changed {
-            // Calculate the actual viewport as per DEVICE-ADAPT § 6
-            let device = Device::new(MediaType::Screen, initial_viewport);
-            rw_data.stylist.set_device(device);
+        // Calculate the actual viewport as per DEVICE-ADAPT § 6
+        let device = Device::new(MediaType::Screen, initial_viewport);
+        rw_data.stylist.set_device(device);
 
-            if let Some(constraints) = rw_data.stylist.constrain_viewport() {
+        let constraints = rw_data.stylist.constrain_viewport();
+        rw_data.viewport_size = match constraints {
+            Some(ref constraints) => {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                rw_data.screen_size = Size2D::new(Au::from_f32_px(constraints.size.width.get()),
-                                                  Au::from_f32_px(constraints.size.height.get()));
+                Size2D::new(Au::from_f32_px(constraints.size.width.get()),
+                            Au::from_f32_px(constraints.size.height.get()))
+            }
+            None => current_screen_size,
+        };
+
+        // Handle conditions where the entire flow tree is invalid.
+        let viewport_size_changed = rw_data.viewport_size != old_viewport_size;
+        if viewport_size_changed {
+            if let Some(constraints) = constraints {
                 let device = Device::new(MediaType::Screen, constraints.size);
                 rw_data.stylist.set_device(device);
 
@@ -1168,7 +1180,7 @@ impl LayoutTask {
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let needs_dirtying = rw_data.stylist.update();
-        let needs_reflow = screen_size_changed && !needs_dirtying;
+        let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
                 LayoutTask::dirty_all_nodes(node);
@@ -1184,14 +1196,16 @@ impl LayoutTask {
         if !needs_dirtying {
             for &(el, state_change) in state_changes.iter() {
                 debug_assert!(!state_change.is_empty());
-                let hint = rw_data.stylist.restyle_hint_for_state_change(&el, el.get_state(), state_change);
+                let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
+                                                                         el.get_state(),
+                                                                         state_change);
                 el.note_restyle_hint(hint);
             }
         }
 
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                         screen_size_changed,
+                                                                         viewport_size_changed,
                                                                          &self.url,
                                                                          data.reflow_info.goal);
 
@@ -1262,8 +1276,8 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D::new(rw_data.screen_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                        rw_data.screen_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(rw_data.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        rw_data.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             match rw_data.visible_rects.get(layer_id) {
                 None => {
