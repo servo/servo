@@ -931,6 +931,40 @@ impl LayoutTask {
         // There are probably other quirks.
         let applies = true;
 
+        fn used_value_for_position_property(layout_node: ThreadSafeLayoutNode,
+                                            layout_root: &mut FlowRef,
+                                            requested_node: TrustedNodeAddress,
+                                            property: &Atom) -> Option<String> {
+            let layout_data = layout_node.borrow_layout_data();
+            let position = layout_data.as_ref().map(|layout_data| {
+                match layout_data.data.flow_construction_result {
+                    ConstructionResult::Flow(ref flow_ref, _) =>
+                        flow::base(flow_ref.deref()).stacking_relative_position,
+                    // TODO(dzbarsky) search parents until we find node with a flow ref.
+                    // https://github.com/servo/servo/issues/8307
+                    _ => ZERO_POINT
+                }
+            }).unwrap_or(ZERO_POINT);
+            let property = match *property {
+                atom!("bottom") => PositionProperty::Bottom,
+                atom!("top") => PositionProperty::Top,
+                atom!("left") => PositionProperty::Left,
+                atom!("right") => PositionProperty::Right,
+                atom!("width") => PositionProperty::Width,
+                atom!("height") => PositionProperty::Height,
+                _ => unreachable!()
+            };
+            let requested_node: OpaqueNode =
+                OpaqueNodeMethods::from_script_node(requested_node);
+            let mut iterator =
+                PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
+                                                                 property,
+                                                                 position);
+            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+                                                                        &mut iterator);
+            iterator.result.map(|r| r.to_css_string())
+        }
+
         // TODO: we will return neither the computed nor used value for margin and padding.
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
@@ -964,37 +998,16 @@ impl LayoutTask {
             },
 
             atom!("bottom") | atom!("top") | atom!("right") |
-            atom!("left") | atom!("width") | atom!("height")
+            atom!("left")
             if applies && positioned && style.get_box().display !=
                     display::computed_value::T::none => {
-                let layout_data = layout_node.borrow_layout_data();
-                let position = layout_data.as_ref().map(|layout_data| {
-                    match layout_data.data.flow_construction_result {
-                        ConstructionResult::Flow(ref flow_ref, _) =>
-                            flow::base(flow_ref.deref()).stacking_relative_position,
-                        // TODO search parents until we find node with a flow ref.
-                        _ => ZERO_POINT
-                    }
-                }).unwrap_or(ZERO_POINT);
-                let property = match *property {
-                    atom!("bottom") => PositionProperty::Bottom,
-                    atom!("top") => PositionProperty::Top,
-                    atom!("left") => PositionProperty::Left,
-                    atom!("right") => PositionProperty::Right,
-                    atom!("width") => PositionProperty::Width,
-                    atom!("height") => PositionProperty::Height,
-                    _ => unreachable!()
-                };
-                let requested_node: OpaqueNode =
-                    OpaqueNodeMethods::from_script_node(requested_node);
-                let mut iterator =
-                    PositionRetrievingFragmentBorderBoxIterator::new(requested_node,
-                                                                     property,
-                                                                     position);
-                sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
-                                                                            &mut iterator);
-                iterator.result.map(|r| r.to_css_string())
-            },
+                used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            }
+            atom!("width") | atom!("height")
+            if applies && style.get_box().display !=
+                    display::computed_value::T::none => {
+                used_value_for_position_property(layout_node, layout_root, requested_node, property)
+            }
             // FIXME: implement used value computation for line-height
             ref property => {
                 style.computed_value_to_string(property.as_slice()).ok()
