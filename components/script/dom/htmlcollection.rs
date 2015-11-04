@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
-use dom::node::{Node, FollowingNodeIterator, FollowingNodeReverseIterator};
+use dom::node::{Node, FollowingNodeIterator, PrecedingNodeIterator};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -127,35 +127,34 @@ impl HTMLCollection {
 
     fn get_item(&self, index: u32) -> Option<Root<Element>> {
         // Call validate_cache before calling this method!
-        let cached_length = self.cached_length.get();
         if let Some(element) = self.cached_cursor_element.get() {
             // Cache hit, the cursor element is set
-            let cached_index = self.cached_cursor_index.get();
-            if cached_index == index {
-                // The cursor is the element we're looking for
-                Some(element)
-            } else if cached_index < index {
-                // The cursor is before the element we're looking for
-                // Iterate forwards, starting at the cursor.
-                let offset = index - (cached_index + 1);
-                let node: Root<Node> = Root::upcast(element);
-                self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
+            if let Some(cached_index) = self.cached_cursor_index.get().to_option() {
+                if cached_index == index {
+                    // The cursor is the element we're looking for
+                    Some(element)
+                } else if cached_index < index {
+                    // The cursor is before the element we're looking for
+                    // Iterate forwards, starting at the cursor.
+                    let offset = index - (cached_index + 1);
+                    let node: Root<Node> = Root::upcast(element);
+                    self.set_cached_cursor(index, self.elements_iter_after(node.r()).nth(offset as usize))
+                } else {
+                    // The cursor is after the element we're looking for
+                    // Iterate backwards, starting at the cursor.
+                    let offset = cached_index - (index + 1);
+                    let node: Root<Node> = Root::upcast(element);
+                    self.set_cached_cursor(index, self.elements_iter_before(node.r()).nth(offset as usize))
+                }
             } else {
-                // The cursor is after the element we're looking for
-                // Iterate backwards, starting at the cursor.
-                let offset = cached_index - (index + 1);
-                let node: Root<Node> = Root::upcast(element);
-                self.set_cached_cursor(index, self.elements_iter_reverse_before(node.r()).nth(offset as usize))
+                // Cache miss
+                // Iterate forwards through all the nodes
+                self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
             }
-        } else if (index < (cached_length - index)) {
-            // Cache miss, the index is close to the beginning of the collection
-            // Note that this is the case that will fire if the cached length is unset
-            // so cached_length is maxint.
-            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
         } else {
-            // Cache miss, the index is close to the end of the collection
-            let offset = cached_length - (index + 1);
-            self.set_cached_cursor(index, self.elements_iter_reverse().nth(offset as usize))
+            // Cache miss
+            // Iterate forwards through all the nodes
+            self.set_cached_cursor(index, self.elements_iter().nth(index as usize))
         }
     }
 
@@ -265,22 +264,18 @@ impl HTMLCollection {
         self.elements_iter_after(&*self.root)
     }
 
-    pub fn elements_iter_reverse_before(&self, before: &Node) -> HTMLCollectionElementsRevIter {
+    pub fn elements_iter_before(&self, before: &Node) -> HTMLCollectionElementsRevIter {
         // Iterate backwards from a node.
         HTMLCollectionElementsRevIter {
-            node_iter: before.following_nodes_reverse(&self.root),
+            node_iter: before.preceding_nodes(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
     }
 
-    pub fn elements_iter_reverse(&self) -> HTMLCollectionElementsRevIter {
-        // Iterate backwards from the root
-        self.elements_iter_reverse_before(&*self.root)
-    }
-
 }
 
+// TODO: Make this generic, and avoid code duplication
 pub struct HTMLCollectionElementsIter<'a> {
     node_iter: FollowingNodeIterator,
     root: Root<Node>,
@@ -301,7 +296,7 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
 }
 
 pub struct HTMLCollectionElementsRevIter<'a> {
-    node_iter: FollowingNodeReverseIterator,
+    node_iter: PrecedingNodeIterator,
     root: Root<Node>,
     filter: &'a Box<CollectionFilter>,
 }
