@@ -59,7 +59,7 @@ use script_traits::{TimerEventChan, TimerEventId, TimerEventRequest, TimerSource
 use selectors::parser::PseudoElement;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
@@ -119,7 +119,7 @@ pub struct Window {
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: IpcSender<ScriptToCompositorMsg>,
-    browsing_context: DOMRefCell<Option<BrowsingContext>>,
+    browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -217,7 +217,7 @@ impl Window {
     pub fn clear_js_runtime_for_script_deallocation(&self) {
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
-            *self.browsing_context.borrow_for_script_deallocation() = None;
+            self.browsing_context.set(None);
             self.current_state.set(WindowState::Zombie);
         }
     }
@@ -271,8 +271,8 @@ impl Window {
         &self.compositor
     }
 
-    pub fn browsing_context(&self) -> Ref<Option<BrowsingContext>> {
-        self.browsing_context.borrow()
+    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
+        self.browsing_context.get()
     }
 
     pub fn page(&self) -> &Page {
@@ -797,7 +797,7 @@ impl Window {
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
-        *self.browsing_context.borrow_mut() = None;
+        self.browsing_context.set(None);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -1009,9 +1009,7 @@ impl Window {
     }
 
     pub fn init_browsing_context(&self, doc: &Document, frame_element: Option<&Element>) {
-        let mut browsing_context = self.browsing_context.borrow_mut();
-        *browsing_context = Some(BrowsingContext::new(doc, frame_element));
-        (*browsing_context).as_mut().unwrap().create_window_proxy();
+        self.browsing_context.set(Some(&BrowsingContext::new(doc, frame_element)));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -1183,15 +1181,14 @@ impl Window {
     }
 
     pub fn parent(&self) -> Option<Root<Window>> {
-        let browsing_context = self.browsing_context();
-        let browsing_context = browsing_context.as_ref().unwrap();
+        let browsing_context = self.browsing_context().unwrap();
 
         browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element);
             // FIXME(https://github.com/rust-lang/rust/issues/23338)
             let r = window.r();
             let context = r.browsing_context();
-            Root::from_ref(context.as_ref().unwrap().active_window())
+            Root::from_ref(context.unwrap().active_window())
         })
     }
 }
@@ -1234,7 +1231,7 @@ impl Window {
             image_cache_task: image_cache_task,
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
-            browsing_context: DOMRefCell::new(None),
+            browsing_context: Default::default(),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
