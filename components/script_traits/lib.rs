@@ -187,8 +187,8 @@ pub enum CompositorEvent {
     MouseDownEvent(MouseButton, Point2D<f32>),
     /// A mouse button was released on a point.
     MouseUpEvent(MouseButton, Point2D<f32>),
-    /// The mouse was moved over a point.
-    MouseMoveEvent(Point2D<f32>),
+    /// The mouse was moved over a point (or was moved out of the recognizable region).
+    MouseMoveEvent(Option<Point2D<f32>>),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(TouchEventType, TouchId, Point2D<f32>),
     /// A key was pressed.

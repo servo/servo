@@ -35,7 +35,7 @@ use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
-use script_traits::CompositorEvent::TouchEvent;
+use script_traits::CompositorEvent::{MouseMoveEvent, TouchEvent};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, MouseButton};
 use script_traits::{TouchEventType, TouchId};
 use scrolling::ScrollingTimerProxy;
@@ -183,6 +183,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pipeline IDs of subpages that the compositor has seen in a layer tree but which have not
     /// yet been painted.
     pending_subpages: HashSet<PipelineId>,
+
+    /// The id of the pipeline that was last sent a mouse move event, if any.
+    last_mouse_move_recipient: Option<PipelineId>,
 }
 
 /// The states of the touch input state machine.
@@ -352,6 +355,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             ready_to_save_state: ReadyState::Unknown,
             surface_map: SurfaceMap::new(BUFFER_MAP_SIZE),
             pending_subpages: HashSet::new(),
+            last_mouse_move_recipient: None,
         }
     }
 
@@ -1169,8 +1173,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
-            Some(result) => result.layer.send_mouse_move_event(self, result.point),
-            None => {},
+            Some(result) => {
+                // In the case that the mouse was previously over a different layer,
+                // that layer must update its state.
+                if let Some(last_pipeline_id) = self.last_mouse_move_recipient {
+                    if last_pipeline_id != result.layer.pipeline_id() {
+                        if let Some(pipeline) = self.pipeline(last_pipeline_id) {
+                            let _ = pipeline.script_chan
+                                            .send(ConstellationControlMsg::SendEvent(
+                                                last_pipeline_id.clone(),
+                                                MouseMoveEvent(None)));
+                        }
+                    }
+                }
+
+                self.last_mouse_move_recipient = Some(result.layer.pipeline_id());
+                result.layer.send_mouse_move_event(self, result.point);
+            }
+            None => {}
         }
     }
 

@@ -668,10 +668,12 @@ impl Document {
 
     pub fn handle_mouse_move_event(&self,
                                js_runtime: *mut JSRuntime,
-                               point: Point2D<f32>,
+                               point: Option<Point2D<f32>>,
                                prev_mouse_over_targets: &mut RootedVec<JS<Element>>) {
         // Build a list of elements that are currently under the mouse.
-        let mouse_over_addresses = self.get_nodes_under_mouse(&point);
+        let mouse_over_addresses = point.as_ref()
+                                        .map(|point| self.get_nodes_under_mouse(point))
+                                        .unwrap_or(vec![]);
         let mut mouse_over_targets = mouse_over_addresses.iter().map(|node_address| {
             node::from_untrusted_node_address(js_runtime, *node_address)
                 .inclusive_ancestors()
@@ -690,7 +692,11 @@ impl Document {
 
                     let target = target_ref.upcast();
 
-                    self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    // FIXME: we should be dispatching this event but we lack an actual
+                    //        point to pass to it.
+                    if let Some(point) = point {
+                        self.fire_mouse_event(point, &target, "mouseout".to_owned());
+                    }
                 }
             }
         }
@@ -704,8 +710,9 @@ impl Document {
 
                 let target = target.upcast();
 
-                self.fire_mouse_event(point, target, "mouseover".to_owned());
-
+                if let Some(point) = point {
+                    self.fire_mouse_event(point, target, "mouseover".to_owned());
+                }
             }
         }
 
@@ -715,7 +722,9 @@ impl Document {
                 node::from_untrusted_node_address(js_runtime, mouse_over_addresses[0]);
 
             let target = top_most_node.upcast();
-            self.fire_mouse_event(point, target, "mousemove".to_owned());
+            if let Some(point) = point {
+                self.fire_mouse_event(point, target, "mousemove".to_owned());
+            }
         }
 
         // Store the current mouse over targets for next frame

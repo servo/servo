@@ -385,7 +385,7 @@ impl CompositorLayer for Layer<CompositorData> {
                                      compositor: &IOCompositor<Window>,
                                      cursor: TypedPoint2D<LayerPixel, f32>)
                                      where Window: WindowMethods {
-        self.send_event(compositor, MouseMoveEvent(cursor.to_untyped()));
+        self.send_event(compositor, MouseMoveEvent(Some(cursor.to_untyped())));
     }
 
     fn send_event<Window>(&self,
