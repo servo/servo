@@ -55,6 +55,24 @@ use util::opts;
 use util::print_tree::PrintTree;
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
+#[derive(Debug)]
+enum UnableToComposite {
+    NoContext,
+    WindowUnprepared,
+    NotReadyToPaintImage(NotReadyToPaint),
+}
+
+#[derive(Debug)]
+enum NotReadyToPaint {
+    LayerHasOutstandingPaintMessages,
+    MissingRoot,
+    PendingSubpages(usize),
+    AnimationsRunning,
+    AnimationCallbacksRunning,
+    JustNotifiedConstellation,
+    WaitingOnConstellation,
+}
+
 const BUFFER_MAP_SIZE: usize = 10000000;
 
 // Default viewport constraints
@@ -211,7 +229,7 @@ pub struct ScrollEvent {
     cursor: TypedPoint2D<DevicePixel, i32>,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
@@ -579,8 +597,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 assert!(self.ready_to_save_state == ReadyState::WaitingForConstellationReply);
                 if is_ready {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
+                    if opts::get().is_running_problem_test {
+                        println!("ready to save image!");
+                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
+                    if opts::get().is_running_problem_test {
+                        println!("resetting ready_to_save_state!");
+                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             }
@@ -1678,7 +1702,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// Query the constellation to see if the current compositor
     /// output matches the current frame tree output, and if the
     /// associated script tasks are idle.
-    fn is_ready_to_paint_image_output(&mut self) -> bool {
+    fn is_ready_to_paint_image_output(&mut self) -> Result<(), NotReadyToPaint> {
         match self.ready_to_save_state {
             ReadyState::Unknown => {
                 // Unsure if the output image is stable.
@@ -1689,17 +1713,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.scene.root {
                     Some(ref root_layer) => {
                         if self.does_layer_have_outstanding_paint_messages(root_layer) {
-                            return false;
+                            return Err(NotReadyToPaint::LayerHasOutstandingPaintMessages);
                         }
                     }
                     None => {
-                        return false;
+                        return Err(NotReadyToPaint::MissingRoot);
                     }
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
                 if self.pending_subpages.len() > 0 {
-                    return false
+                    return Err(NotReadyToPaint::PendingSubpages(self.pending_subpages.len()));
                 }
 
                 // Collect the currently painted epoch of each pipeline that is
@@ -1710,8 +1734,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 for (id, details) in &self.pipeline_details {
                     // If animations are currently running, then don't bother checking
                     // with the constellation if the output image is stable.
-                    if details.animations_running || details.animation_callbacks_running {
-                        return false;
+                    if details.animations_running {
+                        return Err(NotReadyToPaint::AnimationsRunning);
+                    }
+                    if details.animation_callbacks_running {
+                        return Err(NotReadyToPaint::AnimationCallbacksRunning);
                     }
 
                     pipeline_epochs.insert(*id, details.current_epoch);
@@ -1722,12 +1749,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let ConstellationChan(ref chan) = self.constellation_chan;
                 chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
-                false
+                Err(NotReadyToPaint::JustNotifiedConstellation)
             }
             ReadyState::WaitingForConstellationReply => {
                 // If waiting on a reply from the constellation to the last
                 // query if the image is stable, then assume not ready yet.
-                false
+                Err(NotReadyToPaint::WaitingOnConstellation)
             }
             ReadyState::ReadyToSaveImage => {
                 // Constellation has replied at some point in the past
@@ -1735,8 +1762,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
+                println!("was ready to save, resetting ready_to_save_state");
                 self.ready_to_save_state = ReadyState::Unknown;
-                true
+                Ok(())
             }
         }
     }
@@ -1746,8 +1774,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let composited = self.composite_specific_target(target);
         if composited.is_ok() &&
             (opts::get().output_file.is_some() || opts::get().exit_after_load) {
-            debug!("Shutting down the Constellation after generating an output file or exit flag specified");
+            println!("Shutting down the Constellation after generating an output file or exit flag specified");
             self.start_shutting_down();
+        } else if composited.is_err() && opts::get().is_running_problem_test {
+            println!("not ready to composite: {:?}", composited.err().unwrap());
         }
     }
 
@@ -1756,26 +1786,28 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, ()> {
+    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
 
         if !self.context.is_some() {
-            return Err(())
+            return Err(UnableToComposite::NoContext)
         }
         let (width, height) =
             (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
         if !self.window.prepare_for_composite(width, height) {
-            return Err(())
+            return Err(UnableToComposite::WindowUnprepared)
         }
 
         match target {
             CompositeTarget::WindowAndPng | CompositeTarget::PngFile => {
-                if !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if let Err(result) = self.is_ready_to_paint_image_output() {
+                    return Err(UnableToComposite::NotReadyToPaintImage(result))
                 }
             }
             CompositeTarget::Window => {
-                if opts::get().exit_after_load && !self.is_ready_to_paint_image_output() {
-                    return Err(())
+                if opts::get().exit_after_load {
+                    if let Err(result) = self.is_ready_to_paint_image_output() {
+                        return Err(UnableToComposite::NotReadyToPaintImage(result))
+                    }
                 }
             }
         }
@@ -1892,7 +1924,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
         if self.composition_request == CompositionRequest::NoCompositingNecessary {
+            if opts::get().is_running_problem_test {
+                println!("updating composition_request ({:?})", reason);
+            }
             self.composition_request = CompositionRequest::CompositeNow(reason)
+        } else if opts::get().is_running_problem_test {
+            println!("composition_request is already {:?}", self.composition_request);
         }
     }
 
@@ -2145,7 +2182,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 }
 
 /// Why we performed a composite. This is used for debugging.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum CompositingReason {
     /// We hit the scroll timeout and are therefore drawing unrendered content.
     HitScrollTimeout,

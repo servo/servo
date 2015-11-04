@@ -57,6 +57,16 @@ use util::geometry::PagePx;
 use util::task::spawn_named;
 use util::{opts, prefs};
 
+#[derive(Debug, PartialEq)]
+enum ReadyToSave {
+    NoRootFrame,
+    WebFontNotLoaded,
+    DocumentLoading,
+    EpochMismatch,
+    PipelineUnknown,
+    Ready,
+}
+
 /// Maintains the pipelines and navigation context and grants permission to composite.
 ///
 /// It is parameterized over a `LayoutTaskFactory` and a
@@ -516,7 +526,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             ConstellationMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
+                if opts::get().is_running_problem_test {
+                    println!("got ready to save image query, result is {:?}", is_ready);
+                }
+                let is_ready = is_ready == ReadyToSave::Ready;
                 self.compositor_proxy.send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
+                if opts::get().is_running_problem_test {
+                    println!("sent response");
+                }
             }
             ConstellationMsg::RemoveIFrame(pipeline_id) => {
                 debug!("constellation got remove iframe message");
@@ -1188,11 +1205,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     /// to check if the output image is "stable" and can be written as a screenshot
     /// for reftests.
     fn handle_is_ready_to_save_image(&mut self,
-                                     pipeline_states: HashMap<PipelineId, Epoch>) -> bool {
+                                     pipeline_states: HashMap<PipelineId, Epoch>) -> ReadyToSave {
         // If there is no root frame yet, the initial page has
         // not loaded, so there is nothing to save yet.
         if self.root_frame_id.is_none() {
-            return false;
+            return ReadyToSave::NoRootFrame;
         }
 
         // Step through the current frame tree, checking that the script
@@ -1215,7 +1232,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let msg = LayoutControlMsg::GetWebFontLoadState(sender);
             pipeline.layout_chan.0.send(msg).unwrap();
             if receiver.recv().unwrap() {
-                return false;
+                return ReadyToSave::WebFontNotLoaded;
             }
 
             // Synchronously query the script task for this pipeline
@@ -1225,7 +1242,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             pipeline.script_chan.send(msg).unwrap();
             let result = receiver.recv().unwrap();
             if result == ScriptState::DocumentLoading {
-                return false;
+                return ReadyToSave::DocumentLoading;
             }
 
             // Check the visible rectangle for this pipeline. If the constellation has received a
@@ -1253,20 +1270,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
                         let layout_task_epoch = receiver.recv().unwrap();
                         if layout_task_epoch != *compositor_epoch {
-                            return false;
+                            return ReadyToSave::EpochMismatch;
                         }
                     }
                     None => {
                         // The compositor doesn't know about this pipeline yet.
                         // Assume it hasn't rendered yet.
-                        return false;
+                        return ReadyToSave::PipelineUnknown;
                     }
                 }
             }
         }
 
         // All script tasks are idle and layout epochs match compositor, so output image!
-        true
+        ReadyToSave::Ready
     }
 
     // Close a frame (and all children)
