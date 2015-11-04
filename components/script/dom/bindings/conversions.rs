@@ -453,25 +453,31 @@ pub enum StringificationBehavior {
     Empty,
 }
 
+fn latin1_to_string(cx: *mut JSContext, s: *mut JSString) -> String {
+    let mut length = 0;
+    assert!(unsafe { JS_StringHasLatin1Chars(s) });
+    let chars = unsafe {
+        JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
+    };
+    assert!(!chars.is_null());
+
+    let mut buf = String::with_capacity(length as usize);
+    for i in 0..(length as isize) {
+        unsafe {
+            buf.push(*chars.offset(i) as char);
+        }
+    }
+    buf
+}
+
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
 pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    let mut length = 0;
     let latin1 = unsafe { JS_StringHasLatin1Chars(s) };
     DOMString(if latin1 {
-        let chars = unsafe {
-            JS_GetLatin1StringCharsAndLength(cx, ptr::null(), s, &mut length)
-        };
-        assert!(!chars.is_null());
-
-        let mut buf = String::with_capacity(length as usize);
-        for i in 0..(length as isize) {
-            unsafe {
-                buf.push(*chars.offset(i) as char);
-            }
-        }
-        buf
+        latin1_to_string(cx, s)
     } else {
+        let mut length = 0;
         let chars = unsafe {
             JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length)
         };
@@ -555,7 +561,7 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(jsstring_to_str(cx, jsstr).0));
+            return Ok(USVString(latin1_to_string(cx, jsstr)));
         }
         unsafe {
             let mut length = 0;
