@@ -4151,6 +4151,18 @@
             "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
           }
         ],
+        "mozilla/iframe/resize_after_load.html": [
+          {
+            "path": "mozilla/iframe/resize_after_load.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/iframe/resize_after_load_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -8950,6 +8962,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
+        }
+      ],
+      "mozilla/iframe/resize_after_load.html": [
+        {
+          "path": "mozilla/iframe/resize_after_load.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/iframe/resize_after_load_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [

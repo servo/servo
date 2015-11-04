@@ -791,8 +791,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn update_layer_if_exists(&mut self, pipeline_id: PipelineId, properties: LayerProperties)
+    fn update_layer_if_exists(&mut self,
+                              pipeline_id: PipelineId,
+                              properties: LayerProperties)
                               -> bool {
+        if let Some(subpage_id) = properties.subpage_pipeline_id {
+            match self.find_layer_with_pipeline_and_layer_id(subpage_id, LayerId::null()) {
+                Some(layer) => {
+                    *layer.bounds.borrow_mut() = Rect::from_untyped(
+                        &Rect::new(Point2D::zero(), properties.rect.size));
+                }
+                None => warn!("Tried to update non-existent subpage root layer: {:?}", subpage_id),
+            }
+        }
+
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, properties.id) {
             Some(existing_layer) => {
                 existing_layer.update_layer(properties);
