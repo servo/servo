@@ -15,6 +15,18 @@
     "deleted": [],
     "items": {
       "reftest": {
+        "css/abs-overflow-stackingcontext.html": [
+          {
+            "path": "css/abs-overflow-stackingcontext.html",
+            "references": [
+              [
+                "/_mozilla/css/abs-overflow-stackingcontext_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/abs-overflow-stackingcontext.html"
+          }
+        ],
         "css/abs_float_pref_width.html": [
           {
             "path": "css/abs_float_pref_width.html",
@@ -4804,6 +4816,18 @@
       }
     },
     "reftest_nodes": {
+      "css/abs-overflow-stackingcontext.html": [
+        {
+          "path": "css/abs-overflow-stackingcontext.html",
+          "references": [
+            [
+              "/_mozilla/css/abs-overflow-stackingcontext_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/abs-overflow-stackingcontext.html"
+        }
+      ],
       "css/abs_float_pref_width.html": [
         {
           "path": "css/abs_float_pref_width.html",

@@ -42,7 +42,6 @@ use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, Opaqu
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
-use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, DisplayList};
@@ -475,45 +474,6 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
 
         let AbsoluteAssignBSizesTraversal(ref layout_context) = *self;
         block.calculate_absolute_block_size_and_margins(*layout_context);
-    }
-}
-
-/// The store-overflow traversal particular to absolute flows.
-///
-/// Propagate overflow up the Absolute flow tree and update overflow up to and
-/// not including the root of the Absolute flow tree.
-/// After that, it is up to the normal store-overflow traversal to propagate
-/// it further up.
-pub struct AbsoluteStoreOverflowTraversal<'a>{
-    pub layout_context: &'a LayoutContext<'a>,
-}
-
-impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
-    #[inline]
-    fn process(&self, flow: &mut Flow) {
-        {
-            // This will be taken care of by the normal store-overflow traversal.
-            let flow: &Flow = flow;
-            if flow.contains_roots_of_absolute_flow_tree() {
-                return;
-            }
-        }
-
-        flow.mutate_fragments(&mut |f: &mut Fragment| {
-            match f.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let block = flow_ref::deref_mut(&mut info.flow_ref);
-                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
-                }
-                SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
-                    let block = flow_ref::deref_mut(&mut info.flow_ref);
-                    (block.as_mut_block() as &mut Flow).early_store_overflow(self.layout_context);
-                }
-                _ => (),
-            }
-        });
-
-        flow.early_store_overflow(self.layout_context);
     }
 }
 
@@ -1017,7 +977,6 @@ impl BlockFlow {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
                 };
-                kid.late_store_overflow(layout_context)
             }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1074,11 +1033,6 @@ impl BlockFlow {
             // the block-size of its containing block, which may also be an absolute flow.
             (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
                 &mut AbsoluteAssignBSizesTraversal(layout_context));
-            // Store overflow for all absolute descendants.
-            (&mut *self as &mut Flow).traverse_postorder_absolute_flows(
-                &mut AbsoluteStoreOverflowTraversal {
-                    layout_context: layout_context,
-                });
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
@@ -1796,7 +1750,6 @@ impl Flow for BlockFlow {
             self.base.thread_id = parent_thread_id;
             if self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
                 self.assign_block_size(layout_context);
-                (self as &mut Flow).early_store_overflow(layout_context);
                 // Don't remove the restyle damage; `assign_block_size` decides whether that is
                 // appropriate (which in the case of e.g. absolutely-positioned flows, it is not).
             }
