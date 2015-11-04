@@ -16,7 +16,6 @@ use gleam::gl;
 use glutin;
 #[cfg(feature = "window")]
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
-use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 #[cfg(feature = "window")]
@@ -158,8 +157,6 @@ impl Window {
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
-        use script_traits::{TouchEventType, TouchId};
-
         match event {
             Event::KeyboardInput(element_state, _scan_code, virtual_key_code) => {
                 if virtual_key_code.is_some() {
@@ -210,6 +207,9 @@ impl Window {
                 self.scroll_window(dx, dy);
             },
             Event::Touch(touch) => {
+                use glutin::TouchPhase;
+                use script_traits::{TouchEventType, TouchId};
+
                 let phase = match touch.phase {
                     TouchPhase::Started => TouchEventType::Down,
                     TouchPhase::Moved => TouchEventType::Move,
