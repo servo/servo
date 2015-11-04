@@ -228,7 +228,7 @@ impl FileReader {
         let convert = blob_bytes;
         // Step 7
         let output = enc.decode(convert, DecoderTrap::Replace).unwrap();
-        output
+        DOMString(output)
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
@@ -248,7 +248,7 @@ impl FileReader {
             format!("data:{};base64,{}", data.blobtype, base64)
         };
 
-        output
+        DOMString(output)
     }
 }
 
@@ -319,11 +319,11 @@ impl FileReaderMethods for FileReader {
 
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, type_: String, loaded: u64, total: Option<u64>) {
 
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+            DOMString(type_), EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             total.is_some(), loaded, total.unwrap_or(0));
         progressevent.upcast::<Event>().fire(self.upcast());
     }

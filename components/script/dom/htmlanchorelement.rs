@@ -170,7 +170,7 @@ impl Activatable for HTMLAnchorElement {
 }
 
 /// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
-fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<DOMString>) {
+fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.
@@ -182,7 +182,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<DOMString>) {
     // Step 6.
     // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
     if let Some(suffix) = hyperlink_suffix {
-        href.push_str(&suffix);
+        href.0.push_str(&suffix);
     }
 
     // Step 4-5.

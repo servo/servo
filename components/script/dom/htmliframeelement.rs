@@ -144,7 +144,7 @@ impl HTMLIFrameElement {
             let mut detail = RootedValue::new(cx, UndefinedValue());
             event.detail().to_jsval(cx, detail.handle_mut());
             let custom_event = CustomEvent::new(GlobalRef::Window(window.r()),
-                                                event.name().to_owned(),
+                                                DOMString(event.name().to_owned()),
                                                 true,
                                                 true,
                                                 detail.handle());

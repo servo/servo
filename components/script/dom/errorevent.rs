@@ -15,7 +15,6 @@ use dom::bindings::trace::JSTraceable;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use util::str::DOMString;
 
@@ -34,8 +33,8 @@ impl ErrorEvent {
     fn new_inherited() -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(),
-            message: DOMRefCell::new("".to_owned()),
-            filename: DOMRefCell::new("".to_owned()),
+            message: DOMRefCell::new(DOMString::new()),
+            filename: DOMRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: MutHeapJSVal::new()
@@ -76,12 +75,12 @@ impl ErrorEvent {
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Root<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_owned(),
+            None => DOMString::new(),
         };
 
         let file_name = match init.filename.as_ref() {
-            None => "".to_owned(),
             Some(filename) => filename.clone(),
+            None => DOMString::new(),
         };
 
         let line_num = init.lineno.unwrap_or(0);

@@ -65,7 +65,7 @@ impl CharacterDataMethods for CharacterData {
             // Steps 4.
             Some(count_bytes) => &data_from_offset[..count_bytes],
         };
-        Ok(substring.to_owned())
+        Ok(DOMString(substring.to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
@@ -80,7 +80,7 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, "".to_owned())
+        self.ReplaceData(offset, count, DOMString::new())
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
@@ -103,7 +103,7 @@ impl CharacterDataMethods for CharacterData {
             new_data.push_str(prefix);
             new_data.push_str(&arg);
             new_data.push_str(suffix);
-            new_data
+            DOMString(new_data)
         };
         *self.data.borrow_mut() = new_data;
         self.content_changed();
@@ -150,7 +150,7 @@ impl CharacterData {
     }
     #[inline]
     pub fn append_data(&self, data: &str) {
-        self.data.borrow_mut().push_str(data);
+        self.data.borrow_mut().0.push_str(data);
         self.content_changed();
     }
 

@@ -17,7 +17,6 @@ use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use util::str::DOMString;
 
@@ -45,8 +44,8 @@ impl KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(),
             key: Cell::new(None),
-            key_string: DOMRefCell::new("".to_owned()),
-            code: DOMRefCell::new("".to_owned()),
+            key_string: DOMRefCell::new(DOMString::new()),
+            code: DOMRefCell::new(DOMString::new()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),
@@ -85,7 +84,7 @@ impl KeyboardEvent {
                key_code: u32) -> Root<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window);
         ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
-                             "".to_owned(), repeat, "".to_owned());
+                             DOMString::new(), repeat, DOMString::new());
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         {
             let ev = ev.r();

@@ -1603,13 +1603,13 @@ impl ScriptTask {
                                  incomplete.parent_info,
                                  incomplete.window_size);
 
-        let last_modified: Option<DOMString> = metadata.headers.as_ref().and_then(|headers| {
+        let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
         let content_type = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some("text/plain".to_owned())
+                Some(DOMString("text/plain".to_owned()))
             }
             _ => None
         };
@@ -1640,11 +1640,11 @@ impl ScriptTask {
             let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
             let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
             window.evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval.handle(),
-                                                          StringificationBehavior::Empty);
-            strval.unwrap_or("".to_owned())
+            let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
+                                               StringificationBehavior::Empty);
+            strval.unwrap_or(DOMString::new())
         } else {
-            "".to_owned()
+            DOMString::new()
         };
 
         parse_html(document.r(), parse_input, final_url,
@@ -1877,7 +1877,7 @@ impl ScriptTask {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         let uievent = UIEvent::new(window.r(),
-                                   "resize".to_owned(), EventBubbles::DoesNotBubble,
+                                   DOMString("resize".to_owned()), EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable, Some(window.r()),
                                    0i32);
         uievent.upcast::<Event>().fire(window.upcast());

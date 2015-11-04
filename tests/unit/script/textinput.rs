@@ -15,10 +15,15 @@ use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::textinput::{TextInput, Selection, Lines, Direction};
 use std::borrow::ToOwned;
+use util::str::DOMString;
+
+fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
+    TextInput::new(lines, DOMString(s.to_owned()), DummyClipboardContext::new(""))
+}
 
 #[test]
 fn test_textinput_delete_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.delete_char(Direction::Backward);
     assert_eq!(textinput.get_content(), "acdefg");
@@ -30,7 +35,7 @@ fn test_textinput_delete_char() {
     textinput.delete_char(Direction::Forward);
     assert_eq!(textinput.get_content(), "afg");
 
-    let mut textinput = TextInput::new(Lines::Single, "a🌠b".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "a🌠b");
     // Same as "Right" key
     textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
     textinput.delete_char(Direction::Forward);
@@ -40,7 +45,7 @@ fn test_textinput_delete_char() {
 
 #[test]
 fn test_textinput_insert_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.insert_char('a');
     assert_eq!(textinput.get_content(), "abacdefg");
@@ -49,7 +54,7 @@ fn test_textinput_insert_char() {
     textinput.insert_char('b');
     assert_eq!(textinput.get_content(), "ababefg");
 
-    let mut textinput = TextInput::new(Lines::Single, "a🌠c".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "a🌠c");
     // Same as "Right" key
     textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
     textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
@@ -60,7 +65,7 @@ fn test_textinput_insert_char() {
 
 #[test]
 fn test_textinput_get_sorted_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
     let (begin, end) = textinput.get_sorted_selection().unwrap();
@@ -77,17 +82,17 @@ fn test_textinput_get_sorted_selection() {
 
 #[test]
 fn test_textinput_replace_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "abcdefg");
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
 
-    textinput.replace_selection("xyz".to_owned());
+    textinput.replace_selection(DOMString("xyz".to_owned()));
     assert_eq!(textinput.get_content(), "abxyzefg");
 }
 
 #[test]
 fn test_textinput_current_line_length() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.current_line_length(), 3);
 
     textinput.adjust_vertical(1, Selection::NotSelected);
@@ -99,7 +104,7 @@ fn test_textinput_current_line_length() {
 
 #[test]
 fn test_textinput_adjust_vertical() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     textinput.adjust_horizontal(3, Selection::NotSelected);
     textinput.adjust_vertical(1, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 1);
@@ -116,7 +121,7 @@ fn test_textinput_adjust_vertical() {
 
 #[test]
 fn test_textinput_adjust_horizontal() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     textinput.adjust_horizontal(4, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 1);
     assert_eq!(textinput.edit_point.index, 0);
@@ -136,14 +141,12 @@ fn test_textinput_adjust_horizontal() {
 
 #[test]
 fn test_textinput_handle_return() {
-    let mut single_line_textinput = TextInput::new(
-        Lines::Single, "abcdef".to_owned(), DummyClipboardContext::new(""));
+    let mut single_line_textinput = text_input(Lines::Single, "abcdef");
     single_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     single_line_textinput.handle_return();
     assert_eq!(single_line_textinput.get_content(), "abcdef");
 
-    let mut multi_line_textinput = TextInput::new(
-        Lines::Multiple, "abcdef".to_owned(), DummyClipboardContext::new(""));
+    let mut multi_line_textinput = text_input(Lines::Multiple, "abcdef");
     multi_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     multi_line_textinput.handle_return();
     assert_eq!(multi_line_textinput.get_content(), "abc\ndef");
@@ -151,8 +154,7 @@ fn test_textinput_handle_return() {
 
 #[test]
 fn test_textinput_select_all() {
-    let mut textinput = TextInput::new(
-        Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 0);
 
@@ -163,20 +165,19 @@ fn test_textinput_select_all() {
 
 #[test]
 fn test_textinput_get_content() {
-    let single_line_textinput = TextInput::new(Lines::Single, "abcdefg".to_owned(), DummyClipboardContext::new(""));
+    let single_line_textinput = text_input(Lines::Single, "abcdefg");
     assert_eq!(single_line_textinput.get_content(), "abcdefg");
 
-    let multi_line_textinput = TextInput::new(
-        Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let multi_line_textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(multi_line_textinput.get_content(), "abc\nde\nf");
 }
 
 #[test]
 fn test_textinput_set_content() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.get_content(), "abc\nde\nf");
 
-    textinput.set_content("abc\nf".to_owned());
+    textinput.set_content(DOMString("abc\nf".to_owned()));
     assert_eq!(textinput.get_content(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
@@ -184,7 +185,7 @@ fn test_textinput_set_content() {
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content("de".to_owned());
+    textinput.set_content(DOMString("de".to_owned()));
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
@@ -197,7 +198,9 @@ fn test_clipboard_paste() {
     #[cfg(not(target_os = "macos"))]
     const MODIFIERS: KeyModifiers = CONTROL;
 
-    let mut textinput = TextInput::new(Lines::Single, "defg".to_owned(), DummyClipboardContext::new("abc"));
+    let mut textinput = TextInput::new(Lines::Single,
+                                       DOMString("defg".to_owned()),
+                                       DummyClipboardContext::new("abc"));
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);
     textinput.handle_keydown_aux(Key::V, MODIFIERS);
@@ -206,7 +209,7 @@ fn test_clipboard_paste() {
 
 #[test]
 fn test_textinput_cursor_position_correct_after_clearing_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdef".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Single, "abcdef");
 
     // Single line - Forward
     textinput.adjust_horizontal(3, Selection::Selected);
@@ -230,7 +233,7 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
     assert_eq!(textinput.edit_point.index, 0);
 
 
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned(), DummyClipboardContext::new(""));
+    let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
 
     // Multiline - Forward
     textinput.adjust_horizontal(4, Selection::Selected);

@@ -13,3 +13,6 @@ path = "../../../components/msg"
 
 [dependencies.script]
 path = "../../../components/script"
+
+[dependencies.util]
+path = "../../../components/util"

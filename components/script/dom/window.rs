@@ -300,7 +300,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
 
         // "and then must apply the base64 algorithm to that sequence of
         //  octets, and return the result. [RFC4648]"
-        Ok(octets.to_base64(STANDARD))
+        Ok(DOMString(octets.to_base64(STANDARD)))
     }
 }
 
@@ -347,7 +347,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     }
 
     match input.from_base64() {
-        Ok(data) => Ok(data.iter().map(|&b| b as char).collect::<String>()),
+        Ok(data) => Ok(DOMString(data.iter().map(|&b| b as char).collect::<String>())),
         Err(..) => Err(Error::InvalidCharacter)
     }
 }
@@ -986,12 +986,12 @@ impl Window {
     pub fn resolved_style_query(&self,
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
-                            property: &Atom) -> Option<String> {
+                            property: &Atom) -> Option<DOMString> {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
                     ReflowReason::Query);
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
-        resolved
+        resolved.map(DOMString)
     }
 
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {

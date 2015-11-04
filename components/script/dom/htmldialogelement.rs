@@ -9,7 +9,6 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
-use std::borrow::ToOwned;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -25,7 +24,7 @@ impl HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
                 HTMLElement::new_inherited(localName, prefix, document),
-            return_value: DOMRefCell::new("".to_owned()),
+            return_value: DOMRefCell::new(DOMString::new()),
         }
     }
 

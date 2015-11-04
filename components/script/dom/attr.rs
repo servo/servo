@@ -46,7 +46,7 @@ impl AttrValue {
     }
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        let tokens = str_join(&atoms, "\x20");
+        let tokens = DOMString(str_join(&atoms, "\x20"));
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -212,12 +212,12 @@ impl Attr {
 impl AttrMethods for Attr {
     // https://dom.spec.whatwg.org/#dom-attr-localname
     fn LocalName(&self) -> DOMString {
-        (**self.local_name()).to_owned()
+        DOMString((**self.local_name()).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn Value(&self) -> DOMString {
-        (**self.value()).to_owned()
+        DOMString((**self.value()).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
@@ -253,7 +253,7 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-name
     fn Name(&self) -> DOMString {
-        (*self.name).to_owned()
+        DOMString((*self.name).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
@@ -261,13 +261,13 @@ impl AttrMethods for Attr {
         let Namespace(ref atom) = self.namespace;
         match &**atom {
             "" => None,
-            url => Some(url.to_owned()),
+            url => Some(DOMString(url.to_owned())),
         }
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix().as_ref().map(|p| (**p).to_owned())
+        self.prefix().as_ref().map(|p| DOMString((**p).to_owned()))
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
@@ -326,8 +326,8 @@ impl Attr {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
             namespace: (**ns).to_owned(),
-            name: self.Name(),
-            value: self.Value(),
+            name: self.Name().0,
+            value: self.Value().0,
         }
     }
 }

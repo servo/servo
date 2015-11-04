@@ -183,7 +183,7 @@ impl StorageManager {
         let data = self.select_data(storage_type);
         sender.send(data.get(&origin)
                     .and_then(|&(_, ref entry)| entry.get(&name))
-                    .map(|value| value.to_string())).unwrap();
+                    .map(|value| DOMString(value.to_string()))).unwrap();
     }
 
     /// Sends Some(old_value) in case there was a previous value with the key name, otherwise sends None

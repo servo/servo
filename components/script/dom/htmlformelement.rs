@@ -159,7 +159,7 @@ impl HTMLFormElement {
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "submit".to_owned(),
+                               DOMString("submit".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -171,7 +171,7 @@ impl HTMLFormElement {
         // Step 7-8
         let mut action = submitter.action();
         if action.is_empty() {
-            action = base.serialize();
+            action = DOMString(base.serialize());
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
@@ -283,7 +283,7 @@ impl HTMLFormElement {
             if prev == '\r' {
                 buf.push('\n');
             }
-            buf
+            DOMString(buf)
         }
 
         let mut ret = self.get_unclean_dataset(submitter);
@@ -311,7 +311,7 @@ impl HTMLFormElement {
 
         let win = window_from_node(self);
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "reset".to_owned(),
+                               DOMString("reset".to_owned()),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -491,7 +491,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_owned(), |t| owner(t.r()))
+            self.form_owner().map_or(DOMString::new(), |t| owner(t.r()))
         }
     }
 

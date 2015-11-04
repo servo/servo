@@ -139,7 +139,7 @@ pub struct WebSocket {
     full: Cell<bool>, //Flag to tell if websocket queue is full
     clean_close: Cell<bool>, //Flag to tell if the websocket closed cleanly (not due to full or fail)
     code: Cell<u16>, //Closing code
-    reason: DOMRefCell<DOMString>, //Closing reason
+    reason: DOMRefCell<String>, //Closing reason
     binary_type: Cell<BinaryType>,
 }
 
@@ -309,7 +309,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(&self) -> DOMString {
-        self.url.serialize()
+        DOMString(self.url.serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate
@@ -452,7 +452,7 @@ impl Runnable for ConnectionEstablishedTask {
 
         // Step 6.
         let global = ws.global.root();
-        let event = Event::new(global.r(), "open".to_owned(),
+        let event = Event::new(global.r(), DOMString("open".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(ws.upcast());
@@ -494,23 +494,22 @@ impl Runnable for CloseTask {
             //A Bad close
             ws.clean_close.set(false);
             let event = Event::new(global.r(),
-                                   "error".to_owned(),
+                                   DOMString("error".to_owned()),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::Cancelable);
             event.fire(ws.upcast());
         }
-        let rsn = ws.reason.borrow();
-        let rsn_clone = rsn.clone();
+        let reason = ws.reason.borrow().clone();
         /*In addition, we also have to fire a close even if error event fired
          https://html.spec.whatwg.org/multipage/#closeWebSocket
         */
         let close_event = CloseEvent::new(global.r(),
-                                          "close".to_owned(),
+                                          DOMString("close".to_owned()),
                                           EventBubbles::DoesNotBubble,
                                           EventCancelable::NotCancelable,
                                           ws.clean_close.get(),
                                           ws.code.get(),
-                                          rsn_clone);
+                                          DOMString(reason));
         close_event.upcast::<Event>().fire(ws.upcast());
     }
 }

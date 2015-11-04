@@ -536,10 +536,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
     fn GlobalCompositeOperation(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.global_composition {
+        DOMString(match state.global_composition {
             CompositionOrBlending::Composition(op) => op.to_str().to_owned(),
             CompositionOrBlending::Blending(op) => op.to_str().to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation
@@ -760,7 +760,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(result)
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
@@ -800,7 +800,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::eString(result)
+                StringOrCanvasGradientOrCanvasPattern::eString(DOMString(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::eCanvasGradient(Root::from_ref(&*gradient))
@@ -1001,11 +1001,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
     fn LineCap(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.line_cap {
+        DOMString(match state.line_cap {
             LineCapStyle::Butt => "butt".to_owned(),
             LineCapStyle::Round => "round".to_owned(),
             LineCapStyle::Square => "square".to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linecap
@@ -1019,11 +1019,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
     fn LineJoin(&self) -> DOMString {
         let state = self.state.borrow();
-        match state.line_join {
+        DOMString(match state.line_join {
             LineJoinStyle::Round => "round".to_owned(),
             LineJoinStyle::Bevel => "bevel".to_owned(),
             LineJoinStyle::Miter => "miter".to_owned(),
-        }
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linejoin
@@ -1098,7 +1098,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn ShadowColor(&self) -> DOMString {
         let mut result = String::new();
         serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
-        result
+        DOMString(result)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor

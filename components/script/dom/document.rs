@@ -123,7 +123,7 @@ pub struct Document {
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
-    last_modified: Option<DOMString>,
+    last_modified: Option<String>,
     encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
@@ -494,7 +494,8 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         self.ready_state.set(state);
 
-        let event = Event::new(GlobalRef::Window(&self.window), "readystatechange".to_owned(),
+        let event = Event::new(GlobalRef::Window(&self.window),
+                               DOMString("readystatechange".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let target = self.upcast::<EventTarget>();
@@ -552,7 +553,7 @@ impl Document {
     /// Handles any updates when the document's title has changed.
     pub fn title_changed(&self) {
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsertitlechange
-        self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title()));
+        self.trigger_mozbrowser_event(MozBrowserEvent::TitleChange(self.Title().0));
 
         self.send_title_to_compositor();
     }
@@ -561,7 +562,7 @@ impl Document {
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
         let compositor = window.compositor();
-        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title()))).unwrap();
+        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(), Some(self.Title().0))).unwrap();
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -615,7 +616,7 @@ impl Document {
         let y = point.y as i32;
         let clickCount = 1;
         let event = MouseEvent::new(&self.window,
-                                    mouse_event_type_string,
+                                    DOMString(mouse_event_type_string),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
@@ -653,7 +654,7 @@ impl Document {
         let y = point.y.to_i32().unwrap_or(0);
 
         let mouse_event = MouseEvent::new(&self.window,
-                                          event_name,
+                                          DOMString(event_name),
                                           EventBubbles::Bubbles,
                                           EventCancelable::Cancelable,
                                           Some(&self.window),
@@ -802,7 +803,7 @@ impl Document {
                 |t| t.Target() == target).cloned());
 
         let event = TouchEvent::new(window,
-                                    event_name.to_owned(),
+                                    DOMString(event_name.to_owned()),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(window),
@@ -843,16 +844,17 @@ impl Document {
 
         let is_composing = false;
         let is_repeating = state == KeyState::Repeated;
-        let ev_type = match state {
+        let ev_type = DOMString(match state {
             KeyState::Pressed | KeyState::Repeated => "keydown",
             KeyState::Released => "keyup",
-        }.to_owned();
+        }.to_owned());
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window, ev_type, true, true,
                                           Some(&self.window), 0, Some(key),
-                                          props.key_string.to_owned(), props.code.to_owned(),
+                                          DOMString(props.key_string.to_owned()),
+                                          DOMString(props.code.to_owned()),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code);
@@ -863,9 +865,10 @@ impl Document {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(&self.window, "keypress".to_owned(),
+            let event = KeyboardEvent::new(&self.window, DOMString("keypress".to_owned()),
                                            true, true, Some(&self.window), 0, Some(key),
-                                            props.key_string.to_owned(), props.code.to_owned(),
+                                           DOMString(props.key_string.to_owned()),
+                                           DOMString(props.code.to_owned()),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0);
@@ -942,7 +945,7 @@ impl Document {
             Some(ref body) => {
                 body.upcast::<Element>().get_string_attribute(local_name)
             },
-            None => "".to_owned()
+            None => DOMString::new()
         }
     }
 
@@ -1176,7 +1179,8 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
-        let event = Event::new(GlobalRef::Window(self.window()), "DOMContentLoaded".to_owned(),
+        let event = Event::new(GlobalRef::Window(self.window()),
+                               DOMString("DOMContentLoaded".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let doctarget = self.upcast::<EventTarget>();
@@ -1251,7 +1255,7 @@ impl Document {
                      url: Option<Url>,
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
-                     last_modified: Option<DOMString>,
+                     last_modified: Option<String>,
                      source: DocumentSource,
                      doc_loader: DocumentLoader) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
@@ -1270,19 +1274,19 @@ impl Document {
             location: Default::default(),
             content_type: match content_type {
                 Some(string) => string,
-                None => match is_html_document {
+                None => DOMString(match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
                     IsHTMLDocument::HTMLDocument => "text/html".to_owned(),
                     // https://dom.spec.whatwg.org/#concept-document-content-type
                     IsHTMLDocument::NonHTMLDocument => "application/xml".to_owned()
-                }
+                })
             },
             last_modified: last_modified,
             url: url,
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: DOMRefCell::new("UTF-8".to_owned()),
+            encoding_name: DOMRefCell::new(DOMString("UTF-8".to_owned())),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
@@ -1329,7 +1333,7 @@ impl Document {
                url: Option<Url>,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
-               last_modified: Option<DOMString>,
+               last_modified: Option<String>,
                source: DocumentSource,
                doc_loader: DocumentLoader) -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
@@ -1416,7 +1420,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> DOMString {
-        self.url().serialize()
+        DOMString(self.url().serialize())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1458,10 +1462,10 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
-        match self.quirks_mode.get() {
+        DOMString(match self.quirks_mode.get() {
             LimitedQuirks | NoQuirks => "CSS1Compat".to_owned(),
             Quirks => "BackCompat".to_owned()
-        }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
@@ -1543,7 +1547,7 @@ impl DocumentMethods for Document {
         let name = Atom::from_slice(&local_name);
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(&local_name);
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
 
         Ok(Attr::new(&self.window, name, value, l_name, ns!(""), None, None))
     }
@@ -1553,7 +1557,7 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
-        let value = AttrValue::String("".to_owned());
+        let value = AttrValue::String(DOMString::new());
         let qualified_name = Atom::from_slice(&qualified_name);
         Ok(Attr::new(&self.window, local_name, value, qualified_name,
                      namespace, prefix, None))
@@ -1652,10 +1656,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
-        match self.last_modified {
+        DOMString(match self.last_modified {
             Some(ref t) => t.clone(),
             None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string(),
-        }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
@@ -1712,7 +1716,7 @@ impl DocumentMethods for Document {
             Some(ref title) => {
                 // Steps 3-4.
                 let value = Node::collect_text_contents(title.children());
-                str_join(split_html_space_chars(&value), " ")
+                DOMString(str_join(split_html_space_chars(&value), " "))
             },
         }
     }
@@ -1979,7 +1983,7 @@ impl DocumentMethods for Document {
         let (tx, rx) = ipc::channel().unwrap();
         let _ = self.window.resource_task().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
-        Ok(cookies.unwrap_or("".to_owned()))
+        Ok(DOMString(cookies.unwrap_or("".to_owned())))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
@@ -1989,7 +1993,7 @@ impl DocumentMethods for Document {
         if !is_scheme_host_port_tuple(url) {
             return Err(Error::Security);
         }
-        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), cookie, NonHTTP));
+        let _ = self.window.resource_task().send(SetCookiesForUrl((*url).clone(), cookie.0, NonHTTP));
         Ok(())
     }
 
@@ -2139,7 +2143,7 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.root();
         let window = document.window();
-        let event = Event::new(GlobalRef::Window(window), "load".to_owned(),
+        let event = Event::new(GlobalRef::Window(window), DOMString("load".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
@@ -2151,7 +2155,7 @@ impl DocumentProgressHandler {
 
         if let Some(frame_element) = browsing_context.frame_element() {
             let frame_window = window_from_node(frame_element);
-            let event = Event::new(GlobalRef::Window(frame_window.r()), "load".to_owned(),
+            let event = Event::new(GlobalRef::Window(frame_window.r()), DOMString("load".to_owned()),
                                    EventBubbles::DoesNotBubble,
                                    EventCancelable::NotCancelable);
             event.fire(frame_element.upcast());

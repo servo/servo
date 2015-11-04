@@ -151,7 +151,7 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
-            response_url: "".to_owned(),
+            response_url: DOMString::new(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -707,10 +707,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn GetResponseText(&self) -> Fallible<DOMString> {
         match self.response_type.get() {
             _empty | Text => {
-                match self.ready_state.get() {
-                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => Ok(self.text_response()),
-                    _ => Ok("".to_owned())
-                }
+                Ok(DOMString(match self.ready_state.get() {
+                    XMLHttpRequestState::Loading | XMLHttpRequestState::Done => self.text_response(),
+                    _ => "".to_owned()
+                }))
             },
             _ => Err(Error::InvalidState)
         }
@@ -731,7 +731,7 @@ impl XMLHttpRequest {
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
-                               "readystatechange".to_owned(),
+                               DOMString("readystatechange".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable);
         event.fire(self.upcast());
@@ -910,10 +910,12 @@ impl XMLHttpRequest {
         self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
-    fn dispatch_progress_event(&self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, upload: bool, type_: String, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let progressevent = ProgressEvent::new(global.r(),
-                                               type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
+                                               DOMString(type_),
+                                               EventBubbles::DoesNotBubble,
+                                               EventCancelable::NotCancelable,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0));
         let target = if upload {
@@ -924,14 +926,14 @@ impl XMLHttpRequest {
         progressevent.upcast::<Event>().fire(target);
     }
 
-    fn dispatch_upload_progress_event(&self, type_: DOMString, partial_load: Option<u64>) {
+    fn dispatch_upload_progress_event(&self, type_: String, partial_load: Option<u64>) {
         // If partial_load is None, loading has completed and we can just use the value from the request body
 
         let total = self.request_body_len.get() as u64;
         self.dispatch_progress_event(true, type_, partial_load.unwrap_or(total), Some(total));
     }
 
-    fn dispatch_response_progress_event(&self, type_: DOMString) {
+    fn dispatch_response_progress_event(&self, type_: String) {
         let len = self.response.borrow().len() as u64;
         let total = self.response_headers.borrow().get::<ContentLength>().map(|x| { **x as u64 });
         self.dispatch_progress_event(false, type_, len, total);
@@ -985,7 +987,7 @@ impl XMLHttpRequest {
         }
     }
 
-    fn text_response(&self) -> DOMString {
+    fn text_response(&self) -> String {
         let mut encoding = UTF_8 as EncodingRef;
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {

@@ -79,7 +79,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         // Fire image.onload
         let window = window_from_node(document.r());
         let event = Event::new(GlobalRef::Window(window.r()),
-                               "load".to_owned(),
+                               DOMString("load".to_owned()),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable);
         event.fire(element.upcast());
@@ -146,7 +146,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new("img".to_owned(), None, document.r());
+        let image = HTMLImageElement::new(DOMString("img".to_owned()), None, document.r());
         if let Some(w) = width {
             image.SetWidth(w);
         }
@@ -292,7 +292,7 @@ impl VirtualMethods for HTMLImageElement {
         match attr.local_name() {
             &atom!(src) => {
                 self.update_image(mutation.new_value(attr).map(|value| {
-                    ((**value).to_owned(), window_from_node(self).get_url())
+                    (DOMString((**value).to_owned()), window_from_node(self).get_url())
                 }));
             },
             _ => {},

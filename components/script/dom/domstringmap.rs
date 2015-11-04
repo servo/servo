@@ -54,7 +54,7 @@ impl DOMStringMapMethods for DOMStringMap {
             },
             None => {
                 *found = false;
-                String::new()
+                DOMString::new()
             }
         }
     }

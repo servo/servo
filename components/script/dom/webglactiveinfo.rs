@@ -16,11 +16,11 @@ pub struct WebGLActiveInfo {
     size: i32,
     // NOTE: `ty` stands for `type`, which is a reserved keyword
     ty: u32,
-    name: String,
+    name: DOMString,
 }
 
 impl WebGLActiveInfo {
-    fn new_inherited(size: i32, ty: u32, name: String) -> WebGLActiveInfo {
+    fn new_inherited(size: i32, ty: u32, name: DOMString) -> WebGLActiveInfo {
         WebGLActiveInfo {
             reflector_: Reflector::new(),
             size: size,
@@ -29,7 +29,7 @@ impl WebGLActiveInfo {
         }
     }
 
-    pub fn new(global: GlobalRef, size: i32, ty: u32, name: String) -> Root<WebGLActiveInfo> {
+    pub fn new(global: GlobalRef, size: i32, ty: u32, name: DOMString) -> Root<WebGLActiveInfo> {
         reflect_dom_object(box WebGLActiveInfo::new_inherited(size, ty, name), global, WebGLActiveInfoBinding::Wrap)
     }
 }

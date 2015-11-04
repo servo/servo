@@ -72,7 +72,7 @@ impl TextDecoder {
 impl TextDecoderMethods for TextDecoder {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
     fn Encoding(&self) -> DOMString {
-        self.encoding.whatwg_name().unwrap().to_owned()
+        DOMString(self.encoding.whatwg_name().unwrap().to_owned())
     }
 
     // https://encoding.spec.whatwg.org/#dom-textdecoder-fatal

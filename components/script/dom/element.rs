@@ -775,7 +775,7 @@ impl Element {
                             traversal_scope: traversal_scope,
                             .. Default::default()
                         }) {
-            Ok(()) => Ok(String::from_utf8(writer).unwrap()),
+            Ok(()) => Ok(DOMString(String::from_utf8(writer).unwrap())),
             Err(_) => panic!("Cannot serialize element"),
         }
     }
@@ -1014,7 +1014,7 @@ impl Element {
     pub fn set_bool_attribute(&self, local_name: &Atom, value: bool) {
         if self.has_attribute(local_name) == value { return; }
         if value {
-            self.set_string_attribute(local_name, String::new());
+            self.set_string_attribute(local_name, DOMString::new());
         } else {
             self.remove_attribute(&ns!(""), local_name);
         }
@@ -1023,17 +1023,17 @@ impl Element {
     pub fn get_url_attribute(&self, local_name: &Atom) -> DOMString {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         if !self.has_attribute(local_name) {
-            return "".to_owned();
+            return DOMString::new();
         }
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self);
         let base = doc.url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        match UrlParser::new().base_url(&base).parse(&url) {
+        DOMString(match UrlParser::new().base_url(&base).parse(&url) {
             Ok(parsed) => parsed.serialize(),
             Err(_) => "".to_owned()
-        }
+        })
     }
     pub fn set_url_attribute(&self, local_name: &Atom, value: DOMString) {
         self.set_string_attribute(local_name, value);
@@ -1042,7 +1042,7 @@ impl Element {
     pub fn get_string_attribute(&self, local_name: &Atom) -> DOMString {
         match self.get_attribute(&ns!(""), local_name) {
             Some(x) => x.Value(),
-            None => "".to_owned()
+            None => DOMString::new()
         }
     }
     pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
@@ -1087,7 +1087,7 @@ impl Element {
     }
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
+        self.set_attribute(local_name, AttrValue::UInt(DOMString(value.to_string()), value));
     }
 }
 
@@ -1099,7 +1099,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-localname
     fn LocalName(&self) -> DOMString {
-        (*self.local_name).to_owned()
+        DOMString((*self.local_name).to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-prefix
@@ -1115,11 +1115,11 @@ impl ElementMethods for Element {
             },
             None => Cow::Borrowed(&*self.local_name)
         };
-        if self.html_element_in_html_document() {
+        DOMString(if self.html_element_in_html_document() {
             qualified_name.to_ascii_uppercase()
         } else {
             qualified_name.into_owned()
-        }
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id

@@ -15,6 +15,7 @@ use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
+use util::str::DOMString;
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
 pub enum ShaderCompilationStatus {
@@ -28,7 +29,7 @@ pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: u32,
     gl_type: u32,
-    source: DOMRefCell<Option<String>>,
+    source: DOMRefCell<Option<DOMString>>,
     info_log: DOMRefCell<Option<String>>,
     is_deleted: Cell<bool>,
     compilation_status: Cell<ShaderCompilationStatus>,
@@ -144,12 +145,12 @@ impl WebGLShader {
     }
 
     /// Get the shader source
-    pub fn source(&self) -> Option<String> {
+    pub fn source(&self) -> Option<DOMString> {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    pub fn set_source(&self, source: String) {
+    pub fn set_source(&self, source: DOMString) {
         *self.source.borrow_mut() = Some(source);
     }
 }

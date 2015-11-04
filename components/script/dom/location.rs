@@ -135,7 +135,7 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn Stringifier(&self) -> DOMString {
-        self.Href().0
+        DOMString(self.Href().0)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search

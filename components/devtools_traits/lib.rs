@@ -102,22 +102,22 @@ pub struct AttrInfo {
 #[derive(Deserialize, Serialize)]
 pub struct NodeInfo {
     pub uniqueId: String,
-    pub baseURI: String,
+    pub baseURI: DOMString,
     pub parent: String,
     pub nodeType: u16,
-    pub namespaceURI: String,
-    pub nodeName: String,
+    pub namespaceURI: DOMString,
+    pub nodeName: DOMString,
     pub numChildren: usize,
 
-    pub name: String,
-    pub publicId: String,
-    pub systemId: String,
+    pub name: DOMString,
+    pub publicId: DOMString,
+    pub systemId: DOMString,
 
     pub attrs: Vec<AttrInfo>,
 
     pub isDocumentElement: bool,
 
-    pub shortValue: String,
+    pub shortValue: DOMString,
     pub incompleteValue: bool,
 }
 

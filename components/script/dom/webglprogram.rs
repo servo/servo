@@ -14,6 +14,7 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -94,7 +95,7 @@ impl WebGLProgram {
     }
 
     /// glGetAttribLocation
-    pub fn get_attrib_location(&self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }
@@ -105,12 +106,12 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, name, sender))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, name.0, sender))).unwrap();
         Ok(receiver.recv().unwrap())
     }
 
     /// glGetUniformLocation
-    pub fn get_uniform_location(&self, name: String) -> WebGLResult<Option<i32>> {
+    pub fn get_uniform_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
             return Err(WebGLError::InvalidValue);
         }
@@ -121,7 +122,7 @@ impl WebGLProgram {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name, sender))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, name.0, sender))).unwrap();
         Ok(receiver.recv().unwrap())
     }
 }

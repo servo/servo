@@ -452,7 +452,7 @@ pub fn find_enum_string_index(cx: *mut JSContext,
     }
 
     let search = jsstring_to_str(cx, jsstr);
-    Ok(values.iter().position(|value| value == &search))
+    Ok(values.iter().position(|value| search == *value))
 }
 
 /// Returns wether `obj` is a platform object

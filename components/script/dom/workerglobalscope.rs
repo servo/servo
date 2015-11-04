@@ -289,7 +289,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn execute_script(&self, source: DOMString) {
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), source, self.worker_url.serialize(), 1) {
+            self.reflector().get_jsobject(), source.0, self.worker_url.serialize(), 1) {
             Ok(_) => (),
             Err(_) => {
                 // TODO: An error needs to be dispatched to the parent.
