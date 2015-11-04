@@ -21,7 +21,7 @@
 //! | unrestricted double     | `f64`                            |
 //! | double                  | `Finite<f64>`                    |
 //! | DOMString               | `DOMString`                      |
-//! | USVString               | `USVString`                      |
+//! | USVString               | `String`                         |
 //! | ByteString              | `ByteString`                     |
 //! | object                  | `*mut JSObject`                  |
 //! | interface types         | `&T`            | `Root<T>`      |
@@ -38,7 +38,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::ByteString;
 use dom::bindings::utils::DOMClass;
 use js;
 use js::glue::{GetProxyPrivate, IsWrapper, RUST_JS_NumberValue};
@@ -431,13 +431,6 @@ impl ToJSValConvertible for str {
 }
 
 //http://heycam.github.io/webidl/#es-DOMString
-impl ToJSValConvertible for String {
-    fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        (**self).to_jsval(cx, rval);
-    }
-}
-
-//http://heycam.github.io/webidl/#es-DOMString
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         (**self).to_jsval(cx, rval);
@@ -543,17 +536,16 @@ impl FromJSValConvertible for DOMString {
 }
 
 //http://heycam.github.io/webidl/#es-USVString
-impl ToJSValConvertible for USVString {
+impl ToJSValConvertible for String {
     fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        self.0.to_jsval(cx, rval);
+        (**self).to_jsval(cx, rval);
     }
 }
 
 //http://heycam.github.io/webidl/#es-USVString
-impl FromJSValConvertible for USVString {
+impl FromJSValConvertible for String {
     type Config = ();
-    fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ())
-                  -> Result<USVString, ()> {
+    fn from_jsval(cx: *mut JSContext, value: HandleValue, _: ()) -> Result<String, ()> {
         let jsstr = unsafe { ToString(cx, value) };
         if jsstr.is_null() {
             debug!("ToString failed");
@@ -561,14 +553,14 @@ impl FromJSValConvertible for USVString {
         }
         let latin1 = unsafe { JS_StringHasLatin1Chars(jsstr) };
         if latin1 {
-            return Ok(USVString(latin1_to_string(cx, jsstr)));
+            return Ok(latin1_to_string(cx, jsstr));
         }
         unsafe {
             let mut length = 0;
             let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
             assert!(!chars.is_null());
             let char_vec = slice::from_raw_parts(chars as *const u16, length as usize);
-            Ok(USVString(String::from_utf16_lossy(char_vec)))
+            Ok(String::from_utf16_lossy(char_vec))
         }
     }
 }

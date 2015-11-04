@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMetho
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 use url::Url;
@@ -37,47 +36,47 @@ impl WorkerLocation {
 
 impl WorkerLocationMethods for WorkerLocation {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
-    fn Hash(&self) -> USVString {
+    fn Hash(&self) -> String {
         UrlHelper::Hash(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-host
-    fn Host(&self) -> USVString {
+    fn Host(&self) -> String {
         UrlHelper::Host(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hostname
-    fn Hostname(&self) -> USVString {
+    fn Hostname(&self) -> String {
         UrlHelper::Hostname(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
-    fn Href(&self) -> USVString {
+    fn Href(&self) -> String {
         UrlHelper::Href(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname
-    fn Pathname(&self) -> USVString {
+    fn Pathname(&self) -> String {
         UrlHelper::Pathname(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-port
-    fn Port(&self) -> USVString {
+    fn Port(&self) -> String {
         UrlHelper::Port(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-protocol
-    fn Protocol(&self) -> USVString {
+    fn Protocol(&self) -> String {
         UrlHelper::Protocol(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
-    fn Search(&self) -> USVString {
+    fn Search(&self) -> String {
         UrlHelper::Search(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
     fn Stringifier(&self) -> DOMString {
-        DOMString(self.Href().0)
+        DOMString(self.Href())
     }
 }

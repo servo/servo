@@ -14,7 +14,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use dom::blob::Blob;
 use dom::closeevent::CloseEvent;
@@ -384,15 +383,14 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(&self, data: USVString) -> Fallible<()> {
-
-        let data_byte_len = data.0.as_bytes().len() as u64;
+    fn Send(&self, data: String) -> Fallible<()> {
+        let data_byte_len = data.as_bytes().len() as u64;
         let send_data = try!(self.Send_Impl(data_byte_len));
 
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+            let _ = my_sender.lock().unwrap().send_message(Message::Text(data));
         }
 
         Ok(())
@@ -418,7 +416,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
-    fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+    fn Close(&self, code: Option<u16>, reason: Option<String>) -> Fallible<()>{
         fn send_close(this: &WebSocket) {
             this.ready_state.set(WebSocketRequestState::Closing);
 
@@ -439,7 +437,7 @@ impl WebSocketMethods for WebSocket {
             }
         }
         if let Some(ref reason) = reason {
-            if reason.0.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
+            if reason.as_bytes().len() > 123 { //reason cannot be larger than 123 bytes
                 return Err(Error::Syntax);
             }
         }
@@ -461,7 +459,7 @@ impl WebSocketMethods for WebSocket {
                     self.code.set(code);
                 }
                 if let Some(reason) = reason {
-                    *self.reason.borrow_mut() = reason.0;
+                    *self.reason.borrow_mut() = reason;
                 }
                 send_close(self);
                 //Note: After sending the close message, the receive loop confirms a close message from the server and

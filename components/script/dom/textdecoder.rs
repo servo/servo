@@ -8,7 +8,6 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
 use dom::bindings::trace::JSTraceable;
 use encoding::Encoding;
 use encoding::label::encoding_from_whatwg_label;
@@ -83,10 +82,10 @@ impl TextDecoderMethods for TextDecoder {
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
     fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
-              -> Fallible<USVString> {
+              -> Fallible<String> {
         let input = match input {
             Some(input) => input,
-            None => return Ok(USVString("".to_owned())),
+            None => return Ok("".to_owned()),
         };
 
         let mut length = 0;
@@ -104,7 +103,7 @@ impl TextDecoderMethods for TextDecoder {
             DecoderTrap::Replace
         };
         match self.encoding.decode(buffer, trap) {
-            Ok(s) => Ok(USVString(s)),
+            Ok(s) => Ok(s),
             Err(_) => Err(Error::Type("Decoding failed".to_owned())),
         }
     }
