@@ -74,6 +74,11 @@ impl ComputedValue {
 
     fn push(&mut self, css: &str, css_first_token_type: TokenSerializationType,
             css_last_token_type: TokenSerializationType) {
+        // This happens e.g. between to subsequent var() functions: `var(--a)var(--b)`.
+        // In that case, css_*_token_type is non-sensical.
+        if css.is_empty() {
+            return
+        }
         self.first_token_type.set_if_nothing(css_first_token_type);
         // If self.first_token_type was nothing,
         // self.last_token_type is also nothing and this will be false:
