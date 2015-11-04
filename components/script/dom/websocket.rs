@@ -310,7 +310,7 @@ impl WebSocket {
 
         let global = self.global.root();
         let chan = global.r().script_chan();
-        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
+        let address = Trusted::new(global.r().get_cx(), self, chan);
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
 
@@ -319,10 +319,7 @@ impl WebSocket {
             self.buffered_amount.set(u32::max_value());
             self.full.set(true);
 
-            let task = box CloseTask {
-                addr: address,
-            };
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            self.Close()
 
             return Ok(false);
 
