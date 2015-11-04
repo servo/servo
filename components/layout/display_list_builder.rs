@@ -81,7 +81,8 @@ impl DisplayListBuildingResult {
         match *self {
             DisplayListBuildingResult::None => return,
             DisplayListBuildingResult::StackingContext(ref mut stacking_context) => {
-                display_list.children.push_back((*stacking_context).clone())
+                display_list.positioned_content.push_back(
+                    DisplayItem::StackingContextClass((*stacking_context).clone()))
             }
             DisplayListBuildingResult::Normal(ref mut source_display_list) => {
                 display_list.append_from(&mut **source_display_list)
@@ -1691,11 +1692,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let stacking_context = match outer_display_list_for_overflow_scroll {
             Some(mut outer_display_list) => {
-                outer_display_list.children.push_back(self.fragment.create_stacking_context(
-                    &self.base,
-                    display_list,
-                    scroll_policy,
-                    StackingContextCreationMode::InnerScrollWrapper));
+                outer_display_list.positioned_content.push_back(
+                    DisplayItem::StackingContextClass(self.fragment.create_stacking_context(
+                        &self.base,
+                        display_list,
+                        scroll_policy,
+                        StackingContextCreationMode::InnerScrollWrapper)));
                 self.fragment.create_stacking_context(
                     &self.base,
                     outer_display_list,

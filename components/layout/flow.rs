@@ -1104,19 +1104,21 @@ impl BaseFlow {
         let all_items = match self.display_list_building_result {
             DisplayListBuildingResult::None => Vec::new(),
             DisplayListBuildingResult::StackingContext(ref stacking_context) => {
-                stacking_context.display_list.all_display_items()
+                stacking_context.display_list.flatten()
             }
-            DisplayListBuildingResult::Normal(ref display_list) => display_list.all_display_items(),
+            DisplayListBuildingResult::Normal(ref display_list) => display_list.flatten(),
         };
 
         for item in &all_items {
-            let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
-            if !paint_bounds.might_be_nonempty() {
-                continue;
-            }
+            if let Some(base_item) = item.base() {
+                let paint_bounds = base_item.clip.clone().intersect_rect(&base_item.bounds);
+                if !paint_bounds.might_be_nonempty() {
+                    continue;
+                }
 
-            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
-                error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                if bounds.union(&paint_bounds.bounding_rect()) != bounds {
+                    error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
+                }
             }
         }
     }
