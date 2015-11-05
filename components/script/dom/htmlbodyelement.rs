@@ -142,10 +142,7 @@ impl VirtualMethods for HTMLBodyElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("text") => {
-                let parsed = str::parse_legacy_color(&value).ok();
-                AttrValue::Color(value, parsed)
-            },
+            &atom!("text") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

@@ -9,13 +9,12 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::LayoutJS;
 use dom::document::Document;
-use dom::element::AttributeMutation;
+use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
-use std::cmp::max;
 use string_cache::Atom;
 use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 
@@ -24,8 +23,6 @@ const DEFAULT_COLSPAN: u32 = 1;
 #[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<RGBA>>,
-    colspan: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -36,8 +33,6 @@ impl HTMLTableCellElement {
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
-            background_color: Cell::new(None),
-            colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
@@ -83,13 +78,18 @@ pub trait HTMLTableCellElementLayoutHelpers {
 impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
     fn get_background_color(&self) -> Option<RGBA> {
         unsafe {
-            (*self.unsafe_get()).background_color.get()
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("bgcolor"))
+                .and_then(AttrValue::as_color)
+                .cloned()
         }
     }
 
     fn get_colspan(&self) -> Option<u32> {
         unsafe {
-            (*self.unsafe_get()).colspan.get()
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(""), &atom!("colspan"))
+                .map(AttrValue::as_uint)
         }
     }
 
@@ -108,16 +108,6 @@ impl VirtualMethods for HTMLTableCellElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
-            atom!(bgcolor) => {
-                self.background_color.set(mutation.new_value(attr).and_then(|value| {
-                    str::parse_legacy_color(&value).ok()
-                }));
-            },
-            atom!(colspan) => {
-                self.colspan.set(mutation.new_value(attr).map(|value| {
-                    max(DEFAULT_COLSPAN, value.as_uint())
-                }));
-            },
             atom!(width) => {
                 let width = mutation.new_value(attr).map(|value| {
                     str::parse_length(&value)
@@ -131,6 +121,7 @@ impl VirtualMethods for HTMLTableCellElement {
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
             atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
