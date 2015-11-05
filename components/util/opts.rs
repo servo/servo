@@ -373,9 +373,29 @@ enum UserAgent {
 }
 
 fn default_user_agent_string(agent: UserAgent) -> String {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux x86_64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (X11; Linux i686; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:37.0) Servo/1.0 Firefox/37.0";
+    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Windows NT 6.1; rv:37.0) Servo/1.0 Firefox/37.0";
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    // Neither Linux nor Windows, so maybe OS X, and if not then OS X is an okay fallback.
+    const DESKTOP_UA_STRING: &'static str =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0";
+
+
     match agent {
         UserAgent::Desktop => {
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:37.0) Servo/1.0 Firefox/37.0"
+            DESKTOP_UA_STRING
         }
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
