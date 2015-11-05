@@ -5,22 +5,26 @@
   <title>CSS Test: flex container should layout flex items horizontally</title>
   <link rel="author" title="Kyle Zentner" href="mailto:zentner.kyle@gmail.com">
   <link rel="help" href="https://drafts.csswg.org/css-flexbox/">
+  <link rel=match href=flex_column_direction_ref.html>
   <style>
     body {
       margin: 0;
     }
     .flexbox {
       display: flex;
-      width: 300px;
+      flex-direction: column;
+      height: 300px;
     }
     .first-item {
       background: orange;
-      height: 100px;
+      height: 150px;
+      width: 100px;
       flex: 1 0 auto;
     }
     .second-item {
       background: blue;
-      height: 100px;
+      height: 150px;
+      width: 100px;
       flex: 1 0 auto;
     }
   </style>

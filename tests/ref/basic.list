@@ -11,11 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== fixed_width_overrides_child_intrinsic_width_a.html fixed_width_overrides_child_intrinsic_width_ref.html
-prefs:"layout.flex-direction.enabled,layout.flex.enabled" == flex_column_direction.html flex_column_direction_ref.html
-prefs:"layout.flex.enabled" == flex_row_direction.html flex_row_direction_ref.html
-== floated_negative_margins_a.html floated_negative_margins_ref.html
-== font_size.html font_size_ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
 == iframe/bg_color.html iframe/bg_color_ref.html
@@ -39,11 +34,6 @@ prefs:"layout.writing-mode.enabled" == iframe/size_attributes_vertical_writing_m
 == iframe/stacking_context.html iframe/stacking_context_ref.html
 == iframe/stacking_context_position_a.html iframe/stacking_context_position_ref.html
 
-!= image_rendering_auto_a.html image_rendering_pixelated_a.html
-== image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
-== img_block_maxwidth_a.html img_block_maxwidth_ref.html
-== img_block_maxwidth_b.html img_block_maxwidth_ref.html
-!= img_simple.html img_simple_ref.html
 != inline_background_a.html inline_background_ref.html
 == inline_block_margin_auto_a.html inline_block_margin_auto_ref.html
 == inline_block_parent_width.html inline_block_parent_width_ref.html
