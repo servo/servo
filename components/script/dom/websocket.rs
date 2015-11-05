@@ -313,14 +313,12 @@ impl WebSocket {
         let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
-
         if new_buffer_amount > (u32::max_value() as u64) {
 
             self.buffered_amount.set(u32::max_value());
             self.full.set(true);
 
             let _ = self.Close(None, None);
-
             return Ok(false);
 
         } else {
@@ -331,7 +329,7 @@ impl WebSocket {
             return Ok(false);
         }
 
-        if !self.clearing_buffer.get() && 
+        if !self.clearing_buffer.get() &&
             self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
@@ -388,7 +386,6 @@ impl WebSocketMethods for WebSocket {
     fn Send(&self, data: USVString) -> Fallible<()> {
 
         let data_byte_len = data.0.as_bytes().len() as u64;
-        
         let send_data = try!(self.Send_Impl(data_byte_len));
 
         if send_data {
@@ -403,12 +400,11 @@ impl WebSocketMethods for WebSocket {
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_(&self, data: &Blob) -> Fallible<()> {
 
-        /* As per https://html.spec.whatwg.org/multipage/comms.html#websocket
+        /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems
         */
         let data_byte_len = data.Size();
-        
         let send_data = try!(self.Send_Impl(data_byte_len));
 
         if send_data {
