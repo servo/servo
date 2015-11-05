@@ -14,7 +14,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::uintptr_t;
 use msg::compositor_msg::Epoch;
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
 use net_traits::PendingAsyncLoad;
 use net_traits::image_cache_task::ImageCacheTask;
@@ -78,7 +78,7 @@ pub enum Msg {
 
     /// Requests that the layout task immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
-    ExitNow(PipelineExitType),
+    ExitNow,
 
     /// Get the last epoch counter for this layout task.
     GetCurrentEpoch(IpcSender<Epoch>),

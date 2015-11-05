@@ -492,8 +492,8 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetWebFontLoadState(sender),
                                                    possibly_locked_rw_data)
                     }
-                    LayoutControlMsg::ExitNow(exit_type) => {
-                        self.handle_request_helper(Msg::ExitNow(exit_type),
+                    LayoutControlMsg::ExitNow(_) => {
+                        self.handle_request_helper(Msg::ExitNow,
                                                    possibly_locked_rw_data)
                     }
                 }
@@ -631,7 +631,7 @@ impl LayoutTask {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            Msg::ExitNow(_) => {
+            Msg::ExitNow => {
                 debug!("layout: ExitNow received");
                 self.exit_now(possibly_locked_rw_data);
                 return false
@@ -711,7 +711,7 @@ impl LayoutTask {
                         self.handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                Msg::ExitNow(_) => {
+                Msg::ExitNow => {
                     debug!("layout task is exiting...");
                     self.exit_now(possibly_locked_rw_data);
                     break

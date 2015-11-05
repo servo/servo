@@ -1455,7 +1455,7 @@ impl ScriptTask {
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
-                chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+                chan.send(layout_interface::Msg::ExitNow).ok();
             }
 
             let has_pending_loads = self.incomplete_loads.borrow().len() > 0;
@@ -1970,7 +1970,7 @@ impl Drop for ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
+fn shut_down_layout(page_tree: &Rc<Page>, _: PipelineExitType) {
     let mut channels = vec!();
 
     for page in page_tree.iter() {
@@ -1995,7 +1995,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, exit_type: PipelineExitType) {
 
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for chan in channels {
-        chan.send(layout_interface::Msg::ExitNow(exit_type)).ok();
+        chan.send(layout_interface::Msg::ExitNow).ok();
     }
 }
 
