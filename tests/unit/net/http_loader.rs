@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -15,6 +16,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList};
@@ -382,7 +384,9 @@ fn test_request_and_response_data_with_network_messages() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let mut load_data = LoadData::new(url.clone(), None);
+    // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
+    let pipeline_id = PipelineId::fake_root_pipeline_id();
+    let mut load_data = LoadData::new(url.clone(), Some(pipeline_id));
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
@@ -393,11 +397,29 @@ fn test_request_and_response_data_with_network_messages() {
     let devhttprequest = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
 
+    //Creating default headers for request
+    let mut headers = Headers::new();
+    headers.set(AcceptEncoding(vec![
+                                   qitem(Encoding::Gzip),
+                                   qitem(Encoding::Deflate),
+                                   qitem(Encoding::EncodingExt("br".to_owned()))
+                                   ]));
+    headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+    let accept = Accept(vec![
+                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
+                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
+                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
+                            ]);
+    headers.set(accept);
+    headers.set(UserAgent(DEFAULT_USER_AGENT.to_string()));
+
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::Get,
-        headers: request_headers,
+        headers: headers,
         body: None,
+        pipeline_id: pipeline_id,
     };
 
     let content = "Yay!";
@@ -408,12 +430,44 @@ fn test_request_and_response_data_with_network_messages() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
-        body: None
+        body: None,
+        pipeline_id: pipeline_id,
     };
 
     assert_eq!(devhttprequest, httprequest);
     assert_eq!(devhttpresponse, httpresponse);
 }
+
+#[test]
+fn test_request_and_response_message_from_devtool_without_pipeline_id() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _: Url, _: Method) -> Result<MockRequest, LoadError> {
+            let mut headers = Headers::new();
+            headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
+            Ok(MockRequest::new(
+                   ResponseType::WithHeaders(<[_]>::to_vec("Yay!".as_bytes()), headers))
+            )
+        }
+    }
+
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+
+    let url = Url::parse("https://mozilla.com").unwrap();
+    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
+    let load_data = LoadData::new(url.clone(), None);
+    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, Some(devtools_chan), &Factory,
+                                DEFAULT_USER_AGENT.to_string());
+
+    // notification received from devtools
+    assert!(devtools_port.try_recv().is_err());
+}
+
+
 
 #[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {

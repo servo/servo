@@ -193,7 +193,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         }
 
         for url in urls {
-            let (url, source) = match load_whole_resource(&self.resource_task, url) {
+            let (url, source) = match load_whole_resource(&self.resource_task, url, None) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())
