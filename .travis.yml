@@ -1,5 +1,8 @@
 language: python
 
+env:
+  - CCACHE=/usr/bin/ccache
+
 matrix:
   fast_finish: true
   include:
@@ -13,6 +16,7 @@ matrix:
         directories:
           - .cargo
           - .servo
+          - $HOME/.ccache
       addons:
         apt:
           packages:
@@ -22,6 +26,7 @@ matrix:
             - libosmesa6-dev
             - python-virtualenv
             - xorg-dev
+            - ccache
 
 branches:
   only:
