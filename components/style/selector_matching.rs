@@ -6,7 +6,7 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::TElementAttributes;
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use restyle_hints::{RestyleHint, StateDependencySet};
+use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
@@ -44,8 +44,8 @@ pub struct Stylist {
     after_map: PerPseudoElementSelectorMap,
     rules_source_order: usize,
 
-    // Selector state dependencies used to compute restyle hints.
-    state_deps: StateDependencySet,
+    // Selector dependencies used to compute restyle hints.
+    state_deps: DependencySet,
 }
 
 impl Stylist {
@@ -60,7 +60,7 @@ impl Stylist {
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0,
-            state_deps: StateDependencySet::new(),
+            state_deps: DependencySet::new(),
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
@@ -172,12 +172,16 @@ impl Stylist {
         false
     }
 
-    pub fn restyle_hint_for_state_change<E>(&self, element: &E,
-                                            current_state: ElementState,
-                                            old_state: ElementState)
-                                            -> RestyleHint
-                                            where E: Element + Clone {
-        self.state_deps.compute_hint(element, current_state, old_state)
+    pub fn compute_restyle_hint<E>(&self, element: &E,
+                                   snapshot: &ElementSnapshot,
+                                   // NB: We need to pass current_state as an argument because
+                                   // selectors::Element doesn't provide access to ElementState
+                                   // directly, and computing it from the ElementState would be
+                                   // more expensive than getting it directly from the caller.
+                                   current_state: ElementState)
+                                   -> RestyleHint
+                                   where E: Element + Clone {
+        self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
     pub fn set_device(&mut self, device: Device) {

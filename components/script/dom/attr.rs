@@ -148,11 +148,19 @@ impl AttrMethods for Attr {
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
+        let notify = self.name.namespace == ns!("");
+        if notify {
+            owner.will_mutate_attr();
+        }
         mem::swap(&mut *self.value.borrow_mut(), &mut value);
-        if self.name.namespace == ns!("") {
+        if notify {
             vtable_for(owner.upcast()).attribute_mutated(
                 self, AttributeMutation::Set(Some(&value)));
         }
+    }
+
+    pub fn attr_name(&self) -> &AttrName {
+        &self.name
     }
 
     pub fn value(&self) -> Ref<AttrValue> {

@@ -865,6 +865,7 @@ impl Element {
                               name: Atom,
                               namespace: Namespace,
                               prefix: Option<Atom>) {
+        self.will_mutate_attr();
         let window = window_from_node(self);
         let in_empty_ns = namespace == ns!("");
         let attr = Attr::new(&window, local_name, value, name, namespace, prefix, Some(self));
@@ -977,6 +978,7 @@ impl Element {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
 
         idx.map(|idx| {
+            self.will_mutate_attr();
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
@@ -1088,6 +1090,11 @@ impl Element {
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(&**local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::UInt(DOMString(value.to_string()), value));
+    }
+
+    pub fn will_mutate_attr(&self) {
+        let node = self.upcast::<Node>();
+        node.owner_doc().element_attr_will_change(self);
     }
 }
 
@@ -1482,18 +1489,16 @@ impl VirtualMethods for Element {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
-        let damage = match attr.local_name() {
+        match attr.local_name() {
             &atom!(style) => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         parse_style_attribute(&value, &doc.base_url())
                     });
-                NodeDamage::NodeStyleDamaged
-            },
-            &atom!(class) => {
-                // Modifying a class can change style.
-                NodeDamage::NodeStyleDamaged
+                if node.is_in_doc() {
+                    doc.content_changed(node, NodeDamage::NodeStyleDamaged);
+                }
             },
             &atom!(id) => {
                 *self.id_attribute.borrow_mut() =
@@ -1524,16 +1529,9 @@ impl VirtualMethods for Element {
                         }
                     }
                 }
-                NodeDamage::NodeStyleDamaged
             },
-            _ => {
-                // Modifying any other attribute might change arbitrary things.
-                NodeDamage::OtherNodeDamage
-            },
+            _ => {},
         };
-        if node.is_in_doc() {
-            doc.content_changed(node, damage);
-        }
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
