@@ -1295,6 +1295,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/flex_row_direction.html": [
+          {
+            "path": "css/flex_row_direction.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_row_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_row_direction.html"
+          }
+        ],
         "css/float_clearance_a.html": [
           {
             "path": "css/float_clearance_a.html",
@@ -6130,6 +6142,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/flex_row_direction.html": [
+        {
+          "path": "css/flex_row_direction.html",
+          "references": [
+            [
+              "/_mozilla/css/flex_row_direction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/flex_row_direction.html"
         }
       ],
       "css/float_clearance_a.html": [
