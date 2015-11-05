@@ -399,7 +399,11 @@ fn test_request_and_response_data_with_network_messages() {
 
     //Creating default headers for request
     let mut headers = Headers::new();
-    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip), qitem(Encoding::Deflate)]));
+    headers.set(AcceptEncoding(vec![
+                                   qitem(Encoding::Gzip),
+                                   qitem(Encoding::Deflate),
+                                   qitem(Encoding::EncodingExt("br".to_owned()))
+                                   ]));
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
