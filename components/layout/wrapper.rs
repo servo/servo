@@ -375,10 +375,10 @@ impl<'le> LayoutDocument<'le> {
         self.as_node().children().find(LayoutNode::is_element)
     }
 
-    pub fn drain_element_state_changes(&self) -> Vec<(LayoutElement, ElementState)> {
+    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementState)> {
         unsafe {
-            let changes = self.document.drain_element_state_changes();
-            Vec::from_iter(changes.iter().map(|&(el, state)|
+            let elements = self.document.drain_modified_elements();
+            Vec::from_iter(elements.iter().map(|&(el, state)|
                 (LayoutElement {
                     element: el,
                     chain: PhantomData,

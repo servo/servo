@@ -195,11 +195,10 @@ impl StateDependencySet {
         StateDependencySet { deps: Vec::new() }
     }
 
-    pub fn compute_hint<E>(&self, el: &E, current_state: ElementState, state_changes: ElementState)
+    pub fn compute_hint<E>(&self, el: &E, current_state: ElementState, old_state: ElementState)
                           -> RestyleHint where E: Element, E: Clone {
         let mut hint = RestyleHint::empty();
-        let mut old_state = current_state;
-        old_state.toggle(state_changes);
+        let state_changes = current_state ^ old_state;
         for dep in &self.deps {
             if state_changes.intersects(dep.state) {
                 let old_el: ElementWrapper<E> = ElementWrapper::new_with_override(el.clone(), old_state);
