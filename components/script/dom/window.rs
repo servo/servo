@@ -919,9 +919,6 @@ impl Window {
 
         debug!("script: layout forked");
 
-        // FIXME(cgaebel): this is racey. What if the compositor triggers a
-        // reflow between the "join complete" message and returning from this
-        // function?
         match join_port.try_recv() {
             Err(Empty) => {
                 info!("script: waiting on layout");
