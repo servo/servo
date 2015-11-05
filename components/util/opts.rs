@@ -74,6 +74,9 @@ pub struct Opts {
     /// Log GC passes and their durations.
     pub gc_profile: bool,
 
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
+
     pub headless: bool,
     pub hard_fail: bool,
 
@@ -267,6 +270,9 @@ pub struct DebugOptions {
 
     /// Log GC passes and their durations.
     pub gc_profile: bool,
+
+    /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
+    pub load_webfonts_synchronously: bool,
 }
 
 
@@ -301,6 +307,7 @@ impl DebugOptions {
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
+                "load-webfonts-synchronously" => debug_options.load_webfonts_synchronously = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -345,6 +352,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
+    print_option("load-webfonts-synchronously",
+                 "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
 
     println!("");
 
@@ -434,6 +443,7 @@ pub fn default_opts() -> Opts {
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
+        load_webfonts_synchronously: false,
         headless: true,
         hard_fail: true,
         bubble_inline_sizes_separately: false,
@@ -652,6 +662,7 @@ pub fn from_cmdline_args(args: &[String]) {
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,
+        load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
