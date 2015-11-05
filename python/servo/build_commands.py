@@ -198,13 +198,6 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         if android:
-            # Ensure the APK builder submodule has been built first
-            apk_builder_dir = "support/android-rs-glue"
-            with cd(path.join(apk_builder_dir, "apk-builder")):
-                status = call(["cargo", "build"], env=self.build_env(), verbose=verbose)
-                if status:
-                    return status
-
             opts += ["--target", "arm-linux-androideabi"]
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:

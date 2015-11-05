@@ -1,3 +1,0 @@
-[submodule "support/android-rs-glue"]
-	path = support/android-rs-glue
-	url = https://github.com/tomaka/android-rs-glue

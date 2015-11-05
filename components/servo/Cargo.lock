@@ -2,7 +2,7 @@
 name = "servo"
 version = "0.0.1"
 dependencies = [
- "android_glue 0.1.1",
+ "android_glue 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
@@ -55,10 +55,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "memchr 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "android_glue"
-version = "0.1.1"
 
 [[package]]
 name = "android_glue"
@@ -683,7 +679,7 @@ dependencies = [
 
 [[package]]
 name = "gif"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -905,7 +901,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "gif 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gif 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",

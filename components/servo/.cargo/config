@@ -1,7 +1,5 @@
-paths = ["../../support/android-rs-glue"]
-
 [target.arm-linux-androideabi]
-linker = "../../target/debug/apk-builder"
+linker = "./fake-ld.sh"
 ar = "arm-linux-androideabi-ar"
 
 [target.arm-unknown-linux-gnueabihf]
