@@ -13,8 +13,8 @@ pub enum ParseContext {
 }
 
 
-pub fn parse_xml(document: &Document,
-                 input: DOMString,
-                 url: Url,
-                 context: ParseContext) {
+pub fn parse_xml(_document: &Document,
+                 _input: DOMString,
+                 _url: Url,
+                 _context: ParseContext) {
 }
