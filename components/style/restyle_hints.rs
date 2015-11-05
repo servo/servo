@@ -220,15 +220,16 @@ impl StateDependencySet {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
-            if let Some(rightmost) = cur.simple_selectors.last() {
-                let state_dep = selector_to_state(rightmost);
-                if !state_dep.is_empty() {
-                    self.deps.push(StateDependency {
-                        selector: cur.clone(),
-                        combinator: combinator,
-                        state: state_dep,
-                    });
-                }
+            let mut deps = ElementState::empty();
+            for s in &cur.simple_selectors {
+                deps.insert(selector_to_state(s));
+            }
+            if !deps.is_empty() {
+                self.deps.push(StateDependency {
+                    selector: cur.clone(),
+                    combinator: combinator,
+                    state: deps,
+                });
             }
 
             cur = match cur.next {

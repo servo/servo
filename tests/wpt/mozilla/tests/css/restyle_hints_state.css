@@ -19,11 +19,15 @@ fieldset:enabled div {
 fieldset:enabled > div {
   background-color: yellow;
 }
-fieldset:enabled ~ div {
+
+/* Add an unnecessary :first-child to make sure that restyle hints see
+ * non-rightmost pseudo-selectors.
+ * */
+fieldset:enabled:first-child ~ div {
   color: pink;
   background-color: purple;
 }
-fieldset:enabled + div {
+fieldset:enabled:first-child + div {
   color: brown;
   background-color: orange;
 }
