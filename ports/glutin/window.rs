@@ -84,7 +84,7 @@ pub struct Window {
 impl Window {
     pub fn new(is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               parent: glutin::WindowID) -> Rc<Window> {
+               parent: Option<glutin::WindowID>) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo".to_string())
                             .with_decorations(!opts::get().no_native_titlebar)
@@ -122,7 +122,7 @@ impl Window {
     }
 
     pub fn platform_window(&self) -> glutin::WindowID {
-        unsafe { self.window.platform_window() }
+        unsafe { glutin::WindowID::new(self.window.platform_window()) }
     }
 
     fn nested_window_resize(width: u32, height: u32) {
@@ -721,7 +721,7 @@ pub struct Window {
 impl Window {
     pub fn new(_is_foreground: bool,
                window_size: TypedSize2D<DevicePixel, u32>,
-               _parent: glutin::WindowID) -> Rc<Window> {
+               _parent: Option<glutin::WindowID>) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
