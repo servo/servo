@@ -310,7 +310,7 @@ impl WebSocket {
 
         let global = self.global.root();
         let chan = global.r().script_chan();
-        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
+        let address = Trusted::new(global.r().get_cx(), self, chan.clone());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
         if new_buffer_amount > (u32::max_value() as u64) {
