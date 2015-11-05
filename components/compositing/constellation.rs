@@ -25,7 +25,7 @@ use msg::compositor_msg::Epoch;
 use msg::constellation_msg::AnimationState;
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::WebDriverCommandMsg;
-use msg::constellation_msg::{FrameId, PipelineExitType, PipelineId};
+use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{IframeLoadInfo, IFrameSandboxState, MozBrowserEvent, NavigationDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
@@ -565,7 +565,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_exit(&mut self) {
         for (_id, ref pipeline) in &self.pipelines {
-            pipeline.exit(PipelineExitType::Complete);
+            pipeline.exit();
         }
         self.image_cache_task.exit();
         self.resource_task.send(net_traits::ControlMsg::Exit).unwrap();
@@ -1356,7 +1356,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         // Inform script, compositor that this pipeline has exited.
         match exit_mode {
-            ExitPipelineMode::Normal => pipeline.exit(PipelineExitType::PipelineOnly),
+            ExitPipelineMode::Normal => pipeline.exit(),
             ExitPipelineMode::Force => pipeline.force_exit(),
         }
     }

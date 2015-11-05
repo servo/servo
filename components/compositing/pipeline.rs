@@ -248,7 +248,7 @@ impl Pipeline {
         let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::PaintPermissionRevoked);
     }
 
-    pub fn exit(&self, _: PipelineExitType) {
+    pub fn exit(&self) {
         debug!("pipeline {:?} exiting", self.id);
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
