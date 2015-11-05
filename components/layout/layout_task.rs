@@ -731,8 +731,6 @@ impl LayoutTask {
     fn exit_now<'a>(&'a self,
                     possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
                     exit_type: PipelineExitType) {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
             if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
@@ -741,6 +739,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
+        let (response_chan, response_port) = ipc::channel().unwrap();
         self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
         response_port.recv().unwrap()
     }
