@@ -51,10 +51,14 @@ fn load_gl_when_headless() {
 fn load_gl_when_headless() {}
 
 fn main() {
-    env_logger::init().unwrap();
-
     // Parse the command line options and store them globally
     opts::from_cmdline_args(&*args());
+
+    if opts::get().is_running_problem_test && ::std::env::var("RUST_LOG").is_err() {
+        ::std::env::set_var("RUST_LOG", "compositing::constellation");
+    }
+
+    env_logger::init().unwrap();
 
     setup_logging();
 
