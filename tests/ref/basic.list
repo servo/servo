@@ -11,7 +11,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 
 == acid2_noscroll.html acid2_ref_broken.html
 flaky_cpu == append_style_a.html append_style_b.html
-== floated_negative_margins_a.html floated_negative_margins_ref.html
 == font_size.html font_size_ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340
 
