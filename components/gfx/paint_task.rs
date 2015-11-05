@@ -197,7 +197,7 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, PaintLayer),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(IpcSender<()>, PipelineExitType),
+    Exit(IpcSender<()>),
 }
 
 pub enum ChromeToPaintMsg {
@@ -382,7 +382,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint task.
                     channel.send(Vec::new())
                 }
-                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel)) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);
