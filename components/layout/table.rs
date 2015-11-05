@@ -494,10 +494,10 @@ impl Flow for TableFlow {
         })
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical;
-        self.block_flow.assign_block_size_for_table_like_flow(layout_context, vertical_spacing)
+        self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
@@ -755,15 +755,11 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
 /// rowgroups.
 pub trait TableLikeFlow {
     /// Lays out the rows of a table.
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 layout_context: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au);
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au);
 }
 
 impl TableLikeFlow for BlockFlow {
-    fn assign_block_size_for_table_like_flow<'a>(&mut self,
-                                                 _: &'a LayoutContext<'a>,
-                                                 block_direction_spacing: Au) {
+    fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au) {
         debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
                       border_collapse::T::separate || block_direction_spacing == Au(0));
 
