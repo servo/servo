@@ -279,7 +279,6 @@ impl Pipeline {
             ConstellationControlMsg::ExitPipeline(self.id,
                                                   PipelineExitType::PipelineOnly)).unwrap();
         let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit(
-                    None,
                     PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send(

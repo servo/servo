@@ -205,7 +205,7 @@ pub enum ChromeToPaintMsg {
     PaintPermissionGranted,
     PaintPermissionRevoked,
     CollectReports(ReportsChan),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit(PipelineExitType),
 }
 
 pub struct PaintTask<C> {
@@ -382,14 +382,21 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     // FIXME(njn): should eventually measure the paint task.
                     channel.send(Vec::new())
                 }
-                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) |
-                Msg::FromChrome(ChromeToPaintMsg::Exit(ref response_channel, _)) => {
+                Msg::FromLayout(LayoutToPaintMsg::Exit(ref response_channel, _)) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);
 
                     debug!("PaintTask: Exiting.");
                     response_channel.as_ref().map(|channel| channel.send(()));
+                    break;
+                }
+                Msg::FromChrome(ChromeToPaintMsg::Exit(_)) => {
+                    // Ask the compositor to remove any layers it is holding for this paint task.
+                    // FIXME(mrobinson): This can probably move back to the constellation now.
+                    self.compositor.notify_paint_task_exiting(self.id);
+
+                    debug!("PaintTask: Exiting.");
                     break;
                 }
             }
