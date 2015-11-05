@@ -1637,9 +1637,28 @@ impl ScriptTask {
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
             let _ar = JSAutoRequest::new(self.get_cx());
-            let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
+            let scheme_data = incomplete.url.non_relative_scheme_data().unwrap();
+            let mut evalstr_with_query_and_fragment: String;
+            let urlstr = if incomplete.url.query.is_some() || incomplete.url.fragment.is_some() {
+                fn maybe_append(dest: &mut String, separator: char, maybe_s: &Option<String>) {
+                    if let Some(ref s) = *maybe_s {
+                        dest.push(separator);
+                        dest.push_str(&*s);
+                    }
+                }
+
+                evalstr_with_query_and_fragment = scheme_data.into();
+                maybe_append(&mut evalstr_with_query_and_fragment, '?', &incomplete.url.query);
+                maybe_append(&mut evalstr_with_query_and_fragment, '#', &incomplete.url.fragment);
+
+                &evalstr_with_query_and_fragment[..]
+            } else {
+                scheme_data
+            };
+            let evalstr = ::url::percent_encoding::lossy_utf8_percent_decode(urlstr.as_bytes());
+            println!("{:?} -> {:?}", incomplete.url, evalstr);
             let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
-            window.evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
+            window.evaluate_js_on_global_with_result(&*evalstr, jsval.handle_mut());
             let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
                                                StringificationBehavior::Empty);
             strval.unwrap_or(DOMString::new())
