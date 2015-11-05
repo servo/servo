@@ -1814,14 +1814,13 @@ impl Element {
         if state.contains(which) == value {
             return
         }
+        let node = self.upcast::<Node>();
+        node.owner_doc().element_state_will_change(self);
         match value {
             true => state.insert(which),
             false => state.remove(which),
         };
         self.state.set(state);
-
-        let node = self.upcast::<Node>();
-        node.owner_doc().record_element_state_change(self, which);
     }
 
     pub fn get_active_state(&self) -> bool {

@@ -174,10 +174,10 @@ impl Stylist {
 
     pub fn restyle_hint_for_state_change<E>(&self, element: &E,
                                             current_state: ElementState,
-                                            state_change: ElementState)
+                                            old_state: ElementState)
                                             -> RestyleHint
                                             where E: Element + Clone {
-        self.state_deps.compute_hint(element, current_state, state_change)
+        self.state_deps.compute_hint(element, current_state, old_state)
     }
 
     pub fn set_device(&mut self, device: Device) {

@@ -1213,13 +1213,12 @@ impl LayoutTask {
             }
         }
 
-        let state_changes = document.drain_element_state_changes();
+        let modified_elements = document.drain_modified_elements();
         if !needs_dirtying {
-            for &(el, state_change) in state_changes.iter() {
-                debug_assert!(!state_change.is_empty());
+            for &(el, old_state) in modified_elements.iter() {
                 let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
                                                                          el.get_state(),
-                                                                         state_change);
+                                                                         old_state);
                 el.note_restyle_hint(hint);
             }
         }
