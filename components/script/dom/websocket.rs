@@ -310,7 +310,7 @@ impl WebSocket {
 
         let global = self.global.root();
         let chan = global.r().script_chan();
-        let address = Trusted::new(global.r().get_cx(), self, chan);
+        let address = Trusted::new(global.r().get_cx(), self, global.r().script_chan());
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
 
@@ -319,7 +319,7 @@ impl WebSocket {
             self.buffered_amount.set(u32::max_value());
             self.full.set(true);
 
-            self.Close()
+            let _ = self.Close(None, None);
 
             return Ok(false);
 
@@ -328,7 +328,7 @@ impl WebSocket {
         }
 
         if return_after_buffer {
-            return Ok(true);
+            return Ok(false);
         }
 
         if !self.clearing_buffer.get() && 
@@ -388,11 +388,14 @@ impl WebSocketMethods for WebSocket {
     fn Send(&self, data: USVString) -> Fallible<()> {
 
         let data_byte_len = data.0.as_bytes().len() as u64;
-        try!(self.Send_Impl(data_byte_len));
+        
+        let send_data = try!(self.Send_Impl(data_byte_len));
 
-        let mut other_sender = self.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
-        let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+        }
 
         Ok(())
     }
@@ -405,11 +408,14 @@ impl WebSocketMethods for WebSocket {
            If the buffer limit is reached in the first place, there are likely other major problems
         */
         let data_byte_len = data.Size();
-        try!(self.Send_Impl(data_byte_len));
+        
+        let send_data = try!(self.Send_Impl(data_byte_len));
 
-        let mut other_sender = self.sender.borrow_mut();
-        let my_sender = other_sender.as_mut().unwrap();
-        let _ = my_sender.lock().unwrap().send_message(Message::Binary(data.clone_bytes()));
+        if send_data {
+            let mut other_sender = self.sender.borrow_mut();
+            let my_sender = other_sender.as_mut().unwrap();
+            let _ = my_sender.lock().unwrap().send_message(Message::Binary(data.clone_bytes()));
+        }
 
         Ok(())
     }
