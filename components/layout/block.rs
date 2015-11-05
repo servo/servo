@@ -39,8 +39,7 @@ use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
-use flow::{PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
+use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, mut_base};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER};
 use fragment::{SpecificFragmentInfo};
@@ -501,30 +500,6 @@ enum FormattingContextType {
     Other,
 }
 
-// Propagates the `layers_needed_for_descendants` flag appropriately from a child. This is called
-// as part of block-size assignment.
-//
-// If any fixed descendants of kids are present, this kid needs a layer.
-//
-// FIXME(#2006, pcwalton): This is too layer-happy. Like WebKit, we shouldn't do this unless
-// the positioned descendants are actually on top of the fixed kids.
-//
-// TODO(#1244, #2007, pcwalton): Do this for CSS transforms and opacity too, at least if they're
-// animating.
-pub fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
-    if kid.is_absolute_containing_block() {
-        let kid_base = flow::mut_base(kid);
-        if kid_base.flags.contains(NEEDS_LAYER) {
-            *layers_needed_for_descendants = true
-        }
-    } else {
-        let kid_base = flow::mut_base(kid);
-        if kid_base.flags.contains(LAYERS_NEEDED_FOR_DESCENDANTS) {
-            *layers_needed_for_descendants = true
-        }
-    }
-}
-
 // A block formatting context.
 #[derive(RustcEncodable)]
 pub struct BlockFlow {
@@ -828,7 +803,6 @@ impl BlockFlow {
 
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
-            let mut layers_needed_for_descendants = false;
             let thread_id = self.base.thread_id;
             for kid in self.base.child_iter() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -844,7 +818,6 @@ impl BlockFlow {
                         kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                              thread_id);
                     }
-                    propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                     // Skip the collapsing and float processing for absolute flow kids and continue
                     // with the next flow.
@@ -861,7 +834,6 @@ impl BlockFlow {
                         kid_block.float.as_mut().unwrap().float_ceiling =
                             margin_collapse_info.current_float_ceiling();
                     }
-                    propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
                     kid.place_float_if_applicable(layout_context);
 
                     let kid_base = flow::mut_base(kid);
@@ -884,9 +856,6 @@ impl BlockFlow {
                 let need_to_process_child_floats =
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                          thread_id);
-
-                // Mark flows for layerization if necessary to handle painting order correctly.
-                propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                 // Handle any (possibly collapsed) top margin.
                 let delta = margin_collapse_info.advance_block_start_margin(
@@ -924,10 +893,6 @@ impl BlockFlow {
                     margin_collapse_info.advance_block_end_margin(&kid_base.collapsible_margins);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
             }
-
-            // Mark ourselves for layerization if that will be necessary to paint in the proper
-            // order (CSS 2.1, Appendix E).
-            self.base.flags.set(LAYERS_NEEDED_FOR_DESCENDANTS, layers_needed_for_descendants);
 
             // Add in our block-end margin and compute our collapsible margins.
             let can_collapse_block_end_margin_with_kids =
@@ -1793,9 +1758,7 @@ impl Flow for BlockFlow {
     }
 
     fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
-        if (self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.base.late_absolute_position_info.layers_needed_for_positioned_flows) ||
-                self.base.flags.contains(NEEDS_LAYER) {
+        if self.base.flags.contains(NEEDS_LAYER) {
             self.fragment.flags.insert(HAS_LAYER)
         }
 
@@ -1900,9 +1863,6 @@ impl Flow for BlockFlow {
         let late_absolute_position_info_for_children = LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block:
                 stacking_relative_position_of_absolute_containing_block_for_children,
-            layers_needed_for_positioned_flows: self.base
-                                                    .flags
-                                                    .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
         };
         let container_size_for_children =
             self.base.position.size.to_physical(self.base.writing_mode);

@@ -580,9 +580,6 @@ bitflags! {
         const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_0000_1000,
 
         // text align flags
-        #[doc = "Whether this flow contains a flow that has its own layer within the same absolute"]
-        #[doc = "containing block."]
-        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0000_0001_0000,
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
         #[doc = "layer."]
@@ -810,18 +807,12 @@ pub struct LateAbsolutePositionInfo {
     /// context. If the absolute containing block establishes the stacking context for this flow,
     /// and this flow is not itself absolutely-positioned, then this is (0, 0).
     pub stacking_relative_position_of_absolute_containing_block: Point2D<Au>,
-
-    /// Whether the absolute containing block forces positioned descendants to be layerized.
-    ///
-    /// FIXME(pcwalton): Move into `FlowFlags`.
-    pub layers_needed_for_positioned_flows: bool,
 }
 
 impl LateAbsolutePositionInfo {
     pub fn new() -> LateAbsolutePositionInfo {
         LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
-            layers_needed_for_positioned_flows: false,
         }
     }
 }
