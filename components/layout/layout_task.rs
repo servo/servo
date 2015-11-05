@@ -1145,10 +1145,8 @@ impl LayoutTask {
 
         let modified_elements = document.drain_modified_elements();
         if !needs_dirtying {
-            for &(el, old_state) in modified_elements.iter() {
-                let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
-                                                                         el.get_state(),
-                                                                         old_state);
+            for (el, snapshot) in modified_elements {
+                let hint = rw_data.stylist.compute_restyle_hint(&el, &snapshot, el.get_state());
                 el.note_restyle_hint(hint);
             }
         }

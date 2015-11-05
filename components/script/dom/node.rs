@@ -488,13 +488,7 @@ impl Node {
         self.dirty_impl(damage, true)
     }
 
-    pub fn dirty(&self, damage: NodeDamage) {
-        self.dirty_impl(damage, false)
-    }
-
-    pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
-
-        // 0. Set version counter
+    pub fn rev_version(&self) {
         // The new version counter is 1 plus the max of the node's current version counter,
         // its descendants version, and the document's version. Normally, this will just be
         // the document's version, but we do have to deal with the case where the node has moved
@@ -505,6 +499,15 @@ impl Node {
             ancestor.inclusive_descendants_version.set(version);
         }
         doc.inclusive_descendants_version.set(version);
+    }
+
+    pub fn dirty(&self, damage: NodeDamage) {
+        self.dirty_impl(damage, false)
+    }
+
+    pub fn dirty_impl(&self, damage: NodeDamage, force_ancestors: bool) {
+        // 0. Set version counter
+        self.rev_version();
 
         // 1. Dirty self.
         match damage {

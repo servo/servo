@@ -58,7 +58,6 @@ use selectors::states::*;
 use smallvec::VecLike;
 use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
@@ -69,7 +68,7 @@ use style::legacy::UnsignedIntegerAttribute;
 use style::node::TElementAttributes;
 use style::properties::ComputedValues;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use style::restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use style::restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -375,15 +374,13 @@ impl<'le> LayoutDocument<'le> {
         self.as_node().children().find(LayoutNode::is_element)
     }
 
-    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementState)> {
-        unsafe {
-            let elements = self.document.drain_modified_elements();
-            Vec::from_iter(elements.iter().map(|&(el, state)|
-                (LayoutElement {
-                    element: el,
-                    chain: PhantomData,
-                }, state)))
-        }
+    pub fn drain_modified_elements(&self) -> Vec<(LayoutElement, ElementSnapshot)> {
+        let elements =  unsafe { self.document.drain_modified_elements() };
+        elements.into_iter().map(|(el, snapshot)|
+            (LayoutElement {
+                element: el,
+                chain: PhantomData,
+            }, snapshot)).collect()
     }
 }
 
