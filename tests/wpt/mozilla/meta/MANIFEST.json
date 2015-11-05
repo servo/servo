@@ -1259,6 +1259,18 @@
             "url": "/_mozilla/css/first_of_type_pseudo_a.html"
           }
         ],
+        "css/fixed_width_overrides_child_intrinsic_width_a.html": [
+          {
+            "path": "css/fixed_width_overrides_child_intrinsic_width_a.html",
+            "references": [
+              [
+                "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_a.html"
+          }
+        ],
         "css/flex_nochild.html": [
           {
             "path": "css/flex_nochild.html",
@@ -6070,6 +6082,18 @@
             ]
           ],
           "url": "/_mozilla/css/first_of_type_pseudo_a.html"
+        }
+      ],
+      "css/fixed_width_overrides_child_intrinsic_width_a.html": [
+        {
+          "path": "css/fixed_width_overrides_child_intrinsic_width_a.html",
+          "references": [
+            [
+              "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_a.html"
         }
       ],
       "css/flex_nochild.html": [
