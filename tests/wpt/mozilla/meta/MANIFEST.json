@@ -1511,6 +1511,18 @@
             "url": "/_mozilla/css/font_face_attribute.html"
           }
         ],
+        "css/font_size.html": [
+          {
+            "path": "css/font_size.html",
+            "references": [
+              [
+                "/_mozilla/css/font_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/font_size.html"
+          }
+        ],
         "css/font_style.html": [
           {
             "path": "css/font_style.html",
@@ -6370,6 +6382,18 @@
             ]
           ],
           "url": "/_mozilla/css/font_face_attribute.html"
+        }
+      ],
+      "css/font_size.html": [
+        {
+          "path": "css/font_size.html",
+          "references": [
+            [
+              "/_mozilla/css/font_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/font_size.html"
         }
       ],
       "css/font_style.html": [
