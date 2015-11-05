@@ -115,7 +115,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipeline(PipelineId, PipelineExitType),
+    ExitPipeline(PipelineId),
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.

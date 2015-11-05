@@ -839,7 +839,7 @@ impl ScriptTask {
 
             let result = self.profile_event(category, move || {
                 match msg {
-                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, _)) => {
+                    MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id)) => {
                         if self.handle_exit_pipeline_msg(id) {
                             return Some(false)
                         }
