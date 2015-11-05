@@ -740,7 +740,7 @@ impl LayoutTask {
         }
 
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
+        self.paint_chan.send(LayoutToPaintMsg::Exit(response_chan, exit_type)).unwrap();
         response_port.recv().unwrap()
     }
 

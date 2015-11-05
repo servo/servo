@@ -197,7 +197,7 @@ pub enum Msg {
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, PaintLayer),
     CanvasLayer(LayerId, IpcSender<CanvasMsg>),
-    Exit(Option<IpcSender<()>>, PipelineExitType),
+    Exit(IpcSender<()>, PipelineExitType),
 }
 
 pub enum ChromeToPaintMsg {
@@ -388,7 +388,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     self.compositor.notify_paint_task_exiting(self.id);
 
                     debug!("PaintTask: Exiting.");
-                    response_channel.as_ref().map(|channel| channel.send(()));
+                    let _ = response_channel.send(());
                     break;
                 }
                 Msg::FromChrome(ChromeToPaintMsg::Exit(_)) => {
