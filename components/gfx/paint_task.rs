@@ -22,7 +22,7 @@ use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::compositor_msg::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties};
 use msg::compositor_msg::{PaintListener, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
+use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time::{self, profile};
@@ -205,7 +205,7 @@ pub enum ChromeToPaintMsg {
     PaintPermissionGranted,
     PaintPermissionRevoked,
     CollectReports(ReportsChan),
-    Exit(PipelineExitType),
+    Exit,
 }
 
 pub struct PaintTask<C> {
@@ -391,7 +391,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send + 'static {
                     let _ = response_channel.send(());
                     break;
                 }
-                Msg::FromChrome(ChromeToPaintMsg::Exit(_)) => {
+                Msg::FromChrome(ChromeToPaintMsg::Exit) => {
                     // Ask the compositor to remove any layers it is holding for this paint task.
                     // FIXME(mrobinson): This can probably move back to the constellation now.
                     self.compositor.notify_paint_task_exiting(self.id);

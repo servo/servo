@@ -276,8 +276,7 @@ impl Pipeline {
 
     pub fn force_exit(&self) {
         let _ = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)).unwrap();
-        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit(
-                    PipelineExitType::PipelineOnly));
+        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit);
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send(
             LayoutControlMsg::ExitNow(PipelineExitType::PipelineOnly)).unwrap();
