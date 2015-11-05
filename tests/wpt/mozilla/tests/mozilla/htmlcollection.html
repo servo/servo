@@ -60,10 +60,10 @@
 
                 new_live.className = "dead";
                 assert_equals(htmlcollection.length, 1);
-            
+
                 new_live.className = "live";
                 assert_equals(htmlcollection.length, 2);
-            
+
                 document.body.removeChild(new_live);
                 assert_equals(htmlcollection.length, 1);
             }, "live HTMLCollection byClassName");
@@ -98,18 +98,18 @@
                 element.innerHTML = '<div id="n0"><div id="n1"><div id="n2"></div><div id="n3"></div></div></div>';
                 assert_equals(coll.length, 4);
 
-	        assert_equals(coll[3].id, "n3");
-	        assert_equals(coll[2].id, "n2");
-	        assert_equals(coll[2].id, "n2");
-	        assert_equals(coll[1].id, "n1");
-	        assert_equals(coll[2].id, "n2");
-	        assert_equals(coll[0].id, "n0");
+                assert_equals(coll[3].id, "n3");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[1].id, "n1");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[0].id, "n0");
 
-	        assert_equals(coll[0].id, "n0");
-	        assert_equals(coll[2].id, "n2");
-	        assert_equals(coll[1].id, "n1");
-	        assert_equals(coll[2].id, "n2");
-	        assert_equals(coll[3].id, "n3");
+                assert_equals(coll[0].id, "n0");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[1].id, "n1");
+                assert_equals(coll[2].id, "n2");
+                assert_equals(coll[3].id, "n3");
 
                 assert_equals(coll.length, 4);
 
