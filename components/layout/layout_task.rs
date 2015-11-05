@@ -492,7 +492,7 @@ impl LayoutTask {
                         self.handle_request_helper(Msg::GetWebFontLoadState(sender),
                                                    possibly_locked_rw_data)
                     }
-                    LayoutControlMsg::ExitNow(_) => {
+                    LayoutControlMsg::ExitNow => {
                         self.handle_request_helper(Msg::ExitNow,
                                                    possibly_locked_rw_data)
                     }
