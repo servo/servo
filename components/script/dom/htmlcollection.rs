@@ -57,6 +57,7 @@ pub struct HTMLCollection {
     filter: Box<CollectionFilter + 'static>,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
+    // FIXME: make the cached cursor element a weak pointer
     cached_version: Cell<u64>,
     cached_cursor_element: MutNullableHeap<JS<Element>>,
     cached_cursor_index: Cell<OptionU32>,
