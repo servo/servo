@@ -1595,6 +1595,30 @@
             "url": "/_mozilla/css/img_block_display_a.html"
           }
         ],
+        "css/img_block_maxwidth_a.html": [
+          {
+            "path": "css/img_block_maxwidth_a.html",
+            "references": [
+              [
+                "/_mozilla/css/img_block_maxwidth_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_block_maxwidth_a.html"
+          }
+        ],
+        "css/img_block_maxwidth_b.html": [
+          {
+            "path": "css/img_block_maxwidth_b.html",
+            "references": [
+              [
+                "/_mozilla/css/img_block_maxwidth_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/img_block_maxwidth_b.html"
+          }
+        ],
         "css/img_dynamic_remove.html": [
           {
             "path": "css/img_dynamic_remove.html",
@@ -6490,6 +6514,30 @@
             ]
           ],
           "url": "/_mozilla/css/img_block_display_a.html"
+        }
+      ],
+      "css/img_block_maxwidth_a.html": [
+        {
+          "path": "css/img_block_maxwidth_a.html",
+          "references": [
+            [
+              "/_mozilla/css/img_block_maxwidth_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_block_maxwidth_a.html"
+        }
+      ],
+      "css/img_block_maxwidth_b.html": [
+        {
+          "path": "css/img_block_maxwidth_b.html",
+          "references": [
+            [
+              "/_mozilla/css/img_block_maxwidth_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/img_block_maxwidth_b.html"
         }
       ],
       "css/img_dynamic_remove.html": [
