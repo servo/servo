@@ -8,7 +8,9 @@ matrix:
       cache: false
     - sudo: 9000
       dist: trusty
-      script: ./mach build -d --verbose
+      script:
+         - ./mach build -d --verbose
+         - bash etc/ci/lockfile_changed.sh
       cache:
         directories:
           - .cargo
