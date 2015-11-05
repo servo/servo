@@ -203,7 +203,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             debug_args, command = browser_command(
                 self.binary,
                 [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
-                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa",
+                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously",
                  "--output=%s" % output_path, full_url],
                 self.debug_info)
 
