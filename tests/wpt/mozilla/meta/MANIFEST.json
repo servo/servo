@@ -1271,6 +1271,18 @@
             "url": "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_a.html"
           }
         ],
+        "css/flex_column_direction.html": [
+          {
+            "path": "css/flex_column_direction.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_column_direction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_column_direction.html"
+          }
+        ],
         "css/flex_nochild.html": [
           {
             "path": "css/flex_nochild.html",
@@ -6094,6 +6106,18 @@
             ]
           ],
           "url": "/_mozilla/css/fixed_width_overrides_child_intrinsic_width_a.html"
+        }
+      ],
+      "css/flex_column_direction.html": [
+        {
+          "path": "css/flex_column_direction.html",
+          "references": [
+            [
+              "/_mozilla/css/flex_column_direction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/flex_column_direction.html"
         }
       ],
       "css/flex_nochild.html": [
