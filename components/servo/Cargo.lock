@@ -722,8 +722,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "glutin"
-version = "0.4.0"
-source = "git+https://github.com/servo/glutin?branch=servo#6525e224e3b5b3ad4f0af8d87460512eb64e8c59"
+version = "0.4.1"
+source = "git+https://github.com/servo/glutin?branch=servo#d4ab289f0eee3a168746ab10521edbff244e4b99"
 dependencies = [
  "android_glue 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -761,7 +761,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.4.0 (git+https://github.com/servo/glutin?branch=servo)",
+ "glutin 0.4.1 (git+https://github.com/servo/glutin?branch=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -1285,7 +1285,7 @@ dependencies = [
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.4.0 (git+https://github.com/servo/glutin?branch=servo)",
+ "glutin 0.4.1 (git+https://github.com/servo/glutin?branch=servo)",
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",

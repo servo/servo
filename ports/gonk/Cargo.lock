@@ -677,8 +677,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "glutin"
-version = "0.4.0"
-source = "git+https://github.com/servo/glutin?branch=servo#6525e224e3b5b3ad4f0af8d87460512eb64e8c59"
+version = "0.4.1"
+source = "git+https://github.com/servo/glutin?branch=servo#d4ab289f0eee3a168746ab10521edbff244e4b99"
 dependencies = [
  "android_glue 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cgl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1200,7 +1200,7 @@ dependencies = [
  "euclid 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin 0.4.0 (git+https://github.com/servo/glutin?branch=servo)",
+ "glutin 0.4.1 (git+https://github.com/servo/glutin?branch=servo)",
  "khronos_api 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1449,6 +1449,7 @@ dependencies = [
  "util 0.0.1",
  "uuid 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "websocket 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml5ever 0.1.0 (git+https://github.com/Ygg01/xml5ever)",
 ]
 
 [[package]]
@@ -1934,5 +1935,22 @@ version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "xml5ever"
+version = "0.1.0"
+source = "git+https://github.com/Ygg01/xml5ever#0c36f2d93532b2d7b1ccfbd6019a6d53a1fcac69"
+dependencies = [
+ "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rc 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_plugin 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
