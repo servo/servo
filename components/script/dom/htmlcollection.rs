@@ -40,6 +40,7 @@ impl OptionU32 {
     }
 
     fn some(bits: u32) -> OptionU32 {
+        assert!(bits != u32::max_value());
         OptionU32 { bits: bits }
     }
 
