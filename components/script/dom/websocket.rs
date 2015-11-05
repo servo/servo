@@ -296,18 +296,13 @@ impl WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_Impl(&self, data_byte_len: u64) -> Fallible<bool> {
-
-        let mut return_after_buffer = false;
-
-        match self.ready_state.get() {
+        let return_after_buffer = match self.ready_state.get() {
             WebSocketRequestState::Connecting => {
                 return Err(Error::InvalidState);
             },
-            WebSocketRequestState::Open => (),
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => {
-                return_after_buffer = true;
-            }
-        }
+            WebSocketRequestState::Open => false,
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
+        };
 
         let global = self.global.root();
         let chan = global.r().script_chan();
@@ -315,23 +310,21 @@ impl WebSocket {
 
         let new_buffer_amount = (self.buffered_amount.get() as u64) + data_byte_len;
         if new_buffer_amount > (u32::max_value() as u64) {
-
             self.buffered_amount.set(u32::max_value());
             self.full.set(true);
 
             let _ = self.Close(None, None);
             return Ok(false);
 
-        } else {
-            self.buffered_amount.set(new_buffer_amount as u32);
         }
+
+        self.buffered_amount.set(new_buffer_amount as u32);
 
         if return_after_buffer {
             return Ok(false);
         }
 
-        if !self.clearing_buffer.get() &&
-            self.ready_state.get() == WebSocketRequestState::Open {
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
             let task = box BufferedAmountTask {
