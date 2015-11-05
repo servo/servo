@@ -1643,6 +1643,18 @@
             "url": "/_mozilla/css/img_padding_a.html"
           }
         ],
+        "css/img_simple.html": [
+          {
+            "path": "css/img_simple.html",
+            "references": [
+              [
+                "/_mozilla/css/img_simple_ref.html",
+                "!="
+              ]
+            ],
+            "url": "/_mozilla/css/img_simple.html"
+          }
+        ],
         "css/img_size_a.html": [
           {
             "path": "css/img_size_a.html",
@@ -6562,6 +6574,18 @@
             ]
           ],
           "url": "/_mozilla/css/img_padding_a.html"
+        }
+      ],
+      "css/img_simple.html": [
+        {
+          "path": "css/img_simple.html",
+          "references": [
+            [
+              "/_mozilla/css/img_simple_ref.html",
+              "!="
+            ]
+          ],
+          "url": "/_mozilla/css/img_simple.html"
         }
       ],
       "css/img_size_a.html": [
