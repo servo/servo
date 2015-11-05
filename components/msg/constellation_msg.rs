@@ -517,11 +517,3 @@ impl fmt::Display for PipelineId {
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageId(pub u32);
-
-// The type of pipeline exit. During complete shutdowns, pipelines do not have to
-// release resources automatically released on process termination.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-pub enum PipelineExitType {
-    PipelineOnly,
-    Complete,
-}
