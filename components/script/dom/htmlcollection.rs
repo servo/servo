@@ -25,13 +25,12 @@ pub trait CollectionFilter : JSTraceable {
 // An optional u32, using maxint to represent None.
 // It would be nicer just to use Option<u32> for this, but that would produce word
 // alignment issues since Option<u32> uses 33 bits.
-#[allow(non_camel_case_types)]
 #[derive(Clone, Copy, JSTraceable, HeapSizeOf)]
-struct ou32 {
+struct OptionU32 {
     bits: u32,
 }
 
-impl ou32 {
+impl OptionU32 {
     fn to_option(self) -> Option<u32> {
         if self.bits == u32::max_value() {
             None
@@ -40,12 +39,12 @@ impl ou32 {
         }
     }
 
-    fn some(bits: u32) -> ou32 {
-        ou32 { bits: bits }
+    fn some(bits: u32) -> OptionU32 {
+        OptionU32 { bits: bits }
     }
 
-    fn none() -> ou32 {
-        ou32 { bits: u32::max_value() }
+    fn none() -> OptionU32 {
+        OptionU32 { bits: u32::max_value() }
     }
 }
 
@@ -59,8 +58,8 @@ pub struct HTMLCollection {
     // the length of the collection, and a cursor into the collection.
     cached_version: Cell<u64>,
     cached_cursor_element: MutNullableHeap<JS<Element>>,
-    cached_cursor_index: Cell<ou32>,
-    cached_length: Cell<ou32>,
+    cached_cursor_index: Cell<OptionU32>,
+    cached_length: Cell<OptionU32>,
 }
 
 impl HTMLCollection {
@@ -73,8 +72,8 @@ impl HTMLCollection {
             // Default values for the cache
             cached_version: Cell::new(root.get_inclusive_descendents_version()),
             cached_cursor_element: MutNullableHeap::new(None),
-            cached_cursor_index: Cell::new(ou32::none()),
-            cached_length: Cell::new(ou32::none()),
+            cached_cursor_index: Cell::new(OptionU32::none()),
+            cached_length: Cell::new(OptionU32::none()),
         }
     }
 
@@ -97,8 +96,8 @@ impl HTMLCollection {
             // Default values for the cache
             self.cached_version.set(curr_version);
             self.cached_cursor_element.set(None);
-            self.cached_length.set(ou32::none());
-            self.cached_cursor_index.set(ou32::none());
+            self.cached_length.set(OptionU32::none());
+            self.cached_cursor_index.set(OptionU32::none());
         }
     }
 
@@ -110,14 +109,14 @@ impl HTMLCollection {
         } else {
             // Cache miss, calculate the length
             let length = self.elements_iter().count() as u32;
-            self.cached_length.set(ou32::some(length));
+            self.cached_length.set(OptionU32::some(length));
             length
         }
     }
 
     fn set_cached_cursor(&self, index: u32, element: Option<Root<Element>>) -> Option<Root<Element>> {
         if let Some(element) = element {
-            self.cached_cursor_index.set(ou32::some(index));
+            self.cached_cursor_index.set(OptionU32::some(index));
             self.cached_cursor_element.set(Some(element.r()));
             Some(element)
         } else {
