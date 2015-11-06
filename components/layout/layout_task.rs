@@ -650,12 +650,12 @@ impl LayoutTask {
                 self.create_layout_task(info)
             }
             Msg::PrepareToExit(response_chan) => {
-                self.prepare_to_exit(response_chan, possibly_locked_rw_data);
+                self.prepare_to_exit(response_chan);
                 return false
             },
             Msg::ExitNow(exit_type) => {
                 debug!("layout: ExitNow received");
-                self.exit_now(possibly_locked_rw_data, exit_type);
+                self.exit_now(exit_type);
                 return false
             }
         }
@@ -722,9 +722,7 @@ impl LayoutTask {
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
-    fn prepare_to_exit<'a, 'b>(&mut self,
-                               response_chan: Sender<()>,
-                               possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn prepare_to_exit(&mut self, response_chan: Sender<()>) {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
@@ -735,7 +733,7 @@ impl LayoutTask {
                 }
                 Msg::ExitNow(exit_type) => {
                     debug!("layout task is exiting...");
-                    self.exit_now(possibly_locked_rw_data, exit_type);
+                    self.exit_now(exit_type);
                     break
                 }
                 Msg::CollectReports(_) => {
@@ -750,9 +748,7 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now<'a, 'b>(&mut self,
-                        _: &mut RwData<'a, 'b>,
-                        exit_type: PipelineExitType) {
+    fn exit_now(&mut self, exit_type: PipelineExitType) {
         let (response_chan, response_port) = ipc::channel().unwrap();
 
         if let Some(ref mut traversal) = self.parallel_traversal {
