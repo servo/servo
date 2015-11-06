@@ -102,9 +102,6 @@ pub struct LayoutTaskData {
     /// The root of the flow tree.
     pub root_flow: Option<FlowRef>,
 
-    /// The image cache.
-    pub image_cache_task: ImageCacheTask,
-
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
@@ -426,7 +423,7 @@ impl LayoutTask {
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            image_cache_task: image_cache_task.clone(),
+            image_cache_task: image_cache_task,
             font_cache_task: font_cache_task,
             first_reflow: true,
             image_cache_receiver: image_cache_receiver,
@@ -439,7 +436,6 @@ impl LayoutTask {
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
-                    image_cache_task: image_cache_task,
                     constellation_chan: constellation_chan,
                     screen_size: screen_size,
                     viewport_size: screen_size,
@@ -482,7 +478,7 @@ impl LayoutTask {
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
-            image_cache_task: rw_data.image_cache_task.clone(),
+            image_cache_task: self.image_cache_task.clone(),
             image_cache_sender: self.image_cache_sender.clone(),
             viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
