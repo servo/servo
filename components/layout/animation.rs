@@ -15,7 +15,7 @@ use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, Receiver};
 use style::animation::{GetMod, PropertyAnimation};
 use style::properties::ComputedValues;
 
@@ -50,9 +50,11 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed.
-pub fn update_animation_state(rw_data: &mut LayoutTaskData, pipeline_id: PipelineId) {
+pub fn update_animation_state(rw_data: &mut LayoutTaskData,
+                              new_animations_receiver: &Receiver<Animation>,
+                              pipeline_id: PipelineId) {
     let mut new_running_animations = Vec::new();
-    while let Ok(animation) = rw_data.new_animations_receiver.try_recv() {
+    while let Ok(animation) = new_animations_receiver.try_recv() {
         new_running_animations.push(animation)
     }
 

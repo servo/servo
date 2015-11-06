@@ -136,9 +136,6 @@ pub struct LayoutTaskData {
     /// The list of currently-running animations.
     pub running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
 
-    /// Receives newly-discovered animations.
-    pub new_animations_receiver: Receiver<Animation>,
-
     /// A counter for epoch messages
     epoch: Epoch,
 
@@ -229,6 +226,9 @@ pub struct LayoutTask {
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
     new_animations_sender: Sender<Animation>,
+
+    /// Receives newly-discovered animations.
+    new_animations_receiver: Receiver<Animation>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -435,6 +435,7 @@ impl LayoutTask {
             parallel_traversal: parallel_traversal,
             generation: 0,
             new_animations_sender: new_animations_sender,
+            new_animations_receiver: new_animations_receiver,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
@@ -450,7 +451,6 @@ impl LayoutTask {
                     running_animations: Arc::new(HashMap::new()),
                     offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
-                    new_animations_receiver: new_animations_receiver,
                     epoch: Epoch(0),
                     outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
@@ -1398,7 +1398,9 @@ impl LayoutTask {
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = rw_data.layout_root() {
             // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&mut *rw_data, self.id);
+            animation::update_animation_state(&mut *rw_data,
+                                              &self.new_animations_receiver,
+                                              self.id);
 
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
