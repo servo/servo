@@ -97,10 +97,6 @@ pub struct LayoutTaskData {
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// The size of the viewport. This may be different from the size of the screen due to viewport
-    /// constraints.
-    pub viewport_size: Size2D<Au>,
-
     /// The root stacking context.
     pub stacking_context: Option<Arc<StackingContext>>,
 
@@ -213,6 +209,10 @@ pub struct LayoutTask {
 
     /// A counter for epoch messages
     epoch: Epoch,
+
+    /// The size of the viewport. This may be different from the size of the screen due to viewport
+    /// constraints.
+    viewport_size: Size2D<Au>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -432,10 +432,10 @@ impl LayoutTask {
             visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
             running_animations: Arc::new(HashMap::new()),
             epoch: Epoch(0),
+            viewport_size: Size2D::new(Au(0), Au(0)),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     constellation_chan: constellation_chan,
-                    viewport_size: Size2D::new(Au(0), Au(0)),
                     stacking_context: None,
                     stylist: stylist,
                     content_box_response: Rect::zero(),
@@ -470,7 +470,7 @@ impl LayoutTask {
         SharedLayoutContext {
             image_cache_task: self.image_cache_task.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
-            viewport_size: rw_data.viewport_size.clone(),
+            viewport_size: self.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
             font_cache_task: Mutex::new(self.font_cache_task.clone()),
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
@@ -992,7 +992,7 @@ impl LayoutTask {
                 || {
             flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                             rw_data.viewport_size);
+                                                             self.viewport_size);
 
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
@@ -1098,7 +1098,7 @@ impl LayoutTask {
         let stylesheets_changed = data.stylesheets_changed;
 
         let initial_viewport = data.window_size.initial_viewport;
-        let old_viewport_size = rw_data.viewport_size;
+        let old_viewport_size = self.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                               Au::from_f32_px(initial_viewport.height.get()));
 
@@ -1107,7 +1107,7 @@ impl LayoutTask {
         rw_data.stylist.set_device(device, &stylesheets);
 
         let constraints = rw_data.stylist.viewport_constraints().clone();
-        rw_data.viewport_size = match constraints {
+        self.viewport_size = match constraints {
             Some(ref constraints) => {
                 debug!("Viewport constraints: {:?}", constraints);
 
@@ -1119,7 +1119,7 @@ impl LayoutTask {
         };
 
         // Handle conditions where the entire flow tree is invalid.
-        let viewport_size_changed = rw_data.viewport_size != old_viewport_size;
+        let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = constraints {
                 // let the constellation know about the viewport constraints
@@ -1225,8 +1225,8 @@ impl LayoutTask {
         let mut must_regenerate_display_lists = false;
         let mut old_visible_rects = HashMap::with_hash_state(Default::default());
         let inflation_amount =
-            Size2D::new(rw_data.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
-                        rw_data.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
+            Size2D::new(self.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
+                        self.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             match self.visible_rects.get(layer_id) {
                 None => {
