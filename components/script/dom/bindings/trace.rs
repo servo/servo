@@ -79,6 +79,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 use style::properties::PropertyDeclarationBlock;
@@ -246,7 +247,7 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
