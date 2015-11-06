@@ -122,9 +122,6 @@ pub struct LayoutTaskData {
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
 
-    /// The list of currently-running animations.
-    pub running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
-
     /// A counter for epoch messages
     epoch: Epoch,
 }
@@ -213,6 +210,9 @@ pub struct LayoutTask {
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
     visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
+
+    /// The list of currently-running animations.
+    running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -430,6 +430,7 @@ impl LayoutTask {
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
+            running_animations: Arc::new(HashMap::new()),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     constellation_chan: constellation_chan,
@@ -440,7 +441,6 @@ impl LayoutTask {
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
-                    running_animations: Arc::new(HashMap::new()),
                     offset_parent_response: OffsetParentResponse::empty(),
                     epoch: Epoch(0),
               })),
@@ -480,7 +480,7 @@ impl LayoutTask {
             generation: self.generation,
             new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
             goal: goal,
-            running_animations: rw_data.running_animations.clone(),
+            running_animations: self.running_animations.clone(),
         }
     }
 
@@ -1288,7 +1288,7 @@ impl LayoutTask {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = &*rw_data.running_animations;
+            let animations = &*self.running_animations;
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
@@ -1333,6 +1333,7 @@ impl LayoutTask {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&mut *rw_data,
+                                              &mut self.running_animations,
                                               &self.new_animations_receiver,
                                               self.id);
 
