@@ -1332,7 +1332,7 @@ impl LayoutTask {
                                                    layout_context: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&mut *rw_data,
+            animation::update_animation_state(&self.constellation_chan,
                                               &mut self.running_animations,
                                               &self.new_animations_receiver,
                                               self.id);
