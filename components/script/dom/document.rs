@@ -1740,10 +1740,10 @@ impl DocumentMethods for Document {
                     let name = QualName::new(ns!(SVG), atom!("title"));
                     let elem = Element::create(name, None, self,
                                                ElementCreator::ScriptCreated);
-                    let root_node = root.upcast::<Node>();
-                    let elem_node = elem.upcast::<Node>();
-                    root_node
-                        .InsertBefore(elem_node, root_node.GetFirstChild().as_ref().map(Root::r))
+                    let parent = root.upcast::<Node>();
+                    let child = elem.upcast::<Node>();
+                    parent
+                        .InsertBefore(child, parent.GetFirstChild().r())
                         .unwrap()
                 }
             }
