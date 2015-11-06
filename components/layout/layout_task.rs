@@ -456,7 +456,7 @@ impl LayoutTask {
             viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
             font_cache_task: Mutex::new(self.font_cache_task.clone()),
-            canvas_layers_sender: self.canvas_layers_sender.clone(),
+            canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),

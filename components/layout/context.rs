@@ -108,7 +108,7 @@ pub struct SharedLayoutContext {
     pub new_animations_sender: Mutex<Sender<Animation>>,
 
     /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
-    pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
+    pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
@@ -123,7 +123,6 @@ pub struct SharedLayoutContext {
 // FIXME(#6569) This implementations is unsound:
 // XXX UNSOUND!!! for image_cache_task
 // XXX UNSOUND!!! for stylist
-// XXX UNSOUND!!! for canvas_layers_sender
 #[allow(unsafe_code)]
 unsafe impl Sync for SharedLayoutContext {}
 
