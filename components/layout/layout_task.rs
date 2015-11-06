@@ -135,10 +135,6 @@ pub struct LayoutTaskData {
 
     /// A counter for epoch messages
     epoch: Epoch,
-
-    /// The position and size of the visible rect for each layer. We do not build display lists
-    /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
-    pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 }
 
 /// Information needed by the layout task.
@@ -221,6 +217,10 @@ pub struct LayoutTask {
 
     /// The root of the flow tree.
     root_flow: Option<FlowRef>,
+
+    /// The position and size of the visible rect for each layer. We do not build display lists
+    /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
+    visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -430,6 +430,7 @@ impl LayoutTask {
             new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
+            visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     constellation_chan: constellation_chan,
@@ -443,7 +444,6 @@ impl LayoutTask {
                     resolved_style_response: None,
                     running_animations: Arc::new(HashMap::new()),
                     offset_parent_response: OffsetParentResponse::empty(),
-                    visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     epoch: Epoch(0),
               })),
         }
@@ -480,7 +480,7 @@ impl LayoutTask {
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
-            visible_rects: rw_data.visible_rects.clone(),
+            visible_rects: self.visible_rects.clone(),
             generation: self.generation,
             new_animations_sender: self.new_animations_sender.clone(),
             goal: goal,
@@ -1286,7 +1286,7 @@ impl LayoutTask {
             Size2D::new(rw_data.viewport_size.width * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR,
                         rw_data.viewport_size.height * DISPLAY_PORT_THRESHOLD_SIZE_FACTOR);
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
-            match rw_data.visible_rects.get(layer_id) {
+            match self.visible_rects.get(layer_id) {
                 None => {
                     old_visible_rects.insert(*layer_id, *new_visible_rect);
                 }
@@ -1303,7 +1303,7 @@ impl LayoutTask {
 
         if !must_regenerate_display_lists {
             // Update `visible_rects` in case there are new layers that were discovered.
-            rw_data.visible_rects = Arc::new(old_visible_rects);
+            self.visible_rects = Arc::new(old_visible_rects);
             return true
         }
 
@@ -1311,7 +1311,7 @@ impl LayoutTask {
         for &(ref layer_id, ref new_visible_rect) in &new_visible_rects {
             old_visible_rects.insert(*layer_id, *new_visible_rect);
         }
-        rw_data.visible_rects = Arc::new(old_visible_rects);
+        self.visible_rects = Arc::new(old_visible_rects);
 
         // Regenerate the display lists.
         let reflow_info = Reflow {
