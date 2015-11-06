@@ -36,7 +36,7 @@ If you build with `-d`, run with `-d`. If you build with `-r`, run with `-r`.
 
 ## ./mach
 
-`mach` is a python utility that does plenty of things to make our life easier (build, run, run tests, udpate dependencies… see `./mach --help`). Beside editing files and git commands, everything else is done via `mach`.
+`mach` is a python utility that does plenty of things to make our life easier (build, run, run tests, update dependencies… see `./mach --help`). Beside editing files and git commands, everything else is done via `mach`.
 
 ``` shell
 ./mach run -d [mach options] -- [servo options]
@@ -178,7 +178,7 @@ usually just works. If it doesn't, maybe foobar's properties implement the right
 To run the debugger:
 
 ``` shell
-./mach -d --debug -- -y 1 -t 1 /tmp/a.html
+./mach run -d --debug -- -y 1 -t 1 /tmp/a.html
 ```
 
 This will start `lldb` on Mac, and `gdb` on Linux.
@@ -241,7 +241,7 @@ To run a test:
 In some cases extensive tests for the feature you're working on may already exist under tests/wpt:
 
 - Make a release build
-- run `./mach -r test-wpt --log-raw=/path/to/some/logfile`
+- run `./mach test-wpt --release --log-raw=/path/to/some/logfile`
 - run [`update-wpt` on it](https://github.com/servo/servo/blob/master/tests/wpt/README.md#updating-test-expectations)
 
 This may create a new commit with changes to expectation ini files. If there are lots of changes,
