@@ -20,7 +20,7 @@ use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
 use net_traits::image_cache_task::{UsePlaceholder};
-use script::layout_interface::{Animation, LayoutChan, ReflowGoal};
+use script::layout_interface::{Animation, ReflowGoal};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
@@ -91,9 +91,6 @@ pub struct SharedLayoutContext {
     /// A channel up to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// A channel up to the layout task.
-    pub layout_chan: LayoutChan,
-
     /// Interface to the font cache task.
     pub font_cache_task: FontCacheTask,
 
@@ -130,7 +127,6 @@ pub struct SharedLayoutContext {
 // XXX UNSOUND!!! for image_cache_task
 // XXX UNSOUND!!! for image_cache_sender
 // XXX UNSOUND!!! for constellation_chan
-// XXX UNSOUND!!! for layout_chan
 // XXX UNSOUND!!! for font_cache_task
 // XXX UNSOUND!!! for stylist
 // XXX UNSOUND!!! for new_animations_sender
