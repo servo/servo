@@ -18,12 +18,14 @@ pub struct CanvasPattern {
     surface_size: Size2D<i32>,
     repeat_x: bool,
     repeat_y: bool,
+    origin_clean: bool,
 }
 
 impl CanvasPattern {
     fn new_inherited(surface_data: Vec<u8>,
                      surface_size: Size2D<i32>,
-                     repeat: RepetitionStyle)
+                     repeat: RepetitionStyle,
+                     origin_clean: bool)
                      -> CanvasPattern {
         let (x, y) = match repeat {
             RepetitionStyle::Repeat => (true, true),
@@ -38,16 +40,22 @@ impl CanvasPattern {
             surface_size: surface_size,
             repeat_x: x,
             repeat_y: y,
+            origin_clean: origin_clean,
         }
     }
     pub fn new(global: GlobalRef,
                surface_data: Vec<u8>,
                surface_size: Size2D<i32>,
-               repeat: RepetitionStyle)
+               repeat: RepetitionStyle,
+               origin_clean: bool)
                -> Root<CanvasPattern> {
-        reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size, repeat),
+        reflect_dom_object(box CanvasPattern::new_inherited(surface_data, surface_size,
+                                                            repeat, origin_clean),
                            global,
                            CanvasPatternBinding::Wrap)
+    }
+    pub fn origin_is_clean(&self) -> bool {
+      self.origin_clean
     }
 }
 
