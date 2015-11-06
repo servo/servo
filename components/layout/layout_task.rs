@@ -12,7 +12,7 @@ use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, heap_size_of_local_context};
+use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
 use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
@@ -457,7 +457,7 @@ impl LayoutTask {
             screen_size_changed: screen_size_changed,
             font_cache_task: Mutex::new(self.font_cache_task.clone()),
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
-            stylist: &*rw_data.stylist,
+            stylist: StylistWrapper(&*rw_data.stylist),
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
