@@ -461,7 +461,7 @@ impl LayoutTask {
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
-            new_animations_sender: rw_data.new_animations_sender.clone(),
+            new_animations_sender: Mutex::new(rw_data.new_animations_sender.clone()),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
         }

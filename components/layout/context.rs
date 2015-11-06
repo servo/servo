@@ -105,7 +105,7 @@ pub struct SharedLayoutContext {
 
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
-    pub new_animations_sender: Sender<Animation>,
+    pub new_animations_sender: Mutex<Sender<Animation>>,
 
     /// A channel to send canvas renderers to paint task, in order to correctly paint the layers
     pub canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
@@ -123,7 +123,6 @@ pub struct SharedLayoutContext {
 // FIXME(#6569) This implementations is unsound:
 // XXX UNSOUND!!! for image_cache_task
 // XXX UNSOUND!!! for stylist
-// XXX UNSOUND!!! for new_animations_sender
 // XXX UNSOUND!!! for canvas_layers_sender
 #[allow(unsafe_code)]
 unsafe impl Sync for SharedLayoutContext {}
