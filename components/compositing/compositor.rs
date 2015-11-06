@@ -185,9 +185,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// When tracking a touch for gesture detection, the point where it started
     first_touch_point: Option<TypedPoint2D<DevicePixel, f32>>,
 
-    /// When tracking a touch for gesture detection, its most recent point
-    last_touch_point: Option<TypedPoint2D<DevicePixel, f32>>,
-
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
 
@@ -220,8 +217,8 @@ enum TouchState {
     DefaultPrevented(u32),
     /// A single touch point is active and may perform click or pan default actions.
     Touching,
-    /// A single touch point is active and has started panning.
-    Panning,
+    /// A single touch point is active and has started panning. Contains the latest touch location.
+    Panning(TypedPoint2D<DevicePixel, f32>),
     /// A multi-touch gesture is in progress. Contains the number of active touch points.
     MultiTouch(u32),
 }
@@ -353,7 +350,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_gesture_state: TouchState::Nothing,
             first_touch_point: None,
-            last_touch_point: None,
             pending_scroll_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
@@ -1235,11 +1231,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             TouchState::Nothing => {
                 // TODO: Don't wait for script if we know the page has no touch event listeners.
                 self.first_touch_point = Some(point);
-                self.last_touch_point = Some(point);
                 TouchState::WaitingForScript(1)
             }
             TouchState::Touching |
-            TouchState::Panning => {
+            TouchState::Panning(_) => {
                 // Was a single-touch sequence; now a multi-touch sequence:
                 TouchState::MultiTouch(2)
             }
@@ -1276,21 +1271,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                            px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                         {
-                            self.touch_gesture_state = TouchState::Panning;
+                            self.touch_gesture_state = TouchState::Panning(point);
                             self.on_scroll_window_event(delta, point.cast().unwrap());
                         }
                     }
                     None => warn!("first_touch_point not set")
                 }
             }
-            TouchState::Panning => {
-                match self.last_touch_point {
-                    Some(p0) => {
-                        let delta = point - p0;
-                        self.on_scroll_window_event(delta, point.cast().unwrap());
-                    }
-                    None => warn!("last_touch_point not set")
-                }
+            TouchState::Panning(p0) => {
+                let delta = point - p0;
+                self.on_scroll_window_event(delta, point.cast().unwrap());
+                self.touch_gesture_state = TouchState::Panning(point);
             }
             TouchState::DefaultPrevented(_) => {
                 // Send the event to script.
@@ -1303,7 +1294,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // TODO: Pinch zooming.
             }
         }
-        self.last_touch_point = Some(point);
     }
 
     fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
@@ -1321,7 +1311,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 TouchState::Nothing
             }
             TouchState::Nothing |
-            TouchState::Panning |
+            TouchState::Panning(_) |
             TouchState::WaitingForScript(1) |
             TouchState::DefaultPrevented(1) |
             TouchState::MultiTouch(1) => {
@@ -1343,7 +1333,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Nothing |
             TouchState::Touching |
-            TouchState::Panning |
+            TouchState::Panning(_) |
             TouchState::WaitingForScript(1) |
             TouchState::DefaultPrevented(1) |
             TouchState::MultiTouch(1) => {
