@@ -118,10 +118,6 @@ pub struct LayoutTaskData {
     /// Performs CSS selector matching and style resolution.
     pub stylist: Box<Stylist>,
 
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    pub generation: u32,
-
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Rect<Au>,
 
@@ -229,6 +225,10 @@ pub struct LayoutTask {
 
     /// The workers that we use for parallel operation.
     parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+
+    /// Starts at zero, and increased by one every time a layout completes.
+    /// This can be used to easily check for invalid stale data.
+    generation: u32,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -433,6 +433,7 @@ impl LayoutTask {
             canvas_layers_receiver: canvas_layers_receiver,
             canvas_layers_sender: canvas_layers_sender,
             parallel_traversal: parallel_traversal,
+            generation: 0,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
@@ -441,7 +442,6 @@ impl LayoutTask {
                     viewport_size: screen_size,
                     stacking_context: None,
                     stylist: stylist,
-                    generation: 0,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
@@ -489,7 +489,7 @@ impl LayoutTask {
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),
-            generation: rw_data.generation,
+            generation: self.generation,
             new_animations_sender: rw_data.new_animations_sender.clone(),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
@@ -1468,7 +1468,7 @@ impl LayoutTask {
                 root_flow.dump();
             }
 
-            rw_data.generation += 1;
+            self.generation += 1;
         }
     }
 
