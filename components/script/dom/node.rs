@@ -2150,9 +2150,7 @@ impl NodeMethods for Node {
             let element = node.downcast::<Element>().unwrap();
             let other_element = other.downcast::<Element>().unwrap();
             assert!(element.attrs().len() == other_element.attrs().len());
-            // FIXME(https://github.com/rust-lang/rust/issues/23338)
-            let attrs = element.attrs();
-            attrs.iter().all(|attr| {
+            element.attrs().iter().all(|attr| {
                 other_element.attrs().iter().any(|other_attr| {
                     (*attr.namespace() == *other_attr.namespace()) &&
                     (attr.local_name() == other_attr.local_name()) &&
