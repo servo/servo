@@ -121,9 +121,6 @@ pub struct LayoutTaskData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
-
-    /// A counter for epoch messages
-    epoch: Epoch,
 }
 
 /// Information needed by the layout task.
@@ -213,6 +210,9 @@ pub struct LayoutTask {
 
     /// The list of currently-running animations.
     running_animations: Arc<HashMap<OpaqueNode, Vec<Animation>>>,
+
+    /// A counter for epoch messages
+    epoch: Epoch,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -431,6 +431,7 @@ impl LayoutTask {
             root_flow: None,
             visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
             running_animations: Arc::new(HashMap::new()),
+            epoch: Epoch(0),
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     constellation_chan: constellation_chan,
@@ -442,7 +443,6 @@ impl LayoutTask {
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
-                    epoch: Epoch(0),
               })),
         }
     }
@@ -612,8 +612,8 @@ impl LayoutTask {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
             Msg::GetCurrentEpoch(sender) => {
-                let rw_data = possibly_locked_rw_data.lock();
-                sender.send(rw_data.epoch).unwrap();
+                let _rw_data = possibly_locked_rw_data.lock();
+                sender.send(self.epoch).unwrap();
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -1058,9 +1058,9 @@ impl LayoutTask {
 
                 debug!("Layout done!");
 
-                rw_data.epoch.next();
+                self.epoch.next();
                 self.paint_chan
-                    .send(LayoutToPaintMsg::PaintInit(rw_data.epoch, paint_layer))
+                    .send(LayoutToPaintMsg::PaintInit(self.epoch, paint_layer))
                     .unwrap();
             }
         });
