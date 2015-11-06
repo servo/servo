@@ -139,10 +139,6 @@ pub struct LayoutTaskData {
     /// Receives newly-discovered animations.
     pub new_animations_receiver: Receiver<Animation>,
 
-    /// A channel on which new animations that have been triggered by style recalculation can be
-    /// sent.
-    pub new_animations_sender: Sender<Animation>,
-
     /// A counter for epoch messages
     epoch: Epoch,
 
@@ -229,6 +225,10 @@ pub struct LayoutTask {
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     generation: u32,
+
+    /// A channel on which new animations that have been triggered by style recalculation can be
+    /// sent.
+    new_animations_sender: Sender<Animation>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -434,6 +434,7 @@ impl LayoutTask {
             canvas_layers_sender: canvas_layers_sender,
             parallel_traversal: parallel_traversal,
             generation: 0,
+            new_animations_sender: new_animations_sender,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
@@ -450,7 +451,6 @@ impl LayoutTask {
                     offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     new_animations_receiver: new_animations_receiver,
-                    new_animations_sender: new_animations_sender,
                     epoch: Epoch(0),
                     outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
@@ -490,7 +490,7 @@ impl LayoutTask {
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: self.generation,
-            new_animations_sender: rw_data.new_animations_sender.clone(),
+            new_animations_sender: self.new_animations_sender.clone(),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
         }
