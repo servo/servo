@@ -62,8 +62,9 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
             }
             context
         } else {
+            let font_cache_task = shared_layout_context.font_cache_task.lock().unwrap().clone();
             let context = Rc::new(LocalLayoutContext {
-                font_context: RefCell::new(FontContext::new(shared_layout_context.font_cache_task.clone())),
+                font_context: RefCell::new(FontContext::new(font_cache_task)),
                 applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
                 style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             });
@@ -88,7 +89,7 @@ pub struct SharedLayoutContext {
     pub screen_size_changed: bool,
 
     /// Interface to the font cache task.
-    pub font_cache_task: FontCacheTask,
+    pub font_cache_task: Mutex<FontCacheTask>,
 
     /// The CSS selector stylist.
     ///
@@ -121,7 +122,6 @@ pub struct SharedLayoutContext {
 
 // FIXME(#6569) This implementations is unsound:
 // XXX UNSOUND!!! for image_cache_task
-// XXX UNSOUND!!! for font_cache_task
 // XXX UNSOUND!!! for stylist
 // XXX UNSOUND!!! for new_animations_sender
 // XXX UNSOUND!!! for canvas_layers_sender
