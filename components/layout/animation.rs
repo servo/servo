@@ -51,6 +51,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed.
 pub fn update_animation_state(rw_data: &mut LayoutTaskData,
+                              running_animations: &mut Arc<HashMap<OpaqueNode, Vec<Animation>>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
     let mut new_running_animations = Vec::new();
@@ -58,7 +59,7 @@ pub fn update_animation_state(rw_data: &mut LayoutTaskData,
         new_running_animations.push(animation)
     }
 
-    let mut running_animations_hash = (*rw_data.running_animations).clone();
+    let mut running_animations_hash = (**running_animations).clone();
 
     if running_animations_hash.is_empty() && new_running_animations.is_empty() {
         // Nothing to do. Return early so we don't flood the compositor with
@@ -91,10 +92,10 @@ pub fn update_animation_state(rw_data: &mut LayoutTaskData,
         }
     }
 
-    rw_data.running_animations = Arc::new(running_animations_hash);
+    *running_animations = Arc::new(running_animations_hash);
 
     let animation_state;
-    if rw_data.running_animations.is_empty() {
+    if running_animations.is_empty() {
         animation_state = AnimationState::NoAnimationsPresent;
     } else {
         animation_state = AnimationState::AnimationsPresent;
