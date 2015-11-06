@@ -47,7 +47,7 @@ use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
-use profile_traits::time::{self, ProfilerMetadata, profile};
+use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{MarginPadding, MarginRetrievingFragmentBorderBoxIterator, PositionProperty};
 use query::{PositionRetrievingFragmentBorderBoxIterator, Side};
@@ -1496,18 +1496,20 @@ impl LayoutTask {
     }
 
     /// Returns profiling information which is passed to the time profiler.
-    fn profiler_metadata(&self) -> ProfilerMetadata {
-        Some((&self.url,
-              if self.is_iframe {
+    fn profiler_metadata(&self) -> Option<TimerMetadata> {
+        Some(TimerMetadata {
+            url: self.url.serialize(),
+            iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
-              } else {
+            } else {
                 TimerMetadataFrameType::RootWindow
-              },
-              if self.first_reflow.get() {
+            },
+            incremental: if self.first_reflow.get() {
                 TimerMetadataReflowType::FirstReflow
-              } else {
+            } else {
                 TimerMetadataReflowType::Incremental
-              }))
+            },
+        })
     }
 }
 

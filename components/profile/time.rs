@@ -8,6 +8,7 @@ use heartbeats;
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
+use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -31,8 +32,14 @@ impl Formattable for Option<TimerMetadata> {
                 } else {
                     url
                 };
-                let incremental = if meta.incremental { "    yes" } else { "    no " };
-                let iframe = if meta.iframe { "  yes" } else { "  no " };
+                let incremental = match meta.incremental {
+                    TimerMetadataReflowType::Incremental => "    yes",
+                    TimerMetadataReflowType::FirstReflow => "    no ",
+                };
+                let iframe = match meta.iframe {
+                    TimerMetadataFrameType::RootWindow => "  yes",
+                    TimerMetadataFrameType::IFrame => "  no ",
+                };
                 format!(" {:14} {:9} {:30}", incremental, iframe, url)
             },
             None =>
