@@ -12,7 +12,7 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::{self, FlowRef};
 use gfx::display_list::OpaqueNode;
-use profile_traits::time::{self, ProfilerMetadata, profile};
+use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use traversal::PostorderNodeMutTraversal;
@@ -465,7 +465,7 @@ pub fn traverse_dom_preorder(root: LayoutNode,
 
 pub fn traverse_flow_tree_preorder(
         root: &mut FlowRef,
-        profiler_metadata: ProfilerMetadata,
+        profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
         queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
@@ -488,7 +488,7 @@ pub fn traverse_flow_tree_preorder(
 
 pub fn build_display_list_for_subtree(
         root: &mut FlowRef,
-        profiler_metadata: ProfilerMetadata,
+        profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,
         shared_layout_context: &SharedLayoutContext,
         queue: &mut WorkQueue<SharedLayoutContext, WorkQueueData>) {
