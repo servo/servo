@@ -62,7 +62,6 @@ use selectors::parser::PseudoElement;
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::mem::transmute;
@@ -227,7 +226,7 @@ pub struct LayoutTask {
     pub font_cache_task: FontCacheTask,
 
     /// Is this the first reflow in this LayoutTask?
-    pub first_reflow: Cell<bool>,
+    pub first_reflow: bool,
 
     /// To receive a canvas renderer associated to a layer, this message is propagated
     /// to the paint chan
@@ -429,7 +428,7 @@ impl LayoutTask {
             mem_profiler_chan: mem_profiler_chan,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
-            first_reflow: Cell::new(true),
+            first_reflow: true,
             image_cache_receiver: image_cache_receiver,
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
@@ -463,7 +462,7 @@ impl LayoutTask {
     }
 
     /// Starts listening on the port.
-    fn start(self) {
+    fn start(mut self) {
         let rw_data = self.rw_data.clone();
         let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
         let mut rw_data = RwData {
@@ -502,7 +501,7 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script and constellation tasks
-    fn handle_request<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
+    fn handle_request<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
@@ -572,7 +571,7 @@ impl LayoutTask {
     /// repaint.
     /// TODO: In the future we could detect if the image size hasn't changed
     /// since last time and avoid performing a complete layout pass.
-    fn repaint<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
+    fn repaint<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         let mut rw_data = possibly_locked_rw_data.lock();
 
         let reflow_info = Reflow {
@@ -594,7 +593,7 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from other tasks.
-    fn handle_request_helper<'a, 'b>(&self,
+    fn handle_request_helper<'a, 'b>(&mut self,
                                      request: Msg,
                                      possibly_locked_rw_data: &mut RwData<'a, 'b>)
                                      -> bool {
@@ -1143,7 +1142,7 @@ impl LayoutTask {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_reflow<'a, 'b>(&self,
+    fn handle_reflow<'a, 'b>(&mut self,
                              data: &ScriptReflow,
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Make sure that every return path from this method joins the script task,
@@ -1292,7 +1291,7 @@ impl LayoutTask {
         }
     }
 
-    fn set_visible_rects<'a, 'b>(&self,
+    fn set_visible_rects<'a, 'b>(&mut self,
                                  new_visible_rects: Vec<(LayerId, Rect<Au>)>,
                                  possibly_locked_rw_data: &mut RwData<'a, 'b>)
                                  -> bool {
@@ -1349,12 +1348,12 @@ impl LayoutTask {
         true
     }
 
-    fn tick_all_animations<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         animation::tick_all_animations(self, &mut rw_data)
     }
 
-    pub fn tick_animations(&self, rw_data: &mut LayoutTaskData) {
+    pub fn tick_animations(&mut self, rw_data: &mut LayoutTaskData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
@@ -1382,7 +1381,7 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
-    fn reflow_with_newly_loaded_web_font<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         font_context::invalidate_font_caches();
 
@@ -1405,7 +1404,7 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
-    fn perform_post_style_recalc_layout_passes<'a>(&'a self,
+    fn perform_post_style_recalc_layout_passes<'a>(&'a mut self,
                                                    data: &Reflow,
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
@@ -1458,7 +1457,7 @@ impl LayoutTask {
         }
     }
 
-    fn perform_post_main_layout_passes<'a>(&'a self,
+    fn perform_post_main_layout_passes<'a>(&'a mut self,
                                            data: &Reflow,
                                            rw_data: &mut LayoutTaskData,
                                            layout_context: &mut SharedLayoutContext) {
@@ -1468,7 +1467,7 @@ impl LayoutTask {
                                                         &mut root_flow,
                                                         &mut *layout_context,
                                                         rw_data);
-            self.first_reflow.set(false);
+            self.first_reflow = false;
 
             if opts::get().trace_layout {
                 layout_debug::end_trace();
@@ -1516,7 +1515,7 @@ impl LayoutTask {
             } else {
                 TimerMetadataFrameType::RootWindow
             },
-            incremental: if self.first_reflow.get() {
+            incremental: if self.first_reflow {
                 TimerMetadataReflowType::FirstReflow
             } else {
                 TimerMetadataReflowType::Incremental

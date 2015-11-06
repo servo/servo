@@ -139,7 +139,7 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
 }
 
 /// Handles animation updates.
-pub fn tick_all_animations(layout_task: &LayoutTask, rw_data: &mut LayoutTaskData) {
+pub fn tick_all_animations(layout_task: &mut LayoutTask, rw_data: &mut LayoutTaskData) {
     layout_task.tick_animations(rw_data);
 
     layout_task.script_chan
