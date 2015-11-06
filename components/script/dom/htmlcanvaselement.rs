@@ -90,6 +90,13 @@ impl HTMLCanvasElement {
     pub fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.Width() as i32, self.Height() as i32)
     }
+
+    pub fn origin_is_clean(&self) -> bool {
+        match *self.context.borrow() {
+            Some(CanvasContext::Context2d(ref context)) => context.origin_is_clean(),
+            _ => true,
+        }
+    }
 }
 
 pub struct HTMLCanvasData {
@@ -251,16 +258,19 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                  _mime_type: Option<DOMString>,
                  _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
 
-        // Step 1: Check the origin-clean flag (should be set in fillText/strokeText
-        // and currently unimplemented)
-
-        // Step 2.
-        if self.Width() == 0 || self.Height() == 0 {
-            return Ok(DOMString::from("data:,"));
-        }
-
-        // Step 3.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
+
+            // Step 1.
+            if !context.origin_is_clean() {
+                return Err(Error::Security);
+            }
+
+            // Step 2.
+            if self.Width() == 0 || self.Height() == 0 {
+                return Ok(DOMString::from("data:,"));
+            }
+
+            // Step 3.
             let window = window_from_node(self);
             let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
                                                        Finite::wrap(self.Width() as f64),
