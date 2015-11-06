@@ -1,8 +1,5 @@
 language: python
 
-env:
-  - CCACHE=/usr/bin/ccache
-
 matrix:
   fast_finish: true
   include:
@@ -17,6 +14,7 @@ matrix:
           - .cargo
           - .servo
           - $HOME/.ccache
+      env: CCACHE=/usr/bin/ccache
       addons:
         apt:
           packages:
