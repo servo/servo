@@ -56,7 +56,7 @@ def set_defaults(paths, kwargs):
     if kwargs["processes"] is None:
         kwargs["processes"] = multiprocessing.cpu_count()
 
-    kwargs["user_stylesheets"].append(servo_path("resources", "ahem.css"))
+    kwargs["user_stylesheets"].append(servo_path("resources", "css-test-fonts.css"))
 
     wptcommandline.check_args(kwargs)
 
