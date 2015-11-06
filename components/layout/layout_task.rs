@@ -319,6 +319,36 @@ impl<'a> DerefMut for RWGuard<'a> {
     }
 }
 
+struct RwData<'a, 'b: 'a> {
+    rw_data: &'b Arc<Mutex<LayoutTaskData>>,
+    possibly_locked_rw_data: &'a mut Option<MutexGuard<'b, LayoutTaskData>>,
+}
+
+impl<'a, 'b: 'a> RwData<'a, 'b> {
+    /// If no reflow has happened yet, this will just return the lock in
+    /// `possibly_locked_rw_data`. Otherwise, it will acquire the `rw_data` lock.
+    ///
+    /// If you do not wish RPCs to remain blocked, just drop the `RWGuard`
+    /// returned from this function. If you _do_ wish for them to remain blocked,
+    /// use `block`.
+    fn lock(&mut self) -> RWGuard<'b> {
+        match self.possibly_locked_rw_data.take() {
+            None    => RWGuard::Used(self.rw_data.lock().unwrap()),
+            Some(x) => RWGuard::Held(x),
+        }
+    }
+
+    /// If no reflow has ever been triggered, this will keep the lock, locked
+    /// (and saved in `possibly_locked_rw_data`). If it has been, the lock will
+    /// be unlocked.
+    fn block(&mut self, rw_data: RWGuard<'b>) {
+        match rw_data {
+            RWGuard::Used(x) => drop(x),
+            RWGuard::Held(x) => *self.possibly_locked_rw_data = Some(x),
+        }
+    }
+}
+
 fn add_font_face_rules(stylesheet: &Stylesheet,
                        device: &Device,
                        font_cache_task: &FontCacheTask,
@@ -434,8 +464,13 @@ impl LayoutTask {
 
     /// Starts listening on the port.
     fn start(self) {
-        let mut possibly_locked_rw_data = Some((*self.rw_data).lock().unwrap());
-        while self.handle_request(&mut possibly_locked_rw_data) {
+        let rw_data = self.rw_data.clone();
+        let mut possibly_locked_rw_data = Some(rw_data.lock().unwrap());
+        let mut rw_data = RwData {
+            rw_data: &rw_data,
+            possibly_locked_rw_data: &mut possibly_locked_rw_data,
+        };
+        while self.handle_request(&mut rw_data) {
             // Loop indefinitely.
         }
     }
@@ -467,9 +502,7 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script and constellation tasks
-    fn handle_request<'a>(&'a self,
-                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
-                          -> bool {
+    fn handle_request<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
@@ -525,7 +558,7 @@ impl LayoutTask {
                 self.repaint(possibly_locked_rw_data)
             },
             Request::FromFontCache => {
-                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                let rw_data = possibly_locked_rw_data.lock();
                 rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
                 self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
@@ -534,40 +567,13 @@ impl LayoutTask {
         }
     }
 
-    /// If no reflow has happened yet, this will just return the lock in
-    /// `possibly_locked_rw_data`. Otherwise, it will acquire the `rw_data` lock.
-    ///
-    /// If you do not wish RPCs to remain blocked, just drop the `RWGuard`
-    /// returned from this function. If you _do_ wish for them to remain blocked,
-    /// use `return_rw_data`.
-    fn lock_rw_data<'a>(&'a self,
-                        possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
-                        -> RWGuard<'a> {
-        match possibly_locked_rw_data.take() {
-            None    => RWGuard::Used((*self.rw_data).lock().unwrap()),
-            Some(x) => RWGuard::Held(x),
-        }
-    }
-
-    /// If no reflow has ever been triggered, this will keep the lock, locked
-    /// (and saved in `possibly_locked_rw_data`). If it has been, the lock will
-    /// be unlocked.
-    fn return_rw_data<'a>(possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
-                          rw_data: RWGuard<'a>) {
-        match rw_data {
-            RWGuard::Used(x) => drop(x),
-            RWGuard::Held(x) => *possibly_locked_rw_data = Some(x),
-        }
-    }
-
     /// Repaint the scene, without performing style matching. This is typically
     /// used when an image arrives asynchronously and triggers a relayout and
     /// repaint.
     /// TODO: In the future we could detect if the image size hasn't changed
     /// since last time and avoid performing a complete layout pass.
-    fn repaint<'a>(&'a self,
-                   possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn repaint<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
+        let mut rw_data = possibly_locked_rw_data.lock();
 
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
@@ -588,11 +594,10 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from other tasks.
-    fn handle_request_helper<'a>(&'a self,
-                                 request: Msg,
-                                 possibly_locked_rw_data: &mut Option<MutexGuard<'a,
-                                                                                 LayoutTaskData>>)
-                                 -> bool {
+    fn handle_request_helper<'a, 'b>(&self,
+                                     request: Msg,
+                                     possibly_locked_rw_data: &mut RwData<'a, 'b>)
+                                     -> bool {
         match request {
             Msg::AddStylesheet(sheet, mq) => {
                 self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
@@ -634,11 +639,11 @@ impl LayoutTask {
                 self.collect_reports(reports_chan, possibly_locked_rw_data);
             },
             Msg::GetCurrentEpoch(sender) => {
-                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                let rw_data = possibly_locked_rw_data.lock();
                 sender.send(rw_data.epoch).unwrap();
             },
             Msg::GetWebFontLoadState(sender) => {
-                let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+                let rw_data = possibly_locked_rw_data.lock();
                 let outstanding_web_fonts = rw_data.outstanding_web_fonts.load(Ordering::SeqCst);
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
@@ -659,13 +664,13 @@ impl LayoutTask {
         true
     }
 
-    fn collect_reports<'a>(&'a self,
-                           reports_chan: ReportsChan,
-                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn collect_reports<'a, 'b>(&self,
+                               reports_chan: ReportsChan,
+                               possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut reports = vec![];
 
         // FIXME(njn): Just measuring the display tree for now.
-        let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let rw_data = possibly_locked_rw_data.lock();
         let stacking_context = rw_data.stacking_context.as_ref();
         reports.push(Report {
             path: path![format!("url({})", self.url), "layout-task", "display-list"],
@@ -718,9 +723,9 @@ impl LayoutTask {
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
     /// received. A pong is immediately sent on the given response channel.
-    fn prepare_to_exit<'a>(&'a self,
-                           response_chan: Sender<()>,
-                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn prepare_to_exit<'a, 'b>(&self,
+                               response_chan: Sender<()>,
+                               possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
@@ -746,30 +751,29 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now<'a>(&'a self,
-                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
-                    exit_type: PipelineExitType) {
+    fn exit_now<'a, 'b>(&self,
+                        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+                        exit_type: PipelineExitType) {
         let (response_chan, response_port) = ipc::channel().unwrap();
 
         {
-            let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+            let mut rw_data = possibly_locked_rw_data.lock();
             if let Some(ref mut traversal) = (&mut *rw_data).parallel_traversal {
                 traversal.shutdown()
             }
-            LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+            possibly_locked_rw_data.block(rw_data);
         }
 
         self.paint_chan.send(LayoutToPaintMsg::Exit(Some(response_chan), exit_type)).unwrap();
         response_port.recv().unwrap()
     }
 
-    fn handle_load_stylesheet<'a>(&'a self,
-                                  url: Url,
-                                  mq: MediaQueryList,
-                                  pending: PendingAsyncLoad,
-                                  responder: Box<StylesheetLoadResponder + Send>,
-                                  possibly_locked_rw_data:
-                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn handle_load_stylesheet<'a, 'b>(&self,
+                                      url: Url,
+                                      mq: MediaQueryList,
+                                      pending: PendingAsyncLoad,
+                                      responder: Box<StylesheetLoadResponder + Send>,
+                                      possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
 
@@ -792,15 +796,14 @@ impl LayoutTask {
         self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
     }
 
-    fn handle_add_stylesheet<'a>(&'a self,
-                                 sheet: Stylesheet,
-                                 mq: MediaQueryList,
-                                 possibly_locked_rw_data:
-                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn handle_add_stylesheet<'a, 'b>(&self,
+                                     sheet: Stylesheet,
+                                     mq: MediaQueryList,
+                                     possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
 
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let mut rw_data = possibly_locked_rw_data.lock();
         if mq.evaluate(&rw_data.stylist.device) {
             add_font_face_rules(&sheet,
                                 &rw_data.stylist.device,
@@ -810,29 +813,25 @@ impl LayoutTask {
             rw_data.stylist.add_stylesheet(sheet);
         }
 
-        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+        possibly_locked_rw_data.block(rw_data);
     }
 
-    fn handle_add_meta_viewport<'a>(&'a self,
-                                    translated_rule: ViewportRule,
-                                    possibly_locked_rw_data:
-                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
-    {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn handle_add_meta_viewport<'a, 'b>(&self,
+                                        translated_rule: ViewportRule,
+                                        possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        let mut rw_data = possibly_locked_rw_data.lock();
         rw_data.stylist.add_stylesheet(Stylesheet {
             rules: vec![CSSRule::Viewport(translated_rule)],
             origin: Origin::Author
         });
-        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+        possibly_locked_rw_data.block(rw_data);
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
-    fn handle_set_quirks_mode<'a>(&'a self,
-                                  possibly_locked_rw_data:
-                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn handle_set_quirks_mode<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        let mut rw_data = possibly_locked_rw_data.lock();
         rw_data.stylist.add_quirks_mode_stylesheet();
-        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+        possibly_locked_rw_data.block(rw_data);
     }
 
     fn try_get_layout_root(&self, node: LayoutNode) -> Option<FlowRef> {
@@ -1144,10 +1143,9 @@ impl LayoutTask {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_reflow<'a>(&'a self,
-                         data: &ScriptReflow,
-                         possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-
+    fn handle_reflow<'a, 'b>(&self,
+                             data: &ScriptReflow,
+                             possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         // Make sure that every return path from this method joins the script task,
         // otherwise the script task will panic.
         struct AutoJoinScriptTask<'a> { data: &'a ScriptReflow };
@@ -1170,7 +1168,7 @@ impl LayoutTask {
             node.dump();
         }
 
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let mut rw_data = possibly_locked_rw_data.lock();
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = rw_data.viewport_size;
@@ -1294,11 +1292,11 @@ impl LayoutTask {
         }
     }
 
-    fn set_visible_rects<'a>(&'a self,
-                             new_visible_rects: Vec<(LayerId, Rect<Au>)>,
-                             possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
-                             -> bool {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn set_visible_rects<'a, 'b>(&self,
+                                 new_visible_rects: Vec<(LayerId, Rect<Au>)>,
+                                 possibly_locked_rw_data: &mut RwData<'a, 'b>)
+                                 -> bool {
+        let mut rw_data = possibly_locked_rw_data.lock();
 
         // First, determine if we need to regenerate the display lists. This will happen if the
         // layers have moved more than `DISPLAY_PORT_THRESHOLD_SIZE_FACTOR` away from their last
@@ -1351,10 +1349,8 @@ impl LayoutTask {
         true
     }
 
-    fn tick_all_animations<'a>(&'a self,
-                               possibly_locked_rw_data: &mut Option<MutexGuard<'a,
-                                                                               LayoutTaskData>>) {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn tick_all_animations<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        let mut rw_data = possibly_locked_rw_data.lock();
         animation::tick_all_animations(self, &mut rw_data)
     }
 
@@ -1386,10 +1382,8 @@ impl LayoutTask {
                                                      &mut layout_context);
     }
 
-    pub fn reflow_with_newly_loaded_web_font<'a>(
-            &'a self,
-            possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+    fn reflow_with_newly_loaded_web_font<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        let mut rw_data = possibly_locked_rw_data.lock();
         font_context::invalidate_font_caches();
 
         let reflow_info = Reflow {
