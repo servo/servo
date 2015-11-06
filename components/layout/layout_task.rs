@@ -877,17 +877,18 @@ impl LayoutTask {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints_parallel(&self,
-                                  traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
+    fn solve_constraints_parallel(traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
                                   layout_root: &mut FlowRef,
+                                  profiler_metadata: Option<TimerMetadata>,
+                                  time_profiler_chan: time::ProfilerChan,
                                   shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
         parallel::traverse_flow_tree_preorder(layout_root,
-                                              self.profiler_metadata(),
-                                              self.time_profiler_chan.clone(),
+                                              profiler_metadata,
+                                              time_profiler_chan,
                                               shared_layout_context,
                                               traversal);
     }
@@ -1445,9 +1446,11 @@ impl LayoutTask {
                     }
                     Some(ref mut parallel) => {
                         // Parallel mode.
-                        self.solve_constraints_parallel(parallel,
-                                                        &mut root_flow,
-                                                        &*layout_context);
+                        LayoutTask::solve_constraints_parallel(parallel,
+                                                               &mut root_flow,
+                                                               self.profiler_metadata(),
+                                                               self.time_profiler_chan.clone(),
+                                                               &*layout_context);
                     }
                 }
             });
