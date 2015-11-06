@@ -126,11 +126,6 @@ pub struct SharedLayoutContext {
     pub goal: ReflowGoal,
 }
 
-// FIXME(#6569) This implementations is unsound:
-// XXX UNSOUND!!! for image_cache_task
-#[allow(unsafe_code)]
-unsafe impl Sync for SharedLayoutContext {}
-
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
     cached_local_layout_context: Rc<LocalLayoutContext>,
