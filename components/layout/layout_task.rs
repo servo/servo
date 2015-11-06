@@ -588,18 +588,17 @@ impl LayoutTask {
                                      -> bool {
         match request {
             Msg::AddStylesheet(sheet, mq) => {
-                self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
+                self.handle_add_stylesheet(sheet, mq)
             }
             Msg::LoadStylesheet(url, mq, pending, link_element) => {
                 self.handle_load_stylesheet(url,
                                             mq,
                                             pending,
-                                            link_element,
-                                            possibly_locked_rw_data)
+                                            link_element)
             }
-            Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::SetQuirksMode => self.handle_set_quirks_mode(),
             Msg::AddMetaViewport(translated_rule) => {
-                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
+                self.handle_add_meta_viewport(translated_rule)
             }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
@@ -748,12 +747,11 @@ impl LayoutTask {
         response_port.recv().unwrap()
     }
 
-    fn handle_load_stylesheet<'a, 'b>(&mut self,
-                                      url: Url,
-                                      mq: MediaQueryList,
-                                      pending: PendingAsyncLoad,
-                                      responder: Box<StylesheetLoadResponder + Send>,
-                                      possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn handle_load_stylesheet(&mut self,
+                              url: Url,
+                              mq: MediaQueryList,
+                              pending: PendingAsyncLoad,
+                              responder: Box<StylesheetLoadResponder + Send>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
 
@@ -773,13 +771,10 @@ impl LayoutTask {
                                                                               url,
                                                                               responder)).unwrap();
 
-        self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
+        self.handle_add_stylesheet(sheet, mq);
     }
 
-    fn handle_add_stylesheet<'a, 'b>(&mut self,
-                                     sheet: Stylesheet,
-                                     mq: MediaQueryList,
-                                     _: &mut RwData<'a, 'b>) {
+    fn handle_add_stylesheet(&mut self, sheet: Stylesheet, mq: MediaQueryList) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
 
@@ -793,9 +788,7 @@ impl LayoutTask {
         }
     }
 
-    fn handle_add_meta_viewport<'a, 'b>(&mut self,
-                                        translated_rule: ViewportRule,
-                                        _: &mut RwData<'a, 'b>) {
+    fn handle_add_meta_viewport(&mut self, translated_rule: ViewportRule) {
         self.stylist.add_stylesheet(Stylesheet {
             rules: vec![CSSRule::Viewport(translated_rule)],
             origin: Origin::Author
@@ -803,7 +796,7 @@ impl LayoutTask {
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
-    fn handle_set_quirks_mode<'a, 'b>(&mut self, _: &mut RwData<'a, 'b>) {
+    fn handle_set_quirks_mode(&mut self) {
         self.stylist.add_quirks_mode_stylesheet();
     }
 
