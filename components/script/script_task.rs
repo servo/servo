@@ -1671,10 +1671,32 @@ impl ScriptTask {
 
         let is_javascript = incomplete.url.scheme == "javascript";
         let parse_input = if is_javascript {
+            use url::percent_encoding::percent_decode_to;
+
+            // Turn javascript: URL into JS code to eval, according to the steps in
+            // https://html.spec.whatwg.org/multipage/#javascript-protocol
             let _ar = JSAutoRequest::new(self.get_cx());
-            let evalstr = incomplete.url.non_relative_scheme_data().unwrap();
+            let mut script_source_bytes = Vec::new();
+            // Start with the scheme data of the parsed URL (5.), while percent-decoding (8.)
+            percent_decode_to(incomplete.url.non_relative_scheme_data().unwrap().as_bytes(),
+                              &mut script_source_bytes);
+            // Append question mark and query component, if any (6.), while percent-decoding (8.)
+            if let Some(ref query) = incomplete.url.query {
+                script_source_bytes.push(b'?');
+                percent_decode_to(query.as_bytes(), &mut script_source_bytes);
+            }
+            // Append number sign and fragment component if any (7.), while percent-decoding (8.)
+            if let Some(ref fragment) = incomplete.url.fragment {
+                script_source_bytes.push(b'#');
+                percent_decode_to(fragment.as_bytes(), &mut script_source_bytes);
+            }
+
+            // UTF-8 decode (9.)
+            let script_source = String::from_utf8_lossy(&script_source_bytes);
+
+            // Script source is ready to be evaluated (11.)
             let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
-            window.evaluate_js_on_global_with_result(evalstr, jsval.handle_mut());
+            window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
             let strval = DOMString::from_jsval(self.get_cx(), jsval.handle(),
                                                StringificationBehavior::Empty);
             strval.unwrap_or(DOMString::new())
