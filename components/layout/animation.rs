@@ -9,7 +9,7 @@ use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::{self, RestyleDamage};
 use layout_task::{LayoutTask, LayoutTaskData};
-use msg::constellation_msg::{AnimationState, Msg, PipelineId};
+use msg::constellation_msg::{AnimationState, ConstellationChan, Msg, PipelineId};
 use script::layout_interface::Animation;
 use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
@@ -50,7 +50,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed.
-pub fn update_animation_state(rw_data: &mut LayoutTaskData,
+pub fn update_animation_state(constellation_chan: &ConstellationChan,
                               running_animations: &mut Arc<HashMap<OpaqueNode, Vec<Animation>>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
@@ -101,11 +101,9 @@ pub fn update_animation_state(rw_data: &mut LayoutTaskData,
         animation_state = AnimationState::AnimationsPresent;
     }
 
-    rw_data.constellation_chan
-           .0
-           .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
-           .unwrap();
-
+    constellation_chan.0
+                      .send(Msg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+                      .unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
