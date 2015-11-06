@@ -109,9 +109,6 @@ pub struct LayoutTaskData {
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
-    /// The size of the screen.
-    pub screen_size: Size2D<Au>,
-
     /// The size of the viewport. This may be different from the size of the screen due to viewport
     /// constraints.
     pub viewport_size: Size2D<Au>,
@@ -350,7 +347,6 @@ impl LayoutTask {
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan)
            -> LayoutTask {
-        let screen_size = Size2D::new(Au(0), Au(0));
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
@@ -411,8 +407,7 @@ impl LayoutTask {
                     root_flow: None,
                     image_cache_task: image_cache_task,
                     constellation_chan: constellation_chan,
-                    screen_size: screen_size,
-                    viewport_size: screen_size,
+                    viewport_size: Size2D::new(Au(0), Au(0)),
                     stacking_context: None,
                     stylist: stylist,
                     parallel_traversal: parallel_traversal,
@@ -1158,7 +1153,6 @@ impl LayoutTask {
         let old_viewport_size = rw_data.viewport_size;
         let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
                                               Au::from_f32_px(initial_viewport.height.get()));
-        rw_data.screen_size = current_screen_size;
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
