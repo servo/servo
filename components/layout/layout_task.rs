@@ -99,9 +99,6 @@ const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 ///
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutTaskData {
-    /// The root of the flow tree.
-    pub root_flow: Option<FlowRef>,
-
     /// The channel on which messages can be sent to the constellation.
     pub constellation_chan: ConstellationChan,
 
@@ -142,14 +139,6 @@ pub struct LayoutTaskData {
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
-}
-
-impl LayoutTaskData {
-    pub fn layout_root(&self) -> Option<FlowRef> {
-        self.root_flow.as_ref().map(|root_flow| {
-            root_flow.clone()
-        })
-    }
 }
 
 /// Information needed by the layout task.
@@ -229,6 +218,9 @@ pub struct LayoutTask {
 
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
+
+    /// The root of the flow tree.
+    root_flow: Option<FlowRef>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -437,9 +429,9 @@ impl LayoutTask {
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: outstanding_web_fonts_counter,
+            root_flow: None,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
-                    root_flow: None,
                     constellation_chan: constellation_chan,
                     screen_size: screen_size,
                     viewport_size: screen_size,
@@ -1243,7 +1235,7 @@ impl LayoutTask {
             });
 
             // Retrieve the (possibly rebuilt) root flow.
-            rw_data.root_flow = self.try_get_layout_root(node);
+            self.root_flow = self.try_get_layout_root(node);
         }
 
         // Send new canvas renderers to the paint task
@@ -1257,7 +1249,7 @@ impl LayoutTask {
                                                      &mut rw_data,
                                                      &mut shared_layout_context);
 
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = self.root_flow.clone() {
             match data.query_type {
                 ReflowQueryType::ContentBoxQuery(node) =>
                     rw_data.content_box_response = process_content_box_request(node, &mut root_flow),
@@ -1352,7 +1344,7 @@ impl LayoutTask {
                                                                   &self.url,
                                                                   reflow_info.goal);
 
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
             let animations = &*rw_data.running_animations;
             profile(time::ProfilerCategory::LayoutStyleRecalc,
@@ -1384,7 +1376,7 @@ impl LayoutTask {
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.
-        if rw_data.root_flow.as_ref().is_none() {
+        if self.root_flow.is_none() {
             return
         }
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -1396,7 +1388,7 @@ impl LayoutTask {
                                                    data: &Reflow,
                                                    rw_data: &mut LayoutTaskData,
                                                    layout_context: &mut SharedLayoutContext) {
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&mut *rw_data,
                                               &self.new_animations_receiver,
@@ -1455,7 +1447,7 @@ impl LayoutTask {
                                            rw_data: &mut LayoutTaskData,
                                            layout_context: &mut SharedLayoutContext) {
         // Build the display list if necessary, and send it to the painter.
-        if let Some(mut root_flow) = rw_data.layout_root() {
+        if let Some(mut root_flow) = self.root_flow.clone() {
             self.compute_abs_pos_and_build_display_list(data,
                                                         &mut root_flow,
                                                         &mut *layout_context,
