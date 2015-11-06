@@ -29809,7 +29809,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html": [
+          {
+            "path": "html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html",
+            "url": "/html/browsers/browsing-the-web/navigating-across-documents/javascript-url-query-fragment-components.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
