@@ -452,7 +452,7 @@ impl LayoutTask {
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
-            image_cache_sender: self.image_cache_sender.clone(),
+            image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
             constellation_chan: rw_data.constellation_chan.clone(),

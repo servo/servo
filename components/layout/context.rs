@@ -25,8 +25,8 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_state::DefaultState;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc::{Sender, channel};
+use std::sync::{Arc, Mutex};
 use style::selector_matching::Stylist;
 use url::Url;
 use util::mem::HeapSizeOf;
@@ -80,7 +80,7 @@ pub struct SharedLayoutContext {
     pub image_cache_task: ImageCacheTask,
 
     /// A channel for the image cache to send responses to.
-    pub image_cache_sender: ImageCacheChan,
+    pub image_cache_sender: Mutex<ImageCacheChan>,
 
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
@@ -125,7 +125,6 @@ pub struct SharedLayoutContext {
 
 // FIXME(#6569) This implementations is unsound:
 // XXX UNSOUND!!! for image_cache_task
-// XXX UNSOUND!!! for image_cache_sender
 // XXX UNSOUND!!! for constellation_chan
 // XXX UNSOUND!!! for font_cache_task
 // XXX UNSOUND!!! for stylist
@@ -196,8 +195,8 @@ impl<'a> LayoutContext<'a> {
                     }
                     // Not yet requested, async mode - request image from the cache
                     (ImageState::NotRequested, false) => {
-                        self.shared.image_cache_task
-                            .request_image(url, self.shared.image_cache_sender.clone(), None);
+                        let sender = self.shared.image_cache_sender.lock().unwrap().clone();
+                        self.shared.image_cache_task.request_image(url, sender, None);
                         None
                     }
                     // Image has been requested, is still pending. Return no image
