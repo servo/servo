@@ -470,49 +470,67 @@ impl LayoutTask {
     fn handle_request<'a>(&'a self,
                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
                           -> bool {
-        let port_from_script = &self.port;
-        let port_from_pipeline = &self.pipeline_port;
-        let port_from_image_cache = &self.image_cache_receiver;
-        let port_from_font_cache = &self.font_cache_receiver;
-        select! {
-            msg = port_from_pipeline.recv() => {
-                match msg.unwrap() {
-                    LayoutControlMsg::SetVisibleRects(new_visible_rects) => {
-                        self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
-                                                   possibly_locked_rw_data)
-                    }
-                    LayoutControlMsg::TickAnimations => {
-                        self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
-                    }
-                    LayoutControlMsg::GetCurrentEpoch(sender) => {
-                        self.handle_request_helper(Msg::GetCurrentEpoch(sender),
-                                                   possibly_locked_rw_data)
-                    }
-                    LayoutControlMsg::GetWebFontLoadState(sender) => {
-                        self.handle_request_helper(Msg::GetWebFontLoadState(sender),
-                                                   possibly_locked_rw_data)
-                    }
-                    LayoutControlMsg::ExitNow(exit_type) => {
-                        self.handle_request_helper(Msg::ExitNow(exit_type),
-                                                   possibly_locked_rw_data)
-                    }
+        enum Request {
+            FromPipeline(LayoutControlMsg),
+            FromScript(Msg),
+            FromImageCache,
+            FromFontCache,
+        }
+
+        let request = {
+            let port_from_script = &self.port;
+            let port_from_pipeline = &self.pipeline_port;
+            let port_from_image_cache = &self.image_cache_receiver;
+            let port_from_font_cache = &self.font_cache_receiver;
+            select! {
+                msg = port_from_pipeline.recv() => {
+                    Request::FromPipeline(msg.unwrap())
+                },
+                msg = port_from_script.recv() => {
+                    Request::FromScript(msg.unwrap())
+                },
+                msg = port_from_image_cache.recv() => {
+                    msg.unwrap();
+                    Request::FromImageCache
+                },
+                msg = port_from_font_cache.recv() => {
+                    msg.unwrap();
+                    Request::FromFontCache
                 }
+            }
+        };
+
+        match request {
+            Request::FromPipeline(LayoutControlMsg::SetVisibleRects(new_visible_rects)) => {
+                self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
+                                           possibly_locked_rw_data)
             },
-            msg = port_from_script.recv() => {
-                self.handle_request_helper(msg.unwrap(), possibly_locked_rw_data)
+            Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
+                self.handle_request_helper(Msg::TickAnimations, possibly_locked_rw_data)
             },
-            msg = port_from_image_cache.recv() => {
-                msg.unwrap();
+            Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
+                self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
+            },
+            Request::FromPipeline(LayoutControlMsg::GetWebFontLoadState(sender)) => {
+                self.handle_request_helper(Msg::GetWebFontLoadState(sender),
+                                           possibly_locked_rw_data)
+            },
+            Request::FromPipeline(LayoutControlMsg::ExitNow(exit_type)) => {
+                self.handle_request_helper(Msg::ExitNow(exit_type), possibly_locked_rw_data)
+            },
+            Request::FromScript(msg) => {
+                self.handle_request_helper(msg, possibly_locked_rw_data)
+            },
+            Request::FromImageCache => {
                 self.repaint(possibly_locked_rw_data)
             },
-            msg = port_from_font_cache.recv() => {
-                msg.unwrap();
+            Request::FromFontCache => {
                 let rw_data = self.lock_rw_data(possibly_locked_rw_data);
                 rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
                 self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
                 true
-            }
+            },
         }
     }
 
