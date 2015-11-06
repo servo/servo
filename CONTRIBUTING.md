@@ -23,6 +23,9 @@ on how to start working on Servo.
   branch before submitting your pull request. If it doesn't merge cleanly with
   master you may be asked to rebase your changes.
 
+- Commits should be as small as possible, while ensuring that each commit is
+  correct independently (i.e., each commit should compile and pass tests). 
+
 - Don't put submodule updates in your pull request unless they are to landed
   commits.
 
