@@ -12,8 +12,8 @@ interface HTMLMediaElement : HTMLElement {
   //readonly attribute MediaError? error;
 
   // network state
-  //         attribute DOMString src;
-  //readonly attribute DOMString currentSrc;
+             attribute DOMString src;
+    readonly attribute DOMString currentSrc;
   //         attribute DOMString crossOrigin;
     const unsigned short NETWORK_EMPTY = 0;
     const unsigned short NETWORK_IDLE = 1;
