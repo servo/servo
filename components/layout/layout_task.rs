@@ -455,7 +455,6 @@ impl LayoutTask {
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
-            constellation_chan: rw_data.constellation_chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
             canvas_layers_sender: self.canvas_layers_sender.clone(),
             stylist: &*rw_data.stylist,

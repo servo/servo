@@ -16,7 +16,6 @@ use gfx::font_cache_task::FontCacheTask;
 use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use msg::compositor_msg::LayerId;
-use msg::constellation_msg::ConstellationChan;
 use net_traits::image::base::Image;
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheTask, ImageResponse, ImageState};
 use net_traits::image_cache_task::{UsePlaceholder};
@@ -88,9 +87,6 @@ pub struct SharedLayoutContext {
     /// Screen sized changed?
     pub screen_size_changed: bool,
 
-    /// A channel up to the constellation.
-    pub constellation_chan: ConstellationChan,
-
     /// Interface to the font cache task.
     pub font_cache_task: FontCacheTask,
 
@@ -125,7 +121,6 @@ pub struct SharedLayoutContext {
 
 // FIXME(#6569) This implementations is unsound:
 // XXX UNSOUND!!! for image_cache_task
-// XXX UNSOUND!!! for constellation_chan
 // XXX UNSOUND!!! for font_cache_task
 // XXX UNSOUND!!! for stylist
 // XXX UNSOUND!!! for new_animations_sender
