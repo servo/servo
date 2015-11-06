@@ -26,7 +26,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
-use dom::bindings::xmlname::{validate_and_extract, xml_name_type};
+use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -119,7 +119,6 @@ enum ParserBlockedByScript {
 pub struct Document {
     node: Node,
     window: JS<Window>,
-    idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableHeap<JS<DOMImplementation>>,
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
@@ -128,6 +127,11 @@ pub struct Document {
     is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
+    /// Caches for the getElement methods
+    id_map: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
+    tag_map: DOMRefCell<HashMap<Atom, JS<HTMLCollection>>>,
+    tagns_map: DOMRefCell<HashMap<QualName, JS<HTMLCollection>>>,
+    classes_map: DOMRefCell<HashMap<Vec<Atom>, JS<HTMLCollection>>>,
     images: MutNullableHeap<JS<HTMLCollection>>,
     embeds: MutNullableHeap<JS<HTMLCollection>>,
     links: MutNullableHeap<JS<HTMLCollection>>,
@@ -387,8 +391,8 @@ impl Document {
                                 to_unregister: &Element,
                                 id: Atom) {
         debug!("Removing named element from document {:p}: {:p} id={}", self, to_unregister, id);
-        let mut idmap = self.idmap.borrow_mut();
-        let is_empty = match idmap.get_mut(&id) {
+        let mut id_map = self.id_map.borrow_mut();
+        let is_empty = match id_map.get_mut(&id) {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
@@ -399,7 +403,7 @@ impl Document {
             }
         };
         if is_empty {
-            idmap.remove(&id);
+            id_map.remove(&id);
         }
     }
 
@@ -411,12 +415,12 @@ impl Document {
         assert!(element.upcast::<Node>().is_in_doc());
         assert!(!id.is_empty());
 
-        let mut idmap = self.idmap.borrow_mut();
+        let mut id_map = self.id_map.borrow_mut();
 
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document element.");
 
-        match idmap.entry(id) {
+        match id_map.entry(id) {
             Vacant(entry) => {
                 entry.insert(vec![JS::from_ref(element)]);
             }
@@ -1265,7 +1269,6 @@ impl Document {
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
-            idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1284,6 +1287,10 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: DOMRefCell::new("UTF-8".to_owned()),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
+            id_map: DOMRefCell::new(HashMap::new()),
+            tag_map: DOMRefCell::new(HashMap::new()),
+            tagns_map: DOMRefCell::new(HashMap::new()),
+            classes_map: DOMRefCell::new(HashMap::new()),
             images: Default::default(),
             embeds: Default::default(),
             links: Default::default(),
@@ -1373,7 +1380,7 @@ impl Document {
     }
 
     pub fn get_element_by_id(&self, id: &Atom) -> Option<Root<Element>> {
-        self.idmap.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
+        self.id_map.borrow().get(&id).map(|ref elements| Root::from_ref(&*(*elements)[0]))
     }
 
     pub fn record_element_state_change(&self, el: &Element, which: ElementState) {
@@ -1491,18 +1498,47 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, tag_name: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name(&self.window, self.upcast(), tag_name)
+        let tag_atom = Atom::from_slice(&tag_name);
+        match self.tag_map.borrow_mut().entry(tag_atom.clone()) {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let mut tag_copy = tag_name;
+                tag_copy.make_ascii_lowercase();
+                let ascii_lower_tag = Atom::from_slice(&tag_copy);
+                let result = HTMLCollection::by_atomic_tag_name(&self.window, self.upcast(), tag_atom, ascii_lower_tag);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(&self, maybe_ns: Option<DOMString>, tag_name: DOMString)
                               -> Root<HTMLCollection> {
-        HTMLCollection::by_tag_name_ns(&self.window, self.upcast(), tag_name, maybe_ns)
+        let ns = namespace_from_domstring(maybe_ns);
+        let local = Atom::from_slice(&tag_name);
+        let qname = QualName::new(ns, local);
+        match self.tagns_map.borrow_mut().entry(qname.clone()) {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> Root<HTMLCollection> {
-        HTMLCollection::by_class_name(&self.window, self.upcast(), classes)
+        let class_atoms: Vec<Atom> = split_html_space_chars(&classes).map(Atom::from_slice).collect();
+        match self.classes_map.borrow_mut().entry(class_atoms.clone())  {
+            Occupied(entry) => Root::from_ref(entry.get()),
+            Vacant(entry) => {
+                let result = HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms);
+                entry.insert(JS::from_rooted(&result));
+                result
+            }
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
