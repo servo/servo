@@ -164,18 +164,30 @@ impl DisplayList {
         }
     }
 
+
+    /// Creates a new display list which contains a single stacking context.
+    #[inline]
+    pub fn new_with_stacking_context(stacking_context: Arc<StackingContext>) -> Box<DisplayList> {
+        let mut display_list = box DisplayList::new();
+        display_list.positioned_content.push_back(
+            DisplayItem::StackingContextClass(stacking_context));
+        display_list
+    }
+
     /// Appends all display items from `other` into `self`, preserving stacking order and emptying
     /// `other` in the process.
     #[inline]
-    pub fn append_from(&mut self, other: &mut DisplayList) {
-        self.background_and_borders.append(&mut other.background_and_borders);
-        self.block_backgrounds_and_borders.append(&mut other.block_backgrounds_and_borders);
-        self.floats.append(&mut other.floats);
-        self.content.append(&mut other.content);
-        self.positioned_content.append(&mut other.positioned_content);
-        self.outlines.append(&mut other.outlines);
-        self.layered_children.append(&mut other.layered_children);
-        self.layer_info.append(&mut other.layer_info);
+    pub fn append_from(&mut self, other: &mut Option<Box<DisplayList>>) {
+        if let Some(mut other) = other.take() {
+            self.background_and_borders.append(&mut other.background_and_borders);
+            self.block_backgrounds_and_borders.append(&mut other.block_backgrounds_and_borders);
+            self.floats.append(&mut other.floats);
+            self.content.append(&mut other.content);
+            self.positioned_content.append(&mut other.positioned_content);
+            self.outlines.append(&mut other.outlines);
+            self.layered_children.append(&mut other.layered_children);
+            self.layer_info.append(&mut other.layer_info);
+        }
     }
 
     /// Merges all display items from all non-float stacking levels to the `float` stacking level.

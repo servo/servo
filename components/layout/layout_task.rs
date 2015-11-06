@@ -1084,9 +1084,8 @@ impl LayoutTask {
                     }
                 };
                 let mut display_list = box DisplayList::new();
-                flow::mut_base(flow_ref::deref_mut(layout_root))
-                    .display_list_building_result
-                    .add_to(&mut *display_list);
+                display_list.append_from(&mut flow::mut_base(flow_ref::deref_mut(layout_root))
+                                         .display_list_building_result);
 
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                 let stacking_context = Arc::new(StackingContext::new(display_list,
