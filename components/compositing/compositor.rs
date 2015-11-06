@@ -182,9 +182,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Touch input state machine
     touch_gesture_state: TouchState,
 
-    /// When tracking a touch for gesture detection, the point where it started
-    first_touch_point: Option<TypedPoint2D<DevicePixel, f32>>,
-
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
 
@@ -210,13 +207,14 @@ enum TouchState {
     /// Not tracking any touch point
     Nothing,
     /// A touchstart event was dispatched to the page, but the response wasn't received yet.
-    /// Contains the number of active touch points.
-    WaitingForScript(u32),
+    /// Contains the number of active touch points and the initial touch location.
+    WaitingForScript(u32, TypedPoint2D<DevicePixel, f32>),
     /// Script is consuming the current touch sequence; don't perform default actions.
     /// Contains the number of active touch points.
     DefaultPrevented(u32),
     /// A single touch point is active and may perform click or pan default actions.
-    Touching,
+    /// Contains the initial touch location.
+    Touching(TypedPoint2D<DevicePixel, f32>),
     /// A single touch point is active and has started panning. Contains the latest touch location.
     Panning(TypedPoint2D<DevicePixel, f32>),
     /// A multi-touch gesture is in progress. Contains the number of active touch points.
@@ -349,7 +347,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             scrolling_timer: ScrollingTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_gesture_state: TouchState::Nothing,
-            first_touch_point: None,
             pending_scroll_events: Vec::new(),
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
@@ -560,13 +557,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 match self.touch_gesture_state {
-                    TouchState::WaitingForScript(n) => {
+                    TouchState::WaitingForScript(n, p) => {
                         self.touch_gesture_state = match result {
                             EventResult::DefaultPrevented => TouchState::DefaultPrevented(n),
                             EventResult::DefaultAllowed => if n > 1 {
                                 TouchState::MultiTouch(n)
                             } else {
-                                TouchState::Touching
+                                TouchState::Touching(p)
                             }
                         };
                     }
@@ -1229,17 +1226,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
         self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Nothing => {
-                // TODO: Don't wait for script if we know the page has no touch event listeners.
-                self.first_touch_point = Some(point);
-                TouchState::WaitingForScript(1)
+                TouchState::WaitingForScript(1, point)
             }
-            TouchState::Touching |
+            TouchState::Touching(_) |
             TouchState::Panning(_) => {
                 // Was a single-touch sequence; now a multi-touch sequence:
                 TouchState::MultiTouch(2)
             }
-            TouchState::WaitingForScript(n) => {
-                TouchState::WaitingForScript(n + 1)
+            TouchState::WaitingForScript(n, p) => {
+                TouchState::WaitingForScript(n + 1, p)
             }
             TouchState::DefaultPrevented(n) => {
                 TouchState::DefaultPrevented(n + 1)
@@ -1258,24 +1253,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_gesture_state {
             TouchState::Nothing => warn!("Got unexpected touch move event"),
 
-            TouchState::WaitingForScript(_) => {
+            TouchState::WaitingForScript(..) => {
                 // TODO: Queue events while waiting for script?
             }
-            TouchState::Touching => {
-                match self.first_touch_point {
-                    Some(p0) => {
-                        let delta = point - p0;
-                        let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
-                        let px = px.to_untyped();
+            TouchState::Touching(p0) => {
+                let delta = point - p0;
+                let px: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
+                let px = px.to_untyped();
 
-                        if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                           px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
-                        {
-                            self.touch_gesture_state = TouchState::Panning(point);
-                            self.on_scroll_window_event(delta, point.cast().unwrap());
-                        }
-                    }
-                    None => warn!("first_touch_point not set")
+                if px.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                   px.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                {
+                    self.touch_gesture_state = TouchState::Panning(point);
+                    self.on_scroll_window_event(delta, point.cast().unwrap());
                 }
             }
             TouchState::Panning(p0) => {
@@ -1304,7 +1294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         self.touch_gesture_state = match self.touch_gesture_state {
-            TouchState::Touching => {
+            TouchState::Touching(_) => {
                 // TODO: If the duration exceeds some threshold, send a contextmenu event instead.
                 // TODO: Don't send a click if preventDefault is called on the touchend event.
                 self.simulate_mouse_click(point);
@@ -1312,12 +1302,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
             TouchState::Nothing |
             TouchState::Panning(_) |
-            TouchState::WaitingForScript(1) |
+            TouchState::WaitingForScript(1, _) |
             TouchState::DefaultPrevented(1) |
             TouchState::MultiTouch(1) => {
                 TouchState::Nothing
             }
-            TouchState::WaitingForScript(n) => TouchState::WaitingForScript(n - 1),
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
             TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
             TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
         };
@@ -1332,14 +1322,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.touch_gesture_state = match self.touch_gesture_state {
             TouchState::Nothing |
-            TouchState::Touching |
+            TouchState::Touching(_) |
             TouchState::Panning(_) |
-            TouchState::WaitingForScript(1) |
+            TouchState::WaitingForScript(1, _) |
             TouchState::DefaultPrevented(1) |
             TouchState::MultiTouch(1) => {
                 TouchState::Nothing
             }
-            TouchState::WaitingForScript(n) => TouchState::WaitingForScript(n - 1),
+            TouchState::WaitingForScript(n, p) => TouchState::WaitingForScript(n - 1, p),
             TouchState::DefaultPrevented(n) => TouchState::DefaultPrevented(n - 1),
             TouchState::MultiTouch(n) => TouchState::MultiTouch(n - 1),
         };
