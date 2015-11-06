@@ -131,9 +131,6 @@ pub struct LayoutTaskData {
     /// A counter for epoch messages
     epoch: Epoch,
 
-    /// The number of Web fonts that have been requested but not yet loaded.
-    pub outstanding_web_fonts: Arc<AtomicUsize>,
-
     /// The position and size of the visible rect for each layer. We do not build display lists
     /// for any areas more than `DISPLAY_PORT_SIZE_FACTOR` screens away from this area.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, DefaultState<FnvHasher>>>,
@@ -221,6 +218,9 @@ pub struct LayoutTask {
 
     /// Receives newly-discovered animations.
     new_animations_receiver: Receiver<Animation>,
+
+    /// The number of Web fonts that have been requested but not yet loaded.
+    outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// A mutex to allow for fast, read-only RPC of layout's internal data
     /// structures, while still letting the LayoutTask modify them.
@@ -435,6 +435,7 @@ impl LayoutTask {
             generation: 0,
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
+            outstanding_web_fonts: outstanding_web_fonts_counter,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     root_flow: None,
@@ -450,7 +451,6 @@ impl LayoutTask {
                     offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
                     epoch: Epoch(0),
-                    outstanding_web_fonts: outstanding_web_fonts_counter,
               })),
         }
     }
@@ -549,8 +549,8 @@ impl LayoutTask {
                 self.repaint(possibly_locked_rw_data)
             },
             Request::FromFontCache => {
-                let rw_data = possibly_locked_rw_data.lock();
-                rw_data.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
+                let _rw_data = possibly_locked_rw_data.lock();
+                self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 font_context::invalidate_font_caches();
                 self.script_chan.send(ConstellationControlMsg::WebFontLoaded(self.id)).unwrap();
                 true
@@ -624,8 +624,8 @@ impl LayoutTask {
                 sender.send(rw_data.epoch).unwrap();
             },
             Msg::GetWebFontLoadState(sender) => {
-                let rw_data = possibly_locked_rw_data.lock();
-                let outstanding_web_fonts = rw_data.outstanding_web_fonts.load(Ordering::SeqCst);
+                let _rw_data = possibly_locked_rw_data.lock();
+                let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
                 sender.send(outstanding_web_fonts != 0).unwrap();
             },
             Msg::CreateLayoutTask(info) => {
@@ -752,7 +752,7 @@ impl LayoutTask {
                                 &rw_data.stylist.device,
                                 &self.font_cache_task,
                                 &self.font_cache_sender,
-                                &rw_data.outstanding_web_fonts);
+                                &self.outstanding_web_fonts);
         }
 
         possibly_locked_rw_data.block(rw_data);
