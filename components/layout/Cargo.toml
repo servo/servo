@@ -50,15 +50,8 @@ path = "../profile_traits"
 [dependencies.util]
 path = "../util"
 
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-
 [dependencies.clock_ticks]
 git = "https://github.com/tomaka/clock_ticks"
-
-[dependencies.cssparser]
-version = "0.3"
-features = [ "serde-serialization" ]
 
 [dependencies.ipc-channel]
 git = "https://github.com/pcwalton/ipc-channel"
@@ -69,12 +62,14 @@ features = [ "serde_serialization" ]
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 encoding = "0.2"
 fnv = "1.0"
 bitflags = "0.3"
 rustc-serialize = "0.3"
 libc = "0.1"
+selectors = "0.2"
 smallvec = "0.1"
 string_cache = "0.1"
 string_cache_plugin = "0.1"

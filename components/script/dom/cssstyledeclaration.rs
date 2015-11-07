@@ -16,8 +16,8 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use string_cache::Atom;
-use style::properties::PropertyDeclaration;
-use style::properties::{is_supported_property, longhands_from_shorthand, parse_one_declaration};
+use style::properties::{PropertyDeclaration, Shorthand};
+use style::properties::{is_supported_property, parse_one_declaration};
 use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -48,9 +48,27 @@ macro_rules! css_properties(
     );
 );
 
-fn serialize_list(list: &[Ref<PropertyDeclaration>]) -> DOMString {
-    let str_iter = list.iter().map(|d| d.value());
-    DOMString(str_join(str_iter, " "))
+fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>])
+                       -> String {
+    // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+    if let Some(css) = declarations[0].with_variables_from_shorthand(shorthand) {
+        if declarations[1..].iter()
+                            .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
+            css.to_owned()
+        } else {
+            String::new()
+        }
+    } else {
+        if declarations.iter().any(|d| d.with_variables()) {
+            String::new()
+        } else {
+            let str_iter = declarations.iter().map(|d| d.value());
+            // FIXME: this needs property-specific code, which probably should be in style/
+            // "as appropriate according to the grammar of shorthand "
+            // https://drafts.csswg.org/cssom/#serialize-a-css-value
+            str_join(str_iter, " ")
+        }
+    }
 }
 
 impl CSSStyleDeclaration {
@@ -130,13 +148,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(&property);
-        if let Some(longhand_properties) = longhand_properties {
+        if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1
             let mut list = vec!();
 
             // Step 2.2
-            for longhand in &*longhand_properties {
+            for longhand in shorthand.longhands() {
                 // Step 2.2.1
                 let declaration = owner.get_inline_style_declaration(&Atom::from_slice(&longhand));
 
@@ -148,7 +165,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
 
             // Step 2.3
-            return serialize_list(&list);
+            return DOMString(serialize_shorthand(shorthand, &list));
         }
 
         // Step 3 & 4
@@ -166,12 +183,11 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let property = Atom::from_slice(&property);
 
         // Step 2
-        let longhand_properties = longhands_from_shorthand(&property);
-        if let Some(longhand_properties) = longhand_properties {
+        if let Some(shorthand) = Shorthand::from_name(&property) {
             // Step 2.1 & 2.2 & 2.3
-            if longhand_properties.iter()
-                                  .map(|&longhand| self.GetPropertyPriority(DOMString(longhand.to_owned())))
-                                  .all(|priority| priority == "important") {
+            if shorthand.longhands().iter()
+                                    .map(|&longhand| self.GetPropertyPriority(DOMString(longhand.to_owned())))
+                                    .all(|priority| priority == "important") {
 
                 return DOMString("important".to_owned());
             }
@@ -261,8 +277,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let element = self.owner.upcast::<Element>();
 
         // Step 5 & 6
-        match longhands_from_shorthand(&property) {
-            Some(properties) => element.set_inline_style_property_priority(properties, priority),
+        match Shorthand::from_name(&property) {
+            Some(shorthand) => {
+                element.set_inline_style_property_priority(shorthand.longhands(), priority)
+            }
             None => element.set_inline_style_property_priority(&[&*property], priority)
         }
 
@@ -292,10 +310,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         let elem = self.owner.upcast::<Element>();
 
-        match longhands_from_shorthand(&property) {
+        match Shorthand::from_name(&property) {
             // Step 4
-            Some(longhands) => {
-                for longhand in &*longhands {
+            Some(shorthand) => {
+                for longhand in shorthand.longhands() {
                     elem.remove_inline_style_property(longhand)
                 }
             }

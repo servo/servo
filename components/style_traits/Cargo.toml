@@ -10,26 +10,20 @@ path = "lib.rs"
 [dependencies.util]
 path = "../util"
 
-[dependencies.cssparser]
-version = "0.3"
-features = [ "serde-serialization" ]
-
 [dependencies.plugins]
 path = "../plugins"
-
-[dependencies.selectors]
-git = "https://github.com/servo/rust-selectors"
-features = ["unstable"]
 
 [dependencies.url]
 version = "0.2"
 features = [ "serde_serialization" ]
 
 [dependencies]
+cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 euclid = {version = "0.3", features = ["plugins"]}
 log = "0.3"
 lazy_static = "0.1.10"
 num = "0.1.24"
 rustc-serialize = "0.3"
+selectors = "0.2"
 serde = "0.6"
 serde_macros = "0.6"
