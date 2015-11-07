@@ -279,7 +279,7 @@ macro_rules! no_jsmanaged_fields(
 
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
-    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
+    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident, $setter_fn: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             use dom::bindings::inheritance::Castable;
             use dom::eventtarget::EventTarget;
@@ -291,20 +291,22 @@ macro_rules! define_event_handler(
             use dom::bindings::inheritance::Castable;
             use dom::eventtarget::EventTarget;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.set_event_handler_common(stringify!($event_type), listener)
+            eventtarget.$setter_fn(stringify!($event_type), listener)
         }
     )
 );
 
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter);
+        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter,
+                              set_event_handler_common);
     )
 );
 
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter);
+        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter,
+                              set_error_event_handler);
     )
 );
 
@@ -319,6 +321,7 @@ macro_rules! global_event_handlers(
     );
     (NoOnload) => (
         event_handler!(click, GetOnclick, SetOnclick);
+        error_event_handler!(error, GetOnerror, SetOnerror);
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);

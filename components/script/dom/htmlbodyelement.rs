@@ -153,34 +153,43 @@ impl VirtualMethods for HTMLBodyElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match (attr.local_name(), mutation) {
+        let do_super_mutate = match (attr.local_name(), mutation) {
             (&atom!(background), _) => {
                 *self.background.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let document = document_from_node(self);
                     let base = document.url();
                     UrlParser::new().base_url(&base).parse(&value).ok()
                 });
+                true
             },
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = window_from_node(self);
                 let (cx, url, reflector) = (window.get_cx(),
                                             window.get_url(),
                                             window.reflector().get_jsobject());
-                let evtarget = match name {
+                // https://html.spec.whatwg.org/multipage/
+                // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
+                match name {
                     &atom!(onfocus) | &atom!(onload) | &atom!(onscroll) | &atom!(onafterprint) |
                     &atom!(onbeforeprint) | &atom!(onbeforeunload) | &atom!(onhashchange) |
                     &atom!(onlanguagechange) | &atom!(onmessage) | &atom!(onoffline) | &atom!(ononline) |
                     &atom!(onpagehide) | &atom!(onpageshow) | &atom!(onpopstate) | &atom!(onstorage) |
                     &atom!(onresize) | &atom!(onunload) | &atom!(onerror)
-                      => window.upcast::<EventTarget>(), // forwarded event
-                    _ => self.upcast::<EventTarget>(),
-                };
-                evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                      &name[2..],
-                                                      DOMString((**attr.value()).to_owned()));
+                      => {
+                          let evtarget = window.upcast::<EventTarget>(); // forwarded event
+                          evtarget.set_event_handler_uncompiled(cx, url, reflector,
+                                                                &name[2..],
+                                                                DOMString((**attr.value()).to_owned()));
+                          false
+                    }
+                    _ => true, // HTMLElement::attribute_mutated will take care of this.
+                }
             },
-            _ => {}
+            _ => true,
+        };
+
+        if do_super_mutate {
+            self.super_type().unwrap().attribute_mutated(attr, mutation);
         }
     }
 }
