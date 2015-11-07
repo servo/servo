@@ -232,6 +232,9 @@ class MachCommands(CommandBase):
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 
+        if not (self.config["build"]["ccache"] == ""):
+            env['CCACHE'] = self.config["build"]["ccache"]
+
         status = call(
             ["cargo", "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)

@@ -15,6 +15,8 @@ matrix:
         directories:
           - .cargo
           - .servo
+          - $HOME/.ccache
+      env: CCACHE=/usr/bin/ccache
       addons:
         apt:
           packages:
@@ -24,6 +26,7 @@ matrix:
             - libosmesa6-dev
             - python-virtualenv
             - xorg-dev
+            - ccache
 
 branches:
   only:
