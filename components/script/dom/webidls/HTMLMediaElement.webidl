@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlmediaelement
-//enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
+enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
 [Abstract]
 interface HTMLMediaElement : HTMLElement {
 
   // error state
-  //readonly attribute MediaError? error;
+    readonly attribute MediaError? error;
 
   // network state
              attribute DOMString src;
@@ -21,8 +21,8 @@ interface HTMLMediaElement : HTMLElement {
     readonly attribute unsigned short networkState;
   //         attribute DOMString preload;
   //readonly attribute TimeRanges buffered;
-  //void load();
-  //CanPlayTypeResult canPlayType(DOMString type);
+    void load();
+    CanPlayTypeResult canPlayType(DOMString type);
 
   // ready state
     const unsigned short HAVE_NOTHING = 0;
