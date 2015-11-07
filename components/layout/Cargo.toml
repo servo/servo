@@ -59,10 +59,6 @@ git = "https://github.com/tomaka/clock_ticks"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }
@@ -71,7 +67,7 @@ encoding = "0.2"
 fnv = "1.0"
 bitflags = "0.3"
 rustc-serialize = "0.3"
-libc = "0.1"
+libc = "0.2"
 selectors = "0.2"
 smallvec = "0.1"
 string_cache = "0.2"
@@ -81,3 +77,4 @@ serde_macros = "0.6"
 serde_json = "0.5"
 unicode-bidi = "0.2"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
+url = "0.5"

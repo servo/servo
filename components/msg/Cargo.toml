@@ -24,14 +24,6 @@ features = ["plugins"]
 git = "https://github.com/servo/rust-layers"
 features = ["plugins"]
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
-[dependencies.url]
-version = "0.2.36"
-features = [ "serde_serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
@@ -45,10 +37,12 @@ path = "../plugins"
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 bitflags = "0.3"
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
 rustc-serialize = "0.3.4"
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
+url = "0.5"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.1"

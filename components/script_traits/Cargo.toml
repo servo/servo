@@ -28,14 +28,11 @@ path = "../devtools_traits"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
-libc = "0.1"
+libc = "0.2"
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
 time = "0.1.12"
+url = "0.5"

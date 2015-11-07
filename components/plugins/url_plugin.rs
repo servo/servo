@@ -16,7 +16,7 @@ use url::{Url, Host, RelativeSchemeData, SchemeData};
 pub fn expand_url(cx: &mut ExtCtxt, sp: Span, tts: &[TokenTree])
         -> Box<MacResult + 'static> {
     let mut parser = parse::new_parser_from_tts(cx.parse_sess(), cx.cfg(), tts.to_vec());
-    let query_expr = cx.expander().fold_expr(parser.parse_expr());
+    let query_expr = cx.expander().fold_expr(parser.parse_expr_nopanic().unwrap());
 
     // Ensure a str literal was passed to the macro
     let query = match parse_str_lit(&query_expr) {
@@ -114,17 +114,22 @@ impl<'a> ExtCtxtHelpers for ExtCtxt<'a> {
         }
     }
 
-    fn expr_host(&self, sp: Span, host: Host) -> syntax::ptr::P<Expr> {
+    fn expr_host(&self, _sp: Span, host: Host) -> syntax::ptr::P<Expr> {
         match host {
             Host::Domain(domain) => quote_expr!(self, ::url::Host::Domain(String::from($domain))),
             Host::Ipv6(address) => {
-                let pieces_expr = self.expr_slice_u16(sp, &address.pieces);
+                let [a, b, c, d, e, f, g, h] = address.segments();
                 quote_expr!(self,
-                            ::url::Host::Ipv6(
-                                ::url::Ipv6Address {
-                                    pieces: $pieces_expr.to_owned()
-                                }
-                            ))
+                            ::url::Host::Ipv6(::std::net::Ipv6Addr::new(
+                                $a, $b, $c, $d, $e, $f, $g, $h
+                            )))
+            },
+            Host::Ipv4(address) => {
+                let [a, b, c, d] = address.octets();
+                quote_expr!(self,
+                            ::url::Host::Ipv4(::std::net::Ipv4Addr::new(
+                                $a, $b, $c, $d
+                            )))
             },
         }
     }

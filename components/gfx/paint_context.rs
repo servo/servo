@@ -27,7 +27,6 @@ use euclid::size::Size2D;
 use filters;
 use font_context::FontContext;
 use gfx_traits::color;
-use libc::types::common::c99::uint32_t;
 use msg::compositor_msg::LayerKind;
 use net_traits::image::base::{Image, PixelFormat};
 use std::default::Default;
@@ -1803,7 +1802,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
                 let glyph_advance = glyph.advance();
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let azglyph = struct__AzGlyph {
-                    mIndex: glyph.id() as uint32_t,
+                    mIndex: glyph.id() as u32,
                     mPosition: struct__AzPoint {
                         x: (origin.x + glyph_offset.x).to_f32_px(),
                         y: (origin.y + glyph_offset.y).to_f32_px(),
@@ -1819,7 +1818,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
 
         let mut glyphbuf = struct__AzGlyphBuffer {
             mGlyphs: azglyphs.as_mut_ptr(),
-            mNumGlyphs: azglyph_buf_len as uint32_t
+            mNumGlyphs: azglyph_buf_len as u32
         };
 
         unsafe {

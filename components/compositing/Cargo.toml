@@ -64,17 +64,13 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 features = ["texture_surface"]
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies.gaol]
 git = "https://github.com/pcwalton/gaol"
 
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
-image = "0.4.0"
-libc = "0.1"
+image = "0.5.0"
+libc = "0.2"
 log = "0.3"
 num = "0.1.24"
 time = "0.1.17"
@@ -82,6 +78,7 @@ gleam = "0.1"
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
+url = "0.5"
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.1"

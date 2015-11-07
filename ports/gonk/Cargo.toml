@@ -48,9 +48,9 @@ git = "https://github.com/servo/rust-egl"
 
 [dependencies]
 env_logger = "0.3"
-url = "0.2.16"
+url = "0.5"
 time = "0.1.17"
 errno = "0.1"
-libc = "0.1"
+libc = "0.2"
 euclid = {version = "0.3", features = ["plugins"]}
 gleam = "0.1"
