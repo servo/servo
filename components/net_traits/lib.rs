@@ -227,12 +227,15 @@ pub enum IncludeSubdomains {
 #[derive(Deserialize, Serialize)]
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData, LoadConsumer),
+    Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
-    Exit
+    /// Cancel a network request corresponding to a given `ResourceId`
+    Cancel(ResourceId),
+    /// Break the load handler loop and exit
+    Exit,
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
@@ -280,7 +283,7 @@ impl PendingAsyncLoad {
         let load_data = LoadData::new(self.url, self.pipeline);
         let (sender, receiver) = ipc::channel().unwrap();
         let consumer = LoadConsumer::Channel(sender);
-        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
+        self.resource_task.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
         receiver
     }
 
@@ -289,7 +292,7 @@ impl PendingAsyncLoad {
         self.guard.neuter();
         let load_data = LoadData::new(self.url, self.pipeline);
         let consumer = LoadConsumer::Listener(listener);
-        self.resource_task.send(ControlMsg::Load(load_data, consumer)).unwrap();
+        self.resource_task.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
     }
 }
 
@@ -387,7 +390,7 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url, pipeline_id: 
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = ipc::channel().unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, pipeline_id),
-                       LoadConsumer::Channel(start_chan))).unwrap();
+                       LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
@@ -429,3 +432,7 @@ impl Iterator for ProgressMsgPortIterator {
         }
     }
 }
+
+/// An unique identifier to keep track of each load message in the resource handler
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct ResourceId(pub u32);
