@@ -20,7 +20,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
-use dom::node::{window_from_node, document_from_node};
+use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -602,6 +602,15 @@ impl VirtualMethods for HTMLMediaElement {
             _ => (),
         };
     }
+
+    // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:media-element-75
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+
+        if context.tree_in_doc {
+            ScriptThread::await_stable_state(PauseIfNotInDocumentTask::new(self));
+        }
+    }
 }
 
 struct FireSimpleEventTask {
@@ -660,6 +669,27 @@ impl DedicatedMediaSourceFailureTask {
 impl Runnable for DedicatedMediaSourceFailureTask {
     fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
         self.elem.root().dedicated_media_source_failure();
+    }
+}
+
+struct PauseIfNotInDocumentTask {
+    elem: Trusted<HTMLMediaElement>,
+}
+
+impl PauseIfNotInDocumentTask {
+    fn new(elem: &HTMLMediaElement) -> PauseIfNotInDocumentTask {
+        PauseIfNotInDocumentTask {
+            elem: Trusted::new(elem),
+        }
+    }
+}
+
+impl Runnable for PauseIfNotInDocumentTask {
+    fn handler(self: Box<PauseIfNotInDocumentTask>) {
+        let elem = self.elem.root();
+        if !elem.upcast::<Node>().is_in_doc() {
+            elem.internal_pause_steps();
+        }
     }
 }
 
