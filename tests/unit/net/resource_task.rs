@@ -170,3 +170,49 @@ fn test_replace_hosts() {
     let url = Url::parse("http://a.foo.bar.com").unwrap();
     assert_eq!(host_replacement(host_table, &url).domain().unwrap(), "a.foo.bar.com");
 }
+
+#[test]
+fn test_cancelled_listener() {
+    use std::io::Write;
+    use std::net::TcpListener;
+    use std::thread;
+
+    // Setup a TCP server to which requests are made
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    thread::spawn(move || {     // immediately begin to watch for incoming requests
+        // http_loader checks for headers in the response
+        let header = vec!["HTTP/1.1 200 OK",
+                          "Host: test-server",
+                          "Transfer-Encoding: chunked",
+                          "\r\n6",
+                          "Sweet!",
+                          "0",
+                          "\r\n"];
+        for stream_result in listener.incoming() {
+            match stream_result {
+                Ok(mut stream) => {
+                    let _ = stream.write(&header.join("\r\n").as_bytes());
+                },
+                Err(_) => (),
+            }
+        }
+    });
+
+    let resource_task = new_resource_task("".to_owned(), None);
+    let (sender, receiver) = ipc::channel().unwrap();
+    let (id_sender, id_receiver) = ipc::channel().unwrap();
+    let url = Url::parse(&format!("http://127.0.0.1:{}", port)).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, None),
+                                        LoadConsumer::Channel(sender),
+                                        Some(id_sender))).unwrap();
+    // get the `ResourceId` and send a cancel message, which should stop the loading loop
+    let res_id = id_receiver.recv().unwrap();
+    resource_task.send(ControlMsg::Cancel(res_id)).unwrap();
+    let response = receiver.recv().unwrap();
+    match response.progress_port.recv().unwrap() {
+        ProgressMsg::Done(result) => assert_eq!(result.unwrap_err(), "load cancelled".to_owned()),
+        _ => panic!("gah!"),
+    }
+    resource_task.send(ControlMsg::Exit).unwrap();
+}
