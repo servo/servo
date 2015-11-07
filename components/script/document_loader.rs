@@ -18,6 +18,7 @@ pub enum LoadType {
     Subframe(Url),
     Stylesheet(Url),
     PageSource(Url),
+    Media(Url),
 }
 
 impl LoadType {
@@ -27,6 +28,7 @@ impl LoadType {
             LoadType::Script(ref url) |
             LoadType::Subframe(ref url) |
             LoadType::Stylesheet(ref url) |
+            LoadType::Media(ref url) |
             LoadType::PageSource(ref url) => url,
         }
     }
@@ -36,7 +38,8 @@ impl LoadType {
             LoadType::Image(_) => LoadContext::Image,
             LoadType::Script(_) => LoadContext::Script,
             LoadType::Subframe(_) | LoadType::PageSource(_) => LoadContext::Browsing,
-            LoadType::Stylesheet(_) => LoadContext::Style
+            LoadType::Stylesheet(_) => LoadContext::Style,
+            LoadType::Media(_) => LoadContext::AudioVideo,
         }
     }
 }
