@@ -11,7 +11,6 @@ use std::collections::HashMap;
 use std::sync::mpsc::channel;
 use url::Url;
 
-
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task("".to_owned(), None);
@@ -23,7 +22,7 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url, None), LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }

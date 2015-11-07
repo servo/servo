@@ -6,21 +6,27 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::{LoadConsumer, LoadData, Metadata};
-use resource_task::{send_error, start_sending_sniffed_opt};
+use resource_task::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;
 
-pub fn factory(load_data: LoadData, senders: LoadConsumer, classifier: Arc<MIMEClassifier>) {
+pub fn factory(load_data: LoadData,
+               senders: LoadConsumer,
+               classifier: Arc<MIMEClassifier>,
+               cancel_listener: CancellationListener) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, senders, classifier)
+    load(load_data, senders, classifier, cancel_listener)
 }
 
-pub fn load(load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEClassifier>) {
+pub fn load(load_data: LoadData,
+            start_chan: LoadConsumer,
+            classifier: Arc<MIMEClassifier>,
+            cancel_listener: CancellationListener) {
     let url = load_data.url;
     assert!(&*url.scheme == "data");
 
@@ -63,8 +69,11 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
                                  vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))));
     }
 
-    let bytes = percent_decode(parts[1].as_bytes());
+    if cancel_listener.is_cancelled() {
+        return;
+    }
 
+    let bytes = percent_decode(parts[1].as_bytes());
     let bytes = if is_base64 {
         // FIXME(#2909): It’s unclear what to do with non-alphabet characters,
         // but Acid 3 apparently depends on spaces being ignored.
@@ -83,4 +92,5 @@ pub fn load(load_data: LoadData, start_chan: LoadConsumer, classifier: Arc<MIMEC
         let _ = chan.send(Payload(bytes));
         let _ = chan.send(Done(Ok(())));
     }
+    cancel_listener.remove_resource_id();
 }
