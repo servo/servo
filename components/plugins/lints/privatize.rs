@@ -25,12 +25,12 @@ impl LintPass for PrivatizePass {
 impl LateLintPass for PrivatizePass {
     fn check_struct_def(&mut self,
                         cx: &LateContext,
-                        def: &hir::StructDef,
+                        def: &hir::VariantData,
                         _n: ast::Name,
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
         if cx.tcx.has_attr(cx.tcx.map.local_def_id(id), "privatize") {
-            for field in &def.fields {
+            for field in def.fields() {
                 match field.node {
                     hir::StructField_ { kind: hir::NamedField(name, visibility), .. } if visibility == hir::Public => {
                         cx.span_lint(PRIVATIZE, field.span,

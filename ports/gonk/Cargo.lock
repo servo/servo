@@ -67,7 +67,7 @@ dependencies = [
 
 [[package]]
 name = "aster"
-version = "0.4.9"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -743,7 +743,7 @@ dependencies = [
 [[package]]
 name = "hbs-common-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#d5c58be1ca55b3b82bbd50aa32206be68a711031"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#5ce01d0e943d4d81e5c84401f85c892e47825415"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -760,7 +760,7 @@ dependencies = [
 [[package]]
 name = "hbs-pow-sys"
 version = "0.1.0"
-source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#d5c58be1ca55b3b82bbd50aa32206be68a711031"
+source = "git+https://github.com/libheartbeats/heartbeats-simple-sys.git#5ce01d0e943d4d81e5c84401f85c892e47825415"
 dependencies = [
  "hbs-common-sys 0.1.0 (git+https://github.com/libheartbeats/heartbeats-simple-sys.git)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1293,7 +1293,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.0.11 (git+https://github.com/Manishearth/rust-tenacious)",
+ "tenacious 0.0.13 (git+https://github.com/Manishearth/rust-tenacious)",
  "url 0.2.37 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1345,23 +1345,23 @@ dependencies = [
 
 [[package]]
 name = "quasi"
-version = "0.3.2"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quasi_codegen"
-version = "0.3.3"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "quasi_macros"
-version = "0.3.2"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "quasi_codegen 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_codegen 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1498,12 +1498,12 @@ dependencies = [
 
 [[package]]
 name = "serde_codegen"
-version = "0.5.3"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "aster 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "quasi 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "quasi_macros 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "aster 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quasi_macros 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1520,7 +1520,7 @@ name = "serde_macros"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "serde_codegen 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_codegen 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1704,8 +1704,8 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.0.11"
-source = "git+https://github.com/Manishearth/rust-tenacious#f9916c35fd76fdbe984659ab3ce30d752739f114"
+version = "0.0.13"
+source = "git+https://github.com/Manishearth/rust-tenacious#44c943182fb93a1c4b2e6d0b2d8ebb35d8c07775"
 
 [[package]]
 name = "tendril"
