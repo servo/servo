@@ -12,7 +12,8 @@ pull requests. Each pull request will be reviewed by a core contributor
 given feedback for changes that would be required. All contributions should
 follow this format, even those from core contributors.
 
-If you're looking for easy bugs, have a look at the [E-Easy issue tag](https://github.com/servo/servo/labels/E-easy) on GitHub.
+Head over to [Servo Starters](http://servo.github.io/servo-starters/) to find
+good tasks to start with.
 
 See [`HACKING_QUICKSTART.md`](HACKING_QUICKSTART.md) for more information
 on how to start working on Servo.
