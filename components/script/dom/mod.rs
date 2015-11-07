@@ -323,6 +323,7 @@ pub mod htmlvideoelement;
 pub mod imagedata;
 pub mod keyboardevent;
 pub mod location;
+pub mod mediaerror;
 pub mod messageevent;
 pub mod mouseevent;
 pub mod namednodemap;

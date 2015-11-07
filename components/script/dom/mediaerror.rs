@@ -1,0 +1,36 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::MediaErrorBinding::{self, MediaErrorMethods};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::window::Window;
+
+#[dom_struct]
+pub struct MediaError {
+    reflector_: Reflector,
+    code: u16,
+}
+
+impl MediaError {
+    fn new_inherited(code: u16) -> MediaError {
+        MediaError {
+            reflector_: Reflector::new(),
+            code: code,
+        }
+    }
+
+    pub fn new(window: &Window, code: u16) -> Root<MediaError> {
+        reflect_dom_object(box MediaError::new_inherited(code),
+                           GlobalRef::Window(window),
+                           MediaErrorBinding::Wrap)
+    }
+}
+
+impl MediaErrorMethods for MediaError {
+    fn Code(&self) -> u16 {
+        self.code
+    }
+}

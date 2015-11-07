@@ -6,17 +6,20 @@ use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants::*;
+use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
+use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc;
@@ -91,6 +94,15 @@ impl AsyncResponseListener for HTMLMediaElementContext {
             elem.network_state.set(NETWORK_IDLE);
 
             elem.fire_simple_event("suspend");
+        } else if elem.ready_state.get() != HAVE_NOTHING {
+            elem.error.set(Some(&*MediaError::new(&*window_from_node(&*elem),
+                                                  MEDIA_ERR_NETWORK)));
+
+            elem.network_state.set(NETWORK_IDLE);
+
+            // TODO: update delay load flag
+
+            elem.fire_simple_event("error");
         } else {
             elem.queue_dedicated_media_source_failure_steps();
         }
@@ -129,6 +141,7 @@ pub struct HTMLMediaElement {
     current_src: DOMRefCell<String>,
     generation_id: Cell<u32>,
     first_data_load: Cell<bool>,
+    error: MutNullableHeap<JS<MediaError>>,
 }
 
 impl HTMLMediaElement {
@@ -143,6 +156,7 @@ impl HTMLMediaElement {
             current_src: DOMRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
             first_data_load: Cell::new(true),
+            error: Default::default(),
         }
     }
 
@@ -356,7 +370,9 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
     fn dedicated_media_source_failure(&self) {
-        // TODO step 1 (error attribute)
+        // Step 1
+        self.error.set(Some(&*MediaError::new(&*window_from_node(self),
+                                              MEDIA_ERR_SRC_NOT_SUPPORTED)));
 
         // TODO step 2 (forget resource tracks)
 
@@ -410,7 +426,9 @@ impl HTMLMediaElement {
         }
 
         // TODO step 5 (playback rate)
-        // TODO step 6 (error/autoplaying)
+        // Step 6
+        self.error.set(None);
+        // TODO autoplay flag
 
         // Step 7
         let doc = document_from_node(self);
@@ -437,6 +455,22 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-currentsrc
     fn CurrentSrc(&self) -> DOMString {
         DOMString(self.current_src.borrow().clone())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-load
+    fn Load(&self) {
+        self.media_element_load_algorithm();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
+    fn CanPlayType(&self, _type_: DOMString) -> CanPlayTypeResult {
+        // TODO: application/octet-stream
+        CanPlayTypeResult::Maybe
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-media-error
+    fn GetError(&self) -> Option<Root<MediaError>> {
+        self.error.get()
     }
 }
 
