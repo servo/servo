@@ -868,8 +868,8 @@ dependencies = [
 
 [[package]]
 name = "js"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#8fabaf877224fdd7a33286c5de2a99189aae5524"
+version = "0.1.1"
+source = "git+https://github.com/servo/rust-mozjs#e2458c40432119693456c73ac0710ff182cfc6d2"
 dependencies = [
  "heapsize 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1113,6 +1113,7 @@ dependencies = [
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
  "net_traits 0.0.1",
  "openssl 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
@@ -1424,7 +1425,7 @@ dependencies = [
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.1 (git+https://github.com/servo/rust-mozjs)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -1821,7 +1822,7 @@ dependencies = [
  "html5ever 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
- "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.1 (git+https://github.com/servo/rust-mozjs)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
