@@ -339,7 +339,7 @@ impl HTMLMediaElement {
             ResourceSelectionMode::Attribute(src) => {
                 // Step 1
                 if src.is_empty() {
-                    // TODO failed with attribute
+                    self.queue_dedicated_media_source_failure_steps();
                     return;
                 }
 
