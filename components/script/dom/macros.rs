@@ -287,12 +287,25 @@ macro_rules! global_event_handlers(
 
     );
     (NoOnload) => (
+        event_handler!(abort, GetOnabort, SetOnabort);
+        event_handler!(canplay, GetOncanplay, SetOncanplay);
+        event_handler!(canplaythrough, GetOncanplaythrough, SetOncanplaythrough);
+        event_handler!(change, GetOnchange, SetOnchange);
         event_handler!(click, GetOnclick, SetOnclick);
+        event_handler!(emptied, GetOnemptied, SetOnemptied);
+        event_handler!(input, GetOninput, SetOninput);
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
-        event_handler!(input, GetOninput, SetOninput);
-        event_handler!(change, GetOnchange, SetOnchange);
+        event_handler!(loadeddata, GetOnloadeddata, SetOnloadeddata);
+        event_handler!(loadedmetata, GetOnloadedmetadata, SetOnloadedmetadata);
+        event_handler!(pause, GetOnpause, SetOnpause);
+        event_handler!(play, GetOnplay, SetOnplay);
+        event_handler!(playing, GetOnplaying, SetOnplaying);
+        event_handler!(progress, GetOnprogress, SetOnprogress);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
+        event_handler!(suspend, GetOnsuspend, SetOnsuspend);
+        event_handler!(timeupdate, GetOntimeupdate, SetOntimeupdate);
+        event_handler!(waiting, GetOnwaiting, SetOnwaiting);
     )
 );

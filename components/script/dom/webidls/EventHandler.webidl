@@ -21,18 +21,33 @@ callback OnErrorEventHandlerNonNull = boolean ((Event or DOMString) event, optio
                                                optional any error);
 typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
+// https://html.spec.whatwg.org/multipage/#globaleventhandlers
 [NoInterfaceObject]
 interface GlobalEventHandlers {
+           attribute EventHandler onabort;
+           attribute EventHandler oncanplay;
+           attribute EventHandler oncanplaythrough;
+           attribute EventHandler onchange;
            attribute EventHandler onclick;
-           attribute EventHandler onload;
+           attribute EventHandler onemptied;
            attribute EventHandler oninput;
            attribute EventHandler onkeydown;
            attribute EventHandler onkeypress;
            attribute EventHandler onkeyup;
-           attribute EventHandler onchange;
+           attribute EventHandler onload;
+           attribute EventHandler onloadeddata;
+           attribute EventHandler onloadedmetadata;
+           attribute EventHandler onpause;
+           attribute EventHandler onplay;
+           attribute EventHandler onplaying;
+           attribute EventHandler onprogress;
            attribute EventHandler onsubmit;
+           attribute EventHandler onsuspend;
+           attribute EventHandler ontimeupdate;
+           attribute EventHandler onwaiting;
 };
 
+// https://html.spec.whatwg.org/multipage/#windoweventhandlers
 [NoInterfaceObject]
 interface WindowEventHandlers {
            attribute EventHandler onunload;
