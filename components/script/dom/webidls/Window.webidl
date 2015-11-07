@@ -161,7 +161,6 @@ partial interface Window {
   void gc();
   void trap();
 };
-Window implements OnErrorEventHandlerForWindow;
 
 // WebDriver extensions
 partial interface Window {
