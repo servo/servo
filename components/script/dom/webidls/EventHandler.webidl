@@ -28,6 +28,7 @@ interface GlobalEventHandlers {
            attribute EventHandler oncanplay;
            attribute EventHandler oncanplaythrough;
            attribute EventHandler onchange;
+           attribute OnErrorEventHandler onerror;
            attribute EventHandler onclick;
            attribute EventHandler onemptied;
            attribute EventHandler oninput;
@@ -52,19 +53,4 @@ interface GlobalEventHandlers {
 interface WindowEventHandlers {
            attribute EventHandler onunload;
            attribute EventHandler onstorage;
-};
-
-// The spec has |attribute OnErrorEventHandler onerror;| on
-// GlobalEventHandlers, and calls the handler differently depending on
-// whether an ErrorEvent was fired. We don't do that, and until we do we'll
-// need to distinguish between onerror on Window or on nodes.
-
-/*[NoInterfaceObject]
-interface OnErrorEventHandlerForNodes {
-           attribute EventHandler onerror;
-};*/
-
-[NoInterfaceObject]
-interface OnErrorEventHandlerForWindow {
-           attribute OnErrorEventHandler onerror;
 };
