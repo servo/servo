@@ -31,8 +31,6 @@ interface HTMLElement : Element {
   //readonly attribute DOMString accessKeyLabel;
   //         attribute boolean draggable;
   //[PutForwards=value] readonly attribute DOMSettableTokenList dropzone;
-  //         attribute DOMString contentEditable;
-  //readonly attribute boolean isContentEditable;
   //         attribute HTMLMenuElement? contextMenu;
   //         attribute boolean spellcheck;
   //void forceSpellCheck();
@@ -57,4 +55,5 @@ partial interface HTMLElement {
 };
 
 HTMLElement implements GlobalEventHandlers;
+HTMLElement implements ElementContentEditable;
 HTMLElement implements ElementCSSInlineStyle;
