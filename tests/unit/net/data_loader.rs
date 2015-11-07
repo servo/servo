@@ -18,13 +18,16 @@ fn assert_parse(url:          &'static str,
                 data:         Option<Vec<u8>>) {
     use net::data_loader::load;
     use net::mime_classifier::MIMEClassifier;
+    use net::resource_task::CancellationListener;
     use std::sync::Arc;
     use std::sync::mpsc::channel;
     use url::Url;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
     let classifier = Arc::new(MIMEClassifier::new());
-    load(LoadData::new(Url::parse(url).unwrap(), None), Channel(start_chan), classifier);
+    load(LoadData::new(Url::parse(url).unwrap(), None),
+         Channel(start_chan),
+         classifier, CancellationListener::new(None));
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);
