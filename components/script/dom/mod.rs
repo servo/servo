@@ -341,6 +341,7 @@ pub mod htmlvideoelement;
 pub mod imagedata;
 pub mod keyboardevent;
 pub mod location;
+pub mod mediaerror;
 pub mod messageevent;
 pub mod mimetype;
 pub mod mimetypearray;
