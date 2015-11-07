@@ -1071,7 +1071,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#74e7e954f5445ca0297772d5df543c270339dec2"
+source = "git+https://github.com/servo/mozjs#d5a1615370ccfaae35cc3bea0df46cbbb9e1ce1a"
 dependencies = [
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1113,6 +1113,7 @@ dependencies = [
  "hyper 0.6.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.1.0 (git+https://github.com/pcwalton/ipc-channel)",
  "log 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
  "net_traits 0.0.1",
  "openssl 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
