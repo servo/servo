@@ -12,7 +12,7 @@ use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, heap_size_of_local_context};
+use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
 use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
@@ -452,18 +452,16 @@ impl LayoutTask {
                                    -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache_task: rw_data.image_cache_task.clone(),
-            image_cache_sender: self.image_cache_sender.clone(),
+            image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             viewport_size: rw_data.viewport_size.clone(),
             screen_size_changed: screen_size_changed,
-            constellation_chan: rw_data.constellation_chan.clone(),
-            layout_chan: self.chan.clone(),
-            font_cache_task: self.font_cache_task.clone(),
-            canvas_layers_sender: self.canvas_layers_sender.clone(),
-            stylist: &*rw_data.stylist,
+            font_cache_task: Mutex::new(self.font_cache_task.clone()),
+            canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
+            stylist: StylistWrapper(&*rw_data.stylist),
             url: (*url).clone(),
             visible_rects: rw_data.visible_rects.clone(),
             generation: rw_data.generation,
-            new_animations_sender: rw_data.new_animations_sender.clone(),
+            new_animations_sender: Mutex::new(rw_data.new_animations_sender.clone()),
             goal: goal,
             running_animations: rw_data.running_animations.clone(),
         }

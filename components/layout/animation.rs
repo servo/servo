@@ -14,14 +14,14 @@ use script::layout_interface::Animation;
 use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 use style::animation::{GetMod, PropertyAnimation};
 use style::properties::ComputedValues;
 
 /// Inserts transitions into the queue of running animations as applicable for the given style
 /// difference. This is called from the layout worker threads.
-pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
+pub fn start_transitions_if_applicable(new_animations_sender: &Mutex<Sender<Animation>>,
                                        node: OpaqueNode,
                                        old_style: &ComputedValues,
                                        new_style: &mut ComputedValues) {
@@ -37,7 +37,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
             let animation_style = new_style.get_animation();
             let start_time =
                 now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
-            new_animations_sender.send(Animation {
+            new_animations_sender.lock().unwrap().send(Animation {
                 node: node.id(),
                 property_animation: property_animation,
                 start_time: start_time,

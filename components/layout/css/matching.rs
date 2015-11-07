@@ -21,8 +21,8 @@ use smallvec::SmallVec;
 use std::borrow::ToOwned;
 use std::hash::{Hash, Hasher};
 use std::slice::Iter;
-use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex};
 use string_cache::{Atom, Namespace};
 use style::node::TElementAttributes;
 use style::properties::{ComputedValues, PropertyDeclaration, cascade};
@@ -406,7 +406,7 @@ pub trait MatchMethods {
                            parent: Option<LayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Sender<Animation>);
+                           new_animations_sender: &Mutex<Sender<Animation>>);
 }
 
 trait PrivateMatchMethods {
@@ -417,7 +417,7 @@ trait PrivateMatchMethods {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
-                                   new_animations_sender: &Sender<Animation>,
+                                   new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage;
@@ -438,7 +438,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
                                    style: &mut Option<Arc<ComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache,
-                                   new_animations_sender: &Sender<Animation>,
+                                   new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> RestyleDamage {
@@ -655,7 +655,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                            parent: Option<LayoutNode>,
                            applicable_declarations: &ApplicableDeclarations,
                            applicable_declarations_cache: &mut ApplicableDeclarationsCache,
-                           new_animations_sender: &Sender<Animation>) {
+                           new_animations_sender: &Mutex<Sender<Animation>>) {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
