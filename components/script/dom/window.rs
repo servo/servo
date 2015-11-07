@@ -99,6 +99,7 @@ pub enum ReflowReason {
     WindowResize,
     DOMContentLoaded,
     DocumentLoaded,
+    StylesheetLoaded,
     ImageLoaded,
     RequestAnimationFrame,
     WebFontLoaded,
@@ -915,6 +916,9 @@ impl Window {
             debug_reflow_events(&goal, &query_type, &reason);
         }
 
+        let document = self.Document();
+        let stylesheets_changed = document.get_and_reset_stylesheets_changed_since_reflow();
+
         // Send new document and relevant styles to layout.
         let reflow = ScriptReflow {
             reflow_info: Reflow {
@@ -922,6 +926,8 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
+            document_stylesheets: document.stylesheets().clone(),
+            stylesheets_changed: stylesheets_changed,
             window_size: window_size,
             script_join_chan: join_chan,
             query_type: query_type,
@@ -1325,6 +1331,7 @@ fn debug_reflow_events(goal: &ReflowGoal, query_type: &ReflowQueryType, reason: 
         ReflowReason::WindowResize => "\tWindowResize",
         ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
         ReflowReason::DocumentLoaded => "\tDocumentLoaded",
+        ReflowReason::StylesheetLoaded => "\tStylesheetLoaded",
         ReflowReason::ImageLoaded => "\tImageLoaded",
         ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
         ReflowReason::WebFontLoaded => "\tWebFontLoaded",

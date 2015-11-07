@@ -16,8 +16,6 @@ use context::{SharedLayoutContext, StylistWrapper, heap_size_of_local_context};
 use cssparser::ToCss;
 use data::LayoutDataWrapper;
 use display_list_builder::ToGfxColor;
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
 use euclid::Matrix4;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -42,7 +40,6 @@ use msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use net_traits::image_cache_task::{ImageCacheChan, ImageCacheResult, ImageCacheTask};
-use net_traits::{PendingAsyncLoad, load_bytes_iter};
 use opaque_node::OpaqueNodeMethods;
 use parallel::{self, WorkQueueData};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -56,7 +53,6 @@ use script::layout_interface::Animation;
 use script::layout_interface::{LayoutChan, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{Msg, NewLayoutTaskInfo, Reflow, ReflowGoal, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow, TrustedNodeAddress};
-use script_traits::StylesheetLoadResponder;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, OpaqueScriptLayoutChannel};
 use selectors::parser::PseudoElement;
 use sequential;
@@ -72,13 +68,12 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard};
 use string_cache::Atom;
 use style::computed_values::{self, filter, mix_blend_mode};
-use style::media_queries::{Device, MediaQueryList, MediaType};
+use style::media_queries::{Device, MediaType};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
-use style::selector_matching::Stylist;
-use style::stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
+use style::selector_matching::{Stylist, USER_OR_USER_AGENT_STYLESHEETS};
+use style::stylesheets::{CSSRuleIteratorExt, Stylesheet};
 use style::values::AuExtensionMethods;
-use style::viewport::ViewportRule;
 use url::Url;
 use util::geometry::{MAX_RECT, ZERO_POINT};
 use util::ipc::OptionalIpcSender;
@@ -381,8 +376,8 @@ impl LayoutTask {
 
         let stylist = box Stylist::new(device);
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
-        for user_or_user_agent_stylesheet in stylist.stylesheets() {
-            add_font_face_rules(user_or_user_agent_stylesheet,
+        for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
+            add_font_face_rules(stylesheet,
                                 &stylist.device,
                                 &font_cache_task,
                                 &font_cache_sender,
@@ -577,20 +572,10 @@ impl LayoutTask {
                                                                                  LayoutTaskData>>)
                                  -> bool {
         match request {
-            Msg::AddStylesheet(sheet, mq) => {
-                self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data)
-            }
-            Msg::LoadStylesheet(url, mq, pending, link_element) => {
-                self.handle_load_stylesheet(url,
-                                            mq,
-                                            pending,
-                                            link_element,
-                                            possibly_locked_rw_data)
+            Msg::AddStylesheet(style_info) => {
+                self.handle_add_stylesheet(style_info, possibly_locked_rw_data)
             }
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
-            Msg::AddMetaViewport(translated_rule) => {
-                self.handle_add_meta_viewport(translated_rule, possibly_locked_rw_data)
-            }
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>).unwrap();
@@ -744,75 +729,31 @@ impl LayoutTask {
         response_port.recv().unwrap()
     }
 
-    fn handle_load_stylesheet<'a>(&'a self,
-                                  url: Url,
-                                  mq: MediaQueryList,
-                                  pending: PendingAsyncLoad,
-                                  responder: Box<StylesheetLoadResponder + Send>,
-                                  possibly_locked_rw_data:
-                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-        let environment_encoding = UTF_8 as EncodingRef;
-
-        // TODO we don't really even need to load this if mq does not match
-        let (metadata, iter) = load_bytes_iter(pending);
-        let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-        let final_url = metadata.final_url;
-
-        let sheet = Stylesheet::from_bytes_iter(iter,
-                                                final_url,
-                                                protocol_encoding_label,
-                                                Some(environment_encoding),
-                                                Origin::Author);
-
-        //TODO: mark critical subresources as blocking load as well (#5974)
-        self.script_chan.send(ConstellationControlMsg::StylesheetLoadComplete(self.id,
-                                                                              url,
-                                                                              responder)).unwrap();
-
-        self.handle_add_stylesheet(sheet, mq, possibly_locked_rw_data);
-    }
-
     fn handle_add_stylesheet<'a>(&'a self,
-                                 sheet: Stylesheet,
-                                 mq: MediaQueryList,
+                                 stylesheet: Arc<Stylesheet>,
                                  possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
+        // GWTODO: Need to handle unloading web fonts.
 
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        if mq.evaluate(&rw_data.stylist.device) {
-            add_font_face_rules(&sheet,
+        let rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        if stylesheet.is_effective_for_device(&rw_data.stylist.device) {
+            add_font_face_rules(&*stylesheet,
                                 &rw_data.stylist.device,
                                 &self.font_cache_task,
                                 &self.font_cache_sender,
                                 &rw_data.outstanding_web_fonts);
-            rw_data.stylist.add_stylesheet(sheet);
         }
 
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
-    fn handle_add_meta_viewport<'a>(&'a self,
-                                    translated_rule: ViewportRule,
-                                    possibly_locked_rw_data:
-                                      &mut Option<MutexGuard<'a, LayoutTaskData>>)
-    {
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_stylesheet(Stylesheet {
-            rules: vec![CSSRule::Viewport(translated_rule)],
-            origin: Origin::Author
-        });
-        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
-    }
-
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
+    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a>(&'a self,
                                   possibly_locked_rw_data:
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_quirks_mode_stylesheet();
+        rw_data.stylist.set_quirks_mode(true);
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -1076,7 +1017,7 @@ impl LayoutTask {
                     flow_ref::deref_mut(layout_root));
                 let root_size = {
                     let root_flow = flow::base(&**layout_root);
-                    if rw_data.stylist.constrain_viewport().is_some() {
+                    if rw_data.stylist.viewport_constraints().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
                         root_flow.overflow.size
@@ -1152,6 +1093,9 @@ impl LayoutTask {
         }
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        let stylesheets: Vec<&Stylesheet> = data.document_stylesheets.iter().map(|entry| &**entry)
+                                                                            .collect();
+        let stylesheets_changed = data.stylesheets_changed;
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = rw_data.viewport_size;
@@ -1160,9 +1104,9 @@ impl LayoutTask {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
-        rw_data.stylist.set_device(device);
+        rw_data.stylist.set_device(device, &stylesheets);
 
-        let constraints = rw_data.stylist.constrain_viewport();
+        let constraints = rw_data.stylist.viewport_constraints().clone();
         rw_data.viewport_size = match constraints {
             Some(ref constraints) => {
                 debug!("Viewport constraints: {:?}", constraints);
@@ -1178,9 +1122,6 @@ impl LayoutTask {
         let viewport_size_changed = rw_data.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = constraints {
-                let device = Device::new(MediaType::Screen, constraints.size);
-                rw_data.stylist.set_device(device);
-
                 // let the constellation know about the viewport constraints
                 let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
                 constellation_chan.send(ConstellationMsg::ViewportConstrained(
@@ -1189,7 +1130,7 @@ impl LayoutTask {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update();
+        let needs_dirtying = rw_data.stylist.update(&stylesheets, stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
@@ -1218,7 +1159,7 @@ impl LayoutTask {
                                                                          &self.url,
                                                                          data.reflow_info.goal);
 
-        if node.is_dirty() || node.has_dirty_descendants() || rw_data.stylist.is_dirty() {
+        if node.is_dirty() || node.has_dirty_descendants() {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),

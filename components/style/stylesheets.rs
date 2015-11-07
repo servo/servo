@@ -17,12 +17,13 @@ use std::iter::Iterator;
 use std::slice;
 use string_cache::{Atom, Namespace};
 use url::Url;
+use util::mem::HeapSizeOf;
 use viewport::ViewportRule;
 
 /// Each style rule has an origin, which determines where it enters the cascade.
 ///
 /// http://dev.w3.org/csswg/css-cascade/#cascading-origins
-#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
 pub enum Origin {
     /// http://dev.w3.org/csswg/css-cascade/#cascade-origin-ua
     UserAgent,
@@ -35,16 +36,18 @@ pub enum Origin {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     pub rules: Vec<CSSRule>,
+    /// List of media associated with the Stylesheet, if any.
+    pub media: Option<MediaQueryList>,
     pub origin: Origin,
 }
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub enum CSSRule {
     Charset(String),
     Namespace(Option<String>, Namespace),
@@ -54,7 +57,7 @@ pub enum CSSRule {
     Viewport(ViewportRule),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
@@ -67,7 +70,7 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub declarations: PropertyDeclarationBlock,
@@ -131,6 +134,23 @@ impl Stylesheet {
         Stylesheet {
             origin: origin,
             rules: rules,
+            media: None,
+        }
+    }
+
+    /// Set the MediaQueryList associated with the style-sheet.
+    pub fn set_media(&mut self, media: Option<MediaQueryList>) {
+        self.media = media;
+    }
+
+    /// Returns whether the style-sheet applies for the current device depending
+    /// on the associated MediaQueryList.
+    ///
+    /// Always true if no associated MediaQueryList exists.
+    pub fn is_effective_for_device(&self, device: &Device) -> bool {
+        match self.media {
+            Some(ref media) => media.evaluate(device),
+            None => true
         }
     }
 
