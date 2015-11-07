@@ -323,10 +323,18 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
                        outstanding_web_fonts_counter: &Arc<AtomicUsize>) {
     for font_face in stylesheet.effective_rules(&device).font_face() {
         for source in &font_face.sources {
-            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-            font_cache_task.add_web_font(font_face.family.clone(),
-                                         (*source).clone(),
-                                         (*font_cache_sender).clone());
+            if opts::get().load_webfonts_synchronously {
+                let (sender, receiver) = channel();
+                font_cache_task.add_web_font(font_face.family.clone(),
+                                             (*source).clone(),
+                                             sender);
+                receiver.recv().unwrap();
+            } else {
+                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+                font_cache_task.add_web_font(font_face.family.clone(),
+                                             (*source).clone(),
+                                             (*font_cache_sender).clone());
+            }
         }
     }
 }
@@ -1198,13 +1206,12 @@ impl LayoutTask {
             }
         }
 
-        let state_changes = document.drain_element_state_changes();
+        let modified_elements = document.drain_modified_elements();
         if !needs_dirtying {
-            for &(el, state_change) in state_changes.iter() {
-                debug_assert!(!state_change.is_empty());
+            for &(el, old_state) in modified_elements.iter() {
                 let hint = rw_data.stylist.restyle_hint_for_state_change(&el,
                                                                          el.get_state(),
-                                                                         state_change);
+                                                                         old_state);
                 el.note_restyle_hint(hint);
             }
         }

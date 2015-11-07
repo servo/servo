@@ -195,11 +195,10 @@ impl StateDependencySet {
         StateDependencySet { deps: Vec::new() }
     }
 
-    pub fn compute_hint<E>(&self, el: &E, current_state: ElementState, state_changes: ElementState)
+    pub fn compute_hint<E>(&self, el: &E, current_state: ElementState, old_state: ElementState)
                           -> RestyleHint where E: Element, E: Clone {
         let mut hint = RestyleHint::empty();
-        let mut old_state = current_state;
-        old_state.toggle(state_changes);
+        let state_changes = current_state ^ old_state;
         for dep in &self.deps {
             if state_changes.intersects(dep.state) {
                 let old_el: ElementWrapper<E> = ElementWrapper::new_with_override(el.clone(), old_state);
@@ -220,15 +219,16 @@ impl StateDependencySet {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
-            if let Some(rightmost) = cur.simple_selectors.last() {
-                let state_dep = selector_to_state(rightmost);
-                if !state_dep.is_empty() {
-                    self.deps.push(StateDependency {
-                        selector: cur.clone(),
-                        combinator: combinator,
-                        state: state_dep,
-                    });
-                }
+            let mut deps = ElementState::empty();
+            for s in &cur.simple_selectors {
+                deps.insert(selector_to_state(s));
+            }
+            if !deps.is_empty() {
+                self.deps.push(StateDependency {
+                    selector: cur.clone(),
+                    combinator: combinator,
+                    state: deps,
+                });
             }
 
             cur = match cur.next {
