@@ -2031,13 +2031,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn cache_unused_buffers(&mut self, buffers: Vec<Box<LayerBuffer>>) {
-        if !buffers.is_empty() {
-            let surfaces = buffers.into_iter().map(|buffer| {
-                buffer.native_surface
-            }).collect();
-            self.surface_map.insert_surfaces(&self.native_display, surfaces);
-        }
+    pub fn cache_unused_buffers<B>(&mut self, buffers: B)
+        where B: IntoIterator<Item=Box<LayerBuffer>>
+    {
+        let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
+        self.surface_map.insert_surfaces(&self.native_display, surfaces);
     }
 
     #[allow(dead_code)]

@@ -68,7 +68,9 @@ impl SurfaceMap {
         }
     }
 
-    pub fn insert_surfaces(&mut self, display: &NativeDisplay, surfaces: Vec<NativeSurface>) {
+    pub fn insert_surfaces<I>(&mut self, display: &NativeDisplay, surfaces: I)
+        where I: IntoIterator<Item=NativeSurface>
+    {
         for surface in surfaces {
             self.insert(display, surface);
         }
