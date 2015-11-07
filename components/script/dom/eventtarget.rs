@@ -2,19 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
+use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::inheritance::EventTargetTypeId;
+use dom::bindings::global::global_object_for_reflector;
+use dom::bindings::inheritance::{Castable, EventTargetTypeId};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::errorevent::ErrorEvent;
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::virtualmethods::VirtualMethods;
+use dom::window::Window;
 use fnv::FnvHasher;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject, RootedValue};
 use js::jsapi::{HandleObject, JSContext, RootedFunction};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
@@ -31,7 +38,20 @@ use url::Url;
 use util::mem::HeapSizeOf;
 use util::str::DOMString;
 
-pub type EventHandler = EventHandlerNonNull;
+#[derive(PartialEq, Clone, JSTraceable)]
+pub enum CommonEventHandler {
+    EventHandler(Rc<EventHandlerNonNull>),
+    ErrorEventHandler(Rc<OnErrorEventHandlerNonNull>),
+}
+
+impl CommonEventHandler {
+    fn parent(&self) -> &CallbackFunction {
+        match *self {
+            CommonEventHandler::EventHandler(ref handler) => &handler.parent,
+            CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
+        }
+    }
+}
 
 #[derive(JSTraceable, Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ListenerPhase {
@@ -78,7 +98,7 @@ impl EventTargetTypeId {
 #[derive(JSTraceable, Clone, PartialEq)]
 pub enum EventListenerType {
     Additive(Rc<EventListener>),
-    Inline(Rc<EventHandler>),
+    Inline(CommonEventHandler),
 }
 
 impl HeapSizeOf for EventListenerType {
@@ -89,18 +109,45 @@ impl HeapSizeOf for EventListenerType {
 }
 
 impl EventListenerType {
+    // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event<T: Reflectable>(&self,
                                                 object: &T,
                                                 event: &Event,
                                                 exception_handle: ExceptionHandling) {
+        // Step 3
         match *self {
             EventListenerType::Additive(ref listener) => {
                 let _ = listener.HandleEvent_(object, event, exception_handle);
             },
             EventListenerType::Inline(ref handler) => {
-                let _ = handler.Call_(object, event, exception_handle);
+                match *handler {
+                    CommonEventHandler::ErrorEventHandler(ref handler) => {
+                        if let Some(event) = event.downcast::<ErrorEvent>() {
+                            let global = global_object_for_reflector(object);
+                            let cx = global.r().get_cx();
+                            let error = RootedValue::new(cx, event.Error(cx));
+                            let _ = handler.Call_(object,
+                                                  EventOrString::eString(event.Message()),
+                                                  Some(event.Filename()),
+                                                  Some(event.Lineno()),
+                                                  Some(event.Colno()),
+                                                  Some(error.handle()),
+                                                  exception_handle);
+                            return;
+                        }
+
+                        let _ = handler.Call_(object, EventOrString::eEvent(Root::from_ref(event)),
+                                              None, None, None, None, exception_handle);
+                    }
+
+                    CommonEventHandler::EventHandler(ref handler) => {
+                        let _ = handler.Call_(object, event, exception_handle);
+                    }
+                }
             },
         }
+
+        // TODO: step 4 (cancel event based on return value)
     }
 }
 
@@ -151,7 +198,7 @@ impl EventTarget {
 
     pub fn set_inline_event_listener(&self,
                                      ty: Atom,
-                                     listener: Option<Rc<EventHandler>>) {
+                                     listener: Option<CommonEventHandler>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
@@ -185,7 +232,7 @@ impl EventTarget {
         }
     }
 
-    pub fn get_inline_event_listener(&self, ty: &Atom) -> Option<Rc<EventHandler>> {
+    pub fn get_inline_event_listener(&self, ty: &Atom) -> Option<CommonEventHandler> {
         let handlers = self.handlers.borrow();
         let entries = handlers.get(ty);
         entries.and_then(|entries| entries.iter().filter_map(|entry| {
@@ -197,6 +244,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     pub fn set_event_handler_uncompiled(&self,
                                     cx: *mut JSContext,
                                     url: Url,
@@ -207,8 +255,21 @@ impl EventTarget {
         let name = CString::new(ty).unwrap();
         let lineno = 0; //XXXjdm need to get a real number here
 
-        let nargs = 1; //XXXjdm not true for onerror
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];
+        static mut ERROR_ARG_NAMES: [*const c_char; 5] = [b"event\0" as *const u8 as *const c_char,
+                                                          b"source\0" as *const u8 as *const c_char,
+                                                          b"lineno\0" as *const u8 as *const c_char,
+                                                          b"colno\0" as *const u8 as *const c_char,
+                                                          b"error\0" as *const u8 as *const c_char];
+        // step 10
+        let is_error = ty == "error" && self.is::<Window>();
+        let (args, nargs) = unsafe {
+            if is_error {
+                (ERROR_ARG_NAMES.as_ptr(), ERROR_ARG_NAMES.len() as u32)
+            } else {
+                (ARG_NAMES.as_ptr(), ARG_NAMES.len() as u32)
+            }
+        };
 
         let source: Vec<u16> = source.utf16_units().collect();
         let options = CompileOptionsWrapper::new(cx, url.as_ptr(), lineno);
@@ -223,7 +284,7 @@ impl EventTarget {
                             options.ptr,
                             name.as_ptr(),
                             nargs,
-                            ARG_NAMES.as_mut_ptr(),
+                            args,
                             source.as_ptr(),
                             source.len() as size_t,
                             handler.handle_mut())
@@ -235,20 +296,34 @@ impl EventTarget {
 
         let funobj = unsafe { JS_GetFunctionObject(handler.ptr) };
         assert!(!funobj.is_null());
-        self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
+        if is_error {
+            self.set_error_event_handler(ty, Some(OnErrorEventHandlerNonNull::new(funobj)));
+        } else {
+            self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
+        }
     }
 
     pub fn set_event_handler_common<T: CallbackContainer>(
         &self, ty: &str, listener: Option<Rc<T>>)
     {
         let event_listener = listener.map(|listener|
-                                          EventHandlerNonNull::new(listener.callback()));
+                                          CommonEventHandler::EventHandler(
+                                              EventHandlerNonNull::new(listener.callback())));
+        self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
+    }
+
+    pub fn set_error_event_handler<T: CallbackContainer>(
+        &self, ty: &str, listener: Option<Rc<T>>)
+    {
+        let event_listener = listener.map(|listener|
+                                          CommonEventHandler::ErrorEventHandler(
+                                              OnErrorEventHandlerNonNull::new(listener.callback())));
         self.set_inline_event_listener(Atom::from_slice(ty), event_listener);
     }
 
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(&Atom::from_slice(ty));
-        listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
+        listener.map(|listener| CallbackContainer::new(listener.parent().callback()))
     }
 
     pub fn has_handlers(&self) -> bool {
