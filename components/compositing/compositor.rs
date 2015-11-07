@@ -2125,14 +2125,9 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
     fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other tasks in the system.
-        loop {
-            match self.port.try_recv_compositor_msg() {
-                None => break,
-                Some(msg) => {
-                    if !self.handle_browser_message(msg) {
-                        break
-                    }
-                }
+        while let Some(msg) = self.port.try_recv_compositor_msg() {
+            if !self.handle_browser_message(msg) {
+                break
             }
         }
 
