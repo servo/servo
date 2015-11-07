@@ -28,12 +28,8 @@ path = "../util"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies]
 euclid = {version = "0.3", features = ["plugins"]}
 serde = "0.6"
 serde_macros = "0.6"
-
+url = "0.5"

@@ -24,7 +24,7 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 log = "0.3"
-libc = "0.1"
+libc = "0.2"
 regex = "0.1.14"
 time = "0.1.12"
 

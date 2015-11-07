@@ -24,13 +24,13 @@ impl LintPass for InheritancePass {
 }
 
 impl LateLintPass for InheritancePass {
-    fn check_struct_def(&mut self, cx: &LateContext, def: &hir::StructDef, _n: ast::Name,
+    fn check_struct_def(&mut self, cx: &LateContext, def: &hir::VariantData, _n: ast::Name,
                         _gen: &hir::Generics, id: ast::NodeId) {
         // Lints are run post expansion, so it's fine to use
         // #[_dom_struct_marker] here without also checking for #[dom_struct]
         if cx.tcx.has_attr(cx.tcx.map.local_def_id(id), "_dom_struct_marker") {
             // Find the reflector, if any
-            let reflector_span = def.fields.iter().enumerate()
+            let reflector_span = def.fields().iter().enumerate()
                                     .find(|&(ctr, f)| {
                                         if match_lang_ty(cx, &*f.node.ty, "reflector") {
                                             if ctr > 0 {
@@ -44,7 +44,7 @@ impl LateLintPass for InheritancePass {
                                     })
                                     .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
-            let dom_spans: Vec<_> = def.fields.iter().enumerate().filter_map(|(ctr, f)| {
+            let dom_spans: Vec<_> = def.fields().iter().enumerate().filter_map(|(ctr, f)| {
                 if let hir::TyPath(..) = f.node.ty.node {
                     if let Some(&def::PathResolution { base_def: def::DefTy(def_id, _), .. }) =
                             cx.tcx.def_map.borrow().get(&f.node.ty.id) {

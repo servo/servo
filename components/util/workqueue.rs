@@ -8,7 +8,7 @@
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
-use libc::funcs::posix88::unistd::usleep;
+use libc::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};

@@ -32,17 +32,13 @@ features = ["plugins"]
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies]
 app_units = {version = "0.1", features = ["plugins"]}
 cssparser = { version = "0.4", features = [ "serde-serialization" ] }
 log = "0.3"
 bitflags = "0.3"
 html5ever = { version = "0.2.1", features = ["unstable"] }
-libc = "0.1"
+libc = "0.2"
 rand = "0.3"
 rustc-serialize = "0.3"
 smallvec = "0.1"
@@ -55,5 +51,6 @@ serde_macros = "0.6"
 string_cache = "0.2"
 lazy_static = "0.1"
 getopts = "0.2.11"
-hyper = "0.6"
+hyper = "0.7"
+url = "0.5"
 uuid = "0.1.17"
