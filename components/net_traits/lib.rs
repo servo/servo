@@ -234,6 +234,8 @@ pub enum ControlMsg {
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
+    /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
+    Synchronize(IpcSender<()>),
     /// Break the load handler loop and exit
     Exit,
 }

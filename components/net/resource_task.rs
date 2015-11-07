@@ -187,6 +187,9 @@ impl ResourceChannelManager {
                     }
                     self.resource_manager.cancel_load_map.remove(&res_id);
                 }
+                ControlMsg::Synchronize(sender) => {
+                    let _ = sender.send(());
+                }
                 ControlMsg::Exit => break,
             }
         }
