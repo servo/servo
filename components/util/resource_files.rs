@@ -26,7 +26,6 @@ pub fn resources_dir_path() -> PathBuf {
 #[cfg(not(target_os = "android"))]
 pub fn resources_dir_path() -> PathBuf {
     use std::env;
-    use std::fs::PathExt;
 
     match *CMD_RESOURCE_DIR.lock().unwrap() {
         Some(ref path) => PathBuf::from(path),
