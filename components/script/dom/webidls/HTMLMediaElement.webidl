@@ -39,16 +39,16 @@ interface HTMLMediaElement : HTMLElement {
   //void fastSeek(double time);
   //readonly attribute unrestricted double duration;
   //Date getStartDate();
-  //readonly attribute boolean paused;
+    readonly attribute boolean paused;
   //         attribute double defaultPlaybackRate;
   //         attribute double playbackRate;
   //readonly attribute TimeRanges played;
   //readonly attribute TimeRanges seekable;
   //readonly attribute boolean ended;
-  //         attribute boolean autoplay;
+             attribute boolean autoplay;
   //         attribute boolean loop;
-  //void play();
-  //void pause();
+    void play();
+    void pause();
 
   // media controller
   //         attribute DOMString mediaGroup;
