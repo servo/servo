@@ -9,6 +9,7 @@ import platform
 import subprocess
 import sys
 from distutils.spawn import find_executable
+from pipes import quote
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
@@ -102,7 +103,7 @@ def _activate_virtualenv(topdir):
         except (subprocess.CalledProcessError, OSError):
             sys.exit("Python virtualenv failed to execute properly.")
 
-    execfile(activate_path, dict(__file__=activate_path))
+    execfile(activate_path, dict(__file__=quote(activate_path)))
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
