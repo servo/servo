@@ -54,16 +54,11 @@ impl ScrollingTimerProxy {
 
 impl ScrollingTimer {
     pub fn run(&mut self) {
-        loop {
-            match self.receiver.recv() {
-                Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) => {
-                    let target = timestamp as i64 + TIMEOUT;
-                    let delta_ns = target - (time::precise_time_ns() as i64);
-                    sleep_ms((delta_ns / 1000000) as u32);
-                    self.compositor_proxy.send(Msg::ScrollTimeout(timestamp));
-                }
-                Ok(ToScrollingTimerMsg::ExitMsg) | Err(_) => break,
-            }
+        while let Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) = self.receiver.recv() {
+            let target = timestamp as i64 + TIMEOUT;
+            let delta_ns = target - (time::precise_time_ns() as i64);
+            sleep_ms((delta_ns / 1000000) as u32);
+            self.compositor_proxy.send(Msg::ScrollTimeout(timestamp));
         }
     }
 }
