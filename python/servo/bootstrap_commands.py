@@ -117,7 +117,7 @@ class MachCommands(CommandBase):
                      help='Force download even if a snapshot already exists')
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
-            self.context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
+            self.context.sharedir, "rust", self.rust_snapshot_path())
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap-rust --force| to download again.")
@@ -127,16 +127,43 @@ class MachCommands(CommandBase):
             shutil.rmtree(rust_dir)
         os.makedirs(rust_dir)
 
-        snapshot_url = ("https://servo-rust.s3.amazonaws.com/%s.tar.gz"
+        date = self.rust_snapshot_path().split("/")[0]
+        install_dir = path.join(self.context.sharedir, "rust", date)
+
+        # The Rust compiler is hosted on the nightly server under the date with a name
+        # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
+        # giving a directory name that will be the same as the tarball name (rustc is
+        # in that directory).
+        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
                         % self.rust_snapshot_path())
-        tgz_file = rust_dir + '.tar.gz'
+        tgz_file = rust_dir + '-rustc.tar.gz'
 
-        download_file("Rust snapshot", snapshot_url, tgz_file)
+        download_file("Rust compiler", snapshot_url, tgz_file)
 
-        print("Extracting Rust snapshot...")
-        snap_dir = path.join(rust_dir,
-                             path.basename(tgz_file).replace(".tar.gz", ""))
-        extract(tgz_file, rust_dir, movedir=snap_dir)
+        print("Extracting Rust compiler...")
+        extract(tgz_file, install_dir)
+
+        # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz`, with
+        # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
+        # This `lib` directory needs to be extracted and merged with the `rustc/lib`
+        # directory from the host compiler above.
+        # TODO: make it possible to request an additional cross-target to add to this
+        # list.
+        stdlibs = [host_triple(), "arm-linux-androideabi"]
+        for target in stdlibs:
+            snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
+                            % (date, target))
+            tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target)
+
+            download_file("Host rust library for target %s" % target, snapshot_url, tgz_file)
+            print("Extracting Rust stdlib for target %s..." % target)
+            extract(tgz_file, install_dir)
+            shutil.copytree(path.join(install_dir, "rust-std-nightly-%s" % target,
+                                      "rust-std-%s" % target, "lib", "rustlib", target),
+                            path.join(install_dir, "rustc-nightly-%s" % host_triple(),
+                                      "rustc", "lib", "rustlib", target))
+            shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target))
+
         print("Snapshot Rust ready.")
 
     @Command('bootstrap-rust-docs',
@@ -149,7 +176,7 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         hash_dir = path.join(self.context.sharedir, "rust",
                              self.rust_snapshot_path().split("/")[0])
-        docs_dir = path.join(hash_dir, self.rust_snapshot_path().split("/")[1], "doc")
+        docs_dir = path.join(hash_dir, "doc")
         if not force and path.exists(docs_dir):
             print("Snapshot Rust docs already downloaded.", end=" ")
             print("Use |bootstrap-rust-docs --force| to download again.")
@@ -158,8 +185,8 @@ class MachCommands(CommandBase):
         if path.isdir(docs_dir):
             shutil.rmtree(docs_dir)
         docs_name = self.rust_snapshot_path().replace("rustc-", "rust-docs-")
-        snapshot_url = ("https://servo-rust.s3.amazonaws.com/%s.tar.gz"
-                        % docs_name)
+        snapshot_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-docs-nightly-%s.tar.gz"
+                        % host_triple())
         tgz_file = path.join(hash_dir, 'doc.tar.gz')
 
         download_file("Rust docs", snapshot_url, tgz_file)

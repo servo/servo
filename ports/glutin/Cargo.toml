@@ -14,8 +14,8 @@ headless = ["glutin/headless"]
 [dependencies]
 time = "0.1.12"
 bitflags = "0.3"
-libc = "0.1"
-url = "0.2"
+libc = "0.2"
+url = "0.5"
 gleam = "0.1"
 euclid = {version = "0.3", features = ["plugins"]}
 
