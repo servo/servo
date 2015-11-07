@@ -16,16 +16,8 @@ path = "../msg"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
-[dependencies.hyper]
-version = "0.6"
-features = [ "serde-serialization" ]
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
-
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
 
 [dependencies.plugins]
 path = "../plugins"
@@ -33,6 +25,8 @@ path = "../plugins"
 [dependencies]
 log = "0.3"
 euclid = {version = "0.3", features = ["plugins"]}
-image = "0.4.0"
+hyper = { version = "0.7", features = [ "serde-serialization" ] }
+image = "0.5.0"
 serde = "0.6"
 serde_macros = "0.6"
+url = "0.5"

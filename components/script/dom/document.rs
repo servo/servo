@@ -1659,7 +1659,7 @@ impl DocumentMethods for Document {
 
         if let Some(&Host::Ipv6(ipv6)) = origin.host() {
             // Omit square brackets for IPv6 addresses.
-            return DOMString::from(ipv6.serialize());
+            return DOMString::from(ipv6.to_string());
         }
 
         DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))

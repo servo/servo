@@ -18,7 +18,7 @@ doc = false
 bench = false
 
 [dev-dependencies]
-image = "0.4.0"
+image = "0.5.0"
 
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"
@@ -124,10 +124,6 @@ optional = true
 version = "0.3"
 features = ["release_max_level_info"]
 
-[dependencies.url]
-version = "0.2"
-features = [ "serde_serialization" ]
-
 [dependencies.euclid]
 version = "0.3"
 features = ["plugins"]
@@ -152,4 +148,6 @@ git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 env_logger = "0.3"
 time = "0.1.12"
 bitflags = "0.3"
-libc = "0.1"
+libc = "0.2"
+url = {version = "0.5", features = ["serde_serialization", "query_encoding"]}
+

@@ -39,7 +39,7 @@ use websocket::client::receiver::Receiver;
 use websocket::client::request::Url;
 use websocket::client::sender::Sender;
 use websocket::header::Origin;
-use websocket::message::CloseData;
+use websocket::message::Type;
 use websocket::result::WebSocketResult;
 use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
@@ -264,23 +264,27 @@ impl WebSocket {
             sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_task)).unwrap();
 
             for message in receiver.incoming_messages() {
-                let message = match message {
-                    Ok(Message::Text(text)) => MessageData::Text(text),
-                    Ok(Message::Binary(data)) => MessageData::Binary(data),
-                    Ok(Message::Ping(data)) => {
-                        ws_sender.lock().unwrap().send_message(Message::Pong(data)).unwrap();
+                let message: Message = match message {
+                    Ok(m) => m,
+                    Err(_) => break,
+                };
+                let message = match message.opcode {
+                    Type::Text => MessageData::Text(String::from_utf8_lossy(&message.payload).into_owned()),
+                    Type::Binary => MessageData::Binary(message.payload.into_owned()),
+                    Type::Ping => {
+                        let pong = Message::pong(message.payload);
+                        ws_sender.lock().unwrap().send_message(&pong).unwrap();
                         continue;
                     },
-                    Ok(Message::Pong(_)) => continue,
-                    Ok(Message::Close(data)) => {
-                        ws_sender.lock().unwrap().send_message(Message::Close(data)).unwrap();
+                    Type::Pong => continue,
+                    Type::Close => {
+                        ws_sender.lock().unwrap().send_message(&message).unwrap();
                         let task = box CloseTask {
                             addr: address,
                         };
                         sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
                         break;
                     },
-                    Err(_) => break,
                 };
                 let message_task = box MessageReceivedTask {
                     address: address.clone(),
@@ -385,7 +389,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap().send_message(Message::Text(data.0));
+            let _ = my_sender.lock().unwrap().send_message(&Message::text(data.0));
         }
 
         Ok(())
@@ -404,7 +408,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let _ = my_sender.lock().unwrap().send_message(Message::Binary(data.clone_bytes()));
+            let _ = my_sender.lock().unwrap().send_message(&Message::binary(data.clone_bytes()));
         }
 
         Ok(())
@@ -420,7 +424,7 @@ impl WebSocketMethods for WebSocket {
             if let Some(sender) = sender.as_mut() {
                 let code: u16 = this.code.get();
                 let reason = this.reason.borrow().clone();
-                let _ = sender.lock().unwrap().send_message(Message::Close(Some(CloseData::new(code, reason))));
+                let _ = sender.lock().unwrap().send_message(&Message::close_because(code, reason));
             }
         }
 

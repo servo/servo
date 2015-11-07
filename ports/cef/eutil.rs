@@ -30,7 +30,7 @@ pub fn slice_to_str<F>(s: *const u8, l: usize, f: F) -> c_int where F: FnOnce(&s
 /// All fields are initialized to zero. It is the caller's responsibility to ensure that the given
 /// type is a CEF type with `cef_base_t` as its first member.
 pub unsafe fn create_cef_object<Base,Extra>(size: size_t) -> *mut Base {
-    let object = libc::calloc(1, (mem::size_of::<Base>() + mem::size_of::<Extra>()) as u64) as
+    let object = libc::calloc(1, (mem::size_of::<Base>() + mem::size_of::<Extra>())) as
         *mut cef_base_t;
     (*object).size = size;
     (*object).add_ref = Some(servo_add_ref as extern "C" fn(*mut cef_base_t) -> c_int);
